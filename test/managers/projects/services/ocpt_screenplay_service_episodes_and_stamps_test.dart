@@ -356,14 +356,16 @@ void main() {
         );
         final sceneText = screenplayText.substring(scene.charStart, scene.charEnd);
         final coverageStart = sceneText.indexOf("Hello");
-        await shotCoverageService.addRange(
-          database: database,
-          shotId: shotId,
-          sceneId: scene.id,
-          startOffset: coverageStart,
-          endOffset: coverageStart + "Hello".length,
-          sceneText: sceneText,
-        );
+        await shotCoverageService
+            .addRange(
+              database: database,
+              shotId: shotId,
+              sceneId: scene.id,
+              startOffset: coverageStart,
+              endOffset: coverageStart + "Hello".length,
+              sceneText: sceneText,
+            )
+            .maybeValueOrFail;
 
         // A shot of the surviving episode's own scene, untouched by anything below.
         final otherShotId = (await shotListService.createShot(

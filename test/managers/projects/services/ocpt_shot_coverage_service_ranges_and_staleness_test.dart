@@ -20,8 +20,10 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'ocpt_shot_coverage_service_test_doubles.dart';
 
 /// Run the tests of the shot coverage service ranges and staleness.
@@ -158,14 +160,16 @@ Action one.
           .substring(scene.charStart, scene.charEnd);
       final wordOffset = sceneText.indexOf("one");
 
-      final rangeId = (await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: wordOffset,
-        endOffset: wordOffset + "one".length,
-        sceneText: sceneText,
-      ))!;
+      final rangeId = (await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: wordOffset,
+            endOffset: wordOffset + "one".length,
+            sceneText: sceneText,
+          )
+          .valueOrFail);
 
       final range = await readSingleRange();
       expect(range.id, rangeId);
@@ -197,14 +201,16 @@ Action one.
       // interaction closes a range wherever the second click lands, so nothing rejects this.
       final startOffset = sceneText.indexOf("HOUSE");
       final endOffset = sceneText.indexOf("one.") + "one.".length;
-      final rangeId = (await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: startOffset,
-        endOffset: endOffset,
-        sceneText: sceneText,
-      ))!;
+      final rangeId = (await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: startOffset,
+            endOffset: endOffset,
+            sceneText: sceneText,
+          )
+          .valueOrFail);
 
       final range = await (database.select(
         database.ocptShotCoveragesTable,
@@ -239,22 +245,26 @@ Action one two three.
       final twoOffset = sceneText.indexOf("two");
       final threeEnd = sceneText.indexOf("three.") + "three.".length;
 
-      await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: oneOffset,
-        endOffset: twoOffset + "two".length,
-        sceneText: sceneText,
-      );
-      await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: twoOffset,
-        endOffset: threeEnd,
-        sceneText: sceneText,
-      );
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: oneOffset,
+            endOffset: twoOffset + "two".length,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: twoOffset,
+            endOffset: threeEnd,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
 
       final range = await readSingleRange();
       expect(range.startOffset, oneOffset);
@@ -285,22 +295,26 @@ Action one two three.
       final oneOffset = sceneText.indexOf("one");
       final twoOffset = sceneText.indexOf("two");
 
-      await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: oneOffset,
-        endOffset: oneOffset + "one".length,
-        sceneText: sceneText,
-      );
-      await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: twoOffset,
-        endOffset: twoOffset + "two".length,
-        sceneText: sceneText,
-      );
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: oneOffset,
+            endOffset: oneOffset + "one".length,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: twoOffset,
+            endOffset: twoOffset + "two".length,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
 
       final range = await readSingleRange();
       expect(sceneText.substring(range.startOffset, range.endOffset), "one two");
@@ -331,33 +345,39 @@ Action one two three four.
       final fourEnd = sceneText.indexOf("four.") + "four.".length;
 
       // "one", then "four.", far enough apart to stay two rows: real words sit between them.
-      await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: oneOffset,
-        endOffset: oneOffset + "one".length,
-        sceneText: sceneText,
-      );
-      await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: sceneText.indexOf("four."),
-        endOffset: fourEnd,
-        sceneText: sceneText,
-      );
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: oneOffset,
+            endOffset: oneOffset + "one".length,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: sceneText.indexOf("four."),
+            endOffset: fourEnd,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
       expect(await readRanges(), hasLength(2));
 
       // The bridge covers "two three", joining both of them at once.
-      await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: twoOffset,
-        endOffset: sceneText.indexOf("three") + "three".length,
-        sceneText: sceneText,
-      );
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: twoOffset,
+            endOffset: sceneText.indexOf("three") + "three".length,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
 
       final range = await readSingleRange();
       expect(sceneText.substring(range.startOffset, range.endOffset), "one two three four.");
@@ -386,22 +406,26 @@ Action one two three.
       final oneOffset = sceneText.indexOf("one");
       final threeOffset = sceneText.indexOf("three.");
 
-      await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: oneOffset,
-        endOffset: oneOffset + "one".length,
-        sceneText: sceneText,
-      );
-      await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: threeOffset,
-        endOffset: threeOffset + "three.".length,
-        sceneText: sceneText,
-      );
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: oneOffset,
+            endOffset: oneOffset + "one".length,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: threeOffset,
+            endOffset: threeOffset + "three.".length,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
 
       expect(await readRanges(), hasLength(2));
     });
@@ -434,29 +458,33 @@ Action one two.
       final oneOffset = sceneText.indexOf("one");
       final twoOffset = sceneText.indexOf("two");
 
-      await coverageService.addRange(
-        database: database,
-        shotId: shotA,
-        sceneId: scene.id,
-        startOffset: oneOffset,
-        endOffset: oneOffset + "one".length,
-        sceneText: sceneText,
-      );
-      await coverageService.addRange(
-        database: database,
-        shotId: shotB,
-        sceneId: scene.id,
-        startOffset: twoOffset,
-        endOffset: twoOffset + "two".length,
-        sceneText: sceneText,
-      );
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotA,
+            sceneId: scene.id,
+            startOffset: oneOffset,
+            endOffset: oneOffset + "one".length,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
+      await coverageService
+          .addRange(
+            database: database,
+            shotId: shotB,
+            sceneId: scene.id,
+            startOffset: twoOffset,
+            endOffset: twoOffset + "two".length,
+            sceneText: sceneText,
+          )
+          .maybeValueOrFail;
 
       final ranges = await readRanges();
       expect(ranges, hasLength(2));
       expect(ranges.map((range) => range.shotId), containsAll([shotA, shotB]));
     });
 
-    test("still rejects an empty or negative range", () async {
+    test("still rejects an empty, inverted or negative range, writing nothing", () async {
       await screenplayService.saveScreenplayText(
         database: database,
         screenplayId: screenplayId,
@@ -474,17 +502,21 @@ Action one.
         sceneId: scene.id,
       ))!;
 
-      expect(
-        () => coverageService.addRange(
+      for (final (start, end) in [(5, 5), (7, 3), (-1, 4)]) {
+        final result = await coverageService.addRange(
           database: database,
           shotId: shotId,
           sceneId: scene.id,
-          startOffset: 5,
-          endOffset: 5,
+          startOffset: start,
+          endOffset: end,
           sceneText: "never read: the guard rejects the range first",
-        ),
-        throwsArgumentError,
-      );
+        );
+
+        expect(result.status, OcptDatabaseStatus.databaseError, reason: "$start..$end");
+        expect(result.value, isNull);
+      }
+
+      expect(await readRanges(), isEmpty);
     });
   });
 
@@ -519,14 +551,16 @@ Action two three.
         .substring(streetScene.charStart, streetScene.charEnd);
     final wordOffset = sceneTextBefore.indexOf("two");
 
-    await coverageService.addRange(
-      database: database,
-      shotId: shotId,
-      sceneId: streetScene.id,
-      startOffset: wordOffset,
-      endOffset: wordOffset + "two".length,
-      sceneText: sceneTextBefore,
-    );
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: streetScene.id,
+          startOffset: wordOffset,
+          endOffset: wordOffset + "two".length,
+          sceneText: sceneTextBefore,
+        )
+        .maybeValueOrFail;
     final rangeBefore = await readSingleRange();
 
     // Scene 1 grows; scene 2's own text is untouched.
@@ -593,14 +627,16 @@ Action two three.
         .substring(streetScene.charStart, streetScene.charEnd);
     final wordOffset = sceneText.indexOf("two");
 
-    await coverageService.addRange(
-      database: database,
-      shotId: shotId,
-      sceneId: streetScene.id,
-      startOffset: wordOffset,
-      endOffset: wordOffset + "two".length,
-      sceneText: sceneText,
-    );
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: streetScene.id,
+          startOffset: wordOffset,
+          endOffset: wordOffset + "two".length,
+          sceneText: sceneText,
+        )
+        .maybeValueOrFail;
 
     // "two" becomes "TWO": the covered word itself changed.
     const newText = '''
@@ -657,14 +693,16 @@ Action one two.
         .substring(scene.charStart, scene.charEnd);
     final wordOffset = sceneText.indexOf("one");
 
-    await coverageService.addRange(
-      database: database,
-      shotId: shotId,
-      sceneId: scene.id,
-      startOffset: wordOffset,
-      endOffset: wordOffset + "one".length,
-      sceneText: sceneText,
-    );
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: scene.id,
+          startOffset: wordOffset,
+          endOffset: wordOffset + "one".length,
+          sceneText: sceneText,
+        )
+        .maybeValueOrFail;
 
     expect((await readShot(shotId)).needsCheck, isFalse);
 
@@ -716,14 +754,16 @@ Action two three.
     // doesn't shift this range's offsets at all.
     final wordOffset = sceneText.indexOf("Action", sceneText.indexOf("STREET"));
 
-    await coverageService.addRange(
-      database: database,
-      shotId: shotId,
-      sceneId: streetScene.id,
-      startOffset: wordOffset,
-      endOffset: wordOffset + "Action".length,
-      sceneText: sceneText,
-    );
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: streetScene.id,
+          startOffset: wordOffset,
+          endOffset: wordOffset + "Action".length,
+          sceneText: sceneText,
+        )
+        .maybeValueOrFail;
 
     // Only "three" (after the covered word) changes.
     const newText = '''
@@ -784,14 +824,16 @@ Action two three four.
     final wordOffset = sceneTextBefore.indexOf("four");
     final rangeEnd = wordOffset + "four".length;
 
-    await coverageService.addRange(
-      database: database,
-      shotId: shotId,
-      sceneId: streetScene.id,
-      startOffset: wordOffset,
-      endOffset: rangeEnd,
-      sceneText: sceneTextBefore,
-    );
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: streetScene.id,
+          startOffset: wordOffset,
+          endOffset: rangeEnd,
+          sceneText: sceneTextBefore,
+        )
+        .maybeValueOrFail;
 
     // The scene shrinks: "four" (and its trailing content) is gone, so the stored range no longer
     // fits inside the scene's new, shorter bounds.

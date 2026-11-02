@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../ocpt_result_expectations.dart';
 
 /// Builds an [OcptShotCoverageRange] test double with sensible defaults for the fields a given
 /// test doesn't care about.
@@ -566,13 +567,15 @@ John walks in.
 
     // Must not throw: a range built from two of the layout's words is exactly the shape addRange
     // expects, whether the two words sit in one block or in two.
-    await coverageService.addRange(
-      database: database,
-      shotId: shotId,
-      sceneId: scene.id,
-      startOffset: range.startOffset,
-      endOffset: range.endOffset,
-      sceneText: sceneText,
-    );
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: scene.id,
+          startOffset: range.startOffset,
+          endOffset: range.endOffset,
+          sceneText: sceneText,
+        )
+        .maybeValueOrFail;
   });
 }

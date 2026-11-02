@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'ocpt_shot_coverage_service_test_doubles.dart';
 
 /// Run the tests of the shot coverage service checked and covering.
@@ -172,14 +173,16 @@ Action two three.
         .substring(streetScene.charStart, streetScene.charEnd);
     final wordOffset = sceneText.indexOf("two");
 
-    await coverageService.addRange(
-      database: database,
-      shotId: shotId,
-      sceneId: streetScene.id,
-      startOffset: wordOffset,
-      endOffset: wordOffset + "two".length,
-      sceneText: sceneText,
-    );
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: streetScene.id,
+          startOffset: wordOffset,
+          endOffset: wordOffset + "two".length,
+          sceneText: sceneText,
+        )
+        .maybeValueOrFail;
 
     const editedText = '''
 INT. HOUSE - DAY
@@ -204,11 +207,9 @@ Action TWO three.
     );
     expect((await readShot(shotId)).needsCheck, isTrue);
 
-    await coverageService.markAsChecked(
-      database: database,
-      shotId: shotId,
-      currentFountainText: editedText,
-    );
+    await coverageService
+        .markAsChecked(database: database, shotId: shotId, currentFountainText: editedText)
+        .okOrFail;
 
     final checkedShot = await readShot(shotId);
     expect(checkedShot.needsCheck, isFalse);
@@ -258,27 +259,31 @@ Action one two three.
     final oneOffset = sceneText.indexOf("one");
     final twoOffset = sceneText.indexOf("two");
 
-    await coverageService.addRange(
-      database: database,
-      shotId: shotA,
-      sceneId: scene.id,
-      startOffset: oneOffset,
-      endOffset: twoOffset + "two".length,
-      sceneText: sceneText,
-    );
-    await coverageService.addRange(
-      database: database,
-      shotId: shotB,
-      sceneId: scene.id,
-      startOffset: twoOffset,
-      endOffset: twoOffset + "two".length,
-      sceneText: sceneText,
-    );
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotA,
+          sceneId: scene.id,
+          startOffset: oneOffset,
+          endOffset: twoOffset + "two".length,
+          sceneText: sceneText,
+        )
+        .maybeValueOrFail;
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotB,
+          sceneId: scene.id,
+          startOffset: twoOffset,
+          endOffset: twoOffset + "two".length,
+          sceneText: sceneText,
+        )
+        .maybeValueOrFail;
 
     // Removing shot A's range tombstones it, and every reader has to stop seeing it rather than
     // rely on the row being gone.
     final rangeOfA = (await readRanges()).firstWhere((row) => row.shotId == shotA);
-    await coverageService.removeRange(database: database, rangeId: rangeOfA.id);
+    await coverageService.removeRange(database: database, rangeId: rangeOfA.id).okOrFail;
 
     expect((await readRanges()).map((row) => row.shotId), [shotB]);
     // The row itself is still there, flagged.
@@ -307,15 +312,17 @@ Action one two three.
         .fountainText
         .substring(scene.charStart, scene.charEnd);
 
-    await coverageService.addRange(
-      database: database,
-      shotId: shotId,
-      sceneId: scene.id,
-      startOffset: sceneText.indexOf("one"),
-      endOffset: sceneText.indexOf("three") + "three".length,
-      sceneText: sceneText,
-    );
-    await coverageService.clearRangesOfShot(database: database, shotId: shotId);
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: scene.id,
+          startOffset: sceneText.indexOf("one"),
+          endOffset: sceneText.indexOf("three") + "three".length,
+          sceneText: sceneText,
+        )
+        .maybeValueOrFail;
+    await coverageService.clearRangesOfShot(database: database, shotId: shotId).okOrFail;
 
     expect(await readRanges(), isEmpty);
 
@@ -445,21 +452,21 @@ Action four five six.
           ),
         );
 
-    final addedId = await coverageService.addRange(
-      database: preview,
-      shotId: "shot-1",
-      sceneId: "scene-1",
-      startOffset: 6,
-      endOffset: 9,
-      sceneText: "INT. HOUSE - DAY",
-    );
-    await coverageService.removeRange(database: preview, rangeId: "coverage-1");
-    await coverageService.clearRangesOfShot(database: preview, shotId: "shot-1");
-    await coverageService.markAsChecked(
-      database: preview,
-      shotId: "shot-1",
-      currentFountainText: "INT. HOUSE - DAY",
-    );
+    final addedId = await coverageService
+        .addRange(
+          database: preview,
+          shotId: "shot-1",
+          sceneId: "scene-1",
+          startOffset: 6,
+          endOffset: 9,
+          sceneText: "INT. HOUSE - DAY",
+        )
+        .maybeValueOrFail;
+    await coverageService.removeRange(database: preview, rangeId: "coverage-1").okOrFail;
+    await coverageService.clearRangesOfShot(database: preview, shotId: "shot-1").okOrFail;
+    await coverageService
+        .markAsChecked(database: preview, shotId: "shot-1", currentFountainText: "INT. HOUSE - DAY")
+        .okOrFail;
     await coverageService.refreshStaleness(
       database: preview,
       screenplayId: screenplayId,
@@ -516,14 +523,16 @@ Action one two three.
       final (shotId, scene, sceneText) = await insertShotWithScene();
       final offset = sceneText.indexOf("one");
 
-      final rangeId = (await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: offset,
-        endOffset: offset + "one".length,
-        sceneText: sceneText,
-      ))!;
+      final rangeId = (await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: offset,
+            endOffset: offset + "one".length,
+            sceneText: sceneText,
+          )
+          .valueOrFail);
 
       final stamps = await readStamps();
       final range = await readSingleRange();
@@ -544,24 +553,28 @@ Action one two three.
         final twoOffset = sceneText.indexOf("two");
         final threeEnd = sceneText.indexOf("three.") + "three.".length;
 
-        final firstId = (await coverageService.addRange(
-          database: database,
-          shotId: shotId,
-          sceneId: scene.id,
-          startOffset: oneOffset,
-          endOffset: twoOffset + "two".length,
-          sceneText: sceneText,
-        ))!;
+        final firstId = (await coverageService
+            .addRange(
+              database: database,
+              shotId: shotId,
+              sceneId: scene.id,
+              startOffset: oneOffset,
+              endOffset: twoOffset + "two".length,
+              sceneText: sceneText,
+            )
+            .valueOrFail);
         await database.delete(database.ocptRowFieldVersionsTable).go();
 
-        final mergedId = (await coverageService.addRange(
-          database: database,
-          shotId: shotId,
-          sceneId: scene.id,
-          startOffset: twoOffset,
-          endOffset: threeEnd,
-          sceneText: sceneText,
-        ))!;
+        final mergedId = (await coverageService
+            .addRange(
+              database: database,
+              shotId: shotId,
+              sceneId: scene.id,
+              startOffset: twoOffset,
+              endOffset: threeEnd,
+              sceneText: sceneText,
+            )
+            .valueOrFail);
 
         final stamps = await readStamps();
         expect(stamps["shot_coverages/$firstId/isDeleted"]!.version, 1);
@@ -575,17 +588,19 @@ Action one two three.
     test("removeRange stamps isDeleted, like any other column", () async {
       final (shotId, scene, sceneText) = await insertShotWithScene();
       final offset = sceneText.indexOf("one");
-      final rangeId = (await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: offset,
-        endOffset: offset + "one".length,
-        sceneText: sceneText,
-      ))!;
+      final rangeId = (await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: offset,
+            endOffset: offset + "one".length,
+            sceneText: sceneText,
+          )
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await coverageService.removeRange(database: database, rangeId: rangeId);
+      await coverageService.removeRange(database: database, rangeId: rangeId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps.keys.toSet(), {"shot_coverages/$rangeId/isDeleted"});
@@ -595,14 +610,16 @@ Action one two three.
     test("markAsChecked stamps only the digest it actually re-stamps", () async {
       final (shotId, scene, sceneText) = await insertShotWithScene();
       final offset = sceneText.indexOf("one");
-      final rangeId = (await coverageService.addRange(
-        database: database,
-        shotId: shotId,
-        sceneId: scene.id,
-        startOffset: offset,
-        endOffset: offset + "one".length,
-        sceneText: sceneText,
-      ))!;
+      final rangeId = (await coverageService
+          .addRange(
+            database: database,
+            shotId: shotId,
+            sceneId: scene.id,
+            startOffset: offset,
+            endOffset: offset + "one".length,
+            sceneText: sceneText,
+          )
+          .valueOrFail);
       await coverageService.refreshStaleness(
         database: database,
         screenplayId: screenplayId,
@@ -613,13 +630,15 @@ Action one two three.
       );
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await coverageService.markAsChecked(
-        database: database,
-        shotId: shotId,
-        currentFountainText: (await database.select(database.ocptScreenplaysTable).getSingle())
-            .fountainText
-            .replaceFirst("one", "won"),
-      );
+      await coverageService
+          .markAsChecked(
+            database: database,
+            shotId: shotId,
+            currentFountainText: (await database.select(database.ocptScreenplaysTable).getSingle())
+                .fountainText
+                .replaceFirst("one", "won"),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       expect(stamps.keys.toSet(), {

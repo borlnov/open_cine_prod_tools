@@ -6,10 +6,12 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:uuid/uuid.dart';
 
@@ -65,15 +67,17 @@ class OcptShotCoverageService extends AbsOcptService {
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   ///
-  /// The refusal is what makes the returned id nullable: null means no range was added.
-  Future<String?> addRange({
+  /// The refusal is what makes the returned id null: the call succeeded and no range was added. An
+  /// empty or inverted range is a failure, answered as `databaseError` with nothing written.
+  @useResult
+  Future<OcptDatabaseResult<String>> addRange({
     required OcptProjectDatabase database,
     required String shotId,
     required String sceneId,
     required int startOffset,
     required int endOffset,
     required String sceneText,
-  }) async {
+  }) => guardResult("addRange", () async {
     if (database.refusesUserWrite("addRange")) {
       return null;
     }
@@ -165,14 +169,18 @@ class OcptShotCoverageService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Remove the single coverage range [rangeId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeRange({required OcptProjectDatabase database, required String rangeId}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> removeRange({
+    required OcptProjectDatabase database,
+    required String rangeId,
+  }) => guardOutcome("removeRange", () async {
     if (database.refusesUserWrite("removeRange")) {
       return;
     }
@@ -196,17 +204,18 @@ class OcptShotCoverageService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Remove every coverage range of shot [shotId]: the inspector's `Clear all` action.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearRangesOfShot({
+  @useResult
+  Future<OcptDatabaseOutcome> clearRangesOfShot({
     required OcptProjectDatabase database,
     required String shotId,
-  }) async {
+  }) => guardOutcome("clearRangesOfShot", () async {
     if (database.refusesUserWrite("clearRangesOfShot")) {
       return;
     }
@@ -232,7 +241,7 @@ class OcptShotCoverageService extends AbsOcptService {
       }
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Re-check every coverage range of screenplay [screenplayId] against [currentFountainText] (the
   /// text just saved, after `OcptSceneIndexService.reconcile` has refreshed the scenes'
@@ -360,11 +369,12 @@ class OcptShotCoverageService extends AbsOcptService {
   /// ranges' digests to [currentFountainText], so the shot goes quiet until the next real change.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> markAsChecked({
+  @useResult
+  Future<OcptDatabaseOutcome> markAsChecked({
     required OcptProjectDatabase database,
     required String shotId,
     required String currentFountainText,
-  }) async {
+  }) => guardOutcome("markAsChecked", () async {
     if (database.refusesUserWrite("markAsChecked")) {
       return;
     }
@@ -412,7 +422,7 @@ class OcptShotCoverageService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Get the hex SHA-256 digest of [text]'s UTF-8 bytes.
   static String digestOf(String text) => sha256.convert(utf8.encode(text)).toString();

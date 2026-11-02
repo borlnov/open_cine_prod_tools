@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -48,14 +49,17 @@ class _FailingShotCoverageService extends OcptShotCoverageService {
 
   /// Fail as a refused coverage write does.
   @override
-  Future<String> addRange({
+  Future<OcptDatabaseResult<String>> addRange({
     required OcptProjectDatabase database,
     required String shotId,
     required String sceneId,
     required int startOffset,
     required int endOffset,
     required String sceneText,
-  }) async => throw StateError("coverage write intentionally failed for the test");
+  }) async => const OcptDatabaseResult<String>(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "coverage write intentionally failed for the test",
+  );
 }
 
 /// A shot list service whose snapshot reads can be held back: while [heldReads] is positive, a read

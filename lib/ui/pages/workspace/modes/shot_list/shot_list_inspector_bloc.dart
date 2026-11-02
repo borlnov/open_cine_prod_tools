@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/models/ocpt_script_word.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
@@ -691,7 +692,7 @@ class OcptShotListInspectorBloc
       project: project,
       shotId: event.shotId,
       action: () async {
-        await _shotCoverageService.addRange(
+        final added = await _shotCoverageService.addRange(
           database: project.database,
           shotId: event.shotId,
           sceneId: layout.sceneId,
@@ -699,12 +700,18 @@ class OcptShotListInspectorBloc
           endOffset: range.endOffset,
           sceneText: layout.sceneText,
         );
+        if (added.isError) {
+          return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
+        }
+
         await _attachCharactersCoveredBy(
           project: project,
           shotId: event.shotId,
           layout: layout,
           range: range,
         );
+
+        return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
       },
     );
   }
@@ -812,16 +819,25 @@ class OcptShotListInspectorBloc
   /// `needsCheck`) reflects what the database now says, and clear the pending coverage anchor — a
   /// coverage write always leaves the interaction back at its initial, no-anchor state. Mirrors
   /// `_onShotDifficultyChanged`/`_onShotCharacterToggled`'s own try/catch shape.
+  ///
+  /// A failed outcome of [action] and an exception it raises (the characters it attaches are not
+  /// written through a status yet) end the same way: nothing is read again and the coverage write
+  /// error is raised.
   Future<void> _writeCoverageChange({
     required Emitter<OcptShotListInspectorState> emitter,
     required OcptOpenProjectModel project,
     required String shotId,
-    required Future<void> Function() action,
+    required Future<OcptDatabaseOutcome> Function() action,
   }) async {
+    var hasFailed = false;
     try {
-      await action();
-      await modeBloc.reload({OcptShotListReloadScope.snapshot});
-      emitter(state.copyWithCoverageAnchorCleared());
+      final written = await action();
+      if (written.isError) {
+        hasFailed = true;
+      } else {
+        await modeBloc.reload({OcptShotListReloadScope.snapshot});
+        emitter(state.copyWithCoverageAnchorCleared());
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to change the scenario coverage of shot $shotId of "
@@ -829,6 +845,10 @@ class OcptShotListInspectorBloc
         null,
         stackTrace,
       );
+      hasFailed = true;
+    }
+
+    if (hasFailed) {
       emitter(state.copyToCoverageWriteFailed());
     }
   }
