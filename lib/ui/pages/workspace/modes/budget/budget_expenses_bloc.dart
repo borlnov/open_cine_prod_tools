@@ -3,10 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
@@ -22,6 +21,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection_cause.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.dart';
@@ -54,12 +54,6 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// does not carry out the selection, the preview or the export it flushed for.
 class OcptBudgetExpensesBloc
     extends AbsOcptViewBloc<OcptBudgetExpensesState, OcptBudgetState, OcptBudgetBloc> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "budget_expenses_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
@@ -79,8 +73,7 @@ class OcptBudgetExpensesBloc
     OcptBudgetQuoteService? budgetQuoteService,
     OcptBudgetJournalService? budgetJournalService,
     Duration fieldEditDebounce = OcptBudgetBloc.defaultFieldEditDebounce,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _budgetQuoteService =
            budgetQuoteService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetQuoteService,
@@ -165,7 +158,11 @@ class OcptBudgetExpensesBloc
       return OcptPendingWritesStatus.ok;
     }
 
-    await _writeAllPendingFieldEdits(project, pending);
+    final written = await _writeAllPendingFieldEdits(project, pending);
+    if (written.isError) {
+      return OcptPendingWritesStatus.failed;
+    }
+
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
       // The write landed but the mode could not read it back: answering that all went well
       // would let a preview, an export or a restore run on the snapshot from before the write, so
@@ -194,7 +191,8 @@ class OcptBudgetExpensesBloc
   /// might not survive to see — is what guarantees the last [_fieldEditDebounce] worth of typing
   /// isn't lost. Unlike [onFlushRequested], this never touches [state]: `emit` may only be called
   /// from inside a registered `on<Event>` handler, and by the time this runs the widget tree that
-  /// would show a fresh state is already gone anyway. A failure here is only logged.
+  /// would show a fresh state is already gone anyway. A failure here leaves the edit to be written
+  /// again by the next flush.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     cancelDebounce();
@@ -209,19 +207,10 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    try {
-      await flushEditsWithoutStateUntilConverted(
-        edits,
-        (unwritten) => _writeAllPendingFieldEdits(project, unwritten),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending budget field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
+    final _ = await flushEditsWithoutState(
+      edits,
+      (unwritten) => _writeAllPendingFieldEdits(project, unwritten),
+    );
   }
 
   /// Create a new, unnamed account, appended at the end of the catalogue, and select it.
@@ -234,15 +223,16 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    final accountId = await _budgetQuoteService.createAccount(
-      database: project.database,
-      label: "",
-    );
+    final created = await _budgetQuoteService.createAccount(database: project.database, label: "");
+    if (created.isError) {
+      return;
+    }
 
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
       return;
     }
 
+    final accountId = created.value;
     if (accountId != null) {
       await addToModeAndWait(
         OcptBudgetSelectionCreatedEvent(
@@ -263,11 +253,15 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    await _budgetQuoteService.reorderAccount(
+    final moved = await _budgetQuoteService.reorderAccount(
       database: project.database,
       accountId: event.accountId,
       newPosition: event.newPosition,
     );
+    if (moved.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -282,7 +276,14 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    await _budgetQuoteService.deleteAccount(database: project.database, accountId: event.accountId);
+    final deleted = await _budgetQuoteService.deleteAccount(
+      database: project.database,
+      accountId: event.accountId,
+    );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -297,11 +298,15 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    await _budgetQuoteService.updateAccount(
+    final updated = await _budgetQuoteService.updateAccount(
       database: project.database,
       accountId: event.accountId,
       estimateToCompleteCents: const Value(null),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -323,7 +328,7 @@ class OcptBudgetExpensesBloc
     }
 
     final fields = event.fields;
-    final lineId = await _budgetQuoteService.createLine(
+    final created = await _budgetQuoteService.createLine(
       database: project.database,
       accountId: event.accountId,
       label: fields?.label ?? "",
@@ -331,11 +336,15 @@ class OcptBudgetExpensesBloc
       unit: fields == null ? const Value.absent() : Value(fields.unit),
       unitAmountCents: fields == null ? const Value.absent() : Value(fields.unitAmountCents),
     );
+    if (created.isError) {
+      return;
+    }
 
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
       return;
     }
 
+    final lineId = created.value;
     if (lineId != null) {
       await addToModeAndWait(
         OcptBudgetSelectionCreatedEvent(
@@ -378,18 +387,22 @@ class OcptBudgetExpensesBloc
     }
 
     final quantityMilli = event.quantityMilli;
-    final lineId = await _budgetQuoteService.createLine(
+    final created = await _budgetQuoteService.createLine(
       database: project.database,
       accountId: event.accountId,
       label: element.name,
       elementId: Value(element.id),
       quantityMilli: quantityMilli == null ? const Value.absent() : Value(quantityMilli),
     );
+    if (created.isError) {
+      return;
+    }
 
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
       return;
     }
 
+    final lineId = created.value;
     if (lineId != null) {
       await addToModeAndWait(
         OcptBudgetSelectionCreatedEvent(
@@ -410,7 +423,14 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    await _budgetQuoteService.deleteLine(database: project.database, lineId: event.lineId);
+    final deleted = await _budgetQuoteService.deleteLine(
+      database: project.database,
+      lineId: event.lineId,
+    );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -425,11 +445,15 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    await _budgetQuoteService.updateLine(
+    final updated = await _budgetQuoteService.updateLine(
       database: project.database,
       lineId: event.lineId,
       isTaxInclusive: Value(event.isTaxInclusive),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -445,11 +469,15 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    await _budgetQuoteService.updateLine(
+    final updated = await _budgetQuoteService.updateLine(
       database: project.database,
       lineId: event.lineId,
       vatRateBasisPoints: const Value(null),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -585,7 +613,8 @@ class OcptBudgetExpensesBloc
   /// there is no null they could legitimately become, and an estimate's or an override's own
   /// empty/unparseable reading is deliberately not "clear it" (`OcptBudgetField`'s own doc comment)
   /// — the field simply reverts to whatever the database already holds on the next read.
-  Future<void> _writeAllPendingFieldEdits(
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingFieldEdits(
     OcptOpenProjectModel project,
     Map<OcptBudgetPendingFieldKey, String> edits,
   ) async {
@@ -600,21 +629,22 @@ class OcptBudgetExpensesBloc
         continue;
       }
 
+      OcptDatabaseOutcome? written;
       switch (field) {
         case OcptBudgetField.accountLabel:
-          await _budgetQuoteService.updateAccount(
+          written = await _budgetQuoteService.updateAccount(
             database: project.database,
             accountId: targetId,
             label: Value(value),
           );
         case OcptBudgetField.accountCode:
-          await _budgetQuoteService.updateAccount(
+          written = await _budgetQuoteService.updateAccount(
             database: project.database,
             accountId: targetId,
             code: Value(value),
           );
         case OcptBudgetField.accountSimpleLabel:
-          await _budgetQuoteService.updateAccount(
+          written = await _budgetQuoteService.updateAccount(
             database: project.database,
             accountId: targetId,
             simpleLabel: Value(value.isEmpty ? null : value),
@@ -622,14 +652,14 @@ class OcptBudgetExpensesBloc
         case OcptBudgetField.accountEstimateToComplete:
           final amountCents = ocptCostCentsOf(value);
           if (amountCents != null) {
-            await _budgetQuoteService.updateAccount(
+            written = await _budgetQuoteService.updateAccount(
               database: project.database,
               accountId: targetId,
               estimateToCompleteCents: Value(amountCents),
             );
           }
         case OcptBudgetField.lineLabel:
-          await _budgetQuoteService.updateLine(
+          written = await _budgetQuoteService.updateLine(
             database: project.database,
             lineId: targetId,
             label: Value(value),
@@ -637,14 +667,14 @@ class OcptBudgetExpensesBloc
         case OcptBudgetField.lineQuantity:
           final quantityMilli = ocptBudgetQuantityMilliOf(value);
           if (quantityMilli != null) {
-            await _budgetQuoteService.updateLine(
+            written = await _budgetQuoteService.updateLine(
               database: project.database,
               lineId: targetId,
               quantityMilli: Value(quantityMilli),
             );
           }
         case OcptBudgetField.lineUnit:
-          await _budgetQuoteService.updateLine(
+          written = await _budgetQuoteService.updateLine(
             database: project.database,
             lineId: targetId,
             unit: Value(value),
@@ -652,7 +682,7 @@ class OcptBudgetExpensesBloc
         case OcptBudgetField.lineUnitAmount:
           final amountCents = ocptCostCentsOf(value);
           if (amountCents != null) {
-            await _budgetQuoteService.updateLine(
+            written = await _budgetQuoteService.updateLine(
               database: project.database,
               lineId: targetId,
               unitAmountCents: Value(amountCents),
@@ -661,19 +691,25 @@ class OcptBudgetExpensesBloc
         case OcptBudgetField.lineVatRateOverride:
           final basisPoints = ocptVatRateBasisPointsOf(value);
           if (basisPoints != null) {
-            await _budgetQuoteService.updateLine(
+            written = await _budgetQuoteService.updateLine(
               database: project.database,
               lineId: targetId,
               vatRateBasisPoints: Value(basisPoints),
             );
           }
         case OcptBudgetField.lineNotes:
-          await _budgetQuoteService.updateLine(
+          written = await _budgetQuoteService.updateLine(
             database: project.database,
             lineId: targetId,
             notes: Value(value),
           );
       }
+
+      if (written != null && written.isError) {
+        return written;
+      }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 }

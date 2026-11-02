@@ -98,15 +98,20 @@ class OcptBudgetSnapshotLoader {
   /// [OcptBudgetSnapshot]: `OcptBudgetDetail`'s own `+ From breakdown` picker needs the
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   ///
-  /// Answers the failure of the schedule, the resources, the mileage rates, the defrayals, the
-  /// takings and the shares reads, in place of the whole read: they are the only reads that answer
-  /// a result so far. The others still raise when the database fails, and the caller catches what
-  /// they raise. This sentence changes as the other services convert, each read then answering its
-  /// failure in the same way.
+  /// Answers the failure of the schedule, the accounts and their lines, the resources, the mileage
+  /// rates, the defrayals, the takings and the shares reads, in place of the whole read: they are
+  /// the only reads that answer a result so far. The cash journal's own reads still raise when the
+  /// database fails, and the caller catches what they raise. This sentence changes as that service
+  /// converts, each read then answering its failure in the same way.
   @useResult
   Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     final database = project.database;
-    final accounts = await _budgetQuoteService.loadAccounts(database: database, seed: seed);
+    final accountsRead = await _budgetQuoteService.loadAccounts(database: database, seed: seed);
+    if (accountsRead.isError) {
+      return OcptDatabaseResult(status: accountsRead.status, extraInfo: accountsRead.extraInfo);
+    }
+
+    final accounts = accountsRead.value!;
     final entries = await _budgetJournalService.loadEntries(database: database);
     final commitments = await _budgetJournalService.loadCommitments(database: database);
     final resourcesRead = await _budgetFinancingService.loadResources(database: database);

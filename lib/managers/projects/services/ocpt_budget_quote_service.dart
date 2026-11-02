@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -12,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_outcome.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over the budget mode's quote: the `budget_postes` catalogue and the `budget_lines` inside
@@ -39,10 +41,11 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// Load every live account of [database], in `sortKey` order, each joined with its own live
   /// `budget_lines` rows (themselves in their own `sortKey` order) — seeding [seed] first if the
   /// table holds no row at all, tombstone included.
-  Future<List<OcptBudgetAccount>> loadAccounts({
+  @useResult
+  Future<OcptDatabaseResult<List<OcptBudgetAccount>>> loadAccounts({
     required OcptProjectDatabase database,
     required List<OcptBudgetAccountSeed> seed,
-  }) async {
+  }) => guardResult("loadAccounts", () async {
     await _seedIfEmpty(database: database, seed: seed);
 
     final accountRows = await _liveAccountRows(database);
@@ -57,16 +60,17 @@ class OcptBudgetQuoteService extends AbsOcptService {
       for (final row in accountRows)
         OcptBudgetAccount.fromRow(row: row, lines: linesByAccountId[row.id] ?? const []),
     ];
-  }
+  });
 
   /// Create a new account named [label], appended at the end of the catalogue, and return its
   /// freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createAccount({
+  @useResult
+  Future<OcptDatabaseResult<String>> createAccount({
     required OcptProjectDatabase database,
     required String label,
-  }) async {
+  }) => guardResult("createAccount", () async {
     if (database.refusesUserWrite("createAccount")) {
       return null;
     }
@@ -96,21 +100,22 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Update the fields of account [accountId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderAccount] and [deleteAccount].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateAccount({
+  @useResult
+  Future<OcptDatabaseOutcome> updateAccount({
     required OcptProjectDatabase database,
     required String accountId,
     Value<String> code = const Value.absent(),
     Value<String> label = const Value.absent(),
     Value<String?> simpleLabel = const Value.absent(),
     Value<int?> estimateToCompleteCents = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateAccount", () async {
     if (database.refusesUserWrite("updateAccount")) {
       return;
     }
@@ -139,18 +144,19 @@ class OcptBudgetQuoteService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Move account [accountId] to [newPosition] (0-based) within the catalogue's flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two accounts it lands between. Writes
   /// **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderAccount({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderAccount({
     required OcptProjectDatabase database,
     required String accountId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderAccount", () async {
     if (database.refusesUserWrite("reorderAccount")) {
       return;
     }
@@ -183,7 +189,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone account [accountId] in [database] and every live `budget_lines` row it holds, in the
   /// same transaction.
@@ -191,10 +197,11 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteAccount({
+  @useResult
+  Future<OcptDatabaseOutcome> deleteAccount({
     required OcptProjectDatabase database,
     required String accountId,
-  }) async {
+  }) => guardOutcome("deleteAccount", () async {
     if (database.refusesUserWrite("deleteAccount")) {
       return;
     }
@@ -228,7 +235,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Create a new line named [label] inside account [accountId], appended at the end of that
   /// account's own lines, and return its freshly generated id.
@@ -264,7 +271,8 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// being the ordinary case for a line nobody's contribution counterbalances.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createLine({
+  @useResult
+  Future<OcptDatabaseResult<String>> createLine({
     required OcptProjectDatabase database,
     required String accountId,
     required String label,
@@ -277,7 +285,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     Value<String?> provisionKey = const Value.absent(),
     Value<String?> provisionDigest = const Value.absent(),
     Value<String?> inKindResourceId = const Value.absent(),
-  }) async {
+  }) => guardResult("createLine", () async {
     if (database.refusesUserWrite("createLine")) {
       return null;
     }
@@ -317,7 +325,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Update the fields of line [lineId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey`, `isDeleted` or `accountId`: those only change through
@@ -329,7 +337,8 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// it at [Value.absent], the link a line already carries left untouched.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateLine({
+  @useResult
+  Future<OcptDatabaseOutcome> updateLine({
     required OcptProjectDatabase database,
     required String lineId,
     Value<String> label = const Value.absent(),
@@ -343,7 +352,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     Value<String?> provisionDigest = const Value.absent(),
     Value<String> notes = const Value.absent(),
     Value<String?> inKindResourceId = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateLine", () async {
     if (database.refusesUserWrite("updateLine")) {
       return;
     }
@@ -379,18 +388,19 @@ class OcptBudgetQuoteService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Move line [lineId] to [newPosition] (0-based) within its own account's `sortKey` order, by
   /// giving it a `sortKey` sitting between the two lines it lands between. Writes **exactly one
   /// row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderLine({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderLine({
     required OcptProjectDatabase database,
     required String lineId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderLine", () async {
     if (database.refusesUserWrite("reorderLine")) {
       return;
     }
@@ -423,14 +433,18 @@ class OcptBudgetQuoteService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone line [lineId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteLine({required OcptProjectDatabase database, required String lineId}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> deleteLine({
+    required OcptProjectDatabase database,
+    required String lineId,
+  }) => guardOutcome("deleteLine", () async {
     if (database.refusesUserWrite("deleteLine")) {
       return;
     }
@@ -452,7 +466,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Write [entries] onto account [accountId], one quote line per nature — the logistics view's own
   /// `Provision into the quote` gesture.
@@ -474,11 +488,12 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// do for any other caller.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> applyProvision({
+  @useResult
+  Future<OcptDatabaseOutcome> applyProvision({
     required OcptProjectDatabase database,
     required String accountId,
     required List<OcptBudgetProvisionEntry> entries,
-  }) async {
+  }) => guardOutcome("applyProvision", () async {
     if (database.refusesUserWrite("applyProvision")) {
       return;
     }
@@ -495,7 +510,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
               unitAmountCents: Value(entry.unitAmountCents),
               provisionKey: Value(entry.kind.name),
               provisionDigest: Value(entry.digest),
-            );
+            ).valueOrAbort();
           case OcptBudgetProvisionOutcome.updated:
             await updateLine(
               database: database,
@@ -504,14 +519,14 @@ class OcptBudgetQuoteService extends AbsOcptService {
               quantityMilli: Value(entry.quantityMilli),
               unitAmountCents: Value(entry.unitAmountCents),
               provisionDigest: Value(entry.digest),
-            );
+            ).okOrAbort();
           case OcptBudgetProvisionOutcome.unchanged:
           case OcptBudgetProvisionOutcome.skippedEdited:
             break;
         }
       }
     });
-  }
+  });
 
   /// Seed [database]'s `budget_postes` table with [seed], **once**: only when the table holds
   /// **no row at all, tombstones included**. A user who deleted every account has not asked for

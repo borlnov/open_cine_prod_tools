@@ -71,7 +71,7 @@ void main() {
 
   group("seeding", () {
     test("loadAccounts seeds the ten (here, three) CNC accounts on an empty table", () async {
-      final accounts = await service.loadAccounts(database: database, seed: seed);
+      final accounts = await service.loadAccounts(database: database, seed: seed).valueOrFail;
 
       expect(accounts.map((account) => account.id), ["poste-artistic", "poste-crew", "poste-cast"]);
       expect(accounts.map((account) => account.code), ["1", "2", "3"]);
@@ -81,28 +81,30 @@ void main() {
     });
 
     test("seeding is deterministic: the same seed always mints the same ids", () async {
-      await service.loadAccounts(database: database, seed: seed);
+      await service.loadAccounts(database: database, seed: seed).maybeValueOrFail;
       final rows = await readAllAccounts();
 
       expect(rows.map((row) => row.id).toSet(), seed.map((accountSeed) => accountSeed.id).toSet());
     });
 
     test("loadAccounts seeds only once, never on a table that already holds rows", () async {
-      await service.loadAccounts(database: database, seed: seed);
+      await service.loadAccounts(database: database, seed: seed).maybeValueOrFail;
       final firstSortKeys = (await readAllAccounts()).map((row) => row.sortKey).toList();
 
       // A second read, with a seed list that would be trivially distinguishable if re-applied.
-      await service.loadAccounts(
-        database: database,
-        seed: const [
-          OcptBudgetAccountSeed(
-            id: "poste-other",
-            code: "9",
-            label: "Should never appear",
-            simpleLabel: null,
-          ),
-        ],
-      );
+      await service
+          .loadAccounts(
+            database: database,
+            seed: const [
+              OcptBudgetAccountSeed(
+                id: "poste-other",
+                code: "9",
+                label: "Should never appear",
+                simpleLabel: null,
+              ),
+            ],
+          )
+          .maybeValueOrFail;
 
       final rows = await readAllAccounts();
       expect(rows.map((row) => row.id), seed.map((accountSeed) => accountSeed.id));
@@ -110,12 +112,12 @@ void main() {
     });
 
     test("a user who deleted every poste is not seeded again", () async {
-      await service.loadAccounts(database: database, seed: seed);
+      await service.loadAccounts(database: database, seed: seed).maybeValueOrFail;
       for (final accountSeed in seed) {
-        await service.deleteAccount(database: database, accountId: accountSeed.id);
+        await service.deleteAccount(database: database, accountId: accountSeed.id).okOrFail;
       }
 
-      final accounts = await service.loadAccounts(database: database, seed: seed);
+      final accounts = await service.loadAccounts(database: database, seed: seed).valueOrFail;
 
       expect(accounts, isEmpty);
       expect(await readAllAccounts(), hasLength(seed.length));
@@ -125,7 +127,7 @@ void main() {
     test("seeding is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
 
-      final accounts = await service.loadAccounts(database: preview, seed: seed);
+      final accounts = await service.loadAccounts(database: preview, seed: seed).valueOrFail;
 
       expect(accounts, isEmpty);
       expect(await preview.select(preview.ocptBudgetAccountsTable).get(), isEmpty);
@@ -136,34 +138,43 @@ void main() {
 
   group("poste CRUD and ordering", () {
     test("createAccount appends at the end of the catalogue", () async {
-      final firstId = await service.createAccount(database: database, label: "Divers");
-      final secondId = await service.createAccount(database: database, label: "Assurances");
+      final firstId = await service
+          .createAccount(database: database, label: "Divers")
+          .maybeValueOrFail;
+      final secondId = await service
+          .createAccount(database: database, label: "Assurances")
+          .maybeValueOrFail;
 
-      final accounts = await service.loadAccounts(database: database, seed: const []);
+      final accounts = await service.loadAccounts(database: database, seed: const []).valueOrFail;
       expect(accounts.map((account) => account.id), [firstId, secondId]);
     });
 
     test("updateAccount changes only the fields passed", () async {
-      final id = await service.createAccount(database: database, label: "Divers");
+      final id = await service.createAccount(database: database, label: "Divers").maybeValueOrFail;
 
-      await service.updateAccount(
-        database: database,
-        accountId: id!,
-        code: const Value("11"),
-        simpleLabel: const Value("Misc"),
-      );
+      await service
+          .updateAccount(
+            database: database,
+            accountId: id!,
+            code: const Value("11"),
+            simpleLabel: const Value("Misc"),
+          )
+          .okOrFail;
 
-      final account = (await service.loadAccounts(database: database, seed: const [])).single;
+      final account =
+          (await service.loadAccounts(database: database, seed: const []).valueOrFail).single;
       expect(account.label, "Divers");
       expect(account.code, "11");
       expect(account.simpleLabel, "Misc");
     });
 
     test("reorderAccount moves an account and writes exactly one row", () async {
-      await service.loadAccounts(database: database, seed: seed);
+      await service.loadAccounts(database: database, seed: seed).maybeValueOrFail;
       final before = await readAllAccounts();
 
-      await service.reorderAccount(database: database, accountId: "poste-cast", newPosition: 0);
+      await service
+          .reorderAccount(database: database, accountId: "poste-cast", newPosition: 0)
+          .okOrFail;
 
       final after = await readAllAccounts();
       expect(after.map((row) => row.id), ["poste-cast", "poste-artistic", "poste-crew"]);
@@ -175,14 +186,14 @@ void main() {
     });
 
     test("deleteAccount tombstones the account and every line it holds", () async {
-      final accountId = (await service.createAccount(database: database, label: "Personnel"))!;
-      final lineId = (await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "Ingénieur du son",
-      ))!;
+      final accountId = (await service
+          .createAccount(database: database, label: "Personnel")
+          .valueOrFail);
+      final lineId = (await service
+          .createLine(database: database, accountId: accountId, label: "Ingénieur du son")
+          .valueOrFail);
 
-      await service.deleteAccount(database: database, accountId: accountId);
+      await service.deleteAccount(database: database, accountId: accountId).okOrFail;
 
       final accountRow = await (database.select(
         database.ocptBudgetAccountsTable,
@@ -195,14 +206,14 @@ void main() {
       expect(lineRow.isDeleted, isTrue);
 
       // And a tombstoned account and its lines are filtered back out of a read.
-      final accounts = await service.loadAccounts(database: database, seed: const []);
+      final accounts = await service.loadAccounts(database: database, seed: const []).valueOrFail;
       expect(accounts, isEmpty);
     });
 
     test("createAccount is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
 
-      final id = await service.createAccount(database: preview, label: "Divers");
+      final id = await service.createAccount(database: preview, label: "Divers").maybeValueOrFail;
 
       expect(id, isNull);
       expect(await preview.select(preview.ocptBudgetAccountsTable).get(), isEmpty);
@@ -215,24 +226,21 @@ void main() {
     late String accountId;
 
     setUp(() async {
-      accountId = (await service.createAccount(database: database, label: "Personnel"))!;
+      accountId = (await service.createAccount(database: database, label: "Personnel").valueOrFail);
     });
 
     test(
       "createLine appends at the end of its own account, defaulting the quantity to one",
       () async {
-        final firstId = await service.createLine(
-          database: database,
-          accountId: accountId,
-          label: "DP",
-        );
-        final secondId = await service.createLine(
-          database: database,
-          accountId: accountId,
-          label: "1er assistant caméra",
-        );
+        final firstId = await service
+            .createLine(database: database, accountId: accountId, label: "DP")
+            .maybeValueOrFail;
+        final secondId = await service
+            .createLine(database: database, accountId: accountId, label: "1er assistant caméra")
+            .maybeValueOrFail;
 
-        final account = (await service.loadAccounts(database: database, seed: const [])).single;
+        final account =
+            (await service.loadAccounts(database: database, seed: const []).valueOrFail).single;
         expect(account.lines.map((line) => line.id), [firstId, secondId]);
         expect(account.lines.first.quantityMilli, 1000);
         expect(account.lines.first.unitPrice.amountCents, 0);
@@ -252,15 +260,18 @@ void main() {
         );
         expect(elementId, isNotNull);
 
-        final lineId = await service.createLine(
-          database: database,
-          accountId: accountId,
-          label: "Camera body",
-          elementId: Value(elementId),
-          unitAmountCents: const Value(2500),
-        );
+        final lineId = await service
+            .createLine(
+              database: database,
+              accountId: accountId,
+              label: "Camera body",
+              elementId: Value(elementId),
+              unitAmountCents: const Value(2500),
+            )
+            .maybeValueOrFail;
 
-        final account = (await service.loadAccounts(database: database, seed: const [])).single;
+        final account =
+            (await service.loadAccounts(database: database, seed: const []).valueOrFail).single;
         final line = account.lines.single;
 
         expect(line.id, lineId);
@@ -283,14 +294,17 @@ void main() {
         // Mirrors an element whose own `cost` is null: the caller passes no `unitAmountCents` at
         // all, and the fresh line is left at the table's own ordinary default — the very same
         // reading an unpriced `+ Add` line already gets, never a price of zero typed on purpose.
-        await service.createLine(
-          database: database,
-          accountId: accountId,
-          label: "Dolly",
-          elementId: Value(elementId),
-        );
+        await service
+            .createLine(
+              database: database,
+              accountId: accountId,
+              label: "Dolly",
+              elementId: Value(elementId),
+            )
+            .maybeValueOrFail;
 
-        final account = (await service.loadAccounts(database: database, seed: const [])).single;
+        final account =
+            (await service.loadAccounts(database: database, seed: const []).valueOrFail).single;
         final line = account.lines.single;
 
         expect(line.elementId, elementId);
@@ -299,16 +313,18 @@ void main() {
     );
 
     test("lines of two different postes order independently", () async {
-      final otherAccountId = (await service.createAccount(database: database, label: "Cast"))!;
+      final otherAccountId = (await service
+          .createAccount(database: database, label: "Cast")
+          .valueOrFail);
 
-      final lineA = await service.createLine(database: database, accountId: accountId, label: "A");
-      final lineB = await service.createLine(
-        database: database,
-        accountId: otherAccountId,
-        label: "B",
-      );
+      final lineA = await service
+          .createLine(database: database, accountId: accountId, label: "A")
+          .maybeValueOrFail;
+      final lineB = await service
+          .createLine(database: database, accountId: otherAccountId, label: "B")
+          .maybeValueOrFail;
 
-      final accounts = await service.loadAccounts(database: database, seed: const []);
+      final accounts = await service.loadAccounts(database: database, seed: const []).valueOrFail;
       final personnel = accounts.firstWhere((account) => account.id == accountId);
       final cast = accounts.firstWhere((account) => account.id == otherAccountId);
 
@@ -322,41 +338,45 @@ void main() {
           .maybeValueOrFail;
       expect(resourceId, isNotNull);
 
-      final lineId = await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "Camera loan",
-        quantityMilli: const Value(1000),
-        unitAmountCents: const Value(250000),
-        isTaxInclusive: const Value(true),
-        vatRateBasisPoints: const Value(0),
-        inKindResourceId: Value(resourceId),
-      );
+      final lineId = await service
+          .createLine(
+            database: database,
+            accountId: accountId,
+            label: "Camera loan",
+            quantityMilli: const Value(1000),
+            unitAmountCents: const Value(250000),
+            isTaxInclusive: const Value(true),
+            vatRateBasisPoints: const Value(0),
+            inKindResourceId: Value(resourceId),
+          )
+          .maybeValueOrFail;
 
-      final account = (await service.loadAccounts(database: database, seed: const [])).single;
+      final account =
+          (await service.loadAccounts(database: database, seed: const []).valueOrFail).single;
       final line = account.lines.single;
       expect(line.id, lineId);
       expect(line.inKindResourceId, resourceId);
     });
 
     test("updateLine writes the money triple and the quantity", () async {
-      final lineId = (await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "DP",
-      ))!;
+      final lineId = (await service
+          .createLine(database: database, accountId: accountId, label: "DP")
+          .valueOrFail);
 
-      await service.updateLine(
-        database: database,
-        lineId: lineId,
-        quantityMilli: const Value(1500),
-        unit: const Value("day"),
-        unitAmountCents: const Value(20000),
-        isTaxInclusive: const Value(false),
-        vatRateBasisPoints: const Value(550),
-      );
+      await service
+          .updateLine(
+            database: database,
+            lineId: lineId,
+            quantityMilli: const Value(1500),
+            unit: const Value("day"),
+            unitAmountCents: const Value(20000),
+            isTaxInclusive: const Value(false),
+            vatRateBasisPoints: const Value(550),
+          )
+          .okOrFail;
 
-      final account = (await service.loadAccounts(database: database, seed: const [])).single;
+      final account =
+          (await service.loadAccounts(database: database, seed: const []).valueOrFail).single;
       final line = account.lines.single;
       expect(line.quantityMilli, 1500);
       expect(line.unit, "day");
@@ -371,27 +391,30 @@ void main() {
           .maybeValueOrFail;
       expect(resourceId, isNotNull);
 
-      final lineId = (await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "Camera loan",
-      ))!;
+      final lineId = (await service
+          .createLine(database: database, accountId: accountId, label: "Camera loan")
+          .valueOrFail);
 
-      await service.updateLine(
-        database: database,
-        lineId: lineId,
-        inKindResourceId: Value(resourceId),
-      );
+      await service
+          .updateLine(database: database, lineId: lineId, inKindResourceId: Value(resourceId))
+          .okOrFail;
 
-      final account = (await service.loadAccounts(database: database, seed: const [])).single;
+      final account =
+          (await service.loadAccounts(database: database, seed: const []).valueOrFail).single;
       final line = account.lines.single;
       expect(line.inKindResourceId, resourceId);
     });
 
     test("reorderLine moves a line within its own account and writes exactly one row", () async {
-      final lineA = await service.createLine(database: database, accountId: accountId, label: "A");
-      final lineB = await service.createLine(database: database, accountId: accountId, label: "B");
-      final lineC = await service.createLine(database: database, accountId: accountId, label: "C");
+      final lineA = await service
+          .createLine(database: database, accountId: accountId, label: "A")
+          .maybeValueOrFail;
+      final lineB = await service
+          .createLine(database: database, accountId: accountId, label: "B")
+          .maybeValueOrFail;
+      final lineC = await service
+          .createLine(database: database, accountId: accountId, label: "C")
+          .maybeValueOrFail;
 
       final beforeSortKeys = {
         for (final row in await (database.select(
@@ -400,9 +423,10 @@ void main() {
           row.id: row.sortKey,
       };
 
-      await service.reorderLine(database: database, lineId: lineC!, newPosition: 0);
+      await service.reorderLine(database: database, lineId: lineC!, newPosition: 0).okOrFail;
 
-      final account = (await service.loadAccounts(database: database, seed: const [])).single;
+      final account =
+          (await service.loadAccounts(database: database, seed: const []).valueOrFail).single;
       expect(account.lines.map((line) => line.id), [lineC, lineA, lineB]);
 
       final afterRows = await (database.select(
@@ -413,26 +437,27 @@ void main() {
     });
 
     test("deleteLine tombstones the line, filtered back out of a read", () async {
-      final lineId = (await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "DP",
-      ))!;
+      final lineId = (await service
+          .createLine(database: database, accountId: accountId, label: "DP")
+          .valueOrFail);
 
-      await service.deleteLine(database: database, lineId: lineId);
+      await service.deleteLine(database: database, lineId: lineId).okOrFail;
 
       final lineRow = await (database.select(
         database.ocptBudgetLinesTable,
       )..where((table) => table.id.equals(lineId))).getSingle();
       expect(lineRow.isDeleted, isTrue);
 
-      final account = (await service.loadAccounts(database: database, seed: const [])).single;
+      final account =
+          (await service.loadAccounts(database: database, seed: const []).valueOrFail).single;
       expect(account.lines, isEmpty);
     });
 
     test("createLine is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
-      final previewAccountId = (await service.createAccount(database: preview, label: "Personnel"));
+      final previewAccountId = (await service
+          .createAccount(database: preview, label: "Personnel")
+          .maybeValueOrFail);
 
       // createAccount is itself refused, so there is no account id to hand createLine — proving the
       // guard already stopped the write one level up.
@@ -444,7 +469,9 @@ void main() {
 
   group("stamping", () {
     test("createAccount stamps every column of the new row", () async {
-      final accountId = (await service.createAccount(database: database, label: "Divers"))!;
+      final accountId = (await service
+          .createAccount(database: database, label: "Divers")
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -464,7 +491,7 @@ void main() {
     });
 
     test("_seedIfEmpty stamps every column of every seeded account", () async {
-      await service.loadAccounts(database: database, seed: seed);
+      await service.loadAccounts(database: database, seed: seed).maybeValueOrFail;
 
       final stamps = await readStamps();
       for (final accountSeed in seed) {
@@ -476,15 +503,19 @@ void main() {
     });
 
     test("updateAccount stamps only the columns that actually changed", () async {
-      final accountId = (await service.createAccount(database: database, label: "Divers"))!;
+      final accountId = (await service
+          .createAccount(database: database, label: "Divers")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.updateAccount(
-        database: database,
-        accountId: accountId,
-        code: const Value("11"),
-        simpleLabel: const Value("Misc"),
-      );
+      await service
+          .updateAccount(
+            database: database,
+            accountId: accountId,
+            code: const Value("11"),
+            simpleLabel: const Value("Misc"),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys
@@ -494,15 +525,15 @@ void main() {
     });
 
     test("deleteAccount stamps isDeleted on the account and every line it holds", () async {
-      final accountId = (await service.createAccount(database: database, label: "Personnel"))!;
-      final lineId = (await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "Ingénieur du son",
-      ))!;
+      final accountId = (await service
+          .createAccount(database: database, label: "Personnel")
+          .valueOrFail);
+      final lineId = (await service
+          .createLine(database: database, accountId: accountId, label: "Ingénieur du son")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.deleteAccount(database: database, accountId: accountId);
+      await service.deleteAccount(database: database, accountId: accountId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["budget_postes/$accountId/isDeleted"]!.version, 1);
@@ -510,14 +541,14 @@ void main() {
     });
 
     test("createLine stamps every column of the new row", () async {
-      final accountId = (await service.createAccount(database: database, label: "Personnel"))!;
+      final accountId = (await service
+          .createAccount(database: database, label: "Personnel")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final lineId = (await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "DP",
-      ))!;
+      final lineId = (await service
+          .createLine(database: database, accountId: accountId, label: "DP")
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -537,20 +568,22 @@ void main() {
     });
 
     test("updateLine stamps only the columns that actually changed", () async {
-      final accountId = (await service.createAccount(database: database, label: "Personnel"))!;
-      final lineId = (await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "DP",
-      ))!;
+      final accountId = (await service
+          .createAccount(database: database, label: "Personnel")
+          .valueOrFail);
+      final lineId = (await service
+          .createLine(database: database, accountId: accountId, label: "DP")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.updateLine(
-        database: database,
-        lineId: lineId,
-        quantityMilli: const Value(1500),
-        unit: const Value("day"),
-      );
+      await service
+          .updateLine(
+            database: database,
+            lineId: lineId,
+            quantityMilli: const Value(1500),
+            unit: const Value("day"),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("budget_lines/$lineId/")).toSet();
@@ -558,20 +591,18 @@ void main() {
     });
 
     test("reorderLine stamps only the moved line's sortKey", () async {
-      final accountId = (await service.createAccount(database: database, label: "Personnel"))!;
-      final lineA = (await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "A",
-      ))!;
-      final lineB = (await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "B",
-      ))!;
+      final accountId = (await service
+          .createAccount(database: database, label: "Personnel")
+          .valueOrFail);
+      final lineA = (await service
+          .createLine(database: database, accountId: accountId, label: "A")
+          .valueOrFail);
+      final lineB = (await service
+          .createLine(database: database, accountId: accountId, label: "B")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.reorderLine(database: database, lineId: lineB, newPosition: 0);
+      await service.reorderLine(database: database, lineId: lineB, newPosition: 0).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps.keys, {"budget_lines/$lineB/sortKey"});
@@ -579,15 +610,15 @@ void main() {
     });
 
     test("deleteLine stamps isDeleted on the line", () async {
-      final accountId = (await service.createAccount(database: database, label: "Personnel"))!;
-      final lineId = (await service.createLine(
-        database: database,
-        accountId: accountId,
-        label: "DP",
-      ))!;
+      final accountId = (await service
+          .createAccount(database: database, label: "Personnel")
+          .valueOrFail);
+      final lineId = (await service
+          .createLine(database: database, accountId: accountId, label: "DP")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.deleteLine(database: database, lineId: lineId);
+      await service.deleteLine(database: database, lineId: lineId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["budget_lines/$lineId/isDeleted"]!.version, 1);

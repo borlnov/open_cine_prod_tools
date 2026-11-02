@@ -230,14 +230,16 @@ void main() {
           groupKind: const Value(OcptBudgetResourceGroupKind.inKind),
         )
         .okOrFail;
-    await harness.projectsManager.budgetQuoteService.createLine(
-      database: harness.database,
-      accountId: accountId,
-      label: "Lent camera",
-      quantityMilli: const Value(1000),
-      unitAmountCents: const Value(40000),
-      inKindResourceId: Value(resourceId),
-    );
+    await harness.projectsManager.budgetQuoteService
+        .createLine(
+          database: harness.database,
+          accountId: accountId,
+          label: "Lent camera",
+          quantityMilli: const Value(1000),
+          unitAmountCents: const Value(40000),
+          inKindResourceId: Value(resourceId),
+        )
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     expect(statusBar(tester).lineCount, 2);

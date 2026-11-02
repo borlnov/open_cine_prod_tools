@@ -37,18 +37,20 @@ Future<({String costumesLineId, String Function(String code) accountIdOf})> seed
     "9": "Insurance and miscellaneous",
     "10": "Overheads",
   };
-  final accounts = await budgetQuoteService.loadAccounts(
-    database: database,
-    seed: [
-      for (final account in ocptBudgetCncAccounts)
-        OcptBudgetAccountSeed(
-          id: account.id,
-          code: account.code,
-          label: accountLabels[account.code]!,
-          simpleLabel: null,
-        ),
-    ],
-  );
+  final accounts = await budgetQuoteService
+      .loadAccounts(
+        database: database,
+        seed: [
+          for (final account in ocptBudgetCncAccounts)
+            OcptBudgetAccountSeed(
+              id: account.id,
+              code: account.code,
+              label: accountLabels[account.code]!,
+              simpleLabel: null,
+            ),
+        ],
+      )
+      .valueOrFail;
   expect(accounts, hasLength(10));
 
   String accountIdOf(String code) => accounts.firstWhere((account) => account.code == code).id;
@@ -61,19 +63,23 @@ Future<({String costumesLineId, String Function(String code) accountIdOf})> seed
     int unitAmountCents, {
     int? vatRateBasisPoints,
   }) async {
-    final lineId = (await budgetQuoteService.createLine(
-      database: database,
-      accountId: accountIdOf(code),
-      label: label,
-      unitAmountCents: Value(unitAmountCents),
-    ))!;
-    await budgetQuoteService.updateLine(
-      database: database,
-      lineId: lineId,
-      quantityMilli: Value(quantityMilli),
-      unit: Value(unit),
-      vatRateBasisPoints: Value(vatRateBasisPoints),
-    );
+    final lineId = (await budgetQuoteService
+        .createLine(
+          database: database,
+          accountId: accountIdOf(code),
+          label: label,
+          unitAmountCents: Value(unitAmountCents),
+        )
+        .valueOrFail);
+    await budgetQuoteService
+        .updateLine(
+          database: database,
+          lineId: lineId,
+          quantityMilli: Value(quantityMilli),
+          unit: Value(unit),
+          vatRateBasisPoints: Value(vatRateBasisPoints),
+        )
+        .okOrFail;
 
     return lineId;
   }

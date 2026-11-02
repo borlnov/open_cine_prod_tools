@@ -192,10 +192,9 @@ void main() {
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
 
       // Written behind the mode's back, as a view's own write would be.
-      await projectsManager.budgetQuoteService.createAccount(
-        database: projectsManager.currentProject!.database,
-        label: "Late poste",
-      );
+      await projectsManager.budgetQuoteService
+          .createAccount(database: projectsManager.currentProject!.database, label: "Late poste")
+          .maybeValueOrFail;
 
       final hasRead = await bloc.reload({OcptBudgetReloadScope.snapshot});
 
@@ -305,10 +304,9 @@ void main() {
       final selected = await waitForState(bloc, (state) => state.selectedAccountId == accountId);
 
       // Deleted behind the mode's back, as another view's write would be.
-      await projectsManager.budgetQuoteService.deleteAccount(
-        database: projectsManager.currentProject!.database,
-        accountId: accountId,
-      );
+      await projectsManager.budgetQuoteService
+          .deleteAccount(database: projectsManager.currentProject!.database, accountId: accountId)
+          .okOrFail;
       expect(await bloc.reload({OcptBudgetReloadScope.snapshot}), isTrue);
 
       expect(bloc.state.selection, isNull);
@@ -373,14 +371,12 @@ void main() {
 
     test("re-seeding does not duplicate postes already deleted", () async {
       final project = projectsManager.currentProject!;
-      final first = await projectsManager.budgetQuoteService.loadAccounts(
-        database: project.database,
-        seed: smallSeed,
-      );
-      await projectsManager.budgetQuoteService.deleteAccount(
-        database: project.database,
-        accountId: first.first.id,
-      );
+      final first = await projectsManager.budgetQuoteService
+          .loadAccounts(database: project.database, seed: smallSeed)
+          .valueOrFail;
+      await projectsManager.budgetQuoteService
+          .deleteAccount(database: project.database, accountId: first.first.id)
+          .okOrFail;
 
       final bloc = buildBloc();
       addTearDown(bloc.close);

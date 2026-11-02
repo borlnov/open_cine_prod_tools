@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of [OcptBudgetJournalService].
 void main() {
@@ -34,7 +35,9 @@ void main() {
 
   setUp(() async {
     database = OcptProjectDatabase.memory();
-    accountId = (await quoteService.createAccount(database: database, label: "Personnel"))!;
+    accountId = (await quoteService
+        .createAccount(database: database, label: "Personnel")
+        .valueOrFail);
   });
 
   tearDown(() async {
@@ -529,10 +532,9 @@ void main() {
     });
 
     test("updateCommitment moves a commitment to another account", () async {
-      final otherAccountId = (await quoteService.createAccount(
-        database: database,
-        label: "Moyens techniques",
-      ))!;
+      final otherAccountId = (await quoteService
+          .createAccount(database: database, label: "Moyens techniques")
+          .valueOrFail);
       final id = (await service.createCommitment(
         database: database,
         accountId: accountId,

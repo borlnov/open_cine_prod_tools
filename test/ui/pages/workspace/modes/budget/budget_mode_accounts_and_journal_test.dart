@@ -534,17 +534,18 @@ void main() {
       // detail panel is the one place `Commit this line…` is offered — seeding an account with a
       // line first reaches it.
       final project = projectsManager.currentProject!;
-      final accountId = await projectsManager.budgetQuoteService.createAccount(
-        database: project.database,
-        label: "Camera",
-      );
+      final accountId = await projectsManager.budgetQuoteService
+          .createAccount(database: project.database, label: "Camera")
+          .maybeValueOrFail;
       expect(accountId, isNotNull);
-      final lineId = await projectsManager.budgetQuoteService.createLine(
-        database: project.database,
-        accountId: accountId!,
-        label: "Camera deposit",
-        unitAmountCents: const Value(5000),
-      );
+      final lineId = await projectsManager.budgetQuoteService
+          .createLine(
+            database: project.database,
+            accountId: accountId!,
+            label: "Camera deposit",
+            unitAmountCents: const Value(5000),
+          )
+          .maybeValueOrFail;
       expect(lineId, isNotNull);
 
       await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
@@ -578,10 +579,9 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final project = projectsManager.currentProject!;
-    final accountId = await projectsManager.budgetQuoteService.createAccount(
-      database: project.database,
-      label: "Camera",
-    );
+    final accountId = await projectsManager.budgetQuoteService
+        .createAccount(database: project.database, label: "Camera")
+        .maybeValueOrFail;
     expect(accountId, isNotNull);
     await projectsManager.budgetJournalService.createCommitment(
       database: project.database,
@@ -636,10 +636,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      final accountId = await projectsManager.budgetQuoteService.createAccount(
-        database: project.database,
-        label: "Camera",
-      );
+      final accountId = await projectsManager.budgetQuoteService
+          .createAccount(database: project.database, label: "Camera")
+          .maybeValueOrFail;
       expect(accountId, isNotNull);
       await projectsManager.budgetJournalService.createCommitment(
         database: project.database,
@@ -707,10 +706,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      final accountId = await projectsManager.budgetQuoteService.createAccount(
-        database: project.database,
-        label: "Camera",
-      );
+      final accountId = await projectsManager.budgetQuoteService
+          .createAccount(database: project.database, label: "Camera")
+          .maybeValueOrFail;
       expect(accountId, isNotNull);
       await projectsManager.budgetJournalService.createCommitment(
         database: project.database,
@@ -770,10 +768,9 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final project = projectsManager.currentProject!;
-    final accountId = await projectsManager.budgetQuoteService.createAccount(
-      database: project.database,
-      label: "Camera",
-    );
+    final accountId = await projectsManager.budgetQuoteService
+        .createAccount(database: project.database, label: "Camera")
+        .maybeValueOrFail;
     expect(accountId, isNotNull);
     await projectsManager.budgetJournalService.createCommitment(
       database: project.database,

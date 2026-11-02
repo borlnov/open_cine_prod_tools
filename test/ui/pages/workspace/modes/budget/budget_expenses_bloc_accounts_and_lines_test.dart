@@ -26,6 +26,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_expenses_bloc_test_doubles.dart';
 
 /// Run the tests of the budget expenses bloc accounts and lines.
@@ -406,11 +407,13 @@ void main() {
           .single
           .id;
 
-      await projectsManager.budgetQuoteService.updateLine(
-        database: project.database,
-        lineId: lineId,
-        vatRateBasisPoints: const drift.Value(550),
-      );
+      await projectsManager.budgetQuoteService
+          .updateLine(
+            database: project.database,
+            lineId: lineId,
+            vatRateBasisPoints: const drift.Value(550),
+          )
+          .okOrFail;
 
       // The write above went straight through the service, bypassing the bloc, so its own cached
       // state hasn't caught up yet — its line still (stale) reads a null override, exactly the
@@ -570,11 +573,13 @@ void main() {
       final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      await projectsManager.budgetQuoteService.updateAccount(
-        database: project.database,
-        accountId: accountId,
-        estimateToCompleteCents: const drift.Value(5000),
-      );
+      await projectsManager.budgetQuoteService
+          .updateAccount(
+            database: project.database,
+            accountId: accountId,
+            estimateToCompleteCents: const drift.Value(5000),
+          )
+          .okOrFail;
 
       // The write above went straight through the service, bypassing the bloc, so its own cached
       // state hasn't caught up yet — see the mirrored VAT-rate test above for why reloading first,

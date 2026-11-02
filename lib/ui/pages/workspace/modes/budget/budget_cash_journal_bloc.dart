@@ -448,7 +448,7 @@ class OcptBudgetCashJournalBloc
       return;
     }
 
-    final lineId = await _budgetQuoteService.createLine(
+    final lineCreated = await _budgetQuoteService.createLine(
       database: project.database,
       accountId: accountId,
       label: entry.label,
@@ -457,6 +457,11 @@ class OcptBudgetCashJournalBloc
       isTaxInclusive: Value(entry.isTaxInclusive),
       vatRateBasisPoints: Value(entry.vatRateBasisPoints),
     );
+    if (lineCreated.isError) {
+      return;
+    }
+
+    final lineId = lineCreated.value;
     if (lineId == null) {
       return;
     }
@@ -536,7 +541,7 @@ class OcptBudgetCashJournalBloc
       return;
     }
 
-    final lineId = await _budgetQuoteService.createLine(
+    final lineCreated = await _budgetQuoteService.createLine(
       database: project.database,
       accountId: commitment.accountId,
       label: commitment.label,
@@ -545,6 +550,11 @@ class OcptBudgetCashJournalBloc
       isTaxInclusive: Value(commitment.amount.isTaxInclusive),
       vatRateBasisPoints: Value(commitment.amount.vatRateBasisPoints),
     );
+    if (lineCreated.isError) {
+      return;
+    }
+
+    final lineId = lineCreated.value;
     if (lineId == null) {
       return;
     }

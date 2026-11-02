@@ -5,6 +5,7 @@
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_allowances_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
@@ -15,6 +16,7 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
@@ -107,7 +109,10 @@ class OcptBudgetFinancingBloc
 
     final resourceId = created.value;
     if (resourceId != null) {
-      await _reconcileInKindCounterpartLine(project, resourceId, fields);
+      final reconciled = await _reconcileInKindCounterpartLine(project, resourceId, fields);
+      if (reconciled.isError) {
+        return;
+      }
     }
 
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
@@ -143,7 +148,15 @@ class OcptBudgetFinancingBloc
       return;
     }
 
-    await _reconcileInKindCounterpartLine(project, event.resourceId, event.fields);
+    final reconciled = await _reconcileInKindCounterpartLine(
+      project,
+      event.resourceId,
+      event.fields,
+    );
+    if (reconciled.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -174,8 +187,15 @@ class OcptBudgetFinancingBloc
     }
 
     if (counterpartLine != null) {
-      await _budgetQuoteService.deleteLine(database: project.database, lineId: counterpartLine.id);
+      final lineDeleted = await _budgetQuoteService.deleteLine(
+        database: project.database,
+        lineId: counterpartLine.id,
+      );
+      if (lineDeleted.isError) {
+        return;
+      }
     }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -208,7 +228,10 @@ class OcptBudgetFinancingBloc
   /// `OcptBudgetResourceDialog`'s own account picker already blocks confirming an in-kind
   /// contribution with no account chosen, so `fields.accountId == null` here should not occur; this
   /// writes nothing rather than mint an orphaned line if it somehow does.
-  Future<void> _reconcileInKindCounterpartLine(
+  ///
+  /// Stops at the first write that failed and answers its failure.
+  @useResult
+  Future<OcptDatabaseOutcome> _reconcileInKindCounterpartLine(
     OcptOpenProjectModel project,
     String resourceId,
     OcptBudgetResourceFormFields fields,
@@ -217,31 +240,36 @@ class OcptBudgetFinancingBloc
 
     if (fields.groupKind != OcptBudgetResourceGroupKind.inKind) {
       if (existing != null) {
-        await _budgetQuoteService.deleteLine(database: project.database, lineId: existing.id);
+        return _budgetQuoteService.deleteLine(database: project.database, lineId: existing.id);
       }
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
     final desiredAccountId = fields.accountId;
     if (desiredAccountId == null) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
     if (existing != null && existing.accountId == desiredAccountId) {
-      await _budgetQuoteService.updateLine(
+      return _budgetQuoteService.updateLine(
         database: project.database,
         lineId: existing.id,
         label: Value(fields.label),
         unitAmountCents: Value(fields.amountCents),
       );
-      return;
     }
 
     if (existing != null) {
-      await _budgetQuoteService.deleteLine(database: project.database, lineId: existing.id);
+      final deleted = await _budgetQuoteService.deleteLine(
+        database: project.database,
+        lineId: existing.id,
+      );
+      if (deleted.isError) {
+        return deleted;
+      }
     }
 
-    await _budgetQuoteService.createLine(
+    final created = await _budgetQuoteService.createLine(
       database: project.database,
       accountId: desiredAccountId,
       label: fields.label,
@@ -251,6 +279,8 @@ class OcptBudgetFinancingBloc
       vatRateBasisPoints: const Value(0),
       inKindResourceId: Value(resourceId),
     );
+
+    return OcptDatabaseOutcome(status: created.status, extraInfo: created.extraInfo);
   }
 
   /// Create a defrayal from `event.fields`.
@@ -349,11 +379,15 @@ class OcptBudgetFinancingBloc
       return;
     }
 
-    await _budgetQuoteService.applyProvision(
+    final provisioned = await _budgetQuoteService.applyProvision(
       database: project.database,
       accountId: event.accountId,
       entries: event.entries,
     );
+    if (provisioned.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 }

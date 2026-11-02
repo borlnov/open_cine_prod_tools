@@ -41,6 +41,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
@@ -317,7 +318,7 @@ class _ScenarioBudgetQuoteService extends OcptBudgetQuoteService {
   /// Fail while the scenario asks for line updates to fail, otherwise update the line as the real
   /// service does.
   @override
-  Future<void> updateLine({
+  Future<OcptDatabaseOutcome> updateLine({
     required OcptProjectDatabase database,
     required String lineId,
     Value<String> label = const Value.absent(),
@@ -333,7 +334,10 @@ class _ScenarioBudgetQuoteService extends OcptBudgetQuoteService {
     Value<String?> inKindResourceId = const Value.absent(),
   }) async {
     if (failures.failLineUpdates) {
-      throw StateError("line update intentionally failed for the scenario");
+      return const OcptDatabaseOutcome(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "line update intentionally failed for the scenario",
+      );
     }
 
     return super.updateLine(
@@ -504,8 +508,9 @@ class BudgetScenarioHarness {
   }
 
   /// Reads the live accounts, with their lines, back from the database.
-  Future<List<OcptBudgetAccount>> readAccounts() =>
-      projectsManager.budgetQuoteService.loadAccounts(database: database, seed: const []);
+  Future<List<OcptBudgetAccount>> readAccounts() => projectsManager.budgetQuoteService
+      .loadAccounts(database: database, seed: const [])
+      .valueOrFail;
 
   /// Reads the account called [label] back from the database.
   Future<OcptBudgetAccount> readAccount(String label) async =>
@@ -537,23 +542,24 @@ class BudgetScenarioHarness {
 
   /// Creates an account called [label], returning the id.
   Future<String> seedAccount(String label) async {
-    final id = await projectsManager.budgetQuoteService.createAccount(
-      database: database,
-      label: label,
-    );
+    final id = await projectsManager.budgetQuoteService
+        .createAccount(database: database, label: label)
+        .maybeValueOrFail;
     return id!;
   }
 
   /// Creates a line called [label] in account [accountId], quoted [unitAmountCents] for one unit,
   /// returning the id.
   Future<String> seedLine(String accountId, String label, {int unitAmountCents = 10000}) async {
-    final id = await projectsManager.budgetQuoteService.createLine(
-      database: database,
-      accountId: accountId,
-      label: label,
-      quantityMilli: const Value(1000),
-      unitAmountCents: Value(unitAmountCents),
-    );
+    final id = await projectsManager.budgetQuoteService
+        .createLine(
+          database: database,
+          accountId: accountId,
+          label: label,
+          quantityMilli: const Value(1000),
+          unitAmountCents: Value(unitAmountCents),
+        )
+        .maybeValueOrFail;
     return id!;
   }
 

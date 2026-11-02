@@ -35,12 +35,13 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_expenses_bloc_test_doubles.dart';
 
 /// A quote service whose [updateAccount] can be made to fail, and that counts how many times it was
 /// asked to write.
 class _FlakyQuoteService extends OcptBudgetQuoteService {
-  /// Whether [updateAccount] throws.
+  /// Whether [updateAccount] fails.
   bool fails = false;
 
   /// How many times [updateAccount] was called.
@@ -56,7 +57,7 @@ class _FlakyQuoteService extends OcptBudgetQuoteService {
   /// Count the call and wait for the gate, then fail when told to, otherwise update the account as
   /// the real service does.
   @override
-  Future<void> updateAccount({
+  Future<OcptDatabaseOutcome> updateAccount({
     required OcptProjectDatabase database,
     required String accountId,
     drift.Value<String> code = const drift.Value.absent(),
@@ -67,7 +68,10 @@ class _FlakyQuoteService extends OcptBudgetQuoteService {
     updateAccountCalls++;
     await gate?.future;
     if (fails) {
-      throw StateError("poste update intentionally failed for the test");
+      return const OcptDatabaseOutcome(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "poste update intentionally failed for the test",
+      );
     }
 
     return super.updateAccount(
@@ -372,11 +376,13 @@ void main() {
             .unitPrice
             .isTaxInclusive,
       );
-      await projectsManager.budgetQuoteService.updateLine(
-        database: project.database,
-        lineId: lineId,
-        vatRateBasisPoints: const drift.Value(550),
-      );
+      await projectsManager.budgetQuoteService
+          .updateLine(
+            database: project.database,
+            lineId: lineId,
+            vatRateBasisPoints: const drift.Value(550),
+          )
+          .okOrFail;
       await bloc.reload({OcptBudgetReloadScope.snapshot});
       await proves(
         OcptBudgetLineVatRateInheritedRequestedEvent(lineId: lineId),
@@ -499,10 +505,9 @@ void main() {
       expect(await bloc.flushAllPendingWrites(), isFalse);
 
       // The write landed, but the mode could not read it back: nothing may go on as if it had.
-      final stored = await projectsManager.budgetQuoteService.loadAccounts(
-        database: projectsManager.currentProject!.database,
-        seed: smallSeed,
-      );
+      final stored = await projectsManager.budgetQuoteService
+          .loadAccounts(database: projectsManager.currentProject!.database, seed: smallSeed)
+          .valueOrFail;
       expect(stored.firstWhere((account) => account.id == accountId).label, "Typed");
       expect(expensesBloc.state.pendingFieldEdits, isNotEmpty);
 
@@ -543,10 +548,9 @@ void main() {
       var storedLabel = loaded.accounts.first.label;
       while (storedLabel != "Typed") {
         await Future<void>.delayed(const Duration(milliseconds: 10));
-        final stored = await projectsManager.budgetQuoteService.loadAccounts(
-          database: projectsManager.currentProject!.database,
-          seed: smallSeed,
-        );
+        final stored = await projectsManager.budgetQuoteService
+            .loadAccounts(database: projectsManager.currentProject!.database, seed: smallSeed)
+            .valueOrFail;
         storedLabel = stored.firstWhere((account) => account.id == accountId).label;
       }
       await pumpEventQueue();
@@ -596,10 +600,9 @@ void main() {
 
       // The edit is still on screen and the database still holds the old value.
       expect(expensesBloc.state.pendingFieldEdits, isNotEmpty);
-      final stored = await projectsManager.budgetQuoteService.loadAccounts(
-        database: projectsManager.currentProject!.database,
-        seed: smallSeed,
-      );
+      final stored = await projectsManager.budgetQuoteService
+          .loadAccounts(database: projectsManager.currentProject!.database, seed: smallSeed)
+          .valueOrFail;
       expect(stored.firstWhere((account) => account.id == accountId).label, storedLabel);
 
       // A selection flushes first, so it does not happen either.

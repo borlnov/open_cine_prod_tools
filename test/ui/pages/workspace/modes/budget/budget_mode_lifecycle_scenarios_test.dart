@@ -17,7 +17,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
-
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_mode_scenarios_test_doubles.dart';
 
 /// Run the tests of the budget mode lifecycle scenarios.
@@ -481,10 +481,12 @@ void main() {
     await previewFirstVersion(tester);
 
     // The working copy file holds it already, though the debounce never ran out.
-    final stored = await harness.projectsManager.budgetQuoteService.loadAccounts(
-      database: harness.projectsManager.currentProject!.fileDatabase,
-      seed: const [],
-    );
+    final stored = await harness.projectsManager.budgetQuoteService
+        .loadAccounts(
+          database: harness.projectsManager.currentProject!.fileDatabase,
+          seed: const [],
+        )
+        .valueOrFail;
     expect(stored.single.label, "Camera crew");
     expect(inTracking(find.text("Camera")), findsOneWidget);
     expect(inTracking(find.text("Camera crew")), findsNothing);
@@ -518,40 +520,42 @@ void main() {
     expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
   });
 
-  testWidgets("a field write that fails throws through the mode: the edit stays pending and on "
-      "screen, the database keeps its value, and the next edit writes both", (tester) async {
-    final errors = <Object>[];
-    await runZonedGuarded(() async {
-      final accountId = await harness.seedAccount("Camera");
-      await harness.seedLine(accountId, "Camera deposit");
-      await harness.mount(tester);
-      final tr = harness.trOf(tester);
-      await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
-      await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
-      await harness.tap(tester, inTracking(find.text("Camera deposit")));
+  testWidgets(
+    "a field write that fails raises nothing through the mode: the edit stays pending and on "
+    "screen, the database keeps its value, and the next edit writes both",
+    (tester) async {
+      final errors = <Object>[];
+      await runZonedGuarded(() async {
+        final accountId = await harness.seedAccount("Camera");
+        await harness.seedLine(accountId, "Camera deposit");
+        await harness.mount(tester);
+        final tr = harness.trOf(tester);
+        await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
+        await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
+        await harness.tap(tester, inTracking(find.text("Camera deposit")));
 
-      harness.projectsManager.failures.failLineUpdates = true;
-      await harness.type(tester, harness.fieldLabelled(tr.budgetLineLabelFieldLabel), "Rental");
-      await harness.letDebounceRun(tester);
-      expect(errors, hasLength(1));
-      expect(errors.single, isA<StateError>());
-      expect((await harness.readAccount("Camera")).lines.single.label, "Camera deposit");
-      expect(
-        tester
-            .widget<TextField>(harness.fieldLabelled(tr.budgetLineLabelFieldLabel))
-            .controller!
-            .text,
-        "Rental",
-      );
+        harness.projectsManager.failures.failLineUpdates = true;
+        await harness.type(tester, harness.fieldLabelled(tr.budgetLineLabelFieldLabel), "Rental");
+        await harness.letDebounceRun(tester);
+        expect(errors, isEmpty);
+        expect((await harness.readAccount("Camera")).lines.single.label, "Camera deposit");
+        expect(
+          tester
+              .widget<TextField>(harness.fieldLabelled(tr.budgetLineLabelFieldLabel))
+              .controller!
+              .text,
+          "Rental",
+        );
 
-      // The failure did not stop the mode: a later edit goes through.
-      harness.projectsManager.failures.failLineUpdates = false;
-      await harness.type(tester, harness.fieldLabelled(tr.budgetLineLabelFieldLabel), "Rental 2");
-      await harness.letDebounceRun(tester);
-      expect((await harness.readAccount("Camera")).lines.single.label, "Rental 2");
-      expect(errors, hasLength(1));
-    }, (error, stack) => errors.add(error));
-  });
+        // The failure did not stop the mode: a later edit goes through.
+        harness.projectsManager.failures.failLineUpdates = false;
+        await harness.type(tester, harness.fieldLabelled(tr.budgetLineLabelFieldLabel), "Rental 2");
+        await harness.letDebounceRun(tester);
+        expect((await harness.readAccount("Camera")).lines.single.label, "Rental 2");
+        expect(errors, isEmpty);
+      }, (error, stack) => errors.add(error));
+    },
+  );
 
   testWidgets("a payment whose entry cannot be written leaves the commitment it created behind, "
       "reloads nothing, and a second attempt creates a second commitment for the same line", (
