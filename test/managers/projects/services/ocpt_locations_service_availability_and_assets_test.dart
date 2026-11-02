@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the locations service availability and assets.
 void main() {
@@ -267,7 +268,7 @@ void main() {
         path: "/photos/first.jpg",
       ))!;
 
-      await assetsService.removeAsset(database: database, assetId: photoId);
+      await assetsService.removeAsset(database: database, assetId: photoId).okOrFail;
 
       final locations = await locationsService.loadLocations(database: database);
       expect(locations.single.photos, isEmpty);
@@ -351,12 +352,14 @@ void main() {
         stamps: null,
       );
 
-      await assetsService.updateAssetValidity(
-        database: database,
-        assetId: assetId,
-        validFrom: Value(DateTime.utc(2026, 3, 10)),
-        validUntil: Value(DateTime.utc(2026, 3, 31)),
-      );
+      await assetsService
+          .updateAssetValidity(
+            database: database,
+            assetId: assetId,
+            validFrom: Value(DateTime.utc(2026, 3, 10)),
+            validUntil: Value(DateTime.utc(2026, 3, 31)),
+          )
+          .okOrFail;
 
       final withDates = await (database.select(
         database.ocptAssetsTable,
@@ -365,11 +368,9 @@ void main() {
       expect(withDates.validUntil, DateTime.utc(2026, 3, 31));
 
       // Clearing a date already recorded is as real a gesture as setting it.
-      await assetsService.updateAssetValidity(
-        database: database,
-        assetId: assetId,
-        validFrom: const Value(null),
-      );
+      await assetsService
+          .updateAssetValidity(database: database, assetId: assetId, validFrom: const Value(null))
+          .okOrFail;
 
       final cleared = await (database.select(
         database.ocptAssetsTable,

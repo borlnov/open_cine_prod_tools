@@ -3,10 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over `assets`, the rows referencing a binary file by path — a person's headshot, a
@@ -130,7 +132,11 @@ class OcptAssetsService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeAsset({required OcptProjectDatabase database, required String assetId}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> removeAsset({
+    required OcptProjectDatabase database,
+    required String assetId,
+  }) => guardOutcome("removeAsset", () async {
     if (database.refusesUserWrite("removeAsset")) {
       return;
     }
@@ -140,7 +146,7 @@ class OcptAssetsService extends AbsOcptService {
       await tombstoneAsset(database: database, assetId: assetId, stamps: stamps);
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Update the validity window of `assets` row [assetId] — a user typing, or clearing, the dates
   /// on a document such as a filming permit — to the fields passed as something other than
@@ -148,12 +154,13 @@ class OcptAssetsService extends AbsOcptService {
   /// no longer wants to track one is as real a gesture as setting it.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateAssetValidity({
+  @useResult
+  Future<OcptDatabaseOutcome> updateAssetValidity({
     required OcptProjectDatabase database,
     required String assetId,
     Value<DateTime?> validFrom = const Value.absent(),
     Value<DateTime?> validUntil = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateAssetValidity", () async {
     if (database.refusesUserWrite("updateAssetValidity")) {
       return;
     }
@@ -180,7 +187,7 @@ class OcptAssetsService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone every `assets` row belonging to person [personId] **and blanks its path and its
   /// label**, the erasure half of `OcptPeopleService.deletePerson`.

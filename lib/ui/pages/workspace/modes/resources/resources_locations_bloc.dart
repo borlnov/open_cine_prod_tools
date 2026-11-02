@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_s
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
@@ -496,6 +497,26 @@ class OcptResourcesLocationsBloc
     }
   }
 
+  /// Write a discrete change through [action], a service call that answers an outcome, and have the
+  /// mode read the catalogue again; a failed outcome raises the mode's write error and reads
+  /// nothing, where [_writeCatalogueChange] gets the same from an exception.
+  Future<void> _writeCatalogueOutcome({
+    required Future<OcptDatabaseOutcome> Function(OcptOpenProjectModel project) action,
+  }) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    final written = await action(project);
+    if (written.isError) {
+      addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    await modeBloc.reload({OcptResourcesReloadScope.snapshot});
+  }
+
   /// Show the native "open" dialog and return the path of the file picked, or null when the user
   /// cancelled it, when it failed, or when the platform gave a file with no path at all.
   ///
@@ -701,8 +722,7 @@ class OcptResourcesLocationsBloc
   Future<void> _onAssetValidFromChanged(
     OcptResourcesAssetValidFromChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
-  ) => _writeCatalogueChange(
-    logContext: "change the valid-from date of asset ${event.assetId}",
+  ) => _writeCatalogueOutcome(
     action: (project) => _assetsService.updateAssetValidity(
       database: project.database,
       assetId: event.assetId,
@@ -714,8 +734,7 @@ class OcptResourcesLocationsBloc
   Future<void> _onAssetValidUntilChanged(
     OcptResourcesAssetValidUntilChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
-  ) => _writeCatalogueChange(
-    logContext: "change the valid-until date of asset ${event.assetId}",
+  ) => _writeCatalogueOutcome(
     action: (project) => _assetsService.updateAssetValidity(
       database: project.database,
       assetId: event.assetId,
@@ -727,8 +746,7 @@ class OcptResourcesLocationsBloc
   Future<void> _onAssetRemoved(
     OcptResourcesAssetRemovedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
-  ) => _writeCatalogueChange(
-    logContext: "drop the asset reference ${event.assetId}",
+  ) => _writeCatalogueOutcome(
     action: (project) =>
         _assetsService.removeAsset(database: project.database, assetId: event.assetId),
   );

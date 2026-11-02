@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of [OcptPeopleService].
 void main() {
@@ -382,7 +383,7 @@ void main() {
         path: "/photos/clara.jpg",
       ))!;
 
-      await assetsService.removeAsset(database: database, assetId: assetId);
+      await assetsService.removeAsset(database: database, assetId: assetId).okOrFail;
 
       // The column still names the row; the row is gone, and "no photo" is what that means.
       expect((await readPerson(id)).photoAssetId, assetId);
