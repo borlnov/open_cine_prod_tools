@@ -133,7 +133,6 @@ abstract class AbsOcptViewBloc<
       _editsWrittenWithoutState = {},
       _lastReloadEpoch = modeBloc.state.reloadEpoch,
       _lastSelectionEpoch = modeBloc.state.selectionEpoch {
-    _modeSubscription = modeBloc.stream.listen(_onModeState, onDone: _signalReaction);
     _unregisterFlusher = modeBloc.registerPendingWritesFlusher(this);
   }
 
@@ -144,6 +143,7 @@ abstract class AbsOcptViewBloc<
 
     on<OcptViewModeStateChangedEvent<MS>>(_onModeStateChangedEvent);
     on<OcptViewFlushRequestedEvent>(_onFlushRequested);
+    _modeSubscription = modeBloc.stream.listen(_onModeState, onDone: _signalReaction);
   }
 
   /// Ask the mode bloc for [event], or do nothing if the mode is closing. The only way a view

@@ -116,11 +116,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
-       super(const OcptHomeState.init()) {
-    _recentProjectsSubscription = _propertiesManager.recentProjects.updateStream.listen(
-      (_) => add(const AsyncInitEvent()),
-    );
-  }
+       super(const OcptHomeState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -138,6 +134,9 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     on<OcptHomeProjectPackageImportErrorDismissedEvent>(_onProjectPackageImportErrorDismissed);
     on<OcptHomeProjectPackageImportReportDismissedEvent>(_onProjectPackageImportReportDismissed);
     on<OcptHomeScreenplayImportErrorDismissedEvent>(_onScreenplayImportErrorDismissed);
+    _recentProjectsSubscription = _propertiesManager.recentProjects.updateStream.listen(
+      (_) => add(const AsyncInitEvent()),
+    );
   }
 
   /// Do nothing: no project is open from the home page, so there is no debounced field edit or

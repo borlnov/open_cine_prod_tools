@@ -71,9 +71,7 @@ class OcptEditorSpellCheckBloc
            projectDictionaryService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).projectDictionaryService,
        _previousModeState = modeBloc.state,
-       super(OcptEditorSpellCheckState.init()) {
-    _modeStates = modeBloc.stream.listen(_onModeState);
-  }
+       super(OcptEditorSpellCheckState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -86,6 +84,7 @@ class OcptEditorSpellCheckBloc
     on<OcptEditorWordLearnedEvent>(_onWordLearned);
     on<OcptEditorSpellCheckSettingsChangedEvent>(_onSettingsChanged);
     on<OcptEditorSpellCheckDictionaryRefreshRequestedEvent>(_onDictionaryRefreshRequested);
+    _modeStates = modeBloc.stream.listen(_onModeState);
   }
 
   /// Start afresh after a whole load: the document the caches and the underlines describe is gone.

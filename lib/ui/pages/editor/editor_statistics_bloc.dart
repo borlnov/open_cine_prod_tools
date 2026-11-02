@@ -55,9 +55,7 @@ class OcptEditorStatisticsBloc
     Duration statisticsDebounce = defaultStatisticsDebounce,
   }) : _statisticsDebounce = statisticsDebounce,
        _previousModeState = modeBloc.state,
-       super(const OcptEditorStatisticsState.init()) {
-    _modeStates = modeBloc.stream.listen(_onModeState);
-  }
+       super(const OcptEditorStatisticsState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -65,6 +63,7 @@ class OcptEditorStatisticsBloc
     super.registerMixinEvents();
     on<OcptEditorStatisticsRecomputeRequestedEvent>(_onStatisticsRecomputeRequested);
     on<OcptEditorStatisticsSceneRefreshRequestedEvent>(_onSceneRefreshRequested);
+    _modeStates = modeBloc.stream.listen(_onModeState);
   }
 
   /// Recompute both counters at once and drop the pending debounce: the mode replaced what it
