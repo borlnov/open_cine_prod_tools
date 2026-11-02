@@ -255,12 +255,20 @@ A project rule overrides these. The overrides this project has made:
 
 - **RG2:** `import`, `export` and `part` lines, and a URL alone in a comment, may run past 100
   characters, since none of them can be broken.
+- **RG3:** Dart is indented with 2 spaces, which `dart format` imposes and the Flutter standard's own
+  examples follow. Shell scripts are indented with 4.
 - **RG8:** a `release-x.y.z` branch carries no issue number.
+- **RG26:** the project has one maintainer, so a change is reviewed through an independent agent
+  review and the maintainer's own testing rather than a second human reviewer.
+- **RD1:** a package keeps its own prefix (`fountain_kit`, `spell_kit`, `ocpt_sync_*`), and a test
+  double shared between test files has none.
+- **RD2:** a test imports its neighbour with a relative path, since `test/` has no `package:` URI.
 - **RD3:** the app itself has no barrel file and no `src/` folder, since nothing imports it. The
   packages under `packages/` do follow the rule.
 - **RD8, RD11:** `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a malformed
   document with a typed exception, which the app converts to a `Result` at its boundary:
   `act_dart_result` depends on Flutter, and the relay compiles without it.
+- **RD22:** a `<feature>_test_doubles.dart` beside the test files may hold several public doubles.
 - **RD25:** a Flutter `State` and a test double may initialize their fields at declaration, and so
   may a mixin, which has no constructor. A `late final` field computed from the other fields of its
   object, on first read, stays `late final`.
@@ -273,6 +281,8 @@ A project rule overrides these. The overrides this project has made:
   density of this desktop-first UI lives in the component themes of `lib/constants/ocpt_theme.dart`.
 - **RFL23:** a production mode is `Ocpt<X>Mode` in `<x>_mode.dart`, and a widget is named after its
   role (`Card`, `Panel`, `Dialog`, `Sheet`) rather than ending in `Widget`.
+- **RFL35:** `AbstractSecretsManager` is what stores the secrets, in secure storage; the rule and
+  the "look in `actlibs/` first" rule above contradict each other on this point, so the latter wins.
 - **RFL41:** a bloc may keep a non-final field, or a final collection whose content changes,
   where the value is read or written outside an event handler, so that no `emit` runs: a stream
   listener, `close`, an overridden `add`, a widget leaving the tree. Or where it marks work in
