@@ -301,6 +301,13 @@ A project rule overrides these. The overrides this project has made:
   since the global logger it hangs from can be replaced.
 - **RFL35:** `AbstractSecretsManager` is what stores the secrets, in secure storage; the rule and
   the "look in `actlibs/` first" rule above contradict each other on this point, so the latter wins.
+- **RFL36:** a `build` may look an id up in a list, or filter or sum a list, when the list is already
+  in hand and short (the payments of a line, the columns of a table), and may join text it translated
+  itself, since a state holds no `Tr`.
+- **RFL38:** a list may stay eager when it would otherwise misbehave: the breakdown script, whose tag
+  popover lives in its scene's subtree and has no way back once scrolled away; a list shrinking to
+  its content inside an `AlertDialog`, whose intrinsic width a lazy viewport cannot answer; the two
+  budget columns walked row for row.
 - **RFL41:** a bloc may keep a non-final field, or a final collection whose content changes,
   where the value is read or written outside an event handler, so that no `emit` runs: a stream
   listener, `close`, an overridden `add`, a widget leaving the tree. Or where it marks work in
