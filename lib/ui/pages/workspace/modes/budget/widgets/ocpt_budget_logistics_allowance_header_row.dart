@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie_metrics.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_metrics.dart';
 
 /// The defrayal table's own header row: `Person`, `Advanced`, `Reimbursed`, `Owed`.
 class OcptBudgetRegieAllowanceHeaderRow extends StatelessWidget {

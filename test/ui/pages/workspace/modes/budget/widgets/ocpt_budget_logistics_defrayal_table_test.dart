@@ -11,13 +11,13 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie_day.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_day.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
-import 'ocpt_budget_regie_test_doubles.dart';
+import 'ocpt_budget_logistics_test_doubles.dart';
 
 /// A minimal debit entry reimbursing [personId], everything else neutral.
 OcptBudgetEntry _buildEntry({

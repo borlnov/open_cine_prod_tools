@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics.dart';
 
 /// One meal block's own reading: who it fed, and at which slot.
 ///

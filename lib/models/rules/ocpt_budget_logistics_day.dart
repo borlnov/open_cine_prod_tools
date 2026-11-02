@@ -5,8 +5,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie_meal_sitting.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_meal_sitting.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 
 /// One shooting day's own catering reading: who was on set, and what feeding them comes to.

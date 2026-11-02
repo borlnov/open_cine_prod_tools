@@ -14,15 +14,15 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_feed_card.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
-import 'ocpt_budget_regie_test_doubles.dart';
+import 'ocpt_budget_logistics_test_doubles.dart';
 
 /// Builds a cast convocation naming [roleId], the few fields these tests read.
 OcptShootingSlotCastMember _buildCastMember({

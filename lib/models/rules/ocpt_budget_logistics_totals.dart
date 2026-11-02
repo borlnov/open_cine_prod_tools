@@ -4,7 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_day.dart';
 
 /// The catering pass folded over every day: how many heads, meals and buffet servings the whole
 /// schedule accounts for, and the whole cost.

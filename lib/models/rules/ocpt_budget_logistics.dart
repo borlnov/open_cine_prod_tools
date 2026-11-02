@@ -6,9 +6,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie_day.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie_meal_sitting.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_meal_sitting.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 
