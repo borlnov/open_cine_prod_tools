@@ -411,8 +411,8 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
 
   /// Build the logger this class writes to.
   ///
-  /// Built on every use rather than held: a database has no life cycle to release a logger with, and
-  /// the global logger it is built over can be replaced.
+  /// Built on every use rather than held: a database has no life cycle to release a logger with,
+  /// and the global logger it is built over can be replaced.
   static LogsHelper _createLogger() => LogsHelper(category: _loggerCategory);
 
   /// Get the file executor [OcptProjectDatabase.alongsideAnother] runs on, silencing drift's

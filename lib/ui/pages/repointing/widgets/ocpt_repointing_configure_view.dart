@@ -174,8 +174,8 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
     );
   }
 
-  /// Validate the relay address, showing the invalid-address message and dispatching nothing when it
-  /// isn't a well-formed absolute URI, otherwise calling
+  /// Validate the relay address, showing the invalid-address message and dispatching nothing when
+  /// it isn't a well-formed absolute URI, otherwise calling
   /// [OcptRepointingConfigureView.onRepointRequested].
   void _onSubmitPressed() {
     final text = _relayAddressController.text.trim();
