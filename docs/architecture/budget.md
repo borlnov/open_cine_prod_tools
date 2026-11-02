@@ -156,7 +156,7 @@ are all here, and this file is the whole record of them.
   that honours no account filter at all (`ocptBudgetViewHonoursAccountFilter` answers true for
   `expenses` alone), a bank statement reading across the whole account rather than one category
   narrowed out of it (`OcptBudgetCashJournal`'s own doc comment). `expenses` is the only view an
-  account filter still narrows — see "Selecting a poste and filtering by one are two different
+  account filter still narrows — see "Selecting an account and filtering by one are two different
   facts" below — and it narrows only its own table's rows, never the journal's.
 
 ## Off-quote spending is named, never hidden

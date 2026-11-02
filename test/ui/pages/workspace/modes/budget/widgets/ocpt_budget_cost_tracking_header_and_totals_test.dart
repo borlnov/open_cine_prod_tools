@@ -229,7 +229,7 @@ void main() {
   );
 
   testTestWidgets(
-    "withholds the creation footer and every poste row's own ⋮ menu while isReadOnly",
+    "withholds the creation footer and every account row's own ⋮ menu while isReadOnly",
     (tester) async {
       const account = OcptBudgetAccount(
         id: "poste-1",
@@ -455,7 +455,7 @@ void main() {
   );
 
   testTestWidgets(
-    "withholds the poste row's Show this poste only entry under isReadOnly, unlike every other "
+    "withholds the account row's Show this account only entry under isReadOnly, unlike every other "
     "entry of that same menu — it only ever reads the project",
     (tester) async {
       await tester.pumpWidget(

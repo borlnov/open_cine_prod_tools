@@ -183,9 +183,9 @@ List<OcptBudgetJournalRow> ocptBudgetJournalRowsOf(
 ///
 /// **An account with no entry at all has no key in the map** — this is the whole reason this
 /// answers a map rather than a single total: a caller can tell "nothing has moved against this
-/// poste" (absent key) apart from "movement happened here but it cancelled out to zero" (a key
+/// account" (absent key) apart from "movement happened here but it cancelled out to zero" (a key
 /// present, its [OcptBudgetCoveredTotal.amountCents] zero), which `docs/architecture/budget.md`'s
-/// own rule ("nothing having moved against a poste is not the same fact as zero having moved
+/// own rule ("nothing having moved against an account is not the same fact as zero having moved
 /// against it") otherwise loses the moment the two are folded into the same absent-or-zero figure.
 Map<String, OcptBudgetCoveredTotal> ocptBudgetPaidCentsByAccountId(
   List<OcptBudgetEntry> entries, {

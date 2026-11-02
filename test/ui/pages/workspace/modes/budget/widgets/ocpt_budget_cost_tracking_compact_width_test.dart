@@ -198,8 +198,8 @@ void main() {
     });
 
     testTestWidgets(
-      "still selects under isReadOnly, since selecting a poste is a read rather than a write — "
-      "exactly as OcptBudgetCostTracking.onPosteSelected is never gated on isReadOnly for the "
+      "still selects under isReadOnly, since selecting an account is a read rather than a write — "
+      "exactly as OcptBudgetCostTracking.onAccountSelected is never gated on isReadOnly for the "
       "desktop row either",
       (tester) async {
         String? selectedAccountId;

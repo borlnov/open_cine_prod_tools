@@ -71,7 +71,7 @@ int ocptBudgetProjectQuotedTotalCents(List<OcptBudgetAccount> accounts) =>
 ///
 /// **An account with no such line has no key in the map** — mirroring
 /// `ocptBudgetPaidCentsByAccountId`'s own "no key for nothing" discipline: a caller can tell "no
-/// in-kind line settles this poste" apart from "one does, and it happens to total zero" (which
+/// in-kind line settles this account" apart from "one does, and it happens to total zero" (which
 /// cannot actually occur here, since a counterpart line is always minted at the contribution's own
 /// non-zero valuation, but the discipline is kept anyway, for the same reason every other
 /// per-account map in this file keeps it).
