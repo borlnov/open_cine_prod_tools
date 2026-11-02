@@ -22,6 +22,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:spell_kit/spell_kit.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'editor_spell_check_bloc_test_doubles.dart';
 
 /// Run the tests of the editor spell check bloc spell check.
@@ -521,10 +522,9 @@ void main() {
   group('learned words on load', () {
     test("pushes the open project's already-learned words into the manager on load", () async {
       final manager = FakeSpellCheckManager();
-      await projectsManager.projectDictionaryService.learnWord(
-        database: projectsManager.currentProject!.database,
-        word: 'Zorglurbe',
-      );
+      await projectsManager.projectDictionaryService
+          .learnWord(database: projectsManager.currentProject!.database, word: 'Zorglurbe')
+          .okOrFail;
 
       final bloc = buildBloc(spellCheckManager: manager);
       await waitForState(bloc, (state) => !state.isLoading);

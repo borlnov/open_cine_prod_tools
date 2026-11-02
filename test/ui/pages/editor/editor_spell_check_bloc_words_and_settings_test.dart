@@ -22,6 +22,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:spell_kit/spell_kit.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'editor_spell_check_bloc_test_doubles.dart';
 
 /// Run the tests of the editor spell check bloc words and settings.
@@ -181,9 +182,9 @@ void main() {
         await Future<void>.delayed(Duration.zero);
       }
 
-      final persisted = await projectsManager.projectDictionaryService.loadWords(
-        database: projectsManager.currentProject!.database,
-      );
+      final persisted = await projectsManager.projectDictionaryService
+          .loadWords(database: projectsManager.currentProject!.database)
+          .valueOrFail;
       expect(persisted, contains("Somethign"));
       expect(manager.setLearnedWordsCalls.last, contains("Somethign"));
 
@@ -265,10 +266,9 @@ void main() {
         "round trip's whole point: a word removed in the settings page's dictionary dialog is "
         "underlined again on the next check pass, with nothing re-typed", () async {
       final database = projectsManager.currentProject!.database;
-      await projectsManager.projectDictionaryService.learnWord(
-        database: database,
-        word: "Zorglurbe",
-      );
+      await projectsManager.projectDictionaryService
+          .learnWord(database: database, word: "Zorglurbe")
+          .okOrFail;
 
       final manager = FakeSpellCheckManager();
       await propertiesManager.spellCheckVisible.store(true);
@@ -291,10 +291,9 @@ void main() {
       // The dictionary dialog itself never runs in this bloc; the project settings page
       // applies its report directly through the service, exactly as reproduced here — this
       // bloc only ever learns about it through the settings-changed event below.
-      await projectsManager.projectDictionaryService.unlearnWord(
-        database: database,
-        word: "Zorglurbe",
-      );
+      await projectsManager.projectDictionaryService
+          .unlearnWord(database: database, word: "Zorglurbe")
+          .okOrFail;
 
       bloc
         ..add(const OcptEditorProjectSettingsChangedEvent())
@@ -427,10 +426,9 @@ void main() {
       await until(() => manager.checkCalls.length > callsBefore);
 
       final project = projectsManager.currentProject!;
-      await projectsManager.projectDictionaryService.unlearnWord(
-        database: project.database,
-        word: "blarg",
-      );
+      await projectsManager.projectDictionaryService
+          .unlearnWord(database: project.database, word: "blarg")
+          .okOrFail;
       final pushesBefore = manager.setLearnedWordsCalls.length;
       bloc.add(events[6]);
       await until(() => manager.setLearnedWordsCalls.length > pushesBefore);

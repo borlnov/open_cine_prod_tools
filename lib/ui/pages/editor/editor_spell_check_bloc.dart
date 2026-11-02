@@ -116,7 +116,11 @@ class OcptEditorSpellCheckBloc
     final project = _projectsManager.currentProject;
     if (project != null) {
       final learnedWords = await _projectDictionaryService.loadWords(database: project.database);
-      state.caches.pushedLearnedWords = learnedWords.toSet();
+      if (learnedWords.isError) {
+        return;
+      }
+
+      state.caches.pushedLearnedWords = learnedWords.value!.toSet();
       _spellCheckManager.setLearnedWords(state.caches.pushedLearnedWords);
     }
 
@@ -213,7 +217,11 @@ class OcptEditorSpellCheckBloc
     }
 
     final learnedWords = await _projectDictionaryService.loadWords(database: project.database);
-    final learnedWordsSet = learnedWords.toSet();
+    if (learnedWords.isError) {
+      return;
+    }
+
+    final learnedWordsSet = learnedWords.value!.toSet();
     if (!setEquals(learnedWordsSet, state.caches.pushedLearnedWords)) {
       state.caches.pushedLearnedWords = learnedWordsSet;
       _spellCheckManager.setLearnedWords(state.caches.pushedLearnedWords);
@@ -424,9 +432,20 @@ class OcptEditorSpellCheckBloc
       return;
     }
 
-    await _projectDictionaryService.learnWord(database: project.database, word: event.word);
+    final learned = await _projectDictionaryService.learnWord(
+      database: project.database,
+      word: event.word,
+    );
+    if (learned.isError) {
+      return;
+    }
+
     final learnedWords = await _projectDictionaryService.loadWords(database: project.database);
-    state.caches.pushedLearnedWords = learnedWords.toSet();
+    if (learnedWords.isError) {
+      return;
+    }
+
+    state.caches.pushedLearnedWords = learnedWords.value!.toSet();
     _spellCheckManager.setLearnedWords(state.caches.pushedLearnedWords);
 
     _requestSpellCheck();

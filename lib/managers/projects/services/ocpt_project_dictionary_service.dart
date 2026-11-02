@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over `project_dictionary_words`, the words this project's writer has taught the spell
@@ -28,20 +30,22 @@ class OcptProjectDictionaryService extends AbsOcptService {
 
   /// Get the live words of this project's dictionary, sorted case-insensitively (ties broken by the
   /// exact text, so the ordering is deterministic), tombstones filtered out.
-  Future<List<String>> loadWords({required OcptProjectDatabase database}) async {
-    final rows = await database.select(database.ocptProjectDictionaryWordsTable).get();
+  @useResult
+  Future<OcptDatabaseResult<List<String>>> loadWords({required OcptProjectDatabase database}) =>
+      guardResult("loadWords", () async {
+        final rows = await database.select(database.ocptProjectDictionaryWordsTable).get();
 
-    final words =
-        [
-          for (final row in rows)
-            if (!row.isDeleted) row.word,
-        ]..sort((a, b) {
-          final byLowerCase = a.toLowerCase().compareTo(b.toLowerCase());
-          return byLowerCase != 0 ? byLowerCase : a.compareTo(b);
-        });
+        final words =
+            [
+              for (final row in rows)
+                if (!row.isDeleted) row.word,
+            ]..sort((a, b) {
+              final byLowerCase = a.toLowerCase().compareTo(b.toLowerCase());
+              return byLowerCase != 0 ? byLowerCase : a.compareTo(b);
+            });
 
-    return words;
-  }
+        return words;
+      });
 
   /// Teach [word] to this project's dictionary, on a user's own "Add to the project's
   /// dictionary" gesture — never on an "Ignore this word" one, which is session-only and reaches
@@ -58,7 +62,11 @@ class OcptProjectDictionaryService extends AbsOcptService {
   /// - no match at all inserts a fresh row, with a new id and [word] stored exactly as typed.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> learnWord({required OcptProjectDatabase database, required String word}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> learnWord({
+    required OcptProjectDatabase database,
+    required String word,
+  }) => guardOutcome("learnWord", () async {
     if (database.refusesUserWrite("learnWord")) {
       return;
     }
@@ -121,7 +129,7 @@ class OcptProjectDictionaryService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Remove [word] from this project's dictionary, on a user's own gesture in the project
   /// settings page's dictionary dialog.
@@ -135,7 +143,11 @@ class OcptProjectDictionaryService extends AbsOcptService {
   /// `Séquence`/`séquence` — the exact kind of French word this dictionary exists for.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> unlearnWord({required OcptProjectDatabase database, required String word}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> unlearnWord({
+    required OcptProjectDatabase database,
+    required String word,
+  }) => guardOutcome("unlearnWord", () async {
     if (database.refusesUserWrite("unlearnWord")) {
       return;
     }
@@ -166,5 +178,5 @@ class OcptProjectDictionaryService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 }

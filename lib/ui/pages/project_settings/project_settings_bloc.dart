@@ -251,6 +251,9 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
       database: _database,
     );
+    if (dictionaryWords.isError) {
+      return;
+    }
 
     emit(
       state.copyToLoaded(
@@ -267,7 +270,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
         screenplayLanguage: screenplayLanguage,
         episodes: episodes,
         mileageRates: mileageRates,
-        dictionaryWords: dictionaryWords,
+        dictionaryWords: dictionaryWords.value!,
       ),
     );
   }
@@ -539,16 +542,32 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     }
 
     for (final word in event.removedWords) {
-      await _projectsManager.projectDictionaryService.unlearnWord(database: _database, word: word);
+      final unlearned = await _projectsManager.projectDictionaryService.unlearnWord(
+        database: _database,
+        word: word,
+      );
+      if (unlearned.isError) {
+        return;
+      }
     }
     for (final word in event.addedWords) {
-      await _projectsManager.projectDictionaryService.learnWord(database: _database, word: word);
+      final learned = await _projectsManager.projectDictionaryService.learnWord(
+        database: _database,
+        word: word,
+      );
+      if (learned.isError) {
+        return;
+      }
     }
 
     final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
       database: _database,
     );
-    emitter(state.copyWithDictionaryWords(dictionaryWords: dictionaryWords));
+    if (dictionaryWords.isError) {
+      return;
+    }
+
+    emitter(state.copyWithDictionaryWords(dictionaryWords: dictionaryWords.value!));
   }
 
   /// Append a new episode, numbered "last + 1" by `OcptScreenplayService.createEpisode` itself,

@@ -39,6 +39,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close a
 /// dialog opened through `showDialog` (the episodes card's own `OcptConfirmDialog`) exactly as the
@@ -400,8 +401,12 @@ void main() {
     tester,
   ) async {
     final database = projectsManager.currentProject!.database;
-    await projectsManager.projectDictionaryService.learnWord(database: database, word: "Marie");
-    await projectsManager.projectDictionaryService.learnWord(database: database, word: "Zorglurbe");
+    await projectsManager.projectDictionaryService
+        .learnWord(database: database, word: "Marie")
+        .okOrFail;
+    await projectsManager.projectDictionaryService
+        .learnWord(database: database, word: "Zorglurbe")
+        .okOrFail;
 
     await pumpView(tester);
 
@@ -415,7 +420,9 @@ void main() {
     tester,
   ) async {
     final database = projectsManager.currentProject!.database;
-    await projectsManager.projectDictionaryService.learnWord(database: database, word: "Marie");
+    await projectsManager.projectDictionaryService
+        .learnWord(database: database, word: "Marie")
+        .okOrFail;
 
     final bloc = await pumpView(tester);
     final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
@@ -445,7 +452,9 @@ void main() {
     expect(bloc.state.hasChanged, isTrue);
     expect(bloc.state.dictionaryWords, ["Zorglurbe"]);
 
-    final persisted = await projectsManager.projectDictionaryService.loadWords(database: database);
+    final persisted = await projectsManager.projectDictionaryService
+        .loadWords(database: database)
+        .valueOrFail;
     expect(persisted, ["Zorglurbe"]);
 
     // The section, back on screen once the dialog closed, reflects the very same word list.
@@ -456,7 +465,9 @@ void main() {
     tester,
   ) async {
     final database = projectsManager.currentProject!.database;
-    await projectsManager.projectDictionaryService.learnWord(database: database, word: "Marie");
+    await projectsManager.projectDictionaryService
+        .learnWord(database: database, word: "Marie")
+        .okOrFail;
 
     final bloc = await pumpView(tester);
     final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));

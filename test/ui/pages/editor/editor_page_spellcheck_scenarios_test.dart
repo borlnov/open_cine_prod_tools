@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 
+import '../../../ocpt_result_expectations.dart';
 import 'editor_page_scenarios_test_doubles.dart';
 
 /// A screenplay whose second action line holds one misspelling, `wrold`, and whose first one is
@@ -184,10 +185,9 @@ void main() {
     await harness.seedScreenplay("INT. ROOM - DAY\n\nHello wrold wrld.\n");
     await enableSpellCheck();
     final project = harness.projectsManager.currentProject!;
-    await harness.projectsManager.projectDictionaryService.learnWord(
-      database: project.database,
-      word: "wrold",
-    );
+    await harness.projectsManager.projectDictionaryService
+        .learnWord(database: project.database, word: "wrold")
+        .okOrFail;
 
     await harness.mount(tester);
     await harness.pumpUntil(tester, () => harness.underlinedWords(tester).isNotEmpty);
@@ -276,7 +276,9 @@ void main() {
 
     final project = harness.projectsManager.currentProject!;
     expect(
-      await harness.projectsManager.projectDictionaryService.loadWords(database: project.database),
+      await harness.projectsManager.projectDictionaryService
+          .loadWords(database: project.database)
+          .valueOrFail,
       contains("wrold"),
     );
     expect(styledErrorsOf("wrold"), isEmpty);
@@ -294,7 +296,9 @@ void main() {
 
     final project = harness.projectsManager.currentProject!;
     expect(
-      await harness.projectsManager.projectDictionaryService.loadWords(database: project.database),
+      await harness.projectsManager.projectDictionaryService
+          .loadWords(database: project.database)
+          .valueOrFail,
       isEmpty,
     );
     expect(styledErrorsOf("wrold"), isEmpty);
