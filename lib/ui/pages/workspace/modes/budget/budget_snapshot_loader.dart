@@ -98,7 +98,10 @@ class OcptBudgetSnapshotLoader {
   /// [OcptBudgetSnapshot]: `OcptBudgetDetail`'s own `+ From breakdown` picker needs the
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   ///
-  /// Answers the failure of the first read that failed, in place of the whole read.
+  /// Answers the failure of the schedule read, in place of the whole read: it is the only read
+  /// that answers a result so far. The others still raise when the database fails, and the caller
+  /// catches what they raise. This sentence changes as the other services convert, each read then
+  /// answering its failure in the same way.
   @useResult
   Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     final database = project.database;
