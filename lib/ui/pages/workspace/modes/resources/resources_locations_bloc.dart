@@ -159,7 +159,7 @@ class OcptResourcesLocationsBloc
   /// `OcptLocationsService.updateSet`, then has the mode read the catalogue again so every derived
   /// aggregate reflects what the database now says, and only then forgets what it wrote, so what a
   /// field shows never falls back to a stale stored value between the two. A no-op while nothing is
-  /// pending. Answers whether there was anything pending.
+  /// pending. Answers `nothingToWrite` when nothing was pending.
   ///
   /// A write that fails drops **every** edit of the mode and raises the one write error (see
   /// [_loseEdits]); the snapshot is not read again, so the fields show the value they had. A read

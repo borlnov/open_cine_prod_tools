@@ -150,10 +150,11 @@ the persistence, the project versions, the sync-ready data model and the read-on
     reads the data again if any of them wrote. **Each view has its own debounce**: two edits typed
     in two views a second apart are written two seconds after each one.
   - **A flush can fail, and each mode decides what that stops.** `flushPendingWrites` answers
-    whether the view had anything and *throws* when its write failed, keeping the edit pending: an
-    answer of "nothing to write" would let a preview, a restore or an export go on over a database
-    missing the edit, and the reload that follows would drop it. `runPendingWritesFlushers`
-    asks every flusher even after one failed and answers `(hasWritten, hasFailed)`;
+    a status, `ok`, `nothingToWrite` or `failed`, and answers `failed` when its write failed,
+    keeping the edit pending: an answer of "nothing to write" would let a preview, a restore or an
+    export go on over a database missing the edit, and the reload that follows would drop it.
+    `runPendingWritesFlushers` asks every flusher even after one failed and answers
+    `(hasWritten, hasFailed)`;
     `flushAllPendingWritesIn` turns that into the answer of `flushAllPendingWrites`, and
     `flushPendingProjectWrites` into whether the version or package action may go on. The two
     modes differ because their old code did. The schedule and the budget had no `catch`, so a failed
@@ -161,9 +162,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
     restore, a saved version, the package export, the dock tab change and each of the exports (and,
     in the budget, every selection or view change that flushes) stop with the edit still pending.
     The same goes for a write that landed whose re-read failed: the old handlers let that
-    exception escape too, so those two modes' views throw when `reload` answers false after
-    their write, rather than answering that all went well over a snapshot from before it. The edit
-    stays pending, and the next flush writes it again.
+    exception escape too, so those two modes' views answer `failed` when `reload` answers false
+    after their write, rather than answering that all went well over a snapshot from before it.
+    The edit stays pending, and the next flush writes it again.
     The shot list's views catch their own failure (`hasWriteError`, the edit dropped) and carry
     on: its hooks always answer true, and the action goes ahead on the value the database still
     holds. A new mode copies whichever of the two its old handlers did, and a

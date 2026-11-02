@@ -200,7 +200,7 @@ class OcptShotListInspectorBloc
   /// the mode read the shot list and the suggestion lists again, so every derived aggregate and
   /// every field's suggestions reflect what the database now says, and only then forgets them, so
   /// what a field shows never falls back to a stale stored value between the two. A no-op while
-  /// nothing is pending. Answers whether there was anything pending.
+  /// nothing is pending. Answers `nothingToWrite` when nothing was pending.
   ///
   /// Called by the debounce firing, and by the mode ahead of every action that needs the database
   /// to be up to date.

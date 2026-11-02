@@ -39,7 +39,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 /// [flushPendingWrites] and [flushPendingWritesWithoutState]. The base registers it with the mode
 /// when built, unregisters it first thing when it closes, and flushes without state while closing,
 /// so a pending edit reaches the database whichever of the view and the mode closes first.
-/// A flush whose write fails throws, keeps the edit pending, and makes the mode's
+/// A flush whose write fails answers `failed`, keeps the edit pending, and makes the mode's
 /// [OcptPendingWritesRun] say so: whether the action behind the flush then stops is the mode's
 /// call. So does a flush whose write landed but whose `reload` answered false, in a mode whose old
 /// code let that read failure escape: the action must not run over a snapshot from before the

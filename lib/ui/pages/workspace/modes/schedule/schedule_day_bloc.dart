@@ -172,7 +172,7 @@ class OcptScheduleDayBloc
   /// fired or there was none), writes each one, then has the mode read the schedule again — which
   /// also refreshes the working-copy card if the `Versions` tab is open — and only then forgets
   /// what it wrote, so what a field shows never falls back to a stale stored value between the two.
-  /// A no-op while nothing is pending. Answers whether there was anything pending.
+  /// A no-op while nothing is pending. Answers `nothingToWrite` when nothing was pending.
   ///
   /// When the mode could not read the schedule again the flush answers `failed` and the edits stay
   /// pending: they were written, but what is on screen is still the older data.

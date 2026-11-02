@@ -5,7 +5,8 @@
 /// What asking a view to write the edits it holds came to.
 ///
 /// See `OcptPendingWritesFlusher`. A failed write is reported as a value rather than raised, so a
-/// flush that cannot write never takes the handler that asked for it down with it.
+/// flush that cannot write never takes the handler that asked for it down with it. A write that
+/// raises all the same is told as [failed], and the error goes to the view's own error report.
 enum OcptPendingWritesStatus {
   /// The view had edits and wrote them, or dropped them for lack of an open project.
   ok,

@@ -141,8 +141,8 @@ class OcptBudgetExpensesBloc
   /// fired or there was none), writes each one, then has the mode read the snapshot again — which
   /// also reconciles the selection and refreshes the working-copy card if the `Versions` tab is
   /// open — and only then forgets what it wrote, so what a field shows never falls back to a stale
-  /// stored value between the two. A no-op while nothing is pending. Answers whether there was
-  /// anything pending.
+  /// stored value between the two. A no-op while nothing is pending.
+  /// Answers `nothingToWrite` when nothing was pending.
   ///
   /// A failed write leaves the edit pending, and so does a mode that could not read the snapshot
   /// again, which answers `failed`: the edits were written, but what is on screen is still the

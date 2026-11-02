@@ -153,10 +153,10 @@ class OcptBreakdownInspectorBloc
   /// `OcptLocationsService.updateSet`, has the mode read the snapshot again so every derived
   /// aggregate reflects what the database now says, and only then forgets what it wrote, so what a
   /// field shows never falls back to a stale stored value between the two. A no-op while nothing is
-  /// pending. Answers whether there was anything pending.
+  /// pending. Answers `nothingToWrite` when nothing was pending.
   ///
   /// A write that fails is logged and what was meant to be written is forgotten, the snapshot is
-  /// not read again, and the flush answers true all the same: the action behind it goes ahead on
+  /// not read again, and the flush answers `ok` all the same: the action behind it goes ahead on
   /// the value the database holds. A read that fails after the write landed forgets what was
   /// written too, the mode having logged why it could not read.
   ///
