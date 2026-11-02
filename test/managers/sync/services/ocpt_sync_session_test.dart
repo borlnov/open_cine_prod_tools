@@ -6,9 +6,13 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_foundation/act_foundation.dart';
+import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
@@ -95,7 +99,7 @@ class _FakeChangesetService extends OcptChangesetService {
   /// Whether [countUnpushedEdits] throws instead of answering.
   bool isCountFailing = false;
 
-  /// The outcomes the next syncs answer with, one per call.
+  /// The outcomes the next syncs answer with, one per call. A status answers that status alone.
   final List<Object> syncOnceOutcomes = [];
 
   /// The outcomes the next pulls answer with, one per call.
@@ -167,6 +171,9 @@ class _FakeChangesetService extends OcptChangesetService {
     }
     if (outcome is _DatabaseFailure) {
       throw outcome.error;
+    }
+    if (outcome is OcptRemoteStorageStatus) {
+      return ResultWithStatus(status: outcome);
     }
     if (outcome is OcptSyncMergeFailure) {
       return ResultWithStatus(status: OcptRemoteStorageStatus.unreachable, extraInfo: outcome);
@@ -413,6 +420,105 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 5)),
   );
+
+  group('a run that knocks the session offline names its cause', () {
+    late OcptDiagnosticsManager diagnostics;
+    late FakeLogger fakeLogger;
+
+    setUp(() async {
+      OcptGlobalManager.instance;
+      diagnostics = OcptDiagnosticsManager();
+      final managers = globalGetIt();
+      if (managers.isRegistered<OcptDiagnosticsManager>()) {
+        await managers.unregister<OcptDiagnosticsManager>();
+      }
+      managers.registerSingleton<OcptDiagnosticsManager>(diagnostics);
+
+      fakeLogger = FakeLogger();
+      session = OcptSyncSession(
+        logger: fakeLogger,
+        projectId: projectId,
+        database: database,
+        deviceId: deviceId,
+        relayId: relayId,
+        storage: storage,
+        changesetService: changesetService,
+        pushInterval: const Duration(hours: 1),
+      );
+    });
+
+    tearDown(() async {
+      final managers = globalGetIt();
+      if (managers.isRegistered<OcptDiagnosticsManager>()) {
+        await managers.unregister<OcptDiagnosticsManager>();
+      }
+      await diagnostics.disposeLifeCycle();
+    });
+
+    /// Make the next run fail with [outcome], on the path that pushes then pulls, or on the one
+    /// that only pulls, and wait for the session to go offline.
+    Future<void> failOn({required bool isPullOnly, required Object outcome}) async {
+      if (isPullOnly) {
+        await session.start();
+        changesetService.pullAndApplyOutcomes.add(outcome);
+        storage.pingNewWork();
+        await _waitUntil(() => session.status is OcptSyncStatusOffline);
+      } else {
+        changesetService.syncOnceOutcomes.add(outcome);
+        await session.start();
+      }
+    }
+
+    /// Get the diagnostics lines that say why the session went offline.
+    List<String> causes() => [
+      for (final entry in diagnostics.entries)
+        if (entry.message.startsWith('offline cause')) entry.message,
+    ];
+
+    final causesByOutcome = <String, (Object, String, String)>{
+      'a transport failure': (
+        Exception('connection refused'),
+        'Exception: connection refused',
+        '_Exception',
+      ),
+      'a database failure': (
+        _DatabaseFailure(StateError('database is closed')),
+        'Bad state: database is closed',
+        'StateError',
+      ),
+      'a status with no detail': (
+        OcptRemoteStorageStatus.unreachable,
+        'OcptRemoteStorageStatus.unreachable',
+        'OcptRemoteStorageStatus',
+      ),
+    };
+
+    for (final isPullOnly in [false, true]) {
+      final label = isPullOnly ? 'Sync pull failed' : 'Sync failed';
+      final path = isPullOnly ? 'pulling alone' : 'pushing then pulling';
+
+      causesByOutcome.forEach((name, expected) {
+        final (outcome, diagnosticText, typeName) = expected;
+
+        test(
+          '$name while $path is told in the diagnostics with its text and logged with its type',
+          () async {
+            await failOn(isPullOnly: isPullOnly, outcome: outcome);
+
+            expect(session.status, isA<OcptSyncStatusOffline>());
+            expect(causes(), ['offline cause: project=$projectId $diagnosticText']);
+            final warnings = fakeLogger.recordsAtLevel(LogsLevel.warn);
+            expect(warnings.first.message.toString(), '$label for project $projectId: $typeName');
+            expect(
+              warnings.map((record) => record.message.toString()),
+              everyElement(isNot(contains('connection refused'))),
+            );
+          },
+          timeout: const Timeout(Duration(seconds: 5)),
+        );
+      });
+    }
+  });
 
   test('starting a session twice without stopping answers the already-running status', () async {
     expect(await session.start(), OcptSyncSessionStatus.ok);
