@@ -3,12 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status_lead.dart';
 import 'package:uuid/uuid.dart';
@@ -63,10 +65,11 @@ class OcptRoleCandidatesService extends AbsOcptService {
   ///
   /// The retained candidate is **not** pulled to the front here: that is a reading the card does
   /// when it draws the list, and this order is the one the user actually chose.
-  Future<Map<String, List<OcptRoleCandidate>>> loadCandidatesByRoleId({
+  @useResult
+  Future<OcptDatabaseResult<Map<String, List<OcptRoleCandidate>>>> loadCandidatesByRoleId({
     required OcptProjectDatabase database,
     required List<OcptPerson> people,
-  }) async {
+  }) => guardResult("loadCandidatesByRoleId", () async {
     final rows = await _liveCandidateRows(database: database);
     final peopleById = {for (final person in people) person.id: person};
 
@@ -83,7 +86,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
     }
 
     return candidatesByRoleId;
-  }
+  });
 
   /// Record that [personId] is a candidate for role [roleId], appended after that role's other
   /// candidates, and return the id of the candidacy — the one that already said so when there was
@@ -100,11 +103,12 @@ class OcptRoleCandidatesService extends AbsOcptService {
   /// what a casting director wants back.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addCandidate({
+  @useResult
+  Future<OcptDatabaseResult<String>> addCandidate({
     required OcptProjectDatabase database,
     required String roleId,
     required String personId,
-  }) async {
+  }) => guardResult("addCandidate", () async {
     if (database.refusesUserWrite("addCandidate")) {
       return null;
     }
@@ -163,7 +167,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
 
       return id;
     });
-  }
+  });
 
   /// Update the fields of candidacy [candidateId] that are passed as something other than
   /// [Value.absent].
@@ -173,12 +177,13 @@ class OcptRoleCandidatesService extends AbsOcptService {
   /// row.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateCandidate({
+  @useResult
+  Future<OcptDatabaseOutcome> updateCandidate({
     required OcptProjectDatabase database,
     required String candidateId,
     Value<DateTime?> auditionedOn = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateCandidate", () async {
     if (database.refusesUserWrite("updateCandidate")) {
       return;
     }
@@ -205,19 +210,20 @@ class OcptRoleCandidatesService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Move candidacy [candidateId] to [newPosition] (0-based) within role [roleId]'s own list, by
   /// giving it a `sortKey` sitting between the two candidacies it lands between. Writes **exactly
   /// one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderCandidate({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderCandidate({
     required OcptProjectDatabase database,
     required String roleId,
     required String candidateId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderCandidate", () async {
     if (database.refusesUserWrite("reorderCandidate")) {
       return;
     }
@@ -251,7 +257,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Set candidacy [candidateId]'s status to [status], keeping `roles.personId` in step with it.
   ///
@@ -274,7 +280,115 @@ class OcptRoleCandidatesService extends AbsOcptService {
   /// Does nothing when [candidateId] names no live candidacy.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> setStatus({
+  @useResult
+  Future<OcptDatabaseOutcome> setStatus({
+    required OcptProjectDatabase database,
+    required String candidateId,
+    required OcptRoleCandidateStatus status,
+  }) => guardOutcome(
+    "setStatus",
+    () => _setStatus(database: database, candidateId: candidateId, status: status),
+  );
+
+  /// Retain candidacy [candidateId]: this person is the one cast in the part, and every other
+  /// candidate still in the running is turned down with the same gesture. [setStatus]'s retaining
+  /// half, named for the decision the card's own status list makes.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseOutcome> retainCandidate({
+    required OcptProjectDatabase database,
+    required String candidateId,
+  }) => guardOutcome(
+    "retainCandidate",
+    () => _setStatus(
+      database: database,
+      candidateId: candidateId,
+      status: OcptRoleCandidateStatus.retained,
+    ),
+  );
+
+  /// Drop candidacy [candidateId] back to [OcptRoleCandidateStatus.seen] and clear the part's
+  /// casting with it. [retainCandidate]'s mirror on the cast column, and only there.
+  ///
+  /// The candidacy itself stays exactly where it was in the list, with its date and its notes: the
+  /// person was still seen, and the record of it is the whole point of this table.
+  ///
+  /// **The other candidates are not brought back.** Retaining turned down everybody still in the
+  /// running; un-retaining leaves them turned down, because what each of them held beforehand is
+  /// recorded nowhere and guessing it is what this codebase refuses everywhere else. Changing one's
+  /// mind about a casting therefore means saying so, row by row — which is the honest cost of the
+  /// gesture, and the reason the card's status list is the only place a status ever moves.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseOutcome> unretainCandidate({
+    required OcptProjectDatabase database,
+    required String candidateId,
+  }) => guardOutcome(
+    "unretainCandidate",
+    () => _setStatus(
+      database: database,
+      candidateId: candidateId,
+      status: OcptRoleCandidateStatus.seen,
+    ),
+  );
+
+  /// Remove candidacy [candidateId]: this person is no longer among the people seen for the part.
+  ///
+  /// **The `people` row is never touched** — a person outlives a candidacy — and neither is any
+  /// other candidacy of the role. `roles.personId` is cleared when the candidacy being removed was
+  /// the retained one, for the reason [setStatus] clears it when the status is taken away: the cast
+  /// column was written by this very row, and a part cast by a candidacy that no longer exists is
+  /// exactly the disagreement between two tables this service exists to prevent.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseOutcome> removeCandidate({
+    required OcptProjectDatabase database,
+    required String candidateId,
+  }) => guardOutcome("removeCandidate", () async {
+    if (database.refusesUserWrite("removeCandidate")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final candidacy = await (database.select(
+        database.ocptRoleCandidatesTable,
+      )..where((table) => table.id.equals(candidateId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (candidacy == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: candidateId,
+        current: candidacy,
+        next: candidacy.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+
+      if (candidacy.status == OcptRoleCandidateStatus.retained) {
+        await _writeRoleCasting(
+          database: database,
+          roleId: candidacy.roleId,
+          personId: null,
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
+    });
+  });
+
+  /// Set candidacy [candidateId]'s status to [status], the body [setStatus], [retainCandidate] and
+  /// [unretainCandidate] each hand to the boundary of their own.
+  Future<void> _setStatus({
     required OcptProjectDatabase database,
     required String candidateId,
     required OcptRoleCandidateStatus status,
@@ -320,90 +434,6 @@ class OcptRoleCandidatesService extends AbsOcptService {
           stamps: stamps,
         );
       } else if (candidacy.status == OcptRoleCandidateStatus.retained) {
-        await _writeRoleCasting(
-          database: database,
-          roleId: candidacy.roleId,
-          personId: null,
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-    });
-  }
-
-  /// Retain candidacy [candidateId]: this person is the one cast in the part, and every other
-  /// candidate still in the running is turned down with the same gesture. [setStatus]'s retaining
-  /// half, named for the decision the card's own status list makes.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> retainCandidate({
-    required OcptProjectDatabase database,
-    required String candidateId,
-  }) => setStatus(
-    database: database,
-    candidateId: candidateId,
-    status: OcptRoleCandidateStatus.retained,
-  );
-
-  /// Drop candidacy [candidateId] back to [OcptRoleCandidateStatus.seen] and clear the part's
-  /// casting with it. [retainCandidate]'s mirror on the cast column, and only there.
-  ///
-  /// The candidacy itself stays exactly where it was in the list, with its date and its notes: the
-  /// person was still seen, and the record of it is the whole point of this table.
-  ///
-  /// **The other candidates are not brought back.** Retaining turned down everybody still in the
-  /// running; un-retaining leaves them turned down, because what each of them held beforehand is
-  /// recorded nowhere and guessing it is what this codebase refuses everywhere else. Changing one's
-  /// mind about a casting therefore means saying so, row by row — which is the honest cost of the
-  /// gesture, and the reason the card's status list is the only place a status ever moves.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> unretainCandidate({
-    required OcptProjectDatabase database,
-    required String candidateId,
-  }) =>
-      setStatus(database: database, candidateId: candidateId, status: OcptRoleCandidateStatus.seen);
-
-  /// Remove candidacy [candidateId]: this person is no longer among the people seen for the part.
-  ///
-  /// **The `people` row is never touched** — a person outlives a candidacy — and neither is any
-  /// other candidacy of the role. `roles.personId` is cleared when the candidacy being removed was
-  /// the retained one, for the reason [setStatus] clears it when the status is taken away: the cast
-  /// column was written by this very row, and a part cast by a candidacy that no longer exists is
-  /// exactly the disagreement between two tables this service exists to prevent.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeCandidate({
-    required OcptProjectDatabase database,
-    required String candidateId,
-  }) async {
-    if (database.refusesUserWrite("removeCandidate")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final candidacy = await (database.select(
-        database.ocptRoleCandidatesTable,
-      )..where((table) => table.id.equals(candidateId) & table.isDeleted.not())).getSingleOrNull();
-
-      if (candidacy == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptRoleCandidatesTable,
-        rowId: candidateId,
-        current: candidacy,
-        next: candidacy.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-
-      if (candidacy.status == OcptRoleCandidateStatus.retained) {
         await _writeRoleCasting(
           database: database,
           roleId: candidacy.roleId,

@@ -339,8 +339,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// is dropped for the same reason and then chosen afresh out of what was just read, by
   /// [_defaultSelectedDayOf] — never carried over.
   ///
-  /// Answers false when the schedule could not be read, in which case nothing is emitted and the
-  /// caller stops there.
+  /// Answers false when the schedule or the casting could not be read, in which case nothing is
+  /// emitted and the caller stops there.
   @useResult
   Future<bool> _load(Emitter<OcptScheduleState> emitter) async {
     final leftDockFraction =
@@ -384,7 +384,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       final elements = await _elementsService.loadElements(database: project.database);
       // Read after the address book, and out of it: a candidacy travels with the person it names,
       // and resolving one twice is how two readings of the same casting come to disagree.
-      final roleCandidates = await _loadRoleCandidates(project, people: people);
+      final roleCandidatesRead = await _loadRoleCandidates(project, people: people);
+      if (roleCandidatesRead.isError) {
+        return false;
+      }
+
+      final roleCandidates = roleCandidatesRead.value!;
       final pageSetup = await _loadPageSetup(project);
       final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
 
@@ -475,16 +480,26 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   ///
   /// [people] is the address book this very load has already read, handed straight back in rather
   /// than read a second time.
-  Future<List<OcptRoleCandidate>> _loadRoleCandidates(
+  @useResult
+  Future<OcptDatabaseResult<List<OcptRoleCandidate>>> _loadRoleCandidates(
     OcptOpenProjectModel project, {
     required List<OcptPerson> people,
   }) async {
-    final candidatesByRoleId = await _roleCandidatesService.loadCandidatesByRoleId(
+    final candidatesRead = await _roleCandidatesService.loadCandidatesByRoleId(
       database: project.database,
       people: people,
     );
+    if (candidatesRead.isError) {
+      return OcptDatabaseResult<List<OcptRoleCandidate>>(
+        status: candidatesRead.status,
+        extraInfo: candidatesRead.extraInfo,
+      );
+    }
 
-    return [for (final candidates in candidatesByRoleId.values) ...candidates];
+    return OcptDatabaseResult<List<OcptRoleCandidate>>(
+      status: OcptDatabaseStatus.ok,
+      value: [for (final candidates in candidatesRead.value!.values) ...candidates],
+    );
   }
 
   /// Read every live episode's own whole shot list, in the same order — the schedule reading

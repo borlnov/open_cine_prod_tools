@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status_lead.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of [OcptRoleCandidatesService].
 void main() {
@@ -110,16 +111,12 @@ void main() {
       await createPerson("person-1");
       await createPerson("person-2");
 
-      final firstId = await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      );
-      final secondId = await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-2",
-      );
+      final firstId = await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .maybeValueOrFail;
+      final secondId = await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-2")
+          .maybeValueOrFail;
 
       expect((await readCandidates()).map((row) => row.id), [firstId, secondId]);
       expect((await readCandidate(firstId!)).status, OcptRoleCandidateStatus.spotted);
@@ -130,16 +127,12 @@ void main() {
       await createRole("role-1");
       await createPerson("person-1");
 
-      final firstId = await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      );
-      final againId = await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      );
+      final firstId = await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .maybeValueOrFail;
+      final againId = await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .maybeValueOrFail;
 
       expect(againId, firstId);
       expect(await readCandidates(), hasLength(1));
@@ -149,28 +142,24 @@ void main() {
       await createRole("role-1");
       await createPerson("person-1");
 
-      final id = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
-      await candidatesService.updateCandidate(
-        database: database,
-        candidateId: id,
-        notes: const Value("Très juste"),
-      );
-      await candidatesService.setStatus(
-        database: database,
-        candidateId: id,
-        status: OcptRoleCandidateStatus.shortlisted,
-      );
-      await candidatesService.removeCandidate(database: database, candidateId: id);
+      final id = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
+      await candidatesService
+          .updateCandidate(database: database, candidateId: id, notes: const Value("Très juste"))
+          .okOrFail;
+      await candidatesService
+          .setStatus(
+            database: database,
+            candidateId: id,
+            status: OcptRoleCandidateStatus.shortlisted,
+          )
+          .okOrFail;
+      await candidatesService.removeCandidate(database: database, candidateId: id).okOrFail;
 
-      final revivedId = await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      );
+      final revivedId = await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .maybeValueOrFail;
 
       expect(revivedId, id);
       final revived = await readCandidate(id);
@@ -184,16 +173,12 @@ void main() {
       await createRole("role-2", name: "MARC");
       await createPerson("person-1");
 
-      final firstId = await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      );
-      final secondId = await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-2",
-        personId: "person-1",
-      );
+      final firstId = await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .maybeValueOrFail;
+      final secondId = await candidatesService
+          .addCandidate(database: database, roleId: "role-2", personId: "person-1")
+          .maybeValueOrFail;
 
       expect(secondId, isNot(firstId));
       expect(await readCandidates(), hasLength(2));
@@ -202,18 +187,18 @@ void main() {
     test("updateCandidate writes the date and the notes, and nothing else", () async {
       await createRole("role-1");
       await createPerson("person-1");
-      final id = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
+      final id = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
 
-      await candidatesService.updateCandidate(
-        database: database,
-        candidateId: id,
-        auditionedOn: Value(DateTime.utc(2026, 2, 12)),
-        notes: const Value("Fragile, exactly right"),
-      );
+      await candidatesService
+          .updateCandidate(
+            database: database,
+            candidateId: id,
+            auditionedOn: Value(DateTime.utc(2026, 2, 12)),
+            notes: const Value("Fragile, exactly right"),
+          )
+          .okOrFail;
 
       final candidate = await readCandidate(id);
       expect(candidate.auditionedOn, DateTime.utc(2026, 2, 12));
@@ -227,30 +212,26 @@ void main() {
       await createPerson("person-2");
       await createPerson("person-3");
 
-      final firstId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
-      final secondId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-2",
-      ))!;
-      final thirdId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-3",
-      ))!;
+      final firstId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
+      final secondId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-2")
+          .valueOrFail);
+      final thirdId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-3")
+          .valueOrFail);
 
       final untouchedSortKey = (await readCandidate(secondId)).sortKey;
 
-      await candidatesService.reorderCandidate(
-        database: database,
-        roleId: "role-1",
-        candidateId: thirdId,
-        newPosition: 0,
-      );
+      await candidatesService
+          .reorderCandidate(
+            database: database,
+            roleId: "role-1",
+            candidateId: thirdId,
+            newPosition: 0,
+          )
+          .okOrFail;
 
       expect((await readCandidates()).map((row) => row.id), [thirdId, firstId, secondId]);
       expect((await readCandidate(secondId)).sortKey, untouchedSortKey);
@@ -259,13 +240,11 @@ void main() {
     test("removeCandidate tombstones the candidacy and leaves the person alone", () async {
       await createRole("role-1");
       await createPerson("person-1");
-      final id = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
+      final id = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
 
-      await candidatesService.removeCandidate(database: database, candidateId: id);
+      await candidatesService.removeCandidate(database: database, candidateId: id).okOrFail;
 
       expect((await readCandidate(id)).isDeleted, isTrue);
       final person = await (database.select(
@@ -284,20 +263,18 @@ void main() {
       await createPerson("person-1");
       await createPerson("person-2", firstName: "Sam");
 
-      firstCandidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
-      secondCandidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-2",
-      ))!;
+      firstCandidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
+      secondCandidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-2")
+          .valueOrFail);
     });
 
     test("retaining a candidate casts the part with them", () async {
-      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
 
       expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.retained);
       expect(await readCasting("role-1"), "person-1");
@@ -306,13 +283,17 @@ void main() {
     test("retaining a candidate turns every other one still in the running down", () async {
       // The part is cast: the people who were still possibilities did not get it, and the row
       // says so rather than leaving them at the status they happened to hold when it was decided.
-      await candidatesService.setStatus(
-        database: database,
-        candidateId: secondCandidateId,
-        status: OcptRoleCandidateStatus.shortlisted,
-      );
+      await candidatesService
+          .setStatus(
+            database: database,
+            candidateId: secondCandidateId,
+            status: OcptRoleCandidateStatus.shortlisted,
+          )
+          .okOrFail;
 
-      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
 
       expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.retained);
       expect((await readCandidate(secondCandidateId)).status, OcptRoleCandidateStatus.notRetained);
@@ -322,13 +303,13 @@ void main() {
       for (final status in OcptRoleCandidateStatus.values.where(
         (status) => status.isStillALead && status != OcptRoleCandidateStatus.retained,
       )) {
-        await candidatesService.setStatus(
-          database: database,
-          candidateId: secondCandidateId,
-          status: status,
-        );
+        await candidatesService
+            .setStatus(database: database, candidateId: secondCandidateId, status: status)
+            .okOrFail;
 
-        await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+        await candidatesService
+            .retainCandidate(database: database, candidateId: firstCandidateId)
+            .okOrFail;
 
         expect(
           (await readCandidate(secondCandidateId)).status,
@@ -343,21 +324,25 @@ void main() {
       // down": somebody who declined did not lose the part to this casting, they were out of it
       // before it was decided.
       for (final status in OcptRoleCandidateStatus.values.where((status) => !status.isStillALead)) {
-        await candidatesService.setStatus(
-          database: database,
-          candidateId: secondCandidateId,
-          status: status,
-        );
+        await candidatesService
+            .setStatus(database: database, candidateId: secondCandidateId, status: status)
+            .okOrFail;
 
-        await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+        await candidatesService
+            .retainCandidate(database: database, candidateId: firstCandidateId)
+            .okOrFail;
 
         expect((await readCandidate(secondCandidateId)).status, status, reason: "for $status");
       }
     });
 
     test("retaining a second candidate turns the first down and recasts the part", () async {
-      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
-      await candidatesService.retainCandidate(database: database, candidateId: secondCandidateId);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
+      await candidatesService
+          .retainCandidate(database: database, candidateId: secondCandidateId)
+          .okOrFail;
 
       expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.notRetained);
       expect((await readCandidate(secondCandidateId)).status, OcptRoleCandidateStatus.retained);
@@ -365,10 +350,14 @@ void main() {
     });
 
     test("dropping the retained candidate does not bring the turned-down ones back", () async {
-      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
       expect((await readCandidate(secondCandidateId)).status, OcptRoleCandidateStatus.notRetained);
 
-      await candidatesService.unretainCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .unretainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
 
       // The cast column comes back, the other rows do not: what each of them held before the
       // retaining is recorded nowhere, and this service guesses nothing.
@@ -377,9 +366,13 @@ void main() {
     });
 
     test("dropping the retained candidate leaves the part uncast", () async {
-      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
 
-      await candidatesService.unretainCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .unretainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
 
       expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.seen);
       expect(await readCasting("role-1"), isNull);
@@ -391,14 +384,14 @@ void main() {
       for (final status in OcptRoleCandidateStatus.values.where(
         (status) => status != OcptRoleCandidateStatus.retained,
       )) {
-        await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+        await candidatesService
+            .retainCandidate(database: database, candidateId: firstCandidateId)
+            .okOrFail;
         expect(await readCasting("role-1"), isNotNull, reason: "before moving to $status");
 
-        await candidatesService.setStatus(
-          database: database,
-          candidateId: firstCandidateId,
-          status: status,
-        );
+        await candidatesService
+            .setStatus(database: database, candidateId: firstCandidateId, status: status)
+            .okOrFail;
 
         expect((await readCandidate(firstCandidateId)).status, status);
         expect(await readCasting("role-1"), isNull, reason: "after moving to $status");
@@ -411,13 +404,17 @@ void main() {
         // `notRetained` is the mirror of `retained` and the likeliest way a production changes its
         // mind, so it gets its own case beside the walk above rather than only being one of its
         // iterations.
-        await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+        await candidatesService
+            .retainCandidate(database: database, candidateId: firstCandidateId)
+            .okOrFail;
 
-        await candidatesService.setStatus(
-          database: database,
-          candidateId: firstCandidateId,
-          status: OcptRoleCandidateStatus.notRetained,
-        );
+        await candidatesService
+            .setStatus(
+              database: database,
+              candidateId: firstCandidateId,
+              status: OcptRoleCandidateStatus.notRetained,
+            )
+            .okOrFail;
 
         expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.notRetained);
         expect(await readCasting("role-1"), isNull);
@@ -425,18 +422,26 @@ void main() {
     );
 
     test("removing the retained candidate leaves the part uncast", () async {
-      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
 
-      await candidatesService.removeCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .removeCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
 
       expect((await readCandidate(firstCandidateId)).isDeleted, isTrue);
       expect(await readCasting("role-1"), isNull);
     });
 
     test("removing a candidate nobody retained leaves the casting alone", () async {
-      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
 
-      await candidatesService.removeCandidate(database: database, candidateId: secondCandidateId);
+      await candidatesService
+          .removeCandidate(database: database, candidateId: secondCandidateId)
+          .okOrFail;
 
       expect(await readCasting("role-1"), "person-1");
     });
@@ -449,11 +454,13 @@ void main() {
         personId: const Value("person-1"),
       );
 
-      await candidatesService.setStatus(
-        database: database,
-        candidateId: secondCandidateId,
-        status: OcptRoleCandidateStatus.declined,
-      );
+      await candidatesService
+          .setStatus(
+            database: database,
+            candidateId: secondCandidateId,
+            status: OcptRoleCandidateStatus.declined,
+          )
+          .okOrFail;
 
       expect(await readCasting("role-1"), "person-1");
       expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.spotted);
@@ -461,14 +468,16 @@ void main() {
 
     test("retaining a candidate of one part leaves another part's casting alone", () async {
       await createRole("role-2", name: "MARC");
-      final otherCandidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-2",
-        personId: "person-1",
-      ))!;
-      await candidatesService.retainCandidate(database: database, candidateId: otherCandidateId);
+      final otherCandidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-2", personId: "person-1")
+          .valueOrFail);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: otherCandidateId)
+          .okOrFail;
 
-      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
 
       expect((await readCandidate(otherCandidateId)).status, OcptRoleCandidateStatus.retained);
       expect(await readCasting("role-2"), "person-1");
@@ -476,13 +485,17 @@ void main() {
     });
 
     test("setStatus on a candidacy that isn't there writes nothing", () async {
-      await candidatesService.retainCandidate(database: database, candidateId: firstCandidateId);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: firstCandidateId)
+          .okOrFail;
 
-      await candidatesService.setStatus(
-        database: database,
-        candidateId: "nobody",
-        status: OcptRoleCandidateStatus.retained,
-      );
+      await candidatesService
+          .setStatus(
+            database: database,
+            candidateId: "nobody",
+            status: OcptRoleCandidateStatus.retained,
+          )
+          .okOrFail;
 
       expect((await readCandidate(firstCandidateId)).status, OcptRoleCandidateStatus.retained);
       expect(await readCasting("role-1"), "person-1");
@@ -493,11 +506,9 @@ void main() {
     test("deleting a role carries its candidates off, and leaves the people", () async {
       await createRole("role-1");
       await createPerson("person-1");
-      final candidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
+      final candidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
 
       await roleIndexService.deleteRole(database: database, roleId: "role-1");
 
@@ -514,29 +525,25 @@ void main() {
       await createPerson("person-1");
       await createPerson("person-2", firstName: "Sam");
 
-      final erasedCandidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
-      await candidatesService.updateCandidate(
-        database: database,
-        candidateId: erasedCandidateId,
-        auditionedOn: Value(DateTime.utc(2026, 2, 12)),
-        notes: const Value("Fragile, exactly right for the part"),
-      );
-      final otherCandidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-2",
-      ))!;
+      final erasedCandidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
+      await candidatesService
+          .updateCandidate(
+            database: database,
+            candidateId: erasedCandidateId,
+            auditionedOn: Value(DateTime.utc(2026, 2, 12)),
+            notes: const Value("Fragile, exactly right for the part"),
+          )
+          .okOrFail;
+      final otherCandidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-2")
+          .valueOrFail);
       // A second part the same erased person was seen for: every candidacy of theirs goes, not
       // only the first one found.
-      final secondPartCandidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-2",
-        personId: "person-1",
-      ))!;
+      final secondPartCandidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-2", personId: "person-1")
+          .valueOrFail);
 
       await peopleService.deletePerson(database: database, personId: "person-1");
 
@@ -556,12 +563,12 @@ void main() {
     test("erasing the person a part is cast with leaves the part cast", () async {
       await createRole("role-1");
       await createPerson("person-1");
-      final candidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
-      await candidatesService.retainCandidate(database: database, candidateId: candidateId);
+      final candidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: candidateId)
+          .okOrFail;
 
       await peopleService.deletePerson(database: database, personId: "person-1");
 
@@ -576,22 +583,17 @@ void main() {
       await createRole("role-1");
       await createPerson("person-1");
       await createPerson("person-2", firstName: "Sam");
-      final firstId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
-      final secondId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-2",
-      ))!;
+      final firstId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
+      final secondId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-2")
+          .valueOrFail);
 
       final people = await peopleService.loadPeople(database: database);
-      final candidatesByRoleId = await candidatesService.loadCandidatesByRoleId(
-        database: database,
-        people: people,
-      );
+      final candidatesByRoleId = await candidatesService
+          .loadCandidatesByRoleId(database: database, people: people)
+          .valueOrFail;
 
       final candidates = candidatesByRoleId["role-1"]!;
       expect(candidates.map((candidate) => candidate.id), [firstId, secondId]);
@@ -605,29 +607,25 @@ void main() {
       await createPerson("person-1");
       await createPerson("person-2", firstName: "Sam");
       await createPerson("person-3", firstName: "Alex");
-      final keptId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
-      final erasedPersonCandidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-2",
-      ))!;
-      final removedId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-3",
-      ))!;
+      final keptId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
+      final erasedPersonCandidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-2")
+          .valueOrFail);
+      final removedId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-3")
+          .valueOrFail);
 
-      await candidatesService.removeCandidate(database: database, candidateId: removedId);
+      await candidatesService.removeCandidate(database: database, candidateId: removedId).okOrFail;
       await peopleService.deletePerson(database: database, personId: "person-2");
 
-      final candidatesByRoleId = await candidatesService.loadCandidatesByRoleId(
-        database: database,
-        people: await peopleService.loadPeople(database: database),
-      );
+      final candidatesByRoleId = await candidatesService
+          .loadCandidatesByRoleId(
+            database: database,
+            people: await peopleService.loadPeople(database: database),
+          )
+          .valueOrFail;
 
       expect(candidatesByRoleId["role-1"]!.map((candidate) => candidate.id), [keptId]);
       expect(erasedPersonCandidateId, isNot(keptId));
@@ -650,11 +648,9 @@ void main() {
           .into(preview.ocptPeopleTable)
           .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
 
-      final candidateId = await candidatesService.addCandidate(
-        database: preview,
-        roleId: "role-1",
-        personId: "person-1",
-      );
+      final candidateId = await candidatesService
+          .addCandidate(database: preview, roleId: "role-1", personId: "person-1")
+          .maybeValueOrFail;
 
       expect(candidateId, isNull);
       expect(await preview.select(preview.ocptRoleCandidatesTable).get(), isEmpty);
@@ -686,7 +682,9 @@ void main() {
             ),
           );
 
-      await candidatesService.retainCandidate(database: preview, candidateId: "candidate-1");
+      await candidatesService
+          .retainCandidate(database: preview, candidateId: "candidate-1")
+          .okOrFail;
 
       final candidate = await preview.select(preview.ocptRoleCandidatesTable).getSingle();
       expect(candidate.status, OcptRoleCandidateStatus.seen);
@@ -702,11 +700,9 @@ void main() {
       await createRole("role-1");
       await createPerson("person-1");
 
-      final candidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
+      final candidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
 
       final stamps = await readStamps();
       final candidate = await readCandidate(candidateId);
@@ -726,18 +722,18 @@ void main() {
     test("updateCandidate stamps only the columns that actually changed", () async {
       await createRole("role-1");
       await createPerson("person-1");
-      final candidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
+      final candidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await candidatesService.updateCandidate(
-        database: database,
-        candidateId: candidateId,
-        notes: const Value("Bonne présence"),
-      );
+      await candidatesService
+          .updateCandidate(
+            database: database,
+            candidateId: candidateId,
+            notes: const Value("Bonne présence"),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       expect(stamps.keys.where((key) => key.startsWith("role_candidates/$candidateId/")).toSet(), {
@@ -745,25 +741,27 @@ void main() {
       });
 
       // Writing the same value again touches nothing: there is nothing left to stamp.
-      await candidatesService.updateCandidate(
-        database: database,
-        candidateId: candidateId,
-        notes: const Value("Bonne présence"),
-      );
+      await candidatesService
+          .updateCandidate(
+            database: database,
+            candidateId: candidateId,
+            notes: const Value("Bonne présence"),
+          )
+          .okOrFail;
       expect(await readStamps(), stamps);
     });
 
     test("removeCandidate stamps isDeleted on the candidacy", () async {
       await createRole("role-1");
       await createPerson("person-1");
-      final candidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
+      final candidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await candidatesService.removeCandidate(database: database, candidateId: candidateId);
+      await candidatesService
+          .removeCandidate(database: database, candidateId: candidateId)
+          .okOrFail;
 
       final stamps = await readStamps();
       expect(stamps.keys.where((key) => key.startsWith("role_candidates/$candidateId/")).toSet(), {
@@ -774,14 +772,14 @@ void main() {
     test("retainCandidate stamps the role's personId along with the candidacy's status", () async {
       await createRole("role-1");
       await createPerson("person-1");
-      final candidateId = (await candidatesService.addCandidate(
-        database: database,
-        roleId: "role-1",
-        personId: "person-1",
-      ))!;
+      final candidateId = (await candidatesService
+          .addCandidate(database: database, roleId: "role-1", personId: "person-1")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await candidatesService.retainCandidate(database: database, candidateId: candidateId);
+      await candidatesService
+          .retainCandidate(database: database, candidateId: candidateId)
+          .okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["role_candidates/$candidateId/status"]!.version, 1);

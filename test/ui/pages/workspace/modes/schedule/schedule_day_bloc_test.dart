@@ -269,11 +269,9 @@ void main() {
         personId: personId!,
         firstName: const Value("Camille"),
       );
-      final roleCandidateId = await projectsManager.roleCandidatesService.addCandidate(
-        database: project.database,
-        roleId: roleId!,
-        personId: personId,
-      );
+      final roleCandidateId = await projectsManager.roleCandidatesService
+          .addCandidate(database: project.database, roleId: roleId!, personId: personId)
+          .maybeValueOrFail;
 
       final dayId = await projectsManager.scheduleService
           .createDay(database: project.database, date: DateTime(2026, 8, 10))

@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'ocpt_role_index_service_test_doubles.dart';
 
 /// Inserts a bare shot of [screenplayId], everything else at a neutral value: `mergeRole`'s
@@ -437,15 +438,15 @@ Hello.
       await OcptRoleCandidatesService(
         logger: const SilentLogger(),
         deviceId: testDeviceId,
-      ).addCandidate(database: database, roleId: targetRoleId, personId: personA);
+      ).addCandidate(database: database, roleId: targetRoleId, personId: personA).maybeValueOrFail;
       await OcptRoleCandidatesService(
         logger: const SilentLogger(),
         deviceId: testDeviceId,
-      ).addCandidate(database: database, roleId: sourceRoleId, personId: personA);
+      ).addCandidate(database: database, roleId: sourceRoleId, personId: personA).maybeValueOrFail;
       await OcptRoleCandidatesService(
         logger: const SilentLogger(),
         deviceId: testDeviceId,
-      ).addCandidate(database: database, roleId: sourceRoleId, personId: personB);
+      ).addCandidate(database: database, roleId: sourceRoleId, personId: personB).maybeValueOrFail;
 
       await roleIndexService.mergeRole(
         database: database,

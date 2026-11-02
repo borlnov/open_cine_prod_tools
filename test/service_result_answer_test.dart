@@ -31,6 +31,7 @@ const _stopCarriers = {
     "_flushAllPendingWrites",
   },
   "lib/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart": {"_load"},
+  "lib/ui/pages/workspace/modes/resources/resources_bloc.dart": {"_load"},
 };
 
 /// List a file's lines of offences as `path:line: reason`.

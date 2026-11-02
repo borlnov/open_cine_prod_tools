@@ -46,6 +46,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The navigator [ResourcesScenarioHarness.wrap] mounts, so
 /// [ResourcesScenarioRouterManager.pop] closes a dialog opened through `showDialog` exactly as the
@@ -411,17 +412,16 @@ class ResourcesScenarioHarness {
 
   /// Records person [personId] as a candidate for role [roleId].
   Future<void> seedCandidate(String roleId, String personId) async {
-    await projectsManager.roleCandidatesService.addCandidate(
-      database: database,
-      roleId: roleId,
-      personId: personId,
-    );
+    await projectsManager.roleCandidatesService
+        .addCandidate(database: database, roleId: roleId, personId: personId)
+        .maybeValueOrFail;
   }
 
   /// Reads every live candidacy back from the database, grouped by role.
   Future<Map<String, List<OcptRoleCandidate>>> readCandidates() async => projectsManager
       .roleCandidatesService
-      .loadCandidatesByRoleId(database: database, people: await readPeople());
+      .loadCandidatesByRoleId(database: database, people: await readPeople())
+      .valueOrFail;
 
   /// Wraps [child] with the localization delegates, the theme, the navigator
   /// [ResourcesScenarioRouterManager.pop] closes dialogs on, a scaffold, and the workspace bloc a

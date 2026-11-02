@@ -7,9 +7,9 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
@@ -254,6 +255,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     var isReloaded = false;
+    var hasFailed = false;
     try {
       OcptResourcesSnapshot? snapshot;
 
@@ -262,12 +264,19 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       for (final scope in scopes) {
         switch (scope) {
           case OcptResourcesReloadScope.snapshot:
-            snapshot = await _loadSnapshot(project);
+            final read = await _loadSnapshot(project);
+            if (read.isError) {
+              hasFailed = true;
+            } else {
+              snapshot = read.value;
+            }
         }
       }
 
-      emitter(state.copyWithReloadedSnapshot(snapshot: snapshot));
-      isReloaded = true;
+      if (!hasFailed) {
+        emitter(state.copyWithReloadedSnapshot(snapshot: snapshot));
+        isReloaded = true;
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read again the $scopes of project "
@@ -275,6 +284,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         null,
         stackTrace,
       );
+      hasFailed = true;
+    }
+
+    if (hasFailed) {
       emitter(state.copyWithWriteError());
     }
 
@@ -284,17 +297,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<bool> reloadFromProjectDatabase(Emitter<OcptResourcesState> emitter) async {
-    await _load(emitter);
-    return true;
-  }
+  Future<bool> reloadFromProjectDatabase(Emitter<OcptResourcesState> emitter) => _load(emitter);
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   @protected
   @override
   Future<void> initAsyncBloc({required Emitter<OcptResourcesState> emit}) async {
     await super.initAsyncBloc(emit: emit);
-    await _load(emit);
+    final _ = await _load(emit);
   }
 
   /// Write every pending edit of the views directly to the database, without touching [state].
@@ -320,7 +330,11 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// (re)load, and so are the selected location and element, mirroring `OcptShotListBloc`'s own
   /// selection reset: a preview or a restore changes the whole database underneath, so a stale
   /// selection is dropped rather than trusted to still mean the same thing.
-  Future<void> _load(Emitter<OcptResourcesState> emitter) async {
+  ///
+  /// Answers false when the catalogue could not be read, in which case nothing is emitted and the
+  /// caller stops there.
+  @useResult
+  Future<bool> _load(Emitter<OcptResourcesState> emitter) async {
     final leftDockFraction =
         await _propertiesManager.resourcesLeftDockFraction.load() ??
         OcptWorkspaceDock.leftDefaultFraction;
@@ -336,14 +350,19 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           rightDockFraction: rightDockFraction,
         ),
       );
-      return;
+      return true;
     }
 
     // Queued with the views' reloads: a read made here but emitted after a newer one would put
     // older data over it.
-    await runSerially(() async {
+    return runSerially(() async {
       final previewedVersion = project.previewedVersion;
-      final snapshot = await _loadSnapshot(project);
+      final snapshotRead = await _loadSnapshot(project);
+      if (snapshotRead.isError) {
+        return false;
+      }
+
+      final snapshot = snapshotRead.value!;
       final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
       final pageSetup = await _loadPageSetup(project);
       final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
@@ -375,6 +394,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           revealRequest,
         ),
       );
+      return true;
     });
   }
 
@@ -446,7 +466,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// episodes through [_projectsManager]'s own `screenplayService` (never through
   /// [_locationsService], which `OcptScreenplayService` already depends on) and resolves the
   /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
-  Future<OcptResourcesSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
+  @useResult
+  Future<OcptDatabaseResult<OcptResourcesSnapshot>> _loadSnapshot(
+    OcptOpenProjectModel project,
+  ) async {
     final database = project.database;
     final screenplayId = screenplayIdOf(project);
 
@@ -454,10 +477,18 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final roles = await _roleIndexService.loadRoles(database: database);
     final locations = await _locationsService.loadLocations(database: database);
     final elements = await _elementsService.loadElements(database: database);
-    final candidatesByRoleId = await _roleCandidatesService.loadCandidatesByRoleId(
+    final candidatesRead = await _roleCandidatesService.loadCandidatesByRoleId(
       database: database,
       people: people,
     );
+    if (candidatesRead.isError) {
+      return OcptDatabaseResult<OcptResourcesSnapshot>(
+        status: candidatesRead.status,
+        extraInfo: candidatesRead.extraInfo,
+      );
+    }
+
+    final candidatesByRoleId = candidatesRead.value!;
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
     final scenes = await _locationsService.loadScenes(
       database: database,
@@ -465,13 +496,16 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
     );
 
-    return OcptResourcesSnapshot.build(
-      people: people,
-      roles: roles,
-      locations: locations,
-      elements: elements,
-      candidatesByRoleId: candidatesByRoleId,
-      scenes: scenes,
+    return OcptDatabaseResult<OcptResourcesSnapshot>(
+      status: OcptDatabaseStatus.ok,
+      value: OcptResourcesSnapshot.build(
+        people: people,
+        roles: roles,
+        locations: locations,
+        elements: elements,
+        candidatesByRoleId: candidatesByRoleId,
+        scenes: scenes,
+      ),
     );
   }
 
@@ -505,7 +539,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     await runSerially(() async {
-      final snapshot = await _loadSnapshot(project);
+      final snapshotRead = await _loadSnapshot(project);
+      if (snapshotRead.isError) {
+        return;
+      }
+
+      final snapshot = snapshotRead.value!;
       final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
 
       emitter(
