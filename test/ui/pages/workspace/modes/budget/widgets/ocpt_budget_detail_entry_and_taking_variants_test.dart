@@ -15,10 +15,10 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
-import 'ocpt_budget_fiche_test_doubles.dart';
+import 'ocpt_budget_detail_test_doubles.dart';
 
 /// Builds a taking, everything but what a test actually varies neutral.
 OcptBudgetRevenue _buildRevenue({

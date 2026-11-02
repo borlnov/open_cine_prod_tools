@@ -18,7 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expe
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_view_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_wizard_flows.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail.dart';
 
 /// The `Inspector` tab's own content: the polymorphic fiche, wired to every handler its own
 /// selection variant might need — the edit dialogs and wizard shortcuts the views already share,

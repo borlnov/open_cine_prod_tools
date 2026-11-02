@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a band wide
 /// enough that every field of the fiche is drawn with no overflow.
