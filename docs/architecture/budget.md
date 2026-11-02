@@ -15,6 +15,24 @@ quote, and the revenue sharing that says, once the film has earned something, wh
 The mode is complete: its four chips — one of them a drawer over three tools — and its four exports
 are all here, and this file is the whole record of them.
 
+## The French trade terms, and the names the code gives them
+
+The code, the l10n keys and this file are written in English; the CNC nomenclature and the
+production offices that use it speak French. A French reader of a CNC quote finds each word below
+under the English name on its right, in identifiers, file names and documentation alike. The
+displayed texts, the SQL names and the JSON keys are unchanged by this vocabulary: a project file
+written before the rename still holds `budget_postes`, `poste_id` and `posteId`, which the drift
+tables and the version codec pin on purpose.
+
+| French term | Name in the code | Where it shows |
+| --- | --- | --- |
+| poste (a chapter of the CNC nomenclature) | account | `OcptBudgetAccount`, `accountId`, `OcptBudgetAccountsTable` (SQL table `budget_postes`) |
+| fiche (the right dock's panel for a selected row) | detail | `OcptBudgetDetail` and its variants |
+| régie (catering, travel and allowances of the shooting days) | logistics | `OcptBudgetLogistics`, `OcptBudgetToolsView.logistics` |
+| lettrage (matching an entry with what it settles) | matching | `OcptBudgetNewMatchingStrip`, `offersMatching` |
+| devis (the quote) | quote | `OcptBudgetQuoteService`; the `Devis` column label is displayed text |
+| décor (the set a shooting day plays at) | set, or `shootingSet` when the name stands alone | `shootingSet`, `logisticsSetNameByDayId` |
+
 ## Who it serves, and what the mode now shows
 
 - `lib/ui/pages/workspace/modes/budget/` has to serve two readers who want different documents
