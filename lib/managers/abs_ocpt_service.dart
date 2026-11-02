@@ -2,9 +2,25 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_foundation/act_foundation.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:flutter/foundation.dart' show protected;
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
+
+/// Thrown inside a transaction when a call to another service answered a failure: the transaction
+/// must not commit what was written before it.
+///
+/// Only [AbsOcptService.guardResult] and [AbsOcptService.guardOutcome] catch it, and they answer
+/// its [failure] as a `databaseError` without logging it again, since whoever answered the failure
+/// has logged it.
+class OcptDatabaseAbort implements Exception {
+  /// The failure the other service answered.
+  final StatusWithExtraInfo<MixinResultStatus> failure;
+
+  /// Class constructor
+  const OcptDatabaseAbort(this.failure);
+}
 
 /// The base of every `Ocpt…Service`.
 ///
@@ -24,6 +40,11 @@ import 'package:flutter/foundation.dart' show protected;
 /// category of a line reads `owner / service`. The owner builds it; a service never builds a
 /// top-level logger of its own. It is typed by the interface rather than by the concrete helper so
 /// a test can hand in a silent or a recording double.
+///
+/// A service that reads or writes the project database answers a result instead of raising: its
+/// public method hands its whole body to [guardResult] or [guardOutcome], which catch what the
+/// database raises, log it once and answer `databaseError`. Inside that boundary nothing changes,
+/// and a failure must still raise so that a `transaction` rolls back.
 abstract class AbsOcptService extends AbsWithLifeCycle {
   /// The logger this service writes to: a sub-logger built by its owner.
   @protected
@@ -31,4 +52,44 @@ abstract class AbsOcptService extends AbsWithLifeCycle {
 
   /// Class constructor
   const AbsOcptService({required this.logger});
+
+  /// Run [body], a read or a write called [operation], and answer what it produced, or
+  /// `databaseError` when the database failed it. The failure is logged once, here, by type.
+  ///
+  /// A `null` from [body] is an answer like any other: a write the read-only preview refuses is
+  /// a logged no-op that answers `ok` with no value. A mistake of the programmer
+  /// ([ArgumentError], [AssertionError]) is not a failure of the database and goes through.
+  @protected
+  Future<OcptDatabaseResult<T>> guardResult<T>(String operation, Future<T?> Function() body) async {
+    OcptDatabaseResult<T> result;
+    try {
+      result = OcptDatabaseResult<T>(status: OcptDatabaseStatus.ok, value: await body());
+    } on OcptDatabaseAbort catch (abort) {
+      result = OcptDatabaseResult<T>(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: abort.failure.extraInfo,
+      );
+    } catch (error, stackTrace) {
+      if (error is ArgumentError || error is AssertionError) {
+        rethrow;
+      }
+
+      logger.e("The database failed '$operation': ${error.runtimeType}", null, stackTrace);
+      result = OcptDatabaseResult<T>(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: error.runtimeType,
+      );
+    }
+
+    return result;
+  }
+
+  /// Run [body], a write called [operation] that answers nothing, and answer `ok`, or
+  /// `databaseError` when the database failed it. See [guardResult].
+  @protected
+  Future<OcptDatabaseOutcome> guardOutcome(String operation, Future<void> Function() body) async {
+    final result = await guardResult<void>(operation, body);
+
+    return OcptDatabaseOutcome(status: result.status, extraInfo: result.extraInfo);
+  }
 }

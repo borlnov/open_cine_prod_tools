@@ -65,6 +65,10 @@ dependencies:
   # Code to deal with internationalized/localized messages
   intl: ^0.20.2
 
+  # Gives a service's `@useResult`, so a call whose answer is a Result cannot be dropped; promoted
+  # from a transitive dependency now that the app annotates with it
+  meta: ^1.18.0
+
   # Backs OcptFileExternalLogger's rotating log file (AdvancedFileOutput); promoted from a
   # transitive dependency of act_logger_manager now that the app builds its own external logger
   # with it

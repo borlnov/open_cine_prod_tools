@@ -34,6 +34,8 @@ analyzer:
     missing_required_param: error
     missing_return: error
     missing_enum_constant_in_switch: error
+    unused_local_variable: error
+    unused_result: error
 
   language:
     strict-casts: true
