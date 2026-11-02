@@ -253,8 +253,10 @@ Follow the public ACT coding standards (read them when in doubt), starting from
 
 A project rule overrides these. The overrides this project has made:
 
-- **RG2:** `import`, `export` and `part` lines, and a URL alone in a comment, may run past 100
-  characters, since none of them can be broken.
+- **RG2:** `import`, `export` and `part` lines, a URL alone in a comment, a doc `{@template}` line
+  and the Fountain text of the demo screenplay in `test/seed_demo_project_data.dart` may run past
+  100 characters, since none of them can be broken. `test/line_length_test.dart` fails on any
+  other.
 - **RG3:** Dart is indented with 2 spaces, which `dart format` imposes and the Flutter standard's own
   examples follow. Shell scripts are indented with 4.
 - **RG8:** a `release-x.y.z` branch carries no issue number.

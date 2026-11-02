@@ -84,3 +84,6 @@ a68e677668cbcdf5a7a2cbbbcf1d6922104e8b6e
 
 # docs: start package and tool docs with a verb
 d5324a56e21248737044fdf57961ff2b78dbfc29
+
+# style: wrap the lines over 100 characters
+a0951b6e5655853dee4c2200b1e2a100b43afc28
