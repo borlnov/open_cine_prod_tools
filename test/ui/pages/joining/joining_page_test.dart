@@ -298,6 +298,8 @@ void main() {
         isJoining: true,
         joinFailed: false,
         joinStep: OcptJoinStep.downloading,
+        joinSucceeded: false,
+        isCancelled: false,
       ),
     );
     // Two pumps: `pushTestState` calls `Bloc.emit` directly (bypassing any event handler's own
@@ -346,7 +348,13 @@ void main() {
     await tester.pump();
 
     bloc.pushTestState(
-      const OcptJoiningState(isJoining: false, joinFailed: false, joinSucceeded: true),
+      const OcptJoiningState(
+        isJoining: false,
+        joinFailed: false,
+        joinStep: null,
+        joinSucceeded: true,
+        isCancelled: false,
+      ),
     );
     // See the sibling "blocking overlay" test's own comment for why this needs two pumps.
     await tester.pump();

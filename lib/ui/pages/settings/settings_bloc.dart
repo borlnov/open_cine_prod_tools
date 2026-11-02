@@ -51,7 +51,7 @@ class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
     final themesManager = globalGetIt().get<ActThemesManager>();
 
     return OcptSettingsBloc._(
-      OcptSettingsState(
+      OcptSettingsState.init(
         appVersion: appVersion ?? OcptGlobalManager.instance.packageInfo.version,
         currentLocale: localesManager.currentLocale,
         wantedLocale: localesManager.wantedLocale,

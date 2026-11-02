@@ -104,12 +104,12 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     required this.isReconciling,
     required this.reconcileOutcome,
     required this.reconcileInviteInvalid,
-    this.availableAddresses = const [],
-    this.selectedAddress,
-    this.boundPort,
-    this.enrolment,
-    this.joinInvite,
-    this.qrKind = OcptHostingQrKind.join,
+    required this.availableAddresses,
+    required this.selectedAddress,
+    required this.boundPort,
+    required this.enrolment,
+    required this.joinInvite,
+    required this.qrKind,
   });
 
   /// The initial state, shown for the brief moment before the load completes.

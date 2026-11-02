@@ -119,13 +119,13 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     required this.recentProjects,
     required this.isBusy,
     required this.error,
-    this.pendingFileCompatibility,
-    this.projectPackagePendingExport,
-    this.projectPackageNotice,
-    this.projectPackagePendingExportTarget,
-    this.projectPackageImportError,
-    this.projectPackageImportReport,
-    this.screenplayImportError,
+    required this.pendingFileCompatibility,
+    required this.projectPackagePendingExport,
+    required this.projectPackageNotice,
+    required this.projectPackagePendingExportTarget,
+    required this.projectPackageImportError,
+    required this.projectPackageImportReport,
+    required this.screenplayImportError,
   });
 
   /// Init class constructor

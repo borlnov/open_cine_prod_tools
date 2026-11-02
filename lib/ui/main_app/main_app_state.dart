@@ -31,6 +31,13 @@ class OcptMainAppState extends BlocStateForMixin<OcptMainAppState>
     required this.brightness,
   });
 
+  /// Init class constructor, taking the preferences the managers hold when the bloc is created.
+  const OcptMainAppState.init({
+    required this.wantedLocale,
+    required this.currentTheme,
+    required this.brightness,
+  });
+
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   @override
   OcptMainAppState copyWith({

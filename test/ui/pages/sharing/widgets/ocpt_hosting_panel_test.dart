@@ -69,6 +69,7 @@ void main() {
     boundPort: 53187,
     enrolment: enrolment,
     joinInvite: joinInvite,
+    qrKind: OcptHostingQrKind.join,
   );
 
   const stoppedState = OcptHostingState(
@@ -80,6 +81,12 @@ void main() {
     isReconciling: false,
     reconcileOutcome: null,
     reconcileInviteInvalid: false,
+    availableAddresses: [],
+    selectedAddress: null,
+    boundPort: null,
+    enrolment: null,
+    joinInvite: null,
+    qrKind: OcptHostingQrKind.join,
   );
 
   /// Pumps [OcptHostingPanel] over [state], on a surface wide and tall enough that nothing in the

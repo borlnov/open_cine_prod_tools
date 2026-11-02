@@ -61,9 +61,9 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
   const OcptJoiningState({
     required this.isJoining,
     required this.joinFailed,
-    this.joinStep,
-    this.joinSucceeded = false,
-    this.isCancelled = false,
+    required this.joinStep,
+    required this.joinSucceeded,
+    required this.isCancelled,
   });
 
   /// The initial state, shown before the user has submitted anything.

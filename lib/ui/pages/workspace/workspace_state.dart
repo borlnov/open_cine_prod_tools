@@ -42,9 +42,9 @@ class OcptWorkspaceState extends BlocStateForMixin<OcptWorkspaceState> {
   const OcptWorkspaceState({
     required this.isLoading,
     required this.mode,
-    this.revealRequest,
-    this.episodes = const [],
-    this.selectedEpisodeId,
+    required this.revealRequest,
+    required this.episodes,
+    required this.selectedEpisodeId,
   });
 
   /// Init class constructor

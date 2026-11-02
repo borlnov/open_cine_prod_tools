@@ -28,7 +28,7 @@ class OcptMainAppBloc extends BlocForMixin<OcptMainAppState>
     final themesManager = globalGetIt().get<ActThemesManager>();
 
     return OcptMainAppBloc._(
-      OcptMainAppState(
+      OcptMainAppState.init(
         wantedLocale: globalGetIt().get<LocalesManager>().wantedLocale,
         currentTheme: themesManager.currentTheme,
         brightness: themesManager.brightness,
