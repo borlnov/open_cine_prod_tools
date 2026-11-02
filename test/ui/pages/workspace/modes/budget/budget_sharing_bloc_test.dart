@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';

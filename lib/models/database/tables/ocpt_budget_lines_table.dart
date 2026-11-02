@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_accounts_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resources_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 

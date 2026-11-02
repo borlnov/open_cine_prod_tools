@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_default_provision_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_default_provision_account.dart';
 
 /// Run the tests of [ocptBudgetDefaultProvisionPosteIdOf].
 void main() {

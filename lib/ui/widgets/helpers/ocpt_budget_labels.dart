@@ -4,13 +4,13 @@
 
 import 'package:flutter/material.dart' show BuildContext, Color, ColorScheme;
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_accounts.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_labels.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_percent_permille.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';

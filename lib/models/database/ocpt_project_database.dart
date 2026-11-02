@@ -40,12 +40,12 @@ import 'package:open_cine_prod_tools/models/database/migrations/ocpt_migration_v
 import 'package:open_cine_prod_tools/models/database/migrations/ocpt_migration_v4.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_breakdown_tags_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_accounts_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_allowances_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_commitments_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_entries_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_mileage_rates_table.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resources_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_revenues_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_shares_table.dart';

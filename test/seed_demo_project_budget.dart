@@ -4,13 +4,13 @@
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_accounts.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_sharing_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account_seed.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';

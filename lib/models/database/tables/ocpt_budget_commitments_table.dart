@@ -4,8 +4,8 @@
 
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_budget_commitment_status_converter.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_accounts_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 
 /// Money committed to a poste but not yet paid: a quote accepted, a contract signed, an invoice

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account_seed.dart';
 
 /// A router manager that only records the call: these bloc tests never navigate for real.
 class RecordingRouterManager extends OcptRouterManager {
