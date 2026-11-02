@@ -7,8 +7,8 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_allowances.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cents_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_allowance_twisty.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_cells.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_metrics.dart';
 
 /// One defrayal naming nobody, drawn as its own top-level row: the wording that has always said so,
@@ -88,16 +88,21 @@ class OcptBudgetLogisticsAllowanceNoPersonRow extends StatelessWidget {
                 ],
               ),
             ),
-            ocptBudgetLogisticsAllowanceAmountCell(
-              context,
-              ocptBudgetAllowanceCentsOf(allowance),
-              currencyCode,
+            OcptBudgetCentsCell(
+              width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+              cents: ocptBudgetAllowanceCentsOf(allowance),
+              currencyCode: currencyCode,
             ),
-            ocptBudgetLogisticsAllowanceAmountCell(context, null, currencyCode, showBlank: true),
-            ocptBudgetLogisticsAllowanceAmountCell(
-              context,
-              ocptBudgetAllowanceCentsOf(allowance),
-              currencyCode,
+            OcptBudgetCentsCell(
+              width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+              cents: null,
+              currencyCode: currencyCode,
+              showBlank: true,
+            ),
+            OcptBudgetCentsCell(
+              width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+              cents: ocptBudgetAllowanceCentsOf(allowance),
+              currencyCode: currencyCode,
             ),
             SizedBox(
               width: ocptBudgetLogisticsAllowanceMenuColumnWidth,

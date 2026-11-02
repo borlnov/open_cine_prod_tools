@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_cells.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cents_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_metrics.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
@@ -103,7 +103,12 @@ class OcptBudgetLogisticsAllowanceReimbursementRow extends StatelessWidget {
               ),
             ),
           ),
-          ocptBudgetLogisticsAllowanceAmountCell(context, null, currencyCode, showBlank: true),
+          OcptBudgetCentsCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            cents: null,
+            currencyCode: currencyCode,
+            showBlank: true,
+          ),
           SizedBox(
             width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
             child: Text(
@@ -116,7 +121,12 @@ class OcptBudgetLogisticsAllowanceReimbursementRow extends StatelessWidget {
               style: theme.textTheme.labelSmall,
             ),
           ),
-          ocptBudgetLogisticsAllowanceAmountCell(context, null, currencyCode, showBlank: true),
+          OcptBudgetCentsCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            cents: null,
+            currencyCode: currencyCode,
+            showBlank: true,
+          ),
           const SizedBox(width: ocptBudgetLogisticsAllowanceMenuColumnWidth),
         ],
       ),

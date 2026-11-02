@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_allowances.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_reimbursements.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_cells.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cents_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_metrics.dart';
 
 /// The defrayal table's own total row: what every live defrayal comes to under `ADVANCED`, what has
@@ -59,22 +59,22 @@ class OcptBudgetLogisticsAllowanceTotalRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(tr.budgetLogisticsTotalLabel.toUpperCase(), style: labelStyle)),
-          ocptBudgetLogisticsAllowanceAmountCell(
-            context,
-            advancedCents,
-            currencyCode,
+          OcptBudgetCentsCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            cents: advancedCents,
+            currencyCode: currencyCode,
             style: boldStyle,
           ),
-          ocptBudgetLogisticsAllowanceAmountCell(
-            context,
-            reimbursedCents,
-            currencyCode,
+          OcptBudgetCentsCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            cents: reimbursedCents,
+            currencyCode: currencyCode,
             style: boldStyle,
           ),
-          ocptBudgetLogisticsAllowanceAmountCell(
-            context,
-            outstandingCents,
-            currencyCode,
+          OcptBudgetCentsCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            cents: outstandingCents,
+            currencyCode: currencyCode,
             style: boldStyle,
           ),
           const SizedBox(width: ocptBudgetLogisticsAllowanceMenuColumnWidth),

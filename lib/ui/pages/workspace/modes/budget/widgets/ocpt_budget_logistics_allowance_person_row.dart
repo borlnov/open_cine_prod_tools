@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cents_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_allowance_tree_row.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_allowance_twisty.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_cells.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_metrics.dart';
 
 /// One person group row: a twisty, the person's own name with their role underneath in small muted
@@ -107,9 +107,21 @@ class OcptBudgetLogisticsAllowancePersonRow extends StatelessWidget {
               ],
             ),
           ),
-          ocptBudgetLogisticsAllowanceAmountCell(context, advancedCents, currencyCode),
-          ocptBudgetLogisticsAllowanceAmountCell(context, reimbursedCents, currencyCode),
-          ocptBudgetLogisticsAllowanceAmountCell(context, outstandingCents, currencyCode),
+          OcptBudgetCentsCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            cents: advancedCents,
+            currencyCode: currencyCode,
+          ),
+          OcptBudgetCentsCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            cents: reimbursedCents,
+            currencyCode: currencyCode,
+          ),
+          OcptBudgetCentsCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            cents: outstandingCents,
+            currencyCode: currencyCode,
+          ),
           SizedBox(
             width: ocptBudgetLogisticsAllowanceMenuColumnWidth,
             child: PopupMenuButton<String>(
