@@ -36,7 +36,7 @@ schedule will want it too the day it prints travel times.
 
 **The budget mode reads the other modes' tables and stores nothing it can read.**
 
-- The catering-and-travel pass (`lib/utils/ocpt_budget_regie.dart`) counts meals and snacks off
+- The catering-and-travel pass (`lib/utils/ocpt_budget_logistics.dart`) counts meals and snacks off
   `OcptScheduleSnapshot`'s own days, slots and per-slot crew, cast and guests, priced by
   `project_info.mealPriceCents`/`snackPriceCents`. It writes nothing, carries no `isReadOnly` flag
   because there is nothing to withhold, and every row of it reports a click upward so a reader who

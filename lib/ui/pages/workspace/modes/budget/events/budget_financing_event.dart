@@ -7,8 +7,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dar
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_entry.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/events/budget_base_event.dart';
 
-/// The events of the budget mode about the financing plan and the régie: resources, defrayals and
-/// provisioning.
+/// The events of the budget mode about the financing plan and the logistics: resources, defrayals
+/// and provisioning.
 sealed class OcptBudgetFinancingEvent extends OcptBudgetEvent {
   /// Class constructor
   const OcptBudgetFinancingEvent();

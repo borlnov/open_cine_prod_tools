@@ -99,7 +99,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// **Mode-wide on purpose**, unlike [selectedPosteId]: it is set once, from the header, and holds
   /// across every view — which is what makes it worth having, since following one poste through
   /// the quote, what is owed on it and what has moved against it is the reading it exists for.
-  /// The three views with no poste dimension at all (the financing plan, the régie, the revenue
+  /// The three views with no poste dimension at all (the financing plan, the logistics, the revenue
   /// sharing) say so rather than pretending to honour it.
   final String? filterPosteId;
 
@@ -107,9 +107,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// view's own right-column selection, mirroring [selectedRevenueId].
   final String? selectedShareId;
 
-  /// Which nodes of the expenses tree, of the resources tree or of the régie's own defrayal tree
-  /// are currently expanded, keyed by their own id — a poste id, a quote line id, a resource id, a
-  /// revenue id or a person id, whichever twisty was last clicked open, or an
+  /// Which nodes of the expenses tree, of the resources tree or of the logistics's own defrayal
+  /// tree are currently expanded, keyed by their own id — a poste id, a quote line id, a resource
+  /// id, a revenue id or a person id, whichever twisty was last clicked open, or an
   /// `OcptBudgetResourceFamily`'s own `name` for a family row, which mints no id of its own. The
   /// expenses tree also keys one reserved node naming no record at all —
   /// `OcptBudgetCostTracking`'s own off-quote total, which sums a reading over the journal rather
@@ -118,7 +118,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// and so never appear here: each is revealed or hidden wholesale with whichever line, poste,
   /// resource, revenue, family or person it sits directly under — a defrayal naming nobody mints no
   /// id here either, drawing as its own group of one with no twisty
-  /// (`OcptBudgetRegie`'s own doc comment). Not persisted across a relaunch, mirroring [view],
+  /// (`OcptBudgetLogistics`'s own doc comment). Not persisted across a relaunch, mirroring [view],
   /// [isSimplified] and [taxBasis] above.
   final Set<String> expandedNodeIds;
 
@@ -133,18 +133,18 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// `OcptPropertiesManager.budgetRightDockFraction`.
   final double rightDockFraction;
 
-  /// Every live role of the project, as last loaded — read by `OcptBudgetRegie` alone, to resolve a
-  /// traveller's own convocation (a role's own [OcptRole.name] for a cast row, its
+  /// Every live role of the project, as last loaded — read by `OcptBudgetLogistics` alone, to
+  /// resolve a traveller's own convocation (a role's own [OcptRole.name] for a cast row, its
   /// [OcptRole.personId] to join a role back to the human playing it) and to tell cast from extras.
-  /// Not part of [snapshot]: unlike the catering pass's own [OcptBudgetSnapshot.regieDays], this is
-  /// the raw read the view resolves a display string
+  /// Not part of [snapshot]: unlike the catering pass's own [OcptBudgetSnapshot.logisticsDays],
+  /// this is the raw read the view resolves a display string
   /// from, exactly as `OcptScheduleState` carries its own roles beside its snapshot rather than
   /// inside it.
   final List<OcptRole> roles;
 
-  /// Every live person of the project's address book, as last loaded — read by `OcptBudgetRegie`
-  /// alone, for the same reason [roles] is: a traveller's own display name and declared crew
-  /// position.
+  /// Every live person of the project's address book, as last loaded — read by
+  /// `OcptBudgetLogistics` alone, for the same reason [roles] is: a traveller's own display name
+  /// and declared crew position.
   final List<OcptPerson> people;
 
   /// Every live element of the breakdown's own catalogue, as last loaded — [elementLinkCounts] is
@@ -160,7 +160,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// reason [roles] and [people] already sit beside it rather than inside it.
   final List<OcptBudgetMileageRate> mileageRates;
 
-  /// The poste the régie view's own provisioning would write into, or null while this project's
+  /// The poste the logistics view's own provisioning would write into, or null while this project's
   /// quote holds no poste at all.
   ///
   /// Defaults to the CNC nomenclature's own `Transports, défraiements, régie` poste when the
@@ -169,12 +169,12 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// assumption that one of them does.
   final String? provisionPosteId;
 
-  /// The decor name `OcptBudgetRegie` prints under each shooting day, keyed by the day's own id —
-  /// the first location or set the day's own slots name, resolved once at load time out of the
+  /// The decor name `OcptBudgetLogistics` prints under each shooting day, keyed by the day's own id
+  /// — the first location or set the day's own slots name, resolved once at load time out of the
   /// project's own locations catalogue (`OcptLocationsService.loadLocations`, read for this alone).
   /// A day with no key here names neither in any of its slots, which the view reads as nothing
   /// rather than a placeholder.
-  final Map<String, String> regieDecorNameByDayId;
+  final Map<String, String> logisticsDecorNameByDayId;
 
   /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
   @override
@@ -380,15 +380,15 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
 
   /// Get every live shooting day's own catering reading, empty while nothing is loaded or the
   /// project
-  /// holds no shooting day — `OcptBudgetRegie`'s own left column.
-  List<OcptBudgetRegieDay> get regieDays => snapshot?.regieDays ?? const [];
+  /// holds no shooting day — `OcptBudgetLogistics`'s own left column.
+  List<OcptBudgetLogisticsDay> get logisticsDays => snapshot?.logisticsDays ?? const [];
 
-  /// Get [regieDays] folded into one total — a zero-everything, fully-covered total while nothing
-  /// is
+  /// Get [logisticsDays] folded into one total — a zero-everything, fully-covered total while
+  /// nothing is
   /// loaded, mirroring [cashTotals]' own empty default.
-  OcptBudgetRegieTotals get regieTotals =>
-      snapshot?.regieTotals ??
-      const OcptBudgetRegieTotals(
+  OcptBudgetLogisticsTotals get logisticsTotals =>
+      snapshot?.logisticsTotals ??
+      const OcptBudgetLogisticsTotals(
         headCount: 0,
         mealCount: 0,
         buffetCount: 0,
@@ -396,12 +396,12 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       );
 
   /// Get every live defrayal, empty while nothing is loaded or the production has defrayed nobody —
-  /// `OcptBudgetRegie`'s own right column.
+  /// `OcptBudgetLogistics`'s own right column.
   List<OcptBudgetAllowance> get allowances => snapshot?.allowances ?? const [];
 
   /// Get what has actually been reimbursed against each defrayed person of [snapshot], keyed by
   /// their
-  /// own id — empty while nothing is loaded. `OcptBudgetRegie`'s own person tree reads this map
+  /// own id — empty while nothing is loaded. `OcptBudgetLogistics`'s own person tree reads this map
   /// itself, raw, mirroring [receivedByResourceId]'s own reading.
   Map<String, OcptBudgetCoveredTotal> get reimbursedByPersonId =>
       snapshot?.reimbursedByPersonId ?? const {};
@@ -415,7 +415,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   int? get defaultVatRateBasisPoints => snapshot?.defaultVatRateBasisPoints;
 
   /// Get the project's own meal price, in cents, or null while nobody has recorded one —
-  /// `OcptBudgetRegie`'s own caption.
+  /// `OcptBudgetLogistics`'s own caption.
   int? get mealPriceCents => snapshot?.mealPriceCents;
 
   /// Get the project's own buffet price, in cents, or null while nobody has recorded one — mirrors
@@ -461,7 +461,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.elements,
     required this.mileageRates,
     required this.provisionPosteId,
-    required this.regieDecorNameByDayId,
+    required this.logisticsDecorNameByDayId,
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.selectionCause,
@@ -501,7 +501,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       elements = const [],
       mileageRates = const [],
       provisionPosteId = null,
-      regieDecorNameByDayId = const {},
+      logisticsDecorNameByDayId = const {},
       reloadEpoch = 0,
       selectionEpoch = 0,
       selectionCause = OcptBudgetSelectionCause.none,
@@ -583,7 +583,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     List<OcptBudgetMileageRate>? mileageRates,
     String? provisionPosteId,
     bool forceProvisionPosteIdValue = false,
-    Map<String, String>? regieDecorNameByDayId,
+    Map<String, String>? logisticsDecorNameByDayId,
     int? reloadEpoch,
     int? selectionEpoch,
     OcptBudgetSelectionCause? selectionCause,
@@ -629,7 +629,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     mileageRates: mileageRates ?? this.mileageRates,
     provisionPosteId:
         provisionPosteId ?? (forceProvisionPosteIdValue ? null : this.provisionPosteId),
-    regieDecorNameByDayId: regieDecorNameByDayId ?? this.regieDecorNameByDayId,
+    logisticsDecorNameByDayId: logisticsDecorNameByDayId ?? this.logisticsDecorNameByDayId,
     reloadEpoch: reloadEpoch ?? (snapshot != null ? this.reloadEpoch + 1 : this.reloadEpoch),
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
     selectionCause: selectionCause ?? this.selectionCause,
@@ -735,7 +735,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     elements,
     mileageRates,
     provisionPosteId,
-    regieDecorNameByDayId,
+    logisticsDecorNameByDayId,
     reloadEpoch,
     selectionEpoch,
     selectionCause,

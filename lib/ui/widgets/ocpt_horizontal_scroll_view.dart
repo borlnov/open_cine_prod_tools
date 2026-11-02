@@ -13,8 +13,8 @@ const double _ocptHorizontalScrollbarThickness = 5;
 /// A horizontal [SingleChildScrollView] drawn under an **always-visible** [Scrollbar], so a view
 /// wide enough to overflow its frame says so with a bar the reader can see, rather than leaving the
 /// horizontal scroll to be discovered by accident. Without it a wide table (the budget mode's cost
-/// tracking, cash journal, financing plan and régie matrices) scrolls silently — nothing on screen
-/// tells the reader there are columns off the right edge.
+/// tracking, cash journal, financing plan and logistics matrices) scrolls silently — nothing on
+/// screen tells the reader there are columns off the right edge.
 ///
 /// It owns its own [ScrollController] because a [Scrollbar] with `thumbVisibility` needs one it can
 /// attach to. Its colour and radius are the app theme's own `ScrollbarThemeData`, inherited like

@@ -14,19 +14,19 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dar
 /// day's own date underneath in small muted type, the three crew/cast/extras head counts, the
 /// `Meals` cell (see below), the buffet's own head count, then the day's own money —
 /// [ocptBudgetEmptyValue] rather than a claimed zero the moment neither the meal nor the buffet
-/// price is known (`OcptBudgetRegieDay.cost.coveredLineCount == 0`), mirroring
+/// price is known (`OcptBudgetLogisticsDay.cost.coveredLineCount == 0`), mirroring
 /// `OcptBudgetCostTracking`'s own secondary-basis cell.
 ///
-/// **The `Meals` cell reads [OcptBudgetRegieDay.mealSittings] itself, not the plain
-/// [OcptBudgetRegieDay.mealCount].** A day with no meal block in its own timetable prints
+/// **The `Meals` cell reads [OcptBudgetLogisticsDay.mealSittings] itself, not the plain
+/// [OcptBudgetLogisticsDay.mealCount].** A day with no meal block in its own timetable prints
 /// [ocptBudgetEmptyValue] — a stated absence, never a `0` that would look exactly like a day whose
 /// timetable does hold a meal block feeding nobody. A day with more than one sitting (a lunch and a
 /// dinner block, say) joins every sitting's own head count with `+` rather than folding them into
 /// one number, so a reader sees that two feedings happened rather than reading a total that could
 /// just as well be one big one.
-class OcptBudgetRegieCateringRow extends StatelessWidget {
+class OcptBudgetLogisticsCateringRow extends StatelessWidget {
   /// The day this row draws.
-  final OcptBudgetRegieDay day;
+  final OcptBudgetLogisticsDay day;
 
   /// The decor name to print under the day tag, or null while none of the day's own slots name one.
   final String? decorName;
@@ -35,14 +35,14 @@ class OcptBudgetRegieCateringRow extends StatelessWidget {
   final String currencyCode;
 
   /// Class constructor
-  const OcptBudgetRegieCateringRow({
+  const OcptBudgetLogisticsCateringRow({
     super.key,
     required this.day,
     required this.decorName,
     required this.currencyCode,
   });
 
-  /// Build the budget regie catering row as a [SizedBox].
+  /// Build the budget logistics catering row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -54,11 +54,11 @@ class OcptBudgetRegieCateringRow extends StatelessWidget {
         : ocptBudgetAmountLabel(day.cost.amountCents, currencyCode);
 
     return SizedBox(
-      height: ocptBudgetRegieCateringRowHeight,
+      height: ocptBudgetLogisticsCateringRowHeight,
       child: Row(
         children: [
           SizedBox(
-            width: ocptBudgetRegieDayColumnWidth,
+            width: ocptBudgetLogisticsDayColumnWidth,
             child: Text(
               ocptScheduleDayTagLabel(tr, day.dayNumber),
               style: theme.textTheme.bodySmall?.copyWith(
@@ -99,7 +99,7 @@ class OcptBudgetRegieCateringRow extends StatelessWidget {
           _mealsCell(context),
           _wideCountCell(context, day.buffetCount),
           SizedBox(
-            width: ocptBudgetRegieCateringTotalColumnWidth,
+            width: ocptBudgetLogisticsCateringTotalColumnWidth,
             child: Text(
               costText,
               textAlign: TextAlign.right,
@@ -115,7 +115,7 @@ class OcptBudgetRegieCateringRow extends StatelessWidget {
 
   /// Build one of the three narrow, right-aligned head-count cells (`Crew`, `Cast`, `Extras`).
   Widget _countCell(BuildContext context, int count) => SizedBox(
-    width: ocptBudgetRegieCountColumnWidth,
+    width: ocptBudgetLogisticsCountColumnWidth,
     child: Text("$count", textAlign: TextAlign.right, style: Theme.of(context).textTheme.bodySmall),
   );
 
@@ -123,7 +123,7 @@ class OcptBudgetRegieCateringRow extends StatelessWidget {
   /// cell
   /// beside it also needs.
   Widget _wideCountCell(BuildContext context, int count) => SizedBox(
-    width: ocptBudgetRegieWideCountColumnWidth,
+    width: ocptBudgetLogisticsWideCountColumnWidth,
     child: Text("$count", textAlign: TextAlign.right, style: Theme.of(context).textTheme.bodySmall),
   );
 
@@ -136,7 +136,7 @@ class OcptBudgetRegieCateringRow extends StatelessWidget {
         : sittings.map((sitting) => "${sitting.headCount}").join(" + ");
 
     return SizedBox(
-      width: ocptBudgetRegieWideCountColumnWidth,
+      width: ocptBudgetLogisticsWideCountColumnWidth,
       child: Text(
         text,
         textAlign: TextAlign.right,

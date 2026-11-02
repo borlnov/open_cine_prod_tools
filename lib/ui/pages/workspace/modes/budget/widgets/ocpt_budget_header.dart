@@ -457,9 +457,9 @@ class _OcptBudgetToolsViewSwitch extends StatelessWidget {
           onChanged: onChanged,
         ),
         _OcptBudgetSwitchSegment(
-          value: OcptBudgetToolsView.regie,
+          value: OcptBudgetToolsView.logistics,
           current: value,
-          label: tr.budgetHeaderRegieSegmentLabel,
+          label: tr.budgetHeaderLogisticsSegmentLabel,
           onChanged: onChanged,
         ),
         _OcptBudgetSwitchSegment(

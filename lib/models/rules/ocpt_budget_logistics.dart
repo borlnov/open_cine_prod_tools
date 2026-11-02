@@ -35,8 +35,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// heads convoked to **that block's own slot** (`shooting_day_blocks.slotId`) — a slot holding a
 /// lunch block and a dinner block feeds its heads twice, two parallel slots each holding their own
 /// meal block feed their own heads at their own times, and a slot holding no meal block feeds
-/// nobody. See [OcptBudgetRegieMealSitting] and [ocptBudgetRegieDaysOf]'s own doc comment for the
-/// dedup this reading applies, and its own stated limit.
+/// nobody. See [OcptBudgetLogisticsMealSitting] and [ocptBudgetLogisticsDaysOf]'s own doc comment
+/// for the dedup this reading applies, and its own stated limit.
 ///
 /// **The buffet is unaffected by any of this.** It reads as a permanently available table, not a
 /// meal, so it is still counted per head per shooting day, deduplicated exactly as before (present
@@ -44,10 +44,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// follows how many people are there. This is the one rule in this file that did **not** change
 /// when the meal reading did.
 
-/// How many priced items a day's own catering [OcptBudgetRegieDay.cost] is built from — the meals
-/// (folded across every sitting) and the buffet, the two figures `docs/architecture/budget.md`'s
-/// catering pass prices separately.
-const int _ocptBudgetRegiePricedItemCount = 2;
+/// How many priced items a day's own catering [OcptBudgetLogisticsDay.cost] is built from — the
+/// meals (folded across every sitting) and the buffet, the two figures
+/// `docs/architecture/budget.md`'s catering pass prices separately.
+const int _ocptBudgetLogisticsPricedItemCount = 2;
 
 /// Get [days], each read for its own catering cost, in the order [days] was given.
 ///
@@ -66,7 +66,7 @@ const int _ocptBudgetRegiePricedItemCount = 2;
 /// or silent character.
 ///
 /// **Meals are read off [blocksByDayId] instead.** Every block of kind [OcptShootingBlockKind.meal]
-/// on the day becomes one [OcptBudgetRegieMealSitting], read over that block's own slot alone
+/// on the day becomes one [OcptBudgetLogisticsMealSitting], read over that block's own slot alone
 /// (never the whole day) — a slot holding two meal blocks (lunch, dinner) therefore feeds its own
 /// heads twice, and a slot with none is never read for a sitting at all. **Deduplicated by person
 /// within one sitting**: a person linked as crew to that slot and named by a cast role's own
@@ -87,7 +87,7 @@ const int _ocptBudgetRegiePricedItemCount = 2;
 /// typed per day. [buffetPriceCents] is `project_info.snackPriceCents` read under its new,
 /// user-facing name: the column keeps the name the schema gave it (ADR 0007's schema-number rule),
 /// but the buffet it prices was never a snack in the trade's own words.
-List<OcptBudgetRegieDay> ocptBudgetRegieDaysOf({
+List<OcptBudgetLogisticsDay> ocptBudgetLogisticsDaysOf({
   required List<OcptShootingDay> days,
   required Map<String, List<OcptShootingSlot>> slotsByDayId,
   required Map<String, List<OcptShootingDayBlock>> blocksByDayId,
@@ -97,7 +97,7 @@ List<OcptBudgetRegieDay> ocptBudgetRegieDaysOf({
   required int? buffetPriceCents,
 }) => [
   for (final day in days)
-    _ocptBudgetRegieDayOf(
+    _ocptBudgetLogisticsDayOf(
       day,
       slots: slotsByDayId[day.id] ?? const [],
       blocks: blocksByDayId[day.id] ?? const [],
@@ -109,9 +109,9 @@ List<OcptBudgetRegieDay> ocptBudgetRegieDaysOf({
 ];
 
 /// Get [day]'s own catering reading, over its own [slots] and [blocks] — see
-/// [ocptBudgetRegieDaysOf]'s
+/// [ocptBudgetLogisticsDaysOf]'s
 /// own doc comment for the arithmetic argued in full.
-OcptBudgetRegieDay _ocptBudgetRegieDayOf(
+OcptBudgetLogisticsDay _ocptBudgetLogisticsDayOf(
   OcptShootingDay day, {
   required List<OcptShootingSlot> slots,
   required List<OcptShootingDayBlock> blocks,
@@ -148,7 +148,7 @@ OcptBudgetRegieDay _ocptBudgetRegieDayOf(
   final mealSittings = [
     for (final block in blocks)
       if (block.kind == OcptShootingBlockKind.meal)
-        _ocptBudgetRegieMealSittingOf(
+        _ocptBudgetLogisticsMealSittingOf(
           block,
           slot: slotById[block.slotId],
           personIdByRoleId: personIdByRoleId,
@@ -157,7 +157,7 @@ OcptBudgetRegieDay _ocptBudgetRegieDayOf(
   final mealCount = mealSittings.fold(0, (sum, sitting) => sum + sitting.headCount);
   final buffetCount = crewPersonIds.length + castCount + extraCount;
 
-  return OcptBudgetRegieDay(
+  return OcptBudgetLogisticsDay(
     dayId: day.id,
     dayNumber: day.dayNumber,
     date: day.date,
@@ -165,7 +165,7 @@ OcptBudgetRegieDay _ocptBudgetRegieDayOf(
     castCount: castCount,
     extraCount: extraCount,
     mealSittings: mealSittings,
-    cost: _ocptBudgetRegieCostOf(
+    cost: _ocptBudgetLogisticsCostOf(
       mealCount: mealCount,
       buffetCount: buffetCount,
       mealPriceCents: mealPriceCents,
@@ -179,11 +179,11 @@ OcptBudgetRegieDay _ocptBudgetRegieDayOf(
 /// day's own live slots no longer carry, which reads as an empty sitting (nobody fed) rather than a
 /// crash, mirroring how a candidacy removed under an audition block is read defensively elsewhere.
 ///
-/// See [ocptBudgetRegieDaysOf]'s own doc comment for the dedup argued in full: crew is read by
+/// See [ocptBudgetLogisticsDaysOf]'s own doc comment for the dedup argued in full: crew is read by
 /// `personId` directly, cast by [personIdByRoleId] resolving `roles.personId`, the two sets merged
 /// before counting so a person appearing in both is counted once; a role [personIdByRoleId] cannot
 /// resolve is counted on its own, added to the merged set's own size rather than folded into it.
-OcptBudgetRegieMealSitting _ocptBudgetRegieMealSittingOf(
+OcptBudgetLogisticsMealSitting _ocptBudgetLogisticsMealSittingOf(
   OcptShootingDayBlock block, {
   required OcptShootingSlot? slot,
   required Map<String, String?> personIdByRoleId,
@@ -205,7 +205,7 @@ OcptBudgetRegieMealSitting _ocptBudgetRegieMealSittingOf(
     }
   }
 
-  return OcptBudgetRegieMealSitting(
+  return OcptBudgetLogisticsMealSitting(
     blockId: block.id,
     slotId: block.slotId,
     headCount: personIds.length + unresolvedRoleCount,
@@ -219,7 +219,7 @@ OcptBudgetRegieMealSitting _ocptBudgetRegieMealSittingOf(
 /// states for a rate: a project that has recorded a meal price but no buffet price reads a real,
 /// partial figure that says how much of itself it covers, rather than a total silently short by the
 /// buffet.
-OcptBudgetCoveredTotal _ocptBudgetRegieCostOf({
+OcptBudgetCoveredTotal _ocptBudgetLogisticsCostOf({
   required int mealCount,
   required int buffetCount,
   required int? mealPriceCents,
@@ -240,13 +240,13 @@ OcptBudgetCoveredTotal _ocptBudgetRegieCostOf({
   return OcptBudgetCoveredTotal(
     amountCents: amountCents,
     coveredLineCount: coveredLineCount,
-    lineCount: _ocptBudgetRegiePricedItemCount,
+    lineCount: _ocptBudgetLogisticsPricedItemCount,
   );
 }
 
-/// Get [days]' own catering reading, folded into one total — see [OcptBudgetRegieTotals]'s own doc
-/// comment.
-OcptBudgetRegieTotals ocptBudgetRegieTotalsOf(List<OcptBudgetRegieDay> days) {
+/// Get [days]' own catering reading, folded into one total — see [OcptBudgetLogisticsTotals]'s own
+/// doc comment.
+OcptBudgetLogisticsTotals ocptBudgetLogisticsTotalsOf(List<OcptBudgetLogisticsDay> days) {
   var headCount = 0;
   var mealCount = 0;
   var buffetCount = 0;
@@ -263,7 +263,7 @@ OcptBudgetRegieTotals ocptBudgetRegieTotalsOf(List<OcptBudgetRegieDay> days) {
     lineCount += day.cost.lineCount;
   }
 
-  return OcptBudgetRegieTotals(
+  return OcptBudgetLogisticsTotals(
     headCount: headCount,
     mealCount: mealCount,
     buffetCount: buffetCount,

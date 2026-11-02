@@ -65,12 +65,12 @@ OcptShootingDayBlock _buildMealBlock({
   crewNote: "",
 );
 
-/// Run the tests of the budget regie meals and feed.
+/// Run the tests of the budget logistics meals and feed.
 void main() {
-  /// Pumps [OcptBudgetRegie] with every callback a no-op unless overridden.
+  /// Pumps [OcptBudgetLogistics] with every callback a no-op unless overridden.
   Future<void> pumpView(
     WidgetTester tester, {
-    required List<OcptBudgetRegieDay> days,
+    required List<OcptBudgetLogisticsDay> days,
     List<OcptBudgetAllowance> allowances = const [],
     List<OcptBudgetEntry> entries = const [],
     Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId = const {},
@@ -100,7 +100,7 @@ void main() {
     String? provisionNote,
     Size size = const Size(1400, 700),
   }) async {
-    // The default test surface is narrower than `_ocptRegieWrapWidth`, which would silently
+    // The default test surface is narrower than `_ocptLogisticsWrapWidth`, which would silently
     // switch every test onto the stacked layout instead of the side-by-side one this suite means
     // to exercise — widened here so the wrapping `SizedBox` below isn't itself clamped down.
     tester.view.physicalSize = Size(size.width, size.height + 200);
@@ -111,9 +111,9 @@ void main() {
     await tester.pumpWidget(
       wrap(
         size: size,
-        OcptBudgetRegie(
+        OcptBudgetLogistics(
           days: days,
-          cateringTotals: ocptBudgetRegieTotalsOf(days),
+          cateringTotals: ocptBudgetLogisticsTotalsOf(days),
           decorNameByDayId: decorNameByDayId,
           mealPriceCents: mealPriceCents,
           buffetPriceCents: buffetPriceCents,
@@ -159,7 +159,7 @@ void main() {
     testWidgets("sits at the top, above the two columns, its own catering row withheld", (
       tester,
     ) async {
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [buildDay(id: "day-1")],
         slotsByDayId: const {},
         blocksByDayId: const {},
@@ -176,7 +176,7 @@ void main() {
         breakdownUnpricedElementCount: 2,
       );
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
       expect(find.byType(OcptBudgetFeedCard), findsOneWidget);
       expect(find.text(tr.budgetDashboardFeedBreakdownReadOut(3, 5)), findsOneWidget);
       expect(find.text(tr.budgetDashboardFeedScheduleReadOut(days.length)), findsOneWidget);
@@ -185,7 +185,7 @@ void main() {
     });
 
     testWidgets("its breakdown and schedule rows each report their own click", (tester) async {
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [buildDay(id: "day-1")],
         slotsByDayId: const {},
         blocksByDayId: const {},
@@ -206,7 +206,7 @@ void main() {
 
       // The schedule row reports through `onScheduleOpenRequested` — the very callback the
       // catering column's own caption link already carries, both being the same request.
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
       await tester.tap(find.text(tr.budgetDashboardFeedBreakdownTitle));
       await tester.tap(find.text(tr.budgetDashboardFeedScheduleTitle));
       await tester.pumpAndSettle();
@@ -239,7 +239,7 @@ void main() {
         ),
       ];
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {"day-1": slots},
         blocksByDayId: const {},
@@ -265,7 +265,7 @@ void main() {
       cast: [_buildCastMember(id: "cast-1", slotId: "slot-1", roleId: "role-extra")],
     );
 
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [day],
       slotsByDayId: {
         "day-1": [slot],
@@ -292,7 +292,7 @@ void main() {
       guests: [_buildGuest(id: "guest-1", slotId: "slot-2", personId: "person-visitor")],
     );
 
-    final withoutGuest = ocptBudgetRegieDaysOf(
+    final withoutGuest = ocptBudgetLogisticsDaysOf(
       days: [day],
       slotsByDayId: {
         "day-1": [slotWithoutGuest],
@@ -303,7 +303,7 @@ void main() {
       mealPriceCents: null,
       buffetPriceCents: null,
     );
-    final withGuest = ocptBudgetRegieDaysOf(
+    final withGuest = ocptBudgetLogisticsDaysOf(
       days: [day],
       slotsByDayId: {
         "day-1": [slotWithGuest],
@@ -329,7 +329,7 @@ void main() {
       crew: [buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1")],
     );
 
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [day],
       slotsByDayId: {
         "day-1": [slot],
@@ -360,7 +360,7 @@ void main() {
       ],
     );
 
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [day],
       slotsByDayId: {
         "day-1": [slot],
@@ -392,7 +392,7 @@ void main() {
         crew: [buildCrewMember(id: "crew-1", slotId: "slot-1", personId: "person-1")],
       );
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {
           "day-1": [slot],
@@ -408,11 +408,11 @@ void main() {
 
       await pumpView(tester, days: days, mealPriceCents: 1200);
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
-      final totals = ocptBudgetRegieTotalsOf(days);
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
+      final totals = ocptBudgetLogisticsTotalsOf(days);
       expect(totals.cost.isComplete, isFalse);
 
-      final coverageText = tr.budgetRegieCateringCoverageReadOut(
+      final coverageText = tr.budgetLogisticsCateringCoverageReadOut(
         ocptBudgetAmountLabel(totals.cost.amountCents, "EUR"),
         totals.cost.coveredLineCount,
         totals.cost.lineCount,
@@ -423,7 +423,7 @@ void main() {
 
   testWidgets("a defrayal reads its person, its nature and what it comes to", (tester) async {
     final day = buildDay(id: "day-1");
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [day],
       slotsByDayId: const {},
       blocksByDayId: const {},
@@ -443,7 +443,7 @@ void main() {
       expandedNodeIds: const {"person-1"},
     );
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
     expect(find.text("Alex"), findsOneWidget);
     // 168 km at 0,529 €/km, the figure the published scale states — read on the person group row's
     // own `ADVANCED` cell and again on the defrayal sub-row's own.
@@ -455,7 +455,7 @@ void main() {
   });
 
   testWidgets("a defrayal naming nobody says so rather than reading blank", (tester) async {
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [buildDay(id: "day-1")],
       slotsByDayId: const {},
       blocksByDayId: const {},
@@ -471,14 +471,14 @@ void main() {
       allowances: [buildAllowance(id: "allowance-1")],
     );
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
-    expect(find.text(tr.budgetRegieAllowanceNoPerson), findsOneWidget);
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
+    expect(find.text(tr.budgetLogisticsAllowanceNoPerson), findsOneWidget);
   });
 
   testWidgets("a defrayal with no date reads the em dash rather than inventing one", (
     tester,
   ) async {
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [buildDay(id: "day-1")],
       slotsByDayId: const {},
       blocksByDayId: const {},
@@ -496,7 +496,7 @@ void main() {
       expandedNodeIds: const {"person-1"},
     );
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
     expect(
       find.text("${tr.budgetAllowanceKindTravelLabel} · $ocptBudgetEmptyValue · ×1"),
       findsOneWidget,
@@ -508,7 +508,7 @@ void main() {
   ) async {
     String? edited;
     String? deleted;
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [buildDay(id: "day-1")],
       slotsByDayId: const {},
       blocksByDayId: const {},
@@ -526,8 +526,8 @@ void main() {
       onAllowanceDeletionRequested: (id) => deleted = id,
     );
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
-    await tester.tap(find.text(tr.budgetRegieAllowanceNoPerson));
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
+    await tester.tap(find.text(tr.budgetLogisticsAllowanceNoPerson));
     await tester.pumpAndSettle();
     expect(edited, "allowance-1");
 

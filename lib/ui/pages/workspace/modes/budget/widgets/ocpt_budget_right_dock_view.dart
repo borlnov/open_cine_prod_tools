@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 /// **The `Inspector` tab is offered only where there is something to inspect**
 /// (`ocptBudgetViewHasInspector`). Where it is not, a stored `Inspector` preference draws `Help`
 /// instead — and is **not overwritten**, so a reader who left the quote on the inspector comes
-/// back to it rather than to whatever the régie happened to show them.
+/// back to it rather than to whatever the logistics happened to show them.
 class OcptBudgetRightDockView extends StatelessWidget {
   /// The mode's state, which the stored tab and the views' own content are read from.
   final OcptBudgetState state;

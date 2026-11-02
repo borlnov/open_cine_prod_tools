@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
-/// Run the tests of the budget regie.
+/// Run the tests of the budget logistics.
 void main() {
   OcptShootingDay buildDay({String id = "day-1", int dayNumber = 1, DateTime? date}) =>
       OcptShootingDay(
@@ -104,7 +104,7 @@ void main() {
     crewNote: "",
   );
 
-  group("ocptBudgetRegieDaysOf — the buffet's own reading (unaffected)", () {
+  group("ocptBudgetLogisticsDaysOf — the buffet's own reading (unaffected)", () {
     test("a person linked to three slots of one day is counted once", () {
       final day = buildDay();
       final slots = [
@@ -122,7 +122,7 @@ void main() {
         ),
       ];
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {"day-1": slots},
         blocksByDayId: const {},
@@ -146,7 +146,7 @@ void main() {
         ],
       );
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {
           "day-1": [slot],
@@ -171,7 +171,7 @@ void main() {
       final day = buildDay();
       final slot = buildSlot();
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {
           "day-1": [slot],
@@ -192,7 +192,7 @@ void main() {
       final dayB = buildDay(id: "day-b", dayNumber: 2, date: DateTime(2026, 3, 3));
       final dayA = buildDay(id: "day-a", date: DateTime(2026, 3, 2));
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [dayB, dayA],
         slotsByDayId: const {},
         blocksByDayId: const {},
@@ -206,12 +206,12 @@ void main() {
     });
   });
 
-  group("ocptBudgetRegieDaysOf — meals are read off the timetable's own meal blocks", () {
+  group("ocptBudgetLogisticsDaysOf — meals are read off the timetable's own meal blocks", () {
     test("a day with no meal block at all reads an empty sitting list, not a zero meal", () {
       final day = buildDay();
       final slot = buildSlot(crew: [buildCrew(personId: "p1")]);
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {
           "day-1": [slot],
@@ -239,7 +239,7 @@ void main() {
         ],
       );
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {
           "day-1": [slot],
@@ -278,7 +278,7 @@ void main() {
         ),
       ];
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {"day-1": slots},
         blocksByDayId: {
@@ -308,7 +308,7 @@ void main() {
         ),
       ];
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {"day-1": slots},
         blocksByDayId: {
@@ -334,7 +334,7 @@ void main() {
         cast: [buildCast(id: "ca1", slotId: "s1", roleId: "role-1")],
       );
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {
           "day-1": [slot],
@@ -360,7 +360,7 @@ void main() {
         cast: [buildCast(id: "ca1", slotId: "s1", roleId: "role-1")],
       );
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {
           "day-1": [slot],
@@ -388,7 +388,7 @@ void main() {
         ],
       );
 
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [day],
         slotsByDayId: {
           "day-1": [slot],
@@ -411,9 +411,9 @@ void main() {
     });
   });
 
-  group("ocptBudgetRegieTotalsOf", () {
+  group("ocptBudgetLogisticsTotalsOf", () {
     test("folds head count, meals, buffet servings and cost across every day", () {
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [
           buildDay(id: "d1"),
           buildDay(id: "d2", dayNumber: 2),
@@ -445,7 +445,7 @@ void main() {
         buffetPriceCents: 200,
       );
 
-      final totals = ocptBudgetRegieTotalsOf(days);
+      final totals = ocptBudgetLogisticsTotalsOf(days);
 
       expect(totals.headCount, 3);
       expect(totals.mealCount, 3);

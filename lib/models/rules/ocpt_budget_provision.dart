@@ -26,7 +26,8 @@ String ocptBudgetProvisionDigestOf({
   required int unitAmountCents,
 }) => jsonEncode([label, quantityMilli, unitAmountCents]);
 
-/// Get every figure the régie view currently has to provision, in [OcptBudgetProvisionKind] order.
+/// Get every figure the logistics view currently has to provision, in [OcptBudgetProvisionKind]
+/// order.
 ///
 /// **A nature with nothing to say is left out entirely**, the discipline every grouping of this
 /// mode keeps: no meal price recorded, or no shooting day at all, and there is no meal figure —

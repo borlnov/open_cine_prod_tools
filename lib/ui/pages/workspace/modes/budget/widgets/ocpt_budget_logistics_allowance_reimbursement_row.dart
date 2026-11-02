@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// One reimbursement sub-row: a dot, a `REIMBURSED` badge, the entry's own date and wording, its
 /// debit printed in the `REIMBURSED` column alone — the other money cells left blank, no menu: the
 /// entry itself belongs to the cash journal, not to this tree.
-class OcptBudgetRegieAllowanceReimbursementRow extends StatelessWidget {
+class OcptBudgetLogisticsAllowanceReimbursementRow extends StatelessWidget {
   /// The journal entry this row draws.
   final OcptBudgetEntry entry;
 
@@ -27,14 +27,14 @@ class OcptBudgetRegieAllowanceReimbursementRow extends StatelessWidget {
   final String currencyCode;
 
   /// Class constructor
-  const OcptBudgetRegieAllowanceReimbursementRow({
+  const OcptBudgetLogisticsAllowanceReimbursementRow({
     super.key,
     required this.entry,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
   });
 
-  /// Build the budget regie allowance reimbursement row as a [SizedBox].
+  /// Build the budget logistics allowance reimbursement row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -50,20 +50,22 @@ class OcptBudgetRegieAllowanceReimbursementRow extends StatelessWidget {
     );
 
     return SizedBox(
-      height: ocptBudgetRegieAllowanceSubRowHeight,
+      height: ocptBudgetLogisticsAllowanceSubRowHeight,
       child: Row(
         children: [
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(
-                left: ocptBudgetRegieAllowanceTwistyWidth + ocptBudgetRegieAllowanceIndentStep,
+                left:
+                    ocptBudgetLogisticsAllowanceTwistyWidth +
+                    ocptBudgetLogisticsAllowanceIndentStep,
                 right: 8,
               ),
               child: Row(
                 children: [
                   Container(
-                    width: ocptBudgetRegieAllowanceDotDiameter,
-                    height: ocptBudgetRegieAllowanceDotDiameter,
+                    width: ocptBudgetLogisticsAllowanceDotDiameter,
+                    height: ocptBudgetLogisticsAllowanceDotDiameter,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary,
                       shape: BoxShape.circle,
@@ -88,7 +90,7 @@ class OcptBudgetRegieAllowanceReimbursementRow extends StatelessWidget {
                       borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                     ),
                     child: Text(
-                      tr.budgetRegieColumnReimbursed,
+                      tr.budgetLogisticsColumnReimbursed,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall?.copyWith(
@@ -101,9 +103,9 @@ class OcptBudgetRegieAllowanceReimbursementRow extends StatelessWidget {
               ),
             ),
           ),
-          ocptBudgetRegieAllowanceAmountCell(context, null, currencyCode, showBlank: true),
+          ocptBudgetLogisticsAllowanceAmountCell(context, null, currencyCode, showBlank: true),
           SizedBox(
-            width: ocptBudgetRegieAllowanceAmountColumnWidth,
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
             child: Text(
               debitCents == null
                   ? ocptBudgetEmptyValue
@@ -114,8 +116,8 @@ class OcptBudgetRegieAllowanceReimbursementRow extends StatelessWidget {
               style: theme.textTheme.labelSmall,
             ),
           ),
-          ocptBudgetRegieAllowanceAmountCell(context, null, currencyCode, showBlank: true),
-          const SizedBox(width: ocptBudgetRegieAllowanceMenuColumnWidth),
+          ocptBudgetLogisticsAllowanceAmountCell(context, null, currencyCode, showBlank: true),
+          const SizedBox(width: ocptBudgetLogisticsAllowanceMenuColumnWidth),
         ],
       ),
     );

@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 
 /// The budget mode's revenue sharing view: two columns side by side, wrapping onto one another
 /// once the centre narrows past [ocptBudgetSharingWrapWidth] — the layout the validated mockup lays
-/// this view out as, mirroring `OcptBudgetRegie`'s own two-column reading.
+/// this view out as, mirroring `OcptBudgetLogistics`'s own two-column reading.
 ///
 /// **Every card sizes to its own content and hugs the top of its own column — never stretched to
 /// fill the view's own height.** This is `OcptBudgetFinancing`'s own house style (its group cards

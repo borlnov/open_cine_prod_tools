@@ -37,7 +37,7 @@ class OcptBudgetAllowance extends Equatable {
   /// Free-form notes about this defrayal.
   final String notes;
 
-  /// This defrayal's position within the régie view's own flat `sortKey` order.
+  /// This defrayal's position within the logistics view's own flat `sortKey` order.
   final String sortKey;
 
   /// Class constructor

@@ -182,7 +182,7 @@ class OcptBudgetPosteFilterSelectedEvent extends OcptBudgetWorkspaceEvent {
   List<Object?> get props => [...super.props, posteId];
 }
 
-/// Point the régie view's own provisioning at poste [posteId] — a selection, written to no
+/// Point the logistics view's own provisioning at poste [posteId] — a selection, written to no
 /// project and remembered for as long as the mode is open.
 class OcptBudgetProvisionPosteSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// The id of the poste just picked.

@@ -10,9 +10,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 ///
 /// **The height is always stated, never left to the panes.** Side by side, both of them size their
 /// own table with an `Expanded`, which needs a bounded height to mean anything, so this hands them
-/// the view's own — floored at [ocptBudgetRegiePaneMinHeight], under which the pair scrolls rather
-/// than being crushed out of its rows.
-class OcptBudgetRegieVerticalScroller extends StatelessWidget {
+/// the view's own — floored at [ocptBudgetLogisticsPaneMinHeight], under which the pair scrolls
+/// rather than being crushed out of its rows.
+class OcptBudgetLogisticsVerticalScroller extends StatelessWidget {
   /// The height the child is drawn at.
   final double height;
 
@@ -20,9 +20,9 @@ class OcptBudgetRegieVerticalScroller extends StatelessWidget {
   final Widget child;
 
   /// Class constructor
-  const OcptBudgetRegieVerticalScroller({super.key, required this.height, required this.child});
+  const OcptBudgetLogisticsVerticalScroller({super.key, required this.height, required this.child});
 
-  /// Build the budget regie vertical scroller as a [SingleChildScrollView].
+  /// Build the budget logistics vertical scroller as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     child: SizedBox(height: height, child: child),

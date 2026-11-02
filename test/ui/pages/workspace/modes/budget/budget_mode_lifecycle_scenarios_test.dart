@@ -316,7 +316,7 @@ void main() {
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
     expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
-    await harness.tapHeader(tester, tr.budgetHeaderRegieSegmentLabel);
+    await harness.tapHeader(tester, tr.budgetHeaderLogisticsSegmentLabel);
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsNothing);
     expect(find.text(tr.budgetDetailEmptyHint), findsNothing);
     expect(
@@ -355,7 +355,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await harness.tap(tester, inTracking(find.text(tr.budgetDashboardFeedCateringTitle)));
-    expect(find.text(tr.budgetHeaderRegieTitle), findsWidgets);
+    expect(find.text(tr.budgetHeaderLogisticsTitle), findsWidgets);
     expect(workspace.state.mode, isNot(OcptWorkspaceMode.schedule));
 
     await harness.tap(tester, find.text(tr.budgetDashboardFeedBreakdownTitle));

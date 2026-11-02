@@ -14293,22 +14293,22 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderRegieSegmentLabel": "Catering & travel",
-  "@budgetHeaderRegieSegmentLabel": {
+  "budgetHeaderLogisticsSegmentLabel": "Catering & travel",
+  "@budgetHeaderLogisticsSegmentLabel": {
     "description": "Label of the tools drawer's own catering-and-travel page",
     "context": "Displayed on the budget mode's own tools drawer switch",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderRegieTitle": "Catering & travel",
-  "@budgetHeaderRegieTitle": {
+  "budgetHeaderLogisticsTitle": "Catering & travel",
+  "@budgetHeaderLogisticsTitle": {
     "description": "Title of the header band while the catering-and-travel view is on screen",
     "context": "Displayed above the budget mode's own catering-and-travel view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderRegieSubtitle": "What each shooting day costs in meals, and what each traveller's own commute costs in mileage.",
-  "@budgetHeaderRegieSubtitle": {
+  "budgetHeaderLogisticsSubtitle": "What each shooting day costs in meals, and what each traveller's own commute costs in mileage.",
+  "@budgetHeaderLogisticsSubtitle": {
     "description": "Subtitle of the header band while the catering-and-travel view is on screen",
     "context": "Displayed above the budget mode's own catering-and-travel view",
     "type": "text",
@@ -14741,85 +14741,85 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieAllowancesSectionTitle": "Defrayals",
-  "@budgetRegieAllowancesSectionTitle": {
+  "budgetLogisticsAllowancesSectionTitle": "Defrayals",
+  "@budgetLogisticsAllowancesSectionTitle": {
     "description": "Title of the régie view's own defrayal column",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieAllowancesHint": "One row per thing actually owed. Nothing here is deduced from the schedule.",
-  "@budgetRegieAllowancesHint": {
+  "budgetLogisticsAllowancesHint": "One row per thing actually owed. Nothing here is deduced from the schedule.",
+  "@budgetLogisticsAllowancesHint": {
     "description": "Caption of the régie view's own defrayal column",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieAllowanceCreationAction": "Defrayal",
-  "@budgetRegieAllowanceCreationAction": {
+  "budgetLogisticsAllowanceCreationAction": "Defrayal",
+  "@budgetLogisticsAllowanceCreationAction": {
     "description": "Label of the button creating a defrayal, beside a plus icon",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieAllowancesEmptyHint": "No defrayal recorded yet.",
-  "@budgetRegieAllowancesEmptyHint": {
+  "budgetLogisticsAllowancesEmptyHint": "No defrayal recorded yet.",
+  "@budgetLogisticsAllowancesEmptyHint": {
     "description": "Shown in place of the defrayal table while the project holds none",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnPerson": "Person",
-  "@budgetRegieColumnPerson": {
+  "budgetLogisticsColumnPerson": "Person",
+  "@budgetLogisticsColumnPerson": {
     "description": "Header of the defrayal table's own person column",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnAdvanced": "Advanced",
-  "@budgetRegieColumnAdvanced": {
+  "budgetLogisticsColumnAdvanced": "Advanced",
+  "@budgetLogisticsColumnAdvanced": {
     "description": "Header of the defrayal person tree's own advanced column",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnReimbursed": "Reimbursed",
-  "@budgetRegieColumnReimbursed": {
+  "budgetLogisticsColumnReimbursed": "Reimbursed",
+  "@budgetLogisticsColumnReimbursed": {
     "description": "Header of the defrayal person tree's own reimbursed column, and a reimbursement sub-row's own badge",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnOwed": "Owed",
-  "@budgetRegieColumnOwed": {
+  "budgetLogisticsColumnOwed": "Owed",
+  "@budgetLogisticsColumnOwed": {
     "description": "Header of the defrayal person tree's own owed column",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieAllowanceNoPerson": "Nobody in particular",
-  "@budgetRegieAllowanceNoPerson": {
+  "budgetLogisticsAllowanceNoPerson": "Nobody in particular",
+  "@budgetLogisticsAllowanceNoPerson": {
     "description": "Shown in a defrayal's own person cell when it names nobody",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieAllowanceOpenPersonAction": "Open this person's sheet",
-  "@budgetRegieAllowanceOpenPersonAction": {
+  "budgetLogisticsAllowanceOpenPersonAction": "Open this person's sheet",
+  "@budgetLogisticsAllowanceOpenPersonAction": {
     "description": "Row menu entry of a defrayal naming somebody",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieReimburseAction": "Reimburse",
-  "@budgetRegieReimburseAction": {
+  "budgetLogisticsReimburseAction": "Reimburse",
+  "@budgetLogisticsReimburseAction": {
     "description": "Person group row menu entry opening the capture wizard pre-filled with what is owed them",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieTotalLabel": "Total",
-  "@budgetRegieTotalLabel": {
+  "budgetLogisticsTotalLabel": "Total",
+  "@budgetLogisticsTotalLabel": {
     "description": "Label of the defrayal table's own total row",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
@@ -14853,43 +14853,43 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieProvisionComputedLabel": "Computed here",
-  "@budgetRegieProvisionComputedLabel": {
+  "budgetLogisticsProvisionComputedLabel": "Computed here",
+  "@budgetLogisticsProvisionComputedLabel": {
     "description": "Caption of the provisioning band's own computed figure",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieProvisionQuotedLabel": "Quoted on this poste",
-  "@budgetRegieProvisionQuotedLabel": {
+  "budgetLogisticsProvisionQuotedLabel": "Quoted on this poste",
+  "@budgetLogisticsProvisionQuotedLabel": {
     "description": "Caption of the provisioning band's own quoted figure",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieProvisionGapLabel": "Gap",
-  "@budgetRegieProvisionGapLabel": {
+  "budgetLogisticsProvisionGapLabel": "Gap",
+  "@budgetLogisticsProvisionGapLabel": {
     "description": "Caption of the provisioning band's own gap figure",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieProvisionPosteLabel": "Poste",
-  "@budgetRegieProvisionPosteLabel": {
+  "budgetLogisticsProvisionPosteLabel": "Poste",
+  "@budgetLogisticsProvisionPosteLabel": {
     "description": "Hint of the provisioning band's own poste picker",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieProvisionAction": "Provision into the quote",
-  "@budgetRegieProvisionAction": {
+  "budgetLogisticsProvisionAction": "Provision into the quote",
+  "@budgetLogisticsProvisionAction": {
     "description": "Label of the button writing the régie figures into the quote",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieProvisionNoPosteHint": "This project's quote holds no poste to provision into yet.",
-  "@budgetRegieProvisionNoPosteHint": {
+  "budgetLogisticsProvisionNoPosteHint": "This project's quote holds no poste to provision into yet.",
+  "@budgetLogisticsProvisionNoPosteHint": {
     "description": "Shown in place of the provisioning picker while the quote holds no poste",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
@@ -15090,22 +15090,22 @@
     "type": "text",
     "placeholders": {"created": {"type": "int"}, "updated": {"type": "int"}, "skipped": {"type": "int"}}
   },
-  "budgetRegieEmptyHint": "Plan the shoot in the schedule to see what catering and travel actually cost.",
-  "@budgetRegieEmptyHint": {
+  "budgetLogisticsEmptyHint": "Plan the shoot in the schedule to see what catering and travel actually cost.",
+  "@budgetLogisticsEmptyHint": {
     "description": "Message shown in place of the catering-and-travel view while the project holds no shooting day at all",
     "context": "Displayed by OcptBudgetRegie's own empty state",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieCateringSectionTitle": "Meals and craft services",
-  "@budgetRegieCateringSectionTitle": {
+  "budgetLogisticsCateringSectionTitle": "Meals and craft services",
+  "@budgetLogisticsCateringSectionTitle": {
     "description": "Title of the catering-and-travel view's own left column",
     "context": "Displayed above OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieCateringPriceCaption": "Priced at {meal} per meal and {buffet} per head at craft services.",
-  "@budgetRegieCateringPriceCaption": {
+  "budgetLogisticsCateringPriceCaption": "Priced at {meal} per meal and {buffet} per head at craft services.",
+  "@budgetLogisticsCateringPriceCaption": {
     "description": "Caption naming the project's own meal and buffet unit prices",
     "context": "Displayed above OcptBudgetRegie's own catering table",
     "type": "text",
@@ -15118,85 +15118,85 @@
       }
     }
   },
-  "budgetRegiePricesEditAction": "Edit prices",
-  "@budgetRegiePricesEditAction": {
+  "budgetLogisticsPricesEditAction": "Edit prices",
+  "@budgetLogisticsPricesEditAction": {
     "description": "Action opening the project settings, where the meal and buffet prices are typed",
     "context": "Displayed beside OcptBudgetRegie's own price caption, on both its columns",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieCateringScheduleHint": "A meal is counted once per meal block in the day's own timetable, for the people convoked to its own slot — a lunch and a dinner block feed twice, and a day whose timetable holds no meal block shows a dash rather than a false zero. Craft services is still counted once per head, per shooting day.",
-  "@budgetRegieCateringScheduleHint": {
+  "budgetLogisticsCateringScheduleHint": "A meal is counted once per meal block in the day's own timetable, for the people convoked to its own slot — a lunch and a dinner block feed twice, and a day whose timetable holds no meal block shows a dash rather than a false zero. Craft services is still counted once per head, per shooting day.",
+  "@budgetLogisticsCateringScheduleHint": {
     "description": "Caption stating the meal-block reading and the one-buffet-per-head-per-day rule",
     "context": "Displayed above OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieOpenScheduleAction": "Open the schedule",
-  "@budgetRegieOpenScheduleAction": {
+  "budgetLogisticsOpenScheduleAction": "Open the schedule",
+  "@budgetLogisticsOpenScheduleAction": {
     "description": "Action opening the schedule mode, where a shooting day's own convocations are typed",
     "context": "Displayed beside OcptBudgetRegie's own schedule caption",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnDay": "Day",
-  "@budgetRegieColumnDay": {
+  "budgetLogisticsColumnDay": "Day",
+  "@budgetLogisticsColumnDay": {
     "description": "Header of the catering table's own Day column",
     "context": "Displayed in OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnDecor": "Decor",
-  "@budgetRegieColumnDecor": {
+  "budgetLogisticsColumnDecor": "Decor",
+  "@budgetLogisticsColumnDecor": {
     "description": "Header of the catering table's own Decor column",
     "context": "Displayed in OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnCrew": "Crew",
-  "@budgetRegieColumnCrew": {
+  "budgetLogisticsColumnCrew": "Crew",
+  "@budgetLogisticsColumnCrew": {
     "description": "Header of the catering table's own Crew column",
     "context": "Displayed in OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnCast": "Cast",
-  "@budgetRegieColumnCast": {
+  "budgetLogisticsColumnCast": "Cast",
+  "@budgetLogisticsColumnCast": {
     "description": "Header of the catering table's own Cast column",
     "context": "Displayed in OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnExtras": "Extras",
-  "@budgetRegieColumnExtras": {
+  "budgetLogisticsColumnExtras": "Extras",
+  "@budgetLogisticsColumnExtras": {
     "description": "Header of the catering table's own Extras column",
     "context": "Displayed in OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnMeals": "Meals",
-  "@budgetRegieColumnMeals": {
+  "budgetLogisticsColumnMeals": "Meals",
+  "@budgetLogisticsColumnMeals": {
     "description": "Header of the catering table's own Meals column",
     "context": "Displayed in OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnBuffet": "Craft services",
-  "@budgetRegieColumnBuffet": {
+  "budgetLogisticsColumnBuffet": "Craft services",
+  "@budgetLogisticsColumnBuffet": {
     "description": "Header of the catering table's own craft-services (buffet) column",
     "context": "Displayed in OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieColumnTotal": "Total",
-  "@budgetRegieColumnTotal": {
+  "budgetLogisticsColumnTotal": "Total",
+  "@budgetLogisticsColumnTotal": {
     "description": "Header of the catering table's own Total column",
     "context": "Displayed in OcptBudgetRegie's own catering table",
     "type": "text",
     "placeholders": {}
   },
-  "budgetRegieCateringCoverageReadOut": "{amount} · over {coveredCount} of the {itemCount} priced items",
-  "@budgetRegieCateringCoverageReadOut": {
+  "budgetLogisticsCateringCoverageReadOut": "{amount} · over {coveredCount} of the {itemCount} priced items",
+  "@budgetLogisticsCateringCoverageReadOut": {
     "description": "The catering table's total row own coverage read-out, while a meal or a buffet price is not recorded",
     "context": "Displayed in place of the plain total once both prices are recorded, this disappears",
     "type": "text",
@@ -16897,36 +16897,36 @@
       }
     }
   },
-  "budgetHelpRegieBody1": "This page reads in two directions at once. The left column is catering, computed off the schedule. The right one is a running account of what the production owes people: a row per person carrying what they have advanced, what has come back to them and what is still owed, opening onto their own defrayals and their reimbursements. A person's own menu reimburses them, never for more than is still owed; a defrayal that names nobody stands on its own, counting against the quote and against no running account.",
-  "@budgetHelpRegieBody1": {
+  "budgetHelpLogisticsBody1": "This page reads in two directions at once. The left column is catering, computed off the schedule. The right one is a running account of what the production owes people: a row per person carrying what they have advanced, what has come back to them and what is still owed, opening onto their own defrayals and their reimbursements. A person's own menu reimburses them, never for more than is still owed; a defrayal that names nobody stands on its own, counting against the quote and against no running account.",
+  "@budgetHelpLogisticsBody1": {
     "description": "First paragraph of the budget mode's help panel for the tools drawer's Catering & travel page, stating the catering column is computed and the defrayal column is a running account grouped by person",
     "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpRegieBody2": "A meal is counted once per meal block, over the people convoked to that block's own slot — never once per shooting day. The buffet, by contrast, is counted once per head, per shooting day.",
-  "@budgetHelpRegieBody2": {
+  "budgetHelpLogisticsBody2": "A meal is counted once per meal block, over the people convoked to that block's own slot — never once per shooting day. The buffet, by contrast, is counted once per head, per shooting day.",
+  "@budgetHelpLogisticsBody2": {
     "description": "Second paragraph of the budget mode's help panel for the tools drawer's Catering & travel page",
     "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpRegieBody3": "Mileage comes from each traveller's own one-way commute and rate, typed on their sheet in Resources.",
-  "@budgetHelpRegieBody3": {
+  "budgetHelpLogisticsBody3": "Mileage comes from each traveller's own one-way commute and rate, typed on their sheet in Resources.",
+  "@budgetHelpLogisticsBody3": {
     "description": "Third paragraph of the budget mode's help panel for the tools drawer's Catering & travel page",
     "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpRegieBody4": "A role not yet cast cannot be told apart from the crew, so it counts on its own until it actually is cast.",
-  "@budgetHelpRegieBody4": {
+  "budgetHelpLogisticsBody4": "A role not yet cast cannot be told apart from the crew, so it counts on its own until it actually is cast.",
+  "@budgetHelpLogisticsBody4": {
     "description": "Fourth paragraph of the budget mode's help panel for the tools drawer's Catering & travel page",
     "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",
     "placeholders": {}
   },
-  "budgetHelpRegieBody5": "Nothing here reaches the quote by itself: the provisioning button writes what this page computes into {expenses}, one line per nature within the poste it targets, and leaves any figure typed by hand exactly as it stands.",
-  "@budgetHelpRegieBody5": {
+  "budgetHelpLogisticsBody5": "Nothing here reaches the quote by itself: the provisioning button writes what this page computes into {expenses}, one line per nature within the poste it targets, and leaves any figure typed by hand exactly as it stands.",
+  "@budgetHelpLogisticsBody5": {
     "description": "Fifth paragraph of the budget mode's help panel for the tools drawer's Catering & travel page, stating what the provisioning button writes and what it never overwrites",
     "context": "Displayed on the budget mode's own Help tab while the tools drawer's Catering & travel page is on screen",
     "type": "text",

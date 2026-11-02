@@ -8,10 +8,10 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_allowances.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
 
-/// What a defrayed person has actually advanced, been reimbursed, and is still owed — the régie's
-/// own running account, read the very same way every other document in this mode already reads
-/// what has moved: summed off the rows that name the person, never a stored counter kept in step
-/// by hand.
+/// What a defrayed person has actually advanced, been reimbursed, and is still owed — the
+/// logistics's own running account, read the very same way every other document in this mode
+/// already reads what has moved: summed off the rows that name the person, never a stored counter
+/// kept in step by hand.
 ///
 /// **What a person has advanced is typed, what they have been reimbursed is summed off the
 /// journal.** `budget_allowances` is what a production types row by row

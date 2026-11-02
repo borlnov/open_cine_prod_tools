@@ -22,7 +22,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// **`Quantity` and `Unit price` are the only required fields**, and neither has a sensible default
 /// to fall back on: a defrayal of nothing at nothing is a row nobody meant to write. The wording,
 /// the person and the dates are all legitimately empty — a defrayal naming nobody is a real line of
-/// a régie budget, and one carrying no date is a real, ordinary state.
+/// a logistics budget, and one carrying no date is a real, ordinary state.
 ///
 /// **The `Nature` picker re-words the `Quantity` helper**, since the unit changes with it:
 /// kilometres for a journey, nights for a stay, meals for a meal. Nothing is hidden or disabled by
@@ -205,8 +205,8 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
               decoration: InputDecoration(labelText: tr.budgetShareDialogPersonFieldLabel),
               items: [
                 // The explicit "no person" choice: a defrayal belonging to the production
-                // rather than to one person is a real line of a régie budget.
-                DropdownMenuItem<String?>(child: Text(tr.budgetRegieAllowanceNoPerson)),
+                // rather than to one person is a real line of a logistics budget.
+                DropdownMenuItem<String?>(child: Text(tr.budgetLogisticsAllowanceNoPerson)),
                 for (final person in widget.people)
                   DropdownMenuItem(value: person.id, child: Text(person.displayName)),
               ],

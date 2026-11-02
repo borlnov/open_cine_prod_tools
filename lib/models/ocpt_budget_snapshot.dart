@@ -33,7 +33,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 
 /// The whole budget mode's read, in one object: the [postes] with their lines, the cash journal's
 /// own [entries] and [commitments], the financing plan's own [resources], the
-/// catering-and-defrayals pass's own [regieDays] and [allowances], the project's own
+/// catering-and-defrayals pass's own [logisticsDays] and [allowances], the project's own
 /// [defaultVatRateBasisPoints] and [currencyCode], and the counts the status bar and the mode's own
 /// reads need.
 ///
@@ -43,8 +43,8 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 /// [commitments], `OcptBudgetFinancingService.loadResources`/`loadMileageRates` are what load
 /// [resources], `OcptBudgetAllowancesService.loadAllowances` is what loads [allowances], and
 /// `OcptScheduleService.loadSchedule` and `OcptRoleIndexService.loadRoles` are what load the
-/// schedule and the roles [regieDays] is built from; combining those reads with the project's own
-/// settings into this one object is the mode's job.
+/// schedule and the roles [logisticsDays] is built from; combining those reads with the project's
+/// own settings into this one object is the mode's job.
 class OcptBudgetSnapshot extends Equatable {
   /// Every poste of the project, in display order, each with its own quote lines.
   final List<OcptBudgetPoste> postes;
@@ -68,16 +68,16 @@ class OcptBudgetSnapshot extends Equatable {
   final int? defaultVatRateBasisPoints;
 
   /// The project's own meal price, in cents, or null meaning "nobody has recorded one" —
-  /// `OcptProjectInfoTable.mealPriceCents`, the same price [regieDays]' own cost is priced from.
-  /// Carried here too, raw, for `OcptBudgetRegie`'s own caption naming the two unit prices in
-  /// force.
+  /// `OcptProjectInfoTable.mealPriceCents`, the same price [logisticsDays]' own cost is priced
+  /// from. Carried here too, raw, for `OcptBudgetLogistics`'s own caption naming the two unit
+  /// prices in force.
   final int? mealPriceCents;
 
   /// The project's own buffet price, in cents, or null — [mealPriceCents]'s sibling.
   /// `OcptProjectInfoTable.snackPriceCents` under its user-facing name: the column keeps the name
   /// the schema gave it, but what it prices was never a snack in the trade's own words — it is
-  /// craft services (`buffet` in French), the permanently available table `OcptBudgetRegie`'s own
-  /// caption now names it as.
+  /// craft services (`buffet` in French), the permanently available table `OcptBudgetLogistics`'s
+  /// own caption now names it as.
   final int? buffetPriceCents;
 
   /// The ISO 4217 code of the currency the project counts its costs in.
@@ -147,28 +147,30 @@ class OcptBudgetSnapshot extends Equatable {
   final Map<String, OcptAssetRef> receiptsByEntryId;
 
   /// Every live shooting day's own catering reading, in the schedule's own day-number order —
-  /// `ocptBudgetRegieDaysOf` (`lib/models/rules/ocpt_budget_regie.dart`), read over the schedule's
-  /// own days, slots and meal blocks, every role's own kind and person, and the project's own meal
-  /// and buffet prices. Empty for every caller unconcerned with the catering-and-travel pass,
-  /// exactly as [resources] already defaults for a caller unconcerned with the financing plan.
-  final List<OcptBudgetRegieDay> regieDays;
+  /// `ocptBudgetLogisticsDaysOf` (`lib/models/rules/ocpt_budget_logistics.dart`), read over the
+  /// schedule's own days, slots and meal blocks, every role's own kind and person, and the
+  /// project's own meal and buffet prices. Empty for every caller unconcerned with the
+  /// catering-and-travel pass, exactly as [resources] already defaults for a caller unconcerned
+  /// with the financing plan.
+  final List<OcptBudgetLogisticsDay> logisticsDays;
 
-  /// [regieDays] folded into one total — `ocptBudgetRegieTotalsOf`.
-  final OcptBudgetRegieTotals regieTotals;
+  /// [logisticsDays] folded into one total — `ocptBudgetLogisticsTotalsOf`.
+  final OcptBudgetLogisticsTotals logisticsTotals;
 
-  /// Every live defrayal of the project, in the list's own `sortKey` order — `OcptBudgetRegie`'s
-  /// own right column, and one half of what the provisioning writes into the quote.
+  /// Every live defrayal of the project, in the list's own `sortKey` order —
+  /// `OcptBudgetLogistics`'s own right column, and one half of what the provisioning writes into
+  /// the quote.
   ///
-  /// **Typed, never derived**, unlike [regieDays] beside it: what a production pays somebody back
-  /// is not derivable from their presence on a day, which is the whole of the argument
+  /// **Typed, never derived**, unlike [logisticsDays] beside it: what a production pays somebody
+  /// back is not derivable from their presence on a day, which is the whole of the argument
   /// `OcptBudgetAllowancesTable`'s own doc comment makes. This snapshot therefore carries the rows
   /// themselves rather than a computed reading of them.
   final List<OcptBudgetAllowance> allowances;
 
   /// What has actually been reimbursed against each defrayed person, keyed by their own id —
   /// `ocptBudgetReimbursedByPersonId` (`lib/models/rules/ocpt_budget_reimbursements.dart`), the
-  /// régie's own running account for the person tree, mirroring [receivedByResourceId]. A person
-  /// with no key here has been reimbursed nothing at all.
+  /// logistics's own running account for the person tree, mirroring [receivedByResourceId]. A
+  /// person with no key here has been reimbursed nothing at all.
   final Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId;
 
   /// Every live taking of the revenue sharing, in the `sortKey` order `OcptBudgetSharingService
@@ -233,8 +235,8 @@ class OcptBudgetSnapshot extends Equatable {
     required this.receivedByResourceId,
     required this.alerts,
     required this.receiptsByEntryId,
-    required this.regieDays,
-    required this.regieTotals,
+    required this.logisticsDays,
+    required this.logisticsTotals,
     required this.allowances,
     required this.reimbursedByPersonId,
     required this.revenues,
@@ -262,12 +264,12 @@ class OcptBudgetSnapshot extends Equatable {
   /// the whole reading with it exactly as every silent line already does — with no database access
   /// of its own.
   ///
-  /// [regieDays] is derived over
+  /// [logisticsDays] is derived over
   /// [scheduleDays]/[slotsByDayId]/[blocksByDayId] — `OcptScheduleService.loadSchedule`'s own
   /// `OcptScheduleSnapshot.days`/`.slotsByDayId`/`.blocksByDayId`, **never** an
   /// `OcptSchedulePlanSnapshot`: a head count needs no shot list and no episode list, which is
   /// everything else that type joins in, and building one here would make this mode load the whole
-  /// découpage to count meals. [roles] is turned into the id-keyed maps `ocptBudgetRegieDaysOf`
+  /// découpage to count meals. [roles] is turned into the id-keyed maps `ocptBudgetLogisticsDaysOf`
   /// reads — its own `personId` resolved once, into the very map that function reads to cross a
   /// cast role with the person playing it —
   /// [mealPriceCents]/[buffetPriceCents] passed straight through — every one of the seven defaults
@@ -350,7 +352,7 @@ class OcptBudgetSnapshot extends Equatable {
     );
 
     final personIdByRoleId = {for (final role in roles) role.id: role.personId};
-    final regieDays = ocptBudgetRegieDaysOf(
+    final logisticsDays = ocptBudgetLogisticsDaysOf(
       days: scheduleDays,
       slotsByDayId: slotsByDayId,
       blocksByDayId: blocksByDayId,
@@ -390,8 +392,8 @@ class OcptBudgetSnapshot extends Equatable {
         projectVatRateBasisPoints: defaultVatRateBasisPoints,
       ),
       receiptsByEntryId: receiptsByEntryId,
-      regieDays: regieDays,
-      regieTotals: ocptBudgetRegieTotalsOf(regieDays),
+      logisticsDays: logisticsDays,
+      logisticsTotals: ocptBudgetLogisticsTotalsOf(logisticsDays),
       allowances: allowances,
       reimbursedByPersonId: reimbursedByPersonId,
       revenues: revenues,
@@ -453,7 +455,7 @@ class OcptBudgetSnapshot extends Equatable {
       "OcptBudgetSnapshot(posteCount: $posteCount, lineCount: $lineCount, "
       "entryCount: $entryCount, commitmentCount: $commitmentCount, resourceCount: $resourceCount, "
       "defaultVatRateBasisPoints: $defaultVatRateBasisPoints, currencyCode: $currencyCode, "
-      "regieDayCount: ${regieDays.length}, allowanceCount: ${allowances.length}, "
+      "logisticsDayCount: ${logisticsDays.length}, allowanceCount: ${allowances.length}, "
       "revenueCount: $revenueCount, shareCount: $shareCount)";
 
   /// List the fields that decide equality.
@@ -480,8 +482,8 @@ class OcptBudgetSnapshot extends Equatable {
     receivedByResourceId,
     alerts,
     receiptsByEntryId,
-    regieDays,
-    regieTotals,
+    logisticsDays,
+    logisticsTotals,
     allowances,
     reimbursedByPersonId,
     revenues,

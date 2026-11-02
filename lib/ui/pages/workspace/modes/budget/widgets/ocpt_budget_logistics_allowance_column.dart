@@ -29,58 +29,59 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// gesture instead.
 ///
 /// **A tree grouped by person, mirroring `OcptBudgetFinancing`'s own resources tree exactly**: a
-/// person group row carries the régie's own running account for them — `ADVANCED`, `REIMBURSED`,
-/// `OWED` — mirroring the resources tree's `Promis`/`Rentré`/`Reste à venir`, expanding onto their
-/// own defrayals then their own reimbursements. See the class doc comment above for the money rules
-/// and [_rowsOf] for how the tree is flattened.
-class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
-  /// See [OcptBudgetRegie.allowances].
+/// person group row carries the logistics's own running account for them — `ADVANCED`,
+/// `REIMBURSED`, `OWED` — mirroring the resources tree's `Promis`/`Rentré`/`Reste à venir`,
+/// expanding onto their own defrayals then their own reimbursements. See the class doc comment
+/// above for the money rules and [_rowsOf] for how the tree is flattened.
+class OcptBudgetLogisticsAllowanceColumn extends StatelessWidget {
+  /// See [OcptBudgetLogistics.allowances].
   final List<OcptBudgetAllowance> allowances;
 
-  /// See [OcptBudgetRegie.entries].
+  /// See [OcptBudgetLogistics.entries].
   final List<OcptBudgetEntry> entries;
 
-  /// See [OcptBudgetRegie.reimbursedByPersonId].
+  /// See [OcptBudgetLogistics.reimbursedByPersonId].
   final Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId;
 
-  /// See [OcptBudgetRegie.defaultVatRateBasisPoints].
+  /// See [OcptBudgetLogistics.defaultVatRateBasisPoints].
   final int? defaultVatRateBasisPoints;
 
-  /// See [OcptBudgetRegie.roles].
+  /// See [OcptBudgetLogistics.roles].
   final List<OcptRole> roles;
 
-  /// See [OcptBudgetRegie.people].
+  /// See [OcptBudgetLogistics.people].
   final List<OcptPerson> people;
 
-  /// See [OcptBudgetRegie.currencyCode].
+  /// See [OcptBudgetLogistics.currencyCode].
   final String currencyCode;
 
-  /// See [OcptBudgetRegie.isReadOnly].
+  /// See [OcptBudgetLogistics.isReadOnly].
   final bool isReadOnly;
 
-  /// See [OcptBudgetRegie.expandedNodeIds].
+  /// See [OcptBudgetLogistics.expandedNodeIds].
   final Set<String> expandedNodeIds;
 
-  /// See [OcptBudgetRegie.onNodeExpansionToggled].
+  /// See [OcptBudgetLogistics.onNodeExpansionToggled].
   final ValueChanged<String> onNodeExpansionToggled;
 
-  /// See [OcptBudgetRegie.onPersonOpenRequested].
+  /// See [OcptBudgetLogistics.onPersonOpenRequested].
   final ValueChanged<String> onPersonOpenRequested;
 
   /// Called with a defrayal's id to edit it, or null while editing is withheld — see
-  /// [OcptBudgetRegie.onAllowanceEditRequested].
+  /// [OcptBudgetLogistics.onAllowanceEditRequested].
   final ValueChanged<String>? onEditRequested;
 
   /// Called with a defrayal's id to delete it, or null while deleting is withheld — see
-  /// [OcptBudgetRegie.onAllowanceDeletionRequested].
+  /// [OcptBudgetLogistics.onAllowanceDeletionRequested].
   final ValueChanged<String>? onDeletionRequested;
 
   /// Called with a person's id to reimburse them, or null while reimbursing is withheld — see
-  /// [OcptBudgetRegie.onPersonReimburseRequested].
+  /// [OcptBudgetLogistics.onPersonReimburseRequested].
   final ValueChanged<String>? onReimburseRequested;
 
   /// The height the table card is drawn at, or null while the panes sit side by side and the card
-  /// takes whatever height the heading band leaves it — see [ocptBudgetRegieStackedMinRowCount].
+  /// takes whatever height the heading band leaves it — see
+  /// [ocptBudgetLogisticsStackedMinRowCount].
   final double? tableHeight;
 
   /// Get [people], keyed by their own id.
@@ -94,7 +95,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
   };
 
   /// Class constructor
-  const OcptBudgetRegieAllowanceColumn({
+  const OcptBudgetLogisticsAllowanceColumn({
     super.key,
     required this.allowances,
     required this.entries,
@@ -113,7 +114,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
     required this.onReimburseRequested,
   });
 
-  /// Build the budget regie allowance column as a [Column].
+  /// Build the budget logistics allowance column as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -125,14 +126,14 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
       // Stated by its own rows once it is stacked — see the catering column's own reading.
       mainAxisSize: tableHeight == null ? MainAxisSize.max : MainAxisSize.min,
       children: [
-        Text(tr.budgetRegieAllowancesSectionTitle, style: theme.textTheme.titleSmall),
+        Text(tr.budgetLogisticsAllowancesSectionTitle, style: theme.textTheme.titleSmall),
         const SizedBox(height: 4),
         Text(
-          tr.budgetRegieAllowancesHint,
+          tr.budgetLogisticsAllowancesHint,
           style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
-        OcptBudgetRegieTablePane(
+        OcptBudgetLogisticsTablePane(
           height: tableHeight,
           child: Card(
             margin: EdgeInsets.zero,
@@ -141,7 +142,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
               child: allowances.isEmpty
                   ? Center(
                       child: Text(
-                        tr.budgetRegieAllowancesEmptyHint,
+                        tr.budgetLogisticsAllowancesEmptyHint,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
@@ -153,12 +154,12 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
                         child: SizedBox(
                           width: math.max(
                             constraints.maxWidth,
-                            ocptBudgetRegieAllowanceMinTableWidth,
+                            ocptBudgetLogisticsAllowanceMinTableWidth,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              const OcptBudgetRegieAllowanceHeaderRow(),
+                              const OcptBudgetLogisticsAllowanceHeaderRow(),
                               const Divider(height: 1),
                               Expanded(
                                 child: ListView.builder(
@@ -167,7 +168,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
                                 ),
                               ),
                               const Divider(height: 1),
-                              OcptBudgetRegieAllowanceTotalRow(
+                              OcptBudgetLogisticsAllowanceTotalRow(
                                 allowances: allowances,
                                 entries: entries,
                                 defaultVatRateBasisPoints: defaultVatRateBasisPoints,
@@ -190,15 +191,15 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
   /// live defrayal or a live reimbursement names them, its own sub-rows draw only while their own
   /// id sits in [expandedNodeIds]. A defrayal naming nobody draws as its own group of one, in the
   /// list's own `sortKey` order, right where [allowances] would have put it — see
-  /// `OcptBudgetRegieAllowanceNoPersonGroupRow`'s own doc comment.
+  /// `OcptBudgetLogisticsAllowanceNoPersonGroupRow`'s own doc comment.
   ///
   /// **A person is named twice over: by their own defrayals and by their own reimbursements**, and
   /// either alone is enough to draw their group — a person reimbursed against a défraiement since
   /// deleted still has a running account worth reading. Every person a live defrayal names is added
   /// first, in [allowances]' own order; a person reimbursed but never defrayed is appended after,
   /// in [entries]' own order, since nothing in [allowances] ever named them.
-  List<OcptBudgetRegieAllowanceTreeRow> _rowsOf() {
-    final rows = <OcptBudgetRegieAllowanceTreeRow>[];
+  List<OcptBudgetLogisticsAllowanceTreeRow> _rowsOf() {
+    final rows = <OcptBudgetLogisticsAllowanceTreeRow>[];
     final seenPersonIds = <String>{};
 
     void addPersonGroup(String personId) {
@@ -215,7 +216,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
       final isExpanded = expandedNodeIds.contains(personId);
 
       rows.add(
-        OcptBudgetRegieAllowancePersonGroupRow(
+        OcptBudgetLogisticsAllowancePersonGroupRow(
           personId: personId,
           person: _personById[personId],
           role: _roleByPersonId[personId],
@@ -234,12 +235,12 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
 
       for (final allowance in allowances) {
         if (allowance.personId == personId) {
-          rows.add(OcptBudgetRegieAllowanceDefrayalSubRow(allowance: allowance));
+          rows.add(OcptBudgetLogisticsAllowanceDefrayalSubRow(allowance: allowance));
         }
       }
       for (final entry in entries) {
         if (entry.personId == personId) {
-          rows.add(OcptBudgetRegieAllowanceReimbursementSubRow(entry: entry));
+          rows.add(OcptBudgetLogisticsAllowanceReimbursementSubRow(entry: entry));
         }
       }
     }
@@ -247,7 +248,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
     for (final allowance in allowances) {
       final personId = allowance.personId;
       if (personId == null) {
-        rows.add(OcptBudgetRegieAllowanceNoPersonGroupRow(allowance: allowance));
+        rows.add(OcptBudgetLogisticsAllowanceNoPersonGroupRow(allowance: allowance));
         continue;
       }
 
@@ -264,8 +265,8 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
   }
 
   /// Build the widget for one flattened [row].
-  Widget _rowOf(OcptBudgetRegieAllowanceTreeRow row) => switch (row) {
-    OcptBudgetRegieAllowancePersonGroupRow() => OcptBudgetRegieAllowancePersonRow(
+  Widget _rowOf(OcptBudgetLogisticsAllowanceTreeRow row) => switch (row) {
+    OcptBudgetLogisticsAllowancePersonGroupRow() => OcptBudgetLogisticsAllowancePersonRow(
       person: row.person,
       role: row.role,
       advancedCents: row.advancedCents,
@@ -281,7 +282,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
           ? null
           : () => onReimburseRequested?.call(row.personId),
     ),
-    OcptBudgetRegieAllowanceNoPersonGroupRow() => OcptBudgetRegieAllowanceNoPersonRow(
+    OcptBudgetLogisticsAllowanceNoPersonGroupRow() => OcptBudgetLogisticsAllowanceNoPersonRow(
       allowance: row.allowance,
       currencyCode: currencyCode,
       onTap: isReadOnly || onEditRequested == null
@@ -291,7 +292,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
           ? null
           : () => onDeletionRequested?.call(row.allowance.id),
     ),
-    OcptBudgetRegieAllowanceDefrayalSubRow() => OcptBudgetRegieAllowanceDefrayalRow(
+    OcptBudgetLogisticsAllowanceDefrayalSubRow() => OcptBudgetLogisticsAllowanceDefrayalRow(
       allowance: row.allowance,
       currencyCode: currencyCode,
       onTap: isReadOnly || onEditRequested == null
@@ -302,10 +303,11 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
           ? null
           : () => onDeletionRequested?.call(row.allowance.id),
     ),
-    OcptBudgetRegieAllowanceReimbursementSubRow() => OcptBudgetRegieAllowanceReimbursementRow(
-      entry: row.entry,
-      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-      currencyCode: currencyCode,
-    ),
+    OcptBudgetLogisticsAllowanceReimbursementSubRow() =>
+      OcptBudgetLogisticsAllowanceReimbursementRow(
+        entry: row.entry,
+        defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+        currencyCode: currencyCode,
+      ),
   };
 }

@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 /// nobody has recorded a figure, not that none applies, and nothing here is ever pre-filled with a
 /// figure this app has not been told to advance (ADR 0027). The budget mode's
 /// own views read all three once they ship — the VAT rate as the fallback every unpriced quote line
-/// inherits, the two catering prices as the unit costs `ocpt_budget_regie.dart` multiplies the
+/// inherits, the two catering prices as the unit costs `ocpt_budget_logistics.dart` multiplies the
 /// schedule's own head counts by.
 class OcptProjectSettingsBudgetSection extends StatelessWidget {
   /// The project's current default VAT rate, in basis points (`2000` is 20 %, `550` is 5.5 %), or

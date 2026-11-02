@@ -9,8 +9,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 /// One defrayal: what the production pays somebody back for, typed by hand.
 ///
 /// **Nothing here is deduced from the schedule, and that is the whole point of the table.** The
-/// régie view used to compute a traveller's cost as one return trip per day of presence, from their
-/// own home-to-set distance and their own rate. A real shoot does not work that way: somebody
+/// logistics view used to compute a traveller's cost as one return trip per day of presence, from
+/// their own home-to-set distance and their own rate. A real shoot does not work that way: somebody
 /// travels in on the first day, is housed near the set for a fortnight and travels home on the
 /// last; somebody else is defrayed for two journeys out of fifteen days; a technician claims a
 /// taxi and a crew member three meals. None of that is derivable from a presence, so none of it is
@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 ///
 /// [personId] is **nullable**, declared the way `OcptBudgetSharesTable.personId` is: a defrayal
 /// usually names somebody, but a row reading "Taxis, semaine 2" that names nobody in particular is
-/// a legitimate line of a régie budget, not an unfinished pick.
+/// a legitimate line of a logistics budget, not an unfinished pick.
 ///
 /// [quantityMilli] is in **thousandths** for the reason `OcptBudgetLinesTable.quantityMilli` is,
 /// and [unitAmountMilliCents] in **thousandths of a cent** for the reason

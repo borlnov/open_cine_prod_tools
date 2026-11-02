@@ -45,7 +45,7 @@ class OcptBudgetRead {
   final List<OcptBudgetMileageRate> mileageRates;
 
   /// The decor name printed under each shooting day, keyed by the day's own id.
-  final Map<String, String> regieDecorNameByDayId;
+  final Map<String, String> logisticsDecorNameByDayId;
 
   /// Class constructor
   const OcptBudgetRead({
@@ -54,7 +54,7 @@ class OcptBudgetRead {
     required this.people,
     required this.elements,
     required this.mileageRates,
-    required this.regieDecorNameByDayId,
+    required this.logisticsDecorNameByDayId,
   });
 }
 
@@ -181,7 +181,7 @@ class OcptBudgetSnapshotLoader {
       people: people,
       elements: elements,
       mileageRates: mileageRates,
-      regieDecorNameByDayId: _regieDecorNameByDayId(
+      logisticsDecorNameByDayId: _logisticsDecorNameByDayId(
         days: scheduleSnapshot.days,
         slotsByDayId: scheduleSnapshot.slotsByDayId,
         locations: locations,
@@ -189,15 +189,15 @@ class OcptBudgetSnapshotLoader {
     );
   }
 
-  /// Get the decor name `OcptBudgetRegie` prints under each shooting day: the name of the first
+  /// Get the decor name `OcptBudgetLogistics` prints under each shooting day: the name of the first
   /// set, or
   /// failing that the first location, that any of [days]' own [slotsByDayId] entries name, in slot
   /// order — resolved out of [locations] (and their own live sets) alone.
-  /// `lib/models/rules/ocpt_budget_regie.dart`'s own pass reads no location or set at all, being
-  /// pure arithmetic over head counts, so this is a separate, purely presentational reading rather
-  /// than a second implementation of anything that file states. A day whose slots name neither
-  /// carries no key here, which the view reads as nothing rather than a placeholder.
-  Map<String, String> _regieDecorNameByDayId({
+  /// `lib/models/rules/ocpt_budget_logistics.dart`'s own pass reads no location or set at all,
+  /// being pure arithmetic over head counts, so this is a separate, purely presentational reading
+  /// rather than a second implementation of anything that file states. A day whose slots name
+  /// neither carries no key here, which the view reads as nothing rather than a placeholder.
+  Map<String, String> _logisticsDecorNameByDayId({
     required List<OcptShootingDay> days,
     required Map<String, List<OcptShootingSlot>> slotsByDayId,
     required List<OcptLocation> locations,

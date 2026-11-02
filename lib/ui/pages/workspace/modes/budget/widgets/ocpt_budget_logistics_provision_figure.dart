@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 
 /// One figure of the provisioning band: its caption over its value.
-class OcptBudgetRegieProvisionFigure extends StatelessWidget {
+class OcptBudgetLogisticsProvisionFigure extends StatelessWidget {
   /// The figure's own caption.
   final String label;
 
@@ -16,14 +16,14 @@ class OcptBudgetRegieProvisionFigure extends StatelessWidget {
   final Color? valueColor;
 
   /// Class constructor
-  const OcptBudgetRegieProvisionFigure({
+  const OcptBudgetLogisticsProvisionFigure({
     super.key,
     required this.label,
     required this.value,
     this.valueColor,
   });
 
-  /// Build the budget regie provision figure as a [Column].
+  /// Build the budget logistics provision figure as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

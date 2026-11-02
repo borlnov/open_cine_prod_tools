@@ -30,7 +30,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// The catering's own callbacks only ever report where a figure was typed — the schedule mode or
 /// the project settings page — while the defrayals and the provisioning are real writes, opened
 /// from here and confirmed by the mode, exactly as every other writing view of this mode is.
-class OcptBudgetRegieView extends StatelessWidget {
+class OcptBudgetLogisticsView extends StatelessWidget {
   /// The mode's state, which the days, the defrayals and the provisioning are read from.
   final OcptBudgetState state;
 
@@ -44,7 +44,7 @@ class OcptBudgetRegieView extends StatelessWidget {
   final VoidCallback onProvisionRequested;
 
   /// Class constructor
-  const OcptBudgetRegieView({
+  const OcptBudgetLogisticsView({
     super.key,
     required this.state,
     required this.onProjectSettingsRequested,
@@ -52,7 +52,7 @@ class OcptBudgetRegieView extends StatelessWidget {
     required this.onProvisionRequested,
   });
 
-  /// Build the budget regie view as an [OcptBudgetRegie].
+  /// Build the budget logistics view as an [OcptBudgetLogistics].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBudgetBloc>();
@@ -61,7 +61,7 @@ class OcptBudgetRegieView extends StatelessWidget {
     // The plan is computed for the band as well as for the gesture: a provisioning that would do
     // nothing is withheld, and the band says why in its place rather than answering a click with a
     // dialog that only says "no".
-    final plan = ocptBudgetRegieProvisionPlanOf(context, state);
+    final plan = ocptBudgetLogisticsProvisionPlanOf(context, state);
     final wouldWrite = plan.any(
       (entry) =>
           entry.outcome == OcptBudgetProvisionOutcome.created ||
@@ -71,10 +71,10 @@ class OcptBudgetRegieView extends StatelessWidget {
         .where((entry) => entry.outcome == OcptBudgetProvisionOutcome.skippedEdited)
         .length;
 
-    return OcptBudgetRegie(
-      days: state.regieDays,
-      cateringTotals: state.regieTotals,
-      decorNameByDayId: state.regieDecorNameByDayId,
+    return OcptBudgetLogistics(
+      days: state.logisticsDays,
+      cateringTotals: state.logisticsTotals,
+      decorNameByDayId: state.logisticsDecorNameByDayId,
       mealPriceCents: state.mealPriceCents,
       buffetPriceCents: state.buffetPriceCents,
       allowances: state.allowances,
@@ -136,7 +136,7 @@ class OcptBudgetRegieView extends StatelessWidget {
 /// Read twice: once to draw the band — which withholds the gesture and says why when the plan
 /// would change nothing — and once when the gesture is actually taken, so what the user is shown
 /// and what is written come from the same computation.
-List<OcptBudgetProvisionEntry> ocptBudgetRegieProvisionPlanOf(
+List<OcptBudgetProvisionEntry> ocptBudgetLogisticsProvisionPlanOf(
   BuildContext context,
   OcptBudgetState state,
 ) {
@@ -147,8 +147,8 @@ List<OcptBudgetProvisionEntry> ocptBudgetRegieProvisionPlanOf(
 
   return ocptBudgetProvisionPlanOf(
     items: ocptBudgetProvisionItemsOf(
-      mealCount: state.regieTotals.mealCount,
-      snackCount: state.regieTotals.buffetCount,
+      mealCount: state.logisticsTotals.mealCount,
+      snackCount: state.logisticsTotals.buffetCount,
       mealPriceCents: state.mealPriceCents,
       snackPriceCents: state.buffetPriceCents,
       allowances: state.allowances,
@@ -159,7 +159,7 @@ List<OcptBudgetProvisionEntry> ocptBudgetRegieProvisionPlanOf(
 }
 
 /// Get what the provisioned lines of [OcptBudgetState.provisionPosteId] currently hold, in cents —
-/// the figure the régie view's own band reads back as `Quoted on this poste`.
+/// the figure the logistics view's own band reads back as `Quoted on this poste`.
 ///
 /// **Only the lines the provisioning itself wrote count**, never every line of the poste: a
 /// production quoting a van hire on the same poste has not thereby provisioned its catering, and

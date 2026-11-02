@@ -5,7 +5,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_provision_kind.dart';
 
-/// One figure the régie view has to provision: a nature, how many of it, and at what unit price.
+/// One figure the logistics view has to provision: a nature, how many of it, and at what unit
+/// price.
 ///
 /// The **catering** natures carry a real quantity and a real unit price — 28 meals at 12,00 € — so
 /// the quote line reads the way a reader would have typed it. The **defrayal** natures carry a

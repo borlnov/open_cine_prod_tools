@@ -18,37 +18,38 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
 
 /// The left column: the heading band with its two captions, then the catering table.
-class OcptBudgetRegieCateringColumn extends StatelessWidget {
-  /// See [OcptBudgetRegie.days].
-  final List<OcptBudgetRegieDay> days;
+class OcptBudgetLogisticsCateringColumn extends StatelessWidget {
+  /// See [OcptBudgetLogistics.days].
+  final List<OcptBudgetLogisticsDay> days;
 
-  /// See [OcptBudgetRegie.cateringTotals].
-  final OcptBudgetRegieTotals totals;
+  /// See [OcptBudgetLogistics.cateringTotals].
+  final OcptBudgetLogisticsTotals totals;
 
-  /// See [OcptBudgetRegie.decorNameByDayId].
+  /// See [OcptBudgetLogistics.decorNameByDayId].
   final Map<String, String> decorNameByDayId;
 
-  /// See [OcptBudgetRegie.mealPriceCents].
+  /// See [OcptBudgetLogistics.mealPriceCents].
   final int? mealPriceCents;
 
-  /// See [OcptBudgetRegie.buffetPriceCents].
+  /// See [OcptBudgetLogistics.buffetPriceCents].
   final int? buffetPriceCents;
 
-  /// See [OcptBudgetRegie.currencyCode].
+  /// See [OcptBudgetLogistics.currencyCode].
   final String currencyCode;
 
-  /// See [OcptBudgetRegie.onScheduleOpenRequested].
+  /// See [OcptBudgetLogistics.onScheduleOpenRequested].
   final VoidCallback onScheduleOpenRequested;
 
-  /// See [OcptBudgetRegie.onProjectSettingsRequested].
+  /// See [OcptBudgetLogistics.onProjectSettingsRequested].
   final VoidCallback onProjectSettingsRequested;
 
   /// The height the table card is drawn at, or null while the panes sit side by side and the card
-  /// takes whatever height the heading band leaves it — see [ocptBudgetRegieStackedMinRowCount].
+  /// takes whatever height the heading band leaves it — see
+  /// [ocptBudgetLogisticsStackedMinRowCount].
   final double? tableHeight;
 
   /// Class constructor
-  const OcptBudgetRegieCateringColumn({
+  const OcptBudgetLogisticsCateringColumn({
     super.key,
     required this.days,
     required this.totals,
@@ -61,7 +62,7 @@ class OcptBudgetRegieCateringColumn extends StatelessWidget {
     required this.onProjectSettingsRequested,
   });
 
-  /// Build the budget regie catering column as a [Column].
+  /// Build the budget logistics catering column as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -70,17 +71,17 @@ class OcptBudgetRegieCateringColumn extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       // Stated by its own rows once it is stacked, so the pane takes no more room than it needs
-      // and the view scrolls instead — see [ocptBudgetRegieStackedMinRowCount].
+      // and the view scrolls instead — see [ocptBudgetLogisticsStackedMinRowCount].
       mainAxisSize: tableHeight == null ? MainAxisSize.max : MainAxisSize.min,
       children: [
-        Text(tr.budgetRegieCateringSectionTitle, style: theme.textTheme.titleSmall),
+        Text(tr.budgetLogisticsCateringSectionTitle, style: theme.textTheme.titleSmall),
         const SizedBox(height: 4),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Text(
-                tr.budgetRegieCateringPriceCaption(
+                tr.budgetLogisticsCateringPriceCaption(
                   mealPriceCents == null
                       ? ocptBudgetEmptyValue
                       : ocptBudgetAmountLabel(mealPriceCents!, currencyCode),
@@ -95,7 +96,7 @@ class OcptBudgetRegieCateringColumn extends StatelessWidget {
             ),
             TextButton(
               onPressed: onProjectSettingsRequested,
-              child: Text(tr.budgetRegiePricesEditAction),
+              child: Text(tr.budgetLogisticsPricesEditAction),
             ),
           ],
         ),
@@ -104,7 +105,7 @@ class OcptBudgetRegieCateringColumn extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                tr.budgetRegieCateringScheduleHint,
+                tr.budgetLogisticsCateringScheduleHint,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -112,12 +113,12 @@ class OcptBudgetRegieCateringColumn extends StatelessWidget {
             ),
             TextButton(
               onPressed: onScheduleOpenRequested,
-              child: Text(tr.budgetRegieOpenScheduleAction),
+              child: Text(tr.budgetLogisticsOpenScheduleAction),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        OcptBudgetRegieTablePane(
+        OcptBudgetLogisticsTablePane(
           height: tableHeight,
           child: Card(
             margin: EdgeInsets.zero,
@@ -128,16 +129,16 @@ class OcptBudgetRegieCateringColumn extends StatelessWidget {
                   // Header, rows and total scroll **together**, inside one frame, for the reason
                   // `OcptBudgetCashJournal` gives: they share one set of fixed column widths.
                   child: SizedBox(
-                    width: math.max(constraints.maxWidth, ocptBudgetRegieCateringMinTableWidth),
+                    width: math.max(constraints.maxWidth, ocptBudgetLogisticsCateringMinTableWidth),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const OcptBudgetRegieCateringHeaderRow(),
+                        const OcptBudgetLogisticsCateringHeaderRow(),
                         const Divider(height: 1),
                         Expanded(
                           child: ListView.builder(
                             itemCount: days.length,
-                            itemBuilder: (context, index) => OcptBudgetRegieCateringRow(
+                            itemBuilder: (context, index) => OcptBudgetLogisticsCateringRow(
                               day: days[index],
                               decorName: decorNameByDayId[days[index].dayId],
                               currencyCode: currencyCode,
@@ -145,7 +146,10 @@ class OcptBudgetRegieCateringColumn extends StatelessWidget {
                           ),
                         ),
                         const Divider(height: 1),
-                        OcptBudgetRegieCateringTotalRow(totals: totals, currencyCode: currencyCode),
+                        OcptBudgetLogisticsCateringTotalRow(
+                          totals: totals,
+                          currencyCode: currencyCode,
+                        ),
                       ],
                     ),
                   ),

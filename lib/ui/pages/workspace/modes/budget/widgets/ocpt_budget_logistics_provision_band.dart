@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart'
 ///
 /// A project holding no poste at all shows the reason instead of an inert picker: there is nowhere
 /// to provision into until the quote has a poste.
-class OcptBudgetRegieProvisionBand extends StatelessWidget {
+class OcptBudgetLogisticsProvisionBand extends StatelessWidget {
   /// What the catering and the defrayals come to together, in cents.
   final int computedTotalCents;
 
@@ -46,7 +46,7 @@ class OcptBudgetRegieProvisionBand extends StatelessWidget {
   final String? note;
 
   /// Class constructor
-  const OcptBudgetRegieProvisionBand({
+  const OcptBudgetLogisticsProvisionBand({
     super.key,
     required this.computedTotalCents,
     required this.provisionedTotalCents,
@@ -58,7 +58,7 @@ class OcptBudgetRegieProvisionBand extends StatelessWidget {
     required this.note,
   });
 
-  /// Build the budget regie provision band as a [Card].
+  /// Build the budget logistics provision band as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -76,22 +76,22 @@ class OcptBudgetRegieProvisionBand extends StatelessWidget {
           spacing: 32,
           runSpacing: 12,
           children: [
-            OcptBudgetRegieProvisionFigure(
-              label: tr.budgetRegieProvisionComputedLabel,
+            OcptBudgetLogisticsProvisionFigure(
+              label: tr.budgetLogisticsProvisionComputedLabel,
               value: ocptBudgetAmountLabel(computedTotalCents, currencyCode),
             ),
-            OcptBudgetRegieProvisionFigure(
-              label: tr.budgetRegieProvisionQuotedLabel,
+            OcptBudgetLogisticsProvisionFigure(
+              label: tr.budgetLogisticsProvisionQuotedLabel,
               value: ocptBudgetAmountLabel(provisionedTotalCents, currencyCode),
             ),
-            OcptBudgetRegieProvisionFigure(
-              label: tr.budgetRegieProvisionGapLabel,
+            OcptBudgetLogisticsProvisionFigure(
+              label: tr.budgetLogisticsProvisionGapLabel,
               value: ocptBudgetAmountLabel(gapCents, currencyCode),
               valueColor: gapCents == 0 ? null : ocptWarningColor(context),
             ),
             if (postes.isEmpty)
               Text(
-                tr.budgetRegieProvisionNoPosteHint,
+                tr.budgetLogisticsProvisionNoPosteHint,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -100,7 +100,7 @@ class OcptBudgetRegieProvisionBand extends StatelessWidget {
               if (onPosteSelected != null)
                 DropdownButton<String>(
                   value: selectedPoste?.id,
-                  hint: Text(tr.budgetRegieProvisionPosteLabel),
+                  hint: Text(tr.budgetLogisticsProvisionPosteLabel),
                   underline: const SizedBox.shrink(),
                   items: [
                     for (final poste in postes)
@@ -122,7 +122,7 @@ class OcptBudgetRegieProvisionBand extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: provisionPosteId == null ? null : onProvisionRequested,
                   icon: const Icon(Icons.playlist_add_check, size: 16),
-                  label: Text(tr.budgetRegieProvisionAction),
+                  label: Text(tr.budgetLogisticsProvisionAction),
                 ),
             ],
           ],

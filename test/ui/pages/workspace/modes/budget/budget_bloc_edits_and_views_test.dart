@@ -136,7 +136,7 @@ void main() {
         "entry and the poste filter do", () async {
       for (final event in <OcptBudgetEvent>[
         const OcptBudgetViewSelectedEvent(view: OcptBudgetView.expenses),
-        const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.regie),
+        const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.logistics),
         const OcptBudgetSimplifiedToggledEvent(isSimplified: true),
         const OcptBudgetTaxBasisChangedEvent(basis: OcptBudgetTaxBasis.excludingTax),
         const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.versions),

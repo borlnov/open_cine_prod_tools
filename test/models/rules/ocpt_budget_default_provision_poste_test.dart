@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_default_provision_
 
 /// Run the tests of [ocptBudgetDefaultProvisionPosteIdOf].
 void main() {
-  const regiePosteId = "d75aa74c-ed99-494a-bca0-3508b166ec18";
+  const logisticsPosteId = "d75aa74c-ed99-494a-bca0-3508b166ec18";
 
   OcptBudgetPoste poste(String id) => OcptBudgetPoste(
     id: id,
@@ -23,8 +23,8 @@ void main() {
   group("ocptBudgetDefaultProvisionPosteIdOf", () {
     test("prefers the seeded travel and catering poste while the project still has it", () {
       expect(
-        ocptBudgetDefaultProvisionPosteIdOf([poste("first"), poste(regiePosteId)]),
-        regiePosteId,
+        ocptBudgetDefaultProvisionPosteIdOf([poste("first"), poste(logisticsPosteId)]),
+        logisticsPosteId,
       );
     });
 

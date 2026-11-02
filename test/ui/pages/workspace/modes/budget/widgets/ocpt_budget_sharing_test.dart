@@ -49,7 +49,7 @@ OcptBudgetShare _share({
 );
 
 /// A minimal person, the few fields these tests read, everything else neutral — mirrors
-/// `ocpt_budget_regie_test.dart`'s own `_buildPerson`.
+/// `ocpt_budget_logistics_test.dart`'s own `_buildPerson`.
 OcptPerson _person({required String id, String firstName = "Jane", String lastName = "Doe"}) =>
     OcptPerson(
       id: id,

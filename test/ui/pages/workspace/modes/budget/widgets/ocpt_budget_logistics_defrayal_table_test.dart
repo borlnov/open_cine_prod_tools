@@ -55,12 +55,12 @@ OcptBudgetPoste _buildPoste({required String id}) => OcptBudgetPoste(
   lines: const [],
 );
 
-/// Run the tests of the budget regie defrayal table.
+/// Run the tests of the budget logistics defrayal table.
 void main() {
-  /// Pumps [OcptBudgetRegie] with every callback a no-op unless overridden.
+  /// Pumps [OcptBudgetLogistics] with every callback a no-op unless overridden.
   Future<void> pumpView(
     WidgetTester tester, {
-    required List<OcptBudgetRegieDay> days,
+    required List<OcptBudgetLogisticsDay> days,
     List<OcptBudgetAllowance> allowances = const [],
     List<OcptBudgetEntry> entries = const [],
     Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId = const {},
@@ -90,7 +90,7 @@ void main() {
     String? provisionNote,
     Size size = const Size(1400, 700),
   }) async {
-    // The default test surface is narrower than `_ocptRegieWrapWidth`, which would silently
+    // The default test surface is narrower than `_ocptLogisticsWrapWidth`, which would silently
     // switch every test onto the stacked layout instead of the side-by-side one this suite means
     // to exercise — widened here so the wrapping `SizedBox` below isn't itself clamped down.
     tester.view.physicalSize = Size(size.width, size.height + 200);
@@ -101,9 +101,9 @@ void main() {
     await tester.pumpWidget(
       wrap(
         size: size,
-        OcptBudgetRegie(
+        OcptBudgetLogistics(
           days: days,
-          cateringTotals: ocptBudgetRegieTotalsOf(days),
+          cateringTotals: ocptBudgetLogisticsTotalsOf(days),
           decorNameByDayId: decorNameByDayId,
           mealPriceCents: mealPriceCents,
           buffetPriceCents: buffetPriceCents,
@@ -141,7 +141,7 @@ void main() {
     testWidgets("a person group row shows what they have advanced, been reimbursed and are owed", (
       tester,
     ) async {
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [buildDay(id: "day-1")],
         slotsByDayId: const {},
         blocksByDayId: const {},
@@ -173,7 +173,7 @@ void main() {
     testWidgets("expanding a person reveals their own defrayals, then their own reimbursements", (
       tester,
     ) async {
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [buildDay(id: "day-1")],
         slotsByDayId: const {},
         blocksByDayId: const {},
@@ -192,7 +192,7 @@ void main() {
 
       await pumpView(tester, days: days, allowances: allowances, entries: entries, people: people);
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
       // Collapsed: neither sub-row draws.
       expect(find.textContaining(tr.budgetAllowanceKindTravelLabel), findsNothing);
       expect(find.textContaining("Refund"), findsNothing);
@@ -217,7 +217,7 @@ void main() {
     testWidgets("a defrayal naming nobody is its own group of one, with no running account", (
       tester,
     ) async {
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [buildDay(id: "day-1")],
         slotsByDayId: const {},
         blocksByDayId: const {},
@@ -233,9 +233,9 @@ void main() {
         allowances: [buildAllowance(id: "a1", unitAmountMilliCents: 100000)],
       );
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
       // Its own wording, no twisty to expand onto.
-      expect(find.text(tr.budgetRegieAllowanceNoPerson), findsOneWidget);
+      expect(find.text(tr.budgetLogisticsAllowanceNoPerson), findsOneWidget);
       expect(find.byIcon(Icons.keyboard_arrow_right), findsNothing);
       expect(find.byIcon(Icons.keyboard_arrow_down), findsNothing);
       // ADVANCED and OWED both read its amount — it is owed in full, and the total row counts it
@@ -248,7 +248,7 @@ void main() {
     testWidgets("the total row sums every person's own advanced, reimbursed and owed", (
       tester,
     ) async {
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [buildDay(id: "day-1")],
         slotsByDayId: const {},
         blocksByDayId: const {},
@@ -286,7 +286,7 @@ void main() {
     testWidgets("the person group row's own Rembourser is withheld under read-only", (
       tester,
     ) async {
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [buildDay(id: "day-1")],
         slotsByDayId: const {},
         blocksByDayId: const {},
@@ -300,12 +300,12 @@ void main() {
 
       await pumpView(tester, days: days, allowances: allowances, people: people);
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
       await tester.ensureVisible(find.byType(PopupMenuButton<String>).first);
       await tester.pumpAndSettle();
       await tester.tap(find.byType(PopupMenuButton<String>).first);
       await tester.pumpAndSettle();
-      expect(find.text(tr.budgetRegieReimburseAction), findsOneWidget);
+      expect(find.text(tr.budgetLogisticsReimburseAction), findsOneWidget);
 
       // Close the open menu before re-pumping read-only, so nothing from this pump lingers.
       await tester.tapAt(const Offset(10, 10));
@@ -317,16 +317,16 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byType(PopupMenuButton<String>).first);
       await tester.pumpAndSettle();
-      expect(find.text(tr.budgetRegieReimburseAction), findsNothing);
+      expect(find.text(tr.budgetLogisticsReimburseAction), findsNothing);
       // Navigation, not a write: still offered under read-only.
-      expect(find.text(tr.budgetRegieAllowanceOpenPersonAction), findsOneWidget);
+      expect(find.text(tr.budgetLogisticsAllowanceOpenPersonAction), findsOneWidget);
     });
   });
 
   testWidgets("the provisioning band reads the gap between what is computed and what is quoted", (
     tester,
   ) async {
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [buildDay(id: "day-1")],
       slotsByDayId: const {},
       blocksByDayId: const {},
@@ -345,8 +345,8 @@ void main() {
       provisionedTotalCents: 3000,
     );
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
-    expect(find.text(tr.budgetRegieProvisionComputedLabel.toUpperCase()), findsOneWidget);
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
+    expect(find.text(tr.budgetLogisticsProvisionComputedLabel.toUpperCase()), findsOneWidget);
     expect(find.text(ocptBudgetAmountLabel(8887, "EUR")), findsWidgets);
     expect(find.text(ocptBudgetAmountLabel(3000, "EUR")), findsOneWidget);
     expect(find.text(ocptBudgetAmountLabel(5887, "EUR")), findsOneWidget);
@@ -357,7 +357,7 @@ void main() {
   ) async {
     // The reason sits beside the figures rather than behind a click: a gesture answering "no" is
     // withheld, and what a reader needs then is why.
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [buildDay(id: "day-1")],
       slotsByDayId: const {},
       blocksByDayId: const {},
@@ -375,13 +375,13 @@ void main() {
       provisionNote: "Nothing to provision.",
     );
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
     expect(find.text("Nothing to provision."), findsOneWidget);
-    expect(find.text(tr.budgetRegieProvisionAction), findsNothing);
+    expect(find.text(tr.budgetLogisticsProvisionAction), findsNothing);
   });
 
   testWidgets("a quote with no poste says so instead of offering an inert picker", (tester) async {
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [buildDay(id: "day-1")],
       slotsByDayId: const {},
       blocksByDayId: const {},
@@ -393,13 +393,13 @@ void main() {
 
     await pumpView(tester, days: days);
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
-    expect(find.text(tr.budgetRegieProvisionNoPosteHint), findsOneWidget);
-    expect(find.text(tr.budgetRegieProvisionAction), findsNothing);
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
+    expect(find.text(tr.budgetLogisticsProvisionNoPosteHint), findsOneWidget);
+    expect(find.text(tr.budgetLogisticsProvisionAction), findsNothing);
   });
 
   testWidgets("every writing affordance is withheld under a previewed version", (tester) async {
-    final days = ocptBudgetRegieDaysOf(
+    final days = ocptBudgetLogisticsDaysOf(
       days: [buildDay(id: "day-1")],
       slotsByDayId: const {},
       blocksByDayId: const {},
@@ -418,12 +418,12 @@ void main() {
       isReadOnly: true,
     );
 
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+    final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
     // Withheld, never disabled: the controls are not on screen at all.
-    expect(find.text(tr.budgetRegieProvisionAction), findsNothing);
+    expect(find.text(tr.budgetLogisticsProvisionAction), findsNothing);
     expect(find.byType(PopupMenuButton<String>), findsNothing);
     // The reading itself is untouched — a version is still read.
-    expect(find.text(tr.budgetRegieAllowanceNoPerson), findsOneWidget);
+    expect(find.text(tr.budgetLogisticsAllowanceNoPerson), findsOneWidget);
   });
 
   testWidgets("a project with defrayals but no shooting day keeps its layout", (tester) async {
@@ -440,7 +440,7 @@ void main() {
 
   group("a view too short for its two panes", () {
     testWidgets("scrolls rather than crushing either table out of its own rows", (tester) async {
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [buildDay(id: "day-1")],
         slotsByDayId: {
           "day-1": [
@@ -470,7 +470,7 @@ void main() {
         size: const Size(800, 420),
       );
 
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetRegie)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
       // Both tables still hold their row: the day's own tag, and the defrayal's own person.
       expect(find.text(ocptScheduleDayTagLabel(tr, 1)), findsOneWidget);
       expect(find.text("Marie"), findsOneWidget);
@@ -484,7 +484,7 @@ void main() {
     });
 
     testWidgets("a roomy view is not made to scroll for nothing", (tester) async {
-      final days = ocptBudgetRegieDaysOf(
+      final days = ocptBudgetLogisticsDaysOf(
         days: [buildDay(id: "day-1")],
         slotsByDayId: const {},
         blocksByDayId: const {},

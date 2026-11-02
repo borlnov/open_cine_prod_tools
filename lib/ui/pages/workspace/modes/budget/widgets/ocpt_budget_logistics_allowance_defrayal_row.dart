@@ -15,8 +15,9 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// One defrayal sub-row: its own wording — nature, when, and how many, joined by `·` — in the
 /// detail column, its own amount under `ADVANCED`, `REIMBURSED`/`OWED` left blank since a single
 /// défraiement carries no running account of its own, only the person above it does. Then its own
-/// `⋮` menu — see `OcptBudgetRegie`'s own class doc comment for the menu's own withholding rules.
-class OcptBudgetRegieAllowanceDefrayalRow extends StatelessWidget {
+/// `⋮` menu — see `OcptBudgetLogistics`'s own class doc comment for the menu's own withholding
+/// rules.
+class OcptBudgetLogisticsAllowanceDefrayalRow extends StatelessWidget {
   /// The defrayal this row draws.
   final OcptBudgetAllowance allowance;
 
@@ -33,7 +34,7 @@ class OcptBudgetRegieAllowanceDefrayalRow extends StatelessWidget {
   final VoidCallback? onDeletionRequested;
 
   /// Class constructor
-  const OcptBudgetRegieAllowanceDefrayalRow({
+  const OcptBudgetLogisticsAllowanceDefrayalRow({
     super.key,
     required this.allowance,
     required this.currencyCode,
@@ -42,7 +43,7 @@ class OcptBudgetRegieAllowanceDefrayalRow extends StatelessWidget {
     required this.onDeletionRequested,
   });
 
-  /// Build the budget regie allowance defrayal row as an [InkWell].
+  /// Build the budget logistics allowance defrayal row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -52,13 +53,15 @@ class OcptBudgetRegieAllowanceDefrayalRow extends StatelessWidget {
       onTap: onTap,
       mouseCursor: onTap == null ? null : ocpt_theme.ocptClickableCursor,
       child: SizedBox(
-        height: ocptBudgetRegieAllowanceSubRowHeight,
+        height: ocptBudgetLogisticsAllowanceSubRowHeight,
         child: Row(
           children: [
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(
-                  left: ocptBudgetRegieAllowanceTwistyWidth + ocptBudgetRegieAllowanceIndentStep,
+                  left:
+                      ocptBudgetLogisticsAllowanceTwistyWidth +
+                      ocptBudgetLogisticsAllowanceIndentStep,
                   right: 8,
                 ),
                 child: Text(
@@ -71,15 +74,15 @@ class OcptBudgetRegieAllowanceDefrayalRow extends StatelessWidget {
                 ),
               ),
             ),
-            ocptBudgetRegieAllowanceAmountCell(
+            ocptBudgetLogisticsAllowanceAmountCell(
               context,
               ocptBudgetAllowanceCentsOf(allowance),
               currencyCode,
             ),
-            ocptBudgetRegieAllowanceAmountCell(context, null, currencyCode, showBlank: true),
-            ocptBudgetRegieAllowanceAmountCell(context, null, currencyCode, showBlank: true),
+            ocptBudgetLogisticsAllowanceAmountCell(context, null, currencyCode, showBlank: true),
+            ocptBudgetLogisticsAllowanceAmountCell(context, null, currencyCode, showBlank: true),
             SizedBox(
-              width: ocptBudgetRegieAllowanceMenuColumnWidth,
+              width: ocptBudgetLogisticsAllowanceMenuColumnWidth,
               child: PopupMenuButton<String>(
                 tooltip: "",
                 icon: const Icon(Icons.more_vert, size: 18),
@@ -90,7 +93,7 @@ class OcptBudgetRegieAllowanceDefrayalRow extends StatelessWidget {
                 itemBuilder: (context) => [
                   PopupMenuItem<String>(
                     value: "person",
-                    child: Text(tr.budgetRegieAllowanceOpenPersonAction),
+                    child: Text(tr.budgetLogisticsAllowanceOpenPersonAction),
                   ),
                   if (onDeletionRequested != null)
                     PopupMenuItem<String>(

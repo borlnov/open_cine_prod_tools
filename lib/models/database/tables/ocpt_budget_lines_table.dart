@@ -97,10 +97,11 @@ class OcptBudgetLinesTable extends Table {
   /// Get what wrote this line, or null while a human typed it.
   ///
   /// A **stable key naming the thing provisioned** rather than a foreign key — `regie:meal`,
-  /// `regie:snack`, `allowance:travel` and so on: the régie view provisions *one line per nature*,
-  /// summing across every defrayal of that nature and every shooting day, so there is no single row
-  /// on the other end for a foreign key to point at. Reprovisioning finds the line carrying the
-  /// same key on the same poste and updates it, instead of stacking a second one beside it.
+  /// `regie:snack`, `allowance:travel` and so on: the logistics view provisions *one line per
+  /// nature*, summing across every defrayal of that nature and every shooting day, so there is no
+  /// single row on the other end for a foreign key to point at. Reprovisioning finds the line
+  /// carrying the same key on the same poste and updates it, instead of stacking a second one
+  /// beside it.
   ///
   /// Null is the ordinary case and means nobody provisioned this line — a line typed by hand is not
   /// a lesser line, and the provisioning leaves every one of them alone.

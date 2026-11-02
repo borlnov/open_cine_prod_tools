@@ -152,7 +152,7 @@ OcptBudgetShare _share({required String id, required String label}) => OcptBudge
 );
 
 /// A minimal person, everything but [id]/[firstName] neutral — mirrors
-/// `ocpt_budget_regie_test.dart`'s own `_buildPerson`.
+/// `ocpt_budget_logistics_test.dart`'s own `_buildPerson`.
 OcptPerson _person({required String id, String firstName = ""}) => OcptPerson(
   id: id,
   firstName: firstName,

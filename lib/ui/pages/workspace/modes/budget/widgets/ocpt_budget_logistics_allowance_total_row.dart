@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// The defrayal table's own total row: what every live defrayal comes to under `ADVANCED`, what has
 /// actually been reimbursed under `REIMBURSED`, and what remains owed under `OWED` — mirrors
 /// `OcptBudgetFinancing`'s own `_OcptResourcesTotalRow`.
-class OcptBudgetRegieAllowanceTotalRow extends StatelessWidget {
+class OcptBudgetLogisticsAllowanceTotalRow extends StatelessWidget {
   /// Every live defrayal.
   final List<OcptBudgetAllowance> allowances;
 
@@ -28,7 +28,7 @@ class OcptBudgetRegieAllowanceTotalRow extends StatelessWidget {
   final String currencyCode;
 
   /// Class constructor
-  const OcptBudgetRegieAllowanceTotalRow({
+  const OcptBudgetLogisticsAllowanceTotalRow({
     super.key,
     required this.allowances,
     required this.entries,
@@ -36,7 +36,7 @@ class OcptBudgetRegieAllowanceTotalRow extends StatelessWidget {
     required this.currencyCode,
   });
 
-  /// Build the budget regie allowance total row as a [SizedBox].
+  /// Build the budget logistics allowance total row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -55,29 +55,29 @@ class OcptBudgetRegieAllowanceTotalRow extends StatelessWidget {
     );
 
     return SizedBox(
-      height: ocptBudgetRegieHeaderRowHeight,
+      height: ocptBudgetLogisticsHeaderRowHeight,
       child: Row(
         children: [
-          Expanded(child: Text(tr.budgetRegieTotalLabel.toUpperCase(), style: labelStyle)),
-          ocptBudgetRegieAllowanceAmountCell(
+          Expanded(child: Text(tr.budgetLogisticsTotalLabel.toUpperCase(), style: labelStyle)),
+          ocptBudgetLogisticsAllowanceAmountCell(
             context,
             advancedCents,
             currencyCode,
             style: boldStyle,
           ),
-          ocptBudgetRegieAllowanceAmountCell(
+          ocptBudgetLogisticsAllowanceAmountCell(
             context,
             reimbursedCents,
             currencyCode,
             style: boldStyle,
           ),
-          ocptBudgetRegieAllowanceAmountCell(
+          ocptBudgetLogisticsAllowanceAmountCell(
             context,
             outstandingCents,
             currencyCode,
             style: boldStyle,
           ),
-          const SizedBox(width: ocptBudgetRegieAllowanceMenuColumnWidth),
+          const SizedBox(width: ocptBudgetLogisticsAllowanceMenuColumnWidth),
         ],
       ),
     );

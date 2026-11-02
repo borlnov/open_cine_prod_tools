@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /// The width, in logical pixels, under which the two columns stack instead of sitting side by
-/// side — mirrors `OcptBudgetRegie`'s own `_ocptRegieWrapWidth`.
+/// side — mirrors `OcptBudgetLogistics`'s own `_ocptLogisticsWrapWidth`.
 const double ocptBudgetSharingWrapWidth = 1000;
 
 /// The `Share`/`Due`/`Paid`/`Reinvested` columns' own fixed width, in logical pixels — matches

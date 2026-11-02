@@ -29,17 +29,17 @@ are all here, and this file is the whole record of them.
 - **Four chips, one a drawer over three tools.** `OcptBudgetView` (`lib/types/`) carries four
   values, in the header's own chip order — `dashboard`, `expenses`, `resources`, `tools` —
   replacing the seven sibling chips (`dashboard`, `costTracking`, `financing`, `cashJournal`,
-  `committed`, `regie`, `sharing`) an earlier rework built to give each sub-page of a
+  `committed`, `logistics`, `sharing`) an earlier rework built to give each sub-page of a
   since-reverted three-document shape a chip of its own. `tools` is not a page but a drawer:
-  `OcptBudgetToolsView` (`lib/types/`) names which of its own three helpers — `cashFlow`, `regie`,
-  `sharing` — is on screen, picked by the header's own second segmented switch, drawn only while
-  `tools` is the active chip. The drawer's own entry rule keeps it from growing a fourth quietly: a
-  tool never stores money of its own — it either computes something that lands elsewhere or re-reads
-  what is already written (`OcptBudgetToolsView`'s own doc comment) — and a candidate that fails
-  that test is a document, which earns a chip of its own instead. `dashboard` is the mode's own
-  default view, and it landed first rather than last — a freedom a value held only in memory always
-  has, since inserting it anywhere strands nothing (`OcptBudgetView`'s own doc comment, and
-  `OcptBudgetToolsView`'s own for `toolsView`).
+  `OcptBudgetToolsView` (`lib/types/`) names which of its own three helpers — `cashFlow`,
+  `logistics`, `sharing` — is on screen, picked by the header's own second segmented switch, drawn
+  only while `tools` is the active chip. The drawer's own entry rule keeps it from growing a fourth
+  quietly: a tool never stores money of its own — it either computes something that lands elsewhere
+  or re-reads what is already written (`OcptBudgetToolsView`'s own doc comment) — and a candidate
+  that fails that test is a document, which earns a chip of its own instead. `dashboard` is the
+  mode's own default view, and it landed first rather than last — a freedom a value held only in
+  memory always has, since inserting it anywhere strands nothing (`OcptBudgetView`'s own doc
+  comment, and `OcptBudgetToolsView`'s own for `toolsView`).
 - **The chronological journal lives in the drawer, not at the header's own top level.** It is
   `OcptBudgetToolsView.cashFlow` — `Flux de trésorerie` in French, `Cash flow` in English — the
   drawer's own default page, and it is still the only view listing every entry the project holds,
@@ -58,7 +58,7 @@ are all here, and this file is the whole record of them.
   `expandedNodeIds` are not persisted.** The schedule mode's own agenda mode is the precedent: only
   `budgetRightDockFraction` and `budgetLastRightDockTab` (`OcptPropertiesManager`) survive a
   relaunch, exactly as before this rework. A reader who left the mode on the resources tree,
-  mid-way through a filter, or with the drawer open on `Régie`, opens back on the mode's own
+  mid-way through a filter, or with the drawer open on `Logistics`, opens back on the mode's own
   default — `dashboard`, nothing selected, nothing filtered, the drawer closed — every time, the
   same way the schedule mode's own agenda already forgets its own last state.
 
@@ -437,9 +437,9 @@ are all here, and this file is the whole record of them.
 - **Four chips in the header, in the design's own order** — `dashboard`, `expenses`, `resources`,
   `tools` — each switching `OcptBudgetState.view`, and, only while `tools` is picked, a second
   segmented switch beside them switching `OcptBudgetState.toolsView` between the drawer's own three
-  pages, `cashFlow`, `regie`, `sharing`. **No title, no subtitle, no breadcrumb** — the band used to
-  open on the current view's own name and one-line description, repeating what the active chip
-  already says, and carries nothing today but the controls themselves (`OcptBudgetHeader`'s own
+  pages, `cashFlow`, `logistics`, `sharing`. **No title, no subtitle, no breadcrumb** — the band
+  used to open on the current view's own name and one-line description, repeating what the active
+  chip already says, and carries nothing today but the controls themselves (`OcptBudgetHeader`'s own
   class doc comment). The right dock offers exactly three tabs (`OcptBudgetRightDockTab`):
   `Inspector`, the polymorphic detail panel described below; the shared `Versions` tab every mode
   carries; and `Help`.
@@ -457,7 +457,7 @@ are all here, and this file is the whole record of them.
     and the catering pass, joined by `OcptBudgetSnapshotLoader`, which only reads) with the raw
     roles, people, elements and mileage rates, the page setup, the title, the central view, the
     tools page, the two header switches, the docks, and the shared selection: the sealed
-    `OcptBudgetSelection`, the filtered poste, the highlighted share, the poste the régie
+    `OcptBudgetSelection`, the filtered poste, the highlighted share, the poste the logistics
     provisions into and the expanded nodes. `OcptBudgetReloadScope` has one value, `snapshot`: the
     budget is read as a whole, and the page setup is read by a whole load alone.
   - **Every read of the snapshot reconciles the selection**, in the very state that carries it: a
@@ -518,15 +518,15 @@ are all here, and this file is the whole record of them.
     confirmations, and nothing of a view's content: the centre (`OcptBudgetCentre`, the header band
     above whichever route the state names), the six routes (`OcptBudgetDashboardView`,
     `OcptBudgetCostTrackingView`, `OcptBudgetFinancingView`, `OcptBudgetCashJournalView`,
-    `OcptBudgetRegieView`, `OcptBudgetSharingView`), the right dock (`OcptBudgetRightDockView`, with
-    `OcptBudgetDetailView` for the `Inspector` tab and a private versions tab) and the read-only
-    banner are widgets of their own under `widgets/`. A view widget reads the mode state it is
-    handed and the view bloc that writes, and **only asks** for the confirmations the mode opens
-    (`OcptConfirmDialog`: deleting a poste, a line, a commitment, an entry, a resource, a taking, a
-    defrayal or a share, undoing a receipt or a promotion, provisioning): the mode passes them as
-    callbacks, and the view withholds a callback under a version preview. The dialogs that are not
-    confirmations (editing a row, the capture wizard and its contextual shortcuts, the exports) are
-    opened by the function files the views share: `budget_view_actions.dart`,
+    `OcptBudgetLogisticsView`, `OcptBudgetSharingView`), the right dock (`OcptBudgetRightDockView`,
+    with `OcptBudgetDetailView` for the `Inspector` tab and a private versions tab) and the
+    read-only banner are widgets of their own under `widgets/`. A view widget reads the mode state
+    it is handed and the view bloc that writes, and **only asks** for the confirmations the mode
+    opens (`OcptConfirmDialog`: deleting a poste, a line, a commitment, an entry, a resource, a
+    taking, a defrayal or a share, undoing a receipt or a promotion, provisioning): the mode passes
+    them as callbacks, and the view withholds a callback under a version preview. The dialogs that
+    are not confirmations (editing a row, the capture wizard and its contextual shortcuts, the
+    exports) are opened by the function files the views share: `budget_view_actions.dart`,
     `budget_wizard_flows.dart` and `budget_export_requests.dart`. The detail panel reads the pending
     edits from the expenses bloc through a `BlocBuilder` inside `OcptBudgetDetailView`, so a
     keystroke redraws the detail panel and not the whole mode, and the export notice is shown by
@@ -535,7 +535,7 @@ are all here, and this file is the whole record of them.
     `…Resource`, `…Revenue`), so moving from one selection to another keeps the scroll position.
     Each large table is cut into a file per row or cell widget plus a metrics file for its widths and
     heights; the sealed row families a table switches over (`OcptBudgetCostTrackingTreeRow`,
-    `OcptBudgetFinancingTreeRow`, `OcptBudgetRegieAllowanceTreeRow`) are the one exception to a
+    `OcptBudgetFinancingTreeRow`, `OcptBudgetLogisticsAllowanceTreeRow`) are the one exception to a
     public type per file, since a sealed class and its subtypes must share a library.
 
 ## The dashboard
@@ -561,9 +561,9 @@ are all here, and this file is the whole record of them.
 - **What used to live here and no longer does.** The poste-by-poste list is gone, and the "what
   feeds this budget" card with it: neither summarises, the mockup draws neither, and the four tiles
   plus the balance band already carry the whole-project reading the poste list used to add up to one
-  row at a time. `OcptBudgetFeedCard` itself is unaffected — `OcptBudgetRegie` draws it at its own
-  top, and `OcptBudgetCostTracking` draws it under its **empty state**, which is the one place where
-  "what feeds this budget" is the only thing left to say.
+  row at a time. `OcptBudgetFeedCard` itself is unaffected — `OcptBudgetLogistics` draws it at its
+  own top, and `OcptBudgetCostTracking` draws it under its **empty state**, which is the one place
+  where "what feeds this budget" is the only thing left to say.
 - **The standing alerts live here, and are reachable from everywhere.** `ocptComputeBudgetAlerts`
   is computed once, carried by the state, and the dashboard is the only view that draws the alert
   cards themselves; every other view reaches them through the `Tableau de bord` chip's own count
@@ -753,18 +753,18 @@ are all here, and this file is the whole record of them.
 ## The right dock belongs to the view, not to the mode
 
 - `OcptBudgetRightDock` used to draw every value of `OcptBudgetRightDockTab` whatever was on
-  screen, so a poste chosen in the quote went on filling the `Inspector` over the régie and the
+  screen, so a poste chosen in the quote went on filling the `Inspector` over the logistics and the
   revenue sharing — pages that have nothing to do with a poste and never put one there.
 - The tab is now offered only where there is something for the detail panel to show:
   `ocptBudgetViewHasInspector(view, toolsView)` (`lib/types/ocpt_budget_view.dart`) answers **false
-  for `dashboard` and `tools › regie` alone**. `expenses` and `resources` each select something of
-  their own — a poste, a line, a commitment or an entry on the first, a resource or a taking on the
-  second — and so does the tools drawer's own `cashFlow` (an entry) and `sharing` (a revenue or a
-  share), so the predicate reads true for every one of them. **`dashboard` answers false because a
+  for `dashboard` and `tools › logistics` alone**. `expenses` and `resources` each select something
+  of their own — a poste, a line, a commitment or an entry on the first, a resource or a taking on
+  the second — and so does the tools drawer's own `cashFlow` (an entry) and `sharing` (a revenue or
+  a share), so the predicate reads true for every one of them. **`dashboard` answers false because a
   dashboard row is a link to where the thing is worked on, not a selection of its own** — see "The
-  dashboard" above for the whole of that argument. **`tools › regie` answers false because it selects
-  nothing at all**: it is not a stage of anything, and reads no row the detail panel could ever open
-  on.
+  dashboard" above for the whole of that argument. **`tools › logistics` answers false because it
+  selects nothing at all**: it is not a stage of anything, and reads no row the detail panel could
+  ever open on.
 - **Withheld, not disabled**, the standing rule for an affordance without a subject. `Versions` and
   `Help` are offered everywhere, so the dock never has an empty tab bar.
 - A stored `Inspector` preference **is not overwritten** where it cannot be honoured: the dock
@@ -809,7 +809,7 @@ are all here, and this file is the whole record of them.
   alongside it, on `expenses` alone.
 - **The other three chips cannot honour it, and the tag says so by staying put rather than
   disappearing.** `resources` and `tools` read tables that carry no poste at all — the financing
-  plan `budget_resources`, the régie the schedule and the defrayals, the sharing
+  plan `budget_resources`, the logistics the schedule and the defrayals, the sharing
   `budget_revenues`/`budget_shares` — and even the drawer's own `cashFlow` page, which reads a
   poste same as `expenses` does, refuses the filter on principle: a bank statement reads across the
   whole account, not one category of it (`OcptBudgetCashJournal`'s own doc comment). `dashboard`
@@ -847,7 +847,7 @@ are all here, and this file is the whole record of them.
   gesture that makes money go out whatever family it sits in — the quote's own three, the four
   debits, and the free-direction `Autre mouvement`; `Resources` offers every gesture that brings
   money in — the three planned incomes, the two receipts, and `Autre mouvement` again; the drawer's
-  `cashFlow` offers the whole `cashMovement` family, `regie` its defrayal, and `sharing` its
+  `cashFlow` offers the whole `cashMovement` family, `logistics` its defrayal, and `sharing` its
   participant **plus `Le film a rapporté de l'argent`** (`recordTakingReceipt`) — the split is of
   what the film earns, so recording a taking belongs where that money is divided up. The
   **dashboard filters nothing**. A family with no offered gesture draws no heading,
@@ -1107,12 +1107,12 @@ are all here, and this file is the whole record of them.
 
 ## A defrayal is typed, never deduced
 
-- The régie view used to compute what a traveller costs as **one return trip per day of presence**,
-  from their own home-to-set distance and their own mileage rate. A real shoot does not work that
-  way, and the product owner said so plainly: somebody travels in on the first day, is housed near
-  the set for a fortnight and travels home on the last; somebody else is defrayed for two journeys
-  out of fifteen days; technicians claim expenses too, not only the cast. None of that is derivable
-  from a presence.
+- The logistics view used to compute what a traveller costs as **one return trip per day of
+  presence**, from their own home-to-set distance and their own mileage rate. A real shoot does not
+  work that way, and the product owner said so plainly: somebody travels in on the first day, is
+  housed near the set for a fortnight and travels home on the last; somebody else is defrayed for
+  two journeys out of fifteen days; technicians claim expenses too, not only the cast. None of that
+  is derivable from a presence.
 - `budget_allowances` is therefore a **synchronised table of typed rows** — a person (nullable, the
   way `budget_shares.personId` is), a nature (`OcptBudgetAllowanceKind`: travel, accommodation,
   meal, other), a wording, a date and an optional end date for a stay, a `quantityMilli` and a
@@ -1150,13 +1150,13 @@ are all here, and this file is the whole record of them.
   app already gives a table too wide for its slot.
 - **Every one of these wide tables scrolls under an always-visible horizontal scrollbar**
   (`OcptHorizontalScrollView`, `lib/ui/widgets/`): the cost tracking's amount pane, the cash book,
-  the financing plan and the two régie matrices each wrap their horizontal scroll in it, so a table
-  wider than its slot says so with a bar the reader can see rather than a scroll to be found by
-  accident. It owns its own `ScrollController` — a `Scrollbar` with `thumbVisibility` needs one to
-  attach to — and takes its colour and radius from the theme's own `ScrollbarThemeData` like every
-  other surface, overriding only its **thickness**, drawn thinner than an interactive scrollbar
-  because a bar on screen the whole time has to sit quieter than one shown only while scrolling. The
-  cost tracking's own pane keeps its pinned identity column, so its bar
+  the financing plan and the two logistics matrices each wrap their horizontal scroll in it, so a
+  table wider than its slot says so with a bar the reader can see rather than a scroll to be found
+  by accident. It owns its own `ScrollController` — a `Scrollbar` with `thumbVisibility` needs one
+  to attach to — and takes its colour and radius from the theme's own `ScrollbarThemeData` like
+  every other surface, overriding only its **thickness**, drawn thinner than an interactive
+  scrollbar because a bar on screen the whole time has to sit quieter than one shown only while
+  scrolling. The cost tracking's own pane keeps its pinned identity column, so its bar
   sits under the amount pane it scrolls, at the foot of the rows rather than pinned to the frame —
   the pane nests its horizontal scroll inside the one vertical scroll the fixed-row-height design
   keeps both panes aligned with (this file's own reading above), and pinning it to the frame would
@@ -1184,12 +1184,12 @@ are all here, and this file is the whole record of them.
 
 ## A stacked pane states its height, it does not take a share of one
 
-- The régie draws **two panes**, side by side while the centre is wide and stacked once it is not.
-  Stacked, each pane used to take an `Expanded` share of the height — three fifths and two. That
-  works while the view is tall and fails silently once it is not: a share smaller than the pane's
-  own heading band plus its card's chrome (padding, header row, dividers, total row) leaves the
-  `ListView` **nothing at all**, so the table prints its header and its total with no row between
-  them, and past that the pane spills over whatever sits under it. A release build paints no
+- The logistics draws **two panes**, side by side while the centre is wide and stacked once it is
+  not. Stacked, each pane used to take an `Expanded` share of the height — three fifths and two.
+  That works while the view is tall and fails silently once it is not: a share smaller than the
+  pane's own heading band plus its card's chrome (padding, header row, dividers, total row) leaves
+  the `ListView` **nothing at all**, so the table prints its header and its total with no row
+  between them, and past that the pane spills over whatever sits under it. A release build paints no
   overflow banner, so what a user sees is a table that has quietly lost its content and a heading
   printed over another one.
 - Stacked, a pane therefore **states its own height**: its heading band takes the height it needs,
@@ -1248,7 +1248,7 @@ are all here, and this file is the whole record of them.
 
 ## The catering is computed, the defrayals are typed, and both reach the quote
 
-- `OcptBudgetRegie` reads in **two opposite directions, side by side**. The left column is
+- `OcptBudgetLogistics` reads in **two opposite directions, side by side**. The left column is
   *computed*: what each shooting day costs in meals and at the buffet, off the schedule and the
   project's own two unit prices, nothing typed here at all. The right column is a **running account
   grouped by person**: a row per person carrying what they have advanced, what has come back to them
@@ -1259,14 +1259,14 @@ are all here, and this file is the whole record of them.
   sum of the debits that name the person (`budget_entries.personId`), never a stored counter, and
   what is still owed is the one taken from the other. A defrayal naming nobody is a legitimate row
   and stays a group of one, counting against the quote and against no running account. Under
-  [_ocptRegieWrapWidth] the two stack rather than crush each other, each table has a floor below
+  [_ocptLogisticsWrapWidth] the two stack rather than crush each other, each table has a floor below
   which it scrolls sideways exactly as the journal's own does, and stacked each states its own
   height rather than taking a share of one — see "A stacked pane states its height" above.
   `OcptBudgetFeedCard`, the "what feeds this budget" card, sits at the very top of the page, above
   both columns: each of its three rows — the breakdown, the
   schedule, the catering itself — is a title, a one-line reading and a click that only ever reports
-  upward, and the régie withholds its own catering row, since that row would only send the reader
-  back to the page they are already on.
+  upward, and the logistics withholds its own catering row, since that row would only send the
+  reader back to the page they are already on.
 - **The view writes, and therefore carries `isReadOnly`** — it did not before, being read-only start
   to finish. Under a previewed version a person's `Reimburse` action, a defrayal's own row menu (edit
   and delete), the poste picker and the provisioning button are **withheld, never disabled**,
@@ -1281,7 +1281,7 @@ are all here, and this file is the whole record of them.
   `OcptWorkspaceEmptyMode` over the whole view. One holding defrayals but no schedule keeps the
   layout — there is a `+` action of this view's own to keep a heading band drawn for now.
 
-## The régie provisions into the quote, and never overwrites a hand
+## The logistics provisions into the quote, and never overwrites a hand
 
 - The view used to compute figures and write them nowhere, which the product owner named exactly:
   *"il fait des calculs mais ces calculs, où sont-ils enregistrés ou provisionnés ?"* — they were
@@ -1375,7 +1375,7 @@ are all here, and this file is the whole record of them.
   one gesture rather than two: opening the dock on `Help`, and closing it again on a second click
   while `Help` is already showing — the toggle every other dock control already has.
   `OcptBudgetHelp` (`lib/ui/pages/workspace/modes/budget/widgets/`) **writes nothing**, exactly the
-  argument `OcptBudgetRegie` used to make for itself before it started writing defrayals, so it
+  argument `OcptBudgetLogistics` used to make for itself before it started writing defrayals, so it
   carries no `isReadOnly` flag and is offered identically under a previewed version. Its content
   follows `(OcptBudgetState.view, OcptBudgetState.toolsView)`, two fields together: switching the
   header's own chip or the drawer's own second switch changes what the panel says, with no extra
@@ -1396,9 +1396,9 @@ are all here, and this file is the whole record of them.
   out — a navigation of six sibling pages, long retired, and two of the six were never in the matrix
   to begin with. What actually happens to a row, whichever of today's six routes it is read from, is
   a small chain: an estimate becomes a commitment becomes a payment, a promise becomes a receipt.
-  Every route but `tools › regie` opens on one of three chains (`OcptBudgetHelp._chainStepsOf`), one
-  cell per state, left to right, each carrying the state's own word and, under it, a short caption
-  naming where that figure comes from:
+  Every route but `tools › logistics` opens on one of three chains (`OcptBudgetHelp._chainStepsOf`),
+  one cell per state, left to right, each carrying the state's own word and, under it, a short
+  caption naming where that figure comes from:
   - **The expenses chain** — `dashboard`, `expenses` and `tools › cashFlow` all read it, since all
     three are that same money read at a different grain: **Estimated** (the quote) · **Committed**
     (a commitment) · **Paid** (an entry).
@@ -1412,9 +1412,9 @@ are all here, and this file is the whole record of them.
   to a figure or a label resolved as an ICU argument (`intl_utils`'s own convention, "The four
   documents" below) rather than restated by hand, so the help text can never drift from the very
   word it is pointing at.
-- **`tools › regie` draws no chain** — it is not a stage of anything a row passes through, and its
-  own first paragraph says what it is instead: one column computed off the schedule, one a running
-  account grouped by the person each defrayal is owed to.
+- **`tools › logistics` draws no chain** — it is not a stage of anything a row passes through, and
+  its own first paragraph says what it is instead: one column computed off the schedule, one a
+  running account grouped by the person each defrayal is owed to.
 - **The current step wears no extra word of its own, only a wash and a weight, and is announced
   through `Semantics` rather than drawn.** A cell's label carries a second sentence — `"{label},
   You are here"` — only while it is the reader's current one; colour alone would say nothing in
@@ -1422,7 +1422,7 @@ are all here, and this file is the whole record of them.
   meaning rides the accessibility tree instead of the paint.
 - **Four chips, in the design's own order** — `dashboard`, `expenses`, `resources`, `tools` — each
   its own value of `OcptBudgetView`, and, only while `tools` is picked, a second switch beside them
-  between the drawer's own three pages, `cashFlow`, `regie`, `sharing` (`OcptBudgetToolsView`).
+  between the drawer's own three pages, `cashFlow`, `logistics`, `sharing` (`OcptBudgetToolsView`).
   **Controls are contextual, not global** — there is **no reading switch at all** to withhold or
   offer, `OcptBudgetDocumentReading` having gone with the three-document shape it read. The
   tax-basis switch is offered on the three routes whose own amounts actually follow it

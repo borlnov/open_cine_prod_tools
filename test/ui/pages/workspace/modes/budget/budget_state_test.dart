@@ -702,13 +702,13 @@ void main() {
     });
   });
 
-  group("OcptBudgetState.regieDays / allowances", () {
+  group("OcptBudgetState.logisticsDays / allowances", () {
     test("are empty while nothing is loaded", () {
       const state = OcptBudgetState.init();
 
-      expect(state.regieDays, isEmpty);
+      expect(state.logisticsDays, isEmpty);
       expect(state.allowances, isEmpty);
-      expect(state.regieTotals.cost.amountCents, 0);
+      expect(state.logisticsTotals.cost.amountCents, 0);
     });
 
     test("read the snapshot's own catering pass, built from the schedule it was given", () {
@@ -744,9 +744,9 @@ void main() {
       );
       final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
 
-      expect(state.regieDays, hasLength(1));
-      expect(state.regieDays.single.headCount, 2);
-      expect(state.regieDays.single.cost.isComplete, isTrue);
+      expect(state.logisticsDays, hasLength(1));
+      expect(state.logisticsDays.single.headCount, 2);
+      expect(state.logisticsDays.single.cost.isComplete, isTrue);
       expect(state.mealPriceCents, 1200);
       expect(state.buffetPriceCents, 400);
 
@@ -785,24 +785,24 @@ void main() {
     });
   });
 
-  group("OcptBudgetState.roles / people / regieDecorNameByDayId", () {
+  group("OcptBudgetState.roles / people / logisticsDecorNameByDayId", () {
     test("default to empty and are carried through copyWith", () {
       const emptyState = OcptBudgetState.init();
       expect(emptyState.roles, isEmpty);
       expect(emptyState.people, isEmpty);
-      expect(emptyState.regieDecorNameByDayId, isEmpty);
+      expect(emptyState.logisticsDecorNameByDayId, isEmpty);
 
       final role = _buildRole(id: "role-1");
       final person = _buildPerson(id: "person-1");
       final state = emptyState.copyWith(
         roles: [role],
         people: [person],
-        regieDecorNameByDayId: const {"day-1": "Kitchen"},
+        logisticsDecorNameByDayId: const {"day-1": "Kitchen"},
       );
 
       expect(state.roles, [role]);
       expect(state.people, [person]);
-      expect(state.regieDecorNameByDayId, {"day-1": "Kitchen"});
+      expect(state.logisticsDecorNameByDayId, {"day-1": "Kitchen"});
     });
   });
 }

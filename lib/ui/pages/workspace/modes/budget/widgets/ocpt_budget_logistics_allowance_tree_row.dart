@@ -9,20 +9,20 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics.dart';
 
 /// One flattened row of the defrayal tree — see
-/// `OcptBudgetRegieAllowanceColumn._rowsOf`'s own doc comment.
-sealed class OcptBudgetRegieAllowanceTreeRow {
+/// `OcptBudgetLogisticsAllowanceColumn._rowsOf`'s own doc comment.
+sealed class OcptBudgetLogisticsAllowanceTreeRow {
   /// Class constructor
-  const OcptBudgetRegieAllowanceTreeRow();
+  const OcptBudgetLogisticsAllowanceTreeRow();
 }
 
 /// A person group row — the tree's own top level, carrying that person's own running account.
-class OcptBudgetRegieAllowancePersonGroupRow extends OcptBudgetRegieAllowanceTreeRow {
+class OcptBudgetLogisticsAllowancePersonGroupRow extends OcptBudgetLogisticsAllowanceTreeRow {
   /// The person's own id — every sub-row under this group names it too.
   final String personId;
 
   /// The person this row names, or null while [personId] names nobody the address book still
-  /// holds — drawn with [OcptBudgetRegie]'s own `Nobody in particular`-style fallback rather than
-  /// crashing on a stale reference.
+  /// holds — drawn with [OcptBudgetLogistics]'s own `Nobody in particular`-style fallback rather
+  /// than crashing on a stale reference.
   final OcptPerson? person;
 
   /// What that person is on the shoot, or null.
@@ -42,7 +42,7 @@ class OcptBudgetRegieAllowancePersonGroupRow extends OcptBudgetRegieAllowanceTre
   final bool isExpanded;
 
   /// Class constructor
-  const OcptBudgetRegieAllowancePersonGroupRow({
+  const OcptBudgetLogisticsAllowancePersonGroupRow({
     required this.personId,
     required this.person,
     required this.role,
@@ -57,30 +57,30 @@ class OcptBudgetRegieAllowancePersonGroupRow extends OcptBudgetRegieAllowanceTre
 /// and no running account to page through: a défraiement that belongs to the production rather than
 /// to one person counts against the quote and this table's own total, but against nobody's own
 /// `ADVANCED`/`REIMBURSED`/`OWED` — `OcptBudgetAllowancesTable`'s own doc comment.
-class OcptBudgetRegieAllowanceNoPersonGroupRow extends OcptBudgetRegieAllowanceTreeRow {
+class OcptBudgetLogisticsAllowanceNoPersonGroupRow extends OcptBudgetLogisticsAllowanceTreeRow {
   /// The defrayal this row draws.
   final OcptBudgetAllowance allowance;
 
   /// Class constructor
-  const OcptBudgetRegieAllowanceNoPersonGroupRow({required this.allowance});
+  const OcptBudgetLogisticsAllowanceNoPersonGroupRow({required this.allowance});
 }
 
 /// A defrayal sub-row — one step under the person it names, drawn only while their group is
 /// expanded.
-class OcptBudgetRegieAllowanceDefrayalSubRow extends OcptBudgetRegieAllowanceTreeRow {
+class OcptBudgetLogisticsAllowanceDefrayalSubRow extends OcptBudgetLogisticsAllowanceTreeRow {
   /// The defrayal this row draws.
   final OcptBudgetAllowance allowance;
 
   /// Class constructor
-  const OcptBudgetRegieAllowanceDefrayalSubRow({required this.allowance});
+  const OcptBudgetLogisticsAllowanceDefrayalSubRow({required this.allowance});
 }
 
 /// A reimbursement sub-row — one step under the person it names, drawn right after that person's
 /// own defrayals, only while their group is expanded.
-class OcptBudgetRegieAllowanceReimbursementSubRow extends OcptBudgetRegieAllowanceTreeRow {
+class OcptBudgetLogisticsAllowanceReimbursementSubRow extends OcptBudgetLogisticsAllowanceTreeRow {
   /// The journal entry this row draws.
   final OcptBudgetEntry entry;
 
   /// Class constructor
-  const OcptBudgetRegieAllowanceReimbursementSubRow({required this.entry});
+  const OcptBudgetLogisticsAllowanceReimbursementSubRow({required this.entry});
 }

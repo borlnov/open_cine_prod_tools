@@ -66,8 +66,8 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// **A project with no live poste at all draws [OcptBudgetFeedCard] in place of the two-pane
 /// table**, centred and width-constrained, above the very same `+ Poste` creation footer this view
 /// always draws — the way through to a first poste before there is a table for it to belong to.
-/// Every one of the card's own three rows is offered here, unlike `OcptBudgetRegie`'s own copy: no
-/// page this empty state could be standing on names itself.
+/// Every one of the card's own three rows is offered here, unlike `OcptBudgetLogistics`'s own copy:
+/// no page this empty state could be standing on names itself.
 ///
 /// [isSimplified] switches every poste's own displayed name between [OcptBudgetPoste.simpleLabel]
 /// (falling back to [OcptBudgetPoste.label] when null) and [OcptBudgetPoste.label] itself, and

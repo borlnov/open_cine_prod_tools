@@ -231,7 +231,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// Create a new line named [label] inside poste [posteId], appended at the end of that poste's
   /// own lines, and return its freshly generated id.
   ///
-  /// [provisionKey], [provisionDigest] and [quantityMilli] are what the régie view's own
+  /// [provisionKey], [provisionDigest] and [quantityMilli] are what the logistics view's own
   /// `Provision into the quote` gesture fills in, through [applyProvision] — see
   /// `OcptBudgetLinesTable.provisionKey`. Every other caller leaves all three at [Value.absent],
   /// and the line then reads as one somebody typed, which is what it is.
@@ -452,7 +452,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Write [entries] onto poste [posteId], one quote line per nature — the régie view's own
+  /// Write [entries] onto poste [posteId], one quote line per nature — the logistics view's own
   /// `Provision into the quote` gesture.
   ///
   /// **Takes a plan rather than computing one**: `ocptBudgetProvisionPlanOf` decides what would

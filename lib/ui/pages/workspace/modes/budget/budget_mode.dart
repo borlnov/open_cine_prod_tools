@@ -450,7 +450,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    final entries = ocptBudgetRegieProvisionPlanOf(context, state);
+    final entries = ocptBudgetLogisticsProvisionPlanOf(context, state);
 
     final created = entries
         .where((entry) => entry.outcome == OcptBudgetProvisionOutcome.created)
@@ -471,7 +471,7 @@ class _BudgetViewState extends State<_BudgetView> {
       title: tr.budgetProvisionConfirmTitle,
       message: tr.budgetProvisionConfirmMessage(created, updated, skipped),
       cancelLabel: tr.budgetDeleteCancelAction,
-      confirmLabel: tr.budgetRegieProvisionAction,
+      confirmLabel: tr.budgetLogisticsProvisionAction,
       isDestructive: false,
     );
     if (confirmed != true) {

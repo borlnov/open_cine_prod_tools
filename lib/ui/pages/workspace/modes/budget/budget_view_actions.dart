@@ -197,10 +197,10 @@ void ocptBudgetOpenSchedule(BuildContext context) => context.read<OcptWorkspaceB
 
 /// Open the catering-and-travel pass — `OcptBudgetFeedCard`'s own catering row, drawn only where
 /// that pass is not itself already on screen. Sets **both** [OcptBudgetView.tools] and
-/// [OcptBudgetToolsView.regie]: the first opens the drawer, the second picks which of its own
+/// [OcptBudgetToolsView.logistics]: the first opens the drawer, the second picks which of its own
 /// pages is on screen the moment it does, and neither event clears the other's own field.
 void ocptBudgetOpenCatering(OcptBudgetBloc bloc) {
   bloc
     ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.tools))
-    ..add(const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.regie));
+    ..add(const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.logistics));
 }

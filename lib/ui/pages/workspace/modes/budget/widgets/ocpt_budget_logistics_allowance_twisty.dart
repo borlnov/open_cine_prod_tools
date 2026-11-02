@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// The twisty a person group row draws — mirrors `OcptBudgetFinancing`'s own `_OcptResourcesTwisty`
 /// exactly: an arrow while [isExpandable], nothing but its own reserved width otherwise, its own
 /// tap target running the full height of the row it sits on.
-class OcptBudgetRegieAllowanceTwisty extends StatelessWidget {
+class OcptBudgetLogisticsAllowanceTwisty extends StatelessWidget {
   /// Whether this row has anything at all to expand onto.
   final bool isExpandable;
 
@@ -23,7 +23,7 @@ class OcptBudgetRegieAllowanceTwisty extends StatelessWidget {
   final double rowHeight;
 
   /// Class constructor
-  const OcptBudgetRegieAllowanceTwisty({
+  const OcptBudgetLogisticsAllowanceTwisty({
     super.key,
     required this.isExpandable,
     required this.isExpanded,
@@ -31,15 +31,15 @@ class OcptBudgetRegieAllowanceTwisty extends StatelessWidget {
     required this.rowHeight,
   });
 
-  /// Build the budget regie allowance twisty as a [SizedBox].
+  /// Build the budget logistics allowance twisty as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     if (!isExpandable) {
-      return const SizedBox(width: ocptBudgetRegieAllowanceTwistyWidth);
+      return const SizedBox(width: ocptBudgetLogisticsAllowanceTwistyWidth);
     }
 
     return SizedBox(
-      width: ocptBudgetRegieAllowanceTwistyWidth,
+      width: ocptBudgetLogisticsAllowanceTwistyWidth,
       height: rowHeight,
       child: InkWell(
         onTap: onTap,

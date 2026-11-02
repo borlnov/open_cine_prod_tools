@@ -37,8 +37,8 @@ const double _ocptDashboardBarHeight = 6;
 /// draws none, and the four tiles plus the balance band already carry the whole-project reading it
 /// used to add up to one row at a time. The "what feeds this budget" card is gone too, for the
 /// plan's own reason: it navigates, it does not summarise. `OcptBudgetFeedCard` itself is
-/// unaffected — the cost-tracking table and the régie both draw it at their own top and keep every
-/// one of its rows.
+/// unaffected — the cost-tracking table and the logistics both draw it at their own top and keep
+/// every one of its rows.
 ///
 /// [alerts] — [ocptComputeBudgetAlerts]'s own answer, carried by the state rather than recomputed
 /// here — draws **no card at all** while it is empty: a project raising no alert shows nothing
@@ -312,8 +312,8 @@ class _OcptDashboardTile extends StatelessWidget {
 /// very same idiom `OcptBudgetCostTracking`'s own total row already prints in place of a plain
 /// amount — `tr.budgetDashboardBalanceCoverageReadOut` mirrors
 /// `tr.budgetCostTrackingCoverageReadOut` exactly, minted under its own key for the same reason
-/// `OcptBudgetRegie`'s own two coverage read-outs are: this total counts quote *lines*, not postes,
-/// the noun the cost-tracking table's own string names.
+/// `OcptBudgetLogistics`'s own two coverage read-outs are: this total counts quote *lines*, not
+/// postes, the noun the cost-tracking table's own string names.
 ///
 /// **A quote with no line at all is not a quote this bar can say anything about.** A plain
 /// `resources >= needs` reading would answer "balanced" for a project that has recorded nothing,

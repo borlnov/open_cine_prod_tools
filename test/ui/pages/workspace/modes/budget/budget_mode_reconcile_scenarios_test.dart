@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'budget_mode_scenarios_test_doubles.dart';
 
 /// The stable id of the CNC poste the catering and travel provisioning starts out pointed at.
-const _regiePosteId = "d75aa74c-ed99-494a-bca0-3508b166ec18";
+const _logisticsPosteId = "d75aa74c-ed99-494a-bca0-3508b166ec18";
 
 /// Run the tests of the budget mode reconcile scenarios.
 void main() {
@@ -347,9 +347,10 @@ void main() {
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
-    await harness.tapHeader(tester, tr.budgetHeaderRegieSegmentLabel);
-    OcptBudgetRegie regie() => tester.widget<OcptBudgetRegie>(find.byType(OcptBudgetRegie));
-    expect(regie().provisionPosteId, _regiePosteId);
+    await harness.tapHeader(tester, tr.budgetHeaderLogisticsSegmentLabel);
+    OcptBudgetLogistics logistics() =>
+        tester.widget<OcptBudgetLogistics>(find.byType(OcptBudgetLogistics));
+    expect(logistics().provisionPosteId, _logisticsPosteId);
 
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     await pickRowMenu(
@@ -359,8 +360,8 @@ void main() {
     );
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
-    await harness.tapHeader(tester, tr.budgetHeaderRegieSegmentLabel);
-    expect(regie().provisionPosteId, (await harness.readPostes()).first.id);
-    expect(regie().provisionPosteId, isNot(_regiePosteId));
+    await harness.tapHeader(tester, tr.budgetHeaderLogisticsSegmentLabel);
+    expect(logistics().provisionPosteId, (await harness.readPostes()).first.id);
+    expect(logistics().provisionPosteId, isNot(_logisticsPosteId));
   });
 }

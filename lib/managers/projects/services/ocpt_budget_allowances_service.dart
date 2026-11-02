@@ -16,9 +16,9 @@ import 'package:uuid/uuid.dart';
 /// {@macro open_cine_prod_tools.tombstones}
 ///
 /// **Nothing here reads the schedule, and nothing seeds a row**, unlike the catering half of the
-/// régie view sitting above these rows on screen: a defrayal is not derivable from a presence — see
-/// `OcptBudgetAllowancesTable`'s own doc comment — so the only rows this service ever returns are
-/// the ones somebody wrote.
+/// logistics view sitting above these rows on screen: a defrayal is not derivable from a presence —
+/// see `OcptBudgetAllowancesTable`'s own doc comment — so the only rows this service ever returns
+/// are the ones somebody wrote.
 ///
 /// **Orders flat by `sortKey`**, like the financing plan's own two catalogues: a defrayal belongs
 /// inside no other row.

@@ -45,7 +45,7 @@ OcptBudgetGestureFamily? _promotedGestureFamilyOf(OcptBudgetState state) =>
       (OcptBudgetView.expenses, _) => OcptBudgetGestureFamily.quote,
       (OcptBudgetView.resources, _) => OcptBudgetGestureFamily.financingPlan,
       (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => OcptBudgetGestureFamily.cashMovement,
-      (OcptBudgetView.tools, OcptBudgetToolsView.regie) => OcptBudgetGestureFamily.allowances,
+      (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => OcptBudgetGestureFamily.allowances,
       (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => OcptBudgetGestureFamily.revenueSharing,
       (OcptBudgetView.dashboard, _) => null,
     };
@@ -58,7 +58,7 @@ OcptBudgetGesture _firstGestureOf(OcptBudgetGestureFamily family) =>
 /// Tell which gestures the `+ New` wizard offers when opened from the current route — a semantic
 /// filter by the direction money moves (`ocptBudgetGestureFlowsOf`), **transverse to the
 /// families**: the expenses route offers everything that spends, the resources route everything
-/// that brings money in, the drawer's cash-flow page its own movements, régie its defrayal.
+/// that brings money in, the drawer's cash-flow page its own movements, logistics its defrayal.
 /// Sharing offers its own participants **and `Le film a rapporté de l'argent`**
 /// (`recordTakingReceipt`): the split is of what the film earns, so recording a taking belongs
 /// where that money is divided up. Null for the dashboard, which works on no document and filters
@@ -80,7 +80,7 @@ Set<OcptBudgetGesture>? _wizardGesturesForView(OcptBudgetState state) {
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => ofFamily(
       OcptBudgetGestureFamily.cashMovement,
     ),
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => ofFamily(
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => ofFamily(
       OcptBudgetGestureFamily.allowances,
     ),
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => {
@@ -97,7 +97,7 @@ String _wizardFilterLabelOf(Tr tr, OcptBudgetState state) =>
       (OcptBudgetView.expenses, _) => tr.budgetHeaderExpensesSegmentLabel,
       (OcptBudgetView.resources, _) => tr.budgetHeaderResourcesSegmentLabel,
       (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHeaderCashFlowSegmentLabel,
-      (OcptBudgetView.tools, OcptBudgetToolsView.regie) => tr.budgetHeaderRegieSegmentLabel,
+      (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => tr.budgetHeaderLogisticsSegmentLabel,
       (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHeaderSharingSegmentLabel,
       (OcptBudgetView.dashboard, _) => "",
     };

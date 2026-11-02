@@ -13,9 +13,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 
 /// One person group row: a twisty, the person's own name with their role underneath in small muted
 /// type, the three running-account figures, then their own `⋮` menu.
-class OcptBudgetRegieAllowancePersonRow extends StatelessWidget {
-  /// The person this row names, or null — see [OcptBudgetRegieAllowancePersonGroupRow.person]'s own
-  /// doc comment.
+class OcptBudgetLogisticsAllowancePersonRow extends StatelessWidget {
+  /// The person this row names, or null — see [OcptBudgetLogisticsAllowancePersonGroupRow.person]'s
+  /// own doc comment.
   final OcptPerson? person;
 
   /// What that person is on the shoot, or null.
@@ -46,7 +46,7 @@ class OcptBudgetRegieAllowancePersonRow extends StatelessWidget {
   final VoidCallback? onReimburseRequested;
 
   /// Class constructor
-  const OcptBudgetRegieAllowancePersonRow({
+  const OcptBudgetLogisticsAllowancePersonRow({
     super.key,
     required this.person,
     required this.role,
@@ -60,7 +60,7 @@ class OcptBudgetRegieAllowancePersonRow extends StatelessWidget {
     required this.onReimburseRequested,
   });
 
-  /// Build the budget regie allowance person row as a [SizedBox].
+  /// Build the budget logistics allowance person row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -69,17 +69,17 @@ class OcptBudgetRegieAllowancePersonRow extends StatelessWidget {
     final role = this.role;
 
     return SizedBox(
-      height: ocptBudgetRegieAllowanceRowHeight,
+      height: ocptBudgetLogisticsAllowanceRowHeight,
       child: Row(
         children: [
           Expanded(
             child: Row(
               children: [
-                OcptBudgetRegieAllowanceTwisty(
+                OcptBudgetLogisticsAllowanceTwisty(
                   isExpandable: true,
                   isExpanded: isExpanded,
                   onTap: onTwistyTap,
-                  rowHeight: ocptBudgetRegieAllowanceRowHeight,
+                  rowHeight: ocptBudgetLogisticsAllowanceRowHeight,
                 ),
                 Expanded(
                   child: Column(
@@ -107,11 +107,11 @@ class OcptBudgetRegieAllowancePersonRow extends StatelessWidget {
               ],
             ),
           ),
-          ocptBudgetRegieAllowanceAmountCell(context, advancedCents, currencyCode),
-          ocptBudgetRegieAllowanceAmountCell(context, reimbursedCents, currencyCode),
-          ocptBudgetRegieAllowanceAmountCell(context, outstandingCents, currencyCode),
+          ocptBudgetLogisticsAllowanceAmountCell(context, advancedCents, currencyCode),
+          ocptBudgetLogisticsAllowanceAmountCell(context, reimbursedCents, currencyCode),
+          ocptBudgetLogisticsAllowanceAmountCell(context, outstandingCents, currencyCode),
           SizedBox(
-            width: ocptBudgetRegieAllowanceMenuColumnWidth,
+            width: ocptBudgetLogisticsAllowanceMenuColumnWidth,
             child: PopupMenuButton<String>(
               tooltip: "",
               icon: const Icon(Icons.more_vert, size: 18),
@@ -123,12 +123,12 @@ class OcptBudgetRegieAllowancePersonRow extends StatelessWidget {
               itemBuilder: (context) => [
                 PopupMenuItem<String>(
                   value: "person",
-                  child: Text(tr.budgetRegieAllowanceOpenPersonAction),
+                  child: Text(tr.budgetLogisticsAllowanceOpenPersonAction),
                 ),
                 if (onReimburseRequested != null)
                   PopupMenuItem<String>(
                     value: "reimburse",
-                    child: Text(tr.budgetRegieReimburseAction),
+                    child: Text(tr.budgetLogisticsReimburseAction),
                   ),
               ],
             ),

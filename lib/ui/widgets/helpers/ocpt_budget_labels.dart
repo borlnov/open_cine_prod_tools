@@ -213,7 +213,7 @@ Color ocptBudgetResourceStatusAccentColor(
   OcptBudgetResourceStatus.confirmed => colorScheme.primary,
 };
 
-/// Get [kind]'s own localized word — the régie view's own defrayal table and its dialog, always
+/// Get [kind]'s own localized word — the logistics view's own defrayal table and its dialog, always
 /// reading the same four words, mirroring [ocptBudgetResourceStatusLabel]'s own reason for living
 /// here.
 String ocptBudgetAllowanceKindLabel(Tr tr, OcptBudgetAllowanceKind kind) => switch (kind) {

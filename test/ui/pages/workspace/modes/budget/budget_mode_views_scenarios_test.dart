@@ -112,16 +112,16 @@ void main() {
     // The drawer opens on the cash flow page, and shows its own three-way switch.
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
     expect(find.byType(OcptBudgetCashJournal), findsOneWidget);
-    expect(inHeader(find.text(tr.budgetHeaderRegieSegmentLabel)), findsOneWidget);
-    await harness.tapHeader(tester, tr.budgetHeaderRegieSegmentLabel);
-    expect(find.byType(OcptBudgetRegie), findsOneWidget);
+    expect(inHeader(find.text(tr.budgetHeaderLogisticsSegmentLabel)), findsOneWidget);
+    await harness.tapHeader(tester, tr.budgetHeaderLogisticsSegmentLabel);
+    expect(find.byType(OcptBudgetLogistics), findsOneWidget);
 
     // Leaving the drawer hides its switch, and coming back lands on the page left, not the first.
     await harness.tapHeader(tester, tr.budgetHeaderDashboardSegmentLabel);
     expect(find.byType(OcptBudgetDashboard), findsOneWidget);
-    expect(inHeader(find.text(tr.budgetHeaderRegieSegmentLabel)), findsNothing);
+    expect(inHeader(find.text(tr.budgetHeaderLogisticsSegmentLabel)), findsNothing);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
-    expect(find.byType(OcptBudgetRegie), findsOneWidget);
+    expect(find.byType(OcptBudgetLogistics), findsOneWidget);
     await harness.tapHeader(tester, tr.budgetHeaderSharingSegmentLabel);
     expect(find.byType(OcptBudgetSharing), findsOneWidget);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);

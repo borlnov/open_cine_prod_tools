@@ -8,11 +8,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 
 /// The catering table's own header row: `Day`, `Decor`, `Crew`, `Cast`, `Extras`, `Meals`,
 /// `Craft services`, `Total`.
-class OcptBudgetRegieCateringHeaderRow extends StatelessWidget {
+class OcptBudgetLogisticsCateringHeaderRow extends StatelessWidget {
   /// Class constructor
-  const OcptBudgetRegieCateringHeaderRow({super.key});
+  const OcptBudgetLogisticsCateringHeaderRow({super.key});
 
-  /// Build the budget regie catering header row as a [SizedBox].
+  /// Build the budget logistics catering header row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -23,58 +23,58 @@ class OcptBudgetRegieCateringHeaderRow extends StatelessWidget {
     );
 
     return SizedBox(
-      height: ocptBudgetRegieHeaderRowHeight,
+      height: ocptBudgetLogisticsHeaderRowHeight,
       child: Row(
         children: [
           SizedBox(
-            width: ocptBudgetRegieDayColumnWidth,
-            child: Text(tr.budgetRegieColumnDay.toUpperCase(), style: labelStyle),
+            width: ocptBudgetLogisticsDayColumnWidth,
+            child: Text(tr.budgetLogisticsColumnDay.toUpperCase(), style: labelStyle),
           ),
-          Expanded(child: Text(tr.budgetRegieColumnDecor.toUpperCase(), style: labelStyle)),
+          Expanded(child: Text(tr.budgetLogisticsColumnDecor.toUpperCase(), style: labelStyle)),
           SizedBox(
-            width: ocptBudgetRegieCountColumnWidth,
+            width: ocptBudgetLogisticsCountColumnWidth,
             child: Text(
-              tr.budgetRegieColumnCrew.toUpperCase(),
+              tr.budgetLogisticsColumnCrew.toUpperCase(),
               textAlign: TextAlign.right,
               style: labelStyle,
             ),
           ),
           SizedBox(
-            width: ocptBudgetRegieCountColumnWidth,
+            width: ocptBudgetLogisticsCountColumnWidth,
             child: Text(
-              tr.budgetRegieColumnCast.toUpperCase(),
+              tr.budgetLogisticsColumnCast.toUpperCase(),
               textAlign: TextAlign.right,
               style: labelStyle,
             ),
           ),
           SizedBox(
-            width: ocptBudgetRegieCountColumnWidth,
+            width: ocptBudgetLogisticsCountColumnWidth,
             child: Text(
-              tr.budgetRegieColumnExtras.toUpperCase(),
+              tr.budgetLogisticsColumnExtras.toUpperCase(),
               textAlign: TextAlign.right,
               style: labelStyle,
             ),
           ),
           SizedBox(
-            width: ocptBudgetRegieWideCountColumnWidth,
+            width: ocptBudgetLogisticsWideCountColumnWidth,
             child: Text(
-              tr.budgetRegieColumnMeals.toUpperCase(),
+              tr.budgetLogisticsColumnMeals.toUpperCase(),
               textAlign: TextAlign.right,
               style: labelStyle,
             ),
           ),
           SizedBox(
-            width: ocptBudgetRegieWideCountColumnWidth,
+            width: ocptBudgetLogisticsWideCountColumnWidth,
             child: Text(
-              tr.budgetRegieColumnBuffet.toUpperCase(),
+              tr.budgetLogisticsColumnBuffet.toUpperCase(),
               textAlign: TextAlign.right,
               style: labelStyle,
             ),
           ),
           SizedBox(
-            width: ocptBudgetRegieCateringTotalColumnWidth,
+            width: ocptBudgetLogisticsCateringTotalColumnWidth,
             child: Text(
-              tr.budgetRegieColumnTotal.toUpperCase(),
+              tr.budgetLogisticsColumnTotal.toUpperCase(),
               textAlign: TextAlign.right,
               style: labelStyle,
             ),

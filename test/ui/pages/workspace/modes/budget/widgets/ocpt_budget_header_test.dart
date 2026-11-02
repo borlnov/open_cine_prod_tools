@@ -168,7 +168,7 @@ void main() {
 
       tr = await pumpHeader(tester, view: OcptBudgetView.tools);
       expect(find.text(tr.budgetHeaderCashFlowSegmentLabel), findsOneWidget);
-      expect(find.text(tr.budgetHeaderRegieSegmentLabel), findsOneWidget);
+      expect(find.text(tr.budgetHeaderLogisticsSegmentLabel), findsOneWidget);
       expect(find.text(tr.budgetHeaderSharingSegmentLabel), findsOneWidget);
     });
 
@@ -177,12 +177,12 @@ void main() {
       final tr = await pumpHeader(
         tester,
         view: OcptBudgetView.tools,
-        toolsView: OcptBudgetToolsView.regie,
+        toolsView: OcptBudgetToolsView.logistics,
       );
 
       final segment = tester.widget<InkWell>(
         find.ancestor(
-          of: find.text(tr.budgetHeaderRegieSegmentLabel),
+          of: find.text(tr.budgetHeaderLogisticsSegmentLabel),
           matching: find.byType(InkWell),
         ),
       );
@@ -236,7 +236,7 @@ void main() {
         final tr = await pumpHeader(tester, view: OcptBudgetView.resources);
         expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsNothing);
 
-        for (final toolsView in [OcptBudgetToolsView.regie, OcptBudgetToolsView.sharing]) {
+        for (final toolsView in [OcptBudgetToolsView.logistics, OcptBudgetToolsView.sharing]) {
           final tr = await pumpHeader(tester, view: OcptBudgetView.tools, toolsView: toolsView);
           expect(
             find.text(tr.budgetHeaderExcludingTaxSegmentLabel),

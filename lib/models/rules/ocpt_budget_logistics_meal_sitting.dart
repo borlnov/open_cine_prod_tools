@@ -10,9 +10,9 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics.dart';
 /// **Deduplicated by person within this one block, not further.** Crew is read by `personId`
 /// directly; cast is read by `roles.personId` — a role names a person only once it is cast, so a
 /// role with no person recorded cannot be told apart from the crew and counts on its own
-/// ([ocptBudgetRegieDaysOf]'s own doc comment states why this is the honest reading rather than a
-/// gap). Somebody who is both cast and crew on this block's own slot is counted once.
-class OcptBudgetRegieMealSitting extends Equatable {
+/// ([ocptBudgetLogisticsDaysOf]'s own doc comment states why this is the honest reading rather than
+/// a gap). Somebody who is both cast and crew on this block's own slot is counted once.
+class OcptBudgetLogisticsMealSitting extends Equatable {
   /// The meal block this sitting reads.
   final String blockId;
 
@@ -23,7 +23,7 @@ class OcptBudgetRegieMealSitting extends Equatable {
   final int headCount;
 
   /// Class constructor
-  const OcptBudgetRegieMealSitting({
+  const OcptBudgetLogisticsMealSitting({
     required this.blockId,
     required this.slotId,
     required this.headCount,
@@ -32,7 +32,7 @@ class OcptBudgetRegieMealSitting extends Equatable {
   /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptBudgetRegieMealSitting(blockId: $blockId, slotId: $slotId, headCount: $headCount)";
+      "OcptBudgetLogisticsMealSitting(blockId: $blockId, slotId: $slotId, headCount: $headCount)";
 
   /// List the fields that decide equality.
   @override

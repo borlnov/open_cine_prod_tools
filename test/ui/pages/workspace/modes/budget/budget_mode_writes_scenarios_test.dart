@@ -417,15 +417,15 @@ void main() {
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
-    await harness.tapHeader(tester, tr.budgetHeaderRegieSegmentLabel);
+    await harness.tapHeader(tester, tr.budgetHeaderLogisticsSegmentLabel);
 
-    await harness.tap(tester, find.text(tr.budgetRegieProvisionAction));
+    await harness.tap(tester, find.text(tr.budgetLogisticsProvisionAction));
     expect(find.text(tr.budgetProvisionConfirmTitle), findsOneWidget);
     await harness.cancelDialog(tester, tr.budgetDeleteCancelAction);
     expect(statusBar(tester).lineCount, 0);
 
-    await harness.tap(tester, find.text(tr.budgetRegieProvisionAction));
-    await harness.confirmDialog(tester, tr.budgetRegieProvisionAction);
+    await harness.tap(tester, find.text(tr.budgetLogisticsProvisionAction));
+    await harness.confirmDialog(tester, tr.budgetLogisticsProvisionAction);
     final transport = (await harness.readPostes()).firstWhere(
       (poste) => poste.id == "d75aa74c-ed99-494a-bca0-3508b166ec18",
     );
@@ -435,7 +435,7 @@ void main() {
     expect(statusBar(tester).quotedTotalCents, 2000);
 
     // The provisioned figure is now in the quote, so the gesture has nothing left to write.
-    expect(find.text(tr.budgetRegieProvisionAction), findsNothing);
+    expect(find.text(tr.budgetLogisticsProvisionAction), findsNothing);
     expect(find.text(tr.budgetProvisionNothingToDoMessage), findsOneWidget);
   });
 
@@ -496,7 +496,7 @@ void main() {
     expect((await harness.readPostes()).map((poste) => poste.label), ["Sound", "Camera"]);
 
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
-    await harness.tapHeader(tester, tr.budgetHeaderRegieSegmentLabel);
+    await harness.tapHeader(tester, tr.budgetHeaderLogisticsSegmentLabel);
     await openWizard(tester);
     await fillWizard(tester, ["Per diem", "2", "20"]);
     await saveWizard(tester);
@@ -508,7 +508,7 @@ void main() {
     await harness.tap(
       tester,
       find.descendant(
-        of: find.byType(OcptBudgetRegie),
+        of: find.byType(OcptBudgetLogistics),
         matching: find.byType(PopupMenuButton<String>),
       ),
     );
@@ -522,7 +522,7 @@ void main() {
     await harness.tap(
       tester,
       find.descendant(
-        of: find.byType(OcptBudgetRegie),
+        of: find.byType(OcptBudgetLogistics),
         matching: find.byType(PopupMenuButton<String>),
       ),
     );

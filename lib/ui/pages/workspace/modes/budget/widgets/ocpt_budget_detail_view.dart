@@ -26,7 +26,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 ///
 /// **`onLineShowCommitmentRequested` opens the tools drawer's own `Flux de trésorerie` page and
 /// selects the line's own commitment there**, under its own `À venir` section — the very reading
-/// the régie's feed row gives, plus the selection event
+/// the logistics's feed row gives, plus the selection event
 /// `OcptBudgetCostTracking.onCommitmentSelected` already dispatches.
 ///
 /// It listens to `OcptBudgetExpensesBloc` alone, for the typed edits that bloc still holds, so a

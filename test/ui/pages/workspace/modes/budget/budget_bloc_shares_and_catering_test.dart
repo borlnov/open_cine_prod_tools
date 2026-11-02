@@ -186,17 +186,18 @@ void main() {
         bloc.add(const OcptBudgetProjectSettingsChangedEvent());
         // Waits for the crew count itself, not merely for a day to exist: the bloc's own initial
         // load (fired at construction, before any of the writes above) races these very writes, and
-        // a state it emits mid-way through them would still make `regieDays` non-empty on its own.
+        // a state it emits mid-way through them would still make `logisticsDays` non-empty on its
+        // own.
         final state = await waitForState(
           bloc,
-          (state) => state.regieDays.isNotEmpty && state.regieDays.single.crewCount == 1,
+          (state) => state.logisticsDays.isNotEmpty && state.logisticsDays.single.crewCount == 1,
         );
 
-        expect(state.regieDays.single.dayId, dayId);
-        expect(state.regieDays.single.crewCount, 1);
-        expect(state.regieDays.single.headCount, 1);
-        expect(state.regieDays.single.cost.isComplete, isTrue);
-        expect(state.regieDecorNameByDayId[dayId], "Studio A");
+        expect(state.logisticsDays.single.dayId, dayId);
+        expect(state.logisticsDays.single.crewCount, 1);
+        expect(state.logisticsDays.single.headCount, 1);
+        expect(state.logisticsDays.single.cost.isComplete, isTrue);
+        expect(state.logisticsDecorNameByDayId[dayId], "Studio A");
 
         // The person's own commute is loaded and the mileage scales with it — both there to
         // pre-fill a defrayal somebody types — and nothing is deduced from either: a production

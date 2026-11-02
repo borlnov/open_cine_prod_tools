@@ -20,7 +20,7 @@ void main() {
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
-    await harness.tapHeader(tester, tr.budgetHeaderRegieSegmentLabel);
+    await harness.tapHeader(tester, tr.budgetHeaderLogisticsSegmentLabel);
 
     await harness.tap(tester, find.text("Per diem"));
     expect(find.byType(AlertDialog), findsOneWidget);

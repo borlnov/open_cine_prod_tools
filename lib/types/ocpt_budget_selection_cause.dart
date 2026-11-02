@@ -25,7 +25,7 @@ enum OcptBudgetSelectionCause {
   /// Every view was narrowed to a poste, or the narrowing was cleared.
   filtered,
 
-  /// The régie's provisioning was pointed at another poste.
+  /// The logistics's provisioning was pointed at another poste.
   provisionSelected,
 
   /// The central view or the tools page was changed asking to drop the selection.

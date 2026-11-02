@@ -38,7 +38,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// ten CNC postes on the first read of an empty table; the cash journal; the financing plan; the
 /// revenue sharing; the catering-and-travel pass and the catalogues it is joined with; and the
 /// project's currency, default VAT rate and prices), and owns that data, the page setup, the shared
-/// selection (the selected row, the filtered poste, the highlighted share, the poste the régie
+/// selection (the selected row, the filtered poste, the highlighted share, the poste the logistics
 /// provisions into, the expanded nodes), the chrome (the central view, the tools page, the
 /// simplified and tax-basis switches, the right dock) and the transient write error of none of
 /// them.
@@ -323,7 +323,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           people: loaded.people,
           elements: loaded.elements,
           mileageRates: loaded.mileageRates,
-          regieDecorNameByDayId: loaded.regieDecorNameByDayId,
+          logisticsDecorNameByDayId: loaded.logisticsDecorNameByDayId,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
           pageSetup: pageSetup,
@@ -439,7 +439,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// Switch which of the tools drawer's own three pages is shown — dispatched by the header's
   /// own second segmented switch. Mirrors [_onViewSelected] exactly, flush included: leaving
-  /// `Régie`'s own provisioning band for `Flux de trésorerie` reads the very figures a pending
+  /// `Logistics`'s own provisioning band for `Flux de trésorerie` reads the very figures a pending
   /// edit has not reached yet.
   Future<void> _onToolsViewSelected(
     OcptBudgetToolsViewSelectedEvent event,
@@ -708,7 +708,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         people: loaded.people,
         elements: loaded.elements,
         mileageRates: loaded.mileageRates,
-        regieDecorNameByDayId: loaded.regieDecorNameByDayId,
+        logisticsDecorNameByDayId: loaded.logisticsDecorNameByDayId,
         selectionStillExists: selectionStillExists,
         filterStillExists: filterStillExists,
         shareStillExists: shareStillExists,

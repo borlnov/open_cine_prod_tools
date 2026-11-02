@@ -110,10 +110,10 @@ void main() {
     await openTools(tester, page: tr.budgetHeaderCashFlowSegmentLabel);
   }
 
-  /// Switches the centre to the tools drawer's own `Régie` page.
-  Future<void> openRegie(WidgetTester tester) async {
+  /// Switches the centre to the tools drawer's own `Logistics` page.
+  Future<void> openLogistics(WidgetTester tester) async {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await openTools(tester, page: tr.budgetHeaderRegieSegmentLabel);
+    await openTools(tester, page: tr.budgetHeaderLogisticsSegmentLabel);
   }
 
   /// Switches the centre to the tools drawer's own revenue-sharing page.
@@ -160,9 +160,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
 
-    // The régie has no poste and never puts one there, so the tab goes rather than showing a
+    // The logistics has no poste and never puts one there, so the tab goes rather than showing a
     // stale one — and the dock falls back to the help panel instead of closing.
-    await openRegie(tester);
+    await openLogistics(tester);
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsNothing);
     expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
     expect(find.byType(OcptBudgetHelp), findsOneWidget);
@@ -344,7 +344,7 @@ void main() {
       await openCashFlow(tester);
       expect(button, findsOneWidget);
 
-      await openRegie(tester);
+      await openLogistics(tester);
       expect(button, findsOneWidget);
 
       await openSharing(tester);
@@ -361,7 +361,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      // The défraiements section draws nothing at all while the régie holds neither a shooting
+      // The défraiements section draws nothing at all while the logistics holds neither a shooting
       // day nor a defrayal yet: one is seeded so the section itself is on screen.
       final project = projectsManager.currentProject!;
       await projectsManager.budgetAllowancesService.createAllowance(
@@ -378,12 +378,12 @@ void main() {
 
       await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
-      await openRegie(tester);
+      await openLogistics(tester);
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
       // The page's own creation button is gone — every defrayal is now typed through the wizard.
-      expect(find.text(tr.budgetRegieAllowancesSectionTitle), findsOneWidget);
-      expect(find.text(tr.budgetRegieAllowanceCreationAction), findsNothing);
+      expect(find.text(tr.budgetLogisticsAllowancesSectionTitle), findsOneWidget);
+      expect(find.text(tr.budgetLogisticsAllowanceCreationAction), findsNothing);
 
       // The header's own button, promoted to `defrayPerson`, one click from the defrayal form.
       await tester.tap(find.byKey(const Key("ocptBudgetHeaderCaptureButton")));
@@ -419,7 +419,7 @@ void main() {
     await openResources(tester);
     expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
 
-    await openRegie(tester);
+    await openLogistics(tester);
     expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
 
     await openSharing(tester);

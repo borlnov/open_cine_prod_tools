@@ -23,8 +23,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_form
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 
 /// This is the bloc class for the budget mode's financing views: the financing plan (the
-/// resources, and the counterpart quote line an in-kind contribution keeps in step) and the régie
-/// (the defrayals, and the provisioning of a poste).
+/// resources, and the counterpart quote line an in-kind contribution keeps in step) and the
+/// logistics (the defrayals, and the provisioning of a poste).
 ///
 /// The resources and the defrayals are the mode's data, in `OcptBudgetState.snapshot`, and which
 /// row is highlighted is the mode's too. This bloc owns every write these views trigger: the

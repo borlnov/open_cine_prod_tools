@@ -14,10 +14,10 @@ import 'package:equatable/equatable.dart';
 /// (`ocptBudgetExcludingTaxTotalOf`/`ocptBudgetTotalOf`), a journal entry
 /// (`lib/models/rules/ocpt_budget_journal.dart`), a commitment
 /// (`lib/models/rules/ocpt_budget_projection.dart`) or a catering-and-travel figure
-/// (`lib/models/rules/ocpt_budget_regie.dart`) — a day's own meals and buffet, or a traveller's own
-/// mileage reimbursement: this class is shared across every one of them rather than reimplemented
-/// per table, since the coverage arithmetic and the honesty it argues for are exactly the same
-/// regardless of what is being priced.
+/// (`lib/models/rules/ocpt_budget_logistics.dart`) — a day's own meals and buffet, or a traveller's
+/// own mileage reimbursement: this class is shared across every one of them rather than
+/// reimplemented per table, since the coverage arithmetic and the honesty it argues for are exactly
+/// the same regardless of what is being priced.
 ///
 /// **No `Tr` and no formatted string here** — `lib/models/rules/` is pure; the mode's own view
 /// resolves the words.

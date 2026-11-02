@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// through a running account — with `REIMBURSED` left blank. `OWED` reads its amount rather than a
 /// blank precisely because the total row counts this defrayal in: a figure that is summed has to be
 /// legible on the line it is summed from. No twisty: there is nothing to expand onto.
-class OcptBudgetRegieAllowanceNoPersonRow extends StatelessWidget {
+class OcptBudgetLogisticsAllowanceNoPersonRow extends StatelessWidget {
   /// The defrayal this row draws.
   final OcptBudgetAllowance allowance;
 
@@ -30,7 +30,7 @@ class OcptBudgetRegieAllowanceNoPersonRow extends StatelessWidget {
   final VoidCallback? onDeletionRequested;
 
   /// Class constructor
-  const OcptBudgetRegieAllowanceNoPersonRow({
+  const OcptBudgetLogisticsAllowanceNoPersonRow({
     super.key,
     required this.allowance,
     required this.currencyCode,
@@ -38,7 +38,7 @@ class OcptBudgetRegieAllowanceNoPersonRow extends StatelessWidget {
     required this.onDeletionRequested,
   });
 
-  /// Build the budget regie allowance no person row as an [InkWell].
+  /// Build the budget logistics allowance no person row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -48,16 +48,16 @@ class OcptBudgetRegieAllowanceNoPersonRow extends StatelessWidget {
       onTap: onTap,
       mouseCursor: onTap == null ? null : ocpt_theme.ocptClickableCursor,
       child: SizedBox(
-        height: ocptBudgetRegieAllowanceRowHeight,
+        height: ocptBudgetLogisticsAllowanceRowHeight,
         child: Row(
           children: [
             Expanded(
               child: Row(
                 children: [
-                  const OcptBudgetRegieAllowanceTwisty(
+                  const OcptBudgetLogisticsAllowanceTwisty(
                     isExpandable: false,
                     isExpanded: false,
-                    rowHeight: ocptBudgetRegieAllowanceRowHeight,
+                    rowHeight: ocptBudgetLogisticsAllowanceRowHeight,
                   ),
                   Expanded(
                     child: Column(
@@ -65,7 +65,7 @@ class OcptBudgetRegieAllowanceNoPersonRow extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          tr.budgetRegieAllowanceNoPerson,
+                          tr.budgetLogisticsAllowanceNoPerson,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -88,19 +88,19 @@ class OcptBudgetRegieAllowanceNoPersonRow extends StatelessWidget {
                 ],
               ),
             ),
-            ocptBudgetRegieAllowanceAmountCell(
+            ocptBudgetLogisticsAllowanceAmountCell(
               context,
               ocptBudgetAllowanceCentsOf(allowance),
               currencyCode,
             ),
-            ocptBudgetRegieAllowanceAmountCell(context, null, currencyCode, showBlank: true),
-            ocptBudgetRegieAllowanceAmountCell(
+            ocptBudgetLogisticsAllowanceAmountCell(context, null, currencyCode, showBlank: true),
+            ocptBudgetLogisticsAllowanceAmountCell(
               context,
               ocptBudgetAllowanceCentsOf(allowance),
               currencyCode,
             ),
             SizedBox(
-              width: ocptBudgetRegieAllowanceMenuColumnWidth,
+              width: ocptBudgetLogisticsAllowanceMenuColumnWidth,
               child: onDeletionRequested == null
                   ? null
                   : PopupMenuButton<String>(

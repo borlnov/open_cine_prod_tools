@@ -9,18 +9,21 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 
 /// Get the height a table card holding [rowCount] rows of [rowHeight] is drawn at once the panes
 /// stack.
-double ocptBudgetRegieStackedCardHeight(int rowCount, double rowHeight) =>
-    ocptBudgetRegieCardChromeHeight +
+double ocptBudgetLogisticsStackedCardHeight(int rowCount, double rowHeight) =>
+    ocptBudgetLogisticsCardChromeHeight +
     rowHeight *
-        rowCount.clamp(ocptBudgetRegieStackedMinRowCount, ocptBudgetRegieStackedMaxRowCount);
+        rowCount.clamp(
+          ocptBudgetLogisticsStackedMinRowCount,
+          ocptBudgetLogisticsStackedMaxRowCount,
+        );
 
 /// Count how many top-level rows [allowances] draws in the stacked layout's own height guess: one
 /// per
 /// distinct person named, plus one for every defrayal naming nobody, each its own group of one —
 /// never the sub-rows a group's own twisty later reveals, since
-/// [ocptBudgetRegieStackedCardHeight]'s own clamp already floors and ceilings this into a
+/// [ocptBudgetLogisticsStackedCardHeight]'s own clamp already floors and ceilings this into a
 /// reasonable card height either way.
-int ocptBudgetRegieAllowanceGroupCountOf(List<OcptBudgetAllowance> allowances) {
+int ocptBudgetLogisticsAllowanceGroupCountOf(List<OcptBudgetAllowance> allowances) {
   final personIds = <String>{};
   var noPersonCount = 0;
   for (final allowance in allowances) {
@@ -39,7 +42,7 @@ int ocptBudgetRegieAllowanceGroupCountOf(List<OcptBudgetAllowance> allowances) {
 /// blank
 /// while [showBlank] (a sub-row's own untouched columns), and the given amount otherwise — mirrors
 /// `OcptBudgetFinancing`'s own `_ocptResourcesAmountCell`.
-Widget ocptBudgetRegieAllowanceAmountCell(
+Widget ocptBudgetLogisticsAllowanceAmountCell(
   BuildContext context,
   int? cents,
   String currencyCode, {
@@ -51,7 +54,7 @@ Widget ocptBudgetRegieAllowanceAmountCell(
   final baseStyle = style ?? theme.textTheme.bodySmall;
 
   return SizedBox(
-    width: ocptBudgetRegieAllowanceAmountColumnWidth,
+    width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
     child: Text(
       showBlank
           ? ""

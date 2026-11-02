@@ -107,7 +107,7 @@ void main() {
     final tr = await pumpHelp(
       tester,
       view: OcptBudgetView.tools,
-      toolsView: OcptBudgetToolsView.regie,
+      toolsView: OcptBudgetToolsView.logistics,
     );
 
     // No chain of any of the three documents' own steps is drawn.
@@ -118,8 +118,11 @@ void main() {
 
     // Its own first paragraph says why: it is not all typing or all reading, one column computed
     // and the other typed row by row.
-    expect(find.text(tr.budgetHelpRegieBody1), findsOneWidget);
-    expect(find.text(tr.budgetHelpRegieBody5(tr.budgetHeaderExpensesSegmentLabel)), findsOneWidget);
+    expect(find.text(tr.budgetHelpLogisticsBody1), findsOneWidget);
+    expect(
+      find.text(tr.budgetHelpLogisticsBody5(tr.budgetHeaderExpensesSegmentLabel)),
+      findsOneWidget,
+    );
   });
 
   testWidgets(

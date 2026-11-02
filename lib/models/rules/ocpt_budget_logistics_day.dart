@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_meal_sit
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 
 /// One shooting day's own catering reading: who was on set, and what feeding them comes to.
-class OcptBudgetRegieDay extends Equatable {
+class OcptBudgetLogisticsDay extends Equatable {
   /// The day this reading is for.
   final String dayId;
 
@@ -22,12 +22,12 @@ class OcptBudgetRegieDay extends Equatable {
   final DateTime date;
 
   /// How many distinct people were linked as crew to any slot of this day — the buffet's own
-  /// reading, unaffected by the meal reading below. See [ocptBudgetRegieDaysOf]'s own doc comment
-  /// for why this is a de-duplicated count rather than a count of assignments.
+  /// reading, unaffected by the meal reading below. See [ocptBudgetLogisticsDaysOf]'s own doc
+  /// comment for why this is a de-duplicated count rather than a count of assignments.
   final int crewCount;
 
   /// How many distinct roles convoked to this day are cast (not [OcptRoleKind.extra]) — the
-  /// buffet's own reading. See [ocptBudgetRegieDaysOf]'s own doc comment for how a role
+  /// buffet's own reading. See [ocptBudgetLogisticsDaysOf]'s own doc comment for how a role
   /// `roleKindById` does not know is read.
   final int castCount;
 
@@ -39,11 +39,11 @@ class OcptBudgetRegieDay extends Equatable {
   /// day's own blocks chain in — **empty when the day's timetable holds no meal block at all**,
   /// which is a stated absence rather than a coincidental zero: the view reads this list's own
   /// emptiness to print a dash rather than a total that looks like a confirmed "nobody eats today".
-  final List<OcptBudgetRegieMealSitting> mealSittings;
+  final List<OcptBudgetLogisticsMealSitting> mealSittings;
 
   /// This day's own catering cost, priced over [mealCount] and [buffetCount] — see
-  /// [ocptBudgetRegieDaysOf]'s own doc comment for why a missing price leaves one of the two out
-  /// rather than the whole figure.
+  /// [ocptBudgetLogisticsDaysOf]'s own doc comment for why a missing price leaves one of the two
+  /// out rather than the whole figure.
   final OcptBudgetCoveredTotal cost;
 
   /// Count how many people the buffet actually has to serve today — [crewCount] plus [castCount]
@@ -61,13 +61,13 @@ class OcptBudgetRegieDay extends Equatable {
   int get buffetCount => headCount;
 
   /// Count how many meals this day accounts for — the sum of every [mealSittings] entry's own
-  /// [OcptBudgetRegieMealSitting.headCount]. A person fed at two sittings of the same day (lunch
-  /// and dinner) is counted twice here, on purpose: they ate twice, and the production pays for
-  /// both.
+  /// [OcptBudgetLogisticsMealSitting.headCount]. A person fed at two sittings of the same day
+  /// (lunch and dinner) is counted twice here, on purpose: they ate twice, and the production pays
+  /// for both.
   int get mealCount => mealSittings.fold(0, (sum, sitting) => sum + sitting.headCount);
 
   /// Class constructor
-  const OcptBudgetRegieDay({
+  const OcptBudgetLogisticsDay({
     required this.dayId,
     required this.dayNumber,
     required this.date,
@@ -81,7 +81,7 @@ class OcptBudgetRegieDay extends Equatable {
   /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptBudgetRegieDay(dayId: $dayId, dayNumber: $dayNumber, headCount: $headCount, "
+      "OcptBudgetLogisticsDay(dayId: $dayId, dayNumber: $dayNumber, headCount: $headCount, "
       "mealSittingCount: ${mealSittings.length}, cost: $cost)";
 
   /// List the fields that decide equality.

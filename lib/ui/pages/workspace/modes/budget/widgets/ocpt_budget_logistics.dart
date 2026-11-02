@@ -31,7 +31,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// buffet, next to every defrayal the production owes somebody — the layout the validated mockup
 /// lays this view out as, **two columns side by side, the catering table taking roughly two thirds
 /// and the defrayals one third, wrapping onto one another once the centre narrows past
-/// [ocptBudgetRegieWrapWidth]** rather than crushing either column unreadable — and, underneath
+/// [ocptBudgetLogisticsWrapWidth]** rather than crushing either column unreadable — and, underneath
 /// both, the band that provisions the whole thing into the quote.
 ///
 /// **The two halves are read in opposite directions, and that is the point of the view.** The
@@ -42,19 +42,19 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// used to get wrong.
 ///
 /// **The defrayal table is a tree grouped by person, mirroring `OcptBudgetFinancing`'s own
-/// resources tree exactly** (`OcptBudgetRegieAllowanceColumn._rowsOf`'s own doc comment): a person
-/// group row carries the régie's own running account for them — `ADVANCED`, `REIMBURSED`, `OWED` —
-/// mirroring the resources tree's `Promis`/`Rentré`/`Reste à venir`, expanding onto their own
-/// defrayals then their own reimbursements. A defrayal naming nobody stays its own group of one,
-/// counting against the quote and this view's own total but against no running account — see
-/// `OcptBudgetRegieAllowanceNoPersonGroupRow`'s own doc comment.
+/// resources tree exactly** (`OcptBudgetLogisticsAllowanceColumn._rowsOf`'s own doc comment): a
+/// person group row carries the logistics's own running account for them — `ADVANCED`,
+/// `REIMBURSED`, `OWED` — mirroring the resources tree's `Promis`/`Rentré`/`Reste à venir`,
+/// expanding onto their own defrayals then their own reimbursements. A defrayal naming nobody stays
+/// its own group of one, counting against the quote and this view's own total but against no
+/// running account — see `OcptBudgetLogisticsAllowanceNoPersonGroupRow`'s own doc comment.
 ///
 /// **This view therefore writes, and carries [isReadOnly] like every other writing view of this
 /// mode**: under a previewed version the `Defrayal` button, the row menus and the provisioning
 /// gesture are **withheld, never disabled**, expressed as null callbacks.
 ///
 /// **A meal is read off the day's own timetable, one sitting per meal block.**
-/// [ocptBudgetRegieDaysOf] (`lib/models/rules/ocpt_budget_regie.dart`) reads every
+/// [ocptBudgetLogisticsDaysOf] (`lib/models/rules/ocpt_budget_logistics.dart`) reads every
 /// [OcptShootingBlockKind.meal] block of a day, over that block's own slot alone — a day with a
 /// lunch and a dinner block feeds its heads twice, and a day whose timetable holds no meal block at
 /// all feeds nobody. That absence prints as [ocptBudgetEmptyValue] in the `Meals` column rather
@@ -80,12 +80,12 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// schedule is most useful. Its own catering row is withheld (`onCateringFeedRequested` passed
 /// null): it would name this very page, and a link to the page the reader is already standing on is
 /// not a link at all.
-class OcptBudgetRegie extends StatelessWidget {
+class OcptBudgetLogistics extends StatelessWidget {
   /// Every live shooting day's own catering reading, in the schedule's own day-number order.
-  final List<OcptBudgetRegieDay> days;
+  final List<OcptBudgetLogisticsDay> days;
 
   /// Every day's own figures folded together.
-  final OcptBudgetRegieTotals cateringTotals;
+  final OcptBudgetLogisticsTotals cateringTotals;
 
   /// The decor name each day is shot at, keyed by day id — drawn under the day tag.
   final Map<String, String> decorNameByDayId;
@@ -200,7 +200,7 @@ class OcptBudgetRegie extends StatelessWidget {
   final String? provisionNote;
 
   /// Class constructor
-  const OcptBudgetRegie({
+  const OcptBudgetLogistics({
     super.key,
     required this.days,
     required this.cateringTotals,
@@ -234,7 +234,7 @@ class OcptBudgetRegie extends StatelessWidget {
     required this.provisionNote,
   });
 
-  /// Build the budget regie as a [Column].
+  /// Build the budget logistics as a [Column].
   @override
   Widget build(BuildContext context) {
     final feedCard = Padding(
@@ -260,14 +260,14 @@ class OcptBudgetRegie extends StatelessWidget {
           Expanded(
             child: OcptWorkspaceEmptyMode(
               icon: Icons.restaurant_outlined,
-              message: Tr.of(context).budgetRegieEmptyHint,
+              message: Tr.of(context).budgetLogisticsEmptyHint,
             ),
           ),
         ],
       );
     }
 
-    Widget cateringColumn({double? tableHeight}) => OcptBudgetRegieCateringColumn(
+    Widget cateringColumn({double? tableHeight}) => OcptBudgetLogisticsCateringColumn(
       days: days,
       totals: cateringTotals,
       decorNameByDayId: decorNameByDayId,
@@ -278,7 +278,7 @@ class OcptBudgetRegie extends StatelessWidget {
       onScheduleOpenRequested: onScheduleOpenRequested,
       onProjectSettingsRequested: onProjectSettingsRequested,
     );
-    Widget allowanceColumn({double? tableHeight}) => OcptBudgetRegieAllowanceColumn(
+    Widget allowanceColumn({double? tableHeight}) => OcptBudgetLogisticsAllowanceColumn(
       allowances: allowances,
       entries: entries,
       reimbursedByPersonId: reimbursedByPersonId,
@@ -303,21 +303,21 @@ class OcptBudgetRegie extends StatelessWidget {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              if (constraints.maxWidth >= ocptBudgetRegieWrapWidth) {
+              if (constraints.maxWidth >= ocptBudgetLogisticsWrapWidth) {
                 // Three fifths to the catering, two to the defrayals — not the two-to-one the
                 // old travel table was sized for, which left this one under its own floor and
                 // scrolling at any ordinary window width. The catering's own widest column is a
                 // decor name, which gives room up more gracefully than six narrow ones do.
                 //
                 // Side by side, both panes take the whole height, floored at
-                // [ocptBudgetRegiePaneMinHeight].
-                return OcptBudgetRegieVerticalScroller(
-                  height: math.max(constraints.maxHeight, ocptBudgetRegiePaneMinHeight),
+                // [ocptBudgetLogisticsPaneMinHeight].
+                return OcptBudgetLogisticsVerticalScroller(
+                  height: math.max(constraints.maxHeight, ocptBudgetLogisticsPaneMinHeight),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(flex: 3, child: cateringColumn()),
-                      const SizedBox(width: ocptBudgetRegieStackGap),
+                      const SizedBox(width: ocptBudgetLogisticsStackGap),
                       Expanded(flex: 2, child: allowanceColumn()),
                     ],
                   ),
@@ -326,23 +326,23 @@ class OcptBudgetRegie extends StatelessWidget {
 
               // Stacked, each pane takes the height its own heading band and rows need, and the
               // view scrolls when the two together are taller than it — see
-              // [ocptBudgetRegieStackedMinRowCount] for why a share of the height cannot be used
-              // here.
+              // [ocptBudgetLogisticsStackedMinRowCount] for why a share of the height cannot be
+              // used here.
               return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     cateringColumn(
-                      tableHeight: ocptBudgetRegieStackedCardHeight(
+                      tableHeight: ocptBudgetLogisticsStackedCardHeight(
                         days.length,
-                        ocptBudgetRegieCateringRowHeight,
+                        ocptBudgetLogisticsCateringRowHeight,
                       ),
                     ),
-                    const SizedBox(height: ocptBudgetRegieStackGap),
+                    const SizedBox(height: ocptBudgetLogisticsStackGap),
                     allowanceColumn(
-                      tableHeight: ocptBudgetRegieStackedCardHeight(
-                        ocptBudgetRegieAllowanceGroupCountOf(allowances),
-                        ocptBudgetRegieAllowanceRowHeight,
+                      tableHeight: ocptBudgetLogisticsStackedCardHeight(
+                        ocptBudgetLogisticsAllowanceGroupCountOf(allowances),
+                        ocptBudgetLogisticsAllowanceRowHeight,
                       ),
                     ),
                   ],
@@ -352,7 +352,7 @@ class OcptBudgetRegie extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        OcptBudgetRegieProvisionBand(
+        OcptBudgetLogisticsProvisionBand(
           computedTotalCents:
               cateringTotals.cost.amountCents + ocptBudgetAllowancesTotalCents(allowances),
           provisionedTotalCents: provisionedTotalCents,

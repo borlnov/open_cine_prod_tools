@@ -162,7 +162,7 @@ class OcptBudgetCentre extends StatelessWidget {
                     state: state,
                     onEntryDeletionRequested: onEntryDeletionRequested,
                   ),
-                  OcptBudgetToolsView.regie => OcptBudgetRegieView(
+                  OcptBudgetToolsView.logistics => OcptBudgetLogisticsView(
                     state: state,
                     onProjectSettingsRequested: onProjectSettingsRequested,
                     onAllowanceDeletionRequested: onAllowanceDeletionRequested,

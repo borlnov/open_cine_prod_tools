@@ -17,13 +17,13 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 /// the matrix answered a navigation of sibling pages that no longer exists. What a route's own
 /// rows actually do is pass through a small **chain of states** — an estimate becomes a
 /// commitment becomes a payment, a promise becomes a receipt — so every route but the tools
-/// drawer's own `Régie` page now opens on that chain ([_OcptBudgetHelpChain]) instead: one cell per
-/// state, left to right, each carrying the state's own word and, under it, a short caption naming
-/// where that figure comes from. `Régie` draws no chain — it is not a stage of anything, and its
-/// own first paragraph says so. Under the chain, one sentence says how a step
+/// drawer's own `Logistics` page now opens on that chain ([_OcptBudgetHelpChain]) instead: one cell
+/// per state, left to right, each carrying the state's own word and, under it, a short caption
+/// naming where that figure comes from. `Logistics` draws no chain — it is not a stage of anything,
+/// and its own first paragraph says so. Under the chain, one sentence says how a step
 /// becomes the next; the page below it is the detail. **This widget writes nothing** — like
-/// `OcptBudgetRegie` (`docs/architecture/budget.md`), it carries no `isReadOnly` flag at all, and
-/// is offered identically under a previewed version.
+/// `OcptBudgetLogistics` (`docs/architecture/budget.md`), it carries no `isReadOnly` flag at all,
+/// and is offered identically under a previewed version.
 ///
 /// **[view] and [toolsView] together answer every question this file asks**, the mode's six routes
 /// being a chip and, under `Tools`, one of the drawer's own three pages. Each route's own strings
@@ -90,7 +90,7 @@ class OcptBudgetHelp extends StatelessWidget {
 
   /// Get the chain [_OcptBudgetHelpChain] draws for the current route, or empty on `tools › regie`
   /// —
-  /// see the class doc comment for why régie draws none.
+  /// see the class doc comment for why logistics draws none.
   ///
   /// `tools › cashFlow` reads the very same chain as `expenses`: it is that document's own middle
   /// state, seen on its own page, never a chain of its own. **[OcptBudgetView.dashboard] reads it
@@ -98,7 +98,7 @@ class OcptBudgetHelp extends StatelessWidget {
   /// whole-project level rather than poste by poste, so the chain that explains them is the very
   /// one that already explains the other two.
   List<(String label, String caption)> _chainStepsOf(Tr tr) => switch ((view, toolsView)) {
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => const [],
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => const [],
     (OcptBudgetView.dashboard, _) || (OcptBudgetView.expenses, _) => _expensesChainSteps(tr),
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => _expensesChainSteps(tr),
     (OcptBudgetView.resources, _) => _resourcesChainSteps(tr),
@@ -138,7 +138,7 @@ class OcptBudgetHelp extends StatelessWidget {
   /// Get the sentence printed under the chain, or null on `tools › regie` where [_chainStepsOf] is
   /// already empty and nothing is printed at all.
   String? _chainSentenceOf(Tr tr) => switch ((view, toolsView)) {
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => null,
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => null,
     (OcptBudgetView.dashboard, _) ||
     (OcptBudgetView.expenses, _) => tr.budgetHelpChainExpensesSentence,
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHelpChainExpensesSentence,
@@ -166,7 +166,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.dashboard, _) ||
     (OcptBudgetView.expenses, _) ||
     (OcptBudgetView.resources, _) ||
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) ||
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) ||
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => null,
   };
 
@@ -178,7 +178,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.expenses, _) => tr.budgetHeaderTitle,
     (OcptBudgetView.resources, _) => tr.budgetHeaderResourcesTitle,
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHeaderCashJournalTitle,
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => tr.budgetHeaderRegieTitle,
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => tr.budgetHeaderLogisticsTitle,
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHeaderSharingTitle,
   };
 
@@ -188,7 +188,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.expenses, _) => tr.budgetHeaderSubtitle,
     (OcptBudgetView.resources, _) => tr.budgetHeaderFinancingSubtitle,
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHeaderCashJournalSubtitle,
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => tr.budgetHeaderRegieSubtitle,
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => tr.budgetHeaderLogisticsSubtitle,
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHeaderSharingSubtitle,
   };
 
@@ -217,12 +217,12 @@ class OcptBudgetHelp extends StatelessWidget {
       tr.budgetHelpDashboardBody3,
       tr.budgetHelpDashboardBody4(tr.budgetHeaderDashboardSegmentLabel),
     ],
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => [
-      tr.budgetHelpRegieBody1,
-      tr.budgetHelpRegieBody2,
-      tr.budgetHelpRegieBody3,
-      tr.budgetHelpRegieBody4,
-      tr.budgetHelpRegieBody5(tr.budgetHeaderExpensesSegmentLabel),
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => [
+      tr.budgetHelpLogisticsBody1,
+      tr.budgetHelpLogisticsBody2,
+      tr.budgetHelpLogisticsBody3,
+      tr.budgetHelpLogisticsBody4,
+      tr.budgetHelpLogisticsBody5(tr.budgetHeaderExpensesSegmentLabel),
     ],
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => [
       tr.budgetHelpCashFlowIntro(tr.budgetHeaderExpensesSegmentLabel),
