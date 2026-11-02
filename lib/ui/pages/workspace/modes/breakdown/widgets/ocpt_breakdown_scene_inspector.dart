@@ -56,7 +56,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart'
 /// and nulls them out itself, so a control added later cannot be gated in one place and forgotten
 /// in the other. [onTargetSelected] is never withheld: selecting writes nothing whatever a
 /// previewed version's own gating says.
-class OcptBreakdownSceneInspector extends StatelessWidget {
+class OcptBreakdownSceneInspector extends StatefulWidget {
   /// The selected scene, or null while nothing at all is selected — the mode's own empty message is
   /// shown then.
   final OcptBreakdownScene? scene;
@@ -150,14 +150,88 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
     this.isReadOnly = false,
   });
 
+  /// Create the [_OcptBreakdownSceneInspectorState] holding the state of the breakdown scene
+  /// inspector.
+  @override
+  State<OcptBreakdownSceneInspector> createState() => _OcptBreakdownSceneInspectorState();
+}
+
+/// What [OcptBreakdownSceneInspector] reads off one scene: its live targets, the ones still to find,
+/// its tags flagged to check, and one group of alphabetised targets per bucket.
+class _OcptBreakdownSceneInspection {
+  /// Every live target of the scene.
+  final List<OcptBreakdownTarget> targets;
+
+  /// The scene's targets whose status is still `toFind`.
+  final List<OcptBreakdownTarget> toFindTargets;
+
+  /// The scene's tags flagged to check.
+  final List<OcptBreakdownTag> flaggedTags;
+
+  /// The scene's buckets, each with its own targets alphabetised by name.
+  final List<({OcptBreakdownSceneBarBucket bucket, List<OcptBreakdownTarget> targets})> groups;
+
+  /// Class constructor
+  const _OcptBreakdownSceneInspection({
+    required this.targets,
+    required this.toFindTargets,
+    required this.flaggedTags,
+    required this.groups,
+  });
+
+  /// Read [scene] against [targetById].
+  factory _OcptBreakdownSceneInspection.of(
+    OcptBreakdownScene scene,
+    OcptBreakdownTargetsById targetById,
+  ) {
+    final targets = ocptBreakdownSceneTargetsOf(scene, targetById);
+
+    return _OcptBreakdownSceneInspection(
+      targets: targets,
+      toFindTargets: targets.where((target) => target.status == OcptElementStatus.toFind).toList(),
+      flaggedTags: scene.tags.where((tag) => tag.needsCheck).toList(),
+      groups: [
+        for (final bucket in ocptBreakdownSceneBarBucketsOf(scene, targetById))
+          (
+            bucket: bucket,
+            targets:
+                targets
+                    .where(
+                      (target) => target.kind == bucket.kind && target.category == bucket.category,
+                    )
+                    .toList()
+                  ..sort((a, b) => a.name.compareTo(b.name)),
+          ),
+      ],
+    );
+  }
+}
+
+/// The state of [OcptBreakdownSceneInspector]: it keeps what is read off the scene, so that a
+/// rebuild which changes neither the scene nor its targets does not read it again.
+class _OcptBreakdownSceneInspectorState extends State<OcptBreakdownSceneInspector> {
+  /// What is read off the scene, or null while no scene is selected.
+  late _OcptBreakdownSceneInspection? _inspection = _inspectionOf(widget);
+
+  /// Read the scene again when it or its targets have changed.
+  @override
+  void didUpdateWidget(covariant OcptBreakdownSceneInspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.scene, widget.scene) ||
+        !identical(oldWidget.targetById, widget.targetById)) {
+      _inspection = _inspectionOf(widget);
+    }
+  }
+
   /// Build the breakdown scene inspector as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final scene = this.scene;
+    final scene = widget.scene;
+    final derived = _inspection;
 
-    if (scene == null) {
+    if (scene == null || derived == null) {
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
@@ -167,10 +241,25 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
       );
     }
 
-    final targets = ocptBreakdownSceneTargetsOf(scene, targetById);
-    final toFindTargets = targets.where((target) => target.status == OcptElementStatus.toFind);
-    final flaggedTags = scene.tags.where((tag) => tag.needsCheck).toList();
-    final buckets = ocptBreakdownSceneBarBucketsOf(scene, targetById);
+    final targetById = widget.targetById;
+    final sets = widget.sets;
+    final locationNameById = widget.locationNameById;
+    final suggestedSetId = widget.suggestedSetId;
+    final onSetLinked = widget.onSetLinked;
+    final onSetUnlinked = widget.onSetUnlinked;
+    final locations = widget.locations;
+    final newSetName = widget.newSetName;
+    final onSetCreationRequested = widget.onSetCreationRequested;
+    final notesValue = widget.notesValue;
+    final onTargetSelected = widget.onTargetSelected;
+    final onStatusChanged = widget.onStatusChanged;
+    final onNotesChanged = widget.onNotesChanged;
+    final onTagNeedsCheckCleared = widget.onTagNeedsCheckCleared;
+    final onFlaggedTagRemoved = widget.onFlaggedTagRemoved;
+    final isReadOnly = widget.isReadOnly;
+    final targets = derived.targets;
+    final toFindTargets = derived.toFindTargets;
+    final flaggedTags = derived.flaggedTags;
 
     return ListView(
       // Keyed by the scene's own id so switching scenes always resets the scroll offset to the top
@@ -241,7 +330,7 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
         const SizedBox(height: 16),
 
         if (toFindTargets.isNotEmpty) ...[
-          _ToFindAlert(toFindTargets: toFindTargets.toList()),
+          _ToFindAlert(toFindTargets: toFindTargets),
           const SizedBox(height: 16),
         ],
 
@@ -264,10 +353,10 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
         if (targets.isEmpty)
           const _EmptyHint()
         else
-          for (final bucket in buckets)
+          for (final group in derived.groups)
             _Group(
-              bucket: bucket,
-              allTargets: targets,
+              bucket: group.bucket,
+              targets: group.targets,
               sceneId: scene.id,
               onTargetSelected: onTargetSelected,
             ),
@@ -290,6 +379,12 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Read the scene of [widget], or null while it has none.
+  static _OcptBreakdownSceneInspection? _inspectionOf(OcptBreakdownSceneInspector widget) {
+    final scene = widget.scene;
+    return scene == null ? null : _OcptBreakdownSceneInspection.of(scene, widget.targetById);
   }
 }
 
@@ -650,13 +745,13 @@ class _EmptyHint extends StatelessWidget {
 }
 
 /// One category (or role/set) group: [bucket]'s own swatch, label and count, then a clickable row
-/// per target of [allTargets] falling under it, alphabetised by name.
+/// per target of [targets], which are the ones falling under it.
 class _Group extends StatelessWidget {
   /// The bucket the group shows.
   final OcptBreakdownSceneBarBucket bucket;
 
-  /// Every live target of the scene, of which the group keeps the ones under [bucket].
-  final List<OcptBreakdownTarget> allTargets;
+  /// The live targets of the scene under [bucket], alphabetised by name.
+  final List<OcptBreakdownTarget> targets;
 
   /// The id of the scene the targets are selected under.
   final String sceneId;
@@ -667,7 +762,7 @@ class _Group extends StatelessWidget {
   /// Class constructor
   const _Group({
     required this.bucket,
-    required this.allTargets,
+    required this.targets,
     required this.sceneId,
     required this.onTargetSelected,
   });
@@ -677,11 +772,6 @@ class _Group extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final groupTargets =
-        allTargets
-            .where((target) => target.kind == bucket.kind && target.category == bucket.category)
-            .toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -709,7 +799,7 @@ class _Group extends StatelessWidget {
                 ),
               ),
               Text(
-                "${groupTargets.length}",
+                "${targets.length}",
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -717,7 +807,7 @@ class _Group extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          for (final target in groupTargets)
+          for (final target in targets)
             Padding(
               padding: const EdgeInsets.only(bottom: 5),
               child: InkWell(
