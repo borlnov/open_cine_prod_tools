@@ -53,12 +53,16 @@ ScriptImportResult _read(String text, String fileName) =>
 
 /// The [ScriptImportFailure] reading [text] under [fileName] throws.
 ScriptImportFailure _failureOf(String text, String fileName) {
+  ScriptImportFailure? failure;
   try {
     _read(text, fileName);
   } on ScriptImportException catch (exception) {
-    return exception.failure;
+    failure = exception.failure;
   }
-  fail('reading the file was expected to throw');
+  if (failure == null) {
+    fail('reading the file was expected to throw');
+  }
+  return failure;
 }
 
 /// Run the tests of [ScriptImporter].

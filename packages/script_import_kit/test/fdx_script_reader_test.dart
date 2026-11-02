@@ -54,12 +54,16 @@ ${_paragraph('Dialogue', 'Screw retirement.')}
 
 /// The [ScriptImportFailure] the [FdxScriptReader] throws on [xml].
 ScriptImportFailure _failureOf(String xml) {
+  ScriptImportFailure? failure;
   try {
     _read(xml);
   } on ScriptImportException catch (exception) {
-    return exception.failure;
+    failure = exception.failure;
   }
-  fail('reading the document was expected to throw');
+  if (failure == null) {
+    fail('reading the document was expected to throw');
+  }
+  return failure;
 }
 
 /// Run the tests of [FdxScriptReader].

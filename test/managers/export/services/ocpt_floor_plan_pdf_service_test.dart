@@ -871,11 +871,13 @@ String _inflatedContentOf(Uint8List bytes) =>
 
 /// [stream] inflated, or null when it is not a deflated stream at all.
 String? _inflated(String stream) {
+  String? inflated;
   try {
-    return latin1.decode(ZLibDecoder().convert(latin1.encode(stream)));
+    inflated = latin1.decode(ZLibDecoder().convert(latin1.encode(stream)));
   } on FormatException {
-    return null;
+    inflated = null;
   }
+  return inflated;
 }
 
 /// The three points — tip, left corner, right corner, in that order — of the very first

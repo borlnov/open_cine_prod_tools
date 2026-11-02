@@ -70,12 +70,16 @@ String _paragraph(String className, String text, {String attributes = ''}) =>
 
 /// The [ScriptImportFailure] reading [bytes] throws.
 ScriptImportFailure _failureOf(Uint8List bytes) {
+  ScriptImportFailure? failure;
   try {
     const CeltxScriptReader().read(bytes);
   } on ScriptImportException catch (exception) {
-    return exception.failure;
+    failure = exception.failure;
   }
-  fail('reading the container was expected to throw');
+  if (failure == null) {
+    fail('reading the container was expected to throw');
+  }
+  return failure;
 }
 
 /// Run the tests of [CeltxScriptReader].

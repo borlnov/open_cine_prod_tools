@@ -419,11 +419,13 @@ String _operandOf(double value) {
 
 /// [stream] inflated, or null when it is not a deflated stream at all.
 String? _inflated(String stream) {
+  String? inflated;
   try {
-    return latin1.decode(ZLibDecoder().convert(latin1.encode(stream)));
+    inflated = latin1.decode(ZLibDecoder().convert(latin1.encode(stream)));
   } on FormatException {
-    return null;
+    inflated = null;
   }
+  return inflated;
 }
 
 /// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order.

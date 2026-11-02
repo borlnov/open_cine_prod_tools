@@ -437,13 +437,18 @@ List<double> _textBaselines(Uint8List bytes) {
   final zlib = ZLibCodec();
   final baselines = <double>[];
   for (final stream in _contentStreams(bytes)) {
-    final String content;
+    String? decoded;
     try {
-      content = latin1.decode(zlib.decode(latin1.encode(stream)));
+      decoded = latin1.decode(zlib.decode(latin1.encode(stream)));
     } on FormatException {
-      // Not a deflated stream at all.
+      decoded = null;
+    }
+
+    // Not a deflated stream at all.
+    if (decoded == null) {
       continue;
     }
+    final content = decoded;
 
     // A page's content stream is pure printable ASCII (operators plus
     // hex-encoded glyph indices), while the other deflated streams of the
