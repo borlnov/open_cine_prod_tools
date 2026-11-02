@@ -27,9 +27,9 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/join_step.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
-import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';

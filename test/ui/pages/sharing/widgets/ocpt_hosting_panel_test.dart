@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_qr_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_hosting_panel.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_qr_code.dart';

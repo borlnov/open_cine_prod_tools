@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_event.dart';
-import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_qr_kind.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';

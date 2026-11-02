@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
-import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/home_recent_project_entry.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_relative_time.dart';
 
 /// A single project tile in the home page's project grid.

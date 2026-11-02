@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_manual_view.dart';
-import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_frame.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scanner_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_status_overlay.dart';
 

@@ -5,7 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_qr_kind.dart';
 
 /// The events handled by `OcptHostingBloc`.
 sealed class OcptHostingEvent extends BlocEventForMixin {

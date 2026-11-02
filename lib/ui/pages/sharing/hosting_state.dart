@@ -8,18 +8,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
-
-/// Which of the hosting panel's own two QR codes is currently shown — the panel's own
-/// `SegmentedButton<OcptHostingQrKind>` selects between them, see
-/// `lib/ui/pages/sharing/widgets/ocpt_hosting_panel.dart`.
-enum OcptHostingQrKind {
-  /// The `ocpt://join` invite a device with no local copy of the project scans to get one.
-  join,
-
-  /// The `ocpt://relay` enrolment a device that already has the project scans to point itself at
-  /// this hosted relay instead of wherever it was pointed before.
-  enrolment,
-}
+import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_qr_kind.dart';
 
 /// The state of `OcptHostingBloc` — the Partager screen's "Héberger sur ce poste" segment
 /// (`docs/architecture/sync.md`).

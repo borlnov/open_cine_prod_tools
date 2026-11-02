@@ -6,6 +6,7 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_io_notice.dart';
 
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_io_notice.dart';
+export 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_io_notice_kind.dart';
 
 /// The state of `OcptScheduleExportBloc`: the transient notice an export leaves behind.
 ///

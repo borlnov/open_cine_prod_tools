@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
-import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/home_recent_project_entry.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dart';
 
 /// Builds an [OcptProjectCard] for a project at [path], themed and localized as the app does,

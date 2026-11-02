@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_diagnostics_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/join_step.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 

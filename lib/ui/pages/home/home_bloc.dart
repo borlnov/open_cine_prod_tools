@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/home_recent_project_entry.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:path/path.dart' as p;

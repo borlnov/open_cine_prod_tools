@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
-import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/join_step.dart';
 
 /// The Rejoindre screen's own blocking modal, covering the whole page for as long as a join is in
 /// flight and for the success state that follows it.
