@@ -90,3 +90,33 @@ a0951b6e5655853dee4c2200b1e2a100b43afc28
 
 # style: indent the shell scripts with 4 spaces
 7ce1ac571565114859feaf8775430999ec5df846
+
+# refactor: move the fiche files to English
+554d819b84e41ce538184b28363532a4c04e6efb
+
+# refactor: rename fiche to detail
+a1766e4eee1ecdf10bd0896d5975cfb69aa39223
+
+# refactor: move the regie files to English
+cfab383c2c09b4fe547519130b1e9864888fe4d3
+
+# refactor: rename regie to logistics
+45429f001ad1e27e619dae3ec18fe321d25ed31e
+
+# refactor: move the poste files to English
+71f34f8c1360fed3ff0c6b3f5339cf7fe2ab60f5
+
+# refactor: rename poste to account
+119bc37b8d4f80672fe879be9e8db2054686db16
+
+# refactor: rename the remaining French identifiers
+236046956599423a428fcca9da77026a089b7024
+
+# refactor: rename the remaining test wording
+d9f6abb804a22de0c0168c11279c6002347121fa
+
+# refactor: move the lettrage file to English
+b5493df1a4e4ede61fcd3bb8038024966d4b7d36
+
+# refactor: rename lettrage to matching
+49a461a92c03e0a9b4dfc9032daa9fa184e15e83
