@@ -291,7 +291,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
 /// Run the tests of [OcptShootingPlanGrids].
 void main() {
   const presenceMark = "x";
-  const persoLabel = "Cast";
+  const peopleLabel = "Cast";
   const sequenceRowPrefix = "Seq.";
   const emptyValue = "—";
 
@@ -304,7 +304,7 @@ void main() {
     plan: plan,
     dayIds: dayIds,
     presenceMark: presenceMark,
-    persoLabel: persoLabel,
+    peopleLabel: peopleLabel,
     sequenceRowPrefix: sequenceRowPrefix,
     emptyValue: emptyValue,
     crewPositionLabelById: crewPositionLabelById,
@@ -381,11 +381,11 @@ void main() {
       // No set chosen on either slot, so both columns fall back to the presence mark.
       expect(nameRow.cells, [presenceMark, presenceMark]);
 
-      final persoRow = grids.locationsRows[1];
-      expect(persoRow.label, persoLabel);
-      expect(persoRow.isIndented, isTrue);
-      expect(persoRow.isMuted, isTrue);
-      expect(persoRow.cells, ["", ""]);
+      final peopleRow = grids.locationsRows[1];
+      expect(peopleRow.label, peopleLabel);
+      expect(peopleRow.isIndented, isTrue);
+      expect(peopleRow.isMuted, isTrue);
+      expect(peopleRow.cells, ["", ""]);
     });
 
     test("a slot shot at another location leaves that column blank, not the presence mark", () {

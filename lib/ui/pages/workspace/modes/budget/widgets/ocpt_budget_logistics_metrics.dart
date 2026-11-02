@@ -49,7 +49,7 @@ const double ocptBudgetLogisticsAllowanceSubRowHeight = 32;
 
 /// The narrowest the `Person`/detail column is ever drawn, in logical pixels — past this, the table
 /// scrolls sideways inside its own frame rather than crushing a person's own name or a sub-row's
-/// own wording, mirroring `OcptBudgetFinancing`'s own `_ocptResourcesRessourceColumnMinWidth`.
+/// own wording, mirroring `OcptBudgetFinancing`'s own `_ocptResourcesResourceColumnMinWidth`.
 const double ocptBudgetLogisticsAllowanceDetailColumnMinWidth = 220;
 
 /// A reimbursement sub-row's own leading dot, in logical pixels — mirrors `OcptBudgetFinancing`'s
@@ -60,7 +60,7 @@ const double ocptBudgetLogisticsAllowanceDotDiameter = 8;
 const double ocptBudgetLogisticsHeaderRowHeight = 36;
 
 /// A catering row's own fixed height, in logical pixels — one line for the day tag, one for the
-/// decor's own date underneath it.
+/// set's own date underneath it.
 const double ocptBudgetLogisticsCateringRowHeight = 52;
 
 /// A defrayal row's own fixed height, in logical pixels — mirrors
@@ -68,11 +68,11 @@ const double ocptBudgetLogisticsCateringRowHeight = 52;
 const double ocptBudgetLogisticsAllowanceRowHeight = 52;
 
 /// The narrowest the catering table is drawn at before it starts scrolling sideways, in logical
-/// pixels: its seven fixed columns (548) plus a floor of 220 for the decor's own wording, the one
+/// pixels: its seven fixed columns (548) plus a floor of 220 for the set's own wording, the one
 /// column sized by nothing but an `Expanded`.
 ///
 /// The defrayal table beside it already had [ocptBudgetLogisticsAllowanceMinTableWidth] for this;
-/// the catering table went without one and lost its decor column outright the moment the right dock
+/// the catering table went without one and lost its set column outright the moment the right dock
 /// opened, exactly as the cash journal did.
 const double ocptBudgetLogisticsCateringMinTableWidth = 768;
 

@@ -57,7 +57,7 @@ class OcptShotListService extends AbsOcptService {
   /// production's `roles` (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), so a
   /// hand-added role minted here reuses the very same creation path the resources mode's "add a
   /// role" affordance calls, hand-added and silent, so a character invented in the shot list shows
-  /// up in Ressources at once, castable and dressable.
+  /// up in Resources at once, castable and dressable.
   final OcptRoleIndexService roleIndexService;
 
   /// The service owning a shot's storyboard panels, held so [deleteShot] and

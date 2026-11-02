@@ -291,7 +291,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
           _LayerRow(
             palette: this,
             layer: OcptFloorPlanLayer.set,
-            label: tr.shotListFloorPlanLayerDecorLabel,
+            label: tr.shotListFloorPlanLayerSetLabel,
           ),
           _CamerasRow(palette: this),
           _LayerRow(

@@ -163,7 +163,7 @@ OcptFloorPlanSymbol _sequenceCharacterSymbolOf({required String id, required Str
 
 /// A sequence-scoped décor symbol on [setId], drawn as [shape] (defaulting to freeform, today's
 /// generic look, when unset).
-OcptFloorPlanSymbol _decorSymbolOf({
+OcptFloorPlanSymbol _setSymbolOf({
   required String id,
   required String setId,
   OcptFloorPlanSetElementShape? shape,
@@ -288,7 +288,7 @@ void main() {
             "scene-1": [
               buildCase(
                 id: "case-1",
-                symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")],
+                symbols: [_setSymbolOf(id: "sym-1", setId: "case-1")],
               ),
             ],
           },
@@ -308,7 +308,7 @@ void main() {
             "scene-1": [
               buildCase(
                 id: "case-1",
-                symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")],
+                symbols: [_setSymbolOf(id: "sym-1", setId: "case-1")],
               ),
             ],
           },
@@ -360,7 +360,7 @@ void main() {
               ),
               buildCase(
                 id: "case-2",
-                symbols: [_decorSymbolOf(id: "sym-1", setId: "case-2")],
+                symbols: [_setSymbolOf(id: "sym-1", setId: "case-2")],
               ),
             ],
           },
@@ -428,7 +428,7 @@ void main() {
             buildCase(
               id: "case-1",
               symbols: [
-                _decorSymbolOf(id: "sym-1", setId: "case-1"),
+                _setSymbolOf(id: "sym-1", setId: "case-1"),
                 _cameraSymbolOf(id: "cam-0", setId: "case-1", shotId: "shot-0", xM: xM),
               ],
             ),
@@ -526,7 +526,7 @@ void main() {
               "scene-1": [
                 buildCase(
                   id: "case-1",
-                  symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1", shape: shape)],
+                  symbols: [_setSymbolOf(id: "sym-1", setId: "case-1", shape: shape)],
                 ),
               ],
             },
@@ -647,7 +647,7 @@ void main() {
           },
         ),
       );
-      final decorOnly = await generate(
+      final setOnly = await generate(
         snapshot: snapshotOf(1),
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
           screenplayId: "screenplay",
@@ -655,7 +655,7 @@ void main() {
             "scene-1": [
               buildCase(
                 id: "case-1",
-                symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")],
+                symbols: [_setSymbolOf(id: "sym-1", setId: "case-1")],
               ),
             ],
           },
@@ -663,7 +663,7 @@ void main() {
       );
 
       expect(_inflatedContentOf(withCamera), contains("1 1 1 rg"));
-      expect(_inflatedContentOf(decorOnly), isNot(contains("1 1 1 rg")));
+      expect(_inflatedContentOf(setOnly), isNot(contains("1 1 1 rg")));
     });
   });
 
@@ -675,7 +675,7 @@ void main() {
             "scene-1": [
               buildCase(
                 id: "case-1",
-                symbols: [_decorSymbolOf(id: "sym-1", setId: "case-1")],
+                symbols: [_setSymbolOf(id: "sym-1", setId: "case-1")],
                 underlayPath: underlayPath,
                 underlayRotationDeg: rotationDeg,
               ),
@@ -727,7 +727,7 @@ void main() {
   group("overrides and hidden overrides — the printed page shows the effective plan alone", () {
     test("a visible override draws normally, in its own place — no dashed mark or ghost of the "
         "original prints", () async {
-      final original = _decorSymbolOf(id: "sym-original", setId: "case-1");
+      final original = _setSymbolOf(id: "sym-original", setId: "case-1");
       final override = OcptFloorPlanSymbol(
         id: "sym-override",
         setId: "case-1",
@@ -779,7 +779,7 @@ void main() {
 
     test("a hidden override prints nothing at all for that element — same page as if it were never "
         "placed", () async {
-      final original = _decorSymbolOf(id: "sym-original", setId: "case-1");
+      final original = _setSymbolOf(id: "sym-original", setId: "case-1");
       final hiddenOverride = OcptFloorPlanSymbol(
         id: "sym-override",
         setId: "case-1",
@@ -811,7 +811,7 @@ void main() {
           },
         ),
       );
-      final withNoDecorAtAll = await generate(
+      final withNoSetAtAll = await generate(
         snapshot: snapshotOf(1),
         floorPlanSnapshot: OcptFloorPlanSnapshot.build(
           screenplayId: "screenplay",
@@ -821,7 +821,7 @@ void main() {
         ),
       );
 
-      expect(_contentStreams(withHiddenOverride), _contentStreams(withNoDecorAtAll));
+      expect(_contentStreams(withHiddenOverride), _contentStreams(withNoSetAtAll));
     });
   });
 

@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
-/// One shooting day's own catering row: its day tag in the accent colour, [decorName] with the
+/// One shooting day's own catering row: its day tag in the accent colour, [setName] with the
 /// day's own date underneath in small muted type, the three crew/cast/extras head counts, the
 /// `Meals` cell (see below), the buffet's own head count, then the day's own money —
 /// [ocptBudgetEmptyValue] rather than a claimed zero the moment neither the meal nor the buffet
@@ -28,8 +28,8 @@ class OcptBudgetLogisticsCateringRow extends StatelessWidget {
   /// The day this row draws.
   final OcptBudgetLogisticsDay day;
 
-  /// The decor name to print under the day tag, or null while none of the day's own slots name one.
-  final String? decorName;
+  /// The set name to print under the day tag, or null while none of the day's own slots name one.
+  final String? setName;
 
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
@@ -38,7 +38,7 @@ class OcptBudgetLogisticsCateringRow extends StatelessWidget {
   const OcptBudgetLogisticsCateringRow({
     super.key,
     required this.day,
-    required this.decorName,
+    required this.setName,
     required this.currencyCode,
   });
 
@@ -48,7 +48,7 @@ class OcptBudgetLogisticsCateringRow extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final locale = Localizations.localeOf(context).toString();
-    final decorName = this.decorName;
+    final setName = this.setName;
     final costText = day.cost.coveredLineCount == 0
         ? ocptBudgetEmptyValue
         : ocptBudgetAmountLabel(day.cost.amountCents, currencyCode);
@@ -74,9 +74,9 @@ class OcptBudgetLogisticsCateringRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (decorName != null)
+                  if (setName != null)
                     Text(
-                      decorName,
+                      setName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall,

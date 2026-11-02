@@ -505,11 +505,11 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `.github/actions/flutter-debian`, which installs the 512 px and scalable icons plus a `.desktop`
   entry named after the package (the icon name `linux/runner/my_application.cc` asks the window to
   wear). A **non-production build rebrands every launcher icon** with a blue `QUALIF` corner flag:
-  the generator also emits `ocpt_icon_qualif_*` masters — a small blue triangle (the same
+  the generator also emits `ocpt_icon_qualification_*` masters — a small blue triangle (the same
   `Colors.blue` the environment banner paints in qualification) tucked into the mark's bottom-left
-  corner — and `.github/actions/qualif-icons` swaps those over the plain masters, turns the Android
-  adaptive background blue, and reruns `icons_launcher:create` before packaging, all gated on the
-  `get-version` job's `env` output. A stable release keeps the plain icons, so an alpha is
+  corner — and `.github/actions/qualification-icons` swaps those over the plain masters, turns the
+  Android adaptive background blue, and reruns `icons_launcher:create` before packaging, all gated
+  on the `get-version` job's `env` output. A stable release keeps the plain icons, so an alpha is
   recognisable at a glance on the home screen, taskbar or launcher.
 
 - Desktop packaging: `build.yml` builds the three desktop targets and one composite action per
@@ -517,18 +517,18 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `macos-dmg` (`hdiutil create -format UDZO` over a staging directory holding the `.app` copied
   with `ditto` and an `/Applications` symlink). The **Windows installer's identity is chosen from
   the `get-version` env**: production and a non-production build carry different Inno `AppId`s and
-  display names (`Open Cine Prod Tools` vs `Open Cine Prod Tools (Qualif)`), and the name drives the
-  install folder and Start-menu group, so the two install side by side instead of overwriting one
-  another — and each app's taskbar icon is read from its own executable path, never a shared Windows
-  icon cache that an earlier install could leave stale. The macOS bundle's `PRODUCT_NAME` is the display
-  name `Open Cine Prod Tools`, so every script path quotes it; its version is split before the
-  build (`--build-name` = the dotted numeric prefix, `--build-number` = the commit distance)
-  because `CFBundleShortVersionString` rejects `git describe`'s output. The app is distributed
-  outside the Mac App Store (`docs/adr/0011`): **the App Sandbox is off** in both entitlements
-  files — the recent-projects list reopens a project by absolute path, which a sandboxed app
-  cannot do without security-scoped bookmarks — and the `.app` carries only the scaffold's ad-hoc
-  signature, so the README documents the Gatekeeper bypass beside the SmartScreen note. Real
-  signing and notarization are written into `build.yml` and dormant, guarded by
+  display names (`Open Cine Prod Tools` vs `Open Cine Prod Tools (Qualification)`), and the name
+  drives the install folder and Start-menu group, so the two install side by side instead of
+  overwriting one another — and each app's taskbar icon is read from its own executable path, never
+  a shared Windows icon cache that an earlier install could leave stale. The macOS bundle's
+  `PRODUCT_NAME` is the display name `Open Cine Prod Tools`, so every script path quotes it; its
+  version is split before the build (`--build-name` = the dotted numeric prefix, `--build-number` =
+  the commit distance) because `CFBundleShortVersionString` rejects `git describe`'s output. The app
+  is distributed outside the Mac App Store (`docs/adr/0011`): **the App Sandbox is off** in both
+  entitlements files — the recent-projects list reopens a project by absolute path, which a
+  sandboxed app cannot do without security-scoped bookmarks — and the `.app` carries only the
+  scaffold's ad-hoc signature, so the README documents the Gatekeeper bypass beside the SmartScreen
+  note. Real signing and notarization are written into `build.yml` and dormant, guarded by
   `if: env.APPLE_CERTIFICATE != ''`; `--options runtime` belongs to that path alone, never to the
   unsigned one. `macos/Podfile` is tracked (copied verbatim from the pinned SDK's template),
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to

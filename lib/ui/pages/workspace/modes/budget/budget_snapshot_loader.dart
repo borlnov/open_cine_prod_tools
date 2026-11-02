@@ -26,7 +26,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 
 /// What the budget mode reads from the project database in one go: the joined snapshot, and the
-/// raw catalogues and the decor names the views read directly.
+/// raw catalogues and the set names the views read directly.
 class OcptBudgetRead {
   /// The quote, the cash journal, the financing plan, the revenue sharing and the
   /// catering-and-travel pass, joined.
@@ -44,8 +44,8 @@ class OcptBudgetRead {
   /// Every live mileage rate of the project.
   final List<OcptBudgetMileageRate> mileageRates;
 
-  /// The decor name printed under each shooting day, keyed by the day's own id.
-  final Map<String, String> logisticsDecorNameByDayId;
+  /// The set name printed under each shooting day, keyed by the day's own id.
+  final Map<String, String> logisticsSetNameByDayId;
 
   /// Class constructor
   const OcptBudgetRead({
@@ -54,7 +54,7 @@ class OcptBudgetRead {
     required this.people,
     required this.elements,
     required this.mileageRates,
-    required this.logisticsDecorNameByDayId,
+    required this.logisticsSetNameByDayId,
   });
 }
 
@@ -94,7 +94,7 @@ class OcptBudgetSnapshotLoader {
   /// The service the catering-and-travel pass reads every person off.
   final OcptPeopleService _peopleService;
 
-  /// The service the project's locations and sets are read off, to name the decor a day plays at.
+  /// The service the project's locations and sets are read off, to name the set a day plays at.
   final OcptLocationsService _locationsService;
 
   /// The service the breakdown's own elements catalogue is read off.
@@ -118,7 +118,7 @@ class OcptBudgetSnapshotLoader {
   /// and commitments, the financing plan's own resources and mileage rates, the catering-and-travel
   /// pass's own reads, the breakdown's own elements catalogue, the currency, the default VAT rate
   /// and the meal/buffet prices, joined into one [OcptBudgetSnapshot] alongside the raw
-  /// roles/people/elements and the decor name map the view reads directly.
+  /// roles/people/elements and the set name map the view reads directly.
   ///
   /// **Reads `OcptScheduleService.loadSchedule`'s own `OcptScheduleSnapshot` directly, never an
   /// `OcptSchedulePlanSnapshot`.** A plan snapshot additionally joins every episode's own shot list
@@ -181,7 +181,7 @@ class OcptBudgetSnapshotLoader {
       people: people,
       elements: elements,
       mileageRates: mileageRates,
-      logisticsDecorNameByDayId: _logisticsDecorNameByDayId(
+      logisticsSetNameByDayId: _logisticsSetNameByDayId(
         days: scheduleSnapshot.days,
         slotsByDayId: scheduleSnapshot.slotsByDayId,
         locations: locations,
@@ -189,7 +189,7 @@ class OcptBudgetSnapshotLoader {
     );
   }
 
-  /// Get the decor name `OcptBudgetLogistics` prints under each shooting day: the name of the first
+  /// Get the set name `OcptBudgetLogistics` prints under each shooting day: the name of the first
   /// set, or
   /// failing that the first location, that any of [days]' own [slotsByDayId] entries name, in slot
   /// order — resolved out of [locations] (and their own live sets) alone.
@@ -197,7 +197,7 @@ class OcptBudgetSnapshotLoader {
   /// being pure arithmetic over head counts, so this is a separate, purely presentational reading
   /// rather than a second implementation of anything that file states. A day whose slots name
   /// neither carries no key here, which the view reads as nothing rather than a placeholder.
-  Map<String, String> _logisticsDecorNameByDayId({
+  Map<String, String> _logisticsSetNameByDayId({
     required List<OcptShootingDay> days,
     required Map<String, List<OcptShootingSlot>> slotsByDayId,
     required List<OcptLocation> locations,
@@ -208,23 +208,23 @@ class OcptBudgetSnapshotLoader {
         for (final set in location.sets) set.id: set,
     };
 
-    final decorNameByDayId = <String, String>{};
+    final setNameByDayId = <String, String>{};
     for (final day in days) {
       for (final slot in slotsByDayId[day.id] ?? const <OcptShootingSlot>[]) {
         final set = slot.setId == null ? null : setById[slot.setId];
         if (set != null) {
-          decorNameByDayId[day.id] = set.name;
+          setNameByDayId[day.id] = set.name;
           break;
         }
 
         final location = slot.locationId == null ? null : locationById[slot.locationId];
         if (location != null) {
-          decorNameByDayId[day.id] = location.name;
+          setNameByDayId[day.id] = location.name;
           break;
         }
       }
     }
 
-    return decorNameByDayId;
+    return setNameByDayId;
   }
 }

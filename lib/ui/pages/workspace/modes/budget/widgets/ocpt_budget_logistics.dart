@@ -87,8 +87,8 @@ class OcptBudgetLogistics extends StatelessWidget {
   /// Every day's own figures folded together.
   final OcptBudgetLogisticsTotals cateringTotals;
 
-  /// The decor name each day is shot at, keyed by day id — drawn under the day tag.
-  final Map<String, String> decorNameByDayId;
+  /// The set name each day is shot at, keyed by day id — drawn under the day tag.
+  final Map<String, String> setNameByDayId;
 
   /// The project's own meal price, in cents, or null while nobody has recorded one.
   final int? mealPriceCents;
@@ -204,7 +204,7 @@ class OcptBudgetLogistics extends StatelessWidget {
     super.key,
     required this.days,
     required this.cateringTotals,
-    required this.decorNameByDayId,
+    required this.setNameByDayId,
     required this.mealPriceCents,
     required this.buffetPriceCents,
     required this.allowances,
@@ -270,7 +270,7 @@ class OcptBudgetLogistics extends StatelessWidget {
     Widget cateringColumn({double? tableHeight}) => OcptBudgetLogisticsCateringColumn(
       days: days,
       totals: cateringTotals,
-      decorNameByDayId: decorNameByDayId,
+      setNameByDayId: setNameByDayId,
       mealPriceCents: mealPriceCents,
       buffetPriceCents: buffetPriceCents,
       currencyCode: currencyCode,
@@ -307,7 +307,7 @@ class OcptBudgetLogistics extends StatelessWidget {
                 // Three fifths to the catering, two to the defrayals — not the two-to-one the
                 // old travel table was sized for, which left this one under its own floor and
                 // scrolling at any ordinary window width. The catering's own widest column is a
-                // decor name, which gives room up more gracefully than six narrow ones do.
+                // set name, which gives room up more gracefully than six narrow ones do.
                 //
                 // Side by side, both panes take the whole height, floored at
                 // [ocptBudgetLogisticsPaneMinHeight].

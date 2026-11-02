@@ -25,8 +25,8 @@ class OcptBudgetLogisticsCateringColumn extends StatelessWidget {
   /// See [OcptBudgetLogistics.cateringTotals].
   final OcptBudgetLogisticsTotals totals;
 
-  /// See [OcptBudgetLogistics.decorNameByDayId].
-  final Map<String, String> decorNameByDayId;
+  /// See [OcptBudgetLogistics.setNameByDayId].
+  final Map<String, String> setNameByDayId;
 
   /// See [OcptBudgetLogistics.mealPriceCents].
   final int? mealPriceCents;
@@ -53,7 +53,7 @@ class OcptBudgetLogisticsCateringColumn extends StatelessWidget {
     super.key,
     required this.days,
     required this.totals,
-    required this.decorNameByDayId,
+    required this.setNameByDayId,
     required this.mealPriceCents,
     required this.buffetPriceCents,
     required this.currencyCode,
@@ -140,7 +140,7 @@ class OcptBudgetLogisticsCateringColumn extends StatelessWidget {
                             itemCount: days.length,
                             itemBuilder: (context, index) => OcptBudgetLogisticsCateringRow(
                               day: days[index],
-                              decorName: decorNameByDayId[days[index].dayId],
+                              setName: setNameByDayId[days[index].dayId],
                               currencyCode: currencyCode,
                             ),
                           ),

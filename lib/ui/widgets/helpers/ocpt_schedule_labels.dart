@@ -463,8 +463,8 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
     },
     seqHeader: tr.scheduleExportSeqHeader,
     plansHeader: tr.scheduleExportPlansHeader,
-    effetHeader: tr.scheduleExportEffetHeader,
-    decorsHeader: tr.scheduleExportDecorsHeader,
+    effectHeader: tr.scheduleExportEffectHeader,
+    setsHeader: tr.scheduleExportSetsHeader,
     rolesHeader: tr.scheduleExportRolesHeader,
     castSectionTitle: tr.scheduleExportCastSectionTitle,
     roleHeader: tr.scheduleExportRoleHeader,
@@ -526,7 +526,7 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
       for (final category in OcptElementCategory.values)
         category: ocptElementCategoryLabel(tr, category),
     },
-    persoLabel: tr.scheduleExportPersoLabel,
+    peopleLabel: tr.scheduleExportPeopleLabel,
     sequenceRowPrefix: tr.scheduleExportSequenceRowPrefix,
     presenceMark: tr.scheduleExportPresenceMark,
     crewPositionLabels: {
@@ -599,7 +599,7 @@ OcptShootingPlanXlsxLabels ocptShootingPlanXlsxLabelsOf(BuildContext context) {
       OcptShootingPlanXlsxColumn.kind: tr.scheduleExportShootingPlanXlsxKindColumnHeader,
       OcptShootingPlanXlsxColumn.shot: tr.shotListColumnShot,
       OcptShootingPlanXlsxColumn.sequence: tr.scheduleExportSeqHeader,
-      OcptShootingPlanXlsxColumn.set: tr.scheduleExportDecorsHeader,
+      OcptShootingPlanXlsxColumn.set: tr.scheduleExportSetsHeader,
       OcptShootingPlanXlsxColumn.roles: tr.scheduleExportRolesHeader,
       OcptShootingPlanXlsxColumn.durationMinutes:
           tr.scheduleExportShootingPlanXlsxDurationColumnHeader,
@@ -607,7 +607,7 @@ OcptShootingPlanXlsxLabels ocptShootingPlanXlsxLabelsOf(BuildContext context) {
     },
     dayTagPrefix: tr.scheduleDayTagPrefix,
     presenceMark: tr.scheduleExportPresenceMark,
-    persoLabel: tr.scheduleExportPersoLabel,
+    peopleLabel: tr.scheduleExportPeopleLabel,
     sequenceRowPrefix: tr.scheduleExportSequenceRowPrefix,
     crewPositionLabels: {
       for (final position in ocptCrewPositions) position.id: ocptCrewPositionLabel(tr, position.id),
@@ -706,8 +706,8 @@ OcptOneLineScheduleLabels ocptOneLineScheduleLabelsOf(
     dayTagPrefix: tr.scheduleDayTagPrefix,
     dayTitles: {for (final day in days) day.id: DateFormat.MMMMEEEEd(locale).format(day.date)},
     seqHeader: tr.scheduleExportSeqHeader,
-    effectHeader: tr.scheduleExportEffetHeader,
-    decorHeader: tr.scheduleExportDecorsHeader,
+    effectHeader: tr.scheduleExportEffectHeader,
+    setHeader: tr.scheduleExportSetsHeader,
     rolesHeader: tr.scheduleExportRolesHeader,
     durationHeader: tr.scheduleExportOneLineScheduleDurationHeader,
     noLocationLabel: tr.scheduleDayNoLocation,

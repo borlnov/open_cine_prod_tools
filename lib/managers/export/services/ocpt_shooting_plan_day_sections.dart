@@ -530,7 +530,7 @@ abstract final class OcptShootingPlanDaySections {
             labels.moveHeader,
             labels.framingHeader,
             labels.commentHeader,
-            labels.persoLabel,
+            labels.peopleLabel,
           ])
             OcptShootingPlanPageParts.textCell(painter: painter, text: header, isBold: true),
         ],

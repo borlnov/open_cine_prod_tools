@@ -139,10 +139,10 @@ class OcptCallSheetLabels extends Equatable {
   final String plansHeader;
 
   /// The main table's `EFFET` column header.
-  final String effetHeader;
+  final String effectHeader;
 
   /// The main table's `DÉCORS` column header.
-  final String decorsHeader;
+  final String setsHeader;
 
   /// The main table's `RÔLES` column header.
   final String rolesHeader;
@@ -242,8 +242,8 @@ class OcptCallSheetLabels extends Equatable {
     required this.blockKindLabels,
     required this.seqHeader,
     required this.plansHeader,
-    required this.effetHeader,
-    required this.decorsHeader,
+    required this.effectHeader,
+    required this.setsHeader,
     required this.rolesHeader,
     required this.castSectionTitle,
     required this.roleHeader,
@@ -322,8 +322,8 @@ class OcptCallSheetLabels extends Equatable {
     blockKindLabels,
     seqHeader,
     plansHeader,
-    effetHeader,
-    decorsHeader,
+    effectHeader,
+    setsHeader,
     rolesHeader,
     castSectionTitle,
     roleHeader,

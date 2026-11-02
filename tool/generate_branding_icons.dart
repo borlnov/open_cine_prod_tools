@@ -30,7 +30,7 @@ const _markColor = _Rgb(0xFF, 0xFF, 0xFF);
 /// The colour of the corner flag that flavours a non-production (qualification) build's icon: the
 /// same `Colors.blue` (`#2196F3`) the app-bar environment banner paints in qualification, so the
 /// launcher icon and the in-app banner read as one convention.
-const _qualifFlagColor = _Rgb(0x21, 0x96, 0xF3);
+const _qualificationFlagColor = _Rgb(0x21, 0x96, 0xF3);
 
 /// The side of the square the mark is authored in, matching the SVGs' `76 76` viewBox.
 const double _canvasUnits = 76;
@@ -82,11 +82,11 @@ const _masters = <_MasterSpec>[
 /// [_outputDirectoryPath].
 ///
 /// A containered master is emitted twice: once as itself (the production icon), and once with a
-/// `_qualif` suffix carrying the corner flag (the qualification icon the CI regenerates the native
-/// launcher icons from for a non-stable build). The adaptive foreground layer has no counterpart:
-/// it is masked to the canvas centre where a corner flag would be clipped away, so a qualification
-/// Android build reuses this very foreground unchanged and takes its flavour from a blue background
-/// layer instead (chosen in the packaging step, not here).
+/// `_qualification` suffix carrying the corner flag (the qualification icon the CI regenerates the
+/// native launcher icons from for a non-stable build). The adaptive foreground layer has no
+/// counterpart: it is masked to the canvas centre where a corner flag would be clipped away, so a
+/// qualification Android build reuses this very foreground unchanged and takes its flavour from a
+/// blue background layer instead (chosen in the packaging step, not here).
 void main() {
   final outputDirectory = Directory(_outputDirectoryPath)..createSync(recursive: true);
 
@@ -127,8 +127,8 @@ void _write(
   );
 }
 
-/// Insert the `_qualif` marker into [fileName] right after its `ocpt_icon` stem, so
-/// `ocpt_icon_ios_1024.png` becomes `ocpt_icon_qualif_ios_1024.png`.
+/// Insert the `_qualification` marker into [fileName] right after its `ocpt_icon` stem, so
+/// `ocpt_icon_ios_1024.png` becomes `ocpt_icon_qualification_ios_1024.png`.
 String _bandedFileName(String fileName) => fileName.replaceFirst("ocpt_icon", "ocpt_icon_qualif");
 
 /// Render the mark in the given [style] into a straight (non premultiplied) RGBA buffer of
@@ -202,7 +202,7 @@ Uint8List _renderMark({required int sidePixels, required _MarkStyle style, _Corn
         final clip = container != null
             ? _coverageOf(container.distanceTo(x, y), unitsPerPixel)
             : 1.0;
-        paint(flag.coverage(x, y, unitsPerPixel) * clip, _qualifFlagColor);
+        paint(flag.coverage(x, y, unitsPerPixel) * clip, _qualificationFlagColor);
       }
 
       final offset = (row * sidePixels + column) * 4;

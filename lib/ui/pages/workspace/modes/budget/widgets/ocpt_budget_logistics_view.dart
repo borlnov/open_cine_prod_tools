@@ -74,7 +74,7 @@ class OcptBudgetLogisticsView extends StatelessWidget {
     return OcptBudgetLogistics(
       days: state.logisticsDays,
       cateringTotals: state.logisticsTotals,
-      decorNameByDayId: state.logisticsDecorNameByDayId,
+      setNameByDayId: state.logisticsSetNameByDayId,
       mealPriceCents: state.mealPriceCents,
       buffetPriceCents: state.buffetPriceCents,
       allowances: state.allowances,

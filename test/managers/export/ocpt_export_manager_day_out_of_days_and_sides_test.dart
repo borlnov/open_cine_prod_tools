@@ -181,7 +181,7 @@ void main() {
       dayTitles: {},
       seqHeader: "SEQ",
       effectHeader: "EFFECT",
-      decorHeader: "SET",
+      setHeader: "SET",
       rolesHeader: "CAST",
       durationHeader: "DURATION",
       noLocationLabel: "No location yet",

@@ -283,7 +283,7 @@ void main() {
         )..where((row) => row.id.equals(shotId))).getSingle();
         final (_, setId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
 
-        final decor = (await floorPlanService.placeSymbol(
+        final shootingSet = (await floorPlanService.placeSymbol(
           database: database,
           setId: setId,
           sceneId: null,
@@ -307,7 +307,7 @@ void main() {
           shotId: shotId,
           kind: OcptFloorPlanArrowKind.cameraMove,
           fromSymbolId: camera,
-          toSymbolId: decor,
+          toSymbolId: shootingSet,
         );
 
         await database.transaction(() async {
@@ -322,7 +322,7 @@ void main() {
 
         final liveSymbolIds = (await readSymbols()).map((row) => row.id).toSet();
         expect(liveSymbolIds.contains(camera), isFalse);
-        expect(liveSymbolIds.contains(decor), isTrue);
+        expect(liveSymbolIds.contains(shootingSet), isTrue);
         expect(await readArrows(), isEmpty);
       },
     );

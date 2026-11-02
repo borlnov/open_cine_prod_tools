@@ -174,7 +174,7 @@ class OcptShootingPlanPdfService extends AbsOcptService {
       plan: plan,
       dayIds: resolvedDayIds,
       presenceMark: labels.presenceMark,
-      persoLabel: labels.persoLabel,
+      peopleLabel: labels.peopleLabel,
       sequenceRowPrefix: labels.sequenceRowPrefix,
       emptyValue: ocptScheduleEmptyValue,
       crewPositionLabelById: labels.crewPositionLabels,

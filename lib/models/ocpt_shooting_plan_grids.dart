@@ -151,7 +151,7 @@ class OcptShootingPlanGrids extends Equatable {
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
     required String presenceMark,
-    required String persoLabel,
+    required String peopleLabel,
     required String sequenceRowPrefix,
     required String emptyValue,
     required Map<String, String> crewPositionLabelById,
@@ -178,7 +178,7 @@ class OcptShootingPlanGrids extends Equatable {
         plan: plan,
         columns: slotColumnRefs,
         presenceMark: presenceMark,
-        persoLabel: persoLabel,
+        peopleLabel: peopleLabel,
         emptyValue: emptyValue,
       ),
       sequencesRows: _sequencesRowsOf(
@@ -234,7 +234,7 @@ class OcptShootingPlanGrids extends Equatable {
     required OcptSchedulePlanSnapshot plan,
     required List<({OcptShootingDay day, OcptShootingSlot slot})> columns,
     required String presenceMark,
-    required String persoLabel,
+    required String peopleLabel,
     required String emptyValue,
   }) {
     final seenLocationIds = <String>{};
@@ -269,7 +269,7 @@ class OcptShootingPlanGrids extends Equatable {
       );
       rows.add(
         OcptShootingPlanGridRow(
-          label: persoLabel,
+          label: peopleLabel,
           isIndented: true,
           isMuted: true,
           cells: [

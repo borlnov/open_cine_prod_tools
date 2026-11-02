@@ -12,8 +12,8 @@ import 'ocpt_floor_plan_sheet_test_doubles.dart';
 void main() {
   group("OcptFloorPlanSheet.of — sequence scope", () {
     test("always includes sequence-scoped symbols, never ghosted", () {
-      final decor = testSymbol(id: "decor-1", layer: OcptFloorPlanLayer.set);
-      final floorPlanSet = caseOf(symbols: [decor]);
+      final shootingSet = testSymbol(id: "decor-1", layer: OcptFloorPlanLayer.set);
+      final floorPlanSet = caseOf(symbols: [shootingSet]);
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,

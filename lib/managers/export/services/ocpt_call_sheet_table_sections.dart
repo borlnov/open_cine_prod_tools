@@ -237,8 +237,8 @@ abstract final class OcptCallSheetTableSections {
           for (final header in [
             labels.seqHeader,
             labels.plansHeader,
-            labels.effetHeader,
-            labels.decorsHeader,
+            labels.effectHeader,
+            labels.setsHeader,
             labels.rolesHeader,
           ])
             textCell(painter: painter, text: header, isBold: true),
@@ -258,7 +258,7 @@ abstract final class OcptCallSheetTableSections {
               painter: painter,
               text: ocptSceneEffectOf(row.heading).printedEffect ?? ocptScheduleEmptyValue,
             ),
-            textCell(painter: painter, text: row.decors ?? ocptScheduleEmptyValue),
+            textCell(painter: painter, text: row.shootingSets ?? ocptScheduleEmptyValue),
             textCell(painter: painter, text: ocptCallSheetRolesLabelOf(row, roles)),
           ],
         ),

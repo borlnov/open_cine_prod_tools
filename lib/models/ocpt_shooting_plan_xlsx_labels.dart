@@ -68,8 +68,8 @@ class OcptShootingPlanXlsxLabels extends Equatable {
 
   /// The word `Perso.`, reused both as the locations sheet's own nested row and, were it ever
   /// needed, a shot table's own characters column — the same word
-  /// `OcptShootingPlanLabels.persoLabel` already carries.
-  final String persoLabel;
+  /// `OcptShootingPlanLabels.peopleLabel` already carries.
+  final String peopleLabel;
 
   /// The prefix a sequences sheet's own row label is built with (`Séq. 2`) — the same word
   /// `OcptShootingPlanLabels.sequenceRowPrefix` already carries.
@@ -102,7 +102,7 @@ class OcptShootingPlanXlsxLabels extends Equatable {
     required this.chronologyColumnHeaders,
     required this.dayTagPrefix,
     required this.presenceMark,
-    required this.persoLabel,
+    required this.peopleLabel,
     required this.sequenceRowPrefix,
     required this.crewPositionLabels,
     required this.elementCategoryLabels,
@@ -148,7 +148,7 @@ class OcptShootingPlanXlsxLabels extends Equatable {
     chronologyColumnHeaders,
     dayTagPrefix,
     presenceMark,
-    persoLabel,
+    peopleLabel,
     sequenceRowPrefix,
     crewPositionLabels,
     elementCategoryLabels,

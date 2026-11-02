@@ -212,7 +212,7 @@ void main() {
   });
 
   group("OcptFloorPlanCanvasPainter — décor primitives", () {
-    OcptFloorPlanSymbolShape decorOf(OcptFloorPlanSetElementShape shape) => _symbolShape(
+    OcptFloorPlanSymbolShape setOf(OcptFloorPlanSetElementShape shape) => _symbolShape(
       layer: OcptFloorPlanLayer.set,
       glyphKind: OcptFloorPlanSymbolGlyphKind.setElement,
       widthM: 1.2,
@@ -222,17 +222,13 @@ void main() {
     );
 
     test("each décor primitive paints its own pixels", () async {
-      final wall = await _renderRgba(
-        _sheetOf(symbols: [decorOf(OcptFloorPlanSetElementShape.wall)]),
-      );
-      final door = await _renderRgba(
-        _sheetOf(symbols: [decorOf(OcptFloorPlanSetElementShape.door)]),
-      );
+      final wall = await _renderRgba(_sheetOf(symbols: [setOf(OcptFloorPlanSetElementShape.wall)]));
+      final door = await _renderRgba(_sheetOf(symbols: [setOf(OcptFloorPlanSetElementShape.door)]));
       final furniture = await _renderRgba(
-        _sheetOf(symbols: [decorOf(OcptFloorPlanSetElementShape.furniture)]),
+        _sheetOf(symbols: [setOf(OcptFloorPlanSetElementShape.furniture)]),
       );
       final freeform = await _renderRgba(
-        _sheetOf(symbols: [decorOf(OcptFloorPlanSetElementShape.freeform)]),
+        _sheetOf(symbols: [setOf(OcptFloorPlanSetElementShape.freeform)]),
       );
 
       expect(wall, isNot(equals(door)));

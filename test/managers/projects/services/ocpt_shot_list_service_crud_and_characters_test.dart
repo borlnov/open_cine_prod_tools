@@ -273,7 +273,7 @@ Action.
         sceneId: sceneId,
         name: "Kitchen",
       ))!;
-      final decorSymbolId = (await floorPlanService.placeSymbol(
+      final setSymbolId = (await floorPlanService.placeSymbol(
         database: database,
         setId: setId,
         sceneId: null,
@@ -306,7 +306,7 @@ Action.
         shotId: deletedShotId,
         kind: OcptFloorPlanArrowKind.cameraMove,
         fromSymbolId: deletedCameraId,
-        toSymbolId: decorSymbolId,
+        toSymbolId: setSymbolId,
       );
 
       await shotListService.deleteShot(database: database, shotId: deletedShotId);
@@ -330,7 +330,7 @@ Action.
         database.ocptFloorPlanSymbolsTable,
       )..where((row) => row.isDeleted.equals(false))).get()).map((row) => row.id).toSet();
       expect(liveSymbolIds.contains(deletedCameraId), isFalse);
-      expect(liveSymbolIds.contains(decorSymbolId), isTrue);
+      expect(liveSymbolIds.contains(setSymbolId), isTrue);
       expect(liveSymbolIds.contains(survivingCameraId), isTrue);
 
       final liveArrows = await (database.select(

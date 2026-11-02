@@ -38,7 +38,7 @@ const _labels = OcptOneLineScheduleLabels(
   dayTitles: {"day-1": "Thursday, 1 January 2026", "day-2": "Friday, 2 January 2026"},
   seqHeader: "SEQ",
   effectHeader: "EFFECT",
-  decorHeader: "SET",
+  setHeader: "SET",
   rolesHeader: "CAST",
   durationHeader: "DURATION",
   noLocationLabel: "No location yet",

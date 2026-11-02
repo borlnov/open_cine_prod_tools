@@ -54,7 +54,7 @@ class OcptOneLineScheduleLabels extends Equatable {
   final String effectHeader;
 
   /// The main table's own `DÉCOR` column header.
-  final String decorHeader;
+  final String setHeader;
 
   /// The main table's own `RÔLES` column header.
   final String rolesHeader;
@@ -83,7 +83,7 @@ class OcptOneLineScheduleLabels extends Equatable {
     required this.dayTitles,
     required this.seqHeader,
     required this.effectHeader,
-    required this.decorHeader,
+    required this.setHeader,
     required this.rolesHeader,
     required this.durationHeader,
     required this.noLocationLabel,
@@ -110,7 +110,7 @@ class OcptOneLineScheduleLabels extends Equatable {
     dayTitles,
     seqHeader,
     effectHeader,
-    decorHeader,
+    setHeader,
     rolesHeader,
     durationHeader,
     noLocationLabel,

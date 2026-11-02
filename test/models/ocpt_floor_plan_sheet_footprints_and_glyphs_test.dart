@@ -136,8 +136,8 @@ void main() {
       );
       final camera = testSymbol(id: "cam-1", shotId: "shot-1", layer: OcptFloorPlanLayer.cameras);
       final light = testSymbol(id: "light-1", shotId: "shot-1", layer: OcptFloorPlanLayer.lights);
-      final decor = testSymbol(id: "decor-1", layer: OcptFloorPlanLayer.set);
-      final floorPlanSet = caseOf(symbols: [character, camera, light, decor]);
+      final shootingSet = testSymbol(id: "decor-1", layer: OcptFloorPlanLayer.set);
+      final floorPlanSet = caseOf(symbols: [character, camera, light, shootingSet]);
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,
@@ -359,8 +359,8 @@ void main() {
     });
 
     test("a set element with no shape of its own defaults to freeform", () {
-      final decor = testSymbol(id: "decor-1", layer: OcptFloorPlanLayer.set);
-      final floorPlanSet = caseOf(symbols: [decor]);
+      final shootingSet = testSymbol(id: "decor-1", layer: OcptFloorPlanLayer.set);
+      final floorPlanSet = caseOf(symbols: [shootingSet]);
 
       final sheet = OcptFloorPlanSheet.of(
         floorPlanSet: floorPlanSet,

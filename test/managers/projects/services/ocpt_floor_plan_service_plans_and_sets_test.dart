@@ -401,7 +401,7 @@ void main() {
       )..where((row) => row.id.equals(shotId))).getSingle();
       final (_, setId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
 
-      final decor = (await floorPlanService.placeSymbol(
+      final shootingSet = (await floorPlanService.placeSymbol(
         database: database,
         setId: setId,
         sceneId: null,
@@ -424,7 +424,7 @@ void main() {
         setId: setId,
         shotId: shotId,
         kind: OcptFloorPlanArrowKind.movement,
-        fromSymbolId: decor,
+        fromSymbolId: shootingSet,
         toSymbolId: camera,
       );
 
@@ -469,7 +469,7 @@ void main() {
           database.ocptShotsTable,
         )..where((row) => row.id.equals(shotId))).getSingle();
         final (sceneId, sourceSetId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
-        final decor = (await floorPlanService.placeSymbol(
+        final shootingSet = (await floorPlanService.placeSymbol(
           database: database,
           setId: sourceSetId,
           sceneId: null,
@@ -515,7 +515,7 @@ void main() {
             .where((row) => row.setId == destinationSetId)
             .toList();
         expect(newSymbols, hasLength(1));
-        expect(newSymbols.single.id, isNot(decor));
+        expect(newSymbols.single.id, isNot(shootingSet));
         expect(newSymbols.single.label, "Table");
         expect(newSymbols.single.sceneId, isNull);
         expect(newSymbols.single.shotId, isNull);
@@ -790,7 +790,7 @@ void main() {
         sceneId: sceneId,
       ))!;
       final (_, setId) = await seedLinkedSet(sceneId: sceneId);
-      final decor = (await floorPlanService.placeSymbol(
+      final shootingSet = (await floorPlanService.placeSymbol(
         database: database,
         setId: setId,
         sceneId: null,
@@ -814,7 +814,7 @@ void main() {
         shotId: sourceShotId,
         kind: OcptFloorPlanArrowKind.movement,
         fromSymbolId: character,
-        toSymbolId: decor,
+        toSymbolId: shootingSet,
       );
 
       await floorPlanService.copyShotBlocking(

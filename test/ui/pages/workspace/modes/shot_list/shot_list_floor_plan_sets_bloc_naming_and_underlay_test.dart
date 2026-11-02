@@ -555,8 +555,8 @@ void main() {
         yM: 2,
       ),
     );
-    final withDecor = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-    final sourceSymbolId = withDecor.selectedSet!.symbols.single.id;
+    final withSet = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
+    final sourceSymbolId = withSet.selectedSet!.symbols.single.id;
 
     final epoch = bloc.state.selectionEpoch;
     sets.add(OcptShotListSetDuplicationRequestedEvent(setId: setId, newSetName: "House copy"));

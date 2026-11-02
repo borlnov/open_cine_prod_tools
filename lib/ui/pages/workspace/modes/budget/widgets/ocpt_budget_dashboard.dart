@@ -327,7 +327,7 @@ class _OcptDashboardTile extends StatelessWidget {
 ///
 /// **The card's own title and verdict share one line**, the mockup's own arrangement — the title on
 /// the left, `Manque {amount}`/`Short by {amount}` in the error colour on the right the moment the
-/// plan falls short. `Ressources {amount}`/`Besoins {amount}` stay small and muted underneath the
+/// plan falls short. `Resources {amount}`/`Besoins {amount}` stay small and muted underneath the
 /// bar, turned the other way up from the balance bar the mode drew before.
 class _OcptDashboardBalanceBar extends StatelessWidget {
   /// The balance this bar draws — `ocptBudgetNeedsResourcesBalanceOf`'s own answer.

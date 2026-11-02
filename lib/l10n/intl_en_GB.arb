@@ -3345,8 +3345,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "shotListFloorPlanLayerDecorLabel": "Decor",
-  "@shotListFloorPlanLayerDecorLabel": {
+  "shotListFloorPlanLayerSetLabel": "Decor",
+  "@shotListFloorPlanLayerSetLabel": {
     "description": "Label of the tray's own decor layer row",
     "context": "Displayed on the floor plans view's own tray",
     "type": "text",
@@ -11408,15 +11408,15 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleExportEffetHeader": "INT/EXT",
-  "@scheduleExportEffetHeader": {
+  "scheduleExportEffectHeader": "INT/EXT",
+  "@scheduleExportEffectHeader": {
     "description": "Header of a call sheet's own main table column naming a scene's interior/exterior and time of day",
     "context": "Printed on every exported call sheet",
     "type": "text",
     "placeholders": {}
   },
-  "scheduleExportDecorsHeader": "SET",
-  "@scheduleExportDecorsHeader": {
+  "scheduleExportSetsHeader": "SET",
+  "@scheduleExportSetsHeader": {
     "description": "Header of a call sheet's own main table column naming the set a scene is shot at",
     "context": "Printed on every exported call sheet",
     "type": "text",
@@ -11685,8 +11685,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "scheduleExportPersoLabel": "People",
-  "@scheduleExportPersoLabel": {
+  "scheduleExportPeopleLabel": "People",
+  "@scheduleExportPeopleLabel": {
     "description": "Word reused both as a shooting plan shot table's own characters column header and as the locations grid's own nested row naming who is present",
     "context": "Printed on the exported shooting plan",
     "type": "text",
@@ -15146,8 +15146,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetLogisticsColumnDecor": "Decor",
-  "@budgetLogisticsColumnDecor": {
+  "budgetLogisticsColumnSet": "Decor",
+  "@budgetLogisticsColumnSet": {
     "description": "Header of the catering table's own Decor column",
     "context": "Displayed in OcptBudgetRegie's own catering table",
     "type": "text",

@@ -34,7 +34,7 @@ class OcptCallSheetDayRow {
   final String? heading;
 
   /// The name of the set this row's slot is shot at, or null.
-  final String? decors;
+  final String? shootingSets;
 
   /// The shots collapsed into this row — always exactly one until a following shot of the same
   /// scene, on the same slot, is appended to it.
@@ -67,7 +67,7 @@ class OcptCallSheetDayRow {
     required this.slotId,
     required this.sceneId,
     required this.heading,
-    required this.decors,
+    required this.shootingSets,
     required this.shots,
     required this.milestoneCaption,
     required this.milestoneRoleNumbers,
@@ -82,7 +82,7 @@ class OcptCallSheetDayRow {
     required String slotId,
     required String? sceneId,
     required String? heading,
-    required String? decors,
+    required String? shootingSets,
     required OcptShot shot,
     required int startMinute,
     required int endMinute,
@@ -91,7 +91,7 @@ class OcptCallSheetDayRow {
     slotId: slotId,
     sceneId: sceneId,
     heading: heading,
-    decors: decors,
+    shootingSets: shootingSets,
     shots: [shot],
     milestoneCaption: null,
     milestoneRoleNumbers: const [],
@@ -113,7 +113,7 @@ class OcptCallSheetDayRow {
     slotId: null,
     sceneId: null,
     heading: null,
-    decors: null,
+    shootingSets: null,
     shots: const [],
     milestoneCaption: caption,
     milestoneRoleNumbers: roleNumbers,
@@ -292,7 +292,7 @@ List<OcptCallSheetDayRow> ocptCallSheetBuildDayRows({
           slotId: slot.id,
           sceneId: shot.sceneId,
           heading: shot.sceneId == null ? null : headingBySceneId[shot.sceneId],
-          decors: slot.setId == null ? null : plan.setById[slot.setId]?.name,
+          shootingSets: slot.setId == null ? null : plan.setById[slot.setId]?.name,
           shot: shot,
           startMinute: entry.startMinute,
           endMinute: entry.endMinute,

@@ -197,7 +197,7 @@ void main() {
         expect(state.logisticsDays.single.crewCount, 1);
         expect(state.logisticsDays.single.headCount, 1);
         expect(state.logisticsDays.single.cost.isComplete, isTrue);
-        expect(state.logisticsDecorNameByDayId[dayId], "Studio A");
+        expect(state.logisticsSetNameByDayId[dayId], "Studio A");
 
         // The person's own commute is loaded and the mileage scales with it — both there to
         // pre-fill a defrayal somebody types — and nothing is deduced from either: a production

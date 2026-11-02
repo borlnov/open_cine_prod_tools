@@ -78,7 +78,7 @@ void main() {
     List<OcptBudgetAccount> accounts = const [],
     String? provisionAccountId,
     int provisionedTotalCents = 0,
-    Map<String, String> decorNameByDayId = const {},
+    Map<String, String> setNameByDayId = const {},
     int? mealPriceCents,
     int? buffetPriceCents,
     List<OcptRole> roles = const [],
@@ -114,7 +114,7 @@ void main() {
         OcptBudgetLogistics(
           days: days,
           cateringTotals: ocptBudgetLogisticsTotalsOf(days),
-          decorNameByDayId: decorNameByDayId,
+          setNameByDayId: setNameByDayId,
           mealPriceCents: mealPriceCents,
           buffetPriceCents: buffetPriceCents,
           allowances: allowances,

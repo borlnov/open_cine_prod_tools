@@ -785,24 +785,24 @@ void main() {
     });
   });
 
-  group("OcptBudgetState.roles / people / logisticsDecorNameByDayId", () {
+  group("OcptBudgetState.roles / people / logisticsSetNameByDayId", () {
     test("default to empty and are carried through copyWith", () {
       const emptyState = OcptBudgetState.init();
       expect(emptyState.roles, isEmpty);
       expect(emptyState.people, isEmpty);
-      expect(emptyState.logisticsDecorNameByDayId, isEmpty);
+      expect(emptyState.logisticsSetNameByDayId, isEmpty);
 
       final role = _buildRole(id: "role-1");
       final person = _buildPerson(id: "person-1");
       final state = emptyState.copyWith(
         roles: [role],
         people: [person],
-        logisticsDecorNameByDayId: const {"day-1": "Kitchen"},
+        logisticsSetNameByDayId: const {"day-1": "Kitchen"},
       );
 
       expect(state.roles, [role]);
       expect(state.people, [person]);
-      expect(state.logisticsDecorNameByDayId, {"day-1": "Kitchen"});
+      expect(state.logisticsSetNameByDayId, {"day-1": "Kitchen"});
     });
   });
 }

@@ -356,7 +356,7 @@ class OcptOneLineSchedulePdfService extends AbsOcptService {
           for (final header in [
             labels.seqHeader,
             labels.effectHeader,
-            labels.decorHeader,
+            labels.setHeader,
             labels.rolesHeader,
             labels.durationHeader,
           ])
@@ -368,7 +368,7 @@ class OcptOneLineSchedulePdfService extends AbsOcptService {
           children: [
             _textCell(painter: painter, text: _sceneNumberOf(plan, row)),
             _textCell(painter: painter, text: _effectOf(plan, row)),
-            _textCell(painter: painter, text: row.decor ?? ocptScheduleEmptyValue),
+            _textCell(painter: painter, text: row.shootingSet ?? ocptScheduleEmptyValue),
             _textCell(painter: painter, text: _rolesLabelOf(row, plan.roles)),
             _textCell(painter: painter, text: _durationLabelOf(row)),
           ],
@@ -487,7 +487,7 @@ class _OneLineRow {
   final String? sceneId;
 
   /// The name of the set this row's slot is shot at, or null.
-  final String? decor;
+  final String? shootingSet;
 
   /// The shots collapsed into this row — always exactly one until a following shot of the same
   /// scene, on the same slot, is appended to it; always empty for a hold.
@@ -506,7 +506,7 @@ class _OneLineRow {
   _OneLineRow._({
     required this.slotId,
     required this.sceneId,
-    required this.decor,
+    required this.shootingSet,
     required this.shots,
     required this.startMinute,
     required this.endMinute,
@@ -516,14 +516,14 @@ class _OneLineRow {
   factory _OneLineRow.shotRun({
     required String slotId,
     required String? sceneId,
-    required String? decor,
+    required String? shootingSet,
     required OcptShot shot,
     required int startMinute,
     required int endMinute,
   }) => _OneLineRow._(
     slotId: slotId,
     sceneId: sceneId,
-    decor: decor,
+    shootingSet: shootingSet,
     shots: [shot],
     startMinute: startMinute,
     endMinute: endMinute,
@@ -533,13 +533,13 @@ class _OneLineRow {
   factory _OneLineRow.hold({
     required String slotId,
     required String? sceneId,
-    required String? decor,
+    required String? shootingSet,
     required int startMinute,
     required int endMinute,
   }) => _OneLineRow._(
     slotId: slotId,
     sceneId: sceneId,
-    decor: decor,
+    shootingSet: shootingSet,
     shots: const [],
     startMinute: startMinute,
     endMinute: endMinute,
@@ -567,7 +567,7 @@ List<_OneLineRow> _buildOneLineRows({
     final block = ordered.block;
     final entry = ordered.entry;
     final slot = ordered.slot;
-    final decor = slot.setId == null ? null : plan.setById[slot.setId]?.name;
+    final shootingSet = slot.setId == null ? null : plan.setById[slot.setId]?.name;
 
     if (block.kind == OcptShootingBlockKind.shot) {
       final shot = block.shotId == null ? null : plan.shotById(block.shotId!);
@@ -590,7 +590,7 @@ List<_OneLineRow> _buildOneLineRows({
         _OneLineRow.shotRun(
           slotId: slot.id,
           sceneId: shot.sceneId,
-          decor: decor,
+          shootingSet: shootingSet,
           shot: shot,
           startMinute: entry.startMinute,
           endMinute: entry.endMinute,
@@ -604,7 +604,7 @@ List<_OneLineRow> _buildOneLineRows({
         _OneLineRow.hold(
           slotId: slot.id,
           sceneId: block.sceneId,
-          decor: decor,
+          shootingSet: shootingSet,
           startMinute: entry.startMinute,
           endMinute: entry.endMinute,
         ),

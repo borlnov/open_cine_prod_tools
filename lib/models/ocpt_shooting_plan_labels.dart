@@ -90,7 +90,7 @@ class OcptShootingPlanLabels extends Equatable {
   /// The word `Perso.`, reused both as a shot table's own characters column header and as the
   /// locations grid's own nested row naming who is present — the reference document uses the same
   /// word for both, and so does this one.
-  final String persoLabel;
+  final String peopleLabel;
 
   /// The prefix a sequences grid's own row label is built with (`Séq. 2`).
   final String sequenceRowPrefix;
@@ -221,7 +221,7 @@ class OcptShootingPlanLabels extends Equatable {
     required this.peopleGridRowHeader,
     required this.elementsGridRowHeader,
     required this.elementCategoryLabels,
-    required this.persoLabel,
+    required this.peopleLabel,
     required this.sequenceRowPrefix,
     required this.presenceMark,
     required this.crewPositionLabels,
@@ -290,7 +290,7 @@ class OcptShootingPlanLabels extends Equatable {
     peopleGridRowHeader,
     elementsGridRowHeader,
     elementCategoryLabels,
-    persoLabel,
+    peopleLabel,
     sequenceRowPrefix,
     presenceMark,
     crewPositionLabels,

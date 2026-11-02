@@ -54,7 +54,7 @@ const labels = OcptShootingPlanLabels(
     OcptElementCategory.animal: "Animals",
     OcptElementCategory.specialEquipment: "Special equipment",
   },
-  persoLabel: "Cast",
+  peopleLabel: "Cast",
   sequenceRowPrefix: "Seq.",
   presenceMark: "x",
   crewPositionLabels: {

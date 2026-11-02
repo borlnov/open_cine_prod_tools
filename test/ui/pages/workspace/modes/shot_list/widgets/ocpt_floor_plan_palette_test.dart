@@ -313,7 +313,7 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
     expect(
-      find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerDecorLabel, 0)),
+      find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerSetLabel, 0)),
       findsOneWidget,
     );
     expect(

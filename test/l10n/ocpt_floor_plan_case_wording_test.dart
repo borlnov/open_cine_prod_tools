@@ -27,7 +27,7 @@ final RegExp _caseWord = RegExp(r'\bcases?\b', caseSensitive: false);
 
 /// Matches "porté"/"portés" — the old « accessoires portés » (worn props) wording, replaced by the
 /// bare « Accessoires » per the maintainer's own rename.
-final RegExp _porteWord = RegExp(r'\bportés?\b', caseSensitive: false);
+final RegExp _carriedWord = RegExp(r'\bportés?\b', caseSensitive: false);
 
 /// Run the tests of the floor plan case wording.
 void main() {
@@ -69,14 +69,14 @@ void main() {
       reason: 'these French floor-plan strings still say « case » — the model is a « décor »',
     );
 
-    final porteOffenders = [
+    final carriedOffenders = [
       for (final entry in arb.entries)
         if (_isFloorPlanEntry(entry.key))
-          if (entry.value case final String value when _porteWord.hasMatch(value))
+          if (entry.value case final String value when _carriedWord.hasMatch(value))
             '${entry.key}: "$value"',
     ];
     expect(
-      porteOffenders,
+      carriedOffenders,
       isEmpty,
       reason: 'these French floor-plan strings still say « porté(s) » — renamed to « Accessoires »',
     );

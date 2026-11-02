@@ -169,12 +169,12 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// an assumption that one of them does.
   final String? provisionAccountId;
 
-  /// The decor name `OcptBudgetLogistics` prints under each shooting day, keyed by the day's own id
+  /// The set name `OcptBudgetLogistics` prints under each shooting day, keyed by the day's own id
   /// — the first location or set the day's own slots name, resolved once at load time out of the
   /// project's own locations catalogue (`OcptLocationsService.loadLocations`, read for this alone).
   /// A day with no key here names neither in any of its slots, which the view reads as nothing
   /// rather than a placeholder.
-  final Map<String, String> logisticsDecorNameByDayId;
+  final Map<String, String> logisticsSetNameByDayId;
 
   /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
   @override
@@ -462,7 +462,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.elements,
     required this.mileageRates,
     required this.provisionAccountId,
-    required this.logisticsDecorNameByDayId,
+    required this.logisticsSetNameByDayId,
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.selectionCause,
@@ -502,7 +502,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       elements = const [],
       mileageRates = const [],
       provisionAccountId = null,
-      logisticsDecorNameByDayId = const {},
+      logisticsSetNameByDayId = const {},
       reloadEpoch = 0,
       selectionEpoch = 0,
       selectionCause = OcptBudgetSelectionCause.none,
@@ -584,7 +584,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     List<OcptBudgetMileageRate>? mileageRates,
     String? provisionAccountId,
     bool forceProvisionAccountIdValue = false,
-    Map<String, String>? logisticsDecorNameByDayId,
+    Map<String, String>? logisticsSetNameByDayId,
     int? reloadEpoch,
     int? selectionEpoch,
     OcptBudgetSelectionCause? selectionCause,
@@ -630,7 +630,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     mileageRates: mileageRates ?? this.mileageRates,
     provisionAccountId:
         provisionAccountId ?? (forceProvisionAccountIdValue ? null : this.provisionAccountId),
-    logisticsDecorNameByDayId: logisticsDecorNameByDayId ?? this.logisticsDecorNameByDayId,
+    logisticsSetNameByDayId: logisticsSetNameByDayId ?? this.logisticsSetNameByDayId,
     reloadEpoch: reloadEpoch ?? (snapshot != null ? this.reloadEpoch + 1 : this.reloadEpoch),
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
     selectionCause: selectionCause ?? this.selectionCause,
@@ -736,7 +736,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     elements,
     mileageRates,
     provisionAccountId,
-    logisticsDecorNameByDayId,
+    logisticsSetNameByDayId,
     reloadEpoch,
     selectionEpoch,
     selectionCause,

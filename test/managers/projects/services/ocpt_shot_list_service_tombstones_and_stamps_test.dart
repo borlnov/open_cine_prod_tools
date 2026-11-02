@@ -613,7 +613,7 @@ Action.
         sceneId: sceneId,
         name: "Kitchen",
       ))!;
-      final decorSymbolId = (await floorPlanService.placeSymbol(
+      final setSymbolId = (await floorPlanService.placeSymbol(
         database: database,
         setId: setId,
         sceneId: null,
@@ -661,7 +661,7 @@ Action.
       )..where((row) => row.isDeleted.equals(false))).get()).map((row) => row.id).toSet();
       expect(liveSymbolIds.contains(firstCameraId), isFalse);
       expect(liveSymbolIds.contains(secondCameraId), isFalse);
-      expect(liveSymbolIds.contains(decorSymbolId), isTrue);
+      expect(liveSymbolIds.contains(setSymbolId), isTrue);
     });
   });
 }

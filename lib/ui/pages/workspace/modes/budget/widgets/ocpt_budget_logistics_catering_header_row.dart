@@ -30,7 +30,7 @@ class OcptBudgetLogisticsCateringHeaderRow extends StatelessWidget {
             width: ocptBudgetLogisticsDayColumnWidth,
             child: Text(tr.budgetLogisticsColumnDay.toUpperCase(), style: labelStyle),
           ),
-          Expanded(child: Text(tr.budgetLogisticsColumnDecor.toUpperCase(), style: labelStyle)),
+          Expanded(child: Text(tr.budgetLogisticsColumnSet.toUpperCase(), style: labelStyle)),
           SizedBox(
             width: ocptBudgetLogisticsCountColumnWidth,
             child: Text(
