@@ -109,6 +109,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
+    final unplacedRows = _unplacedRows;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -129,12 +130,11 @@ class OcptScheduleLeftDock extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (days.isEmpty)
-                  Padding(
+          child: CustomScrollView(
+            slivers: [
+              if (days.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Text(
                       tr.scheduleDaysEmptyHint,
@@ -142,10 +142,14 @@ class OcptScheduleLeftDock extends StatelessWidget {
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  )
-                else
-                  for (final day in days)
-                    _OcptScheduleDayCard(
+                  ),
+                )
+              else
+                SliverList.builder(
+                  itemCount: days.length,
+                  itemBuilder: (context, index) {
+                    final day = days[index];
+                    return _OcptScheduleDayCard(
                       day: day,
                       isSelected: day.id == selectedDayId,
                       blockCount: blockCountByDayId[day.id] ?? 0,
@@ -168,72 +172,90 @@ class OcptScheduleLeftDock extends StatelessWidget {
                       onDeletionRequested: onDayDeletionRequested == null
                           ? null
                           : () => onDayDeletionRequested!(day.id),
-                    ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          tr.scheduleUnplacedPanelTitle,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            letterSpacing: 0.4,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        unplacedGroups.isEmpty
-                            ? tr.scheduleUnplacedAllPlaced
-                            : tr.scheduleUnplacedCount(_totalUnplacedCount),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-                // One [_OcptScheduleUnplacedGroupSection] per group of [unplacedGroups], banded by
-                // episode ([OcptScheduleEpisodeBand]) while [episodes] holds more than one. A
-                // single-episode project names no episode anywhere (ADR 0019), so with one episode
-                // or none this reads flat, and an episode left with nothing to place draws no band
-                // at all — a band over nothing would read as a heading that lies, the same argument
-                // the elements grid's own category band makes (`docs/architecture/schedule.md`).
-                if (episodes.length <= 1)
-                  for (final group in unplacedGroups)
-                    _OcptScheduleUnplacedGroupSection(
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              tr.scheduleUnplacedPanelTitle,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            unplacedGroups.isEmpty
+                                ? tr.scheduleUnplacedAllPlaced
+                                : tr.scheduleUnplacedCount(_totalUnplacedCount),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // One [_OcptScheduleUnplacedGroupSection] per group of [unplacedGroups], banded by
+              // episode ([OcptScheduleEpisodeBand]) while [episodes] holds more than one. A
+              // single-episode project names no episode anywhere (ADR 0019), so with one episode
+              // or none this reads flat, and an episode left with nothing to place draws no band
+              // at all — a band over nothing would read as a heading that lies, the same argument
+              // the elements grid's own category band makes (`docs/architecture/schedule.md`).
+              SliverList.builder(
+                itemCount: unplacedRows.length,
+                itemBuilder: (context, index) {
+                  final row = unplacedRows[index];
+                  if (row.group case final group?) {
+                    return _OcptScheduleUnplacedGroupSection(
                       group: group,
                       selectedShotId: selectedShotId,
                       onShotSelected: onShotSelected,
-                    )
-                else
-                  for (final episode in episodes)
-                    if (_groupsOf(episode.id) case final episodeGroups
-                        when episodeGroups.isNotEmpty) ...[
-                      // The band insets itself horizontally by nothing, so this list frames it in
-                      // the very padding its own sequence sections carry — see
-                      // [OcptScheduleEpisodeBand]'s doc comment.
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: OcptScheduleEpisodeBand(
-                          label: ocptWorkspaceEpisodeLabelOf(tr, episode),
-                        ),
-                      ),
-                      for (final group in episodeGroups)
-                        _OcptScheduleUnplacedGroupSection(
-                          group: group,
-                          selectedShotId: selectedShotId,
-                          onShotSelected: onShotSelected,
-                        ),
-                    ],
-                const SizedBox(height: 12),
-              ],
-            ),
+                    );
+                  }
+                  // The band insets itself horizontally by nothing, so this list frames it in
+                  // the very padding its own sequence sections carry — see
+                  // [OcptScheduleEpisodeBand]'s doc comment.
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: OcptScheduleEpisodeBand(
+                      label: ocptWorkspaceEpisodeLabelOf(tr, row.episode!),
+                    ),
+                  );
+                },
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  /// Get the unplaced rows in display order: every group, preceded by its episode's band while
+  /// [episodes] holds more than one.
+  List<({OcptScheduleUnplacedGroup? group, OcptEpisode? episode})> get _unplacedRows {
+    if (episodes.length <= 1) {
+      return [for (final group in unplacedGroups) (group: group, episode: null)];
+    }
+    return [
+      for (final episode in episodes)
+        if (_groupsOf(episode.id) case final episodeGroups when episodeGroups.isNotEmpty) ...[
+          (group: null, episode: episode),
+          for (final group in episodeGroups) (group: group, episode: null),
+        ],
+    ];
   }
 
   /// Get [unplacedGroups] narrowed to the ones belonging to episode [screenplayId], in their own
