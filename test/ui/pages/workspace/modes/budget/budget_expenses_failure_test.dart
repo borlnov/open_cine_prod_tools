@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, Variable;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
@@ -218,7 +218,14 @@ void main() {
       final status = await seeded.view.flushPendingWrites();
 
       expect(status, OcptPendingWritesStatus.failed);
-      expect(harness.state.accounts.first.lines.single.label, "Lead");
+      final database = harness.projectsManager.currentProject!.database;
+      final row = await database
+          .customSelect(
+            "SELECT label AS value FROM budget_lines WHERE id = ?",
+            variables: [Variable.withString(seeded.line)],
+          )
+          .getSingle();
+      expect(row.read<String>("value"), "Lead");
     });
 
     test("a refused write leaves the edit to the next flush that has no state", () async {

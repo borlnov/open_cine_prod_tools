@@ -273,7 +273,8 @@ class OcptShotListFloorPlanSetsBloc
 
   /// Write every pending set name directly to the database, bypassing the debounce timer, the
   /// bloc's own event queue and its state — for the moments no handler can emit from (the mode
-  /// leaving the tree, this bloc closing). A failure is only logged.
+  /// leaving the tree, this bloc closing). A failure is logged here, and leaves the set names to be
+  /// written again by the next flush.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     cancelDebounce();

@@ -337,6 +337,31 @@ void main() {
       expect(mode.state.snapshot, isNot(same(held.snapshot)));
     });
 
+    test("a refused write stops the edits after it", () async {
+      for (final id in [seeded.elementId, seeded.freeElementId]) {
+        view.add(
+          OcptResourcesElementFieldChangedEvent(
+            elementId: id,
+            field: OcptElementField.name,
+            rawValue: "Renamed",
+          ),
+        );
+      }
+      await settle();
+      await projectsManager.currentProject!.database.customStatement(
+        "CREATE TRIGGER refuse_first BEFORE UPDATE ON elements "
+        "WHEN NEW.id = '${seeded.elementId}' BEGIN SELECT RAISE(ABORT, 'refused'); END",
+      );
+
+      final status = await view.flushPendingWrites();
+
+      expect(status, OcptPendingWritesStatus.ok);
+      final names = await projectsManager.currentProject!.database
+          .customSelect("SELECT name FROM elements ORDER BY name")
+          .get();
+      expect(names.map((row) => row.read<String>("name")), ["Chair", "Lamp"]);
+    });
+
     test("a refused write leaves the edit to the next flush that has no state", () async {
       await type();
       final held = mode.state;

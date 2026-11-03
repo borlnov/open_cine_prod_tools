@@ -521,6 +521,26 @@ void main() {
       expect(mode.state.reloadEpoch, isNot(held.reloadEpoch));
     });
 
+    test("a refused write stops the labels after it", () async {
+      await type();
+      placements.add(
+        OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: seeded.character, rawValue: "Clara"),
+      );
+      await settle();
+      await projectsManager.currentProject!.database.customStatement(
+        "CREATE TRIGGER refuse_first BEFORE UPDATE ON floor_plan_symbols "
+        "WHEN NEW.id = '${seeded.camera}' BEGIN SELECT RAISE(ABORT, 'refused'); END",
+      );
+
+      final status = await placements.flushPendingWrites();
+
+      expect(status, OcptPendingWritesStatus.ok);
+      final labels = await projectsManager.currentProject!.database
+          .customSelect("SELECT label FROM floor_plan_symbols WHERE label IN ('Cam A', 'Clara')")
+          .get();
+      expect(labels, isEmpty, reason: "neither the refused label nor the one after it");
+    });
+
     test("a refused write leaves the label to the next flush that has no state", () async {
       await type();
       final held = mode.state;

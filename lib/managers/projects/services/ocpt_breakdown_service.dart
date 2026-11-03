@@ -804,24 +804,22 @@ class OcptBreakdownService extends AbsOcptService {
       stamps: stamps,
     );
 
-    // Run in a transaction of its own, a savepoint of the caller's: the failure of the link the
-    // element service answers ends the call, and unwinds the tag just written with it.
-    await database.transaction(() async {
-      switch (targetKind) {
-        case OcptBreakdownTargetKind.element:
-          await _elementsService
-              .addSceneElement(database: database, sceneId: sceneId, elementId: targetId)
-              .valueOrAbort();
-        case OcptBreakdownTargetKind.set:
-          await _locationsService.assignSceneToSet(
-            database: database,
-            sceneId: sceneId,
-            setId: targetId,
-          );
-        case OcptBreakdownTargetKind.role:
-        // There is no `scene_roles` table: the tag itself is the link.
-      }
-    });
+    switch (targetKind) {
+      case OcptBreakdownTargetKind.element:
+        // A failure of the link ends the call and unwinds the tag just written with it, through the
+        // transaction of the caller that holds [stamps].
+        await _elementsService
+            .addSceneElement(database: database, sceneId: sceneId, elementId: targetId)
+            .valueOrAbort();
+      case OcptBreakdownTargetKind.set:
+        await _locationsService.assignSceneToSet(
+          database: database,
+          sceneId: sceneId,
+          setId: targetId,
+        );
+      case OcptBreakdownTargetKind.role:
+      // There is no `scene_roles` table: the tag itself is the link.
+    }
 
     return id;
   }

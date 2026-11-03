@@ -235,6 +235,100 @@ void main() {
     });
   });
 
+  group("the inspector's chain of writes", () {
+    late OcptBreakdownBloc mode;
+    late OcptBreakdownInspectorBloc inspector;
+
+    setUp(() async {
+      mode = await buildMode();
+      inspector = OcptBreakdownInspectorBloc(
+        modeBloc: mode,
+        projectsManager: projectsManager,
+        fieldEditDebounce: const Duration(days: 1),
+      );
+      addTearDown(inspector.close);
+    });
+
+    /// Read straight from the database how many scene breakdowns hold the note "A note".
+    Future<int> notedScenes() async {
+      final rows = await projectsManager.currentProject!.database
+          .customSelect("SELECT id FROM scene_breakdowns WHERE notes = 'A note'")
+          .get();
+
+      return rows.length;
+    }
+
+    /// Read straight from the database the name of element [id].
+    Future<String> nameOf(String id) async {
+      final row = await projectsManager.currentProject!.database
+          .customSelect("SELECT name AS value FROM elements WHERE id = '$id'")
+          .getSingle();
+
+      return row.read<String>("value");
+    }
+
+    test("a refused element write stops the edits after it", () async {
+      final project = projectsManager.currentProject!;
+      final otherId = await projectsManager.elementsService
+          .createElement(
+            database: project.database,
+            name: "Chair",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail;
+      inspector.add(
+        OcptBreakdownElementFieldChangedEvent(
+          elementId: elementId,
+          field: OcptElementField.name,
+          rawValue: "Renamed lamp",
+        ),
+      );
+      inspector.add(
+        OcptBreakdownElementFieldChangedEvent(
+          elementId: otherId,
+          field: OcptElementField.name,
+          rawValue: "Renamed chair",
+        ),
+      );
+      inspector.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "A note"));
+      await settle();
+      await project.database.customStatement(
+        "CREATE TRIGGER refuse_first BEFORE UPDATE ON elements WHEN NEW.id = '$elementId' "
+        "BEGIN SELECT RAISE(ABORT, 'refused'); END",
+      );
+
+      final status = await inspector.flushPendingWrites();
+
+      expect(status, OcptPendingWritesStatus.ok);
+      expect(await nameOf(elementId), "Desk lamp");
+      expect(await nameOf(otherId), "Chair", reason: "the element after the refused one");
+      expect(await notedScenes(), 0, reason: "the scene note after the refused element");
+    });
+
+    test("a refused element flush without state stops the flush of the scene notes", () async {
+      inspector.add(
+        OcptBreakdownElementFieldChangedEvent(
+          elementId: elementId,
+          field: OcptElementField.name,
+          rawValue: "Renamed lamp",
+        ),
+      );
+      inspector.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "A note"));
+      await settle();
+      await refuse("UPDATE", "elements");
+
+      await inspector.flushPendingWritesWithoutState();
+
+      expect(await notedScenes(), 0);
+
+      await lift("UPDATE", "elements");
+      await inspector.flushPendingWritesWithoutState();
+
+      expect(await notedScenes(), 1, reason: "the note goes through once the refusal is lifted");
+    });
+  });
+
   group("when the catalogue cannot be read", () {
     /// Make the elements unreadable.
     Future<void> lose() => projectsManager.currentProject!.database.customStatement(

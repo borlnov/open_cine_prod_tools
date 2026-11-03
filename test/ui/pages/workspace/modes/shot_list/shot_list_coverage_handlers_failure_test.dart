@@ -152,6 +152,15 @@ void main() {
     return rows.length;
   }
 
+  /// The links between a shot and a character, read straight from the database.
+  Future<int> liveCharacterLinkCount() async {
+    final rows = await projectsManager.currentProject!.database
+        .customSelect("SELECT shot_id FROM shot_characters WHERE is_deleted = 0")
+        .get();
+
+    return rows.length;
+  }
+
   /// Tell whether the fixture's shot is flagged as needing a check, read straight from the
   /// database.
   Future<bool> shotNeedsCheck() async {
@@ -204,7 +213,7 @@ void main() {
       expect(inspector.state.pendingCoverageAnchor, isNull);
       expect(await liveRangeCount(), 0);
       expect(await modeReadsAgain(), isFalse, reason: "nothing is read after a failure");
-      expect(mode.state.snapshot!.shotsById[shotId]!.characterRoleIds, isEmpty);
+      expect(await liveCharacterLinkCount(), 0);
 
       await allow("INSERT", "shot_coverages");
       inspector.add(const OcptShotListInspectorWriteErrorDismissedEvent());

@@ -5,6 +5,7 @@
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
@@ -533,6 +534,59 @@ void main() {
         final allSymbolRows = await database.select(database.ocptFloorPlanSymbolsTable).get();
         final orphanSymbolRows = allSymbolRows.where((row) => row.setId != sourceSetId);
         expect(orphanSymbolRows, isEmpty, reason: "no copied symbol must survive either");
+      });
+
+      test("a refusal of the plan copy leaves no new set and no link behind", () async {
+        final locationId = (await locationsService.createLocation(
+          database: database,
+          name: "Maison",
+        ))!;
+        final sourceSetId = (await locationsService.createSet(
+          database: database,
+          locationId: locationId,
+          name: "Cuisine",
+        ))!;
+        await floorPlanService
+            .placeSymbol(
+              database: database,
+              setId: sourceSetId,
+              sceneId: null,
+              shotId: null,
+              layer: OcptFloorPlanLayer.set,
+              xM: 1,
+              yM: 2,
+            )
+            .maybeValueOrFail;
+        final setRowsBefore = await database.select(database.ocptSetsTable).get();
+        final symbolRowsBefore = await database.select(database.ocptFloorPlanSymbolsTable).get();
+
+        // The copy is the call to the floor plans service: it is the abort site itself that
+        // fails here, while the sibling set it follows is written and the link it precedes is not
+        // yet.
+        await database.customStatement(
+          "CREATE TRIGGER refuse_copy BEFORE INSERT ON floor_plan_symbols "
+          "BEGIN SELECT RAISE(ABORT, 'refused'); END",
+        );
+
+        await expectLater(
+          locationsService.duplicateSetForScene(
+            database: database,
+            sourceSetId: sourceSetId,
+            name: "Cuisine copy",
+            sceneId: "scene-1",
+          ),
+          throwsA(isA<OcptDatabaseAbort>()),
+        );
+
+        final setRowsAfter = await database.select(database.ocptSetsTable).get();
+        expect(
+          setRowsAfter.map((row) => row.id),
+          setRowsBefore.map((row) => row.id),
+          reason: "the sibling set written before the copy must be rolled back",
+        );
+        expect(await database.select(database.ocptSceneSetsTable).get(), isEmpty);
+        final symbolRowsAfter = await database.select(database.ocptFloorPlanSymbolsTable).get();
+        expect(symbolRowsAfter.map((row) => row.id), symbolRowsBefore.map((row) => row.id));
       });
     });
 
