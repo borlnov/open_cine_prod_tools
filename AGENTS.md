@@ -294,7 +294,8 @@ A project rule overrides these. The overrides this project has made:
   `OcptSnapshotService`'s file I/O), whose callers include the sharing bloc's invite read and the
   hosting bloc; the directory methods of `OcptProjectsManager` (`dart:io`, `path_provider`), which
   the home and joining blocs call bare; `launchUrl` in the about section; the PDF services'
-  `generate`, which the export blocs catch; and the relay store (`sqlite3`) and upstream client. `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a
+  `generate`, which the export blocs catch; and the relay store (`sqlite3`) and upstream client.
+  `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a
   malformed document with a typed exception, which the app converts to a `Result` at its boundary:
   `act_dart_result` depends on Flutter, and the relay compiles without it.
 - **RD14:** `OcptPresenceService.roster` stays a getter over a hand-written controller, since it is
