@@ -146,11 +146,9 @@ void main() {
   /// Saves a scene and creates a shot on it, returning the shot id.
   Future<String> seedShot() async {
     final sceneId = await seedScene();
-    return (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: sceneId,
-    ))!;
+    return shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+        .valueOrFail;
   }
 
   /// Creates a fresh Resources set linked to scene [sceneId] (a fresh one of its own if omitted),
@@ -354,11 +352,9 @@ void main() {
   group("loadSetScopeSymbolsByProjectSetId (the empty-state gallery's own thumbnail read)", () {
     test("reads only set-scope symbols, project-wide, keyed by set id", () async {
       final (sceneId, setId) = await seedLinkedSet();
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
       final setScopeSymbolId = (await floorPlanService
           .placeSymbol(

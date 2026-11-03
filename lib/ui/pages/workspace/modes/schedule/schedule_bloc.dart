@@ -272,7 +272,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
           snapshot = read.value;
         case OcptScheduleReloadScope.shotLists:
-          shotLists = await _loadShotLists(project);
+          final read = await _loadShotLists(project);
+          if (read.isError) {
+            return false;
+          }
+
+          shotLists = read.value;
       }
     }
 
@@ -339,9 +344,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// is dropped for the same reason and then chosen afresh out of what was just read, by
   /// [_defaultSelectedDayOf] — never carried over.
   ///
-  /// Answers false when the schedule, the locations or the casting (the roles, the people, the
-  /// elements and the candidacies) could not be read, in which case nothing is emitted and the
-  /// caller stops there.
+  /// Answers false when the schedule, the shot lists, the locations or the casting (the roles,
+  /// the people, the elements and the candidacies) could not be read, in which case nothing is
+  /// emitted and the caller stops there.
   @useResult
   Future<bool> _load(Emitter<OcptScheduleState> emitter) async {
     final leftDockFraction =
@@ -378,7 +383,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       }
 
       final snapshot = scheduleRead.value!;
-      final shotLists = await _loadShotLists(project);
+      final shotListsRead = await _loadShotLists(project);
+      if (shotListsRead.isError) {
+        return false;
+      }
+
+      final shotLists = shotListsRead.value!;
       final locationsRead = await _locationsService.loadLocations(database: project.database);
       if (locationsRead.isError) {
         return false;
@@ -538,24 +548,33 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// [OcptScheduleState.episodes]/[OcptScheduleState.shotListSnapshots] in one write, and a second
   /// read of [_projectsManager]'s own `screenplayService` right after this one returned would risk
   /// disagreeing with it if an episode was renamed or reordered in between.
-  Future<({List<OcptEpisode> episodes, List<OcptShotListSnapshot> shotLists})> _loadShotLists(
-    OcptOpenProjectModel project,
-  ) async {
+  ///
+  /// Answers the failure of the first shot list that could not be read, in place of the episodes
+  /// and their shot lists. The read of the episodes still raises when the database fails.
+  @useResult
+  Future<OcptDatabaseResult<({List<OcptEpisode> episodes, List<OcptShotListSnapshot> shotLists})>>
+  _loadShotLists(OcptOpenProjectModel project) async {
     final database = project.database;
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
 
     final shotLists = <OcptShotListSnapshot>[];
     for (final episode in episodes) {
-      shotLists.add(
-        await _shotListService.loadShotList(
-          database: database,
-          screenplayId: episode.id,
-          episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: episode.id),
-        ),
+      final shotListRead = await _shotListService.loadShotList(
+        database: database,
+        screenplayId: episode.id,
+        episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: episode.id),
       );
+      if (shotListRead.isError) {
+        return OcptDatabaseResult(status: shotListRead.status, extraInfo: shotListRead.extraInfo);
+      }
+
+      shotLists.add(shotListRead.value!);
     }
 
-    return (episodes: episodes, shotLists: shotLists);
+    return OcptDatabaseResult(
+      status: OcptDatabaseStatus.ok,
+      value: (episodes: episodes, shotLists: shotLists),
+    );
   }
 
   /// Leave the workspace: closes the current project and navigates back to the home page.

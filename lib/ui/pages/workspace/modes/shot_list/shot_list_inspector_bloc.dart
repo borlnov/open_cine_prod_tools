@@ -5,11 +5,10 @@
 import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
@@ -77,12 +76,6 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 /// dropped.
 class OcptShotListInspectorBloc
     extends AbsOcptViewBloc<OcptShotListInspectorState, OcptShotListState, OcptShotListBloc> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "shot_list_inspector_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
@@ -106,8 +99,7 @@ class OcptShotListInspectorBloc
     OcptRoleIndexService? roleIndexService,
     OcptShotCoverageService? shotCoverageService,
     Duration fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _shotListService =
            shotListService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotListService,
@@ -222,27 +214,8 @@ class OcptShotListInspectorBloc
       return OcptPendingWritesStatus.ok;
     }
 
-    try {
-      await _writeAllPendingFields(project: project, pending: pending);
-      await modeBloc.reload({
-        OcptShotListReloadScope.snapshot,
-        OcptShotListReloadScope.suggestions,
-      });
-      emitter(
-        state.copyWithFlushedFieldEdits(
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending shot list field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = await _writeAllPendingFields(project: project, pending: pending);
+    if (written.isError) {
       emitter(
         state.copyToFlushFailed(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
@@ -251,7 +224,18 @@ class OcptShotListInspectorBloc
           ),
         ),
       );
+      return OcptPendingWritesStatus.ok;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.snapshot, OcptShotListReloadScope.suggestions});
+    emitter(
+      state.copyWithFlushedFieldEdits(
+        pendingFieldEdits: ocptPendingEditsAfterWrite(
+          current: state.pendingFieldEdits,
+          written: pending,
+        ),
+      ),
+    );
 
     return OcptPendingWritesStatus.ok;
   }
@@ -271,7 +255,8 @@ class OcptShotListInspectorBloc
   /// a registered `on<Event>` handler (the package's own rule, enforced by the analyzer's
   /// `visible_for_testing` lint on `Bloc.emit`), and by the time this runs the widget tree that
   /// would show a fresh state is already gone anyway. Like `OcptEditorBloc.disposeLifeCycle`'s own
-  /// flush, a failure here is only logged.
+  /// flush, a failure here is logged by the service that failed, and leaves the edits to be
+  /// written again by the next flush.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     cancelDebounce();
@@ -286,19 +271,10 @@ class OcptShotListInspectorBloc
       return;
     }
 
-    try {
-      await flushEditsWithoutStateUntilConverted(
-        pending,
-        (edits) => _writeAllPendingFields(project: project, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending shot list field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
+    final _ = await flushEditsWithoutState(
+      pending,
+      (edits) => _writeAllPendingFields(project: project, pending: edits),
+    );
   }
 
   /// Record the raw text just typed into `event.field` of shot `event.shotId` as a pending edit,
@@ -338,19 +314,26 @@ class OcptShotListInspectorBloc
   /// A shot whose abbreviation is being typed in the very same flush is left out of the deduction:
   /// what the user is writing wins over what the shot size would have suggested, whichever of the
   /// two entries this loop happens to reach first.
-  Future<void> _writeAllPendingFields({
+  ///
+  /// Stops at the first write that fails and answers its failure; what comes after it is not
+  /// written.
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingFields({
     required OcptOpenProjectModel project,
     required Map<OcptShotListPendingEditKey, String> pending,
   }) async {
     for (final entry in pending.entries) {
       switch (entry.key) {
         case OcptShotListShotFieldEditKey(:final shotId, :final field):
-          await _writeField(
+          final written = await _writeField(
             database: project.database,
             shotId: shotId,
             field: field,
             rawValue: entry.value,
           );
+          if (written.isError) {
+            return written;
+          }
 
           if (field == OcptShotListEditableField.shotSize &&
               !pending.containsKey(
@@ -359,11 +342,14 @@ class OcptShotListInspectorBloc
                   field: OcptShotListEditableField.abbreviation,
                 ),
               )) {
-            await _deduceAbbreviationIfEmpty(
+            final deduced = await _deduceAbbreviationIfEmpty(
               database: project.database,
               shotId: shotId,
               shotSize: entry.value,
             );
+            if (deduced.isError) {
+              return deduced;
+            }
           }
         case OcptShotListPanelCommentEditKey() ||
             OcptShotListAnnotationTextEditKey() ||
@@ -373,6 +359,8 @@ class OcptShotListInspectorBloc
           break;
       }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Write onto shot [shotId] the abbreviation [ocptDeduceShotAbbreviation] reads out of the
@@ -383,22 +371,23 @@ class OcptShotListInspectorBloc
   /// the field leaves it empty until the shot size is committed again. A shot size with no
   /// initials to read at all (blank, or punctuation alone) deduces nothing rather than emptying
   /// what the shot holds.
-  Future<void> _deduceAbbreviationIfEmpty({
+  @useResult
+  Future<OcptDatabaseOutcome> _deduceAbbreviationIfEmpty({
     required OcptProjectDatabase database,
     required String shotId,
     required String shotSize,
   }) async {
     final stored = modeBloc.state.snapshot?.shotsById[shotId]?.abbreviation ?? "";
     if (stored.trim().isNotEmpty) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
     final deduced = ocptDeduceShotAbbreviation(shotSize);
     if (deduced.isEmpty) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
-    await _shotListService.updateShot(
+    return _shotListService.updateShot(
       database: database,
       shotId: shotId,
       abbreviation: Value(deduced),
@@ -409,20 +398,20 @@ class OcptShotListInspectorBloc
   /// [OcptShotListEditableField.estimatedDuration] is parsed first; an entry whose raw text
   /// doesn't parse is silently skipped, leaving whatever the database already holds untouched,
   /// rather than failing the whole flush.
-  Future<void> _writeField({
+  @useResult
+  Future<OcptDatabaseOutcome> _writeField({
     required OcptProjectDatabase database,
     required String shotId,
     required OcptShotListEditableField field,
     required String rawValue,
   }) async {
     if (field != OcptShotListEditableField.estimatedDuration) {
-      await _shotListService.updateTextField(
+      return _shotListService.updateTextField(
         database: database,
         shotId: shotId,
         field: field,
         rawValue: rawValue,
       );
-      return;
     }
 
     // A mistyped duration is the field's own error state, not a failure: the edit is skipped
@@ -430,9 +419,9 @@ class OcptShotListInspectorBloc
     // logged, since the text it would quote is the user's.
     final parsed = ocptParseShotDuration(rawValue);
     if (!parsed.status.isSuccess) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
-    await _shotListService.updateShot(
+    return _shotListService.updateShot(
       database: database,
       shotId: shotId,
       estimatedDurationMs: Value(parsed.value),
@@ -449,23 +438,18 @@ class OcptShotListInspectorBloc
       return;
     }
 
-    try {
-      await _shotListService.updateDifficulty(
-        database: project.database,
-        shotId: event.shotId,
-        axis: event.axis,
-        value: event.value,
-      );
-      await modeBloc.reload({OcptShotListReloadScope.snapshot});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to change the difficulty of shot ${event.shotId} of "
-        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = await _shotListService.updateDifficulty(
+      database: project.database,
+      shotId: event.shotId,
+      axis: event.axis,
+      value: event.value,
+    );
+    if (written.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.snapshot});
   }
 
   /// Attach role `event.roleId` to shot `event.shotId` if it isn't already, detach it
@@ -482,30 +466,23 @@ class OcptShotListInspectorBloc
 
     final isAttached = shot.characterRoleIds.contains(event.roleId);
 
-    try {
-      if (isAttached) {
-        await _shotListService.detachCharacter(
-          database: project.database,
-          shotId: event.shotId,
-          roleId: event.roleId,
-        );
-      } else {
-        await _shotListService.attachCharacter(
-          database: project.database,
-          shotId: event.shotId,
-          roleId: event.roleId,
-        );
-      }
-      await modeBloc.reload({OcptShotListReloadScope.snapshot});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to toggle role ${event.roleId} on shot ${event.shotId} "
-        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = isAttached
+        ? await _shotListService.detachCharacter(
+            database: project.database,
+            shotId: event.shotId,
+            roleId: event.roleId,
+          )
+        : await _shotListService.attachCharacter(
+            database: project.database,
+            shotId: event.shotId,
+            roleId: event.roleId,
+          );
+    if (written.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.snapshot});
   }
 
   /// Resolve `event.characterName` to a live role, or **creates** a hand-added silent one linked to
@@ -521,29 +498,32 @@ class OcptShotListInspectorBloc
       return;
     }
 
-    try {
-      final roleId = await _shotListService.resolveOrCreateRoleId(
-        database: project.database,
-        screenplayId: modeBloc.screenplayIdOf(project),
-        name: event.characterName,
-      );
-      if (roleId != null) {
-        await _shotListService.attachCharacter(
-          database: project.database,
-          shotId: event.shotId,
-          roleId: roleId,
-        );
-        await modeBloc.reload({OcptShotListReloadScope.snapshot, OcptShotListReloadScope.roles});
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to add a character to shot "
-        "${event.shotId} of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final resolved = await _shotListService.resolveOrCreateRoleId(
+      database: project.database,
+      screenplayId: modeBloc.screenplayIdOf(project),
+      name: event.characterName,
+    );
+    if (resolved.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    final roleId = resolved.value;
+    if (roleId == null) {
+      return;
+    }
+
+    final attached = await _shotListService.attachCharacter(
+      database: project.database,
+      shotId: event.shotId,
+      roleId: roleId,
+    );
+    if (attached.isError) {
+      emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    await modeBloc.reload({OcptShotListReloadScope.snapshot, OcptShotListReloadScope.roles});
   }
 
   /// Delete orphaned role `event.roleId` for good, written immediately: the shared role alert
@@ -695,14 +675,12 @@ class OcptShotListInspectorBloc
           return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
         }
 
-        await _attachCharactersCoveredBy(
+        return _attachCharactersCoveredBy(
           project: project,
           shotId: event.shotId,
           layout: layout,
           range: range,
         );
-
-        return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
       },
     );
   }
@@ -717,7 +695,10 @@ class OcptShotListInspectorBloc
   /// which of them the coverage happens to explain. A role already attached is skipped, and so is a
   /// covered name matching no live role of [OcptShotListState.roles] — one not reconciled yet,
   /// which the next save resolves.
-  Future<void> _attachCharactersCoveredBy({
+  ///
+  /// Stops at the first character that cannot be attached and answers its failure.
+  @useResult
+  Future<OcptDatabaseOutcome> _attachCharactersCoveredBy({
     required OcptOpenProjectModel project,
     required String shotId,
     required OcptScriptWordLayout layout,
@@ -737,12 +718,17 @@ class OcptShotListInspectorBloc
         continue;
       }
 
-      await _shotListService.attachCharacter(
+      final attached = await _shotListService.attachCharacter(
         database: project.database,
         shotId: shotId,
         roleId: role.id,
       );
+      if (attached.isError) {
+        return attached;
+      }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Remove every scenario coverage range of shot `event.shotId`, written immediately: the
@@ -811,37 +797,21 @@ class OcptShotListInspectorBloc
   /// coverage write always leaves the interaction back at its initial, no-anchor state. Mirrors
   /// `_onShotDifficultyChanged`/`_onShotCharacterToggled`'s own try/catch shape.
   ///
-  /// A failed outcome of [action] and an exception it raises (the characters it attaches are not
-  /// written through a status yet) end the same way: nothing is read again and the coverage write
-  /// error is raised.
+  /// A failed outcome of [action] reads nothing again and raises the coverage write error.
   Future<void> _writeCoverageChange({
     required Emitter<OcptShotListInspectorState> emitter,
     required OcptOpenProjectModel project,
     required String shotId,
     required Future<OcptDatabaseOutcome> Function() action,
   }) async {
-    var hasFailed = false;
-    try {
-      final written = await action();
-      if (written.isError) {
-        hasFailed = true;
-      } else {
-        await modeBloc.reload({OcptShotListReloadScope.snapshot});
-        emitter(state.copyWithCoverageAnchorCleared());
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to change the scenario coverage of shot $shotId of "
-        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      hasFailed = true;
+    final written = await action();
+    if (written.isError) {
+      emitter(state.copyToCoverageWriteFailed());
+      return;
     }
 
-    if (hasFailed) {
-      emitter(state.copyToCoverageWriteFailed());
-    }
+    await modeBloc.reload({OcptShotListReloadScope.snapshot});
+    emitter(state.copyWithCoverageAnchorCleared());
   }
 
   /// Dismiss the transient write error currently shown.

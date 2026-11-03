@@ -302,11 +302,9 @@ void main() {
                 .loadRoles(database: harness.database)
                 .valueOrFail)
             .firstWhere((role) => role.name == "SAM");
-    await harness.projectsManager.shotListService.attachCharacter(
-      database: harness.database,
-      shotId: shotIds.single,
-      roleId: role.id,
-    );
+    await harness.projectsManager.shotListService
+        .attachCharacter(database: harness.database, shotId: shotIds.single, roleId: role.id)
+        .okOrFail;
     await harness.projectsManager.screenplayService.saveScreenplayText(
       database: harness.database,
       screenplayId: harness.screenplayId,

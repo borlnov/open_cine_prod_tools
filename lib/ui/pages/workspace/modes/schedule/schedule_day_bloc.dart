@@ -645,11 +645,14 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _shotListService.updateShot(
+    final updated = await _shotListService.updateShot(
       database: project.database,
       shotId: event.shotId,
       status: Value(event.status),
     );
+    if (updated.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptScheduleReloadScope.shotLists});
   }

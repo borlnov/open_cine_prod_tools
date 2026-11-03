@@ -33,6 +33,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_inspector_bloc_test_doubles.dart';
 
 /// Run the tests of the shot list inspector bloc field edits.
@@ -433,11 +434,13 @@ void main() {
     // This flush never touches the inspector's own state...
     expect(inspector.state.pendingFieldEdits, isNotEmpty);
     // ...but the database already has the write.
-    final reloaded = await projectsManager.shotListService.loadShotList(
-      database: projectsManager.currentProject!.database,
-      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-      episodeNumber: null,
-    );
+    final reloaded = await projectsManager.shotListService
+        .loadShotList(
+          database: projectsManager.currentProject!.database,
+          screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+          episodeNumber: null,
+        )
+        .valueOrFail;
     expect(reloaded.shotsById[shotId]!.sound, "Wind noise");
 
     await closeAll(inspector, mode);

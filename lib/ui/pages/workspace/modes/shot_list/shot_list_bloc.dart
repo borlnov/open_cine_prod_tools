@@ -278,7 +278,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             isRead = !read.isError;
             snapshot = read.value;
           case OcptShotListReloadScope.suggestions:
-            suggestions = await _reader.loadSuggestions(project);
+            final read = await _reader.loadSuggestions(project);
+            isRead = !read.isError;
+            suggestions = read.value;
           case OcptShotListReloadScope.storyboard:
             final read = await _reader.loadStoryboard(project);
             isRead = !read.isError;
@@ -373,8 +375,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// which version is being previewed alongside the shot list it just read, the two reaching the
   /// mode together (see the hook's own doc comment).
   ///
-  /// Answers false when the shot list could not be read, in which case nothing is emitted and the
-  /// caller stops there.
+  /// Answers false when the shot list, the board, the floor plans, the locations, the cast or the
+  /// field suggestions could not be read, in which case nothing is emitted and the caller stops
+  /// there. The read of the screenplay text and the episodes still raises when the database fails.
   @useResult
   Future<bool> _load(Emitter<OcptShotListState> emitter) async {
     final leftDockFraction =
@@ -449,7 +452,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       }
 
       final roles = rolesRead.value!;
-      final suggestions = await _reader.loadSuggestions(project);
+      final suggestionsRead = await _reader.loadSuggestions(project);
+      if (suggestionsRead.isError) {
+        return false;
+      }
+
+      final suggestions = suggestionsRead.value!;
 
       final revealRequest = state.pendingRevealRequest;
       final revealedSequenceId = ocptRevealedSequenceIdOf(
@@ -573,12 +581,18 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
+    final created = await _shotListService.createShot(
+      database: project.database,
+      screenplayId: screenplayIdOf(project),
+      sceneId: sequence.sceneId,
+    );
+    if (created.isError) {
+      emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    final shotId = created.value;
     try {
-      final shotId = await _shotListService.createShot(
-        database: project.database,
-        screenplayId: screenplayIdOf(project),
-        sceneId: sequence.sceneId,
-      );
       await runSerially(() async {
         final snapshotRead = await _reader.loadSnapshot(project);
         if (snapshotRead.isError) {
@@ -784,8 +798,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     final wasSelected = state.selectedShotId == event.shotId;
 
+    final deleted = await _shotListService.deleteShot(
+      database: project.database,
+      shotId: event.shotId,
+    );
+    if (deleted.isError) {
+      emitter(state.copyToWriteFailed());
+      return;
+    }
+
     try {
-      await _shotListService.deleteShot(database: project.database, shotId: event.shotId);
       await runSerially(() async {
         final snapshotRead = await _reader.loadSnapshot(project);
         if (snapshotRead.isError) {
@@ -798,7 +820,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             ? ocptFirstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
             : state.selectedShotId;
 
-        final suggestions = await _reader.loadSuggestions(project);
+        final suggestionsRead = await _reader.loadSuggestions(project);
+        if (suggestionsRead.isError) {
+          emitter(state.copyToWriteFailed());
+          return;
+        }
+
+        final suggestions = suggestionsRead.value!;
         final storyboardRead = await _reader.loadStoryboard(project);
         if (storyboardRead.isError) {
           emitter(state.copyToWriteFailed());

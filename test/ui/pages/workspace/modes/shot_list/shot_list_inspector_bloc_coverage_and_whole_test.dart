@@ -35,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_inspector_bloc_test_doubles.dart';
 
 /// The fixed device id every stamping test double in this file uses.
@@ -90,7 +91,7 @@ class _HoldingShotListService extends OcptShotListService {
 
   /// Load the shot list as the real service does, then hold the call while reads are to be held.
   @override
-  Future<OcptShotListSnapshot> loadShotList({
+  Future<OcptDatabaseResult<OcptShotListSnapshot>> loadShotList({
     required OcptProjectDatabase database,
     required String screenplayId,
     required int? episodeNumber,
@@ -654,11 +655,13 @@ void main() {
           }
 
           final project = projectsManager.currentProject!;
-          final reloaded = await projectsManager.shotListService.loadShotList(
-            database: project.database,
-            screenplayId: project.primaryScreenplayId,
-            episodeNumber: null,
-          );
+          final reloaded = await projectsManager.shotListService
+              .loadShotList(
+                database: project.database,
+                screenplayId: project.primaryScreenplayId,
+                episodeNumber: null,
+              )
+              .valueOrFail;
           expect(
             reloaded.shotsById[shotId]!.notes,
             "Kept",
@@ -666,10 +669,9 @@ void main() {
           );
 
           // The next round starts from a project without that shot.
-          await projectsManager.shotListService.deleteShot(
-            database: project.database,
-            shotId: shotId,
-          );
+          await projectsManager.shotListService
+              .deleteShot(database: project.database, shotId: shotId)
+              .okOrFail;
         }
       },
     );

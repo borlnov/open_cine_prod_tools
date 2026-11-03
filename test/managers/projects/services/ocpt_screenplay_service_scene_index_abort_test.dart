@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of what [OcptScreenplayService] does with a failure of the scene index, which
 /// must undo whatever the same transaction had written before it.
@@ -211,11 +212,9 @@ void main() {
       final scene = await (database.select(
         database.ocptScenesTable,
       )..where((table) => table.screenplayId.equals(otherId))).getSingle();
-      await shotListService.createShot(
-        database: database,
-        screenplayId: otherId,
-        sceneId: scene.id,
-      );
+      await shotListService
+          .createShot(database: database, screenplayId: otherId, sceneId: scene.id)
+          .maybeValueOrFail;
       final untouched = await snapshot();
       await refuseSceneWrites();
 

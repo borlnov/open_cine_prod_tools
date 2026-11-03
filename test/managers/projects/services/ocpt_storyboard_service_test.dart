@@ -132,11 +132,9 @@ Action.
       database.ocptScenesTable,
     )..where((row) => row.isDeleted.equals(false))).getSingle();
 
-    return (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: scene.id,
-    ))!;
+    return shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
+        .valueOrFail;
   }
 
   Future<List<OcptStoryboardPanelRow>> readPanels() => (database.select(

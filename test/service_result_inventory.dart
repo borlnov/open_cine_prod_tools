@@ -26,23 +26,6 @@ const pendingServiceMethods = <String>{
   'OcptScreenplayService.saveScreenplayText',
   'OcptScreenplayService.snapshotOnProjectOpen',
   'OcptScreenplayService.updateEpisode',
-  'OcptShotListService.attachCharacter',
-  'OcptShotListService.createShot',
-  'OcptShotListService.deleteShot',
-  'OcptShotListService.detachCharacter',
-  'OcptShotListService.distinctCameraMoves',
-  'OcptShotListService.distinctFramings',
-  'OcptShotListService.distinctLenses',
-  'OcptShotListService.distinctRecordingFormats',
-  'OcptShotListService.distinctShotSizes',
-  'OcptShotListService.distinctSounds',
-  'OcptShotListService.loadFieldSuggestions',
-  'OcptShotListService.loadShotList',
-  'OcptShotListService.reorderShot',
-  'OcptShotListService.resolveOrCreateRoleId',
-  'OcptShotListService.updateDifficulty',
-  'OcptShotListService.updateShot',
-  'OcptShotListService.updateTextField',
 };
 
 /// What stays as it is for good, each with the reason it is allowed to.

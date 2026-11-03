@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
@@ -54,12 +55,15 @@ class _FailingFieldShotListService extends OcptShotListService {
 
   /// Fail as a refused field write does.
   @override
-  Future<void> updateTextField({
+  Future<OcptDatabaseOutcome> updateTextField({
     required OcptProjectDatabase database,
     required String shotId,
     required OcptShotListEditableField field,
     required String rawValue,
-  }) async => throw StateError("field write intentionally failed for the test");
+  }) async => const OcptDatabaseOutcome(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "field write intentionally failed for the test",
+  );
 }
 
 /// An export manager that records the shot list it is asked to export, and saves it nowhere.

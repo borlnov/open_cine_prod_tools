@@ -121,6 +121,56 @@ void main() {
     expect(read.value, isNull);
   });
 
+  group("when the shot list itself cannot be read", () {
+    /// Make the shots unreadable.
+    Future<void> loseTheShots() => projectsManager.currentProject!.database.customStatement(
+      "ALTER TABLE shots RENAME TO shots_gone",
+    );
+
+    test("the reader answers the failure of the shot list instead of a snapshot", () async {
+      await buildMode();
+      await loseTheShots();
+      final reader = OcptShotListReader(
+        projectsManager: projectsManager,
+        propertiesManager: propertiesManager,
+        shotListService: projectsManager.shotListService,
+        roleIndexService: projectsManager.roleIndexService,
+        scheduleService: projectsManager.scheduleService,
+        storyboardService: projectsManager.storyboardService,
+        floorPlanService: projectsManager.floorPlanService,
+        locationsService: projectsManager.locationsService,
+        screenplayIdOf: (project) => project.primaryScreenplayId,
+      );
+
+      final read = await reader.loadSnapshot(projectsManager.currentProject!);
+
+      expect(read.status, OcptDatabaseStatus.databaseError);
+      expect(read.value, isNull);
+    });
+
+    test("a mode that cannot read it stays loading", () async {
+      await loseTheShots();
+
+      await buildMode(expectsLoaded: false);
+
+      expect(mode.state.isLoading, isTrue);
+      expect(mode.state.hasWriteError, isFalse);
+    });
+
+    test("reading it again answers false and shows the write error", () async {
+      await buildMode();
+      final snapshot = mode.state.snapshot;
+      final epoch = mode.state.reloadEpoch;
+      await loseTheShots();
+
+      expect(await mode.reload({OcptShotListReloadScope.snapshot}), isFalse);
+
+      expect(mode.state.hasWriteError, isTrue);
+      expect(mode.state.snapshot, same(snapshot));
+      expect(mode.state.reloadEpoch, epoch);
+    });
+  });
+
   test("a mode that cannot read the placements stays loading", () async {
     await loseTheSchedule();
 

@@ -174,11 +174,13 @@ void main() {
   /// Add a second shot straight through the service, which the mode does not know until it reads
   /// again: a handler that stopped on the failure leaves the mode ignorant of it.
   Future<void> addShotBehindTheModesBack() async {
-    await projectsManager.shotListService.createShot(
-      database: projectsManager.currentProject!.database,
-      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-      sceneId: layout.sceneId,
-    );
+    await projectsManager.shotListService
+        .createShot(
+          database: projectsManager.currentProject!.database,
+          screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+          sceneId: layout.sceneId,
+        )
+        .maybeValueOrFail;
   }
 
   /// Tell whether the mode read the shot list again within a moment.
@@ -224,6 +226,25 @@ void main() {
       await waitUntil(() => mode.state.selectedShot?.coverageRanges.isNotEmpty ?? false);
       expect(await liveRangeCount(), 1);
       await waitUntil(() => mode.state.snapshot!.shotsById[shotId]!.characterRoleIds.isNotEmpty);
+    },
+  );
+
+  test(
+    "a refused attachment of the covered character raises the write error and reads nothing",
+    () async {
+      final cue = layout.blocks.firstWhere((block) => block.text == "JOHN").words.first;
+      final last = dialogueWords().last;
+      click(cue.startOffset, cue.endOffset);
+      await waitUntil(() => inspector.state.pendingCoverageAnchor != null);
+      await refuse("INSERT", "shot_characters");
+      await addShotBehindTheModesBack();
+
+      click(last.startOffset, last.endOffset);
+      await waitUntil(() => inspector.state.hasWriteError);
+
+      expect(inspector.state.pendingCoverageAnchor, isNull);
+      expect(await liveCharacterLinkCount(), 0);
+      expect(await modeReadsAgain(), isFalse, reason: "nothing is read after a failure");
     },
   );
 

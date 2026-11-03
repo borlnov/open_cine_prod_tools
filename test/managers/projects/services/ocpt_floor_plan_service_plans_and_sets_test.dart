@@ -142,11 +142,9 @@ void main() {
   /// Saves a scene and creates a shot on it, returning the shot id.
   Future<String> seedShot() async {
     final sceneId = await seedScene();
-    return (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: sceneId,
-    ))!;
+    return shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+        .valueOrFail;
   }
 
   /// Creates a fresh Resources set linked to scene [sceneId] (a fresh one of its own if omitted),
@@ -664,16 +662,12 @@ void main() {
       "copies",
       () async {
         final sceneId = await seedScene();
-        final sourceShotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
-        final destinationShotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: sceneId,
-        ))!;
+        final sourceShotId = (await shotListService
+            .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+            .valueOrFail);
+        final destinationShotId = (await shotListService
+            .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+            .valueOrFail);
         final (_, setId) = await seedLinkedSet(sceneId: sceneId);
         final sourceCamera = (await floorPlanService
             .placeSymbol(
@@ -779,16 +773,12 @@ void main() {
 
     test("mutating a copied symbol never touches the source symbol", () async {
       final sceneId = await seedScene();
-      final sourceShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final destinationShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final sourceShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final destinationShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
       final (_, setId) = await seedLinkedSet(sceneId: sceneId);
       final sourceLightId = (await floorPlanService
           .placeSymbol(
@@ -827,16 +817,12 @@ void main() {
 
     test("an arrow touching a set-scope symbol is not copied", () async {
       final sceneId = await seedScene();
-      final sourceShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final destinationShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final sourceShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final destinationShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
       final (_, setId) = await seedLinkedSet(sceneId: sceneId);
       final shootingSet = (await floorPlanService
           .placeSymbol(
@@ -893,16 +879,12 @@ void main() {
 
     test("is a no-op while the source shot carries nothing on the set", () async {
       final sceneId = await seedScene();
-      final sourceShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final destinationShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final sourceShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final destinationShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
       final (_, setId) = await seedLinkedSet(sceneId: sceneId);
 
       await floorPlanService

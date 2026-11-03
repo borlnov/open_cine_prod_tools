@@ -88,11 +88,13 @@ void main() {
       project.database.ocptScenesTable,
     )).get()).single.id;
 
-    final shotId = await projectsManager.shotListService.createShot(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      sceneId: sceneId,
-    );
+    final shotId = await projectsManager.shotListService
+        .createShot(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          sceneId: sceneId,
+        )
+        .maybeValueOrFail;
     expect(shotId, isNotNull);
 
     final dayId = await projectsManager.scheduleService
@@ -452,11 +454,13 @@ void main() {
           project.database.ocptScenesTable,
         )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
 
-        final secondShotId = await projectsManager.shotListService.createShot(
-          database: project.database,
-          screenplayId: secondEpisodeId,
-          sceneId: secondSceneId,
-        );
+        final secondShotId = await projectsManager.shotListService
+            .createShot(
+              database: project.database,
+              screenplayId: secondEpisodeId,
+              sceneId: secondSceneId,
+            )
+            .maybeValueOrFail;
         expect(secondShotId, isNotNull);
 
         final secondSlotId = await projectsManager.scheduleService

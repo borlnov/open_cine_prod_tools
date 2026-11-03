@@ -152,8 +152,9 @@ void main() {
   /// `docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), now that
   /// `attachCharacter`/`detachCharacter` are roleId-native and no longer resolve a name on their
   /// own. The test suite's own stand-in for what the bloc does before calling either of them.
-  Future<String> roleIdOf(String characterName) async => (await shotListService
-      .resolveOrCreateRoleId(database: database, screenplayId: screenplayId, name: characterName))!;
+  Future<String> roleIdOf(String characterName) => shotListService
+      .resolveOrCreateRoleId(database: database, screenplayId: screenplayId, name: characterName)
+      .valueOrFail;
 
   /// Every live shot's `sortKey`, keyed by shot id: what a test compares before and after a write
   /// to count how many rows that write actually touched.
@@ -170,16 +171,12 @@ Action.
 ''');
       final sceneId = scenes.single.id;
 
-      final firstId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final secondId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final firstId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final secondId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
       final shots = await readShots();
       expect(shots, hasLength(2));
@@ -194,24 +191,18 @@ Action.
 ''');
       final sceneId = scenes.single.id;
 
-      final firstId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final secondId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final thirdId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final firstId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final secondId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final thirdId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
       final keysBefore = await readSortKeys();
-      await shotListService.deleteShot(database: database, shotId: firstId);
+      await shotListService.deleteShot(database: database, shotId: firstId).okOrFail;
       final keysAfter = await readSortKeys();
 
       final shots = await readShots();
@@ -235,16 +226,12 @@ Action.
 ''');
       final sceneId = scenes.single.id;
 
-      final deletedShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final survivingShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final deletedShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final survivingShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
       final panelId = (await storyboardService
           .addPanel(database: database, shotId: deletedShotId)
@@ -313,7 +300,7 @@ Action.
           )
           .maybeValueOrFail;
 
-      await shotListService.deleteShot(database: database, shotId: deletedShotId);
+      await shotListService.deleteShot(database: database, shotId: deletedShotId).okOrFail;
 
       final livePanels = await (database.select(
         database.ocptStoryboardPanelsTable,
@@ -351,25 +338,21 @@ Action.
 ''');
       final sceneId = scenes.single.id;
 
-      final firstId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final secondId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final thirdId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final firstId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final secondId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final thirdId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
       // Moves the first shot to the end: expected new order is second, third, first.
       final keysBefore = await readSortKeys();
-      await shotListService.reorderShot(database: database, shotId: firstId, newPosition: 2);
+      await shotListService
+          .reorderShot(database: database, shotId: firstId, newPosition: 2)
+          .okOrFail;
       final keysAfter = await readSortKeys();
 
       expect((await readShots()).map((row) => row.id), [secondId, thirdId, firstId]);
@@ -390,23 +373,27 @@ Action.
 
         final ids = [
           for (var i = 0; i < 4; i++)
-            (await shotListService.createShot(
-              database: database,
-              screenplayId: screenplayId,
-              sceneId: sceneId,
-            ))!,
+            (await shotListService
+                .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+                .valueOrFail),
         ];
 
         // To the head, from the tail.
-        await shotListService.reorderShot(database: database, shotId: ids[3], newPosition: 0);
+        await shotListService
+            .reorderShot(database: database, shotId: ids[3], newPosition: 0)
+            .okOrFail;
         expect((await readShots()).map((row) => row.id), [ids[3], ids[0], ids[1], ids[2]]);
 
         // Then squeeze the last one between the same two neighbours, over and over: a fractional
         // key always has room for one more, it just grows a digit when it runs out.
         for (var i = 0; i < 5; i++) {
-          await shotListService.reorderShot(database: database, shotId: ids[2], newPosition: 1);
+          await shotListService
+              .reorderShot(database: database, shotId: ids[2], newPosition: 1)
+              .okOrFail;
           expect((await readShots()).map((row) => row.id), [ids[3], ids[2], ids[0], ids[1]]);
-          await shotListService.reorderShot(database: database, shotId: ids[0], newPosition: 1);
+          await shotListService
+              .reorderShot(database: database, shotId: ids[0], newPosition: 1)
+              .okOrFail;
           expect((await readShots()).map((row) => row.id), [ids[3], ids[0], ids[2], ids[1]]);
         }
       },
@@ -419,19 +406,19 @@ INT. HOUSE - DAY
 Action.
 ''');
       final sceneId = scenes.single.id;
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
-      await shotListService.updateShot(
-        database: database,
-        shotId: shotId,
-        shotSize: const Value("CU"),
-        abbreviation: const Value("GP"),
-        notes: const Value("Watch the eyeline."),
-      );
+      await shotListService
+          .updateShot(
+            database: database,
+            shotId: shotId,
+            shotSize: const Value("CU"),
+            abbreviation: const Value("GP"),
+            notes: const Value("Watch the eyeline."),
+          )
+          .okOrFail;
 
       final shot = (await readShots()).single;
       expect(shot.shotSize, "CU");
@@ -446,30 +433,34 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scenes.single.id)
+          .valueOrFail);
 
-      await shotListService.updateTextField(
-        database: database,
-        shotId: shotId,
-        field: OcptShotListEditableField.lens,
-        rawValue: "35mm",
-      );
-      await shotListService.updateTextField(
-        database: database,
-        shotId: shotId,
-        field: OcptShotListEditableField.locationNotes,
-        rawValue: "Second floor",
-      );
-      await shotListService.updateTextField(
-        database: database,
-        shotId: shotId,
-        field: OcptShotListEditableField.estimatedDuration,
-        rawValue: "12",
-      );
+      await shotListService
+          .updateTextField(
+            database: database,
+            shotId: shotId,
+            field: OcptShotListEditableField.lens,
+            rawValue: "35mm",
+          )
+          .okOrFail;
+      await shotListService
+          .updateTextField(
+            database: database,
+            shotId: shotId,
+            field: OcptShotListEditableField.locationNotes,
+            rawValue: "Second floor",
+          )
+          .okOrFail;
+      await shotListService
+          .updateTextField(
+            database: database,
+            shotId: shotId,
+            field: OcptShotListEditableField.estimatedDuration,
+            rawValue: "12",
+          )
+          .okOrFail;
 
       final shot = (await readShots()).single;
       expect(shot.lens, "35mm");
@@ -484,18 +475,18 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scenes.single.id)
+          .valueOrFail);
 
-      await shotListService.updateDifficulty(
-        database: database,
-        shotId: shotId,
-        axis: OcptShotDifficultyAxis.acting,
-        value: 4,
-      );
+      await shotListService
+          .updateDifficulty(
+            database: database,
+            shotId: shotId,
+            axis: OcptShotDifficultyAxis.acting,
+            value: 4,
+          )
+          .okOrFail;
 
       final shot = (await readShots()).single;
       expect(shot.difficultyActing, 4);
@@ -516,21 +507,17 @@ Action.
           )
           .maybeValueOrFail;
 
-      final resolved = await shotListService.resolveOrCreateRoleId(
-        database: database,
-        screenplayId: screenplayId,
-        name: "  clara  ",
-      );
+      final resolved = await shotListService
+          .resolveOrCreateRoleId(database: database, screenplayId: screenplayId, name: "  clara  ")
+          .maybeValueOrFail;
 
       expect(resolved, roleId);
     });
 
     test("creates a hand-added silent role linked to the given episode when none exists", () async {
-      final roleId = await shotListService.resolveOrCreateRoleId(
-        database: database,
-        screenplayId: screenplayId,
-        name: "Nouveau",
-      );
+      final roleId = await shotListService
+          .resolveOrCreateRoleId(database: database, screenplayId: screenplayId, name: "Nouveau")
+          .maybeValueOrFail;
 
       final role = (await roleIndexService.loadRoles(database: database).valueOrFail).single;
       expect(role.id, roleId);
@@ -548,23 +535,17 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scenes.single.id)
+          .valueOrFail);
 
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: "no-such-role",
-      );
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: "no-such-role")
+          .okOrFail;
 
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
+      final snapshot = await shotListService
+          .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+          .valueOrFail;
       expect(snapshot.shotsById[shotId]!.characters, isEmpty);
     });
 
@@ -574,28 +555,20 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scenes.single.id)
+          .valueOrFail);
 
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("  clara  "),
-      );
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Marc"),
-      );
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("  clara  "))
+          .okOrFail;
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Marc"))
+          .okOrFail;
 
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
+      final snapshot = await shotListService
+          .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+          .valueOrFail;
       expect(snapshot.shotsById[shotId]!.characters, ["CLARA", "MARC"]);
     });
 
@@ -605,38 +578,26 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      ))!;
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Clara"),
-      );
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Marc"),
-      );
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Théo"),
-      );
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scenes.single.id)
+          .valueOrFail);
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"))
+          .okOrFail;
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Marc"))
+          .okOrFail;
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Théo"))
+          .okOrFail;
 
-      await shotListService.detachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Marc"),
-      );
+      await shotListService
+          .detachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Marc"))
+          .okOrFail;
 
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
+      final snapshot = await shotListService
+          .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+          .valueOrFail;
       expect(snapshot.shotsById[shotId]!.characters, ["CLARA", "THÉO"]);
     });
   });
@@ -648,22 +609,16 @@ INT. HOUSE - DAY #5#
 
 Action.
 ''');
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      ))!;
-      await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      );
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scenes.single.id)
+          .valueOrFail);
+      await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scenes.single.id)
+          .maybeValueOrFail;
 
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
+      final snapshot = await shotListService
+          .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+          .valueOrFail;
       final sequence = snapshot.sequences.single as OcptSceneShotSequence;
 
       expect(sequence.displaySceneNumber, "5");
@@ -683,17 +638,13 @@ EXT. STREET - NIGHT
 
 Action.
 ''');
-        final shotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: scenes[1].id,
-        ))!;
+        final shotId = (await shotListService
+            .createShot(database: database, screenplayId: screenplayId, sceneId: scenes[1].id)
+            .valueOrFail);
 
-        final snapshot = await shotListService.loadShotList(
-          database: database,
-          screenplayId: screenplayId,
-          episodeNumber: null,
-        );
+        final snapshot = await shotListService
+            .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+            .valueOrFail;
         final secondSequence = snapshot.sequences[1] as OcptSceneShotSequence;
 
         expect(secondSequence.sceneNumber, isNull);
@@ -714,11 +665,9 @@ EXT. STREET - NIGHT
 Action two.
 ''');
 
-    final snapshot = await shotListService.loadShotList(
-      database: database,
-      screenplayId: screenplayId,
-      episodeNumber: null,
-    );
+    final snapshot = await shotListService
+        .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+        .valueOrFail;
     final firstSequence = snapshot.sequences[0] as OcptSceneShotSequence;
     final secondSequence = snapshot.sequences[1] as OcptSceneShotSequence;
 
@@ -752,11 +701,9 @@ Action two.
             .get();
     final streetScene = scenesBefore.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
 
-    final shotId = (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: streetScene.id,
-    ))!;
+    final shotId = (await shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: streetScene.id)
+        .valueOrFail);
     await database
         .into(database.ocptShotCoveragesTable)
         .insert(
@@ -796,11 +743,9 @@ Action one.
     final everyCoverage = await database.select(database.ocptShotCoveragesTable).get();
     expect(everyCoverage.single.isDeleted, isTrue);
 
-    final snapshot = await shotListService.loadShotList(
-      database: database,
-      screenplayId: screenplayId,
-      episodeNumber: null,
-    );
+    final snapshot = await shotListService
+        .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+        .valueOrFail;
     final orphanSequence = snapshot.sequences.last as OcptOrphanShotSequence;
     expect(orphanSequence.shots.single.id, shotId);
     expect(orphanSequence.shots.single.orphanedHeading, "EXT. STREET - NIGHT");

@@ -125,11 +125,9 @@ void main() {
     final scene = await (database.select(
       database.ocptScenesTable,
     )..where((row) => row.isDeleted.equals(false))).getSingle();
-    final shot = (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: scene.id,
-    ))!;
+    final shot = (await shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
+        .valueOrFail);
     final first = await storyboardService.addPanel(database: database, shotId: shot).valueOrFail;
     final second = await storyboardService.addPanel(database: database, shotId: shot).valueOrFail;
     await storyboardService

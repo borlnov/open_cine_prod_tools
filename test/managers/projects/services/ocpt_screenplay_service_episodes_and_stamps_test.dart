@@ -340,16 +340,12 @@ void main() {
         final maryRole = roles.firstWhere((role) => role.name == "MARY");
 
         // A shot of the deleted episode's scene, carrying a character and a coverage range.
-        final shotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: screenplayId,
-          sceneId: scene.id,
-        ))!;
-        await shotListService.attachCharacter(
-          database: database,
-          shotId: shotId,
-          roleId: johnRole.id,
-        );
+        final shotId = (await shotListService
+            .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
+            .valueOrFail);
+        await shotListService
+            .attachCharacter(database: database, shotId: shotId, roleId: johnRole.id)
+            .okOrFail;
         final screenplayText = await service.loadScreenplayText(
           database: database,
           screenplayId: screenplayId,
@@ -368,11 +364,9 @@ void main() {
             .maybeValueOrFail;
 
         // A shot of the surviving episode's own scene, untouched by anything below.
-        final otherShotId = (await shotListService.createShot(
-          database: database,
-          screenplayId: otherScreenplayId,
-          sceneId: otherScene.id,
-        ))!;
+        final otherShotId = (await shotListService
+            .createShot(database: database, screenplayId: otherScreenplayId, sceneId: otherScene.id)
+            .valueOrFail);
 
         // A breakdown tag of the deleted episode's scene, pointing at the role speaking only there.
         final tagId = (await breakdownService

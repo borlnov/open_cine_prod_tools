@@ -167,11 +167,9 @@ void main() {
   /// Saves a scene and creates a shot on it, returning the shot id.
   Future<String> seedShot() async {
     final sceneId = await seedScene();
-    return (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: sceneId,
-    ))!;
+    return shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+        .valueOrFail;
   }
 
   /// Creates a fresh Resources set linked to scene [sceneId] (a fresh one of its own if omitted),
@@ -385,11 +383,9 @@ void main() {
           )
           .valueOrFail);
 
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
       final cameraId = (await floorPlanService
           .placeSymbol(
             database: database,
@@ -572,11 +568,9 @@ void main() {
             yM: 0,
           )
           .valueOrFail);
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
       final overrideId = await floorPlanService
           .placeSymbol(
@@ -612,11 +606,9 @@ void main() {
             label: "Candle",
           )
           .valueOrFail);
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
       final overrideId = await floorPlanService
           .placeSymbol(
@@ -666,11 +658,9 @@ void main() {
             yM: 0,
           )
           .valueOrFail);
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
       await expectRefused(
         () => floorPlanService.placeSymbol(
@@ -704,11 +694,9 @@ void main() {
             yM: 0,
           )
           .valueOrFail);
-      final otherSequenceShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes[1],
-      ))!;
+      final otherSequenceShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scenes[1])
+          .valueOrFail);
 
       await expectRefused(
         () => floorPlanService.placeSymbol(

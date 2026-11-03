@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_rows.dart';
@@ -151,17 +152,16 @@ abstract final class OcptShotListCharacterOps {
   /// the same deterministic tie-break `OcptRoleIndexService.reconcile` and the schema v3 migration
   /// use.
   ///
-  /// Opens no transaction of its own: [OcptRoleIndexService.addRole] opens one when it actually
-  /// mints a role, which simply runs as part of whichever transaction the caller is already inside
-  /// (`ConnectionUser.transaction`'s own doc comment on nested transactions) — or on its own when
-  /// the caller isn't inside one, exactly as reading is always safe to do outside a transaction.
+  /// Reads and creates inside one transaction: [OcptRoleIndexService.addRole] opens one of its own
+  /// when it actually mints a role, which simply runs as part of this one (`ConnectionUser.
+  /// transaction`'s own doc comment on nested transactions), and a failure of it is what rolls this
+  /// one back.
   ///
   /// Returns null only if creating a fresh role is refused for having been handed a preview
   /// connection.
   ///
-  /// Throws a [StateError] when the role service answers a failure: the method forwarding to this
-  /// one guards nothing, so the caller still catches the failure as an exception, as it caught the
-  /// one the database used to raise.
+  /// Raises an `OcptDatabaseAbort` when the role service answers a failure: the method forwarding
+  /// to this one answers it as a failure of its own, without logging it again.
   static Future<String?> resolveOrCreateRoleId({
     required OcptRoleIndexService roleIndexService,
     required OcptProjectDatabase database,
@@ -170,26 +170,25 @@ abstract final class OcptShotListCharacterOps {
   }) async {
     final normalizedName = normalizeCharacterName(name);
 
-    final existingRole =
-        await (database.select(database.ocptRolesTable)
-              ..where((table) => table.name.equals(normalizedName) & table.isDeleted.not())
-              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)])
-              ..limit(1))
-            .getSingleOrNull();
-    if (existingRole != null) {
-      return existingRole.id;
-    }
+    return database.transaction(() async {
+      final existingRole =
+          await (database.select(database.ocptRolesTable)
+                ..where((table) => table.name.equals(normalizedName) & table.isDeleted.not())
+                ..orderBy([(table) => OrderingTerm.asc(table.sortKey)])
+                ..limit(1))
+              .getSingleOrNull();
+      if (existingRole != null) {
+        return existingRole.id;
+      }
 
-    final created = await roleIndexService.addRole(
-      database: database,
-      screenplayId: screenplayId,
-      name: normalizedName,
-      kind: OcptRoleKind.silent,
-    );
-    if (created.isError) {
-      throw StateError("The role could not be created");
-    }
-
-    return created.value;
+      return roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: normalizedName,
+            kind: OcptRoleKind.silent,
+          )
+          .valueOrAbort();
+    });
   }
 }

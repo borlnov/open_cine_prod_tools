@@ -86,11 +86,13 @@ void main() {
       project.database.ocptScenesTable,
     )).get()).single.id;
 
-    final shotId = await projectsManager.shotListService.createShot(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      sceneId: sceneId,
-    );
+    final shotId = await projectsManager.shotListService
+        .createShot(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          sceneId: sceneId,
+        )
+        .maybeValueOrFail;
     expect(shotId, isNotNull);
 
     final dayId = await projectsManager.scheduleService

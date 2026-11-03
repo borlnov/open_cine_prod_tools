@@ -86,11 +86,14 @@ class _FailingShotListService extends OcptShotListService {
 
   /// Fail as a refused shot creation does.
   @override
-  Future<String> createShot({
+  Future<OcptDatabaseResult<String>> createShot({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String sceneId,
-  }) async => throw StateError("shot creation intentionally failed for the test");
+  }) async => const OcptDatabaseResult(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "shot creation intentionally failed for the test",
+  );
 }
 
 /// A floor plan service whose next read can be held back until the test releases it: the read
@@ -493,11 +496,13 @@ void main() {
       final storyboardBefore = state.storyboardSnapshot;
 
       final project = projectsManager.currentProject!;
-      await projectsManager.shotListService.createShot(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        sceneId: (state.sequences.first as OcptSceneShotSequence).sceneId,
-      );
+      await projectsManager.shotListService
+          .createShot(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            sceneId: (state.sequences.first as OcptSceneShotSequence).sceneId,
+          )
+          .maybeValueOrFail;
       expect(bloc.state.totalShotCount, 0, reason: 'the bloc was not told');
 
       await bloc.reload({OcptShotListReloadScope.snapshot});
@@ -691,16 +696,20 @@ void main() {
     bloc.add(const OcptShotListShotCreationRequestedEvent());
     await waitForState(bloc, (state) => state.totalShotCount == 1);
 
-    final primarySnapshot = await projectsManager.shotListService.loadShotList(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      episodeNumber: null,
-    );
-    final secondEpisodeSnapshot = await projectsManager.shotListService.loadShotList(
-      database: project.database,
-      screenplayId: secondEpisodeId,
-      episodeNumber: null,
-    );
+    final primarySnapshot = await projectsManager.shotListService
+        .loadShotList(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          episodeNumber: null,
+        )
+        .valueOrFail;
+    final secondEpisodeSnapshot = await projectsManager.shotListService
+        .loadShotList(
+          database: project.database,
+          screenplayId: secondEpisodeId,
+          episodeNumber: null,
+        )
+        .valueOrFail;
     expect(primarySnapshot.shotsById, isEmpty);
     expect(secondEpisodeSnapshot.shotsById, hasLength(1));
 

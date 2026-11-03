@@ -37,32 +37,32 @@ Future<Map<int, List<String>>> seedShotList({
     required List<String> characters,
     int difficulty = 1,
   }) async {
-    final shotId = (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: sceneIds[sceneIndex],
-    ))!;
-    await shotListService.updateShot(
-      database: database,
-      shotId: shotId,
-      shotSize: Value(shotSize),
-      framing: Value(framing),
-      cameraMove: Value(cameraMove),
-      lens: const Value("35 mm"),
-      recordingFormat: const Value("4K · 25 fps"),
-      sound: const Value("Direct"),
-      estimatedDurationMs: Value(screenSeconds * 1000),
-      plannedTakes: const Value(3),
-      difficultySet: Value(difficulty),
-      difficultyCamera: Value(difficulty),
-    );
+    final shotId = (await shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: sceneIds[sceneIndex])
+        .valueOrFail);
+    await shotListService
+        .updateShot(
+          database: database,
+          shotId: shotId,
+          shotSize: Value(shotSize),
+          framing: Value(framing),
+          cameraMove: Value(cameraMove),
+          lens: const Value("35 mm"),
+          recordingFormat: const Value("4K · 25 fps"),
+          sound: const Value("Direct"),
+          estimatedDurationMs: Value(screenSeconds * 1000),
+          plannedTakes: const Value(3),
+          difficultySet: Value(difficulty),
+          difficultyCamera: Value(difficulty),
+        )
+        .okOrFail;
     for (final character in characters) {
-      final roleId = (await shotListService.resolveOrCreateRoleId(
-        database: database,
-        screenplayId: screenplayId,
-        name: character,
-      ))!;
-      await shotListService.attachCharacter(database: database, shotId: shotId, roleId: roleId);
+      final roleId = (await shotListService
+          .resolveOrCreateRoleId(database: database, screenplayId: screenplayId, name: character)
+          .valueOrFail);
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: roleId)
+          .okOrFail;
     }
     return shotId;
   }

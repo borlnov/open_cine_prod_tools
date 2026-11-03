@@ -177,7 +177,7 @@ class _HoldingShotListService extends OcptShotListService {
 
   /// Load the shot list as the real service does, then hold the call while reads are to be held.
   @override
-  Future<OcptShotListSnapshot> loadShotList({
+  Future<OcptDatabaseResult<OcptShotListSnapshot>> loadShotList({
     required OcptProjectDatabase database,
     required String screenplayId,
     required int? episodeNumber,

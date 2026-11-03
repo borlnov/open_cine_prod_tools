@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_day_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
@@ -201,6 +202,10 @@ void main() {
       (f) => OcptScheduleShotBlockCreatedEvent(slotId: f.slotId, shotId: f.shotId),
     ),
     (
+      "shot status change",
+      (f) => OcptScheduleShotStatusChangedEvent(shotId: f.shotId, status: OcptShotStatus.shot),
+    ),
+    (
       "block duration change",
       (f) => OcptScheduleBlockDurationChangedEvent(blockId: f.blockId, durationMinutes: 45),
     ),
@@ -330,8 +335,8 @@ void main() {
   }
 
   test("every handler that writes the schedule is in the table", () {
-    expect(cases, hasLength(25));
-    expect({for (final (handler, _) in cases) handler}, hasLength(25));
+    expect(cases, hasLength(26));
+    expect({for (final (handler, _) in cases) handler}, hasLength(26));
   });
 }
 
@@ -410,11 +415,9 @@ Future<_Fixtures> _seed(OcptProjectsManager projectsManager) async {
           charEnd: 1,
         ),
       );
-  final shotId = (await projectsManager.shotListService.createShot(
-    database: database,
-    screenplayId: project.primaryScreenplayId,
-    sceneId: sceneId,
-  ))!;
+  final shotId = (await projectsManager.shotListService
+      .createShot(database: database, screenplayId: project.primaryScreenplayId, sceneId: sceneId)
+      .valueOrFail);
 
   final crewMemberId = await schedule
       .addSlotCrewMember(database: database, slotId: slotId, personId: personId)

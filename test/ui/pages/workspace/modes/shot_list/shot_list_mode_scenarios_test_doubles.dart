@@ -262,13 +262,16 @@ class _ScenarioShotListService extends OcptShotListService {
   /// Fail while the scenario asks for shot creations to fail, otherwise create the shot as the real
   /// service does.
   @override
-  Future<String?> createShot({
+  Future<OcptDatabaseResult<String>> createShot({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String sceneId,
   }) async {
     if (failures.failShotCreation) {
-      throw StateError("shot creation intentionally failed for the scenario");
+      return const OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "shot creation intentionally failed for the scenario",
+      );
     }
 
     return super.createShot(database: database, screenplayId: screenplayId, sceneId: sceneId);
@@ -488,11 +491,9 @@ class ShotListScenarioHarness {
   }
 
   /// Reads the whole shot list back from the database.
-  Future<OcptShotListSnapshot> readShotList() => projectsManager.shotListService.loadShotList(
-    database: database,
-    screenplayId: screenplayId,
-    episodeNumber: null,
-  );
+  Future<OcptShotListSnapshot> readShotList() => projectsManager.shotListService
+      .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+      .valueOrFail;
 
   /// Reads the whole storyboard back from the database.
   Future<OcptStoryboardSnapshot> readStoryboard() => projectsManager.storyboardService
@@ -516,11 +517,9 @@ class ShotListScenarioHarness {
     final sceneId = (await sceneIds())[sceneIndex];
     final ids = <String>[];
     for (var index = 0; index < count; index++) {
-      final id = await projectsManager.shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      );
+      final id = await projectsManager.shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .maybeValueOrFail;
       ids.add(id!);
     }
     return ids;

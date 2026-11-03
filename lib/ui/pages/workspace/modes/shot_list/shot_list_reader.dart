@@ -90,9 +90,10 @@ class OcptShotListReader {
   /// [_projectsManager]'s `screenplayService` (never through [_shotListService], which
   /// `OcptScreenplayService` already depends on), null prefix on a single-episode project.
   ///
-  /// Answers the failure of the placements read, in place of the snapshot, when the schedule could
-  /// not be read. The reads of the shot list, the field suggestions and the screenplay text still
-  /// raise when the database fails.
+  /// Answers the failure of the shot list read or of the placements read, in place of the snapshot,
+  /// when the database could not be read. The read of the episodes and the read of the screenplay
+  /// text ([loadScreenplayText]) still raise when the database fails, so the callers of both keep
+  /// their `try`.
   @useResult
   Future<OcptDatabaseResult<OcptShotListSnapshot>> loadSnapshot(
     OcptOpenProjectModel project,
@@ -101,11 +102,15 @@ class OcptShotListReader {
     final screenplayId = _screenplayIdOf(project);
 
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
-    final snapshot = await _shotListService.loadShotList(
+    final snapshotRead = await _shotListService.loadShotList(
       database: database,
       screenplayId: screenplayId,
       episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
     );
+    if (snapshotRead.isError) {
+      return OcptDatabaseResult(status: snapshotRead.status, extraInfo: snapshotRead.extraInfo);
+    }
+
     final placementsRead = await _scheduleService.loadShotPlacements(database: database);
     if (placementsRead.isError) {
       return OcptDatabaseResult(status: placementsRead.status, extraInfo: placementsRead.extraInfo);
@@ -113,7 +118,7 @@ class OcptShotListReader {
 
     return OcptDatabaseResult(
       status: OcptDatabaseStatus.ok,
-      value: snapshot.copyWithPlacements(placementsRead.value!),
+      value: snapshotRead.value!.copyWithPlacements(placementsRead.value!),
     );
   }
 
@@ -190,6 +195,13 @@ class OcptShotListReader {
       );
 
   /// Read every free-text field's suggestion list, scoped to the selected episode.
-  Future<OcptShotFieldSuggestions> loadSuggestions(OcptOpenProjectModel project) => _shotListService
-      .loadFieldSuggestions(database: project.database, screenplayId: _screenplayIdOf(project));
+  ///
+  /// Answers the failure of the read when the database could not be read.
+  @useResult
+  Future<OcptDatabaseResult<OcptShotFieldSuggestions>> loadSuggestions(
+    OcptOpenProjectModel project,
+  ) => _shotListService.loadFieldSuggestions(
+    database: project.database,
+    screenplayId: _screenplayIdOf(project),
+  );
 }

@@ -22,6 +22,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart';
+import '../../ocpt_result_expectations.dart';
 
 /// A projects manager whose [newProjectsDirectory] resolves to a fixed [directory] instead of
 /// asking `path_provider` for the platform's real Downloads folder — `path_provider`'s desktop
@@ -223,11 +224,14 @@ void main() {
         fountainText: "INT. HOUSE - DAY\n\nAn edit that must not happen.",
         snapshotReason: OcptSnapshotReason.manual,
       );
-      final createdShotId = await manager.shotListService.createShot(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        sceneId: (await project.database.select(project.database.ocptScenesTable).get()).first.id,
-      );
+      final createdShotId = await manager.shotListService
+          .createShot(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            sceneId:
+                (await project.database.select(project.database.ocptScenesTable).get()).first.id,
+          )
+          .maybeValueOrFail;
       await manager.saveCurrentProjectPageFormat(
         project.previewedPageSetup!.format == OcptPageFormat.a4
             ? OcptPageFormat.usLetter

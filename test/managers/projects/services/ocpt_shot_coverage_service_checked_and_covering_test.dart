@@ -162,11 +162,9 @@ Action two three.
     final streetScene = (await readScenes()).firstWhere(
       (row) => row.heading == "EXT. STREET - NIGHT",
     );
-    final shotId = (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: streetScene.id,
-    ))!;
+    final shotId = (await shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: streetScene.id)
+        .valueOrFail);
 
     final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
         .fountainText
@@ -242,16 +240,12 @@ Action one two three.
     );
 
     final scene = (await readScenes()).single;
-    final shotA = (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: scene.id,
-    ))!;
-    final shotB = (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: scene.id,
-    ))!;
+    final shotA = (await shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
+        .valueOrFail);
+    final shotB = (await shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
+        .valueOrFail);
 
     final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
         .fountainText
@@ -303,11 +297,9 @@ Action one two three.
     );
 
     final scene = (await readScenes()).single;
-    final shotId = (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: scene.id,
-    ))!;
+    final shotId = (await shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
+        .valueOrFail);
     final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
         .fountainText
         .substring(scene.charStart, scene.charEnd);
@@ -504,11 +496,9 @@ Action one two three.
         snapshotReason: OcptSnapshotReason.manual,
       );
       final scene = (await readScenes()).single;
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scene.id,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
+          .valueOrFail);
       final sceneText = (await database.select(database.ocptScreenplaysTable).getSingle())
           .fountainText
           .substring(scene.charStart, scene.charEnd);

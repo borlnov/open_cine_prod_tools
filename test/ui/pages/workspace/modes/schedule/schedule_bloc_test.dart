@@ -102,11 +102,13 @@ void main() {
       project.database.ocptScenesTable,
     )).get()).single.id;
 
-    final shotId = await projectsManager.shotListService.createShot(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      sceneId: sceneId,
-    );
+    final shotId = await projectsManager.shotListService
+        .createShot(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          sceneId: sceneId,
+        )
+        .maybeValueOrFail;
     expect(shotId, isNotNull);
 
     final dayId = await projectsManager.scheduleService
@@ -198,16 +200,20 @@ void main() {
         project.database.ocptScenesTable,
       )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
 
-      await projectsManager.shotListService.createShot(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        sceneId: firstSceneId,
-      );
-      await projectsManager.shotListService.createShot(
-        database: project.database,
-        screenplayId: secondEpisodeId,
-        sceneId: secondSceneId,
-      );
+      await projectsManager.shotListService
+          .createShot(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            sceneId: firstSceneId,
+          )
+          .maybeValueOrFail;
+      await projectsManager.shotListService
+          .createShot(
+            database: project.database,
+            screenplayId: secondEpisodeId,
+            sceneId: secondSceneId,
+          )
+          .maybeValueOrFail;
 
       final bloc = buildBloc();
       final state = await waitForState(bloc, (state) => !state.isLoading);
@@ -303,11 +309,13 @@ void main() {
       final secondSceneId = (await (project.database.select(
         project.database.ocptScenesTable,
       )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
-      await projectsManager.shotListService.createShot(
-        database: project.database,
-        screenplayId: secondEpisodeId,
-        sceneId: secondSceneId,
-      );
+      await projectsManager.shotListService
+          .createShot(
+            database: project.database,
+            screenplayId: secondEpisodeId,
+            sceneId: secondSceneId,
+          )
+          .maybeValueOrFail;
 
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);

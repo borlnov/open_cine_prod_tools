@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -21,6 +22,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -45,6 +47,11 @@ import 'package:uuid/uuid.dart';
 /// **Order is `sortKey`, never `position`.** A group's rows are ordered by their fractional index,
 /// so inserting or moving one writes exactly that one row rather than renumbering the whole group.
 /// `position` survives only as the legacy column ADR 0007 forbids dropping in place.
+///
+/// **A failure of the database is an answer, not an exception**, for every method but the two
+/// cascades ([detachShotsFromDeletedScenes], [tombstoneShotsOfScreenplay]): those take their
+/// caller's [OcptRowStampService], run inside the caller's transaction, and keep raising so that
+/// it rolls back.
 class OcptShotListService extends AbsOcptService {
   /// The placeholder shown in place of a scene number in an orphaned shot's [OcptShot.code]: the
   /// scene the shot originally belonged to no longer exists, and its original number was never
@@ -114,11 +121,12 @@ class OcptShotListService extends AbsOcptService {
   /// needs (dependencies never reference their dependents). It only prefixes
   /// [OcptSceneShotSequence.displaySceneNumber]; the orphaned-shot placeholder is never prefixed,
   /// since an orphan belongs to no scene and so has no number to qualify.
-  Future<OcptShotListSnapshot> loadShotList({
+  @useResult
+  Future<OcptDatabaseResult<OcptShotListSnapshot>> loadShotList({
     required OcptProjectDatabase database,
     required String screenplayId,
     required int? episodeNumber,
-  }) async {
+  }) => guardResult("loadShotList", () async {
     final sceneRows =
         await (database.select(database.ocptScenesTable)
               ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
@@ -220,7 +228,7 @@ class OcptShotListService extends AbsOcptService {
     }
 
     return OcptShotListSnapshot.build(screenplayId: screenplayId, sequences: sequences);
-  }
+  });
 
   /// Create a new shot in scene [sceneId] of screenplay [screenplayId] in [database], appended at
   /// the end of the scene's current shots, and return its freshly generated id.
@@ -229,11 +237,12 @@ class OcptShotListService extends AbsOcptService {
   ///
   /// The refusal is what makes the returned id nullable: null means no shot was created, and the
   /// caller has nothing to select.
-  Future<String?> createShot({
+  @useResult
+  Future<OcptDatabaseResult<String>> createShot({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String sceneId,
-  }) async {
+  }) => guardResult("createShot", () async {
     if (database.refusesUserWrite("createShot")) {
       return null;
     }
@@ -286,14 +295,15 @@ class OcptShotListService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Update the fields of the shot [shotId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches [shotId]'s `sortKey`, `sceneId` or `orphanedHeading`: those are
   /// only ever changed by [reorderShot] and [detachShotsFromDeletedScenes].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateShot({
+  @useResult
+  Future<OcptDatabaseOutcome> updateShot({
     required OcptProjectDatabase database,
     required String shotId,
     Value<String> shotSize = const Value.absent(),
@@ -315,105 +325,142 @@ class OcptShotListService extends AbsOcptService {
     Value<String> locationNotes = const Value.absent(),
     Value<bool> needsCheck = const Value.absent(),
     Value<OcptShotCheckReason?> checkReason = const Value.absent(),
-  }) async {
-    if (database.refusesUserWrite("updateShot")) {
-      return;
-    }
-
-    final companion = OcptShotsTableCompanion(
-      shotSize: shotSize,
-      abbreviation: abbreviation,
-      framing: framing,
-      cameraMove: cameraMove,
-      lens: lens,
-      recordingFormat: recordingFormat,
-      estimatedDurationMs: estimatedDurationMs,
-      shootingDay: shootingDay,
-      plannedTakes: plannedTakes,
-      sound: sound,
-      status: status,
-      difficultySet: difficultySet,
-      difficultyCamera: difficultyCamera,
-      difficultyActing: difficultyActing,
-      difficultySound: difficultySound,
-      notes: notes,
-      locationNotes: locationNotes,
-      needsCheck: needsCheck,
-      checkReason: checkReason,
-    );
-
-    await database.transaction(() async {
-      final current = await OcptShotListRows.liveShotRowOrNull(database: database, shotId: shotId);
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptShotsTable,
-        rowId: shotId,
-        current: current,
-        next: current.copyWithCompanion(companion),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
+  }) => guardOutcome(
+    "updateShot",
+    () => _writeShot(
+      database: database,
+      shotId: shotId,
+      companion: OcptShotsTableCompanion(
+        shotSize: shotSize,
+        abbreviation: abbreviation,
+        framing: framing,
+        cameraMove: cameraMove,
+        lens: lens,
+        recordingFormat: recordingFormat,
+        estimatedDurationMs: estimatedDurationMs,
+        shootingDay: shootingDay,
+        plannedTakes: plannedTakes,
+        sound: sound,
+        status: status,
+        difficultySet: difficultySet,
+        difficultyCamera: difficultyCamera,
+        difficultyActing: difficultyActing,
+        difficultySound: difficultySound,
+        notes: notes,
+        locationNotes: locationNotes,
+        needsCheck: needsCheck,
+        checkReason: checkReason,
+      ),
+    ),
+  );
 
   /// Write [rawValue] onto the free-text column of shot [shotId] that [field] names, through
   /// [updateShot]. [OcptShotListEditableField.estimatedDuration] is not a text column: its typed
   /// text has to be parsed first, so the caller writes it through [updateShot] itself and this
   /// writes nothing for it.
-  Future<void> updateTextField({
+  @useResult
+  Future<OcptDatabaseOutcome> updateTextField({
     required OcptProjectDatabase database,
     required String shotId,
     required OcptShotListEditableField field,
     required String rawValue,
-  }) async {
+  }) => guardOutcome("updateTextField", () async {
     final value = Value(rawValue);
     switch (field) {
       case OcptShotListEditableField.shotSize:
-        await updateShot(database: database, shotId: shotId, shotSize: value);
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(shotSize: value),
+        );
       case OcptShotListEditableField.abbreviation:
-        await updateShot(database: database, shotId: shotId, abbreviation: value);
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(abbreviation: value),
+        );
       case OcptShotListEditableField.framing:
-        await updateShot(database: database, shotId: shotId, framing: value);
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(framing: value),
+        );
       case OcptShotListEditableField.cameraMove:
-        await updateShot(database: database, shotId: shotId, cameraMove: value);
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(cameraMove: value),
+        );
       case OcptShotListEditableField.lens:
-        await updateShot(database: database, shotId: shotId, lens: value);
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(lens: value),
+        );
       case OcptShotListEditableField.recordingFormat:
-        await updateShot(database: database, shotId: shotId, recordingFormat: value);
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(recordingFormat: value),
+        );
       case OcptShotListEditableField.sound:
-        await updateShot(database: database, shotId: shotId, sound: value);
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(sound: value),
+        );
       case OcptShotListEditableField.notes:
-        await updateShot(database: database, shotId: shotId, notes: value);
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(notes: value),
+        );
       case OcptShotListEditableField.locationNotes:
-        await updateShot(database: database, shotId: shotId, locationNotes: value);
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(locationNotes: value),
+        );
       case OcptShotListEditableField.estimatedDuration:
         return;
     }
-  }
+  });
 
   /// Set difficulty [axis] of shot [shotId] to [value], through [updateShot].
-  Future<void> updateDifficulty({
+  @useResult
+  Future<OcptDatabaseOutcome> updateDifficulty({
     required OcptProjectDatabase database,
     required String shotId,
     required OcptShotDifficultyAxis axis,
     required int value,
-  }) async {
+  }) => guardOutcome("updateDifficulty", () async {
     switch (axis) {
       case OcptShotDifficultyAxis.set:
-        await updateShot(database: database, shotId: shotId, difficultySet: Value(value));
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(difficultySet: Value(value)),
+        );
       case OcptShotDifficultyAxis.camera:
-        await updateShot(database: database, shotId: shotId, difficultyCamera: Value(value));
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(difficultyCamera: Value(value)),
+        );
       case OcptShotDifficultyAxis.acting:
-        await updateShot(database: database, shotId: shotId, difficultyActing: Value(value));
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(difficultyActing: Value(value)),
+        );
       case OcptShotDifficultyAxis.sound:
-        await updateShot(database: database, shotId: shotId, difficultySound: Value(value));
+        await _writeShot(
+          database: database,
+          shotId: shotId,
+          companion: OcptShotsTableCompanion(difficultySound: Value(value)),
+        );
     }
-  }
+  });
 
   /// Tombstone the shot [shotId] in [database], its attached characters and coverage ranges along
   /// with it, and its storyboard panels (and their
@@ -427,7 +474,11 @@ class OcptShotListService extends AbsOcptService {
   /// leaves the rest ascending, so a deletion writes only what it deletes.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteShot({required OcptProjectDatabase database, required String shotId}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> deleteShot({
+    required OcptProjectDatabase database,
+    required String shotId,
+  }) => guardOutcome("deleteShot", () async {
     if (database.refusesUserWrite("deleteShot")) {
       return;
     }
@@ -489,7 +540,7 @@ class OcptShotListService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Move the shot [shotId] to [newPosition] (0-based) within its own group (its scene, or the
   /// orphan group), by giving it a `sortKey` sitting between the two shots it lands between.
@@ -499,11 +550,12 @@ class OcptShotListService extends AbsOcptService {
   /// expressed with any position at or beyond the group's current shot count.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderShot({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderShot({
     required OcptProjectDatabase database,
     required String shotId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderShot", () async {
     if (database.refusesUserWrite("reorderShot")) {
       return;
     }
@@ -536,30 +588,38 @@ class OcptShotListService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Forward to [OcptShotListCharacterOps.attachCharacter].
-  Future<void> attachCharacter({
+  @useResult
+  Future<OcptDatabaseOutcome> attachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
     required String roleId,
-  }) => OcptShotListCharacterOps.attachCharacter(
-    database: database,
-    shotId: shotId,
-    roleId: roleId,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "attachCharacter",
+    () => OcptShotListCharacterOps.attachCharacter(
+      database: database,
+      shotId: shotId,
+      roleId: roleId,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptShotListCharacterOps.detachCharacter].
-  Future<void> detachCharacter({
+  @useResult
+  Future<OcptDatabaseOutcome> detachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
     required String roleId,
-  }) => OcptShotListCharacterOps.detachCharacter(
-    database: database,
-    shotId: shotId,
-    roleId: roleId,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "detachCharacter",
+    () => OcptShotListCharacterOps.detachCharacter(
+      database: database,
+      shotId: shotId,
+      roleId: roleId,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptShotListCascadeOps.detachShotsFromDeletedScenes].
@@ -587,65 +647,132 @@ class OcptShotListService extends AbsOcptService {
   );
 
   /// Forward to [OcptShotListSuggestionOps.distinctShotSizes].
-  Future<List<String>> distinctShotSizes({
+  @useResult
+  Future<OcptDatabaseResult<List<String>>> distinctShotSizes({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => OcptShotListSuggestionOps.distinctShotSizes(database: database, screenplayId: screenplayId);
+  }) => guardResult(
+    "distinctShotSizes",
+    () =>
+        OcptShotListSuggestionOps.distinctShotSizes(database: database, screenplayId: screenplayId),
+  );
 
   /// Forward to [OcptShotListSuggestionOps.distinctFramings].
-  Future<List<String>> distinctFramings({
+  @useResult
+  Future<OcptDatabaseResult<List<String>>> distinctFramings({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => OcptShotListSuggestionOps.distinctFramings(database: database, screenplayId: screenplayId);
+  }) => guardResult(
+    "distinctFramings",
+    () =>
+        OcptShotListSuggestionOps.distinctFramings(database: database, screenplayId: screenplayId),
+  );
 
   /// Forward to [OcptShotListSuggestionOps.distinctCameraMoves].
-  Future<List<String>> distinctCameraMoves({
+  @useResult
+  Future<OcptDatabaseResult<List<String>>> distinctCameraMoves({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) =>
-      OcptShotListSuggestionOps.distinctCameraMoves(database: database, screenplayId: screenplayId);
+  }) => guardResult(
+    "distinctCameraMoves",
+    () => OcptShotListSuggestionOps.distinctCameraMoves(
+      database: database,
+      screenplayId: screenplayId,
+    ),
+  );
 
   /// Forward to [OcptShotListSuggestionOps.distinctLenses].
-  Future<List<String>> distinctLenses({
+  @useResult
+  Future<OcptDatabaseResult<List<String>>> distinctLenses({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => OcptShotListSuggestionOps.distinctLenses(database: database, screenplayId: screenplayId);
+  }) => guardResult(
+    "distinctLenses",
+    () => OcptShotListSuggestionOps.distinctLenses(database: database, screenplayId: screenplayId),
+  );
 
   /// Forward to [OcptShotListSuggestionOps.distinctRecordingFormats].
-  Future<List<String>> distinctRecordingFormats({
+  @useResult
+  Future<OcptDatabaseResult<List<String>>> distinctRecordingFormats({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => OcptShotListSuggestionOps.distinctRecordingFormats(
-    database: database,
-    screenplayId: screenplayId,
+  }) => guardResult(
+    "distinctRecordingFormats",
+    () => OcptShotListSuggestionOps.distinctRecordingFormats(
+      database: database,
+      screenplayId: screenplayId,
+    ),
   );
 
   /// Forward to [OcptShotListSuggestionOps.distinctSounds].
-  Future<List<String>> distinctSounds({
+  @useResult
+  Future<OcptDatabaseResult<List<String>>> distinctSounds({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => OcptShotListSuggestionOps.distinctSounds(database: database, screenplayId: screenplayId);
+  }) => guardResult(
+    "distinctSounds",
+    () => OcptShotListSuggestionOps.distinctSounds(database: database, screenplayId: screenplayId),
+  );
 
   /// Forward to [OcptShotListSuggestionOps.loadFieldSuggestions].
-  Future<OcptShotFieldSuggestions> loadFieldSuggestions({
+  @useResult
+  Future<OcptDatabaseResult<OcptShotFieldSuggestions>> loadFieldSuggestions({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => OcptShotListSuggestionOps.loadFieldSuggestions(
-    database: database,
-    screenplayId: screenplayId,
+  }) => guardResult(
+    "loadFieldSuggestions",
+    () => OcptShotListSuggestionOps.loadFieldSuggestions(
+      database: database,
+      screenplayId: screenplayId,
+    ),
   );
 
   /// Forward to [OcptShotListCharacterOps.resolveOrCreateRoleId].
-  Future<String?> resolveOrCreateRoleId({
+  @useResult
+  Future<OcptDatabaseResult<String>> resolveOrCreateRoleId({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String name,
-  }) => OcptShotListCharacterOps.resolveOrCreateRoleId(
-    database: database,
-    screenplayId: screenplayId,
-    name: name,
-    roleIndexService: roleIndexService,
+  }) => guardResult(
+    "resolveOrCreateRoleId",
+    () => OcptShotListCharacterOps.resolveOrCreateRoleId(
+      database: database,
+      screenplayId: screenplayId,
+      name: name,
+      roleIndexService: roleIndexService,
+    ),
   );
+
+  /// Write the columns [companion] carries onto the live shot [shotId], unless the preview refuses
+  /// the write: the body of [updateShot], shared with [updateTextField] and [updateDifficulty],
+  /// which run it inside their own boundary.
+  Future<void> _writeShot({
+    required OcptProjectDatabase database,
+    required String shotId,
+    required OcptShotsTableCompanion companion,
+  }) async {
+    if (database.refusesUserWrite("updateShot")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final current = await OcptShotListRows.liveShotRowOrNull(database: database, shotId: shotId);
+      if (current == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptShotsTable,
+        rowId: shotId,
+        current: current,
+        next: current.copyWithCompanion(companion),
+        stamps: stamps,
+      );
+      await stamps.flush(database);
+    });
+  }
 
   /// Build the [OcptSceneShotSequence] for the scene at [sceneRow], whose 0-based index among the
   /// screenplay's scenes is [sceneIndex], prefixed with [episodeNumber] through

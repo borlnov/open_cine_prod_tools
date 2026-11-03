@@ -354,11 +354,9 @@ class ScheduleScenarioHarness {
       projectsManager.scheduleService.loadSchedule(database: database).valueOrFail;
 
   /// Reads the first episode's shot list back from the database.
-  Future<OcptShotListSnapshot> readShotList() => projectsManager.shotListService.loadShotList(
-    database: database,
-    screenplayId: screenplayId,
-    episodeNumber: null,
-  );
+  Future<OcptShotListSnapshot> readShotList() => projectsManager.shotListService
+      .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+      .valueOrFail;
 
   /// Lists the scene ids of the first episode, in order.
   Future<List<String>> sceneIds() async => [
@@ -372,11 +370,9 @@ class ScheduleScenarioHarness {
     final sceneId = (await sceneIds())[sceneIndex];
     final ids = <String>[];
     for (var index = 0; index < count; index++) {
-      final id = await projectsManager.shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      );
+      final id = await projectsManager.shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .maybeValueOrFail;
       ids.add(id!);
     }
     return ids;

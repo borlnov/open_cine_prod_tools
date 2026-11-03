@@ -144,8 +144,9 @@ void main() {
   /// `docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), now that
   /// `attachCharacter`/`detachCharacter` are roleId-native and no longer resolve a name on their
   /// own. The test suite's own stand-in for what the bloc does before calling either of them.
-  Future<String> roleIdOf(String characterName) async => (await shotListService
-      .resolveOrCreateRoleId(database: database, screenplayId: screenplayId, name: characterName))!;
+  Future<String> roleIdOf(String characterName) => shotListService
+      .resolveOrCreateRoleId(database: database, screenplayId: screenplayId, name: characterName)
+      .valueOrFail;
 
   /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
   /// shape `OcptProjectVersionsService`'s own tests read `row_field_versions` back through.
@@ -163,47 +164,41 @@ Action.
 ''');
       final sceneId = scenes.single.id;
 
-      final keptId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final deletedId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final keptId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final deletedId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: keptId,
-        roleId: await roleIdOf("Clara"),
-      );
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: deletedId,
-        roleId: await roleIdOf("Marc"),
-      );
-      await shotListService.updateShot(
-        database: database,
-        shotId: keptId,
-        shotSize: const Value("CU"),
-        framing: const Value("Low angle"),
-      );
-      await shotListService.updateShot(
-        database: database,
-        shotId: deletedId,
-        shotSize: const Value("WIDE"),
-        framing: const Value("Dutch angle"),
-      );
+      await shotListService
+          .attachCharacter(database: database, shotId: keptId, roleId: await roleIdOf("Clara"))
+          .okOrFail;
+      await shotListService
+          .attachCharacter(database: database, shotId: deletedId, roleId: await roleIdOf("Marc"))
+          .okOrFail;
+      await shotListService
+          .updateShot(
+            database: database,
+            shotId: keptId,
+            shotSize: const Value("CU"),
+            framing: const Value("Low angle"),
+          )
+          .okOrFail;
+      await shotListService
+          .updateShot(
+            database: database,
+            shotId: deletedId,
+            shotSize: const Value("WIDE"),
+            framing: const Value("Dutch angle"),
+          )
+          .okOrFail;
 
-      await shotListService.deleteShot(database: database, shotId: deletedId);
+      await shotListService.deleteShot(database: database, shotId: deletedId).okOrFail;
 
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
+      final snapshot = await shotListService
+          .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+          .valueOrFail;
       expect(snapshot.shotsById.keys, [keptId]);
       expect(snapshot.shotsById[keptId]!.characters, ["CLARA"]);
       expect((snapshot.sequences.single as OcptSceneShotSequence).shots.single.id, keptId);
@@ -211,11 +206,15 @@ Action.
       // The suggestion lists are the readers most easily forgotten, and a deleted shot's free text
       // has no business still being offered.
       expect(
-        await shotListService.distinctShotSizes(database: database, screenplayId: screenplayId),
+        await shotListService
+            .distinctShotSizes(database: database, screenplayId: screenplayId)
+            .valueOrFail,
         ["CU"],
       );
       expect(
-        await shotListService.distinctFramings(database: database, screenplayId: screenplayId),
+        await shotListService
+            .distinctFramings(database: database, screenplayId: screenplayId)
+            .valueOrFail,
         ["Low angle"],
       );
     });
@@ -226,44 +225,35 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      ))!;
+      final shotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scenes.single.id)
+          .valueOrFail);
 
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Clara"),
-      );
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Marc"),
-      );
-      await shotListService.detachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Clara"),
-      );
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"))
+          .okOrFail;
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Marc"))
+          .okOrFail;
+      await shotListService
+          .detachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"))
+          .okOrFail;
 
-      Future<List<String>> charactersOfShot() async => (await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      )).shotsById[shotId]!.characters;
+      Future<List<String>> charactersOfShot() async =>
+          (await shotListService
+                  .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+                  .valueOrFail)
+              .shotsById[shotId]!
+              .characters;
 
       expect(await charactersOfShot(), ["MARC"]);
 
       // The primary key is `{shotId, roleId}`, and "Clara" resolves back to the very same live
       // role it did before being detached, so re-attaching cannot insert a second row: it has to
       // lift the tombstone the detach left behind, and append the character at the end.
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Clara"),
-      );
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"))
+          .okOrFail;
       expect(await charactersOfShot(), ["MARC", "CLARA"]);
     });
 
@@ -284,11 +274,10 @@ Action two.
       );
 
       expect(
-        (await shotListService.loadShotList(
-          database: database,
-          screenplayId: screenplayId,
-          episodeNumber: null,
-        )).sequences,
+        (await shotListService
+                .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+                .valueOrFail)
+            .sequences,
         hasLength(2),
       );
 
@@ -303,11 +292,11 @@ Action one.
         snapshotReason: OcptSnapshotReason.manual,
       );
 
-      final sequences = (await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      )).sequences;
+      final sequences =
+          (await shotListService
+                  .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+                  .valueOrFail)
+              .sequences;
       expect(sequences, hasLength(1));
       expect((sequences.single as OcptSceneShotSequence).heading, "INT. HOUSE - DAY");
     });
@@ -324,21 +313,17 @@ Action two.
 ''');
       final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
 
-      final withoutEpisode = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
+      final withoutEpisode = await shotListService
+          .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: null)
+          .valueOrFail;
       final withoutEpisodeSequence = withoutEpisode.sequences
           .whereType<OcptSceneShotSequence>()
           .firstWhere((sequence) => sequence.sceneId == streetScene.id);
       expect(withoutEpisodeSequence.displaySceneNumber, "2");
 
-      final withEpisode = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: 3,
-      );
+      final withEpisode = await shotListService
+          .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: 3)
+          .valueOrFail;
       final withEpisodeSequence = withEpisode.sequences
           .whereType<OcptSceneShotSequence>()
           .firstWhere((sequence) => sequence.sceneId == streetScene.id);
@@ -356,11 +341,9 @@ EXT. STREET - NIGHT
 Action two.
 ''');
       final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
-      await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: streetScene.id,
-      );
+      await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: streetScene.id)
+          .maybeValueOrFail;
 
       // Dropping the street scene orphans its shot.
       await screenplayService.saveScreenplayText(
@@ -374,11 +357,9 @@ Action one.
         snapshotReason: OcptSnapshotReason.manual,
       );
 
-      final snapshot = await shotListService.loadShotList(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: 3,
-      );
+      final snapshot = await shotListService
+          .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: 3)
+          .valueOrFail;
       final orphanSequence = snapshot.sequences.last as OcptOrphanShotSequence;
       expect(orphanSequence.shots.single.code, "—/1");
     });
@@ -422,23 +403,17 @@ Action one.
           ),
         );
 
-    final createdId = await shotListService.createShot(
-      database: preview,
-      screenplayId: screenplayId,
-      sceneId: "scene-1",
-    );
-    await shotListService.updateShot(
-      database: preview,
-      shotId: "shot-1",
-      framing: const Value("Close up"),
-    );
-    await shotListService.reorderShot(database: preview, shotId: "shot-1", newPosition: 3);
-    await shotListService.attachCharacter(
-      database: preview,
-      shotId: "shot-1",
-      roleId: await roleIdOf("CLARA"),
-    );
-    await shotListService.deleteShot(database: preview, shotId: "shot-1");
+    final createdId = await shotListService
+        .createShot(database: preview, screenplayId: screenplayId, sceneId: "scene-1")
+        .maybeValueOrFail;
+    await shotListService
+        .updateShot(database: preview, shotId: "shot-1", framing: const Value("Close up"))
+        .okOrFail;
+    await shotListService.reorderShot(database: preview, shotId: "shot-1", newPosition: 3).okOrFail;
+    await shotListService
+        .attachCharacter(database: preview, shotId: "shot-1", roleId: await roleIdOf("CLARA"))
+        .okOrFail;
+    await shotListService.deleteShot(database: preview, shotId: "shot-1").okOrFail;
 
     // A version the user is only reading isn't editable, and it is the service that says so: a UI
     // bug must not be able to write a preview's shot list.
@@ -460,11 +435,9 @@ INT. HOUSE - DAY
 
 Action.
 ''');
-      return (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scenes.single.id,
-      ))!;
+      return shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: scenes.single.id)
+          .valueOrFail;
     }
 
     test("createShot stamps every column of the new row", () async {
@@ -491,12 +464,14 @@ Action.
       // Clears what `createShot` itself stamped, so only `updateShot`'s own stamps remain below.
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await shotListService.updateShot(
-        database: database,
-        shotId: shotId,
-        framing: const Value("Low angle"),
-        shotSize: const Value("CU"),
-      );
+      await shotListService
+          .updateShot(
+            database: database,
+            shotId: shotId,
+            framing: const Value("Low angle"),
+            shotSize: const Value("CU"),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("shots/$shotId/")).toSet();
@@ -505,11 +480,9 @@ Action.
       expect(stamps["shots/$shotId/shotSize"]!.version, 1);
 
       // Writing the same values again touches nothing: there is nothing left to stamp.
-      await shotListService.updateShot(
-        database: database,
-        shotId: shotId,
-        framing: const Value("Low angle"),
-      );
+      await shotListService
+          .updateShot(database: database, shotId: shotId, framing: const Value("Low angle"))
+          .okOrFail;
       expect(await readStamps(), stamps);
     });
 
@@ -517,7 +490,7 @@ Action.
       final shotId = await insertShot();
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await shotListService.deleteShot(database: database, shotId: shotId);
+      await shotListService.deleteShot(database: database, shotId: shotId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps.keys.where((key) => key.startsWith("shots/$shotId/")).toSet(), {
@@ -540,11 +513,9 @@ Action.
           .maybeValueOrFail;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Clara"),
-      );
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"))
+          .okOrFail;
 
       final character = (await database.select(database.ocptShotCharactersTable).get()).single;
       final rowId = ocptCompositeRowStampKey([shotId, character.roleId]);
@@ -558,19 +529,15 @@ Action.
 
     test("detachCharacter stamps isDeleted on the composite shot_characters row id", () async {
       final shotId = await insertShot();
-      await shotListService.attachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Clara"),
-      );
+      await shotListService
+          .attachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"))
+          .okOrFail;
       final roleId = (await database.select(database.ocptShotCharactersTable).get()).single.roleId;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await shotListService.detachCharacter(
-        database: database,
-        shotId: shotId,
-        roleId: await roleIdOf("Clara"),
-      );
+      await shotListService
+          .detachCharacter(database: database, shotId: shotId, roleId: await roleIdOf("Clara"))
+          .okOrFail;
 
       final rowId = ocptCompositeRowStampKey([shotId, roleId]);
       final stamps = await readStamps();
@@ -589,16 +556,12 @@ Action.
 ''');
       final sceneId = scenes.single.id;
 
-      final firstShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
-      final secondShotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneId,
-      ))!;
+      final firstShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
+      final secondShotId = (await shotListService
+          .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+          .valueOrFail);
 
       final firstPanelId = (await storyboardService
           .addPanel(database: database, shotId: firstShotId)

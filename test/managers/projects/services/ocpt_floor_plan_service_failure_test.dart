@@ -178,16 +178,12 @@ void main() {
   /// set without any plan.
   Future<_Fixture> seed() async {
     final sceneId = await seedScene();
-    final firstShot = (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: sceneId,
-    ))!;
-    final secondShot = (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: sceneId,
-    ))!;
+    final firstShot = (await shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+        .valueOrFail);
+    final secondShot = (await shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: sceneId)
+        .valueOrFail);
     final (_, setId) = await seedLinkedSet(sceneId: sceneId);
     final (_, otherSetId) = await seedLinkedSet(sceneId: sceneId, name: "Garden");
     Future<String> place(OcptFloorPlanLayer layer, String? shotId, double at) => floorPlanService
