@@ -13,6 +13,8 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
@@ -60,6 +62,40 @@ class _StoppedRestoreProjectsManager extends OcptProjectsManager {
     required String versionId,
     required String safetyVersionName,
   }) async => OcptProjectRestoreStatus.databaseError;
+}
+
+/// A projects manager whose version list read and working-copy capture can each be refused alone,
+/// which a refused `project_versions` table cannot do: it fails both.
+class _OneReadRefusedProjectsManager extends OcptProjectsManager {
+  /// Whether the version list read is refused.
+  bool refuseList = false;
+
+  /// Whether the working-copy capture is refused.
+  bool refuseCapture = false;
+
+  /// Class constructor
+  _OneReadRefusedProjectsManager({required super.propertiesManager})
+    : super(appLanguageCode: () => "en");
+
+  /// Refuse as a project file that cannot be read does, when told to.
+  @override
+  Future<OcptDatabaseResult<List<OcptProjectVersion>>> listProjectVersions() async {
+    if (refuseList) {
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.databaseError);
+    }
+
+    return super.listProjectVersions();
+  }
+
+  /// Refuse as a project file that cannot be read does, when told to.
+  @override
+  Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> captureWorkingCopyState() async {
+    if (refuseCapture) {
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.databaseError);
+    }
+
+    return super.captureWorkingCopyState();
+  }
 }
 
 /// What the versions handlers do when the project file cannot answer them: each stops where the
@@ -235,6 +271,59 @@ void main() {
       await settle();
 
       expect(emitted, isEmpty);
+    });
+  });
+
+  group("with one of the two reads that redraw the panel refused", () {
+    late _OneReadRefusedProjectsManager manager;
+
+    setUp(() async {
+      manager = _OneReadRefusedProjectsManager(propertiesManager: propertiesManager);
+      await openProject(manager);
+      await start(manager);
+    });
+
+    test(
+      "the version list refused alone emits nothing, and a refresh goes through after",
+      () async {
+        manager.refuseList = true;
+        bloc.add(const OcptProjectVersionsRefreshRequestedEvent());
+        await settle();
+
+        expect(emitted, isEmpty);
+
+        manager.refuseList = false;
+        bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v3", note: ""));
+        await settle();
+
+        expect(emitted, isNotEmpty);
+      },
+    );
+
+    test(
+      "the working-copy capture refused alone emits nothing, and a refresh goes through",
+      () async {
+        manager.refuseCapture = true;
+        bloc.add(const OcptProjectVersionsRefreshRequestedEvent());
+        await settle();
+
+        expect(emitted, isEmpty);
+
+        manager.refuseCapture = false;
+        bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v3", note: ""));
+        await settle();
+
+        expect(emitted, isNotEmpty);
+      },
+    );
+
+    test("a creation whose redraw read is refused alone still writes the version", () async {
+      manager.refuseCapture = true;
+      bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v2", note: ""));
+      await settle();
+
+      expect(emitted, isEmpty);
+      expect(await storedVersions(), 2);
     });
   });
 
