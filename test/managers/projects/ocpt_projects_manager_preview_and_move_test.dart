@@ -160,7 +160,7 @@ void main() {
       final version = await createDivergedProject();
       final fileDatabase = manager.currentProject!.fileDatabase;
 
-      await manager.previewVersion(version.id);
+      await manager.previewVersion(version.id).maybeValueOrFail;
 
       // The file is still open, still the very same connection, and still holds the working copy
       // rather than the version being read.
@@ -207,7 +207,7 @@ void main() {
       final version = await createDivergedProject();
       await propertiesManager.pageMargins.store(workingCopyMargins);
 
-      await manager.previewVersion(version.id);
+      await manager.previewVersion(version.id).maybeValueOrFail;
 
       // The version renders with the layout it was written against...
       expect(manager.currentProject!.previewedPageSetup?.margins, versionMargins);
@@ -223,7 +223,7 @@ void main() {
 
     test('refuses to write through the previewed database, whatever asks', () async {
       final version = await createDivergedProject();
-      await manager.previewVersion(version.id);
+      await manager.previewVersion(version.id).maybeValueOrFail;
 
       final project = manager.currentProject!;
 
@@ -309,10 +309,10 @@ void main() {
           .createProjectVersion(name: "v2 — Rewritten", note: "")
           .valueOrFail;
 
-      await manager.previewVersion(first.id);
+      await manager.previewVersion(first.id).maybeValueOrFail;
       final firstPreviewDatabase = manager.currentProject!.database;
 
-      await manager.previewVersion(second.id);
+      await manager.previewVersion(second.id).maybeValueOrFail;
 
       expect(manager.currentProject!.previewedVersion, second);
       expect(manager.currentProject!.database, isNot(same(firstPreviewDatabase)));
@@ -321,7 +321,7 @@ void main() {
 
     test('refuses to delete the version being previewed', () async {
       final version = await createDivergedProject();
-      await manager.previewVersion(version.id);
+      await manager.previewVersion(version.id).maybeValueOrFail;
 
       await manager.deleteProjectVersion(version.id).okOrFail;
 
@@ -350,7 +350,7 @@ void main() {
 
     test('restoring puts the project back on the version, and leaves the preview', () async {
       final version = await createDivergedProject();
-      await manager.previewVersion(version.id);
+      await manager.previewVersion(version.id).maybeValueOrFail;
 
       final status = await manager.restoreProjectVersion(
         versionId: version.id,
@@ -373,7 +373,7 @@ void main() {
 
     test('captureWorkingCopyState is null while a version is being previewed', () async {
       final version = await createDivergedProject();
-      await manager.previewVersion(version.id);
+      await manager.previewVersion(version.id).maybeValueOrFail;
 
       expect(await manager.captureWorkingCopyState().maybeValueOrFail, isNull);
     });
@@ -454,7 +454,7 @@ void main() {
 
     test('closing the project while previewing disposes both of its databases', () async {
       final version = await createDivergedProject();
-      await manager.previewVersion(version.id);
+      await manager.previewVersion(version.id).maybeValueOrFail;
       final previewDatabase = manager.currentProject!.database;
       final fileDatabase = manager.currentProject!.fileDatabase;
 

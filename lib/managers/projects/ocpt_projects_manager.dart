@@ -780,6 +780,7 @@ class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings
   /// Enter the read-only preview of the version [versionId] of the [currentProject]: the version's
   /// payload is hydrated into an in-memory database, and *that* is what [currentProject] hands the
   /// modes from now on.
+  @useResult
   Future<ResultWithStatus<OcptProjectPreviewStatus, OcptOpenProjectModel>> previewVersion(
     String versionId,
   ) => OcptProjectPreviewOps.previewVersion(

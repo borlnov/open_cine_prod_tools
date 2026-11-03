@@ -227,7 +227,7 @@ void main() {
         .createEpisode(database: manager.currentProject!.database)
         .maybeValueOrFail;
 
-    await manager.previewVersion(version!.id);
+    await manager.previewVersion(version!.id).maybeValueOrFail;
     await manager.recordCurrentProjectEpisodeCount().okOrFail;
 
     final recents = await propertiesManager.recentProjects.load();
@@ -245,7 +245,7 @@ void main() {
         .createEpisode(database: manager.currentProject!.database)
         .maybeValueOrFail;
 
-    await manager.previewVersion(version!.id);
+    await manager.previewVersion(version!.id).maybeValueOrFail;
     expect(manager.currentProject!.isReadOnly, isTrue);
 
     await manager.closeCurrentProject().okOrFail;

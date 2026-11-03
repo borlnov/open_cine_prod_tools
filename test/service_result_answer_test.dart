@@ -44,6 +44,7 @@ const _stopCarriers = {
     "captureWorkingCopyState",
     "deleteProjectVersion",
     "restoreProjectVersion",
+    "previewVersion",
     "exitPreview",
     "closeCurrentProject",
     "recordCurrentProjectEpisodeCount",
@@ -80,7 +81,7 @@ const _stopCarriers = {
     "loadCurrentProjectSnackPriceCents",
     "saveCurrentProjectSnackPriceCents",
   },
-  "lib/managers/projects/ocpt_project_preview_ops.dart": {"exitPreview"},
+  "lib/managers/projects/ocpt_project_preview_ops.dart": {"previewVersion", "exitPreview"},
   "lib/managers/projects/ocpt_project_episode_ops.dart": {
     "closeProject",
     "recordOpenProjectEpisodeCount",

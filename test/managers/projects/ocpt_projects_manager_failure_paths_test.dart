@@ -249,7 +249,7 @@ void main() {
     final service = _ThrowingHydrationService(screenplayService: manager.screenplayService);
     final before = manager.currentProject;
 
-    await OcptProjectPreviewOps.previewVersion(
+    final _ = await OcptProjectPreviewOps.previewVersion(
       project: manager.currentProject,
       versionId: version.id,
       hasUnsavedChanges: false,

@@ -344,7 +344,7 @@ void main() {
     final version = await projectsManager
         .createProjectVersion(name: "v1", note: "")
         .maybeValueOrFail;
-    await projectsManager.previewVersion(version!.id);
+    await projectsManager.previewVersion(version!.id).maybeValueOrFail;
     expect(projectsManager.currentProject!.isReadOnly, isTrue);
 
     final saveLocationService = _RecordingSaveLocationService(answer: packagePath);

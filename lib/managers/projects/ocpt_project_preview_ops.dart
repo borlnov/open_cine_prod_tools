@@ -37,6 +37,7 @@ abstract final class OcptProjectPreviewOps {
   /// the caller saves first and retries. Refused as a whole on any failure — a preview that can't
   /// be entered leaves the working copy on screen, untouched. A project file that cannot be read
   /// is [OcptProjectPreviewStatus.databaseError], with the type of what failed as its `extraInfo`.
+  @useResult
   static Future<ResultWithStatus<OcptProjectPreviewStatus, OcptOpenProjectModel>> previewVersion({
     required OcptOpenProjectModel? project,
     required String versionId,
