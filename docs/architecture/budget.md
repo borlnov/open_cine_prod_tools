@@ -802,9 +802,10 @@ tables and the version codec pin on purpose.
   the same for the tools drawer). The object a reader had open belonged to the view they are
   leaving, so the Inspector greets the new view empty (`OcptBudgetDetailEmptyState`) rather
   than still showing, say, an account on the takings page. **Every gesture that switches the view
-  *and* selects in one move keeps `clearSelection` false** — `_handleDashboardAccountOpened`,
-  `_handleLineShowCommitmentRequested` — since clearing would otherwise wipe the very selection they
-  just made, whichever order the two events happen to run in. The filter (`filterAccountId`) and the
+  *and* selects in one move keeps `clearSelection` false** —
+  `OcptBudgetDashboardView._handleAccountOpened`, `_handleLineShowCommitmentRequested` — since
+  clearing would otherwise wipe the very selection they just made, whichever order the two events
+  happen to run in. The filter (`filterAccountId`) and the
   expansion (`expandedNodeIds`) are the mode's, not the detail panel's, and are untouched by the
   switch.
 

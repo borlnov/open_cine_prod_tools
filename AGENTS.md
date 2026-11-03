@@ -351,7 +351,7 @@ SPDX-License-Identifier: Apache-2.0
 ```
 
 `reuse lint` must stay 100% compliant. Licenses live in `LICENSES/` (Apache-2.0, CC0-1.0,
-LicenseRef-ALLCircuits-ACT-1.1, OFL-1.1 for Courier Prime).
+CC-BY-4.0, LicenseRef-ALLCircuits-ACT-1.1, LicenseRef-SCOWL, MPL-2.0, OFL-1.1 for Courier Prime).
 
 ## Commits
 
