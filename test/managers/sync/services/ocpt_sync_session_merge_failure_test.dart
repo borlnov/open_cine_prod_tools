@@ -255,7 +255,7 @@ void main() {
     expect(session.status, isA<OcptSyncStatusOffline>());
     expect(
       fakeLogger.recordsAtLevel(LogsLevel.warn).first.message.toString(),
-      'Sync failed for project $projectId: Type',
+      'Sync failed for project $projectId: SqliteException',
     );
     expect(causes(), ['offline cause: project=$projectId SqliteException']);
     expect(await lastAppliedSequence(), 0, reason: 'the cursor did not advance');
@@ -280,7 +280,7 @@ void main() {
 
     expect(
       fakeLogger.recordsAtLevel(LogsLevel.warn).first.message.toString(),
-      'Sync pull failed for project $projectId: Type',
+      'Sync pull failed for project $projectId: SqliteException',
     );
     expect(causes(), ['offline cause: project=$projectId SqliteException']);
     expect(await lastAppliedSequence(), 0, reason: 'the cursor did not advance');

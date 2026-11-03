@@ -261,7 +261,7 @@ class OcptSyncSession extends AbsOcptService {
     StackTrace? stackTrace, {
     required String failureLabel,
   }) async {
-    logger.w('$failureLabel for project $projectId: ${error.runtimeType}', null, stackTrace);
+    logger.w('$failureLabel for project $projectId: ${_typeOf(error)}', null, stackTrace);
     _logOfflineCause(error);
     _setStatus(OcptSyncStatusOffline(pendingEditCount: await _pendingEditCountOrNull()));
   }
@@ -312,9 +312,13 @@ class OcptSyncSession extends AbsOcptService {
       level: OcptDiagnosticsLevel.error,
       message: 'offline cause: project=$projectId $error',
       // An error's text can name a host or a path.
-      logMessage: 'offline cause: project=$projectId ${error.runtimeType}',
+      logMessage: 'offline cause: project=$projectId ${_typeOf(error)}',
     );
   }
+
+  /// Get the type [error] stands for in a log line: [error] itself when it already is a type, as
+  /// the one a service that answered a failure names what failed with, else its own type.
+  Type _typeOf(Object error) => error is Type ? error : error.runtimeType;
 
   /// Record [status]'s own transition into the device-local diagnostics buffer — one line per
   /// status this session moves through, so a "why did syncing stop" question can be answered from
