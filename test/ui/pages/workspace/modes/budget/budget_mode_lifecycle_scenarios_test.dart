@@ -385,7 +385,10 @@ void main() {
   testWidgets("previewing a version reloads the whole budget and withholds every write, leaving "
       "it brings the working copy back", (tester) async {
     await seedEverything();
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     // Written after the version was captured, so the preview cannot show it.
     await harness.seedAccount("Sound");
     await harness.seedDebit("Late fee", 300);
@@ -468,7 +471,10 @@ void main() {
   testWidgets("a field typed just before previewing a version is written first, the preview "
       "shows the version's own, and leaving it brings the typed value back", (tester) async {
     await harness.seedAccount("Camera");
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -501,7 +507,10 @@ void main() {
     tester,
   ) async {
     await seedEverything();
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.seedAccount("Sound");
     await harness.mount(tester);
     final tr = harness.trOf(tester);

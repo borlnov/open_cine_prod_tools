@@ -51,7 +51,10 @@ void main() {
   /// puts [workingCopy] in its place.
   Future<void> captureVersionThenRewrite(String workingCopy) async {
     await harness.seedScreenplay(_versionText);
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.seedScreenplay(workingCopy);
   }
 
@@ -282,7 +285,7 @@ void main() {
       "INT. LIGHTHOUSE - NIGHT",
     ]);
     // The safety version names the text the restore replaced.
-    expect(await harness.projectsManager.listProjectVersions(), hasLength(2));
+    expect(await harness.projectsManager.listProjectVersions().valueOrFail, hasLength(2));
     expect(find.byTooltip(tr.editorSaveTooltip), findsOneWidget);
   });
 

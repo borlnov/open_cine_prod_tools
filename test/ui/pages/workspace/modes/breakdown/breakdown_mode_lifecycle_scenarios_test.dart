@@ -295,7 +295,10 @@ void main() {
   testWidgets("the Versions tab shows the working copy card and follows a flushed edit", (
     tester,
   ) async {
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -320,7 +323,10 @@ void main() {
       "leaving it brings the working copy back", (tester) async {
     await seedTaggedTeapot();
     await harness.seedRole("Sam");
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
 
     // Written after the version was captured, so the preview cannot show it.
     final scenes = await harness.readScenes();
@@ -411,7 +417,10 @@ void main() {
 
   testWidgets("a note typed just before previewing a version is written first, the preview shows "
       "the version's own, and leaving it brings the note back", (tester) async {
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tap(tester, find.byTooltip(tr.workspaceToggleRightDockTooltip));
@@ -452,7 +461,10 @@ void main() {
     tester,
   ) async {
     await seedTaggedTeapot();
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.seedTag(
       sceneIndex: 1,
       text: "rake",

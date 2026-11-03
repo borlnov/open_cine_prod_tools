@@ -66,7 +66,10 @@ void main() {
   testWidgets("the right dock opens on Versions, fills the working copy card, follows a write, "
       "and reopens on the tab it was closed on, even in the next visit", (tester) async {
     final dayId = await harness.seedDay(_first);
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -121,7 +124,10 @@ void main() {
           personId: await harness.seedPerson("Alice"),
         )
         .maybeValueOrFail;
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
 
     // Written after the version was captured, so the preview cannot show it.
     await harness.seedDay(_second);
@@ -175,7 +181,10 @@ void main() {
   testWidgets("a label typed just before previewing a version is written first, the preview "
       "shows the version's own, and leaving it brings the label back", (tester) async {
     final dayId = await harness.seedDay(_first);
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -201,7 +210,10 @@ void main() {
     tester,
   ) async {
     final dayId = await harness.seedDay(_first);
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     final laterDayId = await harness.seedDay(_second);
     await harness.mount(tester);
     final tr = harness.trOf(tester);

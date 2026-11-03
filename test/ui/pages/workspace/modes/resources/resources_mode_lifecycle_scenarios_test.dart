@@ -162,7 +162,10 @@ void main() {
   testWidgets("the right dock opens on Versions with the working copy card, follows a flushed "
       "edit, survives a tab change, and the left dock folds away", (tester) async {
     await harness.seedPerson("Alice");
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -202,7 +205,10 @@ void main() {
     final locationId = await harness.seedLocation("Cave");
     await harness.seedSet(locationId, "Back room");
     await harness.seedElement("Lamp");
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
 
     // Written after the version was captured, so the preview cannot show it.
     await harness.seedPerson("Bob");
@@ -264,7 +270,10 @@ void main() {
   testWidgets("a first name typed just before previewing a version is written first, the preview "
       "shows the version's own, and leaving it brings the name back", (tester) async {
     await harness.seedPerson("Alice");
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.openVersions(tester);
@@ -291,7 +300,10 @@ void main() {
     tester,
   ) async {
     await harness.seedPerson("Alice");
-    expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
+    expect(
+      await harness.projectsManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail,
+      isNotNull,
+    );
     await harness.seedPerson("Bob");
     await harness.seedLocation("Harbour");
     await harness.mount(tester);
