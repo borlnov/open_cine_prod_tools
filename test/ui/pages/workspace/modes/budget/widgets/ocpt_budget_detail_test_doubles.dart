@@ -15,6 +15,9 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
@@ -182,6 +185,21 @@ OcptBudgetDetail testDetail({
   revenues: revenues,
   taxBasis: OcptBudgetTaxBasis.includingTax,
   defaultVatRateBasisPoints: null,
+  paidCentsOf: (accountId) =>
+      ocptBudgetPaidCentsByAccountId(
+        entries,
+        projectVatRateBasisPoints: null,
+      )[accountId]?.amountCents ??
+      0,
+  committedCentsOf: (accountId) =>
+      ocptBudgetCommittedCentsByAccountId(
+        commitments,
+        entries: entries,
+        projectVatRateBasisPoints: null,
+      )[accountId]?.amountCents ??
+      0,
+  inKindCoveredCentsOf: (accountId) =>
+      ocptBudgetInKindCoveredCentsByAccountId(accounts)[accountId] ?? 0,
   currencyCode: "EUR",
   isSimplified: false,
   isReadOnly: isReadOnly,

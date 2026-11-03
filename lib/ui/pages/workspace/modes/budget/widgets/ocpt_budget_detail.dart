@@ -13,9 +13,6 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail_account.dart';
@@ -207,6 +204,16 @@ class OcptBudgetDetail extends StatelessWidget {
   /// Called with a taking's id when its own `Delete` action is clicked, or null while [isReadOnly].
   final ValueChanged<String>? onRevenueDeletionRequested;
 
+  /// Get an account's own paid total, in cents, tax-inclusive — 0 while nothing is entered against
+  /// it — from the totals the loaded snapshot already holds per account.
+  final int Function(String accountId) paidCentsOf;
+
+  /// Get an account's own committed total, in cents, tax-inclusive — mirrors [paidCentsOf].
+  final int Function(String accountId) committedCentsOf;
+
+  /// Get an account's own in-kind covered total, in cents — mirrors [paidCentsOf].
+  final int Function(String accountId) inKindCoveredCentsOf;
+
   /// Class constructor
   const OcptBudgetDetail({
     super.key,
@@ -218,6 +225,9 @@ class OcptBudgetDetail extends StatelessWidget {
     required this.revenues,
     required this.taxBasis,
     required this.defaultVatRateBasisPoints,
+    required this.paidCentsOf,
+    required this.committedCentsOf,
+    required this.inKindCoveredCentsOf,
     required this.currencyCode,
     required this.isSimplified,
     required this.isReadOnly,
@@ -336,30 +346,4 @@ class OcptBudgetDetail extends StatelessWidget {
   /// Get [amountCents] formatted in [currencyCode], or [ocptBudgetEmptyValue] while it is null.
   String amountLabelOf(int? amountCents) =>
       amountCents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(amountCents, currencyCode);
-
-  /// Get `accountId`'s own paid total, in cents, tax-inclusive — 0 while nothing is entered against
-  /// it,
-  /// read off [entries] directly since the detail panel resolves its own account rather than being
-  /// handed one pre-resolved.
-  int paidCentsOf(String accountId) =>
-      ocptBudgetPaidCentsByAccountId(
-        entries,
-        projectVatRateBasisPoints: defaultVatRateBasisPoints,
-      )[accountId]?.amountCents ??
-      0;
-
-  /// Get `accountId`'s own committed total, in cents, tax-inclusive — mirrors [paidCentsOf].
-  int committedCentsOf(String accountId) =>
-      ocptBudgetCommittedCentsByAccountId(
-        commitments,
-        entries: entries,
-        projectVatRateBasisPoints: defaultVatRateBasisPoints,
-      )[accountId]?.amountCents ??
-      0;
-
-  /// Get `accountId`'s own in-kind covered total, in cents — mirrors [paidCentsOf], read off
-  /// [accounts] directly since the detail panel resolves its own account rather than being handed
-  /// one pre-resolved.
-  int inKindCoveredCentsOf(String accountId) =>
-      ocptBudgetInKindCoveredCentsByAccountId(accounts)[accountId] ?? 0;
 }

@@ -94,7 +94,7 @@ double _ocptRecapScrollbarGutterOf(BuildContext context) {
 /// (`onTargetSelected`), which writes nothing to the project database — so, unlike the target and
 /// scene inspectors, this table needs no `isReadOnly` flag at all: there is nothing here for a
 /// previewed version to withhold.
-class OcptBreakdownRecapTable extends StatelessWidget {
+class OcptBreakdownRecapTable extends StatefulWidget {
   /// Every scene of the loaded snapshot, in source order — one column per entry, whatever
   /// [searchQuery] holds.
   final List<OcptBreakdownScene> scenes;
@@ -134,44 +134,70 @@ class OcptBreakdownRecapTable extends StatelessWidget {
     required this.onTargetSelected,
   });
 
+  /// Create the state caching the table's filtered, grouped sections.
+  @override
+  State<OcptBreakdownRecapTable> createState() => _OcptBreakdownRecapTableState();
+}
+
+/// The recap table's state: it holds the filtered, grouped and sorted sections, which only change
+/// with the targets, the catalogue, the address book, the search or the language, not with every
+/// rebuild (a selection, a resize).
+class _OcptBreakdownRecapTableState extends State<OcptBreakdownRecapTable> {
+  /// The lookup of [OcptBreakdownRecapTable.elements] by id.
+  Map<String, OcptElement> _elementById = const {};
+
+  /// The lookup of [OcptBreakdownRecapTable.people] by id.
+  Map<String, OcptPerson> _personById = const {};
+
+  /// The targets matching the search, or empty while there is none.
+  List<OcptBreakdownTarget> _matchingTargets = const [];
+
+  /// The legend sections of [_matchingTargets], each with its targets sorted by name.
+  List<(OcptBreakdownLegendEntry, List<OcptBreakdownTarget>)> _sections = const [];
+
+  /// Derive the sections again when the language changes, and for the first time.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _derive(Tr.of(context));
+  }
+
+  /// Derive the sections again when one of the inputs they read has changed.
+  @override
+  void didUpdateWidget(OcptBreakdownRecapTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.targets, widget.targets) ||
+        !identical(oldWidget.elements, widget.elements) ||
+        !identical(oldWidget.people, widget.people) ||
+        oldWidget.searchQuery != widget.searchQuery) {
+      _derive(Tr.of(context));
+    }
+  }
+
   /// Build the breakdown recap table as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
+    final scenes = widget.scenes;
+    final selectedTargetRef = widget.selectedTargetRef;
+    final onTargetSelected = widget.onTargetSelected;
+    final elementById = _elementById;
+    final personById = _personById;
+    final sections = _sections;
 
-    if (targets.isEmpty) {
+    if (widget.targets.isEmpty) {
       return OcptWorkspaceEmptyMode(
         icon: Icons.grid_view_outlined,
         message: tr.breakdownRecapNothingTaggedHint,
       );
     }
 
-    final elementById = {for (final element in elements) element.id: element};
-    final personById = {for (final person in people) person.id: person};
-
-    final matchingTargets = [
-      for (final target in targets)
-        if (_matches(tr, target, elementById, personById)) target,
-    ];
-
-    if (matchingTargets.isEmpty) {
+    if (_matchingTargets.isEmpty) {
       return OcptWorkspaceEmptyMode(
         icon: Icons.search_off,
-        message: tr.breakdownRecapNoMatchesHint(searchQuery),
+        message: tr.breakdownRecapNoMatchesHint(widget.searchQuery),
       );
     }
-
-    final matchingByKey = <OcptBreakdownLegendKey, List<OcptBreakdownTarget>>{};
-    for (final target in matchingTargets) {
-      matchingByKey.putIfAbsent(ocptBreakdownLegendKeyOf(target), () => []).add(target);
-    }
-    for (final group in matchingByKey.values) {
-      group.sort((a, b) => a.name.compareTo(b.name));
-    }
-    final sections = [
-      for (final entry in ocptBreakdownLegendEntriesOf(targets))
-        if (matchingByKey[entry.key] case final groupTargets?) (entry, groupTargets),
-    ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -228,21 +254,40 @@ class OcptBreakdownRecapTable extends StatelessWidget {
     );
   }
 
-  /// Tell whether [target] matches [searchQuery], resolving its notes/sub-category/owner off
-  /// [elementById]/[personById] first — see `ocptBreakdownRecapRowMatches`'s own doc comment for
+  /// Filter, group and sort the targets of the widget into [_sections], reading [tr] for the
+  /// category labels the search matches against.
+  void _derive(Tr tr) {
+    _elementById = {for (final element in widget.elements) element.id: element};
+    _personById = {for (final person in widget.people) person.id: person};
+
+    _matchingTargets = [
+      for (final target in widget.targets)
+        if (_matches(tr, target)) target,
+    ];
+
+    final matchingByKey = <OcptBreakdownLegendKey, List<OcptBreakdownTarget>>{};
+    for (final target in _matchingTargets) {
+      matchingByKey.putIfAbsent(ocptBreakdownLegendKeyOf(target), () => []).add(target);
+    }
+    for (final group in matchingByKey.values) {
+      group.sort((a, b) => a.name.compareTo(b.name));
+    }
+    _sections = [
+      for (final entry in ocptBreakdownLegendEntriesOf(widget.targets))
+        if (matchingByKey[entry.key] case final groupTargets?) (entry, groupTargets),
+    ];
+  }
+
+  /// Tell whether [target] matches `searchQuery`, resolving its notes/sub-category/owner off
+  /// [_elementById]/[_personById] first — see `ocptBreakdownRecapRowMatches`'s own doc comment for
   /// why a role or a set simply never passes those three.
-  bool _matches(
-    Tr tr,
-    OcptBreakdownTarget target,
-    Map<String, OcptElement> elementById,
-    Map<String, OcptPerson> personById,
-  ) {
-    final element = target.kind == OcptBreakdownTargetKind.element ? elementById[target.id] : null;
+  bool _matches(Tr tr, OcptBreakdownTarget target) {
+    final element = target.kind == OcptBreakdownTargetKind.element ? _elementById[target.id] : null;
     final ownerPersonId = element?.ownerPersonId;
-    final owner = ownerPersonId == null ? null : personById[ownerPersonId];
+    final owner = ownerPersonId == null ? null : _personById[ownerPersonId];
 
     return ocptBreakdownRecapRowMatches(
-      query: searchQuery,
+      query: widget.searchQuery,
       targetName: target.name,
       categoryLabel: ocptBreakdownLegendKeyLabel(tr, ocptBreakdownLegendKeyOf(target)),
       subCategory: element?.subCategory,
