@@ -18,7 +18,10 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 
+import 'service_result_exceptions.dart';
 import 'service_result_reference_finder.dart';
+
+export 'service_result_exceptions.dart';
 
 /// The names of the life cycle methods, which stay as they are.
 const _lifeCycleMethods = {"initLifeCycle", "disposeLifeCycle"};
@@ -46,25 +49,6 @@ const _resultReturnTypes = [
 
 /// The two extensions that cancel a transaction when the call they wrap failed.
 const _abortHelpers = {"okOrAbort", "valueOrAbort"};
-
-/// The methods whose `guardResult` or `guardOutcome` body may wrap a call in `valueOrAbort` or
-/// `okOrAbort` without a transaction of their own, each with the reason: the guard catches the
-/// abort and answers its failure, and that is only wanted where the caller turns the answer back
-/// into a throw inside a transaction of its own.
-const abortInGuardBodyMethods = <String, String>{
-  "mergeIncomingFountainText":
-      "its caller's transaction wraps it and throws on the failure it answers",
-};
-
-/// The helpers declared in another file that take a closure answering a result, and so may be
-/// handed one that returns a converted call. None yet.
-const helpersTakingAResult = <String>{};
-
-/// The receivers that reach a participant of the same name as a converted method of another
-/// service, so that a call on them is not a call of the converted one.
-const homonymReceivers = <String, Set<String>>{
-  "reconcile": {"roleIndexService", "_roleIndexService"},
-};
 
 /// The type a call has to be a member of for [isServiceReceiver] to take its receiver for a
 /// service.
