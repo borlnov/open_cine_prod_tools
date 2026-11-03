@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
 import 'package:path/path.dart' as p;
@@ -419,6 +420,9 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     }
 
     final result = await _projectsManager.moveCurrentProject(newFilePath: newFilePath);
+    if (result.status == OcptProjectMoveStatus.oldFileNotClosed) {
+      return;
+    }
 
     if (hadSyncSession) {
       await _restartSyncSessionIfPaired();

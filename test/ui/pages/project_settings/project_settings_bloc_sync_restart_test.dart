@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:act_test_utility/act_test_utility.dart';
@@ -25,8 +26,11 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -146,6 +150,19 @@ class _FailingSyncManager extends OcptSyncManager {
   }
 }
 
+/// A projects manager whose move swaps the project but cannot close the old file's connection.
+class _OldFileOpenProjectsManager extends OcptProjectsManager {
+  /// Class constructor
+  _OldFileOpenProjectsManager({required super.propertiesManager})
+    : super(appLanguageCode: () => "en");
+
+  /// Answer that the old file's connection could not be closed.
+  @override
+  Future<ResultWithStatus<OcptProjectMoveStatus, OcptOpenProjectModel>> moveCurrentProject({
+    required String newFilePath,
+  }) async => const ResultWithStatus(status: OcptProjectMoveStatus.oldFileNotClosed);
+}
+
 /// Run the tests of the project settings bloc sync restart.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -231,4 +248,39 @@ void main() {
     expect(state.moveError, isNull);
     expect(syncManager.isStartCalled, isTrue);
   });
+
+  test(
+    'a move whose old file cannot be closed stops without a word and restarts nothing',
+    () async {
+      final otherManager = _OldFileOpenProjectsManager(propertiesManager: propertiesManager);
+      await otherManager.initLifeCycle();
+      addTearDown(otherManager.disposeLifeCycle);
+      final path = p.join(tempDir.path, "movie.ocpt");
+      (await otherManager.createProject(name: "My Movie", filePath: path)).value!;
+      final syncManager = _FailingSyncManager(pairingService: pairingService);
+      final bloc = OcptProjectSettingsBloc(
+        projectsManager: otherManager,
+        exportManager: OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          platformManager: _StubPlatformManager(isMobile: false),
+          saveLocationService: _FixedSaveLocationService(p.join(tempDir.path, "moved.ocpt")),
+        ),
+        syncManager: syncManager,
+        propertiesManager: propertiesManager,
+      );
+      addTearDown(bloc.close);
+      final states = <OcptProjectSettingsState>[];
+      final subscription = bloc.stream.listen(states.add);
+      addTearDown(subscription.cancel);
+      await pumpEventQueue();
+      states.clear();
+
+      bloc.add(const OcptProjectSettingsMoveRequestedEvent(fileTypeLabel: "Project"));
+      await pumpEventQueue(times: 50);
+
+      expect(states.where((state) => state.moveError != null), isEmpty);
+      expect(states.where((state) => state.projectFilePath != path), isEmpty);
+      expect(syncManager.isStartCalled, isFalse);
+    },
+  );
 }

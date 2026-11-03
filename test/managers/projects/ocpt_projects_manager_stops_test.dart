@@ -259,26 +259,33 @@ void main() {
       expect((await propertiesManager.recentProjects.load())!.single.episodeCount, 7);
     });
 
-    test("moving the project answers ioError once it has swapped, and cleans nothing up", () async {
-      final newPath = p.join(tempDir.path, "moved", "movie.ocpt");
-      OcptOpenProjectModel? swapped;
-      var rememberedDirectory = false;
+    test(
+      "moving the project answers that the old file stayed open, and cleans nothing up",
+      () async {
+        final newPath = p.join(tempDir.path, "moved", "movie.ocpt");
+        OcptOpenProjectModel? swapped;
+        var rememberedDirectory = false;
 
-      final result = await OcptProjectMoveOps.moveProject(
-        project: project,
-        newFilePath: newPath,
-        logger: buildOcptLogsHelper("test"),
-        propertiesManager: propertiesManager,
-        onSwapped: (moved) => swapped = moved,
-        rememberProjectsDirectory: (_) async => rememberedDirectory = true,
-      );
+        final result = await OcptProjectMoveOps.moveProject(
+          project: project,
+          newFilePath: newPath,
+          logger: buildOcptLogsHelper("test"),
+          propertiesManager: propertiesManager,
+          onSwapped: (moved) => swapped = moved,
+          rememberProjectsDirectory: (_) async => rememberedDirectory = true,
+        );
 
-      expect(result.status, OcptProjectMoveStatus.ioError);
-      expect(swapped?.path, newPath, reason: "the project had been swapped when the close failed");
-      expect(File(path).existsSync(), isTrue, reason: "the old file is left as it was");
-      expect(rememberedDirectory, isFalse);
-      await swapped?.fileDatabase.close();
-    });
+        expect(result.status, OcptProjectMoveStatus.oldFileNotClosed);
+        expect(
+          swapped?.path,
+          newPath,
+          reason: "the project had been swapped when the close failed",
+        );
+        expect(File(path).existsSync(), isTrue, reason: "the old file is left as it was");
+        expect(rememberedDirectory, isFalse);
+        await swapped?.fileDatabase.close();
+      },
+    );
   });
 
   test("a restore stops before writing when the preview cannot be left", () async {

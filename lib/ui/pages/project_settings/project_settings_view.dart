@@ -257,13 +257,16 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
   /// the former is success, not an error, and the latter can't happen here — this page is reachable
   /// only while a project is open and never while one is being previewed — but the switch still
   /// needs a branch for both to stay exhaustive, so [OcptProjectMoveStatus.noProjectOpen] falls
-  /// back to the very same generic wording [OcptProjectMoveStatus.ioError] gets.
+  /// back to the very same generic wording [OcptProjectMoveStatus.ioError] gets, and so does
+  /// [OcptProjectMoveStatus.oldFileNotClosed], which the bloc never turns into an error to show.
   String _moveErrorMessage(BuildContext context, OcptProjectMoveStatus status) {
     final tr = Tr.of(context);
 
     return switch (status) {
       OcptProjectMoveStatus.ok => "",
-      OcptProjectMoveStatus.noProjectOpen || OcptProjectMoveStatus.ioError => tr.homeErrorIoError,
+      OcptProjectMoveStatus.noProjectOpen ||
+      OcptProjectMoveStatus.ioError ||
+      OcptProjectMoveStatus.oldFileNotClosed => tr.homeErrorIoError,
       OcptProjectMoveStatus.fileAlreadyExists => tr.homeErrorFileAlreadyExists,
     };
   }
