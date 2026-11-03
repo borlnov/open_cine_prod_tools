@@ -326,9 +326,9 @@ int ocptBudgetDueTotalCents(List<OcptBudgetShareSplit> splits) =>
 
 /// Group [resources] by contributor, for the sharing view's own `What each person put in` card:
 /// the product owner could not tell, from the plan's own three aggregate figures, that one person
-/// having lent money three times over meant one debt rather than three (*"si Marie me donne de
-/// l'argent... comment je fais pour voir qu'elle m'a prêté 3 fois 100 €, et que donc je dois la
-/// rembourser de 300 € en priorité ?"*).
+/// having lent money three times over meant one debt rather than three (*"if Marie gives me
+/// money... how do I see that she lent me 100 € three times, and that I therefore owe her 300 €
+/// first?"*).
 ///
 /// **Grouping key: [OcptBudgetResource.personId] when it is set, the resource's own
 /// [OcptBudgetResource.label] otherwise.** A resource naming nobody still earns its own line rather
