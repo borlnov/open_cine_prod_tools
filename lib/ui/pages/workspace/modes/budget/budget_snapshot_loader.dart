@@ -168,7 +168,12 @@ class OcptBudgetSnapshotLoader {
     }
 
     final roles = rolesRead.value!;
-    final people = await _peopleService.loadPeople(database: database);
+    final peopleRead = await _peopleService.loadPeople(database: database);
+    if (peopleRead.isError) {
+      return OcptDatabaseResult(status: peopleRead.status, extraInfo: peopleRead.extraInfo);
+    }
+
+    final people = peopleRead.value!;
     final elementsRead = await _elementsService.loadElements(database: database);
     if (elementsRead.isError) {
       return OcptDatabaseResult(status: elementsRead.status, extraInfo: elementsRead.extraInfo);

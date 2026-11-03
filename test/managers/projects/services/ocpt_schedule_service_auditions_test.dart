@@ -138,7 +138,7 @@ void main() {
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
       final roleId = await createRole("role$suffix");
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       final candidacyId = await createCandidacy(
         "candidacy$suffix",
         roleId: roleId,
@@ -231,7 +231,7 @@ void main() {
       final second = await createCandidacy(
         "candidacy-2",
         roleId: await createRole("role-2"),
-        personId: (await peopleService.createPerson(database: database))!,
+        personId: (await peopleService.createPerson(database: database).valueOrFail),
       );
       final blockId = (await scheduleService
           .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
@@ -314,7 +314,7 @@ void main() {
       final second = await createCandidacy(
         "candidacy-2",
         roleId: await createRole("role-2"),
-        personId: (await peopleService.createPerson(database: database))!,
+        personId: (await peopleService.createPerson(database: database).valueOrFail),
       );
       final blockId = (await scheduleService
           .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)

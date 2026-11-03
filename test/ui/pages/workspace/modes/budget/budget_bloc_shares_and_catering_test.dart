@@ -138,15 +138,17 @@ void main() {
         await waitForState(bloc, (state) => !state.isLoading);
         final project = projectsManager.currentProject!;
 
-        final personId = await projectsManager.peopleService.createPerson(
-          database: project.database,
-        );
+        final personId = await projectsManager.peopleService
+            .createPerson(database: project.database)
+            .maybeValueOrFail;
         expect(personId, isNotNull);
-        await projectsManager.peopleService.updatePerson(
-          database: project.database,
-          personId: personId!,
-          commuteKmMilli: const drift.Value(10000),
-        );
+        await projectsManager.peopleService
+            .updatePerson(
+              database: project.database,
+              personId: personId!,
+              commuteKmMilli: const drift.Value(10000),
+            )
+            .okOrFail;
 
         final locationId = await projectsManager.locationsService
             .createLocation(database: project.database, name: "Studio A")

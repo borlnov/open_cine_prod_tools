@@ -543,7 +543,7 @@ void main() {
           .addCandidate(database: database, roleId: "role-2", personId: "person-1")
           .valueOrFail);
 
-      await peopleService.deletePerson(database: database, personId: "person-1");
+      await peopleService.deletePerson(database: database, personId: "person-1").okOrFail;
 
       final erased = await readCandidate(erasedCandidateId);
       expect(erased.isDeleted, isTrue);
@@ -568,7 +568,7 @@ void main() {
           .retainCandidate(database: database, candidateId: candidateId)
           .okOrFail;
 
-      await peopleService.deletePerson(database: database, personId: "person-1");
+      await peopleService.deletePerson(database: database, personId: "person-1").okOrFail;
 
       // `roles.personId` still points at the blanked `people` row, exactly as every other
       // reference to an erased person does: the row is never dropped, so the reference resolves.
@@ -588,7 +588,7 @@ void main() {
           .addCandidate(database: database, roleId: "role-1", personId: "person-2")
           .valueOrFail);
 
-      final people = await peopleService.loadPeople(database: database);
+      final people = await peopleService.loadPeople(database: database).valueOrFail;
       final candidatesByRoleId = await candidatesService
           .loadCandidatesByRoleId(database: database, people: people)
           .valueOrFail;
@@ -616,12 +616,12 @@ void main() {
           .valueOrFail);
 
       await candidatesService.removeCandidate(database: database, candidateId: removedId).okOrFail;
-      await peopleService.deletePerson(database: database, personId: "person-2");
+      await peopleService.deletePerson(database: database, personId: "person-2").okOrFail;
 
       final candidatesByRoleId = await candidatesService
           .loadCandidatesByRoleId(
             database: database,
-            people: await peopleService.loadPeople(database: database),
+            people: await peopleService.loadPeople(database: database).valueOrFail,
           )
           .valueOrFail;
 

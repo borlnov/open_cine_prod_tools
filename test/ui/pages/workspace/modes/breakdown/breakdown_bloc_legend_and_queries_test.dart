@@ -491,7 +491,9 @@ void main() {
 
   test("the loaded snapshot carries the address book for the inspector's pickers", () async {
     final project = projectsManager.currentProject!;
-    final personId = await projectsManager.peopleService.createPerson(database: project.database);
+    final personId = await projectsManager.peopleService
+        .createPerson(database: project.database)
+        .maybeValueOrFail;
     expect(personId, isNotNull);
 
     final bloc = buildBloc();

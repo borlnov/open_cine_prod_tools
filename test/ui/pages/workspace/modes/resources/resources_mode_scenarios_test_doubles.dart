@@ -301,7 +301,7 @@ class ResourcesScenarioHarness {
 
   /// Reads the address book back from the database.
   Future<List<OcptPerson>> readPeople() =>
-      projectsManager.peopleService.loadPeople(database: database);
+      projectsManager.peopleService.loadPeople(database: database).valueOrFail;
 
   /// Reads the cast back from the database.
   Future<List<OcptRole>> readRoles() =>
@@ -322,13 +322,17 @@ class ResourcesScenarioHarness {
 
   /// Creates a person called [firstName] [lastName] in the address book, returning the id.
   Future<String> seedPerson(String firstName, {String lastName = ""}) async {
-    final id = await projectsManager.peopleService.createPerson(database: database);
-    await projectsManager.peopleService.updatePerson(
-      database: database,
-      personId: id!,
-      firstName: Value(firstName),
-      lastName: Value(lastName),
-    );
+    final id = await projectsManager.peopleService
+        .createPerson(database: database)
+        .maybeValueOrFail;
+    await projectsManager.peopleService
+        .updatePerson(
+          database: database,
+          personId: id!,
+          firstName: Value(firstName),
+          lastName: Value(lastName),
+        )
+        .okOrFail;
     return id;
   }
 

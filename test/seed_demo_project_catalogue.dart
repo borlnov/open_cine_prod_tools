@@ -32,50 +32,58 @@ Future<({Map<String, String> actorIds, Map<String, String> crewIds})> seedAddres
 
   final crewIds = <String, String>{};
   for (final (index, member) in demoCrew.indexed) {
-    final personId = (await peopleService.createPerson(database: database))!;
-    await peopleService.updatePerson(
-      database: database,
-      personId: personId,
-      firstName: Value(member.firstName),
-      lastName: Value(member.lastName),
-      city: const Value("Douarnenez"),
-      country: const Value("France"),
-      colorIndex: Value(index),
-    );
-    await peopleService.addPosition(
-      database: database,
-      personId: personId,
-      positionId: member.positionId,
-      customLabel: "",
-    );
+    final personId = (await peopleService.createPerson(database: database).valueOrFail);
+    await peopleService
+        .updatePerson(
+          database: database,
+          personId: personId,
+          firstName: Value(member.firstName),
+          lastName: Value(member.lastName),
+          city: const Value("Douarnenez"),
+          country: const Value("France"),
+          colorIndex: Value(index),
+        )
+        .okOrFail;
+    await peopleService
+        .addPosition(
+          database: database,
+          personId: personId,
+          positionId: member.positionId,
+          customLabel: "",
+        )
+        .maybeValueOrFail;
     crewIds[member.positionId] = personId;
   }
 
   final actorIds = <String, String>{};
   for (final (index, entry) in demoCast.entries.indexed) {
-    final personId = (await peopleService.createPerson(database: database))!;
-    await peopleService.updatePerson(
-      database: database,
-      personId: personId,
-      firstName: Value(entry.value.firstName),
-      lastName: Value(entry.value.lastName),
-      city: const Value("Quimper"),
-      country: const Value("France"),
-      colorIndex: Value(demoCrew.length + index),
-    );
+    final personId = (await peopleService.createPerson(database: database).valueOrFail);
+    await peopleService
+        .updatePerson(
+          database: database,
+          personId: personId,
+          firstName: Value(entry.value.firstName),
+          lastName: Value(entry.value.lastName),
+          city: const Value("Quimper"),
+          country: const Value("France"),
+          colorIndex: Value(demoCrew.length + index),
+        )
+        .okOrFail;
     actorIds[entry.key] = personId;
   }
 
   // The script supervisor is away the second day, which is what the alerts panel reports against
   // the convocations below.
-  await peopleService.addUnavailability(
-    database: database,
-    personId: crewIds["scriptSupervisor"]!,
-    startDate: DateTime(2026, 9, 16),
-    endDate: DateTime(2026, 9, 16),
-    slot: OcptDayPartSlot.fullDay,
-    reason: "Second unit on another production",
-  );
+  await peopleService
+      .addUnavailability(
+        database: database,
+        personId: crewIds["scriptSupervisor"]!,
+        startDate: DateTime(2026, 9, 16),
+        endDate: DateTime(2026, 9, 16),
+        slot: OcptDayPartSlot.fullDay,
+        reason: "Second unit on another production",
+      )
+      .maybeValueOrFail;
 
   return (actorIds: actorIds, crewIds: crewIds);
 }

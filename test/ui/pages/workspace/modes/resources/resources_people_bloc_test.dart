@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// A router manager whose [pop] does nothing: these bloc tests don't build a real GoRouter for it
 /// to operate on.
@@ -155,8 +156,9 @@ void main() {
   }
 
   /// Reads the address book straight from the database.
-  Future<List<OcptPerson>> readPeople() =>
-      projectsManager.peopleService.loadPeople(database: projectsManager.currentProject!.database);
+  Future<List<OcptPerson>> readPeople() => projectsManager.peopleService
+      .loadPeople(database: projectsManager.currentProject!.database)
+      .valueOrFail;
 
   /// Closes the blocs of a test, the view before its mode.
   Future<void> closeAll(OcptResourcesPeopleBloc peopleBloc, OcptResourcesBloc modeBloc) async {

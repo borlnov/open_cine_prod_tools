@@ -137,7 +137,9 @@ void main() {
     await locations
         .setPermitDocument(database: database, locationId: locationId, path: "/docs/permit.pdf")
         .valueOrFail;
-    final personId = (await projectsManager.peopleService.createPerson(database: database))!;
+    final personId = await projectsManager.peopleService
+        .createPerson(database: database)
+        .valueOrFail;
 
     modeBloc = OcptResourcesBloc(
       projectsManager: projectsManager,

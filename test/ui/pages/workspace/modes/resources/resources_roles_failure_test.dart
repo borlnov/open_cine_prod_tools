@@ -76,9 +76,9 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    final personId = (await projectsManager.peopleService.createPerson(
-      database: project.database,
-    ))!;
+    final personId = (await projectsManager.peopleService
+        .createPerson(database: project.database)
+        .valueOrFail);
     Future<String> role(String name) => projectsManager.roleIndexService
         .addRole(
           database: project.database,

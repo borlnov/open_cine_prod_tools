@@ -120,9 +120,9 @@ void main() {
           sourceKind: OcptElementSourceKind.owned,
         )
         .valueOrFail;
-    final personId = (await projectsManager.peopleService.createPerson(
-      database: project.database,
-    ))!;
+    final personId = (await projectsManager.peopleService
+        .createPerson(database: project.database)
+        .valueOrFail);
     final roleId = (await projectsManager.roleIndexService
         .addRole(
           database: project.database,

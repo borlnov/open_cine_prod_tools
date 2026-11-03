@@ -85,8 +85,12 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    personId = (await projectsManager.peopleService.createPerson(database: project.database))!;
-    otherPersonId = (await projectsManager.peopleService.createPerson(database: project.database))!;
+    personId = (await projectsManager.peopleService
+        .createPerson(database: project.database)
+        .valueOrFail);
+    otherPersonId = (await projectsManager.peopleService
+        .createPerson(database: project.database)
+        .valueOrFail);
     roleId = (await projectsManager.roleIndexService
         .addRole(
           database: project.database,

@@ -91,7 +91,9 @@ void main() {
 
     // One record in each tab, written behind the mode's back, then a typed edit in each sheet.
     final project = projectsManager.currentProject!;
-    personId = (await projectsManager.peopleService.createPerson(database: project.database))!;
+    personId = (await projectsManager.peopleService
+        .createPerson(database: project.database)
+        .valueOrFail);
     roleId = (await projectsManager.roleIndexService
         .addRole(
           database: project.database,
@@ -223,7 +225,9 @@ void main() {
       }
 
       expect(
-        (await projectsManager.peopleService.loadPeople(database: database)).single.firstName,
+        (await projectsManager.peopleService.loadPeople(database: database).valueOrFail)
+            .single
+            .firstName,
         isEmpty,
       );
       expect(
@@ -267,7 +271,9 @@ void main() {
       }
 
       expect(
-        (await projectsManager.peopleService.loadPeople(database: database)).single.firstName,
+        (await projectsManager.peopleService.loadPeople(database: database).valueOrFail)
+            .single
+            .firstName,
         "Alicia",
       );
       expect(
@@ -303,7 +309,9 @@ void main() {
       }
 
       expect(
-        (await projectsManager.peopleService.loadPeople(database: database)).single.firstName,
+        (await projectsManager.peopleService.loadPeople(database: database).valueOrFail)
+            .single
+            .firstName,
         "Alicia",
       );
       expect(

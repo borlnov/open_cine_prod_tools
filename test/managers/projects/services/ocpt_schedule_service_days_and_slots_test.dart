@@ -180,7 +180,7 @@ void main() {
       final slots = await readLiveSlots(dayId);
       final slotId = slots.single.id;
 
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       final roleId = await createRole("role-1");
       final shotId = await createShot("shot-1");
 
@@ -247,7 +247,7 @@ void main() {
           )
           .okOrFail;
 
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       final roleId = await createRole("role-1");
       final shotId = await createShot("shot-1");
 

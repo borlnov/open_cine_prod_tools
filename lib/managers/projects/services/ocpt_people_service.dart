@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_asset_ops.dart';
@@ -16,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_skill.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_unavailability.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:uuid/uuid.dart';
@@ -131,7 +133,10 @@ class OcptPeopleService extends AbsOcptService {
   /// vanished scene is skipped: the reference is gone, and "no photo" is what that means. A path
   /// resolving to no file on disk is a different question entirely, and not this layer's — see
   /// `docs/adr/0013-binary-assets-referenced-by-path.md`.
-  Future<List<OcptPerson>> loadPeople({required OcptProjectDatabase database}) async {
+  @useResult
+  Future<OcptDatabaseResult<List<OcptPerson>>> loadPeople({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadPeople", () async {
     final personRows = await _liveRows(database);
     final personIds = personRows.map((row) => row.id).toList(growable: false);
 
@@ -192,74 +197,80 @@ class OcptPeopleService extends AbsOcptService {
           imageRightsDocument: assetsById[row.imageRightsAssetId],
         ),
     ];
-  }
+  });
 
   /// Create a new, blank person in [database], appended at the end of the address book, and return
   /// its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createPerson({required OcptProjectDatabase database}) async {
-    if (database.refusesUserWrite("createPerson")) {
-      return null;
-    }
+  @useResult
+  Future<OcptDatabaseResult<String>> createPerson({required OcptProjectDatabase database}) =>
+      guardResult("createPerson", () async {
+        if (database.refusesUserWrite("createPerson")) {
+          return null;
+        }
 
-    final existing = await _liveRows(database);
-    final id = const Uuid().v4();
+        final existing = await _liveRows(database);
+        final id = const Uuid().v4();
 
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPeopleTable,
-        rowId: id,
-        current: null,
-        next: OcptPersonRow(
-          id: id,
-          sortKey: ocptFractionalKeyBetween(
-            before: existing.isEmpty ? null : existing.last.sortKey,
-          ),
-          isDeleted: false,
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          addressLine1: '',
-          addressLine2: '',
-          postalCode: '',
-          city: '',
-          region: '',
-          country: '',
-          colorIndex: 0,
-          minorNotes: '',
-          accommodationNotes: '',
-          travelNotes: '',
-          dietaryNotes: '',
-          allergies: '',
-          measurementHeight: '',
-          measurementChest: '',
-          measurementWaist: '',
-          measurementHips: '',
-          sizeTop: '',
-          sizeBottom: '',
-          sizeShoes: '',
-          hmcNotes: '',
-          imageRightsStatus: OcptImageRightsStatus.notApplicable,
-          notes: '',
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
+        await database.transaction(() async {
+          final stamps = await OcptRowStampService.seed(
+            database: database,
+            deviceId: await deviceId(),
+          );
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptPeopleTable,
+            rowId: id,
+            current: null,
+            next: OcptPersonRow(
+              id: id,
+              sortKey: ocptFractionalKeyBetween(
+                before: existing.isEmpty ? null : existing.last.sortKey,
+              ),
+              isDeleted: false,
+              firstName: '',
+              lastName: '',
+              email: '',
+              phone: '',
+              addressLine1: '',
+              addressLine2: '',
+              postalCode: '',
+              city: '',
+              region: '',
+              country: '',
+              colorIndex: 0,
+              minorNotes: '',
+              accommodationNotes: '',
+              travelNotes: '',
+              dietaryNotes: '',
+              allergies: '',
+              measurementHeight: '',
+              measurementChest: '',
+              measurementWaist: '',
+              measurementHips: '',
+              sizeTop: '',
+              sizeBottom: '',
+              sizeShoes: '',
+              hmcNotes: '',
+              imageRightsStatus: OcptImageRightsStatus.notApplicable,
+              notes: '',
+            ),
+            stamps: stamps,
+          );
+          await stamps.flush(database);
+        });
 
-    return id;
-  }
+        return id;
+      });
 
   /// Update the fields of person [personId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderPerson] and [deletePerson].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updatePerson({
+  @useResult
+  Future<OcptDatabaseOutcome> updatePerson({
     required OcptProjectDatabase database,
     required String personId,
     Value<String> firstName = const Value.absent(),
@@ -296,7 +307,7 @@ class OcptPeopleService extends AbsOcptService {
     Value<String> notes = const Value.absent(),
     Value<int?> commuteKmMilli = const Value.absent(),
     Value<String?> mileageRateId = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updatePerson", () async {
     if (database.refusesUserWrite("updatePerson")) {
       return;
     }
@@ -358,7 +369,7 @@ class OcptPeopleService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Erase person [personId] from [database]:
   /// tombstones the row and blanks its personal columns in the same write — see
@@ -396,10 +407,11 @@ class OcptPeopleService extends AbsOcptService {
   /// resolves, and a part is not uncast by the address book losing a name.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deletePerson({
+  @useResult
+  Future<OcptDatabaseOutcome> deletePerson({
     required OcptProjectDatabase database,
     required String personId,
-  }) async {
+  }) => guardOutcome("deletePerson", () async {
     if (database.refusesUserWrite("deletePerson")) {
       return;
     }
@@ -482,69 +494,86 @@ class OcptPeopleService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Forward to [OcptPeopleAssetOps.setPersonPhoto].
-  Future<String?> setPersonPhoto({
+  @useResult
+  Future<OcptDatabaseResult<String>> setPersonPhoto({
     required OcptProjectDatabase database,
     required String personId,
     required String path,
     String label = "",
-  }) => OcptPeopleAssetOps.setPersonPhoto(
-    database: database,
-    personId: personId,
-    path: path,
-    label: label,
-    deviceId: deviceId,
-    assetsService: assetsService,
+  }) => guardResult(
+    "setPersonPhoto",
+    () => OcptPeopleAssetOps.setPersonPhoto(
+      database: database,
+      personId: personId,
+      path: path,
+      label: label,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
   );
 
   /// Forward to [OcptPeopleAssetOps.clearPersonPhoto].
-  Future<void> clearPersonPhoto({
+  @useResult
+  Future<OcptDatabaseOutcome> clearPersonPhoto({
     required OcptProjectDatabase database,
     required String personId,
-  }) => OcptPeopleAssetOps.clearPersonPhoto(
-    database: database,
-    personId: personId,
-    deviceId: deviceId,
-    assetsService: assetsService,
+  }) => guardOutcome(
+    "clearPersonPhoto",
+    () => OcptPeopleAssetOps.clearPersonPhoto(
+      database: database,
+      personId: personId,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
   );
 
   /// Forward to [OcptPeopleAssetOps.setImageRightsDocument].
-  Future<String?> setImageRightsDocument({
+  @useResult
+  Future<OcptDatabaseResult<String>> setImageRightsDocument({
     required OcptProjectDatabase database,
     required String personId,
     required String path,
     String label = "",
-  }) => OcptPeopleAssetOps.setImageRightsDocument(
-    database: database,
-    personId: personId,
-    path: path,
-    label: label,
-    deviceId: deviceId,
-    assetsService: assetsService,
+  }) => guardResult(
+    "setImageRightsDocument",
+    () => OcptPeopleAssetOps.setImageRightsDocument(
+      database: database,
+      personId: personId,
+      path: path,
+      label: label,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
   );
 
   /// Forward to [OcptPeopleAssetOps.clearImageRightsDocument].
-  Future<void> clearImageRightsDocument({
+  @useResult
+  Future<OcptDatabaseOutcome> clearImageRightsDocument({
     required OcptProjectDatabase database,
     required String personId,
-  }) => OcptPeopleAssetOps.clearImageRightsDocument(
-    database: database,
-    personId: personId,
-    deviceId: deviceId,
-    assetsService: assetsService,
+  }) => guardOutcome(
+    "clearImageRightsDocument",
+    () => OcptPeopleAssetOps.clearImageRightsDocument(
+      database: database,
+      personId: personId,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
   );
 
   /// Move person [personId] to [newPosition] (0-based) within the address book, by giving it a
   /// `sortKey` sitting between the two people it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderPerson({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderPerson({
     required OcptProjectDatabase database,
     required String personId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderPerson", () async {
     if (database.refusesUserWrite("reorderPerson")) {
       return;
     }
@@ -578,90 +607,131 @@ class OcptPeopleService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Forward to [OcptPeopleDetailOps.addPosition].
-  Future<String?> addPosition({
+  @useResult
+  Future<OcptDatabaseResult<String>> addPosition({
     required OcptProjectDatabase database,
     required String personId,
     required String positionId,
     required String customLabel,
-  }) => OcptPeopleDetailOps.addPosition(
-    database: database,
-    personId: personId,
-    positionId: positionId,
-    customLabel: customLabel,
-    deviceId: deviceId,
+  }) => guardResult(
+    "addPosition",
+    () => OcptPeopleDetailOps.addPosition(
+      database: database,
+      personId: personId,
+      positionId: positionId,
+      customLabel: customLabel,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptPeopleDetailOps.updatePosition].
-  Future<void> updatePosition({
+  @useResult
+  Future<OcptDatabaseOutcome> updatePosition({
     required OcptProjectDatabase database,
     required String id,
     Value<String> positionId = const Value.absent(),
     Value<String> customLabel = const Value.absent(),
-  }) => OcptPeopleDetailOps.updatePosition(
-    database: database,
-    id: id,
-    positionId: positionId,
-    customLabel: customLabel,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updatePosition",
+    () => OcptPeopleDetailOps.updatePosition(
+      database: database,
+      id: id,
+      positionId: positionId,
+      customLabel: customLabel,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptPeopleDetailOps.removePosition].
-  Future<void> removePosition({required OcptProjectDatabase database, required String id}) =>
-      OcptPeopleDetailOps.removePosition(database: database, id: id, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseOutcome> removePosition({
+    required OcptProjectDatabase database,
+    required String id,
+  }) => guardOutcome(
+    "removePosition",
+    () => OcptPeopleDetailOps.removePosition(database: database, id: id, deviceId: deviceId),
+  );
 
   /// Forward to [OcptPeopleDetailOps.reorderPositions].
-  Future<void> reorderPositions({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderPositions({
     required OcptProjectDatabase database,
     required String personId,
     required List<String> orderedIds,
-  }) => OcptPeopleDetailOps.reorderPositions(
-    database: database,
-    personId: personId,
-    orderedIds: orderedIds,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "reorderPositions",
+    () => OcptPeopleDetailOps.reorderPositions(
+      database: database,
+      personId: personId,
+      orderedIds: orderedIds,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptPeopleDetailOps.addSkill].
-  Future<String?> addSkill({
+  @useResult
+  Future<OcptDatabaseResult<String>> addSkill({
     required OcptProjectDatabase database,
     required String personId,
     required String label,
-  }) => OcptPeopleDetailOps.addSkill(
-    database: database,
-    personId: personId,
-    label: label,
-    deviceId: deviceId,
+  }) => guardResult(
+    "addSkill",
+    () => OcptPeopleDetailOps.addSkill(
+      database: database,
+      personId: personId,
+      label: label,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptPeopleDetailOps.updateSkill].
-  Future<void> updateSkill({
+  @useResult
+  Future<OcptDatabaseOutcome> updateSkill({
     required OcptProjectDatabase database,
     required String id,
     required String label,
-  }) =>
-      OcptPeopleDetailOps.updateSkill(database: database, id: id, label: label, deviceId: deviceId);
+  }) => guardOutcome(
+    "updateSkill",
+    () => OcptPeopleDetailOps.updateSkill(
+      database: database,
+      id: id,
+      label: label,
+      deviceId: deviceId,
+    ),
+  );
 
   /// Forward to [OcptPeopleDetailOps.removeSkill].
-  Future<void> removeSkill({required OcptProjectDatabase database, required String id}) =>
-      OcptPeopleDetailOps.removeSkill(database: database, id: id, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseOutcome> removeSkill({
+    required OcptProjectDatabase database,
+    required String id,
+  }) => guardOutcome(
+    "removeSkill",
+    () => OcptPeopleDetailOps.removeSkill(database: database, id: id, deviceId: deviceId),
+  );
 
   /// Forward to [OcptPeopleDetailOps.reorderSkills].
-  Future<void> reorderSkills({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderSkills({
     required OcptProjectDatabase database,
     required String personId,
     required List<String> orderedIds,
-  }) => OcptPeopleDetailOps.reorderSkills(
-    database: database,
-    personId: personId,
-    orderedIds: orderedIds,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "reorderSkills",
+    () => OcptPeopleDetailOps.reorderSkills(
+      database: database,
+      personId: personId,
+      orderedIds: orderedIds,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptPeopleDetailOps.addUnavailability].
-  Future<String?> addUnavailability({
+  @useResult
+  Future<OcptDatabaseResult<String>> addUnavailability({
     required OcptProjectDatabase database,
     required String personId,
     required DateTime startDate,
@@ -670,20 +740,24 @@ class OcptPeopleService extends AbsOcptService {
     int? startMinute,
     int? endMinute,
     required String reason,
-  }) => OcptPeopleDetailOps.addUnavailability(
-    database: database,
-    personId: personId,
-    startDate: startDate,
-    endDate: endDate,
-    slot: slot,
-    startMinute: startMinute,
-    endMinute: endMinute,
-    reason: reason,
-    deviceId: deviceId,
+  }) => guardResult(
+    "addUnavailability",
+    () => OcptPeopleDetailOps.addUnavailability(
+      database: database,
+      personId: personId,
+      startDate: startDate,
+      endDate: endDate,
+      slot: slot,
+      startMinute: startMinute,
+      endMinute: endMinute,
+      reason: reason,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptPeopleDetailOps.updateUnavailability].
-  Future<void> updateUnavailability({
+  @useResult
+  Future<OcptDatabaseOutcome> updateUnavailability({
     required OcptProjectDatabase database,
     required String id,
     Value<DateTime> startDate = const Value.absent(),
@@ -692,21 +766,30 @@ class OcptPeopleService extends AbsOcptService {
     Value<int?> startMinute = const Value.absent(),
     Value<int?> endMinute = const Value.absent(),
     Value<String> reason = const Value.absent(),
-  }) => OcptPeopleDetailOps.updateUnavailability(
-    database: database,
-    id: id,
-    startDate: startDate,
-    endDate: endDate,
-    slot: slot,
-    startMinute: startMinute,
-    endMinute: endMinute,
-    reason: reason,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateUnavailability",
+    () => OcptPeopleDetailOps.updateUnavailability(
+      database: database,
+      id: id,
+      startDate: startDate,
+      endDate: endDate,
+      slot: slot,
+      startMinute: startMinute,
+      endMinute: endMinute,
+      reason: reason,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptPeopleDetailOps.removeUnavailability].
-  Future<void> removeUnavailability({required OcptProjectDatabase database, required String id}) =>
-      OcptPeopleDetailOps.removeUnavailability(database: database, id: id, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseOutcome> removeUnavailability({
+    required OcptProjectDatabase database,
+    required String id,
+  }) => guardOutcome(
+    "removeUnavailability",
+    () => OcptPeopleDetailOps.removeUnavailability(database: database, id: id, deviceId: deviceId),
+  );
 
   /// Get every live person row of [database], ordered by `sortKey`.
   Future<List<OcptPersonRow>> _liveRows(OcptProjectDatabase database) =>

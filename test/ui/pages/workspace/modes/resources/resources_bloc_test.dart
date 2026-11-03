@@ -117,9 +117,9 @@ void main() {
   /// Adds a person to the address book behind the mode's back, as a view's own write would, and has
   /// the mode read the catalogue again so it holds them. Selects nobody.
   Future<String> seedPerson(OcptResourcesBloc bloc) async {
-    final personId = await projectsManager.peopleService.createPerson(
-      database: projectsManager.currentProject!.database,
-    );
+    final personId = await projectsManager.peopleService
+        .createPerson(database: projectsManager.currentProject!.database)
+        .maybeValueOrFail;
     await bloc.reload({OcptResourcesReloadScope.snapshot});
 
     return personId!;

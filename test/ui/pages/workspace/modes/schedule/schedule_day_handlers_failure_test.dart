@@ -363,7 +363,9 @@ Future<_Fixtures> _seed(OcptProjectsManager projectsManager) async {
       .createLocation(database: database, name: "Kitchen")
       .maybeValueOrFail;
 
-  final personId = (await projectsManager.peopleService.createPerson(database: database))!;
+  final personId = (await projectsManager.peopleService
+      .createPerson(database: database)
+      .valueOrFail);
   final roleId = (await projectsManager.roleIndexService
       .addRole(
         database: database,
@@ -372,7 +374,9 @@ Future<_Fixtures> _seed(OcptProjectsManager projectsManager) async {
         kind: OcptRoleKind.silent,
       )
       .valueOrFail);
-  final otherPersonId = (await projectsManager.peopleService.createPerson(database: database))!;
+  final otherPersonId = (await projectsManager.peopleService
+      .createPerson(database: database)
+      .valueOrFail);
   const convokedCandidacyId = "candidacy-1";
   const roleCandidateId = "candidacy-2";
   await database

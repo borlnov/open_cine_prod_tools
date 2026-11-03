@@ -23,7 +23,7 @@ class _SilentRouterManager extends OcptRouterManager {
   void pop<Y extends Object?>([Y? result]) {}
 }
 
-/// What the schedule mode does when it cannot read the locations it is loaded
+/// What the schedule mode does when it cannot read the address book or the locations it is loaded
 /// with: it stops before it emits anything, and loads once they can be read.
 void main() {
   late OcptPropertiesManager propertiesManager;
@@ -65,7 +65,7 @@ void main() {
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
   );
 
-  for (final (name, table) in [("locations", "locations")]) {
+  for (final (name, table) in [("address book", "people"), ("locations", "locations")]) {
     test("the mode stays loading while the $name cannot be read", () async {
       final database = projectsManager.currentProject!.database;
       await database.customStatement("ALTER TABLE $table RENAME TO ${table}_gone");

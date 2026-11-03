@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_snap
 import 'budget_bloc_test_doubles.dart';
 import 'budget_write_failure_test_doubles.dart';
 
-/// What the budget mode does when it cannot read the locations it is loaded
+/// What the budget mode does when it cannot read the address book or the locations it is loaded
 /// with, with a real SQLite failure (the table is gone): the loader answers the failure instead of
 /// a budget, the mode stays loading, and reading again answers false and keeps the state.
 void main() {
@@ -19,7 +19,7 @@ void main() {
   setUp(harness.setUp);
   tearDown(harness.tearDown);
 
-  for (final (name, table) in [("locations", "locations")]) {
+  for (final (name, table) in [("address book", "people"), ("locations", "locations")]) {
     group("when the $name cannot be read", () {
       /// Make the [table] unreadable.
       Future<void> lose() => harness.projectsManager.currentProject!.database.customStatement(

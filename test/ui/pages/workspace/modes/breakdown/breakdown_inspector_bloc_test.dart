@@ -281,7 +281,9 @@ void main() {
   test("changing an element's owner writes it immediately", () async {
     final tagged = await writeTaggedElement();
     final project = projectsManager.currentProject!;
-    final personId = await projectsManager.peopleService.createPerson(database: project.database);
+    final personId = await projectsManager.peopleService
+        .createPerson(database: project.database)
+        .maybeValueOrFail;
     expect(personId, isNotNull);
 
     final bloc = buildBloc();
@@ -305,7 +307,9 @@ void main() {
   test("changing an element's who-brings-it writes it immediately", () async {
     final tagged = await writeTaggedElement();
     final project = projectsManager.currentProject!;
-    final personId = await projectsManager.peopleService.createPerson(database: project.database);
+    final personId = await projectsManager.peopleService
+        .createPerson(database: project.database)
+        .maybeValueOrFail;
     expect(personId, isNotNull);
 
     final bloc = buildBloc();

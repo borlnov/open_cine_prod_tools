@@ -89,7 +89,9 @@ void main() {
           sourceKind: OcptElementSourceKind.owned,
         )
         .valueOrFail;
-    personId = (await projectsManager.peopleService.createPerson(database: project.database))!;
+    personId = (await projectsManager.peopleService
+        .createPerson(database: project.database)
+        .valueOrFail);
   });
 
   tearDown(() async {
@@ -588,9 +590,16 @@ void main() {
   });
 
   group("when the breakdown cannot be read", () {
-    // The elements, the scenes' own breakdown rows, the tags, the cast and the locations are
-    // separate reads.
-    for (final table in ["elements", "scene_breakdowns", "breakdown_tags", "roles", "locations"]) {
+    // The elements, the scenes' own breakdown rows, the tags, the cast, the locations and the
+    // address book are separate reads.
+    for (final table in [
+      "elements",
+      "scene_breakdowns",
+      "breakdown_tags",
+      "roles",
+      "locations",
+      "people",
+    ]) {
       /// Make [table] unreadable.
       Future<void> lose() => projectsManager.currentProject!.database.customStatement(
         "ALTER TABLE $table RENAME TO ${table}_gone",

@@ -4,17 +4,17 @@
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
@@ -50,12 +50,6 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// emptying what it holds ([onModeStateChanged]).
 class OcptResourcesPeopleBloc
     extends AbsOcptViewBloc<OcptResourcesPeopleState, OcptResourcesState, OcptResourcesBloc> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "resources_people_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
@@ -76,8 +70,7 @@ class OcptResourcesPeopleBloc
     OcptPeopleService? peopleService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _peopleService =
            peopleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).peopleService,
@@ -172,21 +165,9 @@ class OcptResourcesPeopleBloc
       return OcptPendingWritesStatus.ok;
     }
 
-    var isWritten = false;
-    try {
-      await _writeAllPendingFields(database: project.database, pending: pending);
-      isWritten = true;
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = await _writeAllPendingFields(database: project.database, pending: pending);
+    if (written.isError) {
       await _loseEdits(emitter);
-    }
-
-    if (!isWritten) {
       return OcptPendingWritesStatus.ok;
     }
 
@@ -226,7 +207,8 @@ class OcptResourcesPeopleBloc
   ///
   /// Unlike [onFlushRequested], this never touches [state]: `emit` may only be called from inside
   /// a registered `on<Event>` handler, and by the time this runs the widget tree that would show a
-  /// fresh state is already gone anyway. A failure here is only logged.
+  /// fresh state is already gone anyway. A failure is logged by the service that failed, and
+  /// leaves the edits to be written again by the next flush.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     cancelDebounce();
@@ -241,19 +223,10 @@ class OcptResourcesPeopleBloc
       return;
     }
 
-    try {
-      await flushEditsWithoutStateUntilConverted(
-        pending,
-        (edits) => _writeAllPendingFields(database: project.database, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
+    final _ = await flushEditsWithoutState(
+      pending,
+      (edits) => _writeAllPendingFields(database: project.database, pending: edits),
+    );
   }
 
   /// Create a new, blank person at the end of the address book, read the catalogue again and select
@@ -281,32 +254,34 @@ class OcptResourcesPeopleBloc
       return;
     }
 
-    try {
-      final rank = modeBloc.state.peopleCount;
-      final personId = await _peopleService.createPerson(database: project.database);
-      // The write was refused (a version is being previewed read-only); the shell already
-      // withholds the button that dispatches this event, so this is only ever a race.
-      if (personId != null) {
-        await _peopleService.updatePerson(
-          database: project.database,
-          personId: personId,
-          colorIndex: Value(rank),
-        );
-
-        if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-          await addToModeAndWait(
-            OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.people, recordId: personId),
-          );
-        }
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create a person in project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final rank = modeBloc.state.peopleCount;
+    final created = await _peopleService.createPerson(database: project.database);
+    if (created.isError) {
       addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    // The write was refused (a version is being previewed read-only); the shell already
+    // withholds the button that dispatches this event, so this is only ever a race.
+    final personId = created.value;
+    if (personId == null) {
+      return;
+    }
+
+    final coloured = await _peopleService.updatePerson(
+      database: project.database,
+      personId: personId,
+      colorIndex: Value(rank),
+    );
+    if (coloured.isError) {
+      addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+      await addToModeAndWait(
+        OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.people, recordId: personId),
+      );
     }
   }
 
@@ -326,24 +301,20 @@ class OcptResourcesPeopleBloc
       cancelDebounce();
     }
 
-    try {
-      await _peopleService.deletePerson(database: project.database, personId: event.personId);
-      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        emitter(
-          state.copyWithPersonErased(pendingFieldEdits: _pendingWithoutPerson(event.personId)),
-        );
-        await addToModeAndWait(
-          OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.people, recordId: event.personId),
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to erase person ${event.personId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final erased = await _peopleService.deletePerson(
+      database: project.database,
+      personId: event.personId,
+    );
+    if (erased.isError) {
       addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+      emitter(state.copyWithPersonErased(pendingFieldEdits: _pendingWithoutPerson(event.personId)));
+      await addToModeAndWait(
+        OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.people, recordId: event.personId),
+      );
     }
   }
 
@@ -383,31 +354,25 @@ class OcptResourcesPeopleBloc
     emitter(state.copyWithFieldEditsCleared());
   }
 
-  /// Write a discrete change to the address book through [action] and have the mode read the
-  /// catalogue again, so every derived aggregate (a person's positions summary, the status bar's
-  /// counts) reflects what the database now says. A no-op while no project is open; a failure
-  /// raises the mode's write error.
+  /// Write a discrete change to the address book through [action], a service call that answers an
+  /// outcome, and have the mode read the catalogue again, so every derived aggregate (a person's
+  /// positions summary, the status bar's counts) reflects what the database now says. A no-op while
+  /// no project is open; a failed outcome raises the mode's write error and reads nothing.
   Future<void> _writeCatalogueChange({
-    required String logContext,
-    required Future<void> Function(OcptOpenProjectModel project) action,
+    required Future<OcptDatabaseOutcome> Function(OcptOpenProjectModel project) action,
   }) async {
     final project = _projectsManager.currentProject;
     if (project == null) {
       return;
     }
 
-    try {
-      await action(project);
-      await modeBloc.reload({OcptResourcesReloadScope.snapshot});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to $logContext of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = await action(project);
+    if (written.isError) {
       addToMode(const OcptResourcesWriteFailedEvent());
+      return;
     }
+
+    await modeBloc.reload({OcptResourcesReloadScope.snapshot});
   }
 
   /// Show the native "open" dialog and return the path of the file picked, or null when the user
@@ -443,7 +408,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesPersonColorChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the colour of person ${event.personId}",
     action: (project) => _peopleService.updatePerson(
       database: project.database,
       personId: event.personId,
@@ -456,7 +420,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesPersonBirthDateChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the date of birth of person ${event.personId}",
     action: (project) => _peopleService.updatePerson(
       database: project.database,
       personId: event.personId,
@@ -469,7 +432,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesPersonTransportAutonomyChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the transport autonomy of person ${event.personId}",
     action: (project) => _peopleService.updatePerson(
       database: project.database,
       personId: event.personId,
@@ -482,7 +444,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesPersonImageRightsStatusChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the image rights status of person ${event.personId}",
     action: (project) => _peopleService.updatePerson(
       database: project.database,
       personId: event.personId,
@@ -496,7 +457,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesPersonImageRightsDateChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the image rights date of person ${event.personId}",
     action: (project) => _peopleService.updatePerson(
       database: project.database,
       personId: event.personId,
@@ -509,7 +469,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesPersonMileageRateChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the mileage rate of person ${event.personId}",
     action: (project) => _peopleService.updatePerson(
       database: project.database,
       personId: event.personId,
@@ -522,14 +481,15 @@ class OcptResourcesPeopleBloc
     OcptResourcesPositionAddedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "add a position to person ${event.personId}",
     action: (project) async {
-      await _peopleService.addPosition(
+      final added = await _peopleService.addPosition(
         database: project.database,
         personId: event.personId,
         positionId: event.positionId,
         customLabel: event.customLabel,
       );
+
+      return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
     },
   );
 
@@ -538,7 +498,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesPositionUpdatedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "update position ${event.id}",
     action: (project) => _peopleService.updatePosition(
       database: project.database,
       id: event.id,
@@ -552,7 +511,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesPositionRemovedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "remove position ${event.id}",
     action: (project) => _peopleService.removePosition(database: project.database, id: event.id),
   );
 
@@ -561,13 +519,14 @@ class OcptResourcesPeopleBloc
     OcptResourcesSkillAddedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "add a skill to person ${event.personId}",
     action: (project) async {
-      await _peopleService.addSkill(
+      final added = await _peopleService.addSkill(
         database: project.database,
         personId: event.personId,
         label: event.label,
       );
+
+      return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
     },
   );
 
@@ -576,7 +535,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesSkillUpdatedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "update skill ${event.id}",
     action: (project) =>
         _peopleService.updateSkill(database: project.database, id: event.id, label: event.label),
   );
@@ -586,7 +544,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesSkillRemovedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "remove skill ${event.id}",
     action: (project) => _peopleService.removeSkill(database: project.database, id: event.id),
   );
 
@@ -595,9 +552,8 @@ class OcptResourcesPeopleBloc
     OcptResourcesUnavailabilityAddedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "add an unavailability to person ${event.personId}",
     action: (project) async {
-      await _peopleService.addUnavailability(
+      final added = await _peopleService.addUnavailability(
         database: project.database,
         personId: event.personId,
         startDate: event.startDate,
@@ -607,6 +563,8 @@ class OcptResourcesPeopleBloc
         endMinute: event.endMinute,
         reason: event.reason,
       );
+
+      return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
     },
   );
 
@@ -615,7 +573,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesUnavailabilityUpdatedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "update unavailability ${event.id}",
     action: (project) => _peopleService.updateUnavailability(
       database: project.database,
       id: event.id,
@@ -633,7 +590,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesUnavailabilityRemovedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "remove unavailability ${event.id}",
     action: (project) =>
         _peopleService.removeUnavailability(database: project.database, id: event.id),
   );
@@ -653,13 +609,14 @@ class OcptResourcesPeopleBloc
     }
 
     await _writeCatalogueChange(
-      logContext: "reference the photo of person ${event.personId}",
       action: (project) async {
-        await _peopleService.setPersonPhoto(
+        final added = await _peopleService.setPersonPhoto(
           database: project.database,
           personId: event.personId,
           path: path,
         );
+
+        return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
       },
     );
   }
@@ -669,7 +626,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesPersonPhotoClearedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "drop the photo of person ${event.personId}",
     action: (project) =>
         _peopleService.clearPersonPhoto(database: project.database, personId: event.personId),
   );
@@ -690,13 +646,14 @@ class OcptResourcesPeopleBloc
     }
 
     await _writeCatalogueChange(
-      logContext: "reference the image rights document of person ${event.personId}",
       action: (project) async {
-        await _peopleService.setImageRightsDocument(
+        final added = await _peopleService.setImageRightsDocument(
           database: project.database,
           personId: event.personId,
           path: path,
         );
+
+        return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
       },
     );
   }
@@ -707,7 +664,6 @@ class OcptResourcesPeopleBloc
     OcptResourcesImageRightsDocumentClearedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "drop the image rights document of person ${event.personId}",
     action: (project) => _peopleService.clearImageRightsDocument(
       database: project.database,
       personId: event.personId,
@@ -715,24 +671,34 @@ class OcptResourcesPeopleBloc
   );
 
   /// Write every entry of [pending] through [_writeField].
-  Future<void> _writeAllPendingFields({
+  ///
+  /// Stops at the first write that fails and answers its failure; the entries after it are not
+  /// written.
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptPersonField), String> pending,
   }) async {
     for (final entry in pending.entries) {
       final (personId, field) = entry.key;
-      await _writeField(
+      final written = await _writeField(
         database: database,
         personId: personId,
         field: field,
         rawValue: entry.value,
       );
+      if (written.isError) {
+        return written;
+      }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Write a single field edit through `OcptPeopleService.updatePerson`, translating [field] into
   /// the matching named argument (see `OcptPersonField`'s own doc comment for the mapping).
-  Future<void> _writeField({
+  @useResult
+  Future<OcptDatabaseOutcome> _writeField({
     required OcptProjectDatabase database,
     required String personId,
     required OcptPersonField field,
@@ -740,157 +706,157 @@ class OcptResourcesPeopleBloc
   }) async {
     switch (field) {
       case OcptPersonField.firstName:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           firstName: Value(rawValue),
         );
       case OcptPersonField.lastName:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           lastName: Value(rawValue),
         );
       case OcptPersonField.email:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           email: Value(rawValue),
         );
       case OcptPersonField.phone:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           phone: Value(rawValue),
         );
       case OcptPersonField.addressLine1:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           addressLine1: Value(rawValue),
         );
       case OcptPersonField.addressLine2:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           addressLine2: Value(rawValue),
         );
       case OcptPersonField.postalCode:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           postalCode: Value(rawValue),
         );
       case OcptPersonField.city:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           city: Value(rawValue),
         );
       case OcptPersonField.region:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           region: Value(rawValue),
         );
       case OcptPersonField.country:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           country: Value(rawValue),
         );
       case OcptPersonField.minorNotes:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           minorNotes: Value(rawValue),
         );
       case OcptPersonField.maxDailyPresenceMinutes:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           maxDailyPresenceMinutes: Value(ocptMaxDailyPresenceMinutesOf(rawValue)),
         );
       case OcptPersonField.commuteKmMilli:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           commuteKmMilli: Value(ocptBudgetQuantityMilliOf(rawValue)),
         );
       case OcptPersonField.accommodationNotes:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           accommodationNotes: Value(rawValue),
         );
       case OcptPersonField.travelNotes:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           travelNotes: Value(rawValue),
         );
       case OcptPersonField.dietaryNotes:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           dietaryNotes: Value(rawValue),
         );
       case OcptPersonField.allergies:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           allergies: Value(rawValue),
         );
       case OcptPersonField.measurementHeight:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           measurementHeight: Value(rawValue),
         );
       case OcptPersonField.measurementChest:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           measurementChest: Value(rawValue),
         );
       case OcptPersonField.measurementWaist:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           measurementWaist: Value(rawValue),
         );
       case OcptPersonField.measurementHips:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           measurementHips: Value(rawValue),
         );
       case OcptPersonField.sizeTop:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           sizeTop: Value(rawValue),
         );
       case OcptPersonField.sizeBottom:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           sizeBottom: Value(rawValue),
         );
       case OcptPersonField.sizeShoes:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           sizeShoes: Value(rawValue),
         );
       case OcptPersonField.hmcNotes:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           hmcNotes: Value(rawValue),
         );
       case OcptPersonField.notes:
-        await _peopleService.updatePerson(
+        return _peopleService.updatePerson(
           database: database,
           personId: personId,
           notes: Value(rawValue),

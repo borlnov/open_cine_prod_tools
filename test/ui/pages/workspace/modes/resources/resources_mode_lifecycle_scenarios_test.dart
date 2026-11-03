@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_working_copy_card.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'resources_mode_scenarios_test_doubles.dart';
 
 /// How long a scenario waits, in real time, for the working copy capture throttle to let go.
@@ -273,9 +274,9 @@ void main() {
     await previewFirstVersion(tester);
 
     // The working copy file holds it already, though the debounce never ran out.
-    final stored = await harness.projectsManager.peopleService.loadPeople(
-      database: harness.projectsManager.currentProject!.fileDatabase,
-    );
+    final stored = await harness.projectsManager.peopleService
+        .loadPeople(database: harness.projectsManager.currentProject!.fileDatabase)
+        .valueOrFail;
     expect(stored.single.firstName, "Alicia");
 
     // The preview shows the version, which never had it.

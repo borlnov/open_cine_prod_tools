@@ -392,12 +392,12 @@ class ScheduleScenarioHarness {
 
   /// Creates a person called [firstName] in the address book, returning the id.
   Future<String> seedPerson(String firstName) async {
-    final id = await projectsManager.peopleService.createPerson(database: database);
-    await projectsManager.peopleService.updatePerson(
-      database: database,
-      personId: id!,
-      firstName: Value(firstName),
-    );
+    final id = await projectsManager.peopleService
+        .createPerson(database: database)
+        .maybeValueOrFail;
+    await projectsManager.peopleService
+        .updatePerson(database: database, personId: id!, firstName: Value(firstName))
+        .okOrFail;
     return id;
   }
 

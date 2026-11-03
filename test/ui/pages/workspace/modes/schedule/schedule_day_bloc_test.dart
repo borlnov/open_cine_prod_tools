@@ -265,12 +265,16 @@ void main() {
             kind: OcptRoleKind.silent,
           )
           .maybeValueOrFail;
-      final personId = await projectsManager.peopleService.createPerson(database: project.database);
-      await projectsManager.peopleService.updatePerson(
-        database: project.database,
-        personId: personId!,
-        firstName: const Value("Camille"),
-      );
+      final personId = await projectsManager.peopleService
+          .createPerson(database: project.database)
+          .maybeValueOrFail;
+      await projectsManager.peopleService
+          .updatePerson(
+            database: project.database,
+            personId: personId!,
+            firstName: const Value("Camille"),
+          )
+          .okOrFail;
       final roleCandidateId = await projectsManager.roleCandidatesService
           .addCandidate(database: project.database, roleId: roleId!, personId: personId)
           .maybeValueOrFail;

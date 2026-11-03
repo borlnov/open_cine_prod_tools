@@ -429,9 +429,9 @@ void main() {
       final bloc = buildBloc();
       final elementsBloc = buildElements(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
-      final personId = await projectsManager.peopleService.createPerson(
-        database: projectsManager.currentProject!.database,
-      );
+      final personId = await projectsManager.peopleService
+          .createPerson(database: projectsManager.currentProject!.database)
+          .maybeValueOrFail;
       await bloc.reload({OcptResourcesReloadScope.snapshot});
       final elementId = await createElement(bloc, elementsBloc);
 

@@ -766,7 +766,7 @@ void main() {
 
         // The erasure itself is other work (OcptPeopleService.deletePerson); this only checks that
         // a restore of a version captured before it can't undo it.
-        await peopleService.deletePerson(database: database, personId: "person-1");
+        await peopleService.deletePerson(database: database, personId: "person-1").okOrFail;
 
         final result = await restore(version.id);
 
@@ -812,15 +812,17 @@ void main() {
               lastName: const Value("Martin"),
             ),
           );
-      final photoId = (await peopleService.setPersonPhoto(
-        database: database,
-        personId: "person-1",
-        path: "/photos/clara-martin.jpg",
-      ))!;
+      final photoId = (await peopleService
+          .setPersonPhoto(
+            database: database,
+            personId: "person-1",
+            path: "/photos/clara-martin.jpg",
+          )
+          .valueOrFail);
 
       final version = await createVersion();
 
-      await peopleService.deletePerson(database: database, personId: "person-1");
+      await peopleService.deletePerson(database: database, personId: "person-1").okOrFail;
 
       final result = await restore(version.id);
       expect(result.status, OcptProjectRestoreStatus.ok);
@@ -851,7 +853,7 @@ void main() {
           .valueOrFail);
 
       final version = await createVersion();
-      await peopleService.deletePerson(database: database, personId: "person-1");
+      await peopleService.deletePerson(database: database, personId: "person-1").okOrFail;
 
       final result = await restore(version.id);
       expect(result.status, OcptProjectRestoreStatus.ok);
@@ -887,7 +889,7 @@ void main() {
           );
 
       final version = await createVersion();
-      await peopleService.deletePerson(database: database, personId: "person-1");
+      await peopleService.deletePerson(database: database, personId: "person-1").okOrFail;
 
       // A preview reads the very same payload a restore does, and hydrates it into the database
       // every mode draws its sheets from: scrubbing only the restore would put an erased person's

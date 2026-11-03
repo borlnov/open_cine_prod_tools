@@ -241,7 +241,7 @@ void main() {
           .createDay(database: database, date: DateTime(2026, 8, 10))
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
       final crewId = (await scheduleService
@@ -270,7 +270,7 @@ void main() {
           .createDay(database: database, date: DateTime(2026, 8, 10))
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       final crewId = (await scheduleService
           .addSlotCrewMember(database: database, slotId: slotId, personId: personId)
           .valueOrFail);
@@ -501,7 +501,7 @@ void main() {
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
       final roleId = await createRole("role-1");
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       final candidacyId = await createCandidacy("candidacy-1", roleId: roleId, personId: personId);
       final blockId = (await scheduleService
           .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
@@ -538,7 +538,7 @@ void main() {
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
       final roleId = await createRole("role-1");
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       final candidacyId = await createCandidacy("candidacy-1", roleId: roleId, personId: personId);
       final blockId = (await scheduleService
           .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)

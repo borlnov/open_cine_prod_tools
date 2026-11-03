@@ -31,6 +31,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The seven weekday names an availability window's summary cell is built from, keyed by their
 /// `DateTime.monday`…`DateTime.sunday` numbers — the locale's own names in the app, plain English
@@ -273,9 +274,9 @@ void main() {
   /// Adds a person to the address book behind the mode's back, as a view's own write would, and
   /// has the mode read the catalogue again so it holds them.
   Future<String> seedPerson(OcptResourcesBloc modeBloc) async {
-    final personId = await projectsManager.peopleService.createPerson(
-      database: projectsManager.currentProject!.database,
-    );
+    final personId = await projectsManager.peopleService
+        .createPerson(database: projectsManager.currentProject!.database)
+        .maybeValueOrFail;
     await modeBloc.reload({OcptResourcesReloadScope.snapshot});
 
     return personId!;
@@ -411,12 +412,14 @@ void main() {
       await waitForState(modeBloc, (state) => !state.isLoading);
 
       final personId = await seedPerson(modeBloc);
-      await projectsManager.peopleService.addPosition(
-        database: projectsManager.currentProject!.database,
-        personId: personId,
-        positionId: "director",
-        customLabel: "",
-      );
+      await projectsManager.peopleService
+          .addPosition(
+            database: projectsManager.currentProject!.database,
+            personId: personId,
+            positionId: "director",
+            customLabel: "",
+          )
+          .maybeValueOrFail;
       await modeBloc.reload({OcptResourcesReloadScope.snapshot});
 
       exportBloc.add(

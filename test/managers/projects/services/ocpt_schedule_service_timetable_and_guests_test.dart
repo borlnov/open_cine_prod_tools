@@ -136,19 +136,23 @@ void main() {
           .createDay(database: database, date: DateTime(2026, 8, 10))
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final personId = (await peopleService.createPerson(database: database))!;
-      await peopleService.addPosition(
-        database: database,
-        personId: personId,
-        positionId: "director",
-        customLabel: "",
-      );
-      await peopleService.addPosition(
-        database: database,
-        personId: personId,
-        positionId: "soundEngineer",
-        customLabel: "",
-      );
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
+      await peopleService
+          .addPosition(
+            database: database,
+            personId: personId,
+            positionId: "director",
+            customLabel: "",
+          )
+          .maybeValueOrFail;
+      await peopleService
+          .addPosition(
+            database: database,
+            personId: personId,
+            positionId: "soundEngineer",
+            customLabel: "",
+          )
+          .maybeValueOrFail;
 
       final firstId = (await scheduleService
           .addSlotCrewMember(database: database, slotId: slotId, personId: personId)
@@ -167,13 +171,15 @@ void main() {
           .createDay(database: database, date: DateTime(2026, 8, 10))
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final personId = (await peopleService.createPerson(database: database))!;
-      await peopleService.addPosition(
-        database: database,
-        personId: personId,
-        positionId: "director",
-        customLabel: "",
-      );
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
+      await peopleService
+          .addPosition(
+            database: database,
+            personId: personId,
+            positionId: "director",
+            customLabel: "",
+          )
+          .maybeValueOrFail;
 
       await scheduleService
           .addSlotCrewMember(database: database, slotId: slotId, personId: personId)
@@ -192,13 +198,15 @@ void main() {
           .createDay(database: database, date: DateTime(2026, 8, 10))
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final personId = (await peopleService.createPerson(database: database))!;
-      await peopleService.addPosition(
-        database: database,
-        personId: personId,
-        positionId: "",
-        customLabel: "Rigger",
-      );
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
+      await peopleService
+          .addPosition(
+            database: database,
+            personId: personId,
+            positionId: "",
+            customLabel: "Rigger",
+          )
+          .maybeValueOrFail;
 
       final crewId = (await scheduleService
           .addSlotCrewMember(database: database, slotId: slotId, personId: personId)
@@ -214,13 +222,15 @@ void main() {
           .createDay(database: database, date: DateTime(2026, 8, 10))
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final personId = (await peopleService.createPerson(database: database))!;
-      await peopleService.addPosition(
-        database: database,
-        personId: personId,
-        positionId: "director",
-        customLabel: "",
-      );
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
+      await peopleService
+          .addPosition(
+            database: database,
+            personId: personId,
+            positionId: "director",
+            customLabel: "",
+          )
+          .maybeValueOrFail;
 
       final crewId = (await scheduleService
           .addSlotCrewMember(
@@ -240,7 +250,7 @@ void main() {
           .createDay(database: database, date: DateTime(2026, 8, 10))
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
 
       final crewId = (await scheduleService
           .addSlotCrewMember(database: database, slotId: slotId, personId: personId)
@@ -532,7 +542,7 @@ void main() {
           .createDay(database: database, date: DateTime(2026, 8, 10))
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
 
       final guestId = await scheduleService
           .addSlotGuest(
@@ -573,7 +583,7 @@ void main() {
           .createDay(database: database, date: DateTime(2026, 8, 10))
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
 
       final guestId = await scheduleService
           .addSlotGuest(
@@ -607,7 +617,7 @@ void main() {
           .createDay(database: database, date: DateTime(2026, 8, 10))
           .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       final guestId = (await scheduleService
           .addSlotGuest(database: database, slotId: slotId, personId: personId)
           .valueOrFail);
@@ -644,7 +654,7 @@ void main() {
             .createDay(database: database, date: DateTime(2026, 8, 10))
             .valueOrFail);
         final slotId = (await readLiveSlots(dayId)).single.id;
-        final personId = (await peopleService.createPerson(database: database))!;
+        final personId = (await peopleService.createPerson(database: database).valueOrFail);
         final guestId = (await scheduleService
             .addSlotGuest(database: database, slotId: slotId, personId: personId)
             .valueOrFail);

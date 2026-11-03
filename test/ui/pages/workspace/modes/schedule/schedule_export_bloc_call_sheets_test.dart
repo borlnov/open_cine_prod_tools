@@ -285,7 +285,9 @@ void main() {
     test("hands the day and the selected convocation keys to the manager", () async {
       final fixture = await writePlacedShot();
       final project = projectsManager.currentProject!;
-      final personId = await projectsManager.peopleService.createPerson(database: project.database);
+      final personId = await projectsManager.peopleService
+          .createPerson(database: project.database)
+          .maybeValueOrFail;
       expect(personId, isNotNull);
 
       final snapshot = await projectsManager.scheduleService

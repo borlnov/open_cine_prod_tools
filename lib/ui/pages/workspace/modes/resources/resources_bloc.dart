@@ -483,7 +483,15 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final database = project.database;
     final screenplayId = screenplayIdOf(project);
 
-    final people = await _peopleService.loadPeople(database: database);
+    final peopleRead = await _peopleService.loadPeople(database: database);
+    if (peopleRead.isError) {
+      return OcptDatabaseResult<OcptResourcesSnapshot>(
+        status: peopleRead.status,
+        extraInfo: peopleRead.extraInfo,
+      );
+    }
+
+    final people = peopleRead.value!;
     final rolesRead = await _roleIndexService.loadRoles(database: database);
     if (rolesRead.isError) {
       return OcptDatabaseResult<OcptResourcesSnapshot>(

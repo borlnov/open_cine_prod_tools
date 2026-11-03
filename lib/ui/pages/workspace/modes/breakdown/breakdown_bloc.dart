@@ -431,8 +431,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// [_breakdownService], which `OcptScreenplayService` already depends on) and resolves the
   /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
   ///
-  /// Answers the failure of the scenes, tags, elements, roles or locations read, in place of the
-  /// snapshot: the people read still raises when the database fails.
+  /// Answers the failure of the scenes, tags, elements, roles, locations or people read, in place
+  /// of the snapshot.
   @useResult
   Future<OcptDatabaseResult<OcptBreakdownSnapshot>> _loadSnapshot(
     OcptOpenProjectModel project,
@@ -480,7 +480,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
 
     final locations = locationsRead.value!;
-    final people = await _peopleService.loadPeople(database: database);
+    final peopleRead = await _peopleService.loadPeople(database: database);
+    if (peopleRead.isError) {
+      return OcptDatabaseResult(status: peopleRead.status, extraInfo: peopleRead.extraInfo);
+    }
+
+    final people = peopleRead.value!;
 
     return OcptDatabaseResult(
       status: OcptDatabaseStatus.ok,

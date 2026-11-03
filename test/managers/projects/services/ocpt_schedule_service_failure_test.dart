@@ -93,7 +93,7 @@ void main() {
         .insert(
           OcptRolesTableCompanion.insert(id: "role-1", name: "LÉA", kind: OcptRoleKind.silent),
         );
-    final personId = (await peopleService.createPerson(database: database))!;
+    final personId = (await peopleService.createPerson(database: database).valueOrFail);
     await database
         .into(database.ocptRoleCandidatesTable)
         .insert(

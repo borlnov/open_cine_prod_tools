@@ -24,7 +24,7 @@ class _SilentRouterManager extends OcptRouterManager {
   void pop<Y extends Object?>([Y? result]) {}
 }
 
-/// What the resources mode does when it cannot read the locations or the scenes
+/// What the resources mode does when it cannot read the address book, the locations or the scenes
 /// it is loaded with, with a real SQLite failure (the table is gone): it stops before it emits
 /// anything, answers false when it reads again, and loads once they can be read.
 void main() {
@@ -72,7 +72,11 @@ void main() {
     "ALTER TABLE $table RENAME TO ${table}_gone",
   );
 
-  for (final (name, table) in [("locations", "locations"), ("scenes", "scenes")]) {
+  for (final (name, table) in [
+    ("address book", "people"),
+    ("locations", "locations"),
+    ("scenes", "scenes"),
+  ]) {
     group("when the $name cannot be read", () {
       test("the mode stays loading", () async {
         await lose(table);
