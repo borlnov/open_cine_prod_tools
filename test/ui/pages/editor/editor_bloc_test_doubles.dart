@@ -120,6 +120,32 @@ class FailingScreenplayService extends OcptScreenplayService {
   );
 }
 
+/// A screenplay service whose text read fails while [isReadFailing] is set, to exercise what the
+/// editor does when its load cannot read the screenplay. Saves fail as in its parent.
+class UnreadableScreenplayService extends FailingScreenplayService {
+  /// Whether [loadScreenplayText] answers a failure.
+  bool isReadFailing = false;
+
+  /// Class constructor
+  UnreadableScreenplayService();
+
+  /// Fail as a refused read does while told to, otherwise read the text as the real service does.
+  @override
+  Future<OcptDatabaseResult<String>> loadScreenplayText({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    if (isReadFailing) {
+      return const OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "read intentionally failed for the test",
+      );
+    }
+
+    return super.loadScreenplayText(database: database, screenplayId: screenplayId);
+  }
+}
+
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
 /// real GoRouter for it to operate on.
 ///

@@ -36,7 +36,7 @@ class _RecordingRouterManager extends OcptRouterManager {
 /// handlers that write one raises the transient write error, clears the pending anchor, reads
 /// nothing again, and goes on once the refusal is lifted.
 void main() {
-  const text = "INT. HOUSE - DAY\n\nJOHN\nHello there.\n";
+  const text = "INT. HOUSE - DAY\n\nJOHN\nHello there.\n\nMARY\nGood day.\n";
 
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -249,6 +249,31 @@ void main() {
       expect(await modeReadsAgain(), isFalse, reason: "nothing is read after a failure");
     },
   );
+
+  test("a refused attachment of the first of two covered characters attaches nobody", () async {
+    final project = projectsManager.currentProject!;
+    final roleRows = await project.database
+        .customSelect("SELECT id, name FROM roles WHERE is_deleted = 0")
+        .get();
+    final johnId = roleRows
+        .firstWhere((row) => row.read<String>("name") == "JOHN")
+        .read<String>("id");
+    expect(roleRows.length, 2);
+
+    final cue = layout.blocks.firstWhere((block) => block.text == "JOHN").words.first;
+    final last = layout.blocks.firstWhere((block) => block.text == "Good day.").words.last;
+    click(cue.startOffset, cue.endOffset);
+    await waitUntil(() => inspector.state.pendingCoverageAnchor != null);
+    await project.database.customStatement(
+      "CREATE TRIGGER refuse_john BEFORE INSERT ON shot_characters "
+      "WHEN NEW.role_id = '$johnId' BEGIN SELECT RAISE(ABORT, 'refused'); END",
+    );
+
+    click(last.startOffset, last.endOffset);
+    await waitUntil(() => inspector.state.hasWriteError);
+
+    expect(await liveCharacterLinkCount(), 0, reason: "the second character is not attached");
+  });
 
   test("a refused range removal raises the write error and keeps the range", () async {
     await seedRange();

@@ -166,6 +166,7 @@ void main() {
           String verb,
           _Raiser raiser,
           bool isAttachedFirst,
+          bool isTypedFirst,
           void Function(_Seeded) dispatch,
         })
       >{
@@ -174,6 +175,7 @@ void main() {
           verb: "INSERT",
           raiser: _Raiser.mode,
           isAttachedFirst: false,
+          isTypedFirst: false,
           dispatch: (s) => mode.add(const OcptShotListShotCreationRequestedEvent()),
         ),
         "deleting a shot": (
@@ -181,6 +183,7 @@ void main() {
           verb: "UPDATE",
           raiser: _Raiser.mode,
           isAttachedFirst: false,
+          isTypedFirst: true,
           dispatch: (s) => mode.add(OcptShotListShotDeletionRequestedEvent(shotId: s.secondShot)),
         ),
         "changing a difficulty": (
@@ -188,6 +191,7 @@ void main() {
           verb: "UPDATE",
           raiser: _Raiser.inspector,
           isAttachedFirst: false,
+          isTypedFirst: false,
           dispatch: (s) => inspector.add(
             OcptShotListShotDifficultyChangedEvent(
               shotId: s.secondShot,
@@ -201,6 +205,7 @@ void main() {
           verb: "INSERT",
           raiser: _Raiser.inspector,
           isAttachedFirst: false,
+          isTypedFirst: false,
           dispatch: (s) => inspector.add(
             OcptShotListShotCharacterToggledEvent(shotId: s.secondShot, roleId: s.roleId),
           ),
@@ -210,6 +215,7 @@ void main() {
           verb: "UPDATE",
           raiser: _Raiser.inspector,
           isAttachedFirst: true,
+          isTypedFirst: false,
           dispatch: (s) => inspector.add(
             OcptShotListShotCharacterToggledEvent(shotId: s.secondShot, roleId: s.roleId),
           ),
@@ -219,6 +225,7 @@ void main() {
           verb: "INSERT",
           raiser: _Raiser.inspector,
           isAttachedFirst: false,
+          isTypedFirst: false,
           dispatch: (s) => inspector.add(
             OcptShotListCharacterAddRequestedEvent(shotId: s.secondShot, characterName: "CLARA"),
           ),
@@ -228,6 +235,7 @@ void main() {
           verb: "INSERT",
           raiser: _Raiser.inspector,
           isAttachedFirst: false,
+          isTypedFirst: false,
           dispatch: (s) => inspector.add(
             OcptShotListCharacterAddRequestedEvent(shotId: s.secondShot, characterName: "DRIVER"),
           ),
@@ -247,6 +255,17 @@ void main() {
             .okOrFail;
         await mode.reload({OcptShotListReloadScope.snapshot});
       }
+      if (entry.value.isTypedFirst) {
+        inspector.add(
+          OcptShotListShotFieldChangedEvent(
+            shotId: seeded.secondShot,
+            field: OcptShotListEditableField.shotSize,
+            rawValue: "Wide",
+          ),
+        );
+        await settle();
+        expect(inspector.state.pendingFieldEdits, isNotEmpty);
+      }
       final held = mode.state.reloadEpoch;
       await refuse(entry.value.verb, entry.value.table);
 
@@ -255,6 +274,10 @@ void main() {
 
       expect(raised(entry.value.raiser), isTrue);
       expect(mode.state.reloadEpoch, held, reason: "the mode read again");
+      if (entry.value.isTypedFirst) {
+        expect(await shotSizes(), contains(seeded.secondShot), reason: "the shot is still live");
+        expect(inspector.state.pendingFieldEdits, isNotEmpty, reason: "the typed edit is kept");
+      }
 
       await allow(entry.value.verb, entry.value.table);
       dismiss(entry.value.raiser);

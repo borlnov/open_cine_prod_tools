@@ -210,27 +210,59 @@ void main() {
 
   test("a deleted episode keeps its cascade when it cannot be written", () async {
     final (bloc, emitted) = await loadedBloc();
+    final database = projectsManager.currentProject!.database;
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: secondId,
+          fountainText: "INT. HOUSE - DAY\n\nAction.\n\nINT. CABIN - NIGHT\n\nAction two.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: secondId,
+          fountainText: "INT. HOUSE - DAY\n\nAction.\n\nINT. CABIN - NIGHT\n\nAction three.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
+    final sceneId =
+        (await database
+                .customSelect("SELECT id FROM scenes WHERE screenplay_id = '$secondId'")
+                .get())
+            .first
+            .read<String>("id");
+    await projectsManager.shotListService
+        .createShot(database: database, screenplayId: secondId, sceneId: sceneId)
+        .maybeValueOrFail;
+    Future<List<int>> liveCounts() async {
+      final counts = <int>[];
+      for (final table in ["scenes", "shots", "screenplay_snapshots", "screenplays"]) {
+        final rows = await database
+            .customSelect(
+              "SELECT COUNT(*) AS n FROM $table WHERE is_deleted = 0 "
+              "AND ${table == "screenplays" ? "id" : "screenplay_id"} = '$secondId'",
+            )
+            .get();
+        counts.add(rows.single.read<int>("n"));
+      }
+
+      return counts;
+    }
+
+    final before = await liveCounts();
+    expect(before.every((count) => count > 0), isTrue, reason: "every table holds live rows");
     await run(
       "CREATE TRIGGER refuse_snapshots BEFORE UPDATE ON screenplay_snapshots "
       "BEGIN SELECT RAISE(ABORT, 'refused'); END",
     );
-    await projectsManager.screenplayService
-        .saveScreenplayText(
-          database: projectsManager.currentProject!.database,
-          screenplayId: secondId,
-          fountainText: "INT. HOUSE - DAY\n\nAction.\n",
-          snapshotReason: OcptSnapshotReason.manual,
-        )
-        .okOrFail;
 
     bloc.add(OcptProjectSettingsEpisodeDeletionConfirmedEvent(screenplayId: secondId));
     await Future<void>.delayed(_quietPeriod);
 
     expect(emitted, isEmpty);
-    final live = await projectsManager.screenplayService
-        .loadEpisodes(database: projectsManager.currentProject!.database)
-        .valueOrFail;
-    expect(live.map((episode) => episode.id), containsAll([firstId, secondId]));
+    expect(await liveCounts(), before, reason: "the scenes and shots tombstoned first rolled back");
   });
 
   test("episodes that cannot be read leave the page loading", () async {
