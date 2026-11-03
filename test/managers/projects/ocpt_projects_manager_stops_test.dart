@@ -5,10 +5,17 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/ocpt_project_episode_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/ocpt_project_move_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -16,6 +23,16 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import '../../ocpt_result_expectations.dart';
+
+/// A project file database that refuses to close.
+class _UncloseableFileDatabase extends OcptProjectDatabase {
+  /// Class constructor
+  _UncloseableFileDatabase(super.file);
+
+  /// Refuse as a connection in a bad state does.
+  @override
+  Future<void> close() async => throw StateError("close refused");
+}
 
 /// A properties manager whose device id cannot be read.
 class _NoDeviceIdPropertiesManager extends OcptPropertiesManager {
@@ -172,6 +189,83 @@ void main() {
       expect(created.extraInfo, StateError);
       properties.refuse = false;
       expect(await failing.listProjectVersions().valueOrFail, isEmpty, reason: "nothing written");
+    });
+  });
+
+  group("a project file database that cannot be closed", () {
+    late String path;
+    late OcptOpenProjectModel project;
+
+    setUp(() async {
+      path = p.join(tempDir.path, "movie.ocpt");
+      final created = (await manager.createProject(name: "My Movie", filePath: path)).value!;
+      final primaryScreenplayId = created.primaryScreenplayId;
+      await manager.closeCurrentProject().okOrFail;
+      project = OcptOpenProjectModel(
+        path: path,
+        name: "My Movie",
+        primaryScreenplayId: primaryScreenplayId,
+        database: _UncloseableFileDatabase(File(path)),
+      );
+    });
+
+    test("closing the project answers the failure, after reporting it closed", () async {
+      var reportedClosed = false;
+
+      final closed = await OcptProjectEpisodeOps.closeProject(
+        project: project,
+        screenplayService: manager.screenplayService,
+        propertiesManager: propertiesManager,
+        logger: buildOcptLogsHelper("test"),
+        onClosed: () => reportedClosed = true,
+      );
+
+      expect(closed.status, OcptDatabaseStatus.databaseError);
+      expect(closed.extraInfo, StateError);
+      expect(reportedClosed, isTrue, reason: "the project is cleared before its databases close");
+    });
+
+    test("closing it records no episode count", () async {
+      await propertiesManager.recentProjects.store([
+        OcptRecentProjectModel(
+          path: path,
+          name: "My Movie",
+          lastOpenedAt: DateTime.utc(2026),
+          episodeCount: 7,
+        ),
+      ]);
+
+      final closed = await OcptProjectEpisodeOps.closeProject(
+        project: project,
+        screenplayService: manager.screenplayService,
+        propertiesManager: propertiesManager,
+        logger: buildOcptLogsHelper("test"),
+        onClosed: () {},
+      );
+
+      expect(closed.isError, isTrue);
+      expect((await propertiesManager.recentProjects.load())!.single.episodeCount, 7);
+    });
+
+    test("moving the project answers ioError once it has swapped, and cleans nothing up", () async {
+      final newPath = p.join(tempDir.path, "moved", "movie.ocpt");
+      OcptOpenProjectModel? swapped;
+      var rememberedDirectory = false;
+
+      final result = await OcptProjectMoveOps.moveProject(
+        project: project,
+        newFilePath: newPath,
+        logger: buildOcptLogsHelper("test"),
+        propertiesManager: propertiesManager,
+        onSwapped: (moved) => swapped = moved,
+        rememberProjectsDirectory: (_) async => rememberedDirectory = true,
+      );
+
+      expect(result.status, OcptProjectMoveStatus.ioError);
+      expect(swapped?.path, newPath, reason: "the project had been swapped when the close failed");
+      expect(File(path).existsSync(), isTrue, reason: "the old file is left as it was");
+      expect(rememberedDirectory, isFalse);
+      await swapped?.fileDatabase.close();
     });
   });
 }

@@ -34,7 +34,10 @@ abstract final class OcptProjectMoveOps {
   /// the old file (with its `-wal`/`-shm` companions, if SQLite left any) deleted. Any failure
   /// before the swap deletes the half-written copy and returns [OcptProjectMoveStatus.ioError],
   /// leaving the original file exactly as it was; a failure deleting the *old* file after the swap
-  /// has already happened is only ever logged — the move itself has already succeeded by then.
+  /// has already happened is only ever logged — the move itself has already succeeded by then. The
+  /// old connection that cannot be closed is answered [OcptProjectMoveStatus.ioError] instead, with
+  /// the project already swapped and the old file, the sidecar and the recent-projects entry left
+  /// as they were.
   ///
   /// The `<path>.relay.sqlite` sidecar an in-app-hosted relay stores beside the project file, if
   /// one exists, travels with it (with its own `-wal`/`-shm`), renamed first and
@@ -128,7 +131,23 @@ abstract final class OcptProjectMoveOps {
     );
     onSwapped(movedProject);
 
-    await oldFileDatabase.close();
+    var isOldClosed = true;
+    try {
+      await oldFileDatabase.close();
+    } catch (error, stackTrace) {
+      logger.e(
+        "A problem occurred when tried to close the old file of a moved project: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      isOldClosed = false;
+    }
+
+    if (!isOldClosed) {
+      return const ResultWithStatus(status: OcptProjectMoveStatus.ioError);
+    }
+
     await deleteFileAndWalCompanions(oldPath, logger: logger);
     await moveRelaySidecarIfPresent(oldPath: oldPath, newPath: newFilePath, logger: logger);
 

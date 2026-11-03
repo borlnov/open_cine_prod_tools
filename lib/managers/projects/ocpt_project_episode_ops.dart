@@ -28,7 +28,9 @@ abstract final class OcptProjectEpisodeOps {
   /// with a count that isn't the project's own.
   ///
   /// Answers the failure of that read as it came, with the type of what failed as its `extraInfo`:
-  /// the project is then left open, nothing is closed and no count is recorded.
+  /// the project is then left open, nothing is closed and no count is recorded. A database that
+  /// cannot be closed is answered the same way, once the project has been reported closed: nothing
+  /// after it runs, so no count is recorded either.
   @useResult
   static Future<OcptDatabaseOutcome> closeProject({
     required OcptOpenProjectModel? project,
@@ -50,11 +52,28 @@ abstract final class OcptProjectEpisodeOps {
 
     onClosed();
 
-    if (project.isReadOnly) {
-      await project.database.close();
+    var closed = const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
+    try {
+      if (project.isReadOnly) {
+        await project.database.close();
+      }
+
+      await project.fileDatabase.close();
+    } catch (error, stackTrace) {
+      logger.e(
+        "A problem occurred when tried to close a project: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      closed = OcptDatabaseOutcome(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: error.runtimeType,
+      );
     }
 
-    await project.fileDatabase.close();
+    if (closed.isError) {
+      return closed;
+    }
 
     await recordEpisodeCount(
       path: project.path,
