@@ -36,9 +36,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_stat
 /// `await modeBloc.reload(…)`. Nothing here is typed into a debounce, so it registers nothing to
 /// flush and reacts to nothing the mode does; and none of its handlers selects the row it wrote.
 ///
-/// **A write that fails stops the handler.** The failure the service answers ends it there, so the writes that
-/// came before it stay in the database and the snapshot is not read again — a payment whose entry
-/// could not be written leaves the commitment it was recorded against behind.
+/// **A write that fails stops the handler.** The failure the service answers ends it there, so the
+/// writes that came before it stay in the database and the snapshot is not read again — a payment
+/// whose entry could not be written leaves the commitment it was recorded against behind.
 class OcptBudgetCashJournalBloc
     extends AbsOcptViewBloc<OcptBudgetCashJournalState, OcptBudgetState, OcptBudgetBloc> {
   /// The manager used to access the project currently open.

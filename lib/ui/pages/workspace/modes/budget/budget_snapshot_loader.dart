@@ -102,8 +102,8 @@ class OcptBudgetSnapshotLoader {
   /// commitments and receipts, the resources, the mileage rates, the defrayals, the takings, the
   /// shares and the elements reads, in place of the whole read: they are the only reads that answer
   /// a result so far. The reads of the roles, the people, the locations and the project settings
-  /// still raise when the database fails, and the caller catches what they raise. This sentence changes
-  /// as those services convert, each read then answering its failure in the same way.
+  /// still raise when the database fails, and the caller catches what they raise. This sentence
+  /// changes as those services convert, each read then answering its failure in the same way.
   @useResult
   Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     final database = project.database;
