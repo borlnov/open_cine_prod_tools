@@ -503,14 +503,15 @@ tables and the version codec pin on purpose.
     write what the views hold first. The selection of a receipt, a resource, a taking or a share,
     the dock toggle, the provisioning account, a tree node, going back, creating a record and the
     project settings do not.
-  - **A write that fails is not caught.** The service's error stops the handler it ran in: the edit
-    stays pending and on screen, the database is unchanged, and the debounce is gone until the next
-    keystroke, which writes everything again. The flush reports it, so the action behind it does
-    not happen: the mode's flush hooks answer false, and the selection, the view change, the
-    export, the preview, the restore, the saved version and the package export stop with the edit
-    still pending. Leaving the mode while a write fails is only logged. A read that fails after a
-    write that landed is logged and answers false, which stops the view that asked from selecting a
-    row the state may not hold.
+  - **A write that fails stops the handler.** The service answers the failure, logs it by type and
+    the handler leaves where it is: the edit stays pending and on screen, nothing is read again, the
+    database is unchanged, and the debounce is gone until the next keystroke, which writes
+    everything again. The flush reports it, so the action behind it does not happen: the mode's
+    flush hooks answer false, and the selection, the view change, the export, the preview, the
+    restore, the saved version and the package export stop with the edit still pending. Leaving the
+    mode while a write fails is logged by the service and goes no further. A read that fails after
+    a write that landed is logged and answers false, which stops the view that asked from
+    selecting a row the state may not hold.
   - **`OcptBudgetExpensesBloc`** writes the accounts and the quote lines (creating, reordering,
     deleting, the estimate derived again, the tax basis, the inherited VAT rate), the `Pay` action
     of a line, and owns the one pending-edit map of the mode (`OcptBudgetField`) with its debounce

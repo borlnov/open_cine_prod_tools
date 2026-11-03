@@ -63,6 +63,10 @@ Resources set carries across its three scopes, and the mode's two newest documen
     with `onAwaited`. It holds no typed edit of its own: `flushPendingFieldEdits()` (called by the
     mode's own `deactivate()`) and `_flushAllPendingWrites` only ask each view bloc to write what
     it still holds, and the latter then reads the snapshots again.
+  - **A write that fails raises the view's `hasWriteError`.** Each view bloc reads the answer of
+    its service: on a failure it logs nothing more, reads nothing again, selects nothing and shows
+    the SnackBar, and the typed edits it meant to write are dropped, so the action behind a flush
+    goes ahead on the value the database holds.
   - **`OcptShotListExportBloc`.** The four exports. It owns the export notice
     (`OcptShotListIoNotice`, in `shot_list_export_state.dart`), asks the mode to write every pending
     edit (`flushAllPendingWrites`, which also reads the snapshots again), then reads those snapshots

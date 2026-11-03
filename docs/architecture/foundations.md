@@ -33,6 +33,40 @@ the persistence, the project versions, the sync-ready data model and the read-on
   through `seed`, holds only an in-memory list `flush` writes out, so its life cycle is not driven
   and it is not an `AbsOcptService`: it extends `AbsWithLifeCycle` directly, with no logger, having
   nothing to log.
+- **A service answers a result, and a call site reads it.** A public method of a project service
+  (and of the projects manager's operations) that touches the project database hands its whole body
+  to `guardResult` or `guardOutcome` (`AbsOcptService`) and answers an `OcptDatabaseResult<T>` or an
+  `OcptDatabaseOutcome`: `ok` with its value (null for a write the read-only preview refuses, which
+  is a logged no-op, not a failure), or `databaseError` with **the type** of what failed as its
+  `extraInfo`, never the exception. The exception's text stays out of every log and out of every
+  answer. Every method carries `@useResult`, and `unused_result` is an error in the analyser, so a
+  dropped answer does not compile. The rule for a call site is one: `if (result.isError)` leaves
+  **exactly where the exception used to leave, with exactly the action of the `catch` that covered
+  it, or nothing if none did** — it does not read again, emit, log or improve. The exit is read in
+  the code as it stood, never from the idiom. Each private helper an exception used to cross now
+  carries the stop to its caller (a result, a status or a `bool`, with `@useResult`), because a
+  `Future<void>` helper that merely returns is a bug no tool sees.
+  - **Inside the boundary a failure still throws**, so that a transaction rolls back: a method
+    taking the caller's `stamps` runs in the caller's transaction, and `OcptRowStampService`, the
+    `stamps` participants, the static `Ops` and `Rows` and the private abort exceptions raise. A
+    converted service called from inside a `transaction` is wrapped by `okOrAbort` or
+    `valueOrAbort`, which raise `OcptDatabaseAbort`; only the boundary catches it, and answers its
+    failure as a `databaseError` without logging it again, since whoever answered it has logged it.
+    A transaction is never opened just to carry a failure out.
+  - **What stays as it is is listed**, with its reason, in `permanentServiceExceptions`
+    (`restoreVersion` and the package read and write answer their own status, the merge answers
+    its own status and lets a failure of the database itself raise for the sync session to settle).
+    The sync services that still raise on a database failure and leave their caller to settle —
+    `OcptChangesetService`'s reads and cursor writes, `OcptPairingService`, `OcptSyncManager`'s
+    relay pairing — are the other half.
+  - **The guard is `test/service_result_*`.** It parses `lib/` and fails on a public service
+    method that returns a `Future` without a result, a call whose answer is dropped, read before
+    `isError` was, returned by an expression closure or torn off, a call in a `transaction` that is
+    not wrapped by an abort helper, a `catch` outside the permanent list, and a double that throws
+    in place of a failure status. An abort wrapped outside a transaction is accepted only in the
+    methods `abortInGuardBodyMethods` names, each with its reason. The helpers that carry a stop
+    without declaring a result in their type are listed in `_stopCarriers` and must say
+    `@useResult`.
 
 - Logging (`act_logger_manager`). **Who owns a logger**: a manager, a BLoC, a project mixin or any
   other class with a `catch` owns exactly one `LogsHelper`, built by `buildOcptLogsHelper`
@@ -60,6 +94,12 @@ the persistence, the project versions, the sync-ready data model and the read-on
   error's `runtimeType` and passes the stack trace, never `$error`; and a shared helper that logs
   the text it parsed is not handed the logger when that text can hold any of the above. Nothing is
   logged per keystroke, frame, row, drag step or sync ping, and nothing in `build()`.
+  **A failure of the project database is logged once, at `e`, in the service that met it** (the
+  boundary of `guardResult` and `guardOutcome`: the operation's name and the type of what failed,
+  with the stack trace): the bloc or manager that gets the failed answer logs nothing more, or the
+  same failure would be written twice. A caller that acts on the failure with something worth
+  saying that the service cannot know (a version creation that failed, a project that cannot be
+  closed) logs its own line, by type.
   `OcptDiagnosticsManager` keeps the in-app buffer, which its
   own user reads, intact and forwards each entry to its logger: an entry whose text carries one of
   the above passes a `logMessage` without it, and an entry repeating on a timer is `isRoutine`,
@@ -143,14 +183,16 @@ the persistence, the project versions, the sync-ready data model and the read-on
     `restartDebounce` (never a `Timer` of its own: the base class owns and cancels it) and
     overrides `onFlushRequested` (write, empty the map, emit) and `flushPendingWritesWithoutState`
     (the same write with nothing to emit, for a widget leaving the tree or a bloc closing; a failure
-    is only logged). After a write it forgets only the keys whose value still equals what was
-    written (`ocptPendingEditsAfterWrite`): emitting an empty map loses the keystroke typed during
-    the write. The mode asks every registered flusher, in order, before anything that needs the
-    database up to date — a selection, a creation, the way back, an export, a version preview — and
-    reads the data again if any of them wrote. **Each view has its own debounce**: two edits typed
-    in two views a second apart are written two seconds after each one.
+    is logged by the service that failed and goes no further). After a write it forgets only the
+    keys whose value still equals what was written (`ocptPendingEditsAfterWrite`): emitting an
+    empty map loses the keystroke typed during the write. The mode asks every registered flusher,
+    in order, before anything that needs the database up to date — a selection, a creation, the
+    way back, an export, a version preview — and reads the data again if any of them wrote. **Each
+    view has its own debounce**: two edits typed in two views a second apart are written two
+    seconds after each one.
   - **A flush can fail, and each mode decides what that stops.** `flushPendingWrites` answers
-    a status, `ok`, `nothingToWrite` or `failed`, and answers `failed` when its write failed,
+    an `OcptPendingWritesStatus`, `ok`, `nothingToWrite` or `failed`, and answers `failed` when its
+    write failed,
     keeping the edit pending: an answer of "nothing to write" would let a preview, a restore or an
     export go on over a database missing the edit, and the reload that follows would drop it.
     `runPendingWritesFlushers` asks every flusher even after one failed and answers
@@ -158,11 +200,12 @@ the persistence, the project versions, the sync-ready data model and the read-on
     `flushAllPendingWritesIn` turns that into the answer of `flushAllPendingWrites`, and
     `flushPendingProjectWrites` into whether the version or package action may go on. The two
     modes differ because their old code did. The schedule and the budget had no `catch`, so a failed
-    write aborted the handler: their hooks answer false on `hasFailed`, and the preview, the
+    write stopped the handler, and the answer now carries that stop: their hooks answer false on
+    `hasFailed`, and the preview, the
     restore, a saved version, the package export, the dock tab change and each of the exports (and,
     in the budget, every selection or view change that flushes) stop with the edit still pending.
-    The same goes for a write that landed whose re-read failed: the old handlers let that
-    exception escape too, so those two modes' views answer `failed` when `reload` answers false
+    The same goes for a write that landed whose re-read failed: the old handlers stopped there
+    too, so those two modes' views answer `failed` when `reload` answers false
     after their write, rather than answering that all went well over a snapshot from before it.
     The edit stays pending, and the next flush writes it again.
     The shot list's views catch their own failure (`hasWriteError`, the edit dropped) and carry
@@ -173,7 +216,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   - **A stateless flush is written once.** The flush without state leaves the pending map full, as
     it cannot emit, so the close that follows it would write the same edits again: two
     transactions and two row stamps, which sync sees as two changes. A view writes through
-    `flushEditsWithoutState`, which hands its callback only the entries not already written with
+    `flushEditsWithoutState`, whose callback answers an `OcptDatabaseOutcome` (so that a write
+    answering nothing cannot be handed in and marked as written) and which hands it only the
+    entries not already written with
     the same value; an edit changed in between, a write that failed, and every edit once the mode
     read its data again or flushed the view with state, are written again. The widget leaving the
     tree and the bloc closing come in the same frame, so the second call starts while the first

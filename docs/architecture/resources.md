@@ -289,7 +289,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
     Removing a set or a candidacy forgets only its own pending edit; the rest of the bloc's
     debounce goes on.
   - **A flush that fails drops every edit of every sheet, and shows the one write error.** A view
-    bloc catches its own failed write, tells the mode
+    bloc reads its own failed write, tells the mode
     (`OcptResourcesPendingEditsLostEvent`, awaited) and empties its maps; the mode raises
     `hasWriteError` and moves `lostEditsEpoch`, which every other view bloc reacts to by dropping
     what it holds, before the flush goes on to them. The flushers are asked in the order the mode

@@ -235,6 +235,10 @@ seven documents a production runs on.
     (a known defect, pinned by a scenario). When the mode reads everything again
     (`OcptScheduleSelectionCause.load`) every pending edit is dropped; when it only reads the
     schedule, an edit typed into a row that no longer exists is.
+    **A write that fails stops the handler where it is:** the service logs it, nothing is read
+    again, no row is selected and the typed edit stays pending and on screen, to be written again
+    by the next keystroke; the flush answers `failed`, so the dock tab change, the preview, the
+    package export and the exports behind it do not happen.
   - **`OcptScheduleExportBloc`** runs the seven exports and owns the transient notice. Each one
     first has the mode write what is pending (`flushAllPendingWrites`), then reads the mode's
     `planSnapshot`. The general call sheets dialog ticks only the selected day.
