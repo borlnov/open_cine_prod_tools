@@ -34,6 +34,18 @@ class _UncloseableFileDatabase extends OcptProjectDatabase {
   Future<void> close() async => throw StateError("close refused");
 }
 
+/// A projects manager whose preview cannot be left.
+class _StuckPreviewProjectsManager extends OcptProjectsManager {
+  /// Class constructor
+  _StuckPreviewProjectsManager({required super.propertiesManager})
+    : super(appLanguageCode: () => "en");
+
+  /// Fail as a preview database that cannot be closed does.
+  @override
+  Future<OcptDatabaseOutcome> exitPreview() async =>
+      const OcptDatabaseOutcome(status: OcptDatabaseStatus.databaseError, extraInfo: StateError);
+}
+
 /// A properties manager whose device id cannot be read.
 class _NoDeviceIdPropertiesManager extends OcptPropertiesManager {
   /// Whether the device id cannot be read.
@@ -267,5 +279,48 @@ void main() {
       expect(rememberedDirectory, isFalse);
       await swapped?.fileDatabase.close();
     });
+  });
+
+  test("a restore stops before writing when the preview cannot be left", () async {
+    final stuck = _StuckPreviewProjectsManager(propertiesManager: propertiesManager);
+    await stuck.initLifeCycle();
+    final project = (await stuck.createProject(
+      name: "My Movie",
+      filePath: p.join(tempDir.path, "stuck.ocpt"),
+    )).value!;
+    await stuck.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "FIRST",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
+    final version = await stuck.createProjectVersion(name: "v1", note: "").valueOrFail;
+    await stuck.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "SECOND",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
+
+    final status = await stuck.restoreProjectVersion(
+      versionId: version.id,
+      safetyVersionName: "Before",
+    );
+
+    expect(status, OcptProjectRestoreStatus.databaseError);
+    final text = await project.fileDatabase
+        .customSelect("SELECT fountain_text FROM screenplays")
+        .getSingle();
+    expect(text.read<String>("fountain_text"), "SECOND");
+    expect(
+      await stuck.listProjectVersions().valueOrFail,
+      hasLength(1),
+      reason: "no safety version",
+    );
+    await stuck.disposeLifeCycle();
   });
 }

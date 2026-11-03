@@ -518,6 +518,22 @@ void main() {
       expect(await snapshot(), untouched);
     });
 
+    test("hiding a symbol through an override the database refuses to update fails", () async {
+      final untouched = await snapshot();
+      await refuse("floor_plan_symbols", ["UPDATE"]);
+
+      final hidden = await floorPlanService.hideSymbolForScope(
+        database: database,
+        original: rows.original,
+        existingOverride: rows.original,
+        sceneId: rows.sceneId,
+        shotId: null,
+      );
+
+      expect(hidden.status, OcptDatabaseStatus.databaseError);
+      expect(await snapshot(), untouched);
+    });
+
     test("an override of a camera for a scene writes nothing", () async {
       final untouched = await snapshot();
       final snapshotRead = await floorPlanService
