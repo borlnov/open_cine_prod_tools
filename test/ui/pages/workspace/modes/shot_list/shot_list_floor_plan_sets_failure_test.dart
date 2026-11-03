@@ -264,12 +264,14 @@ void main() {
       await type(seeded.linkedSetId, "Scullery");
       await type(seeded.freeSetId, "Lobby");
       await refuseSet(seeded.linkedSetId);
+      final held = mode.state;
 
       final status = await sets.flushPendingWrites();
 
       expect(status, OcptPendingWritesStatus.ok);
       expect(sets.state.hasWriteError, isTrue);
       expect(sets.state.pendingFieldEdits, isEmpty);
+      expect(mode.state.reloadEpoch, held.reloadEpoch, reason: "the mode read again");
       final names = await setNames();
       expect(names[seeded.linkedSetId], "Kitchen");
       expect(names[seeded.freeSetId], "Hall", reason: "the name after the refused one");

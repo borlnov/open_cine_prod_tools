@@ -422,6 +422,19 @@ void main() {
       expect(modeBloc.state.hasWriteError, isFalse, reason: "a flush on leaving only logs");
     });
 
+    test("a refused erasure keeps the edits typed into the person", () async {
+      await type(seeded.otherPersonId, "Short");
+      await refuse("UPDATE", "people");
+
+      peopleBloc.add(OcptResourcesPersonDeletionRequestedEvent(personId: seeded.otherPersonId));
+      await settle();
+
+      expect(modeBloc.state.hasWriteError, isTrue);
+      expect(peopleBloc.state.pendingFieldEdits, {
+        (seeded.otherPersonId, OcptPersonField.notes): "Short",
+      });
+    });
+
     test("a refused flush on leaving is written again by the next one", () async {
       await type(seeded.personId, "Tall");
       await refuse("UPDATE", "people");

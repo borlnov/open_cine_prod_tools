@@ -384,6 +384,23 @@ void main() {
       await settle();
     }
 
+    test("a refused deletion keeps the edits typed into the location and its sets", () async {
+      await typeLocation(seeded.locationId, "Cold");
+      await typeSet(seeded.setId, "Bright");
+      await refuse("UPDATE", "locations");
+
+      locationsBloc.add(OcptResourcesLocationDeletionRequestedEvent(locationId: seeded.locationId));
+      await settle();
+
+      expect(modeBloc.state.hasWriteError, isTrue);
+      expect(locationsBloc.state.pendingLocationFieldEdits, {
+        (seeded.locationId, OcptLocationField.notes): "Cold",
+      });
+      expect(locationsBloc.state.pendingSetFieldEdits, {
+        (seeded.setId, OcptSetField.notes): "Bright",
+      });
+    });
+
     test("a refused location write stops the set edits after it", () async {
       await typeLocation(seeded.locationId, "Cold");
       await typeSet(seeded.setId, "Bright");

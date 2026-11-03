@@ -339,8 +339,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// is dropped for the same reason and then chosen afresh out of what was just read, by
   /// [_defaultSelectedDayOf] — never carried over.
   ///
-  /// Answers false when the schedule or the casting could not be read, in which case nothing is
-  /// emitted and the caller stops there.
+  /// Answers false when the schedule, the locations or the casting (the roles, the people, the
+  /// elements and the candidacies) could not be read, in which case nothing is emitted and the
+  /// caller stops there.
   @useResult
   Future<bool> _load(Emitter<OcptScheduleState> emitter) async {
     final leftDockFraction =

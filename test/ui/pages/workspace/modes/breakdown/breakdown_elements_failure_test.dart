@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -46,6 +47,7 @@ void main() {
   late OcptProjectsManager projectsManager;
   late Directory tempDir;
   late String sceneId;
+  late String otherSceneId;
   late String elementId;
   late String personId;
 
@@ -77,10 +79,15 @@ void main() {
     await projectsManager.screenplayService.saveScreenplayText(
       database: project.database,
       screenplayId: project.primaryScreenplayId,
-      fountainText: "INT. HOUSE - DAY\n\nA lamp sits on the desk.\n",
+      fountainText:
+          "INT. HOUSE - DAY\n\nA lamp sits on the desk.\n\nINT. GARDEN - DAY\n\nA bench.\n",
       snapshotReason: OcptSnapshotReason.manual,
     );
-    sceneId = (await project.database.select(project.database.ocptScenesTable).get()).single.id;
+    final scenes = await (project.database.select(
+      project.database.ocptScenesTable,
+    )..orderBy([(scene) => OrderingTerm.asc(scene.position)])).get();
+    sceneId = scenes.first.id;
+    otherSceneId = scenes.last.id;
     elementId = await projectsManager.elementsService
         .createElement(
           database: project.database,
@@ -330,6 +337,22 @@ void main() {
           .customSelect("SELECT name FROM sets WHERE id = '$setId'")
           .get();
       expect(names.single.read<String>("name"), "Kitchen");
+    });
+
+    test("a refused scene note stops the scene notes after it", () async {
+      final project = projectsManager.currentProject!;
+      inspector.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "A note"));
+      inspector.add(OcptBreakdownSceneNotesChangedEvent(sceneId: otherSceneId, rawValue: "A note"));
+      await settle();
+      await project.database.customStatement(
+        "CREATE TRIGGER refuse_first_scene BEFORE INSERT ON scene_breakdowns "
+        "WHEN NEW.scene_id = '$sceneId' BEGIN SELECT RAISE(ABORT, 'refused'); END",
+      );
+
+      final status = await inspector.flushPendingWrites();
+
+      expect(status, OcptPendingWritesStatus.ok);
+      expect(await notedScenes(), 0, reason: "the scene note after the refused one");
     });
 
     test("a refused element flush without state stops the flush of the scene notes", () async {

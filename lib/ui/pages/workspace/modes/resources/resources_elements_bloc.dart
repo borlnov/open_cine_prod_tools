@@ -207,7 +207,8 @@ class OcptResourcesElementsBloc
   ///
   /// Unlike [onFlushRequested], this never touches [state]: `emit` may only be called from inside
   /// a registered `on<Event>` handler, and by the time this runs the widget tree that would show a
-  /// fresh state is already gone anyway. A failure here is only logged.
+  /// fresh state is already gone anyway. A failure is logged by the service that
+  /// failed, and leaves the edits to be written again by the next flush.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     cancelDebounce();

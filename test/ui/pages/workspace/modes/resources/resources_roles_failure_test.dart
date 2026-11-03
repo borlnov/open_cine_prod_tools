@@ -227,6 +227,19 @@ void main() {
       "BEGIN SELECT RAISE(ABORT, 'refused'); END",
     );
 
+    test("a refused deletion keeps the edits typed into the role", () async {
+      await type(seeded.otherRoleId, "Short");
+      await refuse("UPDATE", "roles");
+
+      rolesBloc.add(OcptResourcesRoleDeletionRequestedEvent(roleId: seeded.otherRoleId));
+      await settle();
+
+      expect(modeBloc.state.hasWriteError, isTrue);
+      expect(rolesBloc.state.pendingRoleFieldEdits, {
+        (seeded.otherRoleId, OcptRoleField.castingNotes): "Short",
+      });
+    });
+
     test("a refused write stops the edits after it", () async {
       await type(seeded.roleId, "Tall");
       await type(seeded.otherRoleId, "Short");
@@ -274,6 +287,34 @@ void main() {
       await refuse("UPDATE", "roles");
 
       await rolesBloc.flushPendingWritesWithoutState();
+
+      final notes = await projectsManager.currentProject!.database
+          .customSelect("SELECT notes FROM role_candidates")
+          .get();
+      expect(notes.single.read<String>("notes"), isEmpty);
+    });
+
+    test("a refused role edit stops the candidacy edits after it, with the state", () async {
+      final candidateId = await projectsManager.roleCandidatesService
+          .addCandidate(
+            database: projectsManager.currentProject!.database,
+            roleId: seeded.roleId,
+            personId: seeded.personId,
+          )
+          .valueOrFail;
+      await modeBloc.reload({OcptResourcesReloadScope.snapshot});
+      await type(seeded.roleId, "Tall");
+      rolesBloc.add(
+        OcptResourcesRoleCandidateFieldChangedEvent(
+          candidateId: candidateId,
+          field: OcptRoleCandidateField.notes,
+          rawValue: "Very good",
+        ),
+      );
+      await settle();
+      await refuse("UPDATE", "roles");
+
+      await rolesBloc.flushPendingWrites();
 
       final notes = await projectsManager.currentProject!.database
           .customSelect("SELECT notes FROM role_candidates")
