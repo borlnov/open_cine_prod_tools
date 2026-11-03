@@ -29,13 +29,13 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 ///
 /// **The `Group` is fixed, and the picker hidden, while creating** — unless
 /// [offerCashOrInKindChoice] says otherwise. `OcptBudgetFinancing`'s own `+ Resource` control and
-/// the capture wizard's own step 1 both name a subsidy as its own explicit gesture (*"Ajouter une
-/// caméra qui est valorisée n'est pas la même chose que d'ajouter du vrai argent qui va servir à la
-/// production pour acheter à manger"*), so a subsidy's own kind is already decided before this body
+/// the capture wizard's own step 1 both name a subsidy as its own explicit gesture (*"Adding a
+/// camera that is valued is not the same as adding real money that will be used by the production
+/// to buy food"*), so a subsidy's own kind is already decided before this body
 /// even opens and never asks again: offering the picker there would let the very gesture that named
 /// the kind be second-guessed one field later, for no reason a reader could name. **Cash and
-/// in-kind are different**: the wizard's own `planContribution` answer collapses the two — *"En
-/// numéraire, ou en nature (matériel prêté, équipe bénévole)"* — leaving exactly one question the
+/// in-kind are different**: the wizard's own `planContribution` answer collapses the two — *"In
+/// cash, or in kind (lent equipment, volunteer crew)"* — leaving exactly one question the
 /// gesture itself could not settle, so its host passes [offerCashOrInKindChoice] and the picker
 /// draws, offering only `cash` and `inKind` rather than all three: a subsidy stays unreachable from
 /// it, [groupKind] still seeding which of the two starts selected. Editing is different again:
