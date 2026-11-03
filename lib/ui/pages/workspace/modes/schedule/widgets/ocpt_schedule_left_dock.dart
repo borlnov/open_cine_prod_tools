@@ -109,7 +109,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final unplacedRows = _unplacedRows;
+    final unplacedRows = _unplacedRowsOf();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -245,7 +245,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
 
   /// Get the unplaced rows in display order: every group, preceded by its episode's band while
   /// [episodes] holds more than one.
-  List<({OcptScheduleUnplacedGroup? group, OcptEpisode? episode})> get _unplacedRows {
+  List<({OcptScheduleUnplacedGroup? group, OcptEpisode? episode})> _unplacedRowsOf() {
     if (episodes.length <= 1) {
       return [for (final group in unplacedGroups) (group: group, episode: null)];
     }
