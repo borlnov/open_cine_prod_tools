@@ -271,9 +271,15 @@ A project rule overrides these. The overrides this project has made:
 - **RD2:** a test imports its neighbour with a relative path, since `test/` has no `package:` URI.
 - **RD3:** the app itself has no barrel file and no `src/` folder, since nothing imports it. The
   packages under `packages/` do follow the rule.
-- **RD8, RD11:** `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a malformed
-  document with a typed exception, which the app converts to a `Result` at its boundary:
-  `act_dart_result` depends on Flutter, and the relay compiles without it.
+- **RD8, RD11:** the project services and the projects manager answer an `OcptDatabaseStatus`
+  result, except where a failure must throw so a transaction rolls back (`OcptRowStampService` and
+  the `stamps` participants, the static `Ops` and `Rows`, the private abort exceptions), where a
+  method keeps its own status (`permanentServiceExceptions`: `restoreVersion`, the package read and
+  write, the merge), and where a sync service leaves its caller to settle (`OcptChangesetService`'s
+  reads and cursor writes, `OcptPairingService`, `OcptSyncManager`'s relay pairing).
+  `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a malformed document with
+  a typed exception, which the app converts to a `Result` at its boundary: `act_dart_result`
+  depends on Flutter, and the relay compiles without it.
 - **RD14:** `OcptPresenceService.roster` stays a getter over a hand-written controller, since it is
   derived on every read (a heartbeat changes it without any emission) and a keeper's value would go
   stale.
