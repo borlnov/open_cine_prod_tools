@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_sub_label.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_twisty.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_twisty.dart';
 
 /// The pinned pane's own generic sub-row: a quote line, a commitment, an entry or the muted "no
 /// entry" hint — every one but the line one step smaller and muted, indented [depth] steps, a
@@ -72,7 +72,8 @@ class OcptBudgetCostTrackingSubIdentityRow extends StatelessWidget {
         child: Row(
           children: [
             if (isExpandable || !isSmall)
-              OcptBudgetCostTrackingTwisty(
+              OcptBudgetTwisty(
+                width: ocptBudgetCostTrackingTwistyWidth,
                 isExpandable: isExpandable,
                 isExpanded: isExpanded,
                 onTap: onTwistyTap,

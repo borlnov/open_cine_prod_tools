@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_needs_resources_ba
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail_badge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
@@ -646,7 +647,7 @@ class _OcptDashboardAlertRow extends StatelessWidget {
           // raised the alert off screen, on a page built to be read at a glance.
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _OcptDashboardAlertBadge(text: badge, color: color),
+            OcptBudgetDetailBadge(text: badge, color: color),
             const SizedBox(width: 12),
             Expanded(child: Text(message, style: theme.textTheme.bodySmall)),
             const SizedBox(width: 12),
@@ -661,33 +662,4 @@ class _OcptDashboardAlertRow extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A small coloured badge, the alert row's own kind — mirrors `_OcptBudgetDetailBadge`
-/// (`ocpt_budget_detail.dart`), a private class of that file this one cannot import.
-class _OcptDashboardAlertBadge extends StatelessWidget {
-  /// The badge's own text.
-  final String text;
-
-  /// The badge's own accent colour.
-  final Color color;
-
-  /// Class constructor
-  const _OcptDashboardAlertBadge({required this.text, required this.color});
-
-  /// Build the dashboard alert badge as a [Container].
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.14),
-      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-    ),
-    child: Text(
-      text,
-      style: Theme.of(
-        context,
-      ).textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w600),
-    ),
-  );
 }

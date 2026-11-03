@@ -34,7 +34,7 @@ const double ocptBudgetLogisticsAllowanceMenuColumnWidth = 36;
 /// The twisty every person group row draws, in logical pixels — mirrors `OcptBudgetFinancing`'s own
 /// `_ocptResourcesTwistyWidth` exactly: 28, the theme's own floor for an icon button's own tap
 /// target, its own tap target running the full height of the row it sits on
-/// (`OcptBudgetLogisticsAllowanceTwisty`'s own doc comment).
+/// (`OcptBudgetTwisty`'s own doc comment).
 const double ocptBudgetLogisticsAllowanceTwistyWidth = 28;
 
 /// How far a sub-row indents under its own person group, in logical pixels — mirrors

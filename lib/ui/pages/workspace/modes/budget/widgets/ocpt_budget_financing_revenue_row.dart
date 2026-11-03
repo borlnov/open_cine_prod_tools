@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_resource_row.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_revenue_status_pill.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_row_figures.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_twisty.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_twisty.dart';
 
 /// One revenue row: mirrors [OcptBudgetFinancingResourceRow], its own `⋮` menu offering `Edit` /
 /// `Record a receipt` / `Move up` / `Move down` / `Delete` instead.
@@ -108,7 +108,8 @@ class OcptBudgetFinancingRevenueRow extends StatelessWidget {
                     padding: const EdgeInsets.only(left: ocptBudgetFinancingIndentStep, right: 8),
                     child: Row(
                       children: [
-                        OcptBudgetFinancingTwisty(
+                        OcptBudgetTwisty(
+                          width: ocptBudgetFinancingTwistyWidth,
                           isExpandable: isExpandable,
                           isExpanded: isExpanded,
                           onTap: onTwistyTap,

@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_account_identity_row.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_off_quote_amounts_row.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_twisty.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_twisty.dart';
 
 /// The pinned pane's own off-quote row: a twisty, then the `Off quote` label, in the `Poste`
 /// column's own place — the identity half of the very same row
@@ -68,7 +68,8 @@ class OcptBudgetCostTrackingOffQuoteIdentityRow extends StatelessWidget {
               padding: const EdgeInsets.only(left: 12, right: 8),
               child: Row(
                 children: [
-                  OcptBudgetCostTrackingTwisty(
+                  OcptBudgetTwisty(
+                    width: ocptBudgetCostTrackingTwistyWidth,
                     isExpandable: true,
                     isExpanded: isExpanded,
                     onTap: onTwistyTap,

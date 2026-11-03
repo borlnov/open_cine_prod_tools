@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_resource_status_pill.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_row_figures.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_twisty.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_twisty.dart';
 
 /// One resource row: the label with its notes underneath, the `Dossier` badge, the three money
 /// cells, then its own `⋮` menu — see `OcptBudgetFinancing`'s own class doc comment for the money
@@ -102,7 +102,8 @@ class OcptBudgetFinancingResourceRow extends StatelessWidget {
                     padding: const EdgeInsets.only(left: ocptBudgetFinancingIndentStep, right: 8),
                     child: Row(
                       children: [
-                        OcptBudgetFinancingTwisty(
+                        OcptBudgetTwisty(
+                          width: ocptBudgetFinancingTwistyWidth,
                           isExpandable: isExpandable,
                           isExpanded: isExpanded,
                           onTap: onTwistyTap,

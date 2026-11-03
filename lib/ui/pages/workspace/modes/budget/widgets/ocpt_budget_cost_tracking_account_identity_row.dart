@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_account_amounts_row.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_twisty.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_twisty.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// The pinned pane's own row: one account's `N°` and `Poste` cells, with a leading twisty while it
@@ -92,7 +92,8 @@ class OcptBudgetCostTrackingAccountIdentityRow extends StatelessWidget {
                   padding: const EdgeInsets.only(left: 12, right: 8),
                   child: Row(
                     children: [
-                      OcptBudgetCostTrackingTwisty(
+                      OcptBudgetTwisty(
+                        width: ocptBudgetCostTrackingTwistyWidth,
                         isExpandable: isExpandable,
                         isExpanded: isExpanded,
                         onTap: onTwistyTap,

@@ -63,7 +63,7 @@ const double ocptBudgetCostTrackingIndentStep = 16;
 /// own floor for an icon button's own tap target, not the 20 an earlier pass under-sized it at
 /// (`docs/architecture/budget.md`) — its own tap target runs the
 /// **full height** of whichever row it sits on rather than squaring off at this same figure, see
-/// `OcptBudgetCostTrackingTwisty`'s own doc comment.
+/// `OcptBudgetTwisty`'s own doc comment.
 const double ocptBudgetCostTrackingTwistyWidth = 28;
 
 /// The diameter of a commitment or an entry sub-row's own coloured dot, in logical pixels.

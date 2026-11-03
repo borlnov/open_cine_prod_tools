@@ -8,8 +8,8 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cents_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_allowance_tree_row.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_allowance_twisty.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_metrics.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_twisty.dart';
 
 /// One person group row: a twisty, the person's own name with their role underneath in small muted
 /// type, the three running-account figures, then their own `⋮` menu.
@@ -75,7 +75,8 @@ class OcptBudgetLogisticsAllowancePersonRow extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                OcptBudgetLogisticsAllowanceTwisty(
+                OcptBudgetTwisty(
+                  width: ocptBudgetLogisticsAllowanceTwistyWidth,
                   isExpandable: true,
                   isExpanded: isExpanded,
                   onTap: onTwistyTap,

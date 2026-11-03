@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_family.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cents_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_row_figures.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_twisty.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_twisty.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// A family row: bold, a twisty, the three money aggregates, no `Dossier` cell and no menu.
@@ -55,7 +55,8 @@ class OcptBudgetFinancingFamilyRow extends StatelessWidget {
             Expanded(
               child: Row(
                 children: [
-                  OcptBudgetFinancingTwisty(
+                  OcptBudgetTwisty(
+                    width: ocptBudgetFinancingTwistyWidth,
                     isExpandable: true,
                     isExpanded: isExpanded,
                     onTap: onTwistyTap,

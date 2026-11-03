@@ -8,8 +8,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_allowances.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cents_cell.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_allowance_twisty.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_metrics.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_twisty.dart';
 
 /// One defrayal naming nobody, drawn as its own top-level row: the wording that has always said so,
 /// in italics, its own amount under `ADVANCED` **and** `OWED` — it is owed in full, never paid back
@@ -54,7 +54,8 @@ class OcptBudgetLogisticsAllowanceNoPersonRow extends StatelessWidget {
             Expanded(
               child: Row(
                 children: [
-                  const OcptBudgetLogisticsAllowanceTwisty(
+                  const OcptBudgetTwisty(
+                    width: ocptBudgetLogisticsAllowanceTwistyWidth,
                     isExpandable: false,
                     isExpanded: false,
                     rowHeight: ocptBudgetLogisticsAllowanceRowHeight,

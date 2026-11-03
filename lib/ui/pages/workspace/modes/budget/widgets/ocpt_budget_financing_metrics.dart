@@ -55,7 +55,7 @@ const double ocptBudgetFinancingIndentStep = 16;
 /// The twisty's own fixed width, in logical pixels, whether it draws an arrow or sits blank. 28,
 /// the theme's own floor for an icon button's own tap target, not the 20 an earlier pass
 /// under-sized it at (`docs/architecture/budget.md`) — its own
-/// tap target runs the full height of the row it sits on, see `OcptBudgetFinancingTwisty`'s own doc
+/// tap target runs the full height of the row it sits on, see `OcptBudgetTwisty`'s own doc
 /// comment.
 const double ocptBudgetFinancingTwistyWidth = 28;
 
