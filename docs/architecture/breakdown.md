@@ -189,9 +189,10 @@ progress per scene, and the two documents it prints.
     notice. Each one first has the mode write what is pending (`flushAllPendingWrites`), then reads
     the snapshot, the screenplay text, the page setup and the title the mode holds.
   - **A flush never stops what it was asked for.** The inspector reads its own failure: a write
-    that fails is logged by its service, the edits it meant to write are forgotten, the snapshot is not read, and
-    the flush answers true, so a selection, a preview, a restore, a saved version, a package export
-    and an export all go ahead on the value the database holds, as they always did. A read that
+    that fails is logged by its service, the edits it meant to write are forgotten, the snapshot
+    is not read, and the flush answers true, so a selection, a preview, a restore, a saved
+    version, a package export and an export all go ahead on the value the database holds, as they
+    always did. A read that
     fails after a write that landed forgets what was written all the same. What a flush waits for
     is the mode's own: a selection, a right dock tab change, a word click that closes a range, a
     tag write and every export flush first; switching between the script and the recap, toggling a
