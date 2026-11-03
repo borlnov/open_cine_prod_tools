@@ -15,7 +15,10 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_merge_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of [OcptChangesetService].
 void main() {
@@ -64,13 +67,98 @@ void main() {
     )..where((table) => table.id.equals(id))).getSingle();
   }
 
-  test('nothing to push appends nothing and touches no cursor', () async {
-    await service.pushLocalEdits(
+  /// Stamp [columnName] of [tableName]'s row [rowId] as written by this device at a new version.
+  Future<void> insertStamp({
+    required String tableName,
+    required String rowId,
+    required String columnName,
+  }) => database
+      .into(database.ocptRowFieldVersionsTable)
+      .insert(
+        OcptRowFieldVersionsTableCompanion.insert(
+          targetTableName: tableName,
+          rowId: rowId,
+          columnName: columnName,
+          version: 1,
+          deviceId: deviceId,
+        ),
+      );
+
+  /// Expect a push to refuse with [message], appending nothing and leaving the cursors alone.
+  Future<void> expectRefused(String message) async {
+    final pushed = await service.pushLocalEdits(
       database: database,
       storage: storage,
       relayId: relayId,
       deviceId: deviceId,
     );
+
+    expect(pushed.status, OcptRemoteStorageStatus.unreachable);
+    final detail = pushed.extraInfo;
+    expect(detail, isA<OcptSyncMergeFailure>());
+    expect((detail! as OcptSyncMergeFailure).error, isA<StateError>());
+    expect(detail.toString(), contains(message));
+    expect((await storage.readSince(OcptSequenceNumber.zero)).value, isEmpty);
+    expect(await database.select(database.ocptSyncRelayCursorsTable).get(), isEmpty);
+  }
+
+  group('a push whose stamps and tables drifted apart is refused', () {
+    test('a stamp naming a table that is not synchronised', () async {
+      await insertStamp(tableName: 'not_a_table', rowId: 'row-1', columnName: 'name');
+
+      await expectRefused("row_field_versions names table 'not_a_table'");
+    });
+
+    test('a stamp naming a column its table does not have', () async {
+      final location = await insertLocation('location-1');
+      await insertStamp(tableName: 'locations', rowId: location.id, columnName: 'noSuchColumn');
+
+      await expectRefused("stamps column 'noSuchColumn' of 'locations'");
+    });
+
+    test('a stamp naming a row its table does not hold', () async {
+      await insertStamp(tableName: 'locations', rowId: 'ghost', columnName: 'name');
+
+      await expectRefused("No row 'ghost' found in 'locations'");
+    });
+
+    test('a stamp naming an annotation text by its field name rather than its column', () async {
+      await database.customStatement('PRAGMA foreign_keys = OFF');
+      await database.customStatement(
+        "INSERT INTO storyboard_annotations (id, panel_id, kind, x1, y1, x2, y2) "
+        "VALUES ('annotation-1', 'panel-1', 'label', 0, 0, 0, 0)",
+      );
+      await insertStamp(
+        tableName: 'storyboard_annotations',
+        rowId: 'annotation-1',
+        columnName: 'labelText',
+      );
+
+      await expectRefused("stamps column 'labelText' of 'storyboard_annotations'");
+    });
+
+    test('and is pushed once the stamps are mended', () async {
+      final location = await insertLocation('location-1');
+      await insertStamp(tableName: 'locations', rowId: location.id, columnName: 'noSuchColumn');
+      await database.customStatement("UPDATE row_field_versions SET column_name = 'name'");
+
+      await service
+          .pushLocalEdits(
+            database: database,
+            storage: storage,
+            relayId: relayId,
+            deviceId: deviceId,
+          )
+          .okOrFail;
+
+      expect(await readAppendedFieldStamps(), hasLength(1));
+    });
+  });
+
+  test('nothing to push appends nothing and touches no cursor', () async {
+    await service
+        .pushLocalEdits(database: database, storage: storage, relayId: relayId, deviceId: deviceId)
+        .okOrFail;
 
     expect((await storage.readSince(OcptSequenceNumber.zero)).value, isEmpty);
     expect(await database.select(database.ocptSyncRelayCursorsTable).get(), isEmpty);
@@ -94,12 +182,14 @@ void main() {
 
       final rawStamp = await database.select(database.ocptRowFieldVersionsTable).getSingle();
 
-      await service.pushLocalEdits(
-        database: database,
-        storage: storage,
-        relayId: relayId,
-        deviceId: deviceId,
-      );
+      await service
+          .pushLocalEdits(
+            database: database,
+            storage: storage,
+            relayId: relayId,
+            deviceId: deviceId,
+          )
+          .okOrFail;
 
       final fieldStamps = await readAppendedFieldStamps();
 
@@ -158,12 +248,9 @@ void main() {
     );
     await stamps.flush(database);
 
-    await service.pushLocalEdits(
-      database: database,
-      storage: storage,
-      relayId: relayId,
-      deviceId: deviceId,
-    );
+    await service
+        .pushLocalEdits(database: database, storage: storage, relayId: relayId, deviceId: deviceId)
+        .okOrFail;
 
     final fieldStamps = await readAppendedFieldStamps();
 
@@ -192,12 +279,14 @@ void main() {
       final stampedVersion =
           (await database.select(database.ocptRowFieldVersionsTable).getSingle()).version;
 
-      await service.pushLocalEdits(
-        database: database,
-        storage: storage,
-        relayId: relayId,
-        deviceId: deviceId,
-      );
+      await service
+          .pushLocalEdits(
+            database: database,
+            storage: storage,
+            relayId: relayId,
+            deviceId: deviceId,
+          )
+          .okOrFail;
       expect((await storage.readSince(OcptSequenceNumber.zero)).value, hasLength(1));
 
       final cursor = await (database.select(
@@ -206,12 +295,14 @@ void main() {
       expect(cursor.outboxHighWaterMark, stampedVersion);
 
       // Calling it again with no new edits must append nothing more.
-      await service.pushLocalEdits(
-        database: database,
-        storage: storage,
-        relayId: relayId,
-        deviceId: deviceId,
-      );
+      await service
+          .pushLocalEdits(
+            database: database,
+            storage: storage,
+            relayId: relayId,
+            deviceId: deviceId,
+          )
+          .okOrFail;
       expect((await storage.readSince(OcptSequenceNumber.zero)).value, hasLength(1));
     },
   );
@@ -234,12 +325,14 @@ void main() {
             ),
           );
 
-      await service.pushLocalEdits(
-        database: database,
-        storage: storage,
-        relayId: relayId,
-        deviceId: deviceId,
-      );
+      await service
+          .pushLocalEdits(
+            database: database,
+            storage: storage,
+            relayId: relayId,
+            deviceId: deviceId,
+          )
+          .okOrFail;
 
       expect((await storage.readSince(OcptSequenceNumber.zero)).value, isEmpty);
     },
@@ -271,12 +364,14 @@ void main() {
         1,
       );
 
-      await service.pushLocalEdits(
-        database: database,
-        storage: storage,
-        relayId: relayId,
-        deviceId: deviceId,
-      );
+      await service
+          .pushLocalEdits(
+            database: database,
+            storage: storage,
+            relayId: relayId,
+            deviceId: deviceId,
+          )
+          .okOrFail;
 
       expect(
         await service.countUnpushedEdits(database: database, relayId: relayId, deviceId: deviceId),
@@ -328,12 +423,14 @@ void main() {
       final stampedVersion =
           (await database.select(database.ocptRowFieldVersionsTable).getSingle()).version;
 
-      await service.pushLocalEdits(
-        database: database,
-        storage: storage,
-        relayId: relayId,
-        deviceId: deviceId,
-      );
+      await service
+          .pushLocalEdits(
+            database: database,
+            storage: storage,
+            relayId: relayId,
+            deviceId: deviceId,
+          )
+          .okOrFail;
 
       expect(
         await service.highestAppendedSequence(database: database, relayId: relayId),
@@ -354,12 +451,14 @@ void main() {
       );
       await stamps.flush(database);
 
-      await service.pushLocalEdits(
-        database: database,
-        storage: storage,
-        relayId: relayId,
-        deviceId: deviceId,
-      );
+      await service
+          .pushLocalEdits(
+            database: database,
+            storage: storage,
+            relayId: relayId,
+            deviceId: deviceId,
+          )
+          .okOrFail;
 
       expect(
         await service.highestAppendedSequence(database: database, relayId: 'another-relay'),

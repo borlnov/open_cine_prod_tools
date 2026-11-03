@@ -31,6 +31,11 @@ const _readOnlyResults = [
     "OcptChangesetService",
     "pullAndApply",
   ),
+  (
+    "lib/managers/sync/services/ocpt_changeset_service.dart",
+    "OcptChangesetService",
+    "pushLocalEdits",
+  ),
 ];
 
 /// The first part of every line of a list of offences: its line number.

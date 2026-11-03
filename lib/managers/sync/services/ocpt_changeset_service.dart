@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_synchronised_tables.dart'
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_merge_failure.dart';
 import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:uuid/uuid.dart';
 
@@ -56,7 +57,9 @@ class OcptChangesetService extends AbsOcptService {
   /// no changeset is appended and [relayId]'s cursor is left untouched.
   ///
   /// A [storage] that cannot take the changeset is answered as its own status (and detail), with
-  /// the cursor left untouched too; only a failure of [database] itself still throws.
+  /// the cursor left untouched too; only a failure of [database] itself still throws. A stamp
+  /// naming a table, a column or a row that does not exist is refused the same way: `unreachable`,
+  /// its `extraInfo` an [OcptSyncMergeFailure] for the sync session to go offline on.
   ///
   /// Every stamped column is read back off its own table's **current** row — tombstones included,
   /// so a delete is pushed like any other edit — grouped by `(tableName, rowId)` first so a row
@@ -66,6 +69,7 @@ class OcptChangesetService extends AbsOcptService {
   /// one composite case (`shot_characters`'s `{shotId, roleId}`) included, and what
   /// `_readCurrentRow` matches a table's own primary key against through
   /// `ocptCompositeRowStampKeySqlExpression` rather than splitting it back apart.
+  @useResult
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> pushLocalEdits({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
@@ -101,13 +105,19 @@ class OcptChangesetService extends AbsOcptService {
         // Every stamp is written by `OcptRowStampService` alongside a write to the very table it
         // names, so this would mean the sidecar and the synchronised-table rule have drifted apart
         // — a bug worth failing loudly on rather than silently dropping an edit.
-        throw StateError(
+        return _refusal(
           "row_field_versions names table '$tableName', which is not part of the "
           "synchronised table set",
         );
       }
 
       final row = await _readCurrentRow(database: database, table: table, rowId: rowId);
+      if (row == null) {
+        return _refusal(
+          "No row '$rowId' found in '${table.actualTableName}' to build a changeset from",
+        );
+      }
+
       final columnsByDartName = {
         for (final column in table.$columns) ocptDartFieldName(column.name): column,
       };
@@ -118,7 +128,7 @@ class OcptChangesetService extends AbsOcptService {
           // Every stamp names a column of the very table it was written alongside
           // (`OcptRowStampService`), so this would mean a stamp and its own table's columns have
           // drifted apart — a bug worth failing loudly on rather than silently dropping the edit.
-          throw StateError(
+          return _refusal(
             "row_field_versions stamps column '${stamp.columnName}' of '$tableName', which no "
             "column of that table maps to",
           );
@@ -358,7 +368,9 @@ class OcptChangesetService extends AbsOcptService {
   /// a typed, per-table query: this is what lets this service work over any [TableInfo]
   /// `ocptSynchronisedTables` hands it, with no hand-maintained per-table row lookup to keep in
   /// step with the schema.
-  Future<Map<String, Object?>> _readCurrentRow({
+  ///
+  /// Answers null when no such row exists, which [pushLocalEdits] refuses.
+  Future<Map<String, Object?>?> _readCurrentRow({
     required OcptProjectDatabase database,
     required TableInfo<Table, Object?> table,
     required String rowId,
@@ -384,13 +396,18 @@ class OcptChangesetService extends AbsOcptService {
         "row_field_versions stamps a row '$rowId' of '${table.actualTableName}' that no longer "
         "exists",
       );
-      throw StateError(
-        "No row '$rowId' found in '${table.actualTableName}' to build a changeset from",
-      );
+      return null;
     }
 
     return row.data;
   }
+
+  /// Answer the refusal of a push whose stamps and tables have drifted apart: the sync session
+  /// quotes [message] when it goes offline, as it does for a changeset the merge refuses.
+  StatusWithExtraInfo<OcptRemoteStorageStatus> _refusal(String message) => StatusWithExtraInfo(
+    status: OcptRemoteStorageStatus.unreachable,
+    extraInfo: OcptSyncMergeFailure(error: StateError(message), stackTrace: StackTrace.current),
+  );
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   ///
