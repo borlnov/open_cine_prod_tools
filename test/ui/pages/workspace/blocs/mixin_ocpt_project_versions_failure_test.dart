@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
@@ -62,6 +63,22 @@ class _StoppedRestoreProjectsManager extends OcptProjectsManager {
     required String versionId,
     required String safetyVersionName,
   }) async => OcptProjectRestoreStatus.databaseError;
+}
+
+/// A properties manager whose device id can be made unreadable.
+class _NoDeviceIdPropertiesManager extends OcptPropertiesManager {
+  /// Whether the device id cannot be read.
+  bool refuse = false;
+
+  /// Fail as a preferences store that cannot be read does, when told to.
+  @override
+  Future<String> loadOrCreateDeviceId() async {
+    if (refuse) {
+      throw StateError("preferences unavailable");
+    }
+
+    return super.loadOrCreateDeviceId();
+  }
 }
 
 /// A projects manager whose version list read and working-copy capture can each be refused alone,
@@ -325,6 +342,21 @@ void main() {
       expect(emitted, isEmpty);
       expect(await storedVersions(), 2);
     });
+  });
+
+  test("a creation whose device id cannot be read shows the creation notice", () async {
+    final properties = _NoDeviceIdPropertiesManager();
+    await openProject(
+      OcptProjectsManager(propertiesManager: properties, appLanguageCode: () => "en"),
+    );
+    await start(projectsManager);
+    properties.refuse = true;
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v2", note: ""));
+    await settle();
+
+    expect(bloc.state.projectVersionNotice, OcptProjectVersionNoticeKind.creationFailed);
+    expect(await storedVersions(), 1);
   });
 
   test("a restore that stops on a step around it emits nothing", () async {

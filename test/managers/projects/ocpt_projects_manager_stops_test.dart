@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -15,6 +16,22 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import '../../ocpt_result_expectations.dart';
+
+/// A properties manager whose device id cannot be read.
+class _NoDeviceIdPropertiesManager extends OcptPropertiesManager {
+  /// Whether the device id cannot be read.
+  bool refuse = false;
+
+  /// Fail as a preferences store that cannot be read does, when told to.
+  @override
+  Future<String> loadOrCreateDeviceId() async {
+    if (refuse) {
+      throw StateError("preferences unavailable");
+    }
+
+    return super.loadOrCreateDeviceId();
+  }
+}
 
 /// Where the projects manager stops when the episodes of the open project cannot be counted: the
 /// restore that has already committed, the creation that has to close the project first, and the
@@ -132,5 +149,29 @@ void main() {
 
     expect(streamClosed, isFalse, reason: "nothing after the failed close ran");
     expect(manager.currentProject, isNotNull);
+  });
+
+  group("a version creation whose device id cannot be read", () {
+    setUp(() async {
+      await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
+    });
+
+    test("creating a version answers the failure of the device id", () async {
+      final properties = _NoDeviceIdPropertiesManager();
+      final failing = OcptProjectsManager(
+        propertiesManager: properties,
+        appLanguageCode: () => "en",
+      );
+      await failing.initLifeCycle();
+      await failing.createProject(name: "Other", filePath: p.join(tempDir.path, "other.ocpt"));
+      properties.refuse = true;
+
+      final created = await failing.createProjectVersion(name: "v1", note: "");
+
+      expect(created.status, OcptDatabaseStatus.databaseError);
+      expect(created.extraInfo, StateError);
+      properties.refuse = false;
+      expect(await failing.listProjectVersions().valueOrFail, isEmpty, reason: "nothing written");
+    });
   });
 }

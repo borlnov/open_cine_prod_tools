@@ -557,6 +557,9 @@ class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings
   /// Capture the [currentProject] as a new version named [name], with the user's [note], and return
   /// it. Answers `ok` with no value if no project is open.
   ///
+  /// The device id and the page margins it is stamped with come from the app's preferences: one
+  /// that cannot be read is answered as a failure too, with the type of what failed.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
   @useResult
   Future<OcptDatabaseResult<OcptProjectVersion>> createProjectVersion({
@@ -568,13 +571,35 @@ class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings
       return const OcptDatabaseResult(status: OcptDatabaseStatus.ok);
     }
 
+    String? deviceId;
+    FountainPageMargins? pageMargins;
+    OcptDatabaseResult<OcptProjectVersion>? failure;
+    try {
+      deviceId = await _propertiesManager.loadOrCreateDeviceId();
+      pageMargins = await _loadPageMargins();
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to create a project version: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      failure = OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: error.runtimeType,
+      );
+    }
+
+    if (failure != null) {
+      return failure;
+    }
+
     return projectVersionsService.createVersion(
       database: project.fileDatabase,
       name: name,
       note: note,
       appVersion: _appVersion,
-      deviceId: await _propertiesManager.loadOrCreateDeviceId(),
-      pageMargins: await _loadPageMargins(),
+      deviceId: deviceId!,
+      pageMargins: pageMargins!,
     );
   }
 
@@ -614,6 +639,9 @@ class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings
   /// project file underneath whatever the user is actually looking at, so a working-copy card built
   /// from it during a preview would describe a state that isn't on screen.
   ///
+  /// The page margins it measures against come from the app's preferences: ones that cannot be read
+  /// are answered as a failure too, with the type of what failed.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
   @useResult
   Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> captureWorkingCopyState() async {
@@ -622,9 +650,30 @@ class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings
       return const OcptDatabaseResult(status: OcptDatabaseStatus.ok);
     }
 
+    FountainPageMargins? pageMargins;
+    OcptDatabaseResult<OcptProjectWorkingCopyState>? failure;
+    try {
+      pageMargins = await _loadPageMargins();
+    } catch (error, stackTrace) {
+      _logger.w(
+        "A problem occurred when tried to read the page margins of a working copy capture: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      failure = OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: error.runtimeType,
+      );
+    }
+
+    if (failure != null) {
+      return failure;
+    }
+
     return projectVersionsService.captureWorkingCopyState(
       database: project.fileDatabase,
-      pageMargins: await _loadPageMargins(),
+      pageMargins: pageMargins!,
     );
   }
 
