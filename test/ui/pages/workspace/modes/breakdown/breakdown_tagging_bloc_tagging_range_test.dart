@@ -138,15 +138,17 @@ void main() {
         )
         .maybeValueOrFail;
 
-    await projectsManager.breakdownService.createTag(
-      database: project.database,
-      sceneId: sceneId,
-      startOffset: 2,
-      endOffset: 6,
-      taggedText: "lamp",
-      targetKind: OcptBreakdownTargetKind.element,
-      targetId: elementId!,
-    );
+    await projectsManager.breakdownService
+        .createTag(
+          database: project.database,
+          sceneId: sceneId,
+          startOffset: 2,
+          endOffset: 6,
+          taggedText: "lamp",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId!,
+        )
+        .maybeValueOrFail;
 
     return (sceneId: sceneId, elementId: elementId);
   }
@@ -306,15 +308,17 @@ void main() {
         ),
       );
       final opened = await waitForState(taggingBloc, (state) => state.pendingTagRange != null);
-      await projectsManager.breakdownService.createTag(
-        database: projectsManager.currentProject!.database,
-        sceneId: tagged.sceneId,
-        startOffset: opened.pendingTagRange!.startOffset,
-        endOffset: opened.pendingTagRange!.endOffset,
-        taggedText: opened.pendingTagRange!.taggedText,
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: tagged.elementId,
-      );
+      await projectsManager.breakdownService
+          .createTag(
+            database: projectsManager.currentProject!.database,
+            sceneId: tagged.sceneId,
+            startOffset: opened.pendingTagRange!.startOffset,
+            endOffset: opened.pendingTagRange!.endOffset,
+            taggedText: opened.pendingTagRange!.taggedText,
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: tagged.elementId,
+          )
+          .maybeValueOrFail;
 
       taggingBloc.add(
         OcptBreakdownPopoverTargetLinkedEvent(

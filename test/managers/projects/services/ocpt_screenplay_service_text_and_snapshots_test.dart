@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the screenplay service text and snapshots.
 void main() {
@@ -391,15 +392,17 @@ void main() {
         final sceneText = text.substring(scene.charStart, scene.charEnd);
         final roleId = await createRole();
         final start = sceneText.indexOf("two");
-        final tagId = (await breakdownService.createTag(
-          database: database,
-          sceneId: scene.id,
-          startOffset: start,
-          endOffset: start + "two".length,
-          taggedText: "two",
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: roleId,
-        ))!;
+        final tagId = (await breakdownService
+            .createTag(
+              database: database,
+              sceneId: scene.id,
+              startOffset: start,
+              endOffset: start + "two".length,
+              taggedText: "two",
+              targetKind: OcptBreakdownTargetKind.role,
+              targetId: roleId,
+            )
+            .valueOrFail);
         // Simulate a tag left needing attention by an earlier, unrelated save, so this save's
         // reconciliation has something to clear.
         await (database.update(database.ocptBreakdownTagsTable)
@@ -445,15 +448,17 @@ Action two three.
         final sceneText = originalText.substring(streetScene.charStart, streetScene.charEnd);
         final roleId = await createRole();
         final start = sceneText.indexOf("two");
-        final tagId = (await breakdownService.createTag(
-          database: database,
-          sceneId: streetScene.id,
-          startOffset: start,
-          endOffset: start + "two".length,
-          taggedText: "two",
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: roleId,
-        ))!;
+        final tagId = (await breakdownService
+            .createTag(
+              database: database,
+              sceneId: streetScene.id,
+              startOffset: start,
+              endOffset: start + "two".length,
+              taggedText: "two",
+              targetKind: OcptBreakdownTargetKind.role,
+              targetId: roleId,
+            )
+            .valueOrFail);
 
         // Only the house scene, above the tagged one, grows.
         const editedText = '''
@@ -498,15 +503,17 @@ Action two three.
       final sceneText = text.substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
       final start = sceneText.indexOf("two");
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: start + "two".length,
-        taggedText: "two",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: start + "two".length,
+            taggedText: "two",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       const editedText = "INT. HOUSE - DAY\n\nAction one, with a lot more happening, two.\n";
       await service.saveScreenplayText(
@@ -537,15 +544,17 @@ Action two three.
       final sceneText = text.substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
       final start = sceneText.indexOf("two");
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: start + "two".length,
-        taggedText: "two",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: start + "two".length,
+            taggedText: "two",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       const editedText = "INT. HOUSE - DAY\n\nAction one FOUR.\n";
       await service.saveScreenplayText(
@@ -573,15 +582,17 @@ Action two three.
       final sceneText = text.substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
       final start = sceneText.indexOf("beta");
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: start + "beta".length,
-        taggedText: "beta",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: start + "beta".length,
+            taggedText: "beta",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       // Inserting a word before "alpha" shifts the stored offset off "beta", and a second "beta"
       // appears right after the first: now ambiguous.

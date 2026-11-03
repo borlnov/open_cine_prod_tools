@@ -358,18 +358,16 @@ class BreakdownScenarioHarness {
   }
 
   /// Reads the first episode's scenes, with their tags, back from the database.
-  Future<List<OcptBreakdownScene>> readScenes() => projectsManager.breakdownService.loadScenes(
-    database: database,
-    screenplayId: screenplayId,
-    episodeNumber: null,
-  );
+  Future<List<OcptBreakdownScene>> readScenes() => projectsManager.breakdownService
+      .loadScenes(database: database, screenplayId: screenplayId, episodeNumber: null)
+      .valueOrFail;
 
   /// Reads every live tag of the first episode back from the database, as models.
   Future<List<OcptBreakdownTag>> readTags() async => [
-    for (final row in await projectsManager.breakdownService.loadTags(
-      database: database,
-      screenplayId: screenplayId,
-    ))
+    for (final row
+        in await projectsManager.breakdownService
+            .loadTags(database: database, screenplayId: screenplayId)
+            .valueOrFail)
       OcptBreakdownTag.fromRow(row),
   ];
 
@@ -465,15 +463,17 @@ class BreakdownScenarioHarness {
     final sceneText = fullText.substring(scene.charStart, scene.charEnd);
     final start = sceneText.indexOf(text);
     expect(start, isNonNegative, reason: "$text must be in the scene");
-    final tagId = await projectsManager.breakdownService.createTag(
-      database: database,
-      sceneId: scene.id,
-      startOffset: start,
-      endOffset: start + text.length,
-      taggedText: text,
-      targetKind: targetKind,
-      targetId: targetId,
-    );
+    final tagId = await projectsManager.breakdownService
+        .createTag(
+          database: database,
+          sceneId: scene.id,
+          startOffset: start,
+          endOffset: start + text.length,
+          taggedText: text,
+          targetKind: targetKind,
+          targetId: targetId,
+        )
+        .maybeValueOrFail;
     return tagId!;
   }
 

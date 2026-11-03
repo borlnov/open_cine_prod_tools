@@ -192,15 +192,17 @@ void main() {
           .substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
       final start = sceneText.indexOf("two");
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: start + "two".length,
-        taggedText: "two",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: start + "two".length,
+            taggedText: "two",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
       final before = await readTag(tagId);
 
       await breakdownService.reconcileTags(
@@ -221,15 +223,17 @@ void main() {
           .substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
       final start = sceneText.indexOf("two");
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: start + "two".length,
-        taggedText: "two",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: start + "two".length,
+            taggedText: "two",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       const newText = "INT. HOUSE - DAY\n\nAction one, with a lot more happening, two.\n";
       await screenplayService.saveScreenplayText(
@@ -276,15 +280,17 @@ Action two three.
           .substring(streetScene.charStart, streetScene.charEnd);
       final roleId = await createRole();
       final start = sceneText.indexOf("two");
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: streetScene.id,
-        startOffset: start,
-        endOffset: start + "two".length,
-        taggedText: "two",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: streetScene.id,
+            startOffset: start,
+            endOffset: start + "two".length,
+            taggedText: "two",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       const newText = '''
 INT. HOUSE - DAY
@@ -321,15 +327,17 @@ Action two three.
           .substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
       final start = sceneText.indexOf("two");
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: start + "two".length,
-        taggedText: "two",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: start + "two".length,
+            taggedText: "two",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       const newText = "INT. HOUSE - DAY\n\nAction one FOUR.\n";
       await screenplayService.saveScreenplayText(
@@ -358,15 +366,17 @@ Action two three.
           .substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
       final start = sceneText.indexOf("beta");
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: start + "beta".length,
-        taggedText: "beta",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: start + "beta".length,
+            taggedText: "beta",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       // Inserting a word before "alpha" shifts the stored offset off "beta", and a second "beta"
       // appears right after the first: now ambiguous.
@@ -396,15 +406,17 @@ Action two three.
       final sceneText = originalText.substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
       final start = sceneText.indexOf("two");
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: start + "two".length,
-        taggedText: "two",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: start + "two".length,
+            taggedText: "two",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       const goneText = "INT. HOUSE - DAY\n\nAction one FOUR.\n";
       await screenplayService.saveScreenplayText(
@@ -460,15 +472,17 @@ Action two three.
         (row) => row.heading == "EXT. STREET - NIGHT",
       );
       final roleId = await createRole();
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: streetScene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "Act",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: streetScene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "Act",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       const newText = "INT. HOUSE - DAY\n\nAction one.\n";
       await screenplayService.saveScreenplayText(
@@ -495,15 +509,17 @@ Action two three.
       final roleId = await createRole();
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       final stamps = await readStamps();
       final tag = await readTag(tagId);
@@ -525,18 +541,20 @@ Action two three.
     test("deleteTag stamps isDeleted on the tag", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
       final roleId = await createRole();
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await breakdownService.deleteTag(database: database, tagId: tagId);
+      await breakdownService.deleteTag(database: database, tagId: tagId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["breakdown_tags/$tagId/isDeleted"]!.version, 1);
@@ -546,11 +564,13 @@ Action two three.
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await breakdownService.updateSceneBreakdown(
-        database: database,
-        sceneId: scene.id,
-        status: const Value(OcptBreakdownSceneStatus.inProgress),
-      );
+      await breakdownService
+          .updateSceneBreakdown(
+            database: database,
+            sceneId: scene.id,
+            status: const Value(OcptBreakdownSceneStatus.inProgress),
+          )
+          .okOrFail;
 
       final row = (await readSceneBreakdown(scene.id))!;
       final stamps = await readStamps();
@@ -571,19 +591,23 @@ Action two three.
 
     test("updateSceneBreakdown stamps only the columns that actually changed", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
-      await breakdownService.updateSceneBreakdown(
-        database: database,
-        sceneId: scene.id,
-        status: const Value(OcptBreakdownSceneStatus.inProgress),
-      );
+      await breakdownService
+          .updateSceneBreakdown(
+            database: database,
+            sceneId: scene.id,
+            status: const Value(OcptBreakdownSceneStatus.inProgress),
+          )
+          .okOrFail;
       final row = (await readSceneBreakdown(scene.id))!;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await breakdownService.updateSceneBreakdown(
-        database: database,
-        sceneId: scene.id,
-        notes: const Value("Needs a period lamp"),
-      );
+      await breakdownService
+          .updateSceneBreakdown(
+            database: database,
+            sceneId: scene.id,
+            notes: const Value("Needs a period lamp"),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys
@@ -603,32 +627,38 @@ Action two three.
             sourceKind: OcptElementSourceKind.owned,
           )
           .valueOrFail);
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: elementId,
+          )
+          .valueOrFail);
       final sceneElementId = (await readLiveSceneElements()).single.id;
-      await breakdownService.updateSceneBreakdown(
-        database: database,
-        sceneId: scene.id,
-        status: const Value(OcptBreakdownSceneStatus.inProgress),
-      );
+      await breakdownService
+          .updateSceneBreakdown(
+            database: database,
+            sceneId: scene.id,
+            status: const Value(OcptBreakdownSceneStatus.inProgress),
+          )
+          .okOrFail;
       final sceneBreakdownId = (await readSceneBreakdown(scene.id))!.id;
       final setId = await createSet();
-      final setTagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 3,
-        endOffset: 5,
-        taggedText: " ",
-        targetKind: OcptBreakdownTargetKind.set,
-        targetId: setId,
-      ))!;
+      final setTagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 3,
+            endOffset: 5,
+            taggedText: " ",
+            targetKind: OcptBreakdownTargetKind.set,
+            targetId: setId,
+          )
+          .valueOrFail);
       final sceneSetId = (await readLiveSceneSets()).single.id;
 
       // A second, unrelated episode so this one is not the project's last live one.
@@ -697,40 +727,48 @@ Action two three.
           ),
         );
 
-    final createdTagId = await breakdownService.createTag(
-      database: preview,
-      sceneId: "scene-1",
-      startOffset: 10,
-      endOffset: 13,
-      taggedText: "one",
-      targetKind: OcptBreakdownTargetKind.role,
-      targetId: "role-1",
-    );
-    await breakdownService.clearTagNeedsCheck(database: preview, tagId: "tag-1");
-    await breakdownService.deleteTag(database: preview, tagId: "tag-1");
-    final createdPair = await breakdownService.createElementAndTag(
-      database: preview,
-      sceneId: "scene-1",
-      startOffset: 10,
-      endOffset: 13,
-      taggedText: "one",
-      name: "Desk lamp",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    );
-    final createdSetPair = await breakdownService.createSetAndTag(
-      database: preview,
-      sceneId: "scene-1",
-      startOffset: 10,
-      endOffset: 13,
-      taggedText: "one",
-      name: "Cuisine",
-    );
-    await breakdownService.updateSceneBreakdown(
-      database: preview,
-      sceneId: "scene-1",
-      status: const Value(OcptBreakdownSceneStatus.done),
-    );
+    final createdTagId = await breakdownService
+        .createTag(
+          database: preview,
+          sceneId: "scene-1",
+          startOffset: 10,
+          endOffset: 13,
+          taggedText: "one",
+          targetKind: OcptBreakdownTargetKind.role,
+          targetId: "role-1",
+        )
+        .maybeValueOrFail;
+    await breakdownService.clearTagNeedsCheck(database: preview, tagId: "tag-1").okOrFail;
+    await breakdownService.deleteTag(database: preview, tagId: "tag-1").okOrFail;
+    final createdPair = await breakdownService
+        .createElementAndTag(
+          database: preview,
+          sceneId: "scene-1",
+          startOffset: 10,
+          endOffset: 13,
+          taggedText: "one",
+          name: "Desk lamp",
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .maybeValueOrFail;
+    final createdSetPair = await breakdownService
+        .createSetAndTag(
+          database: preview,
+          sceneId: "scene-1",
+          startOffset: 10,
+          endOffset: 13,
+          taggedText: "one",
+          name: "Cuisine",
+        )
+        .maybeValueOrFail;
+    await breakdownService
+        .updateSceneBreakdown(
+          database: preview,
+          sceneId: "scene-1",
+          status: const Value(OcptBreakdownSceneStatus.done),
+        )
+        .okOrFail;
     await breakdownService.reconcileTags(
       database: preview,
       screenplayId: screenplayId,

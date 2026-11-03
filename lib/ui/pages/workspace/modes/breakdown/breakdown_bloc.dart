@@ -431,8 +431,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// [_breakdownService], which `OcptScreenplayService` already depends on) and resolves the
   /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
   ///
-  /// Answers the failure of the elements read, in place of the snapshot: the scenes, the tags, the
-  /// roles, the locations and the people reads still raise when the database fails.
+  /// Answers the failure of the scenes, tags or elements read, in place of the snapshot: the roles,
+  /// the locations and the people reads still raise when the database fails.
   @useResult
   Future<OcptDatabaseResult<OcptBreakdownSnapshot>> _loadSnapshot(
     OcptOpenProjectModel project,
@@ -443,20 +443,30 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
     final episodeNumber = ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId);
 
-    final scenes = await _breakdownService.loadScenes(
+    final scenesRead = await _breakdownService.loadScenes(
       database: database,
       screenplayId: screenplayId,
       episodeNumber: episodeNumber,
     );
-    final tagRows = await _breakdownService.loadTags(
+    if (scenesRead.isError) {
+      return OcptDatabaseResult(status: scenesRead.status, extraInfo: scenesRead.extraInfo);
+    }
+
+    final tagsRead = await _breakdownService.loadTags(
       database: database,
       screenplayId: screenplayId,
     );
+    if (tagsRead.isError) {
+      return OcptDatabaseResult(status: tagsRead.status, extraInfo: tagsRead.extraInfo);
+    }
+
     final elementsRead = await _elementsService.loadElements(database: database);
     if (elementsRead.isError) {
       return OcptDatabaseResult(status: elementsRead.status, extraInfo: elementsRead.extraInfo);
     }
 
+    final scenes = scenesRead.value!;
+    final tagRows = tagsRead.value!;
     final elements = elementsRead.value!;
     final roles = await _roleIndexService.loadRoles(database: database);
     final locations = await _locationsService.loadLocations(database: database);

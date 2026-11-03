@@ -332,11 +332,14 @@ class OcptBreakdownInspectorBloc
       return;
     }
 
-    await _breakdownService.updateSceneBreakdown(
+    final updated = await _breakdownService.updateSceneBreakdown(
       database: project.database,
       sceneId: event.sceneId,
       status: Value(event.status),
     );
+    if (updated.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
@@ -522,8 +525,8 @@ class OcptBreakdownInspectorBloc
   /// through `OcptBreakdownService.updateSceneBreakdown`, then every entry of [setNames] through
   /// `OcptLocationsService.updateSet`.
   ///
-  /// Stops at the first element write that fails and answers its failure; what comes after it is
-  /// not written. The scene notes and the set names still raise when the database fails.
+  /// Stops at the first element or scene notes write that fails and answers its failure; what comes
+  /// after it is not written. The set names still raise when the database fails.
   @useResult
   Future<OcptDatabaseOutcome> _writeAllPendingFields({
     required OcptProjectDatabase database,
@@ -584,11 +587,14 @@ class OcptBreakdownInspectorBloc
     }
 
     for (final entry in sceneNotes.entries) {
-      await _breakdownService.updateSceneBreakdown(
+      final notesWritten = await _breakdownService.updateSceneBreakdown(
         database: database,
         sceneId: entry.key,
         notes: Value(entry.value),
       );
+      if (notesWritten.isError) {
+        return notesWritten;
+      }
     }
 
     for (final entry in setNames.entries) {
@@ -675,7 +681,10 @@ class OcptBreakdownInspectorBloc
         if (tag.targetKind == target.kind && tag.targetId == target.id) tag.id,
     ];
     for (final tagId in tagIds) {
-      await _breakdownService.deleteTag(database: project.database, tagId: tagId);
+      final deleted = await _breakdownService.deleteTag(database: project.database, tagId: tagId);
+      if (deleted.isError) {
+        return;
+      }
     }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
@@ -697,7 +706,13 @@ class OcptBreakdownInspectorBloc
       return;
     }
 
-    await _breakdownService.clearTagNeedsCheck(database: project.database, tagId: event.tagId);
+    final cleared = await _breakdownService.clearTagNeedsCheck(
+      database: project.database,
+      tagId: event.tagId,
+    );
+    if (cleared.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
@@ -716,7 +731,13 @@ class OcptBreakdownInspectorBloc
       return;
     }
 
-    await _breakdownService.deleteTag(database: project.database, tagId: event.tagId);
+    final deleted = await _breakdownService.deleteTag(
+      database: project.database,
+      tagId: event.tagId,
+    );
+    if (deleted.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }

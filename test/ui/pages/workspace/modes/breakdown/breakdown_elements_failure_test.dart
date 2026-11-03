@@ -6,14 +6,15 @@ import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_reload_scope.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -23,6 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_inspector_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_tagging_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -306,6 +308,31 @@ void main() {
       expect(await notedScenes(), 0, reason: "the scene note after the refused element");
     });
 
+    test("a refused scene note stops the set names after it", () async {
+      final project = projectsManager.currentProject!;
+      final locationId = (await projectsManager.locationsService.createLocation(
+        database: project.database,
+        name: "House",
+      ))!;
+      final setId = (await projectsManager.locationsService.createSet(
+        database: project.database,
+        locationId: locationId,
+        name: "Kitchen",
+      ))!;
+      inspector.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "A note"));
+      inspector.add(OcptBreakdownSetNameChangedEvent(setId: setId, rawValue: "Renamed kitchen"));
+      await settle();
+      await refuse("INSERT", "scene_breakdowns");
+
+      final status = await inspector.flushPendingWrites();
+
+      expect(status, OcptPendingWritesStatus.ok);
+      final names = await project.database
+          .customSelect("SELECT name FROM sets WHERE id = '$setId'")
+          .get();
+      expect(names.single.read<String>("name"), "Kitchen");
+    });
+
     test("a refused element flush without state stops the flush of the scene notes", () async {
       inspector.add(
         OcptBreakdownElementFieldChangedEvent(
@@ -329,58 +356,300 @@ void main() {
     });
   });
 
-  group("when the catalogue cannot be read", () {
-    /// Make the elements unreadable.
-    Future<void> lose() => projectsManager.currentProject!.database.customStatement(
-      "ALTER TABLE elements RENAME TO elements_gone",
-    );
+  group("the inspector's tag and scene writes", () {
+    late OcptBreakdownBloc mode;
+    late OcptBreakdownInspectorBloc inspector;
 
-    test("a mode that cannot read the elements stays loading", () async {
-      await lose();
-
-      final mode = OcptBreakdownBloc(
+    setUp(() async {
+      mode = await buildMode();
+      inspector = OcptBreakdownInspectorBloc(
+        modeBloc: mode,
         projectsManager: projectsManager,
-        propertiesManager: propertiesManager,
-        routerManager: _SilentRouterManager(),
-        exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+        fieldEditDebounce: const Duration(days: 1),
       );
-      addTearDown(mode.close);
-      await settle();
-
-      expect(mode.state.isLoading, isTrue);
+      addTearDown(inspector.close);
     });
 
-    test("reading the snapshot again answers false and leaves the state as it was", () async {
-      final mode = await buildMode();
-      final held = mode.state;
-      await lose();
+    /// Tag the passage [start]..[end] of the scene with the seeded element, flag it as moved, then
+    /// have the mode read the tag, and give its id.
+    Future<String> tag(int start, int end) async {
+      final tagId = await projectsManager.breakdownService
+          .createTag(
+            database: projectsManager.currentProject!.database,
+            sceneId: sceneId,
+            startOffset: start,
+            endOffset: end,
+            taggedText: "x" * (end - start),
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: elementId,
+          )
+          .valueOrFail;
+      await projectsManager.currentProject!.database.customStatement(
+        "UPDATE breakdown_tags SET needs_check = 1 WHERE id = '$tagId'",
+      );
+      await mode.reload({OcptBreakdownReloadScope.snapshot});
 
-      expect(await mode.reload({OcptBreakdownReloadScope.snapshot}), isFalse);
+      return tagId;
+    }
 
-      expect(mode.state.reloadEpoch, held.reloadEpoch);
-      expect(mode.state.snapshot, same(held.snapshot));
+    /// Count the live tags, read straight from the database.
+    Future<int> liveTagCount() async {
+      final rows = await projectsManager.currentProject!.database
+          .customSelect("SELECT id FROM breakdown_tags WHERE is_deleted = 0")
+          .get();
+
+      return rows.length;
+    }
+
+    /// The handlers, each with the table and the verb that fail it, and the event it dispatches.
+    final cases =
+        <
+          String,
+          ({
+            String table,
+            String verb,
+            OcptBreakdownEvent Function(String tagId) event,
+            bool selectsTarget,
+          })
+        >{
+          "changing the status of the scene": (
+            table: "scene_breakdowns",
+            verb: "INSERT",
+            event: (tagId) => OcptBreakdownSceneStatusChangedEvent(
+              sceneId: sceneId,
+              status: OcptBreakdownSceneStatus.done,
+            ),
+            selectsTarget: false,
+          ),
+          "confirming the removal of a target's tags": (
+            table: "breakdown_tags",
+            verb: "UPDATE",
+            event: (tagId) => const OcptBreakdownTagRemovalConfirmedEvent(),
+            selectsTarget: true,
+          ),
+          "marking a tag as checked": (
+            table: "breakdown_tags",
+            verb: "UPDATE",
+            event: (tagId) => OcptBreakdownTagNeedsCheckClearedEvent(tagId: tagId),
+            selectsTarget: false,
+          ),
+          "removing a flagged tag": (
+            table: "breakdown_tags",
+            verb: "UPDATE",
+            event: (tagId) => OcptBreakdownFlaggedTagRemovedEvent(tagId: tagId),
+            selectsTarget: false,
+          ),
+        };
+
+    for (final entry in cases.entries) {
+      test(
+        "${entry.key} stops, reads nothing again, and goes through once the refusal is lifted",
+        () async {
+          final tagId = await tag(2, 6);
+          if (entry.value.selectsTarget) {
+            mode.add(
+              OcptBreakdownTargetSelectedEvent(
+                targetKind: OcptBreakdownTargetKind.element,
+                targetId: elementId,
+                sceneId: sceneId,
+              ),
+            );
+            await settle();
+          }
+          final held = mode.state;
+          await refuse(entry.value.verb, entry.value.table);
+
+          inspector.add(entry.value.event(tagId));
+          await settle();
+
+          expect(mode.state.reloadEpoch, held.reloadEpoch, reason: "the mode read again");
+          expect(await liveTagCount(), 1, reason: "a tag was removed");
+
+          await lift(entry.value.verb, entry.value.table);
+          inspector.add(entry.value.event(tagId));
+          await settle();
+
+          expect(mode.state.reloadEpoch, isNot(held.reloadEpoch));
+        },
+      );
+    }
+
+    test("a refused removal of one tag stops the removal of the ones after it", () async {
+      final first = await tag(2, 6);
+      await tag(10, 14);
+      mode.add(
+        OcptBreakdownTargetSelectedEvent(
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId,
+          sceneId: sceneId,
+        ),
+      );
+      await settle();
+      await projectsManager.currentProject!.database.customStatement(
+        "CREATE TRIGGER refuse_first BEFORE UPDATE ON breakdown_tags WHEN NEW.id = '$first' "
+        "BEGIN SELECT RAISE(ABORT, 'refused'); END",
+      );
+
+      inspector.add(const OcptBreakdownTagRemovalConfirmedEvent());
+      await settle();
+
+      expect(await liveTagCount(), 2, reason: "the tag after the refused one was removed");
     });
   });
 
-  group("a tag and its element are written whole or not at all", () {
-    test("an element whose tag is refused is not minted", () async {
-      final project = projectsManager.currentProject!;
-      await refuse("INSERT", "breakdown_tags");
+  group("the tagging view", () {
+    late OcptBreakdownBloc mode;
+    late OcptBreakdownTaggingBloc tagging;
 
-      await expectLater(
-        projectsManager.breakdownService.createElementAndTag(
-          database: project.database,
+    setUp(() async {
+      mode = await buildMode();
+      tagging = OcptBreakdownTaggingBloc(modeBloc: mode, projectsManager: projectsManager);
+      addTearDown(tagging.close);
+    });
+
+    /// Close a range on "lamp sits on the desk" of the scene, to be tagged by the next event.
+    Future<void> closeRange() async {
+      tagging.add(
+        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+      );
+      await settle();
+      tagging.add(
+        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
+      );
+      await settle();
+      expect(tagging.state.pendingTagRange, isNotNull);
+    }
+
+    /// Count the live tags, read straight from the database.
+    Future<int> liveTagCount() async {
+      final rows = await projectsManager.currentProject!.database
+          .customSelect("SELECT id FROM breakdown_tags WHERE is_deleted = 0")
+          .get();
+
+      return rows.length;
+    }
+
+    /// The handlers, each with the event it dispatches once a range is closed.
+    final cases = <String, ({bool closesRange, OcptBreakdownTaggingEvent Function() event})>{
+      "linking a target": (
+        closesRange: true,
+        event: () => OcptBreakdownPopoverTargetLinkedEvent(
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId,
+        ),
+      ),
+      "creating an element": (
+        closesRange: true,
+        event: () => const OcptBreakdownPopoverElementCreationRequestedEvent(
+          category: OcptElementCategory.prop,
+          name: "Lamp",
+        ),
+      ),
+      "creating a set": (
+        closesRange: true,
+        event: () =>
+            const OcptBreakdownPopoverSetCreationRequestedEvent(locationId: null, name: "House"),
+      ),
+      "accepting a suggestion": (
+        closesRange: false,
+        event: () => OcptBreakdownSuggestionAcceptedEvent(
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId,
           sceneId: sceneId,
           startOffset: 2,
           endOffset: 6,
           taggedText: "lamp",
-          name: "Lamp",
-          category: OcptElementCategory.prop,
-          sourceKind: OcptElementSourceKind.owned,
         ),
-        throwsA(anything),
+      ),
+    };
+
+    for (final entry in cases.entries) {
+      test("${entry.key} stops without a notice, reads nothing again, and goes through once the "
+          "refusal is lifted", () async {
+        if (entry.value.closesRange) {
+          await closeRange();
+        }
+        final held = mode.state;
+        await refuse("INSERT", "breakdown_tags");
+
+        tagging.add(entry.value.event());
+        await settle();
+
+        expect(mode.state.reloadEpoch, held.reloadEpoch, reason: "the mode read again");
+        expect(tagging.state.hasTagWriteError, isFalse, reason: "a failure is no refusal");
+        expect(tagging.state.pendingTagRange != null, entry.value.closesRange);
+        expect(await liveTagCount(), 0);
+
+        await lift("INSERT", "breakdown_tags");
+        tagging.add(entry.value.event());
+        await settle();
+
+        expect(mode.state.reloadEpoch, isNot(held.reloadEpoch));
+        expect(await liveTagCount(), 1);
+      });
+    }
+  });
+
+  group("when the breakdown cannot be read", () {
+    // The elements, the scenes' own breakdown rows and the tags are three separate reads.
+    for (final table in ["elements", "scene_breakdowns", "breakdown_tags"]) {
+      /// Make [table] unreadable.
+      Future<void> lose() => projectsManager.currentProject!.database.customStatement(
+        "ALTER TABLE $table RENAME TO ${table}_gone",
       );
 
+      test("a mode that cannot read $table stays loading", () async {
+        await lose();
+
+        final mode = OcptBreakdownBloc(
+          projectsManager: projectsManager,
+          propertiesManager: propertiesManager,
+          routerManager: _SilentRouterManager(),
+          exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+        );
+        addTearDown(mode.close);
+        await settle();
+
+        expect(mode.state.isLoading, isTrue);
+      });
+
+      test("reading $table again answers false and leaves the state as it was", () async {
+        final mode = await buildMode();
+        final held = mode.state;
+        await lose();
+
+        expect(await mode.reload({OcptBreakdownReloadScope.snapshot}), isFalse);
+
+        expect(mode.state.reloadEpoch, held.reloadEpoch);
+        expect(mode.state.snapshot, same(held.snapshot));
+      });
+    }
+  });
+
+  group("a tag and its element are written whole or not at all", () {
+    /// Create an element and tag it with "lamp", as the popover's category chips do.
+    Future<OcptDatabaseResult<({String elementId, String tagId})>> createElementAndTag() {
+      final project = projectsManager.currentProject!;
+
+      return projectsManager.breakdownService.createElementAndTag(
+        database: project.database,
+        sceneId: sceneId,
+        startOffset: 2,
+        endOffset: 6,
+        taggedText: "lamp",
+        name: "Lamp",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.owned,
+      );
+    }
+
+    test("an element whose tag is refused is not minted", () async {
+      final project = projectsManager.currentProject!;
+      await refuse("INSERT", "breakdown_tags");
+
+      final created = await createElementAndTag();
+
+      expect(created.status, OcptDatabaseStatus.databaseError);
       final elements = await projectsManager.elementsService
           .loadElements(database: project.database)
           .valueOrFail;
@@ -391,20 +660,9 @@ void main() {
       final project = projectsManager.currentProject!;
       await refuse("INSERT", "elements");
 
-      await expectLater(
-        projectsManager.breakdownService.createElementAndTag(
-          database: project.database,
-          sceneId: sceneId,
-          startOffset: 2,
-          endOffset: 6,
-          taggedText: "lamp",
-          name: "Lamp",
-          category: OcptElementCategory.prop,
-          sourceKind: OcptElementSourceKind.owned,
-        ),
-        throwsA(isA<OcptDatabaseAbort>()),
-      );
+      final created = await createElementAndTag();
 
+      expect(created.status, OcptDatabaseStatus.databaseError);
       expect(await project.database.select(project.database.ocptBreakdownTagsTable).get(), isEmpty);
     });
 
@@ -412,19 +670,17 @@ void main() {
       final project = projectsManager.currentProject!;
       await refuse("INSERT", "scene_elements");
 
-      await expectLater(
-        projectsManager.breakdownService.createTag(
-          database: project.database,
-          sceneId: sceneId,
-          startOffset: 2,
-          endOffset: 6,
-          taggedText: "lamp",
-          targetKind: OcptBreakdownTargetKind.element,
-          targetId: elementId,
-        ),
-        throwsA(isA<OcptDatabaseAbort>()),
+      final tagged = await projectsManager.breakdownService.createTag(
+        database: project.database,
+        sceneId: sceneId,
+        startOffset: 2,
+        endOffset: 6,
+        taggedText: "lamp",
+        targetKind: OcptBreakdownTargetKind.element,
+        targetId: elementId,
       );
 
+      expect(tagged.status, OcptDatabaseStatus.databaseError);
       expect(await project.database.select(project.database.ocptBreakdownTagsTable).get(), isEmpty);
     });
   });

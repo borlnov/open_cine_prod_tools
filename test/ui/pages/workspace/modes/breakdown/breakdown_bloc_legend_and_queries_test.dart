@@ -330,15 +330,17 @@ void main() {
         .maybeValueOrFail;
     expect(elementId, isNotNull);
 
-    await projectsManager.breakdownService.createTag(
-      database: project.database,
-      sceneId: sceneId,
-      startOffset: 2,
-      endOffset: 6,
-      taggedText: "lamp",
-      targetKind: OcptBreakdownTargetKind.element,
-      targetId: elementId!,
-    );
+    await projectsManager.breakdownService
+        .createTag(
+          database: project.database,
+          sceneId: sceneId,
+          startOffset: 2,
+          endOffset: 6,
+          taggedText: "lamp",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId!,
+        )
+        .maybeValueOrFail;
 
     final bloc = buildBloc();
     await waitForState(bloc, (state) => state.taggedTargetCount == 1);

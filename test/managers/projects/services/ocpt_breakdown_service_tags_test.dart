@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
@@ -199,15 +200,17 @@ void main() {
           )
           .valueOrFail);
 
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: elementId,
+          )
+          .valueOrFail);
 
       final tag = await readTag(tagId);
       expect(tag.targetKind, OcptBreakdownTargetKind.element);
@@ -221,15 +224,17 @@ void main() {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
       final roleId = await createRole();
 
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       final tag = await readTag(tagId);
       expect(tag.targetKind, OcptBreakdownTargetKind.role);
@@ -242,15 +247,17 @@ void main() {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
       final setId = await createSet();
 
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.set,
-        targetId: setId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.set,
+            targetId: setId,
+          )
+          .valueOrFail);
 
       final tag = await readTag(tagId);
       expect(tag.targetKind, OcptBreakdownTargetKind.set);
@@ -270,15 +277,17 @@ void main() {
           )
           .valueOrFail);
 
-      await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId,
-      );
+      await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: elementId,
+          )
+          .maybeValueOrFail;
 
       final links = await readLiveSceneElements();
       expect(links, hasLength(1));
@@ -291,15 +300,17 @@ void main() {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
       final setId = await createSet();
 
-      await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.set,
-        targetId: setId,
-      );
+      await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.set,
+            targetId: setId,
+          )
+          .maybeValueOrFail;
 
       final links = await readLiveSceneSets();
       expect(links, hasLength(1));
@@ -312,15 +323,17 @@ void main() {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
       final roleId = await createRole();
 
-      await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      );
+      await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .maybeValueOrFail;
 
       expect(await readLiveSceneElements(), isEmpty);
       expect(await readLiveSceneSets(), isEmpty);
@@ -335,29 +348,33 @@ void main() {
 
       final twoStart = sceneText.indexOf("two");
       final threeEnd = sceneText.indexOf("three") + "three".length;
-      await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: twoStart,
-        endOffset: threeEnd,
-        taggedText: sceneText.substring(twoStart, threeEnd),
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      );
+      await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: twoStart,
+            endOffset: threeEnd,
+            taggedText: sceneText.substring(twoStart, threeEnd),
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .maybeValueOrFail;
       expect(await readLiveTags(), hasLength(1));
 
       // "three four" overlaps the "two three" tag already there.
       final threeStart = sceneText.indexOf("three");
       final fourEnd = sceneText.indexOf("four") + "four".length;
-      final refused = await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: threeStart,
-        endOffset: fourEnd,
-        taggedText: sceneText.substring(threeStart, fourEnd),
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      );
+      final refused = await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: threeStart,
+            endOffset: fourEnd,
+            taggedText: sceneText.substring(threeStart, fourEnd),
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .maybeValueOrFail;
 
       expect(refused, isNull);
       expect(await readLiveTags(), hasLength(1));
@@ -372,58 +389,52 @@ void main() {
 
       final oneStart = sceneText.indexOf("one");
       final oneEnd = oneStart + "one".length;
-      await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: oneStart,
-        endOffset: oneEnd,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      );
+      await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: oneStart,
+            endOffset: oneEnd,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .maybeValueOrFail;
 
       // "two" starts exactly where "one" ends (through the space): touching, not overlapping.
       final twoStart = sceneText.indexOf("two");
       final twoEnd = twoStart + "two".length;
-      final secondTagId = await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: oneEnd,
-        endOffset: twoEnd,
-        taggedText: sceneText.substring(oneEnd, twoEnd),
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      );
+      final secondTagId = await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: oneEnd,
+            endOffset: twoEnd,
+            taggedText: sceneText.substring(oneEnd, twoEnd),
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .maybeValueOrFail;
 
       expect(secondTagId, isNotNull);
       expect(await readLiveTags(), hasLength(2));
     });
 
-    test("throws ArgumentError for a malformed range", () async {
-      expect(
-        () => breakdownService.createTag(
+    test("answers a database error and writes nothing for a malformed range", () async {
+      for (final (start, end) in [(5, 5), (-1, 3)]) {
+        final created = await breakdownService.createTag(
           database: database,
           sceneId: "scene-1",
-          startOffset: 5,
-          endOffset: 5,
+          startOffset: start,
+          endOffset: end,
           taggedText: "never read",
           targetKind: OcptBreakdownTargetKind.role,
           targetId: "role-1",
-        ),
-        throwsArgumentError,
-      );
-      expect(
-        () => breakdownService.createTag(
-          database: database,
-          sceneId: "scene-1",
-          startOffset: -1,
-          endOffset: 3,
-          taggedText: "never read",
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: "role-1",
-        ),
-        throwsArgumentError,
-      );
+        );
+
+        expect(created.status, OcptDatabaseStatus.databaseError);
+      }
+      expect(await readLiveTags(), isEmpty);
     });
   });
 
@@ -438,17 +449,19 @@ void main() {
             sourceKind: OcptElementSourceKind.owned,
           )
           .valueOrFail);
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: elementId,
+          )
+          .valueOrFail);
 
-      await breakdownService.deleteTag(database: database, tagId: tagId);
+      await breakdownService.deleteTag(database: database, tagId: tagId).okOrFail;
 
       final tag = await readTag(tagId);
       expect(tag.isDeleted, isTrue);
@@ -467,15 +480,17 @@ void main() {
           .substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
       final start = sceneText.indexOf("two");
-      final tagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: start + "two".length,
-        taggedText: "two",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
+      final tagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: start + "two".length,
+            taggedText: "two",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
 
       const newText = "INT. HOUSE - DAY\n\nAction one FOUR.\n";
       await screenplayService.saveScreenplayText(
@@ -492,7 +507,7 @@ void main() {
       );
       expect((await readTag(tagId)).needsCheck, isTrue);
 
-      await breakdownService.clearTagNeedsCheck(database: database, tagId: tagId);
+      await breakdownService.clearTagNeedsCheck(database: database, tagId: tagId).okOrFail;
 
       final tag = await readTag(tagId);
       expect(tag.needsCheck, isFalse);
@@ -505,16 +520,18 @@ void main() {
     test("mints the element with a generated code and toFind status, and tags it", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
 
-      final result = await breakdownService.createElementAndTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        name: "Desk lamp",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      );
+      final result = await breakdownService
+          .createElementAndTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            name: "Desk lamp",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .maybeValueOrFail;
 
       expect(result, isNotNull);
       final element = (await readLiveElements()).singleWhere((row) => row.id == result!.elementId);
@@ -541,27 +558,31 @@ void main() {
         // Occupy the whole range with an existing tag first, so the popover's own attempt overlaps.
         final start = sceneText.indexOf("one");
         final end = sceneText.indexOf("three") + "three".length;
-        await breakdownService.createTag(
-          database: database,
-          sceneId: scene.id,
-          startOffset: start,
-          endOffset: end,
-          taggedText: sceneText.substring(start, end),
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: roleId,
-        );
+        await breakdownService
+            .createTag(
+              database: database,
+              sceneId: scene.id,
+              startOffset: start,
+              endOffset: end,
+              taggedText: sceneText.substring(start, end),
+              targetKind: OcptBreakdownTargetKind.role,
+              targetId: roleId,
+            )
+            .maybeValueOrFail;
         final elementsBefore = await readLiveElements();
 
-        final result = await breakdownService.createElementAndTag(
-          database: database,
-          sceneId: scene.id,
-          startOffset: start,
-          endOffset: end,
-          taggedText: sceneText.substring(start, end),
-          name: "Desk lamp",
-          category: OcptElementCategory.prop,
-          sourceKind: OcptElementSourceKind.owned,
-        );
+        final result = await breakdownService
+            .createElementAndTag(
+              database: database,
+              sceneId: scene.id,
+              startOffset: start,
+              endOffset: end,
+              taggedText: sceneText.substring(start, end),
+              name: "Desk lamp",
+              category: OcptElementCategory.prop,
+              sourceKind: OcptElementSourceKind.owned,
+            )
+            .maybeValueOrFail;
 
         expect(result, isNull);
         expect(await readLiveElements(), elementsBefore);
@@ -578,15 +599,17 @@ void main() {
         name: "Maison des Martin",
       ))!;
 
-      final result = await breakdownService.createSetAndTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        name: "Cuisine",
-        locationId: locationId,
-      );
+      final result = await breakdownService
+          .createSetAndTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            name: "Cuisine",
+            locationId: locationId,
+          )
+          .maybeValueOrFail;
 
       expect(result, isNotNull);
       final locations = await locationsService.loadLocations(database: database);
@@ -603,14 +626,16 @@ void main() {
     test("mints a location of its own, named after the set, when given none", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
 
-      final result = await breakdownService.createSetAndTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: 0,
-        endOffset: 3,
-        taggedText: "one",
-        name: "Cuisine",
-      );
+      final result = await breakdownService
+          .createSetAndTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: 0,
+            endOffset: 3,
+            taggedText: "one",
+            name: "Cuisine",
+          )
+          .maybeValueOrFail;
 
       expect(result, isNotNull);
       final locations = await locationsService.loadLocations(database: database);
@@ -628,24 +653,28 @@ void main() {
       // Occupy the whole range first, so the creation's own tag overlaps and is refused.
       final start = sceneText.indexOf("one");
       final end = sceneText.indexOf("three") + "three".length;
-      await breakdownService.createTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: end,
-        taggedText: sceneText.substring(start, end),
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      );
+      await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: end,
+            taggedText: sceneText.substring(start, end),
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .maybeValueOrFail;
 
-      final result = await breakdownService.createSetAndTag(
-        database: database,
-        sceneId: scene.id,
-        startOffset: start,
-        endOffset: end,
-        taggedText: sceneText.substring(start, end),
-        name: "Cuisine",
-      );
+      final result = await breakdownService
+          .createSetAndTag(
+            database: database,
+            sceneId: scene.id,
+            startOffset: start,
+            endOffset: end,
+            taggedText: sceneText.substring(start, end),
+            name: "Cuisine",
+          )
+          .maybeValueOrFail;
 
       expect(result, isNull);
       // Neither the set nor the location minted to hold it survives the tag that was their point.
@@ -660,22 +689,26 @@ void main() {
       () async {
         final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
 
-        await breakdownService.updateSceneBreakdown(
-          database: database,
-          sceneId: scene.id,
-          status: const Value(OcptBreakdownSceneStatus.inProgress),
-        );
+        await breakdownService
+            .updateSceneBreakdown(
+              database: database,
+              sceneId: scene.id,
+              status: const Value(OcptBreakdownSceneStatus.inProgress),
+            )
+            .okOrFail;
 
         final firstWrite = await readSceneBreakdown(scene.id);
         expect(firstWrite, isNotNull);
         expect(firstWrite!.status, OcptBreakdownSceneStatus.inProgress);
         expect(firstWrite.notes, isEmpty);
 
-        await breakdownService.updateSceneBreakdown(
-          database: database,
-          sceneId: scene.id,
-          notes: const Value("Needs a period lamp"),
-        );
+        await breakdownService
+            .updateSceneBreakdown(
+              database: database,
+              sceneId: scene.id,
+              notes: const Value("Needs a period lamp"),
+            )
+            .okOrFail;
 
         final allRows = await database.select(database.ocptSceneBreakdownsTable).get();
         expect(allRows, hasLength(1));
@@ -688,22 +721,26 @@ void main() {
     test("revives a tombstoned row instead of duplicating it", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
 
-      await breakdownService.updateSceneBreakdown(
-        database: database,
-        sceneId: scene.id,
-        notes: const Value("Old notes"),
-      );
+      await breakdownService
+          .updateSceneBreakdown(
+            database: database,
+            sceneId: scene.id,
+            notes: const Value("Old notes"),
+          )
+          .okOrFail;
       final original = (await readSceneBreakdown(scene.id))!;
 
       await (database.update(database.ocptSceneBreakdownsTable)
             ..where((table) => table.id.equals(original.id)))
           .write(const OcptSceneBreakdownsTableCompanion(isDeleted: Value(true)));
 
-      await breakdownService.updateSceneBreakdown(
-        database: database,
-        sceneId: scene.id,
-        status: const Value(OcptBreakdownSceneStatus.done),
-      );
+      await breakdownService
+          .updateSceneBreakdown(
+            database: database,
+            sceneId: scene.id,
+            status: const Value(OcptBreakdownSceneStatus.done),
+          )
+          .okOrFail;
 
       final allRows = await database.select(database.ocptSceneBreakdownsTable).get();
       expect(allRows, hasLength(1));
@@ -741,225 +778,87 @@ Action three four.
         final houseText = fountainText.substring(houseScene.charStart, houseScene.charEnd);
         final roleId = await createRole();
 
-        final streetTagId = (await breakdownService.createTag(
-          database: database,
-          sceneId: streetScene.id,
-          startOffset: 0,
-          endOffset: 3,
-          taggedText: "Act",
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: roleId,
-        ))!;
+        final streetTagId = (await breakdownService
+            .createTag(
+              database: database,
+              sceneId: streetScene.id,
+              startOffset: 0,
+              endOffset: 3,
+              taggedText: "Act",
+              targetKind: OcptBreakdownTargetKind.role,
+              targetId: roleId,
+            )
+            .valueOrFail);
         final oneStart = houseText.indexOf("one");
-        final houseTagLateId = (await breakdownService.createTag(
-          database: database,
-          sceneId: houseScene.id,
-          startOffset: oneStart,
-          endOffset: oneStart + "one".length,
-          taggedText: "one",
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: roleId,
-        ))!;
-        final houseTagEarlyId = (await breakdownService.createTag(
-          database: database,
-          sceneId: houseScene.id,
-          startOffset: 0,
-          endOffset: 3,
-          taggedText: "INT",
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: roleId,
-        ))!;
+        final houseTagLateId = (await breakdownService
+            .createTag(
+              database: database,
+              sceneId: houseScene.id,
+              startOffset: oneStart,
+              endOffset: oneStart + "one".length,
+              taggedText: "one",
+              targetKind: OcptBreakdownTargetKind.role,
+              targetId: roleId,
+            )
+            .valueOrFail);
+        final houseTagEarlyId = (await breakdownService
+            .createTag(
+              database: database,
+              sceneId: houseScene.id,
+              startOffset: 0,
+              endOffset: 3,
+              taggedText: "INT",
+              targetKind: OcptBreakdownTargetKind.role,
+              targetId: roleId,
+            )
+            .valueOrFail);
         // A tombstoned tag must not appear in loadTags at all.
         final twoStart = houseText.indexOf("two");
-        final removedTagId = (await breakdownService.createTag(
-          database: database,
-          sceneId: houseScene.id,
-          startOffset: twoStart,
-          endOffset: twoStart + "two".length,
-          taggedText: "two",
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: roleId,
-        ))!;
-        await breakdownService.deleteTag(database: database, tagId: removedTagId);
+        final removedTagId = (await breakdownService
+            .createTag(
+              database: database,
+              sceneId: houseScene.id,
+              startOffset: twoStart,
+              endOffset: twoStart + "two".length,
+              taggedText: "two",
+              targetKind: OcptBreakdownTargetKind.role,
+              targetId: roleId,
+            )
+            .valueOrFail);
+        await breakdownService.deleteTag(database: database, tagId: removedTagId).okOrFail;
 
-        await breakdownService.updateSceneBreakdown(
-          database: database,
-          sceneId: streetScene.id,
-          status: const Value(OcptBreakdownSceneStatus.done),
-        );
-        await breakdownService.updateSceneBreakdown(
-          database: database,
-          sceneId: houseScene.id,
-          status: const Value(OcptBreakdownSceneStatus.inProgress),
-        );
+        await breakdownService
+            .updateSceneBreakdown(
+              database: database,
+              sceneId: streetScene.id,
+              status: const Value(OcptBreakdownSceneStatus.done),
+            )
+            .okOrFail;
+        await breakdownService
+            .updateSceneBreakdown(
+              database: database,
+              sceneId: houseScene.id,
+              status: const Value(OcptBreakdownSceneStatus.inProgress),
+            )
+            .okOrFail;
 
         // Tombstone the street scene directly, as a fresh reconciliation would.
         await (database.update(database.ocptScenesTable)
               ..where((table) => table.id.equals(streetScene.id)))
             .write(const OcptScenesTableCompanion(isDeleted: Value(true)));
 
-        final tags = await breakdownService.loadTags(
-          database: database,
-          screenplayId: screenplayId,
-        );
+        final tags = await breakdownService
+            .loadTags(database: database, screenplayId: screenplayId)
+            .valueOrFail;
         expect(tags.map((row) => row.id), [houseTagEarlyId, houseTagLateId]);
         expect(tags.any((row) => row.id == streetTagId), isFalse);
         expect(tags.any((row) => row.id == removedTagId), isFalse);
 
-        final sceneBreakdowns = await breakdownService.loadSceneBreakdowns(
-          database: database,
-          screenplayId: screenplayId,
-        );
+        final sceneBreakdowns = await breakdownService
+            .loadSceneBreakdowns(database: database, screenplayId: screenplayId)
+            .valueOrFail;
         expect(sceneBreakdowns.map((row) => row.sceneId), [houseScene.id]);
       },
     );
-  });
-
-  group("loadScenes", () {
-    test(
-      "loads every live scene in position order, joined with its scene_breakdowns row, tags left "
-      "empty",
-      () async {
-        await screenplayService.saveScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-          fountainText: '''
-INT. HOUSE - DAY
-
-Action one.
-
-EXT. STREET - NIGHT
-
-Action two.
-''',
-          snapshotReason: OcptSnapshotReason.manual,
-        );
-        final scenes = await readScenes();
-        final houseScene = scenes.firstWhere((row) => row.heading == "INT. HOUSE - DAY");
-        final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
-
-        await breakdownService.updateSceneBreakdown(
-          database: database,
-          sceneId: houseScene.id,
-          status: const Value(OcptBreakdownSceneStatus.done),
-          notes: const Value("Needs a period lamp"),
-        );
-        await breakdownService.createTag(
-          database: database,
-          sceneId: houseScene.id,
-          startOffset: 0,
-          endOffset: 3,
-          taggedText: "one",
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: await createRole(),
-        );
-
-        final loaded = await breakdownService.loadScenes(
-          database: database,
-          screenplayId: screenplayId,
-          episodeNumber: null,
-        );
-
-        expect(loaded.map((scene) => scene.id), [houseScene.id, streetScene.id]);
-
-        final loadedHouse = loaded.firstWhere((scene) => scene.id == houseScene.id);
-        expect(loadedHouse.status, OcptBreakdownSceneStatus.done);
-        expect(loadedHouse.notes, "Needs a period lamp");
-        // The tags are left for OcptBreakdownSnapshot.build to attach, not loaded here.
-        expect(loadedHouse.tags, isEmpty);
-
-        final loadedStreet = loaded.firstWhere((scene) => scene.id == streetScene.id);
-        expect(loadedStreet.status, OcptBreakdownSceneStatus.toDo);
-        expect(loadedStreet.notes, "");
-      },
-    );
-
-    test("filters out a tombstoned scene", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
-INT. HOUSE - DAY
-
-Action one.
-
-EXT. STREET - NIGHT
-
-Action two.
-''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      final scenes = await readScenes();
-      final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
-
-      await (database.update(database.ocptScenesTable)
-            ..where((table) => table.id.equals(streetScene.id)))
-          .write(const OcptScenesTableCompanion(isDeleted: Value(true)));
-
-      final loaded = await breakdownService.loadScenes(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
-
-      expect(loaded.any((scene) => scene.id == streetScene.id), isFalse);
-    });
-
-    test(
-      "filters out a tombstoned scene_breakdowns row, reading the scene as toDo again",
-      () async {
-        final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
-
-        await breakdownService.updateSceneBreakdown(
-          database: database,
-          sceneId: scene.id,
-          status: const Value(OcptBreakdownSceneStatus.done),
-        );
-        final breakdownRow = (await readSceneBreakdown(scene.id))!;
-        await (database.update(database.ocptSceneBreakdownsTable)
-              ..where((table) => table.id.equals(breakdownRow.id)))
-            .write(const OcptSceneBreakdownsTableCompanion(isDeleted: Value(true)));
-
-        final loaded = await breakdownService.loadScenes(
-          database: database,
-          screenplayId: screenplayId,
-          episodeNumber: null,
-        );
-
-        expect(loaded.single.status, OcptBreakdownSceneStatus.toDo);
-        expect(loaded.single.notes, "");
-      },
-    );
-
-    test("carries the given episode number onto every scene's displayNumber", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
-INT. HOUSE - DAY
-
-Action one.
-
-EXT. STREET - NIGHT
-
-Action two.
-''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-
-      final loadedWithoutEpisode = await breakdownService.loadScenes(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: null,
-      );
-      expect(loadedWithoutEpisode.map((scene) => scene.displayNumber), ["1", "2"]);
-
-      final loadedWithEpisode = await breakdownService.loadScenes(
-        database: database,
-        screenplayId: screenplayId,
-        episodeNumber: 2,
-      );
-      expect(loadedWithEpisode.map((scene) => scene.displayNumber), ["2.1", "2.2"]);
-    });
   });
 }

@@ -375,16 +375,16 @@ void main() {
     await waitForState(inspectorBloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
     await bloc.flushPendingFieldEdits();
 
-    final primaryScenes = await projectsManager.breakdownService.loadScenes(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      episodeNumber: null,
-    );
-    final secondEpisodeScenes = await projectsManager.breakdownService.loadScenes(
-      database: project.database,
-      screenplayId: secondEpisodeId,
-      episodeNumber: null,
-    );
+    final primaryScenes = await projectsManager.breakdownService
+        .loadScenes(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          episodeNumber: null,
+        )
+        .valueOrFail;
+    final secondEpisodeScenes = await projectsManager.breakdownService
+        .loadScenes(database: project.database, screenplayId: secondEpisodeId, episodeNumber: null)
+        .valueOrFail;
     expect(primaryScenes.single.notes, isEmpty);
     expect(secondEpisodeScenes.single.notes, "note");
 
@@ -410,15 +410,17 @@ void main() {
         .maybeValueOrFail;
     expect(elementId, isNotNull);
 
-    final tagId = await projectsManager.breakdownService.createTag(
-      database: project.database,
-      sceneId: sceneId,
-      startOffset: 2,
-      endOffset: 6,
-      taggedText: "lamp",
-      targetKind: OcptBreakdownTargetKind.element,
-      targetId: elementId!,
-    );
+    final tagId = await projectsManager.breakdownService
+        .createTag(
+          database: project.database,
+          sceneId: sceneId,
+          startOffset: 2,
+          endOffset: 6,
+          taggedText: "lamp",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId!,
+        )
+        .maybeValueOrFail;
     expect(tagId, isNotNull);
 
     final bloc = buildBloc();

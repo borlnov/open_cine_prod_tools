@@ -10,15 +10,6 @@
 /// holds, so the list only ever shrinks, and it ends empty. What stays as it is for good is in
 /// [permanentServiceExceptions], not here.
 const pendingServiceMethods = <String>{
-  'OcptBreakdownService.clearTagNeedsCheck',
-  'OcptBreakdownService.createElementAndTag',
-  'OcptBreakdownService.createSetAndTag',
-  'OcptBreakdownService.createTag',
-  'OcptBreakdownService.deleteTag',
-  'OcptBreakdownService.loadSceneBreakdowns',
-  'OcptBreakdownService.loadScenes',
-  'OcptBreakdownService.loadTags',
-  'OcptBreakdownService.updateSceneBreakdown',
   'OcptLocationsService.addAvailability',
   'OcptLocationsService.addLocationPhoto',
   'OcptLocationsService.assignSceneToSet',

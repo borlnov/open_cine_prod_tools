@@ -249,7 +249,7 @@ class OcptBreakdownTaggingBloc
 
     await modeBloc.flushAllPendingWrites();
 
-    final tagId = await _breakdownService.createTag(
+    final tagged = await _breakdownService.createTag(
       database: project.database,
       sceneId: range.sceneId,
       startOffset: range.startOffset,
@@ -258,8 +258,11 @@ class OcptBreakdownTaggingBloc
       targetKind: event.targetKind,
       targetId: event.targetId,
     );
+    if (tagged.isError) {
+      return;
+    }
 
-    if (tagId == null) {
+    if (tagged.value == null) {
       emitter(state.copyWithTagWriteError());
       return;
     }
@@ -295,7 +298,7 @@ class OcptBreakdownTaggingBloc
     await modeBloc.flushAllPendingWrites();
 
     final trimmedName = event.name.trim();
-    final result = await _breakdownService.createElementAndTag(
+    final created = await _breakdownService.createElementAndTag(
       database: project.database,
       sceneId: range.sceneId,
       startOffset: range.startOffset,
@@ -305,7 +308,11 @@ class OcptBreakdownTaggingBloc
       category: event.category,
       sourceKind: OcptElementSourceKind.owned,
     );
+    if (created.isError) {
+      return;
+    }
 
+    final result = created.value;
     if (result == null) {
       emitter(state.copyWithTagWriteError());
       return;
@@ -339,7 +346,7 @@ class OcptBreakdownTaggingBloc
     await modeBloc.flushAllPendingWrites();
 
     final trimmedName = event.name.trim();
-    final result = await _breakdownService.createSetAndTag(
+    final created = await _breakdownService.createSetAndTag(
       database: project.database,
       sceneId: range.sceneId,
       startOffset: range.startOffset,
@@ -348,7 +355,11 @@ class OcptBreakdownTaggingBloc
       name: trimmedName.isEmpty ? range.taggedText : trimmedName,
       locationId: event.locationId,
     );
+    if (created.isError) {
+      return;
+    }
 
+    final result = created.value;
     if (result == null) {
       emitter(state.copyWithTagWriteError());
       return;
@@ -417,7 +428,7 @@ class OcptBreakdownTaggingBloc
 
     await modeBloc.flushAllPendingWrites();
 
-    final tagId = await _breakdownService.createTag(
+    final tagged = await _breakdownService.createTag(
       database: project.database,
       sceneId: event.sceneId,
       startOffset: event.startOffset,
@@ -426,8 +437,11 @@ class OcptBreakdownTaggingBloc
       targetKind: event.targetKind,
       targetId: event.targetId,
     );
+    if (tagged.isError) {
+      return;
+    }
 
-    if (tagId == null) {
+    if (tagged.value == null) {
       emitter(state.copyWithTagWriteError());
       return;
     }

@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
@@ -105,18 +106,29 @@ void main() {
         )
         .maybeValueOrFail;
 
-    await projectsManager.breakdownService.createTag(
-      database: project.database,
-      sceneId: sceneId,
-      startOffset: 2,
-      endOffset: 6,
-      taggedText: "lamp",
-      targetKind: OcptBreakdownTargetKind.element,
-      targetId: elementId!,
-    );
+    await projectsManager.breakdownService
+        .createTag(
+          database: project.database,
+          sceneId: sceneId,
+          startOffset: 2,
+          endOffset: 6,
+          taggedText: "lamp",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId!,
+        )
+        .maybeValueOrFail;
 
     return (sceneId: sceneId, elementId: elementId);
   }
+
+  /// Reads the live scenes of the open project, with their breakdown rows.
+  Future<List<OcptBreakdownScene>> readScenes() => projectsManager.breakdownService
+      .loadScenes(
+        database: projectsManager.currentProject!.database,
+        screenplayId: projectsManager.currentProject!.primaryScreenplayId,
+        episodeNumber: null,
+      )
+      .valueOrFail;
 
   /// Builds the mode bloc wired to the test project.
   OcptBreakdownBloc buildBloc() => OcptBreakdownBloc(
@@ -587,11 +599,7 @@ void main() {
 
       expect(state.scenes.single.status, OcptBreakdownSceneStatus.done);
 
-      final scenes = await projectsManager.breakdownService.loadScenes(
-        database: projectsManager.currentProject!.database,
-        screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-        episodeNumber: null,
-      );
+      final scenes = await readScenes();
       expect(scenes.single.status, OcptBreakdownSceneStatus.done);
 
       await inspectorBloc.close();
@@ -620,11 +628,7 @@ void main() {
       await waitForState(inspectorBloc, (state) => state.pendingSceneNotesEdits.isEmpty);
       expect(bloc.state.scenes.single.notes, "Bring the lamp");
 
-      final scenes = await projectsManager.breakdownService.loadScenes(
-        database: projectsManager.currentProject!.database,
-        screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-        episodeNumber: null,
-      );
+      final scenes = await readScenes();
       expect(scenes.single.notes, "Bring the lamp");
 
       await inspectorBloc.close();
@@ -650,11 +654,7 @@ void main() {
     bloc.add(OcptBreakdownSceneSelectedEvent(sceneId: secondSceneId));
     await waitForState(inspectorBloc, (state) => state.pendingSceneNotesEdits.isEmpty);
 
-    final scenes = await projectsManager.breakdownService.loadScenes(
-      database: projectsManager.currentProject!.database,
-      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-      episodeNumber: null,
-    );
+    final scenes = await readScenes();
     expect(scenes.firstWhere((scene) => scene.id == firstSceneId).notes, "note one");
 
     await inspectorBloc.close();
@@ -674,11 +674,7 @@ void main() {
     bloc.add(const OcptBreakdownRightDockTabSelectedEvent(tab: OcptBreakdownRightDockTab.versions));
     await waitForState(inspectorBloc, (state) => state.pendingSceneNotesEdits.isEmpty);
 
-    final scenes = await projectsManager.breakdownService.loadScenes(
-      database: projectsManager.currentProject!.database,
-      screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-      episodeNumber: null,
-    );
+    final scenes = await readScenes();
     expect(scenes.single.notes, "note");
 
     await inspectorBloc.close();
@@ -701,11 +697,7 @@ void main() {
 
       await bloc.flushPendingFieldEdits();
 
-      final scenes = await projectsManager.breakdownService.loadScenes(
-        database: projectsManager.currentProject!.database,
-        screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-        episodeNumber: null,
-      );
+      final scenes = await readScenes();
       expect(scenes.single.notes, "handle with care");
 
       await inspectorBloc.close();
@@ -829,11 +821,7 @@ void main() {
 
       // The scene notes came after the element field in the write, which failed: they were never
       // written either.
-      final scenes = await projectsManager.breakdownService.loadScenes(
-        database: database,
-        screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-        episodeNumber: null,
-      );
+      final scenes = await readScenes();
       expect(scenes.single.notes, isEmpty);
 
       await inspectorBloc.close();
@@ -863,11 +851,7 @@ void main() {
         await database.customStatement("ALTER TABLE screenplays_gone RENAME TO screenplays");
       }
 
-      final scenes = await projectsManager.breakdownService.loadScenes(
-        database: database,
-        screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-        episodeNumber: null,
-      );
+      final scenes = await readScenes();
       expect(scenes.single.notes, "Bring the lamp");
 
       await inspectorBloc.close();
@@ -901,11 +885,7 @@ void main() {
       await bloc.close();
       await flushing;
 
-      final scenes = await projectsManager.breakdownService.loadScenes(
-        database: database,
-        screenplayId: projectsManager.currentProject!.primaryScreenplayId,
-        episodeNumber: null,
-      );
+      final scenes = await readScenes();
       expect(scenes.single.notes, "Bring the lamp");
       final writes = await database.customSelect("SELECT COUNT(*) AS n FROM write_log").getSingle();
       expect(writes.read<int>("n"), 1);

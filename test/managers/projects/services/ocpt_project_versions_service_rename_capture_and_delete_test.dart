@@ -302,52 +302,62 @@ void main() {
         name: "Kitchen",
       ))!;
 
-      final elementTagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene1.id,
-        startOffset: 0,
-        endOffset: 4,
-        taggedText: "desk",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId,
-      ))!;
-      final roleTagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene1.id,
-        startOffset: 20,
-        endOffset: 23,
-        taggedText: "LÉA",
-        targetKind: OcptBreakdownTargetKind.role,
-        targetId: roleId,
-      ))!;
-      await breakdownService.updateSceneBreakdown(
-        database: database,
-        sceneId: scene1.id,
-        status: const Value(OcptBreakdownSceneStatus.inProgress),
-        notes: const Value("Check the lamp cable colour"),
-      );
+      final elementTagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene1.id,
+            startOffset: 0,
+            endOffset: 4,
+            taggedText: "desk",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: elementId,
+          )
+          .valueOrFail);
+      final roleTagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene1.id,
+            startOffset: 20,
+            endOffset: 23,
+            taggedText: "LÉA",
+            targetKind: OcptBreakdownTargetKind.role,
+            targetId: roleId,
+          )
+          .valueOrFail);
+      await breakdownService
+          .updateSceneBreakdown(
+            database: database,
+            sceneId: scene1.id,
+            status: const Value(OcptBreakdownSceneStatus.inProgress),
+            notes: const Value("Check the lamp cable colour"),
+          )
+          .okOrFail;
       final sceneBreakdownId = (await readSceneBreakdown(scene1.id))!.id;
 
       final versionA = await createVersion(name: "v1 — First pass");
 
       // Diverge from A: a tag is added, another is removed, the scene is marked done, and the
       // element is secured.
-      final addedTagId = (await breakdownService.createTag(
-        database: database,
-        sceneId: scene2.id,
-        startOffset: 0,
-        endOffset: 4,
-        taggedText: "Rain",
-        targetKind: OcptBreakdownTargetKind.set,
-        targetId: setId,
-      ))!;
-      await breakdownService.deleteTag(database: database, tagId: roleTagId);
-      await breakdownService.updateSceneBreakdown(
-        database: database,
-        sceneId: scene1.id,
-        status: const Value(OcptBreakdownSceneStatus.done),
-        notes: const Value("All set"),
-      );
+      final addedTagId = (await breakdownService
+          .createTag(
+            database: database,
+            sceneId: scene2.id,
+            startOffset: 0,
+            endOffset: 4,
+            taggedText: "Rain",
+            targetKind: OcptBreakdownTargetKind.set,
+            targetId: setId,
+          )
+          .valueOrFail);
+      await breakdownService.deleteTag(database: database, tagId: roleTagId).okOrFail;
+      await breakdownService
+          .updateSceneBreakdown(
+            database: database,
+            sceneId: scene1.id,
+            status: const Value(OcptBreakdownSceneStatus.done),
+            notes: const Value("All set"),
+          )
+          .okOrFail;
       await (database.update(database.ocptElementsTable)
             ..where((table) => table.id.equals(elementId)))
           .write(const OcptElementsTableCompanion(status: Value(OcptElementStatus.confirmed)));

@@ -96,15 +96,17 @@ void main() {
         )
         .maybeValueOrFail;
 
-    await projectsManager.breakdownService.createTag(
-      database: project.database,
-      sceneId: sceneId,
-      startOffset: 2,
-      endOffset: 6,
-      taggedText: "lamp",
-      targetKind: OcptBreakdownTargetKind.element,
-      targetId: elementId!,
-    );
+    await projectsManager.breakdownService
+        .createTag(
+          database: project.database,
+          sceneId: sceneId,
+          startOffset: 2,
+          endOffset: 6,
+          taggedText: "lamp",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: elementId!,
+        )
+        .maybeValueOrFail;
 
     return (sceneId: sceneId, elementId: elementId);
   }
@@ -359,15 +361,17 @@ void main() {
           )
           .maybeValueOrFail;
       // A live tag over "lamp" (20, 24) already exists.
-      await projectsManager.breakdownService.createTag(
-        database: project.database,
-        sceneId: sceneId,
-        startOffset: 20,
-        endOffset: 24,
-        taggedText: "lamp",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId!,
-      );
+      await projectsManager.breakdownService
+          .createTag(
+            database: project.database,
+            sceneId: sceneId,
+            startOffset: 20,
+            endOffset: 24,
+            taggedText: "lamp",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: elementId!,
+          )
+          .maybeValueOrFail;
 
       final bloc = buildBloc();
       final taggingBloc = buildTagging(bloc);
@@ -601,15 +605,17 @@ void main() {
       );
       final sceneAText = screenplayText.substring(sceneA.charStart, sceneA.charEnd);
       final taggedStart = sceneAText.indexOf("lamp");
-      final tagId = await projectsManager.breakdownService.createTag(
-        database: project.database,
-        sceneId: sceneA.id,
-        startOffset: taggedStart,
-        endOffset: taggedStart + "lamp".length,
-        taggedText: "lamp",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId!,
-      );
+      final tagId = await projectsManager.breakdownService
+          .createTag(
+            database: project.database,
+            sceneId: sceneA.id,
+            startOffset: taggedStart,
+            endOffset: taggedStart + "lamp".length,
+            taggedText: "lamp",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: elementId!,
+          )
+          .maybeValueOrFail;
       expect(tagId, isNotNull);
 
       final bloc = buildBloc();

@@ -551,21 +551,25 @@ void main() {
             sourceKind: OcptElementSourceKind.owned,
           )
           .valueOrFail);
-      await breakdownService.createTag(
-        database: database,
-        sceneId: "scene-1",
-        startOffset: 0,
-        endOffset: 4,
-        taggedText: "desk",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId,
-      );
-      await breakdownService.updateSceneBreakdown(
-        database: database,
-        sceneId: "scene-1",
-        status: const Value(OcptBreakdownSceneStatus.inProgress),
-        notes: const Value("Check the lamp"),
-      );
+      await breakdownService
+          .createTag(
+            database: database,
+            sceneId: "scene-1",
+            startOffset: 0,
+            endOffset: 4,
+            taggedText: "desk",
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: elementId,
+          )
+          .maybeValueOrFail;
+      await breakdownService
+          .updateSceneBreakdown(
+            database: database,
+            sceneId: "scene-1",
+            status: const Value(OcptBreakdownSceneStatus.inProgress),
+            notes: const Value("Check the lamp"),
+          )
+          .okOrFail;
 
       final payload = await readPayload((await createVersion()).id);
 

@@ -375,22 +375,26 @@ void main() {
         ))!;
 
         // A breakdown tag of the deleted episode's scene, pointing at the role speaking only there.
-        final tagId = (await breakdownService.createTag(
-          database: database,
-          sceneId: scene.id,
-          startOffset: 0,
-          endOffset: 4,
-          taggedText: "JOHN",
-          targetKind: OcptBreakdownTargetKind.role,
-          targetId: johnRole.id,
-        ))!;
+        final tagId = (await breakdownService
+            .createTag(
+              database: database,
+              sceneId: scene.id,
+              startOffset: 0,
+              endOffset: 4,
+              taggedText: "JOHN",
+              targetKind: OcptBreakdownTargetKind.role,
+              targetId: johnRole.id,
+            )
+            .valueOrFail);
 
         // A scene breakdown status on the deleted episode's scene.
-        await breakdownService.updateSceneBreakdown(
-          database: database,
-          sceneId: scene.id,
-          status: const Value(OcptBreakdownSceneStatus.done),
-        );
+        await breakdownService
+            .updateSceneBreakdown(
+              database: database,
+              sceneId: scene.id,
+              status: const Value(OcptBreakdownSceneStatus.done),
+            )
+            .okOrFail;
 
         // A scene_elements link and a scene_sets link on the deleted episode's scene, neither one
         // created through a tag — the plain links the resources mode itself writes.

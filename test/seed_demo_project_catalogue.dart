@@ -320,15 +320,17 @@ Future<void> seedBreakdown({
     final startOffset = sceneText.indexOf(text);
     expect(startOffset, isNonNegative, reason: "'$text' is in scene ${sceneIndex + 1}");
 
-    await breakdownService.createTag(
-      database: database,
-      sceneId: row.id,
-      startOffset: startOffset,
-      endOffset: startOffset + text.length,
-      taggedText: text,
-      targetKind: targetKind,
-      targetId: targetId,
-    );
+    await breakdownService
+        .createTag(
+          database: database,
+          sceneId: row.id,
+          startOffset: startOffset,
+          endOffset: startOffset + text.length,
+          taggedText: text,
+          targetKind: targetKind,
+          targetId: targetId,
+        )
+        .maybeValueOrFail;
   }
 
   await tag(0, "HARBOUR CAFE", OcptBreakdownTargetKind.set, cafeSetId);
@@ -359,10 +361,8 @@ Future<void> seedBreakdown({
     OcptBreakdownSceneStatus.inProgress,
     OcptBreakdownSceneStatus.toDo,
   ].indexed) {
-    await breakdownService.updateSceneBreakdown(
-      database: database,
-      sceneId: sceneIds[index],
-      status: Value(status),
-    );
+    await breakdownService
+        .updateSceneBreakdown(database: database, sceneId: sceneIds[index], status: Value(status))
+        .okOrFail;
   }
 }

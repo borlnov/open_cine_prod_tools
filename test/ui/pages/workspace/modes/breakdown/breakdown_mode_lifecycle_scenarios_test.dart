@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_working_copy_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'breakdown_mode_scenarios_test_doubles.dart';
 
 /// How long a scenario waits, in real time, for the working copy capture throttle to let go.
@@ -323,11 +324,13 @@ void main() {
 
     // Written after the version was captured, so the preview cannot show it.
     final scenes = await harness.readScenes();
-    await harness.projectsManager.breakdownService.updateSceneBreakdown(
-      database: harness.database,
-      sceneId: scenes.first.id,
-      status: const Value(OcptBreakdownSceneStatus.done),
-    );
+    await harness.projectsManager.breakdownService
+        .updateSceneBreakdown(
+          database: harness.database,
+          sceneId: scenes.first.id,
+          status: const Value(OcptBreakdownSceneStatus.done),
+        )
+        .okOrFail;
     await harness.seedTag(
       sceneIndex: 0,
       text: "table",
@@ -419,11 +422,13 @@ void main() {
     await previewFirstVersion(tester);
 
     // The working copy file holds it already, though the debounce never ran out.
-    final stored = await harness.projectsManager.breakdownService.loadScenes(
-      database: harness.projectsManager.currentProject!.fileDatabase,
-      screenplayId: harness.screenplayId,
-      episodeNumber: null,
-    );
+    final stored = await harness.projectsManager.breakdownService
+        .loadScenes(
+          database: harness.projectsManager.currentProject!.fileDatabase,
+          screenplayId: harness.screenplayId,
+          episodeNumber: null,
+        )
+        .valueOrFail;
     expect(stored.first.notes, "Ladder");
 
     // The preview shows the version, which never had it.
