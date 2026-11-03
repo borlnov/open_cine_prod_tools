@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_manua
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scanner_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_status_overlay.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_readout_chip.dart';
 
 /// The maximum width of the page's own column, matching the Partager screen's own ①/② forms.
 const _maxContentWidth = 560.0;
@@ -76,7 +77,7 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
           leading: BackButton(onPressed: () => globalGetIt().get<OcptRouterManager>().pop()),
           title: Text(tr.joiningPageTitle),
           actions: [
-            _OcptJoiningChip(
+            OcptReadoutChip(
               label: tr.joiningNoLocalCopyChip,
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -171,38 +172,6 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
     if (_lastSubmissionFromScanner) {
       setState(() => _scanStatus = OcptJoiningScanStatus.error);
     }
-  }
-}
-
-/// A small read-out pill, tinted with [color] — the Rejoindre screen's own top-bar chip ("No local
-/// copy yet"), on the exact model of `OcptSharingChip`. Kept private to this page rather than
-/// shared with the sharing page's own widget of the same shape: each page owns its own widgets.
-class _OcptJoiningChip extends StatelessWidget {
-  /// The text shown inside the chip.
-  final String label;
-
-  /// The colour tinting both the chip's background wash and its own text.
-  final Color color;
-
-  /// Class constructor
-  const _OcptJoiningChip({required this.label, required this.color});
-
-  /// Build the joining chip as a [Container].
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w600),
-      ),
-    );
   }
 }
 

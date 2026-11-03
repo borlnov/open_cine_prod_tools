@@ -12,9 +12,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
-import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_chip.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_connection_row.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_invite_column.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_readout_chip.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 /// The side of the QR code drawn in the invite card.
@@ -156,7 +156,7 @@ class _OcptSharingInviteViewState extends State<OcptSharingInviteView> {
         const SizedBox(height: 16),
         Row(
           children: [
-            OcptSharingChip(label: tr.sharingStatusSyncedChip, color: theme.colorScheme.primary),
+            OcptReadoutChip(label: tr.sharingStatusSyncedChip, color: theme.colorScheme.primary),
             const Spacer(),
             OutlinedButton(
               onPressed: widget.onUnshareRequested,

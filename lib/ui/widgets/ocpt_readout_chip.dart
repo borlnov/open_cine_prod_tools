@@ -5,10 +5,10 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
-/// A small read-out pill, tinted with [color] — the sharing page's own top-bar chips (`① Configure`
-/// / `② Invite`, `Not paired` / `In sync`), on the exact model of `OcptShotStatusPill`: a read-out,
-/// never a control.
-class OcptSharingChip extends StatelessWidget {
+/// A small read-out pill, tinted with [color] — the top-bar chips of the sharing page (`① Configure`
+/// / `② Invite`, `Not paired` / `In sync`), of the repointing page and of the joining page (`No
+/// local copy yet`), on the exact model of `OcptShotStatusPill`: a read-out, never a control.
+class OcptReadoutChip extends StatelessWidget {
   /// The text shown inside the chip.
   final String label;
 
@@ -16,9 +16,9 @@ class OcptSharingChip extends StatelessWidget {
   final Color color;
 
   /// Class constructor
-  const OcptSharingChip({required this.label, required this.color, super.key});
+  const OcptReadoutChip({required this.label, required this.color, super.key});
 
-  /// Build the sharing chip as a [Container].
+  /// Build the read-out chip as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

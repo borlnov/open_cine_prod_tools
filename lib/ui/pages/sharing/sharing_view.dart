@@ -18,10 +18,10 @@ import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_hosting_panel.dart';
-import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_chip.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_configure_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_invite_view.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_readout_chip.dart';
 
 /// The Partager screen's own segments — the [SegmentedButton] at the top of its body.
 enum _OcptSharingSegment {
@@ -74,12 +74,12 @@ class OcptSharingView extends StatelessWidget {
           leading: BackButton(onPressed: () => globalGetIt().get<OcptRouterManager>().pop()),
           title: Text(tr.sharingPageTitle(state.projectName)),
           actions: [
-            OcptSharingChip(
+            OcptReadoutChip(
               label: isPaired ? tr.sharingStepInviteChip : tr.sharingStepConfigureChip,
               color: theme.colorScheme.primary,
             ),
             const SizedBox(width: 8),
-            OcptSharingChip(
+            OcptReadoutChip(
               label: isPaired ? tr.sharingStatusSyncedChip : tr.sharingStatusUnpairedChip,
               color: isPaired ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
             ),

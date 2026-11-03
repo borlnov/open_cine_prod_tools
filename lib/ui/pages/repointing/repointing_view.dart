@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/widgets/ocpt_repointing_configure_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/widgets/ocpt_repointing_qr_view.dart';
-import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_chip.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_readout_chip.dart';
 
 /// The content of `OcptRepointingPage`, separated from it so `OcptRepointingPage` only wires the
 /// [OcptRepointingBloc] up.
@@ -42,7 +42,7 @@ class OcptRepointingView extends StatelessWidget {
           leading: BackButton(onPressed: () => globalGetIt().get<OcptRouterManager>().pop()),
           title: Text(tr.repointingPageTitle(state.projectName)),
           actions: [
-            OcptSharingChip(
+            OcptReadoutChip(
               label: isDone ? tr.repointingStepQrChip : tr.repointingStepConfigureChip,
               color: theme.colorScheme.primary,
             ),
