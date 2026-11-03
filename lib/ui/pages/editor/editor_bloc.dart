@@ -882,8 +882,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   ///
   /// Cancels the debounce timers and flushes any pending unsaved change with a best-effort save,
   /// so leaving the page right after typing never loses the last edits. The flush bypasses the
-  /// event queue (the bloc is closing), and a failure here is only logged: the page is already
-  /// gone, so there is no UI left to surface it to (the service has logged it).
+  /// event queue (the bloc is closing), and a failure here goes no further than the service's
+  /// log line: the page is already gone, so there is no UI left to surface it to.
   @override
   Future<void> disposeLifeCycle() async {
     _isDisposing = true;

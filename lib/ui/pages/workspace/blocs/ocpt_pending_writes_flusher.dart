@@ -28,9 +28,9 @@ abstract interface class OcptPendingWritesFlusher {
   Future<OcptPendingWritesStatus> flushPendingWrites();
 
   /// Write whatever this holds **without touching any state**, for the moments no handler can
-  /// emit from: a widget leaving the tree, a bloc closing. A failure is only logged. Both moments
-  /// can come one after the other, or overlap, for the same edit (the second starts while the
-  /// first write is still running), so an implementation must not write it a second time: see
-  /// `AbsOcptViewBloc.flushEditsWithoutState`.
+  /// emit from: a widget leaving the tree, a bloc closing. A failure is logged by the service that
+  /// failed and goes no further. Both moments can come one after the other, or overlap, for the
+  /// same edit (the second starts while the first write is still running), so an implementation
+  /// must not write it a second time: see `AbsOcptViewBloc.flushEditsWithoutState`.
   Future<void> flushPendingWritesWithoutState();
 }

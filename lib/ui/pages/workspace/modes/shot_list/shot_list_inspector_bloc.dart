@@ -794,8 +794,8 @@ class OcptShotListInspectorBloc
   /// Write a scenario coverage change through [action], have the mode read the shot list again so
   /// every dependent aggregate (the `modified` badge, the "also covered by" wash, a shot's
   /// `needsCheck`) reflects what the database now says, and clear the pending coverage anchor — a
-  /// coverage write always leaves the interaction back at its initial, no-anchor state. Mirrors
-  /// `_onShotDifficultyChanged`/`_onShotCharacterToggled`'s own try/catch shape.
+  /// coverage write always leaves the interaction back at its initial, no-anchor state. Reads the
+  /// answer of [action] as `_onShotDifficultyChanged` and `_onShotCharacterToggled` read theirs.
   ///
   /// A failed outcome of [action] reads nothing again and raises the coverage write error.
   Future<void> _writeCoverageChange({
