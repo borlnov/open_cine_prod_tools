@@ -260,27 +260,6 @@ abstract class AbsOcptViewBloc<
   Future<OcptDatabaseOutcome> flushEditsWithoutState<K, V>(
     Map<K, V> pending,
     Future<OcptDatabaseOutcome> Function(Map<K, V> edits) write,
-  ) => _flushEdits<K, V, OcptDatabaseOutcome>(pending, write);
-
-  /// Do what [flushEditsWithoutState] does for a view whose write has not moved to an
-  /// [OcptDatabaseOutcome] yet and still answers nothing or raises.
-  ///
-  /// Transitional: it exists only until the last view is converted, and goes away with it. A view
-  /// that moves to [OcptDatabaseOutcome] switches to [flushEditsWithoutState], which the compiler
-  /// then makes it read the answer of. A failure raised by [write] is forgotten and rethrown,
-  /// as before.
-  @protected
-  Future<OcptDatabaseOutcome> flushEditsWithoutStateUntilConverted<K, V, R>(
-    Map<K, V> pending,
-    Future<R> Function(Map<K, V> edits) write,
-  ) => _flushEdits<K, V, R>(pending, write);
-
-  /// Write the entries of [pending] that were not written yet through [write], see
-  /// [flushEditsWithoutState].
-  @useResult
-  Future<OcptDatabaseOutcome> _flushEdits<K, V, R>(
-    Map<K, V> pending,
-    Future<R> Function(Map<K, V> edits) write,
   ) async {
     while (_writeWithoutStateInFlight != null) {
       try {
@@ -311,12 +290,12 @@ abstract class AbsOcptViewBloc<
     }
 
     _editsWrittenWithoutState.addAll(unwritten);
-    final writing = Future<R>.sync(() => write(unwritten));
+    final writing = Future<OcptDatabaseOutcome>.sync(() => write(unwritten));
     _writeWithoutStateInFlight = writing;
     var outcome = const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     try {
       final answer = await writing;
-      if (answer is OcptDatabaseOutcome && answer.isError) {
+      if (answer.isError) {
         forgetUnwritten();
         outcome = answer;
       }

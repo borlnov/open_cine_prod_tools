@@ -322,7 +322,7 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   @override
   Future<void> flushPendingWritesWithoutState() async {
     if (state.pending.isNotEmpty) {
-      await flushEditsWithoutStateUntilConverted({"text": state.pending}, (edits) async {
+      final _ = await flushEditsWithoutState({"text": state.pending}, (edits) async {
         final fails = failsToWriteWithoutState;
         final answersFailure = answersFailureWithoutState;
         await writeGate?.future;
@@ -333,7 +333,7 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
           return const OcptDatabaseOutcome(status: OcptDatabaseStatus.databaseError);
         }
         sink.add("${edits["text"]} (without state)");
-        return null;
+        return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
       });
     }
   }

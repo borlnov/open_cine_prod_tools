@@ -11,11 +11,7 @@ import 'service_result_rules.dart';
 
 /// The members of `lib/ui` that answer a result and are not marked `@useResult` on purpose, each
 /// with its reason.
-const _unmarkedResultMembers = {
-  "AbsOcptViewBloc.flushEditsWithoutStateUntilConverted":
-      "the views that still use it write a call that answers nothing, and ignore what it answers; "
-      "it goes with the last of them",
-};
+const _unmarkedResultMembers = <String, String>{};
 
 /// The helpers that carry a stop without declaring a result in their type: they answer whether the
 /// caller may go on, and a caller that drops the answer goes on after a failure.
