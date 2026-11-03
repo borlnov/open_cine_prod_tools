@@ -713,8 +713,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// [OcptProjectVersionsService.captureWorkingCopyState] does, or `ok` with no value if no project
   /// is open.
   ///
-  /// Also no value while a version is being previewed, for the same reason [createProjectVersion] is
-  /// refused by the bloc that calls it then: this reads [OcptOpenProjectModel.fileDatabase], the
+  /// Also no value while a version is being previewed, for the same reason [createProjectVersion]
+  /// is refused by the bloc that calls it then: this reads [OcptOpenProjectModel.fileDatabase], the
   /// project file underneath whatever the user is actually looking at, so a working-copy card built
   /// from it during a preview would describe a state that isn't on screen.
   ///
@@ -849,38 +849,14 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// Leave the read-only preview, putting the working copy back on screen. Does nothing if no
   /// project is open or if none is being previewed.
   ///
-  /// The model is re-emitted *before* the preview database is closed, so every mode has already
-  /// been told to read from the project file again by the time that connection goes. A preview
-  /// database that cannot be closed is answered as a failure, with the type of what failed as its
-  /// `extraInfo`: the working copy is on screen by then all the same.
+  /// The order of its steps and the failure of closing the preview are in
+  /// [OcptProjectPreviewOps.exitPreview].
   @useResult
-  Future<OcptDatabaseOutcome> exitPreview() async {
-    final project = currentProject;
-    if (project == null || !project.isReadOnly) {
-      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
-    }
-
-    final previewDatabase = project.database;
-    _currentProject.value = project.workingCopy;
-
-    try {
-      await previewDatabase.close();
-    } catch (error, stackTrace) {
-      _logger.e(
-        "The database of a project version's preview could not be closed: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      return OcptDatabaseOutcome(
-        status: OcptDatabaseStatus.databaseError,
-        extraInfo: error.runtimeType,
-      );
-    }
-
-    _logger.i("Left the preview of a project version");
-
-    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
-  }
+  Future<OcptDatabaseOutcome> exitPreview() => OcptProjectPreviewOps.exitPreview(
+    project: currentProject,
+    logger: _logger,
+    onLeft: (workingCopy) => _currentProject.value = workingCopy,
+  );
 
   /// Stat every file the project stored at [projectFilePath] references, without writing
   /// anything.
@@ -990,8 +966,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     _logger.i("The projects manager is being disposed");
     final closed = await closeCurrentProject();
     if (closed.isError) {
-      // Nothing after this runs, as when the close raised: the project is still open, and its
-      // database with it.
+      // The project is still open: nothing after this runs, as when the close raised.
       return;
     }
 

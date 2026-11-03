@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -19,9 +20,11 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
@@ -140,6 +143,16 @@ class _RefusingScreenplayService extends OcptScreenplayService {
 
     return super.loadEpisodes(database: database);
   }
+}
+
+/// A preview database that refuses to close.
+class _UncloseableDatabase extends OcptProjectDatabase {
+  /// Class constructor
+  _UncloseableDatabase() : super.memory(isPreview: true);
+
+  /// Refuse as a connection in a bad state does.
+  @override
+  Future<void> close() async => throw StateError("close refused");
 }
 
 /// The soft failures of the projects manager: each is logged and answered as a status.
@@ -269,6 +282,30 @@ void main() {
     expect(result.status, OcptProjectPreviewStatus.databaseError);
     expect(previewed, isFalse);
     expect(manager.currentProject, same(before));
+  });
+
+  test("leaving a preview whose database cannot be closed answers the failure", () async {
+    await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
+    final version = await manager.createProjectVersion(name: "v1", note: "").valueOrFail;
+    final previewing = manager.currentProject!.previewing(
+      previewDatabase: _UncloseableDatabase(),
+      version: version,
+      pageSetup: const OcptPageSetup(
+        format: OcptPageFormat.a4,
+        margins: FountainPageMargins.standard(),
+      ),
+    );
+    OcptOpenProjectModel? left;
+
+    final outcome = await OcptProjectPreviewOps.exitPreview(
+      project: previewing,
+      logger: buildOcptLogsHelper("test"),
+      onLeft: (workingCopy) => left = workingCopy,
+    );
+
+    expect(outcome.status, OcptDatabaseStatus.databaseError);
+    expect(outcome.extraInfo, StateError);
+    expect(left?.isReadOnly, isFalse, reason: "the working copy is on screen all the same");
   });
 
   group("a project whose episodes cannot be read", () {

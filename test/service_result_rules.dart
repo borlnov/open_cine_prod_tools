@@ -640,8 +640,7 @@ class CallFinder extends RecursiveAstVisitor<void> {
         final invocation = holder is ArgumentList ? holder.parent : null;
         isIn =
             invocation is MethodInvocation &&
-            (invocation.methodName.name == "guardResult" ||
-                invocation.methodName.name == "guardOutcome");
+            const {"guardResult", "guardOutcome"}.contains(invocation.methodName.name);
       }
       current = current.parent;
     }

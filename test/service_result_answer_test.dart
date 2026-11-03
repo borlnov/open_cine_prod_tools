@@ -48,6 +48,7 @@ const _stopCarriers = {
     "closeCurrentProject",
     "recordCurrentProjectEpisodeCount",
   },
+  "lib/managers/projects/ocpt_project_preview_ops.dart": {"exitPreview"},
   "lib/managers/projects/ocpt_project_episode_ops.dart": {
     "closeProject",
     "recordOpenProjectEpisodeCount",

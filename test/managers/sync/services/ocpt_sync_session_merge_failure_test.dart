@@ -44,12 +44,12 @@ class _PingableStorage extends OcptFolderRemoteStorage {
   /// The controller behind [newWorkStream].
   final StreamController<void> _controller = StreamController<void>.broadcast();
 
-  /// Class constructor
-  _PingableStorage(super.directory);
-
   /// Emit the pings the test adds.
   @override
   Stream<void> get newWorkStream => _controller.stream;
+
+  /// Class constructor
+  _PingableStorage(super.directory);
 
   /// Announce another replica's push.
   void pingNewWork() => _controller.add(null);

@@ -4,9 +4,11 @@
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 
@@ -144,5 +146,46 @@ abstract final class OcptProjectPreviewOps {
     logger.i("Previewing the project version $versionId");
 
     return ResultWithStatus(status: OcptProjectPreviewStatus.ok, value: previewedProject);
+  }
+
+  /// Leave the read-only preview of the `currentProject`, putting the working copy back on screen
+  /// through `onLeft`, and close the preview database. Does nothing if no project is open or if
+  /// none is being previewed.
+  ///
+  /// The model is re-emitted *before* the preview database is closed, so every mode has already
+  /// been told to read from the project file again by the time that connection goes. A preview
+  /// database that cannot be closed is answered as a failure, with the type of what failed as its
+  /// `extraInfo`: the working copy is on screen by then all the same.
+  @useResult
+  static Future<OcptDatabaseOutcome> exitPreview({
+    required OcptOpenProjectModel? project,
+    required LogsHelper logger,
+    required void Function(OcptOpenProjectModel workingCopy) onLeft,
+  }) async {
+    if (project == null || !project.isReadOnly) {
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
+    }
+
+    final previewDatabase = project.database;
+    onLeft(project.workingCopy);
+
+    OcptDatabaseOutcome outcome;
+    try {
+      await previewDatabase.close();
+      logger.i("Left the preview of a project version");
+      outcome = const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
+    } catch (error, stackTrace) {
+      logger.e(
+        "The database of a project version's preview could not be closed: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      outcome = OcptDatabaseOutcome(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: error.runtimeType,
+      );
+    }
+
+    return outcome;
   }
 }
