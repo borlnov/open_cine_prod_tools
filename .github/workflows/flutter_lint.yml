@@ -47,7 +47,9 @@ jobs:
   checks:
     name: Checks (${{ matrix.package.name }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The app's suite alone takes over twenty minutes on a hosted runner, its real-failure tests
+    # included.
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
