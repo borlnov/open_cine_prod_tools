@@ -129,12 +129,14 @@ void main() {
   /// has the mode read the catalogue again so it holds it. Selects nothing.
   Future<String> seedRole(OcptResourcesBloc bloc) async {
     final project = projectsManager.currentProject!;
-    final roleId = await projectsManager.roleIndexService.addRole(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      name: "",
-      kind: OcptRoleKind.silent,
-    );
+    final roleId = await projectsManager.roleIndexService
+        .addRole(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          name: "",
+          kind: OcptRoleKind.silent,
+        )
+        .maybeValueOrFail;
     await bloc.reload({OcptResourcesReloadScope.snapshot});
 
     return roleId!;

@@ -133,12 +133,14 @@ void main() {
     final scene = await (database.select(
       database.ocptScenesTable,
     )..where((row) => row.isDeleted.equals(false))).getSingle();
-    final roleId = (await roleIndexService.addRole(
-      database: database,
-      screenplayId: screenplayId,
-      name: "CLARA",
-      kind: OcptRoleKind.silent,
-    ))!;
+    final roleId = (await roleIndexService
+        .addRole(
+          database: database,
+          screenplayId: screenplayId,
+          name: "CLARA",
+          kind: OcptRoleKind.silent,
+        )
+        .valueOrFail);
     Future<String> element(String name) => elementsService
         .createElement(
           database: database,

@@ -257,12 +257,14 @@ void main() {
     Future<(String slotId, String roleCandidateId)> seedCastingDay() async {
       final project = projectsManager.currentProject!;
 
-      final roleId = await projectsManager.roleIndexService.addRole(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        name: "MARIE",
-        kind: OcptRoleKind.silent,
-      );
+      final roleId = await projectsManager.roleIndexService
+          .addRole(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            name: "MARIE",
+            kind: OcptRoleKind.silent,
+          )
+          .maybeValueOrFail;
       final personId = await projectsManager.peopleService.createPerson(database: project.database);
       await projectsManager.peopleService.updatePerson(
         database: project.database,

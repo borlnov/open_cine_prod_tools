@@ -286,12 +286,14 @@ void main() {
             sourceKind: OcptElementSourceKind.owned,
           )
           .valueOrFail);
-      final roleId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "LÉA",
-        kind: OcptRoleKind.silent,
-      ))!;
+      final roleId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "LÉA",
+            kind: OcptRoleKind.silent,
+          )
+          .valueOrFail);
       final locationId = (await locationsService.createLocation(
         database: database,
         name: "House",

@@ -509,12 +509,14 @@ Action.
 
   group("resolveOrCreateRoleId", () {
     test("resolves to a live role already named that way, normalised", () async {
-      final roleId = await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "CLARA",
-        kind: OcptRoleKind.silent,
-      );
+      final roleId = await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "CLARA",
+            kind: OcptRoleKind.silent,
+          )
+          .maybeValueOrFail;
 
       final resolved = await shotListService.resolveOrCreateRoleId(
         database: database,
@@ -532,7 +534,7 @@ Action.
         name: "Nouveau",
       );
 
-      final role = (await roleIndexService.loadRoles(database: database)).single;
+      final role = (await roleIndexService.loadRoles(database: database).valueOrFail).single;
       expect(role.id, roleId);
       expect(role.name, "NOUVEAU");
       expect(role.kind, OcptRoleKind.silent);

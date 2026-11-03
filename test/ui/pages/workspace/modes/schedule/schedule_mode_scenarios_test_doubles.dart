@@ -403,12 +403,14 @@ class ScheduleScenarioHarness {
 
   /// Creates a silent role called [name] with nobody cast on it, returning the id.
   Future<String> seedUncastRole(String name) async {
-    final id = await projectsManager.roleIndexService.addRole(
-      database: database,
-      screenplayId: screenplayId,
-      name: name,
-      kind: OcptRoleKind.silent,
-    );
+    final id = await projectsManager.roleIndexService
+        .addRole(
+          database: database,
+          screenplayId: screenplayId,
+          name: name,
+          kind: OcptRoleKind.silent,
+        )
+        .maybeValueOrFail;
     return id!;
   }
 

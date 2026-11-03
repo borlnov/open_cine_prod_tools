@@ -89,14 +89,16 @@ Future<Map<String, String>> seedCast({
   // ------------------------------------------------------------------------------------ the
   // cast, reconciled from the screenplay's own speaking characters
 
-  final roles = await roleIndexService.loadRoles(database: database);
+  final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
   final roleIdByName = {for (final role in roles) role.name: role.id};
   for (final entry in actorIds.entries) {
-    await roleIndexService.updateRole(
-      database: database,
-      roleId: roleIdByName[entry.key]!,
-      personId: Value(entry.value),
-    );
+    await roleIndexService
+        .updateRole(
+          database: database,
+          roleId: roleIdByName[entry.key]!,
+          personId: Value(entry.value),
+        )
+        .okOrFail;
   }
 
   return roleIdByName;

@@ -297,9 +297,11 @@ void main() {
     tester,
   ) async {
     final shotIds = await harness.seedShots(1);
-    final role = (await harness.projectsManager.roleIndexService.loadRoles(
-      database: harness.database,
-    )).firstWhere((role) => role.name == "SAM");
+    final role =
+        (await harness.projectsManager.roleIndexService
+                .loadRoles(database: harness.database)
+                .valueOrFail)
+            .firstWhere((role) => role.name == "SAM");
     await harness.projectsManager.shotListService.attachCharacter(
       database: harness.database,
       shotId: shotIds.single,

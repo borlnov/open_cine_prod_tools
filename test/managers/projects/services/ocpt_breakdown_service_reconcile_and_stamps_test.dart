@@ -172,7 +172,7 @@ void main() {
         name: "LÉA",
         kind: OcptRoleKind.silent,
       )
-      .then((id) => id!);
+      .valueOrFail;
 
   /// Creates a location and a set inside it, returning the set's id.
   Future<String> createSet() async {

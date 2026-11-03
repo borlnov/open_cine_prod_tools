@@ -518,12 +518,14 @@ void main() {
       final setId = await createCase(bloc);
       final project = projectsManager.currentProject!;
 
-      await projectsManager.roleIndexService.addRole(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        name: "NEWCOMER",
-        kind: OcptRoleKind.silent,
-      );
+      await projectsManager.roleIndexService
+          .addRole(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            name: "NEWCOMER",
+            kind: OcptRoleKind.silent,
+          )
+          .maybeValueOrFail;
       await projectsManager.floorPlanService
           .placeSymbol(
             database: project.database,

@@ -305,7 +305,7 @@ class ResourcesScenarioHarness {
 
   /// Reads the cast back from the database.
   Future<List<OcptRole>> readRoles() =>
-      projectsManager.roleIndexService.loadRoles(database: database);
+      projectsManager.roleIndexService.loadRoles(database: database).valueOrFail;
 
   /// Reads the locations, with their sets, back from the database.
   Future<List<OcptLocation>> readLocations() =>
@@ -336,12 +336,14 @@ class ResourcesScenarioHarness {
 
   /// Creates a hand-added silent role called [name], returning the id.
   Future<String> seedRole(String name) async {
-    final id = await projectsManager.roleIndexService.addRole(
-      database: database,
-      screenplayId: screenplayId,
-      name: name,
-      kind: OcptRoleKind.silent,
-    );
+    final id = await projectsManager.roleIndexService
+        .addRole(
+          database: database,
+          screenplayId: screenplayId,
+          name: name,
+          kind: OcptRoleKind.silent,
+        )
+        .maybeValueOrFail;
     return id!;
   }
 

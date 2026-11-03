@@ -381,7 +381,7 @@ class BreakdownScenarioHarness {
 
   /// Reads the cast back from the database.
   Future<List<OcptRole>> readRoles() =>
-      projectsManager.roleIndexService.loadRoles(database: database);
+      projectsManager.roleIndexService.loadRoles(database: database).valueOrFail;
 
   /// Reads the breakdown status of the scene at [sceneIndex] back from the database.
   Future<String> readSceneStatus(int sceneIndex) async =>
@@ -424,12 +424,14 @@ class BreakdownScenarioHarness {
 
   /// Creates a hand-added silent role called [name], returning the id.
   Future<String> seedRole(String name) async {
-    final id = await projectsManager.roleIndexService.addRole(
-      database: database,
-      screenplayId: screenplayId,
-      name: name,
-      kind: OcptRoleKind.silent,
-    );
+    final id = await projectsManager.roleIndexService
+        .addRole(
+          database: database,
+          screenplayId: screenplayId,
+          name: name,
+          kind: OcptRoleKind.silent,
+        )
+        .maybeValueOrFail;
     return id!;
   }
 

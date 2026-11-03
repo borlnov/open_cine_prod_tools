@@ -591,8 +591,8 @@ void main() {
   });
 
   group("when the breakdown cannot be read", () {
-    // The elements, the scenes' own breakdown rows and the tags are three separate reads.
-    for (final table in ["elements", "scene_breakdowns", "breakdown_tags"]) {
+    // The elements, the scenes' own breakdown rows, the tags and the cast are separate reads.
+    for (final table in ["elements", "scene_breakdowns", "breakdown_tags", "roles"]) {
       /// Make [table] unreadable.
       Future<void> lose() => projectsManager.currentProject!.database.customStatement(
         "ALTER TABLE $table RENAME TO ${table}_gone",

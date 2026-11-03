@@ -294,7 +294,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             isRead = !read.isError;
             setScopeSymbolsBySetId = read.value;
           case OcptShotListReloadScope.roles:
-            roles = await _reader.loadRoles(project);
+            final read = await _reader.loadRoles(project);
+            isRead = !read.isError;
+            roles = read.value;
         }
 
         if (!isRead) {
@@ -434,7 +436,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
       final setScopeSymbolsBySetId = setScopeSymbolsRead.value!;
       final screenplayCharacters = ocptScreenplayCharactersOf(screenplayText);
-      final roles = await _reader.loadRoles(project);
+      final rolesRead = await _reader.loadRoles(project);
+      if (rolesRead.isError) {
+        return false;
+      }
+
+      final roles = rolesRead.value!;
       final suggestions = await _reader.loadSuggestions(project);
 
       final revealRequest = state.pendingRevealRequest;

@@ -143,6 +143,55 @@ void main() {
     expect(mode.state.reloadEpoch, epoch);
   });
 
+  group("when the cast cannot be read", () {
+    /// Make the cast unreadable.
+    Future<void> loseTheCast() => projectsManager.currentProject!.database.customStatement(
+      "ALTER TABLE roles RENAME TO roles_gone",
+    );
+
+    test("the reader answers the failure of the cast", () async {
+      await buildMode();
+      await loseTheCast();
+      final reader = OcptShotListReader(
+        projectsManager: projectsManager,
+        propertiesManager: propertiesManager,
+        shotListService: projectsManager.shotListService,
+        roleIndexService: projectsManager.roleIndexService,
+        scheduleService: projectsManager.scheduleService,
+        storyboardService: projectsManager.storyboardService,
+        floorPlanService: projectsManager.floorPlanService,
+        locationsService: projectsManager.locationsService,
+        screenplayIdOf: (project) => project.primaryScreenplayId,
+      );
+
+      final read = await reader.loadRoles(projectsManager.currentProject!);
+
+      expect(read.status, OcptDatabaseStatus.databaseError);
+      expect(read.value, isNull);
+    });
+
+    test("a mode that cannot read it stays loading", () async {
+      await loseTheCast();
+
+      await buildMode(expectsLoaded: false);
+
+      expect(mode.state.isLoading, isTrue);
+    });
+
+    test("reading the cast again answers false and shows the write error", () async {
+      await buildMode();
+      final roles = mode.state.roles;
+      final epoch = mode.state.reloadEpoch;
+      await loseTheCast();
+
+      expect(await mode.reload({OcptShotListReloadScope.roles}), isFalse);
+
+      expect(mode.state.hasWriteError, isTrue);
+      expect(mode.state.roles, same(roles));
+      expect(mode.state.reloadEpoch, epoch);
+    });
+  });
+
   test("creating a shot shows the write error and selects nothing when the read fails", () async {
     await buildMode();
     final selectedShotId = mode.state.selectedShotId;

@@ -530,12 +530,14 @@ Action.
       final shotId = await insertShot();
       // A live role already exists for "Clara": attachCharacter resolves it rather than minting a
       // fresh one, so only the shot_characters row itself is stamped below, in isolation.
-      await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "CLARA",
-        kind: OcptRoleKind.silent,
-      );
+      await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "CLARA",
+            kind: OcptRoleKind.silent,
+          )
+          .maybeValueOrFail;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
       await shotListService.attachCharacter(

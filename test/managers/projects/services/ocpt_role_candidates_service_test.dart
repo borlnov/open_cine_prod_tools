@@ -448,11 +448,9 @@ void main() {
 
     test("a part cast by hand keeps its candidates, and they keep their hands off it", () async {
       // The role sheet's own picker, which writes `roles.personId` alone and touches no candidacy.
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: "role-1",
-        personId: const Value("person-1"),
-      );
+      await roleIndexService
+          .updateRole(database: database, roleId: "role-1", personId: const Value("person-1"))
+          .okOrFail;
 
       await candidatesService
           .setStatus(
@@ -510,7 +508,7 @@ void main() {
           .addCandidate(database: database, roleId: "role-1", personId: "person-1")
           .valueOrFail);
 
-      await roleIndexService.deleteRole(database: database, roleId: "role-1");
+      await roleIndexService.deleteRole(database: database, roleId: "role-1").okOrFail;
 
       expect((await readCandidate(candidateId)).isDeleted, isTrue);
       final person = await (database.select(

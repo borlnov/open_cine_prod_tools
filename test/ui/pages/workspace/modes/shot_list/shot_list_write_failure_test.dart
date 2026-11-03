@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
@@ -271,6 +272,59 @@ void main() {
     await waitUntil(() => inspector.state.hasWriteError);
 
     expect(inspector.state.hasWriteError, isTrue);
+  });
+
+  group("the shared role alert banner", () {
+    late String roleId;
+    late String otherRoleId;
+
+    setUp(() async {
+      final project = projectsManager.currentProject!;
+      Future<String> role(String name) => projectsManager.roleIndexService
+          .addRole(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            name: name,
+            kind: OcptRoleKind.silent,
+          )
+          .valueOrFail;
+      roleId = await role("PASSERBY");
+      otherRoleId = await role("DRIVER");
+      await project.database.customStatement(
+        "UPDATE roles SET is_from_screenplay = 1, orphaned_name = 'GHOST' WHERE id = '$roleId'",
+      );
+      await mode.reload({OcptShotListReloadScope.roles});
+    });
+
+    final cases =
+        <String, ({OcptShotListInspectorEvent Function(String role, String other) event})>{
+          "deleting an orphaned role": (
+            event: (role, other) => OcptShotListOrphanedRoleDeleteRequestedEvent(roleId: role),
+          ),
+          "keeping an orphaned role": (
+            event: (role, other) => OcptShotListOrphanedRoleKeptEvent(roleId: role),
+          ),
+          "merging a role": (
+            event: (role, other) =>
+                OcptShotListRoleMergeRequestedEvent(sourceRoleId: role, targetRoleId: other),
+          ),
+        };
+
+    for (final entry in cases.entries) {
+      test("${entry.key} raises the inspector's write error and reads nothing again", () async {
+        final held = mode.state;
+        await refuse("UPDATE", "roles");
+
+        inspector.add(entry.value.event(roleId, otherRoleId));
+        await waitUntil(() => inspector.state.hasWriteError);
+
+        expect(mode.state.reloadEpoch, held.reloadEpoch);
+        final live = await projectsManager.currentProject!.database
+            .customSelect("SELECT id FROM roles WHERE is_deleted = 0")
+            .get();
+        expect(live, hasLength(2), reason: "a role was removed");
+      });
+    }
   });
 
   test(

@@ -554,7 +554,6 @@ class OcptShotListInspectorBloc
     Emitter<OcptShotListInspectorState> emitter,
   ) => _writeRoleChange(
     emitter: emitter,
-    logContext: "delete role ${event.roleId}",
     action: (project) =>
         _roleIndexService.deleteRole(database: project.database, roleId: event.roleId),
   );
@@ -567,7 +566,6 @@ class OcptShotListInspectorBloc
     Emitter<OcptShotListInspectorState> emitter,
   ) => _writeRoleChange(
     emitter: emitter,
-    logContext: "keep orphaned role ${event.roleId} as silent",
     action: (project) => _roleIndexService.keepOrphanedRoleAsSilent(
       database: project.database,
       roleId: event.roleId,
@@ -582,7 +580,6 @@ class OcptShotListInspectorBloc
     Emitter<OcptShotListInspectorState> emitter,
   ) => _writeRoleChange(
     emitter: emitter,
-    logContext: "merge role ${event.sourceRoleId} into ${event.targetRoleId}",
     action: (project) => _roleIndexService.mergeRole(
       database: project.database,
       sourceRoleId: event.sourceRoleId,
@@ -590,33 +587,27 @@ class OcptShotListInspectorBloc
     ),
   );
 
-  /// Write a cast-wide role change through [action] and have the mode read both the shot list and
-  /// the whole cast again, so every view derived from either (the shared role alert banner, a
-  /// shot's own chips, the table's characters column) reflects what the database now says. Mirrors
-  /// [_writeCoverageChange]'s own try/catch shape, for the three actions the shared role alert
-  /// banner offers.
+  /// Write a cast-wide role change through [action], a service call that answers an outcome, and
+  /// have the mode read both the shot list and the whole cast again, so every view derived from
+  /// either (the shared role alert banner, a shot's own chips, the table's characters column)
+  /// reflects what the database now says. A failed outcome raises the write error and reads
+  /// nothing. Serves the three actions the shared role alert banner offers.
   Future<void> _writeRoleChange({
     required Emitter<OcptShotListInspectorState> emitter,
-    required String logContext,
-    required Future<void> Function(OcptOpenProjectModel project) action,
+    required Future<OcptDatabaseOutcome> Function(OcptOpenProjectModel project) action,
   }) async {
     final project = _projectsManager.currentProject;
     if (project == null) {
       return;
     }
 
-    try {
-      await action(project);
-      await modeBloc.reload({OcptShotListReloadScope.snapshot, OcptShotListReloadScope.roles});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to $logContext of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = await action(project);
+    if (written.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.snapshot, OcptShotListReloadScope.roles});
   }
 
   /// Resolve a click on a scenario coverage word, exactly as

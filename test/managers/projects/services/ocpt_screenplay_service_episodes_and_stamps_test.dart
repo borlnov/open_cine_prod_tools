@@ -335,7 +335,7 @@ void main() {
           database.ocptScenesTable,
         )..where((table) => table.screenplayId.equals(otherScreenplayId))).getSingle();
 
-        final roles = await roleIndexService.loadRoles(database: database);
+        final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
         final johnRole = roles.firstWhere((role) => role.name == "JOHN");
         final maryRole = roles.firstWhere((role) => role.name == "MARY");
 

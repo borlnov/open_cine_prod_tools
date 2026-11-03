@@ -3,11 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:meta/meta.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -53,12 +51,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 /// emptying what it holds ([onModeStateChanged]).
 class OcptResourcesRolesBloc
     extends AbsOcptViewBloc<OcptResourcesRolesState, OcptResourcesState, OcptResourcesBloc> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "resources_roles_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
@@ -78,8 +70,7 @@ class OcptResourcesRolesBloc
     OcptRoleIndexService? roleIndexService,
     OcptRoleCandidatesService? roleCandidatesService,
     Duration fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _roleIndexService =
            roleIndexService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleIndexService,
@@ -169,8 +160,13 @@ class OcptResourcesRolesBloc
 
     var isWritten = false;
     var hasFailed = false;
-    try {
-      await _writeAllPendingRoleFields(database: project.database, pending: pendingRoleEdits);
+    final rolesWritten = await _writeAllPendingRoleFields(
+      database: project.database,
+      pending: pendingRoleEdits,
+    );
+    if (rolesWritten.isError) {
+      hasFailed = true;
+    } else {
       final candidatesWritten = await _writeAllPendingCandidateFields(
         database: project.database,
         pending: pendingCandidateEdits,
@@ -180,14 +176,6 @@ class OcptResourcesRolesBloc
       } else {
         isWritten = true;
       }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      hasFailed = true;
     }
 
     if (hasFailed) {
@@ -238,7 +226,8 @@ class OcptResourcesRolesBloc
   ///
   /// Unlike [onFlushRequested], this never touches [state]: `emit` may only be called from inside
   /// a registered `on<Event>` handler, and by the time this runs the widget tree that would show a
-  /// fresh state is already gone anyway. A failure here is only logged.
+  /// fresh state is already gone anyway. A failure is logged by the service that failed, and
+  /// leaves the edits to be written again by the next flush.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     cancelDebounce();
@@ -254,23 +243,18 @@ class OcptResourcesRolesBloc
       return;
     }
 
-    try {
-      await flushEditsWithoutStateUntilConverted(
-        pendingRoleEdits,
-        (edits) => _writeAllPendingRoleFields(database: project.database, pending: edits),
-      );
-      final _ = await flushEditsWithoutState(
-        pendingCandidateEdits,
-        (edits) => _writeAllPendingCandidateFields(database: project.database, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final rolesFlushed = await flushEditsWithoutState(
+      pendingRoleEdits,
+      (edits) => _writeAllPendingRoleFields(database: project.database, pending: edits),
+    );
+    if (rolesFlushed.isError) {
+      return;
     }
+
+    final _ = await flushEditsWithoutState(
+      pendingCandidateEdits,
+      (edits) => _writeAllPendingCandidateFields(database: project.database, pending: edits),
+    );
   }
 
   /// Add a hand-added role of `event.kind` at the end of the cast, read the catalogue again and
@@ -290,30 +274,26 @@ class OcptResourcesRolesBloc
       return;
     }
 
-    try {
-      final roleId = await _roleIndexService.addRole(
-        database: project.database,
-        screenplayId: modeBloc.screenplayIdOf(project),
-        name: "",
-        kind: event.kind,
-      );
-      // The write was refused (a version is being previewed read-only); the shell already
-      // withholds the button that dispatches this event, so this is only ever a race.
-      if (roleId != null) {
-        if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-          await addToModeAndWait(
-            OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.roles, recordId: roleId),
-          );
-        }
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create a role in project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final created = await _roleIndexService.addRole(
+      database: project.database,
+      screenplayId: modeBloc.screenplayIdOf(project),
+      name: "",
+      kind: event.kind,
+    );
+    if (created.isError) {
       addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    // The write was refused (a version is being previewed read-only); the shell already
+    // withholds the button that dispatches this event, so this is only ever a race.
+    final roleId = created.value;
+    if (roleId != null) {
+      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+        await addToModeAndWait(
+          OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.roles, recordId: roleId),
+        );
+      }
     }
   }
 
@@ -361,24 +341,20 @@ class OcptResourcesRolesBloc
       cancelDebounce();
     }
 
-    try {
-      await _roleIndexService.deleteRole(database: project.database, roleId: event.roleId);
-      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        emitter(
-          state.copyWithRoleDeleted(pendingRoleFieldEdits: _pendingWithoutRole(event.roleId)),
-        );
-        await addToModeAndWait(
-          OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.roles, recordId: event.roleId),
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete role ${event.roleId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final deleted = await _roleIndexService.deleteRole(
+      database: project.database,
+      roleId: event.roleId,
+    );
+    if (deleted.isError) {
       addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+      emitter(state.copyWithRoleDeleted(pendingRoleFieldEdits: _pendingWithoutRole(event.roleId)));
+      await addToModeAndWait(
+        OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.roles, recordId: event.roleId),
+      );
     }
   }
 
@@ -445,37 +421,11 @@ class OcptResourcesRolesBloc
     emitter(state.copyWithFieldEditsCleared());
   }
 
-  /// Write a discrete change to the cast through [action] and have the mode read the catalogue
-  /// again, so every derived aggregate (the roles tab's pill and counts, the status bar) reflects
-  /// what the database now says. A no-op while no project is open; a failure raises the mode's
-  /// write error.
-  Future<void> _writeCatalogueChange({
-    required String logContext,
-    required Future<void> Function(OcptOpenProjectModel project) action,
-  }) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await action(project);
-      await modeBloc.reload({OcptResourcesReloadScope.snapshot});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to $logContext of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      addToMode(const OcptResourcesWriteFailedEvent());
-    }
-  }
-
   /// Write a discrete change to the cast through [action], a service call that answers an outcome,
-  /// and have the mode read the catalogue again; a failed outcome raises the mode's write error and
-  /// reads nothing, where [_writeCatalogueChange] gets the same from an exception.
-  Future<void> _writeCatalogueOutcome({
+  /// and have the mode read the catalogue again, so every derived aggregate (the roles tab's pill
+  /// and counts, the status bar) reflects what the database now says. A no-op while no project is
+  /// open; a failed outcome raises the mode's write error and reads nothing.
+  Future<void> _writeCatalogueChange({
     required Future<OcptDatabaseOutcome> Function(OcptOpenProjectModel project) action,
   }) async {
     final project = _projectsManager.currentProject;
@@ -498,7 +448,6 @@ class OcptResourcesRolesBloc
     OcptResourcesRoleCastChangedEvent event,
     Emitter<OcptResourcesRolesState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "cast a person to role ${event.roleId}",
     action: (project) => _roleIndexService.updateRole(
       database: project.database,
       roleId: event.roleId,
@@ -511,7 +460,6 @@ class OcptResourcesRolesBloc
     OcptResourcesRoleKindChangedEvent event,
     Emitter<OcptResourcesRolesState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the kind of role ${event.roleId}",
     action: (project) => _roleIndexService.updateRole(
       database: project.database,
       roleId: event.roleId,
@@ -527,7 +475,6 @@ class OcptResourcesRolesBloc
     OcptResourcesRoleEpisodesChangedEvent event,
     Emitter<OcptResourcesRolesState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the episodes of role ${event.roleId}",
     action: (project) => _roleIndexService.setRoleEpisodes(
       database: project.database,
       roleId: event.roleId,
@@ -541,7 +488,6 @@ class OcptResourcesRolesBloc
     OcptResourcesOrphanedRoleKeptEvent event,
     Emitter<OcptResourcesRolesState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "keep orphaned role ${event.roleId} as silent",
     action: (project) => _roleIndexService.keepOrphanedRoleAsSilent(
       database: project.database,
       roleId: event.roleId,
@@ -555,7 +501,6 @@ class OcptResourcesRolesBloc
     OcptResourcesRoleMergeRequestedEvent event,
     Emitter<OcptResourcesRolesState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "merge role ${event.sourceRoleId} into ${event.targetRoleId}",
     action: (project) => _roleIndexService.mergeRole(
       database: project.database,
       sourceRoleId: event.sourceRoleId,
@@ -568,7 +513,7 @@ class OcptResourcesRolesBloc
   Future<void> _onRoleCandidateAdded(
     OcptResourcesRoleCandidateAddedEvent event,
     Emitter<OcptResourcesRolesState> emitter,
-  ) => _writeCatalogueOutcome(
+  ) => _writeCatalogueChange(
     action: (project) async {
       final added = await _roleCandidatesService.addCandidate(
         database: project.database,
@@ -590,7 +535,7 @@ class OcptResourcesRolesBloc
   Future<void> _onRoleCandidateStatusChanged(
     OcptResourcesRoleCandidateStatusChangedEvent event,
     Emitter<OcptResourcesRolesState> emitter,
-  ) => _writeCatalogueOutcome(
+  ) => _writeCatalogueChange(
     action: (project) => _roleCandidatesService.setStatus(
       database: project.database,
       candidateId: event.candidateId,
@@ -603,7 +548,7 @@ class OcptResourcesRolesBloc
   Future<void> _onRoleCandidateAuditionDateChanged(
     OcptResourcesRoleCandidateAuditionDateChangedEvent event,
     Emitter<OcptResourcesRolesState> emitter,
-  ) => _writeCatalogueOutcome(
+  ) => _writeCatalogueChange(
     action: (project) => _roleCandidatesService.updateCandidate(
       database: project.database,
       candidateId: event.candidateId,
@@ -612,19 +557,28 @@ class OcptResourcesRolesBloc
   );
 
   /// Write every entry of [pending] through [_writeRoleField].
-  Future<void> _writeAllPendingRoleFields({
+  ///
+  /// Stops at the first write that fails and answers its failure; the entries after it are not
+  /// written.
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingRoleFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptRoleField), String> pending,
   }) async {
     for (final entry in pending.entries) {
       final (roleId, field) = entry.key;
-      await _writeRoleField(
+      final written = await _writeRoleField(
         database: database,
         roleId: roleId,
         field: field,
         rawValue: entry.value,
       );
+      if (written.isError) {
+        return written;
+      }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Write a single role field edit through `OcptRoleIndexService.updateRole`, translating
@@ -634,7 +588,8 @@ class OcptResourcesRolesBloc
   /// Writes [rawValue] as-is even for an `isFromScreenplay` role's [OcptRoleField.name]: the
   /// widgets are what withhold that field from being typed into in the first place, since
   /// `OcptRoleIndexService.reconcile` would overwrite it right back on the next save.
-  Future<void> _writeRoleField({
+  @useResult
+  Future<OcptDatabaseOutcome> _writeRoleField({
     required OcptProjectDatabase database,
     required String roleId,
     required OcptRoleField field,
@@ -642,13 +597,13 @@ class OcptResourcesRolesBloc
   }) async {
     switch (field) {
       case OcptRoleField.name:
-        await _roleIndexService.updateRole(
+        return _roleIndexService.updateRole(
           database: database,
           roleId: roleId,
           name: Value(rawValue),
         );
       case OcptRoleField.castingNotes:
-        await _roleIndexService.updateRole(
+        return _roleIndexService.updateRole(
           database: database,
           roleId: roleId,
           castingNotes: Value(rawValue),

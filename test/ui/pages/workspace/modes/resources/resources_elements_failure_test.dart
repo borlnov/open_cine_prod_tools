@@ -123,12 +123,14 @@ void main() {
     final personId = (await projectsManager.peopleService.createPerson(
       database: project.database,
     ))!;
-    final roleId = (await projectsManager.roleIndexService.addRole(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      name: "CLARA",
-      kind: OcptRoleKind.silent,
-    ))!;
+    final roleId = (await projectsManager.roleIndexService
+        .addRole(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          name: "CLARA",
+          kind: OcptRoleKind.silent,
+        )
+        .valueOrFail);
     final sceneLinkId = await elements
         .addSceneElement(database: project.database, sceneId: scene.id, elementId: elementId)
         .valueOrFail;

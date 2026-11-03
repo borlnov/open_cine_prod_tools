@@ -87,12 +87,14 @@ void main() {
     final project = projectsManager.currentProject!;
     personId = (await projectsManager.peopleService.createPerson(database: project.database))!;
     otherPersonId = (await projectsManager.peopleService.createPerson(database: project.database))!;
-    roleId = (await projectsManager.roleIndexService.addRole(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      name: "",
-      kind: OcptRoleKind.silent,
-    ))!;
+    roleId = (await projectsManager.roleIndexService
+        .addRole(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          name: "",
+          kind: OcptRoleKind.silent,
+        )
+        .valueOrFail);
     candidateId = await projectsManager.roleCandidatesService
         .addCandidate(database: project.database, roleId: roleId, personId: personId)
         .valueOrFail;

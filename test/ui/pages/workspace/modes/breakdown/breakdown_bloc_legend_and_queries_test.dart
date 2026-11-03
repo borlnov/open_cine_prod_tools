@@ -137,12 +137,14 @@ void main() {
         expect(loaded.roleCollisionAlerts, isEmpty);
         final screenplayRoleId = loaded.roles.single.id;
 
-        final handAddedRoleId = await projectsManager.roleIndexService.addRole(
-          database: project.database,
-          screenplayId: project.primaryScreenplayId,
-          name: "Clara",
-          kind: OcptRoleKind.extra,
-        );
+        final handAddedRoleId = await projectsManager.roleIndexService
+            .addRole(
+              database: project.database,
+              screenplayId: project.primaryScreenplayId,
+              name: "Clara",
+              kind: OcptRoleKind.extra,
+            )
+            .maybeValueOrFail;
 
         bloc.add(const AsyncInitEvent());
         final state = await waitForState(bloc, (state) => state.roleCollisionAlerts.isNotEmpty);

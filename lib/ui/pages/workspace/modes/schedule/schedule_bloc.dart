@@ -379,7 +379,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       final snapshot = scheduleRead.value!;
       final shotLists = await _loadShotLists(project);
       final locations = await _locationsService.loadLocations(database: project.database);
-      final roles = await _roleIndexService.loadRoles(database: project.database);
+      final rolesRead = await _roleIndexService.loadRoles(database: project.database);
+      if (rolesRead.isError) {
+        return false;
+      }
+
+      final roles = rolesRead.value!;
       final people = await _peopleService.loadPeople(database: project.database);
       final elementsRead = await _elementsService.loadElements(database: project.database);
       if (elementsRead.isError) {

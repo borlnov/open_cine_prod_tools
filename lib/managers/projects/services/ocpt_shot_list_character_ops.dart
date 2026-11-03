@@ -158,6 +158,10 @@ abstract final class OcptShotListCharacterOps {
   ///
   /// Returns null only if creating a fresh role is refused for having been handed a preview
   /// connection.
+  ///
+  /// Throws a [StateError] when the role service answers a failure: the method forwarding to this
+  /// one guards nothing, so the caller still catches the failure as an exception, as it caught the
+  /// one the database used to raise.
   static Future<String?> resolveOrCreateRoleId({
     required OcptRoleIndexService roleIndexService,
     required OcptProjectDatabase database,
@@ -176,11 +180,16 @@ abstract final class OcptShotListCharacterOps {
       return existingRole.id;
     }
 
-    return roleIndexService.addRole(
+    final created = await roleIndexService.addRole(
       database: database,
       screenplayId: screenplayId,
       name: normalizedName,
       kind: OcptRoleKind.silent,
     );
+    if (created.isError) {
+      throw StateError("The role could not be created");
+    }
+
+    return created.value;
   }
 }

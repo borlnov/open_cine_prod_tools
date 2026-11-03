@@ -99,7 +99,7 @@ CLARA
 Hello.
 ''');
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles, hasLength(1));
       expect(roles.single.name, "CLARA");
       expect(roles.single.kind, OcptRoleKind.speaking);
@@ -121,7 +121,7 @@ MARC
 Hi.
 ''');
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles.map((role) => role.name), ["CLARA", "MARC"]);
       expect(roles.map((role) => role.number), [1, 2]);
     });
@@ -133,17 +133,19 @@ INT. HOUSE - DAY
 CLARA
 Hello.
 ''');
-      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+      final roleId = (await roleIndexService.loadRoles(database: database).valueOrFail).single.id;
       const personId = "person-1";
       await database
           .into(database.ocptPeopleTable)
           .insert(OcptPeopleTableCompanion.insert(id: personId));
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: roleId,
-        personId: const Value(personId),
-        castingNotes: const Value("Great fit"),
-      );
+      await roleIndexService
+          .updateRole(
+            database: database,
+            roleId: roleId,
+            personId: const Value(personId),
+            castingNotes: const Value("Great fit"),
+          )
+          .okOrFail;
 
       await reconcile('''
 INT. HOUSE - DAY
@@ -151,7 +153,7 @@ INT. HOUSE - DAY
 Action, no dialogue anymore.
 ''');
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles, hasLength(1));
       expect(roles.single.id, roleId);
       expect(roles.single.orphanedName, "CLARA");
@@ -183,19 +185,21 @@ CLARA
 Hello again.
 ''');
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles, hasLength(1));
       expect(roles.single.orphanedName, isNull);
       expect(roles.single.episodeIds, [screenplayId]);
     });
 
     test("a hand-added role survives reconcile untouched", () async {
-      final handAddedId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "Extra crowd",
-        kind: OcptRoleKind.extra,
-      ))!;
+      final handAddedId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "Extra crowd",
+            kind: OcptRoleKind.extra,
+          )
+          .valueOrFail);
 
       await reconcile('''
 INT. HOUSE - DAY
@@ -204,7 +208,7 @@ CLARA
 Hello.
 ''');
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles.map((role) => role.name), ["Extra crowd", "CLARA"]);
       final handAdded = roles.singleWhere((role) => role.id == handAddedId);
       expect(handAdded.isFromScreenplay, isFalse);
@@ -222,10 +226,10 @@ MARC
 Hi.
 ''';
       await reconcile(source);
-      final rolesAfterFirst = await roleIndexService.loadRoles(database: database);
+      final rolesAfterFirst = await roleIndexService.loadRoles(database: database).valueOrFail;
 
       await reconcile(source);
-      final rolesAfterSecond = await roleIndexService.loadRoles(database: database);
+      final rolesAfterSecond = await roleIndexService.loadRoles(database: database).valueOrFail;
 
       expect(rolesAfterSecond, rolesAfterFirst);
     });
@@ -282,7 +286,7 @@ INT. HOUSE - DAY
 MARC enters, followed by CLARA. Nobody speaks.
 ''');
 
-        final roles = await roleIndexService.loadRoles(database: database);
+        final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
         expect(roles.map((role) => role.name), ["MARC", "CLARA"]);
         for (final role in roles) {
           expect(role.kind, OcptRoleKind.silent);
@@ -299,17 +303,19 @@ INT. HOUSE - DAY
 
 CLARA enters, silent.
 ''');
-      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+      final roleId = (await roleIndexService.loadRoles(database: database).valueOrFail).single.id;
       const personId = "person-1";
       await database
           .into(database.ocptPeopleTable)
           .insert(OcptPeopleTableCompanion.insert(id: personId));
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: roleId,
-        personId: const Value(personId),
-        castingNotes: const Value("Cast already"),
-      );
+      await roleIndexService
+          .updateRole(
+            database: database,
+            roleId: roleId,
+            personId: const Value(personId),
+            castingNotes: const Value("Cast already"),
+          )
+          .okOrFail;
 
       await reconcile('''
 INT. HOUSE - DAY
@@ -318,7 +324,7 @@ CLARA
 Finally, a line.
 ''');
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles, hasLength(1));
       expect(roles.single.id, roleId);
       expect(roles.single.kind, OcptRoleKind.speaking);
@@ -332,7 +338,7 @@ INT. HOUSE - DAY
 
 CLARA enters, silent.
 ''');
-      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+      final roleId = (await roleIndexService.loadRoles(database: database).valueOrFail).single.id;
 
       await reconcile('''
 INT. HOUSE - DAY
@@ -341,7 +347,7 @@ CLARA
 Finally, a line.
 ''');
       expect(
-        (await roleIndexService.loadRoles(database: database)).single.kind,
+        (await roleIndexService.loadRoles(database: database).valueOrFail).single.kind,
         OcptRoleKind.speaking,
       );
 
@@ -352,9 +358,9 @@ INT. HOUSE - DAY
 CLARA enters, silent again.
 ''');
 
-      final role = (await roleIndexService.loadRoles(
-        database: database,
-      )).singleWhere((role) => role.id == roleId);
+      final role = (await roleIndexService.loadRoles(database: database).valueOrFail).singleWhere(
+        (role) => role.id == roleId,
+      );
       expect(role.kind, OcptRoleKind.speaking);
     });
 
@@ -366,11 +372,14 @@ INT. HOUSE - DAY
 
 OK enters, silent.
 ''');
-        final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
-        expect((await roleIndexService.loadRoles(database: database)).single.name, "OK");
+        final roleId = (await roleIndexService.loadRoles(database: database).valueOrFail).single.id;
+        expect(
+          (await roleIndexService.loadRoles(database: database).valueOrFail).single.name,
+          "OK",
+        );
 
-        await roleIndexService.deleteRole(database: database, roleId: roleId);
-        expect(await roleIndexService.loadRoles(database: database), isEmpty);
+        await roleIndexService.deleteRole(database: database, roleId: roleId).okOrFail;
+        expect(await roleIndexService.loadRoles(database: database).valueOrFail, isEmpty);
 
         // Re-running reconcile against the very same source must not bring "OK" back.
         await reconcile('''
@@ -378,7 +387,7 @@ INT. HOUSE - DAY
 
 OK enters, silent.
 ''');
-        expect(await roleIndexService.loadRoles(database: database), isEmpty);
+        expect(await roleIndexService.loadRoles(database: database).valueOrFail, isEmpty);
       },
     );
 
@@ -391,9 +400,9 @@ INT. HOUSE - DAY
 CLARA
 Hello.
 ''');
-        final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
-        await roleIndexService.deleteRole(database: database, roleId: roleId);
-        expect(await roleIndexService.loadRoles(database: database), isEmpty);
+        final roleId = (await roleIndexService.loadRoles(database: database).valueOrFail).single.id;
+        await roleIndexService.deleteRole(database: database, roleId: roleId).okOrFail;
+        expect(await roleIndexService.loadRoles(database: database).valueOrFail, isEmpty);
 
         await reconcile('''
 INT. HOUSE - DAY
@@ -402,7 +411,7 @@ CLARA
 Hello again.
 ''');
 
-        final roles = await roleIndexService.loadRoles(database: database);
+        final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
         expect(roles, hasLength(1));
         expect(roles.single.name, "CLARA");
         expect(roles.single.kind, OcptRoleKind.speaking);
@@ -419,9 +428,9 @@ INT. HOUSE - DAY
 
 CLARA enters, silent.
 ''');
-      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
-      await roleIndexService.deleteRole(database: database, roleId: roleId);
-      expect(await roleIndexService.loadRoles(database: database), isEmpty);
+      final roleId = (await roleIndexService.loadRoles(database: database).valueOrFail).single.id;
+      await roleIndexService.deleteRole(database: database, roleId: roleId).okOrFail;
+      expect(await roleIndexService.loadRoles(database: database).valueOrFail, isEmpty);
 
       // …but this time the same document also cues her: the cue must win over the tombstone.
       await reconcile('''
@@ -433,7 +442,7 @@ CLARA
 Hello.
 ''');
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles, hasLength(1));
       expect(roles.single.name, "CLARA");
       expect(roles.single.kind, OcptRoleKind.speaking);
@@ -449,7 +458,7 @@ CLARA
 Hello.
 ''');
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles, hasLength(1));
       expect(roles.single.name, "CLARA");
       expect(roles.single.kind, OcptRoleKind.speaking);
@@ -464,16 +473,14 @@ INT. HOUSE - DAY
 
 CLARA enters, silent.
 ''');
-        final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+        final roleId = (await roleIndexService.loadRoles(database: database).valueOrFail).single.id;
         const personId = "person-1";
         await database
             .into(database.ocptPeopleTable)
             .insert(OcptPeopleTableCompanion.insert(id: personId));
-        await roleIndexService.updateRole(
-          database: database,
-          roleId: roleId,
-          personId: const Value(personId),
-        );
+        await roleIndexService
+            .updateRole(database: database, roleId: roleId, personId: const Value(personId))
+            .okOrFail;
 
         await reconcile('''
 INT. HOUSE - DAY
@@ -481,7 +488,7 @@ INT. HOUSE - DAY
 Nobody is there anymore.
 ''');
 
-        final roles = await roleIndexService.loadRoles(database: database);
+        final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
         expect(roles, hasLength(1));
         expect(roles.single.id, roleId);
         expect(roles.single.orphanedName, "CLARA");
@@ -497,20 +504,20 @@ Nobody is there anymore.
 
   group("hand CRUD", () {
     test("addRole appends and updateRole only touches the fields it's given a Value for", () async {
-      final id = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "Silent neighbour",
-        kind: OcptRoleKind.silent,
-      ))!;
+      final id = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "Silent neighbour",
+            kind: OcptRoleKind.silent,
+          )
+          .valueOrFail);
 
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: id,
-        castingNotes: const Value("Cast locally"),
-      );
+      await roleIndexService
+          .updateRole(database: database, roleId: id, castingNotes: const Value("Cast locally"))
+          .okOrFail;
 
-      final role = (await roleIndexService.loadRoles(database: database)).single;
+      final role = (await roleIndexService.loadRoles(database: database).valueOrFail).single;
       expect(role.name, "Silent neighbour");
       expect(role.castingNotes, "Cast locally");
       expect(role.personId, isNull);
@@ -518,32 +525,38 @@ Nobody is there anymore.
     });
 
     test("deleteRole tombstones it and it disappears from loadRoles", () async {
-      final firstId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "First",
-        kind: OcptRoleKind.extra,
-      ))!;
-      final secondId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "Second",
-        kind: OcptRoleKind.extra,
-      ))!;
+      final firstId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "First",
+            kind: OcptRoleKind.extra,
+          )
+          .valueOrFail);
+      final secondId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "Second",
+            kind: OcptRoleKind.extra,
+          )
+          .valueOrFail);
 
-      await roleIndexService.deleteRole(database: database, roleId: firstId);
+      await roleIndexService.deleteRole(database: database, roleId: firstId).okOrFail;
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles.map((role) => role.id), [secondId]);
     });
 
     test("deleteRole carries the role's things off with it, the elements untouched", () async {
-      final roleId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "CLARA",
-        kind: OcptRoleKind.extra,
-      ))!;
+      final roleId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "CLARA",
+            kind: OcptRoleKind.extra,
+          )
+          .valueOrFail);
       final elementId = (await elementsService
           .createElement(
             database: database,
@@ -556,7 +569,7 @@ Nobody is there anymore.
           .addRoleElement(database: database, roleId: roleId, elementId: elementId)
           .maybeValueOrFail;
 
-      await roleIndexService.deleteRole(database: database, roleId: roleId);
+      await roleIndexService.deleteRole(database: database, roleId: roleId).okOrFail;
 
       // The link is gone…
       final links = await database.select(database.ocptRoleElementsTable).get();
@@ -570,14 +583,16 @@ Nobody is there anymore.
     });
 
     test("deleteRole tombstones its role_episodes links too", () async {
-      final roleId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "CLARA",
-        kind: OcptRoleKind.extra,
-      ))!;
+      final roleId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "CLARA",
+            kind: OcptRoleKind.extra,
+          )
+          .valueOrFail);
 
-      await roleIndexService.deleteRole(database: database, roleId: roleId);
+      await roleIndexService.deleteRole(database: database, roleId: roleId).okOrFail;
 
       final links = await database.select(database.ocptRoleEpisodesTable).get();
       expect(links.single.isDeleted, isTrue);
@@ -586,17 +601,21 @@ Nobody is there anymore.
     test("reorderRole moves a role by writing exactly one row", () async {
       final ids = [
         for (var i = 0; i < 3; i++)
-          (await roleIndexService.addRole(
-            database: database,
-            screenplayId: screenplayId,
-            name: "Role $i",
-            kind: OcptRoleKind.extra,
-          ))!,
+          (await roleIndexService
+              .addRole(
+                database: database,
+                screenplayId: screenplayId,
+                name: "Role $i",
+                kind: OcptRoleKind.extra,
+              )
+              .valueOrFail),
       ];
 
-      await roleIndexService.reorderRole(database: database, roleId: ids[0], newPosition: 2);
+      await roleIndexService
+          .reorderRole(database: database, roleId: ids[0], newPosition: 2)
+          .okOrFail;
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles.map((role) => role.id), [ids[1], ids[2], ids[0]]);
     });
 
@@ -607,16 +626,16 @@ INT. HOUSE - DAY
 CLARA
 Hello.
 ''');
-      final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+      final roleId = (await roleIndexService.loadRoles(database: database).valueOrFail).single.id;
 
       await reconcile('''
 INT. HOUSE - DAY
 
 Action, no dialogue anymore.
 ''');
-      await roleIndexService.keepOrphanedRoleAsSilent(database: database, roleId: roleId);
+      await roleIndexService.keepOrphanedRoleAsSilent(database: database, roleId: roleId).okOrFail;
 
-      final role = (await roleIndexService.loadRoles(database: database)).single;
+      final role = (await roleIndexService.loadRoles(database: database).valueOrFail).single;
       expect(role.kind, OcptRoleKind.silent);
       expect(role.isFromScreenplay, isFalse);
       expect(role.orphanedName, isNull);
@@ -629,7 +648,7 @@ INT. HOUSE - DAY
 CLARA
 Back again.
 ''');
-      final rolesAfter = await roleIndexService.loadRoles(database: database);
+      final rolesAfter = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(rolesAfter, hasLength(2));
       expect(rolesAfter.singleWhere((role) => role.id == roleId).isFromScreenplay, isFalse);
     });
@@ -678,7 +697,7 @@ CLARA
 Hi again.
 ''');
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles, hasLength(1));
       expect(roles.single.name, "CLARA");
       expect(roles.single.number, 1);
@@ -688,13 +707,11 @@ Hi again.
       await database
           .into(database.ocptPeopleTable)
           .insert(OcptPeopleTableCompanion.insert(id: personId));
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: roles.single.id,
-        personId: const Value(personId),
-      );
+      await roleIndexService
+          .updateRole(database: database, roleId: roles.single.id, personId: const Value(personId))
+          .okOrFail;
 
-      final rolesAfterCasting = await roleIndexService.loadRoles(database: database);
+      final rolesAfterCasting = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(rolesAfterCasting, hasLength(1));
       expect(rolesAfterCasting.single.personId, personId);
     });
@@ -714,16 +731,14 @@ INT. STREET - NIGHT
 CLARA
 Hi again.
 ''');
-        final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+        final roleId = (await roleIndexService.loadRoles(database: database).valueOrFail).single.id;
         const personId = "person-1";
         await database
             .into(database.ocptPeopleTable)
             .insert(OcptPeopleTableCompanion.insert(id: personId));
-        await roleIndexService.updateRole(
-          database: database,
-          roleId: roleId,
-          personId: const Value(personId),
-        );
+        await roleIndexService
+            .updateRole(database: database, roleId: roleId, personId: const Value(personId))
+            .okOrFail;
 
         // CLARA is cut from the first episode, but keeps speaking in the second.
         await reconcile('''
@@ -732,7 +747,7 @@ INT. HOUSE - DAY
 Action, no dialogue anymore.
 ''');
 
-        final roles = await roleIndexService.loadRoles(database: database);
+        final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
         expect(roles, hasLength(1));
         expect(roles.single.id, roleId);
         expect(roles.single.orphanedName, isNull);
@@ -757,16 +772,14 @@ INT. STREET - NIGHT
 CLARA
 Hi again.
 ''');
-        final roleId = (await roleIndexService.loadRoles(database: database)).single.id;
+        final roleId = (await roleIndexService.loadRoles(database: database).valueOrFail).single.id;
         const personId = "person-1";
         await database
             .into(database.ocptPeopleTable)
             .insert(OcptPeopleTableCompanion.insert(id: personId));
-        await roleIndexService.updateRole(
-          database: database,
-          roleId: roleId,
-          personId: const Value(personId),
-        );
+        await roleIndexService
+            .updateRole(database: database, roleId: roleId, personId: const Value(personId))
+            .okOrFail;
 
         await reconcile('''
 INT. HOUSE - DAY
@@ -779,7 +792,7 @@ INT. STREET - NIGHT
 Action, no dialogue anymore.
 ''');
 
-        final roles = await roleIndexService.loadRoles(database: database);
+        final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
         expect(roles, hasLength(1));
         expect(roles.single.id, roleId);
         expect(roles.single.orphanedName, "CLARA");
@@ -805,7 +818,7 @@ MARC
 Hi.
 ''');
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles.map((role) => role.name), ["CLARA", "MARC"]);
       expect(roles.map((role) => role.number), [1, 2]);
     });
@@ -826,27 +839,31 @@ CLARA
 Hi again.
 ''');
 
-      final role = (await roleIndexService.loadRoles(database: database)).single;
+      final role = (await roleIndexService.loadRoles(database: database).valueOrFail).single;
       expect(role.episodeIds, [screenplayId, otherScreenplayId]);
     });
 
     test("setRoleEpisodes adds, removes and re-adds a link without duplicating it", () async {
-      final roleId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "Silent neighbour",
-        kind: OcptRoleKind.silent,
-      ))!;
+      final roleId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "Silent neighbour",
+            kind: OcptRoleKind.silent,
+          )
+          .valueOrFail);
 
       Future<List<OcptRoleEpisodeRow>> rawLinks() => (database.select(
         database.ocptRoleEpisodesTable,
       )..where((table) => table.roleId.equals(roleId))).get();
 
-      await roleIndexService.setRoleEpisodes(
-        database: database,
-        roleId: roleId,
-        screenplayIds: {screenplayId, otherScreenplayId},
-      );
+      await roleIndexService
+          .setRoleEpisodes(
+            database: database,
+            roleId: roleId,
+            screenplayIds: {screenplayId, otherScreenplayId},
+          )
+          .okOrFail;
       var links = await rawLinks();
       expect(links, hasLength(2)); // the link addRole made, plus the new one.
       expect(links.where((link) => !link.isDeleted).map((link) => link.screenplayId).toSet(), {
@@ -854,22 +871,22 @@ Hi again.
         otherScreenplayId,
       });
 
-      await roleIndexService.setRoleEpisodes(
-        database: database,
-        roleId: roleId,
-        screenplayIds: {otherScreenplayId},
-      );
+      await roleIndexService
+          .setRoleEpisodes(database: database, roleId: roleId, screenplayIds: {otherScreenplayId})
+          .okOrFail;
       links = await rawLinks();
       expect(links, hasLength(2)); // dropping the first episode tombstones its row, no deletion.
       expect(links.where((link) => !link.isDeleted).map((link) => link.screenplayId).toList(), [
         otherScreenplayId,
       ]);
 
-      await roleIndexService.setRoleEpisodes(
-        database: database,
-        roleId: roleId,
-        screenplayIds: {screenplayId, otherScreenplayId},
-      );
+      await roleIndexService
+          .setRoleEpisodes(
+            database: database,
+            roleId: roleId,
+            screenplayIds: {screenplayId, otherScreenplayId},
+          )
+          .okOrFail;
       links = await rawLinks();
       // The tombstoned link is revived rather than a second live row being inserted: still two
       // rows in total, both live again.
@@ -881,30 +898,36 @@ Hi again.
     });
 
     test("setRoleEpisodes with an empty set leaves the role named in no episode", () async {
-      final roleId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "Silent neighbour",
-        kind: OcptRoleKind.silent,
-      ))!;
+      final roleId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "Silent neighbour",
+            kind: OcptRoleKind.silent,
+          )
+          .valueOrFail);
 
-      await roleIndexService.setRoleEpisodes(database: database, roleId: roleId, screenplayIds: {});
+      await roleIndexService
+          .setRoleEpisodes(database: database, roleId: roleId, screenplayIds: {})
+          .okOrFail;
 
-      final role = (await roleIndexService.loadRoles(
-        database: database,
-      )).singleWhere((role) => role.id == roleId);
+      final role = (await roleIndexService.loadRoles(database: database).valueOrFail).singleWhere(
+        (role) => role.id == roleId,
+      );
       expect(role.episodeIds, isEmpty);
     });
 
     test(
       "a hand-added role linked to an episode survives a reconcile naming none of its characters",
       () async {
-        final roleId = (await roleIndexService.addRole(
-          database: database,
-          screenplayId: otherScreenplayId,
-          name: "Crowd",
-          kind: OcptRoleKind.extra,
-        ))!;
+        final roleId = (await roleIndexService
+            .addRole(
+              database: database,
+              screenplayId: otherScreenplayId,
+              name: "Crowd",
+              kind: OcptRoleKind.extra,
+            )
+            .valueOrFail);
 
         await reconcileOther('''
 INT. STREET - NIGHT
@@ -919,9 +942,9 @@ Hi.
         expect(links.single.isDeleted, isFalse);
         expect(links.single.screenplayId, otherScreenplayId);
 
-        final role = (await roleIndexService.loadRoles(
-          database: database,
-        )).singleWhere((role) => role.id == roleId);
+        final role = (await roleIndexService.loadRoles(database: database).valueOrFail).singleWhere(
+          (role) => role.id == roleId,
+        );
         expect(role.isFromScreenplay, isFalse);
         expect(role.orphanedName, isNull);
         expect(role.episodeIds, [otherScreenplayId]);

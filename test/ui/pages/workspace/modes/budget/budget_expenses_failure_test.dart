@@ -311,4 +311,44 @@ void main() {
       });
     }
   });
+
+  group("when the cast cannot be read", () {
+    /// Make the cast unreadable.
+    Future<void> lose() => harness.projectsManager.currentProject!.database.customStatement(
+      "ALTER TABLE roles RENAME TO roles_gone",
+    );
+
+    test("the loader answers the failure of the cast instead of a budget", () async {
+      await harness.buildBloc();
+      await lose();
+      final loader = OcptBudgetSnapshotLoader(
+        projectsManager: harness.projectsManager,
+        seed: smallSeed,
+      );
+
+      final read = await loader.load(harness.projectsManager.currentProject!);
+
+      expect(read.status, OcptDatabaseStatus.databaseError);
+      expect(read.value, isNull);
+    });
+
+    test("a mode that cannot read the cast stays loading", () async {
+      await lose();
+
+      final bloc = await harness.buildBloc(isWaitingForLoad: false);
+      await harness.settle();
+
+      expect(bloc.state.isLoading, isTrue);
+    });
+
+    test("reading the budget again answers false when the cast is gone", () async {
+      final bloc = await harness.buildBloc();
+      final held = bloc.state;
+      await lose();
+
+      expect(await bloc.reload({OcptBudgetReloadScope.snapshot}), isFalse);
+
+      expect(bloc.state, same(held));
+    });
+  });
 }

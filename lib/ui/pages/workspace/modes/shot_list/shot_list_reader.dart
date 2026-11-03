@@ -91,8 +91,8 @@ class OcptShotListReader {
   /// `OcptScreenplayService` already depends on), null prefix on a single-episode project.
   ///
   /// Answers the failure of the placements read, in place of the snapshot, when the schedule could
-  /// not be read. The reads of the shot list, the field suggestions, the locations, the cast and
-  /// the screenplay text still raise when the database fails.
+  /// not be read. The reads of the shot list, the field suggestions, the locations and the
+  /// screenplay text still raise when the database fails.
   @useResult
   Future<OcptDatabaseResult<OcptShotListSnapshot>> loadSnapshot(
     OcptOpenProjectModel project,
@@ -159,7 +159,10 @@ class OcptShotListReader {
 
   /// Read the production's whole cast — every live role, in `sortKey` order — what the character
   /// chips and the shared role alert banner are derived from.
-  Future<List<OcptRole>> loadRoles(OcptOpenProjectModel project) =>
+  ///
+  /// Answers the failure of the read when the database could not be read.
+  @useResult
+  Future<OcptDatabaseResult<List<OcptRole>>> loadRoles(OcptOpenProjectModel project) =>
       _roleIndexService.loadRoles(database: project.database);
 
   /// Read the selected episode's current Fountain source text, kept in

@@ -517,12 +517,14 @@ void main() {
       final elementsBloc = buildElements(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final roleId = await projectsManager.roleIndexService.addRole(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        name: "",
-        kind: OcptRoleKind.silent,
-      );
+      final roleId = await projectsManager.roleIndexService
+          .addRole(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            name: "",
+            kind: OcptRoleKind.silent,
+          )
+          .maybeValueOrFail;
       await bloc.reload({OcptResourcesReloadScope.snapshot});
       final elementId = await createElement(
         bloc,

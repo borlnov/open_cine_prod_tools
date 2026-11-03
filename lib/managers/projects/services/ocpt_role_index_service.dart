@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
@@ -16,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_role_origin.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:uuid/uuid.dart';
 
@@ -112,19 +114,23 @@ class OcptRoleIndexService extends AbsOcptService {
   /// Load every live role of the project in [database], in `sortKey` order, each carrying its
   /// 1-based [OcptRole.number] among that whole list and its [OcptRole.episodeIds] — the episodes
   /// naming it, in the episodes' own `sortKey` order.
-  Future<List<OcptRole>> loadRoles({required OcptProjectDatabase database}) async {
-    final rows = await OcptRoleIndexRows.liveRoleRows(database: database);
-    final episodeIdsByRoleId = await OcptRoleIndexRows.liveEpisodeIdsByRoleId(database: database);
+  @useResult
+  Future<OcptDatabaseResult<List<OcptRole>>> loadRoles({required OcptProjectDatabase database}) =>
+      guardResult("loadRoles", () async {
+        final rows = await OcptRoleIndexRows.liveRoleRows(database: database);
+        final episodeIdsByRoleId = await OcptRoleIndexRows.liveEpisodeIdsByRoleId(
+          database: database,
+        );
 
-    return [
-      for (var i = 0; i < rows.length; i++)
-        OcptRole.fromRow(
-          row: rows[i],
-          number: i + 1,
-          episodeIds: episodeIdsByRoleId[rows[i].id] ?? const [],
-        ),
-    ];
-  }
+        return [
+          for (var i = 0; i < rows.length; i++)
+            OcptRole.fromRow(
+              row: rows[i],
+              number: i + 1,
+              episodeIds: episodeIdsByRoleId[rows[i].id] ?? const [],
+            ),
+        ];
+      });
 
   /// Add a hand-added role of [kind] (never [OcptRoleKind.speaking] — that kind is only ever
   /// created by [reconcile]) named [name], appended after every live role of the **project**, link
@@ -132,12 +138,13 @@ class OcptRoleIndexService extends AbsOcptService {
   /// freshly generated `role_episodes` row, and return the role's own freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addRole({
+  @useResult
+  Future<OcptDatabaseResult<String>> addRole({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String name,
     required OcptRoleKind kind,
-  }) async {
+  }) => guardResult("addRole", () async {
     if (database.refusesUserWrite("addRole")) {
       return null;
     }
@@ -186,7 +193,7 @@ class OcptRoleIndexService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Update the fields of role [roleId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey`, `isFromScreenplay` or `orphanedName`: those only
@@ -198,14 +205,15 @@ class OcptRoleIndexService extends AbsOcptService {
   /// is the same story for a hand-added role's episodes.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateRole({
+  @useResult
+  Future<OcptDatabaseOutcome> updateRole({
     required OcptProjectDatabase database,
     required String roleId,
     Value<String> name = const Value.absent(),
     Value<String?> personId = const Value.absent(),
     Value<OcptRoleKind> kind = const Value.absent(),
     Value<String> castingNotes = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateRole", () async {
     if (database.refusesUserWrite("updateRole")) {
       return;
     }
@@ -237,7 +245,7 @@ class OcptRoleIndexService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Set the exact episodes role [roleId] is named in to [screenplayIds]: for a hand-added role,
   /// the one place in the app a `role_episodes` row is written by a gesture rather than by
@@ -253,11 +261,12 @@ class OcptRoleIndexService extends AbsOcptService {
   /// in no episode. Runs in one transaction.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> setRoleEpisodes({
+  @useResult
+  Future<OcptDatabaseOutcome> setRoleEpisodes({
     required OcptProjectDatabase database,
     required String roleId,
     required Set<String> screenplayIds,
-  }) async {
+  }) => guardOutcome("setRoleEpisodes", () async {
     if (database.refusesUserWrite("setRoleEpisodes")) {
       return;
     }
@@ -328,18 +337,22 @@ class OcptRoleIndexService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Forward to [OcptRoleIndexMergeOps.mergeRole].
-  Future<void> mergeRole({
+  @useResult
+  Future<OcptDatabaseOutcome> mergeRole({
     required OcptProjectDatabase database,
     required String sourceRoleId,
     required String targetRoleId,
-  }) => OcptRoleIndexMergeOps.mergeRole(
-    database: database,
-    sourceRoleId: sourceRoleId,
-    targetRoleId: targetRoleId,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "mergeRole",
+    () => OcptRoleIndexMergeOps.mergeRole(
+      database: database,
+      sourceRoleId: sourceRoleId,
+      targetRoleId: targetRoleId,
+      deviceId: deviceId,
+    ),
   );
 
   /// Tombstone role [roleId], the `shot_characters` rows and the `breakdown_tags` rows naming it
@@ -364,7 +377,11 @@ class OcptRoleIndexService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteRole({required OcptProjectDatabase database, required String roleId}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> deleteRole({
+    required OcptProjectDatabase database,
+    required String roleId,
+  }) => guardOutcome("deleteRole", () async {
     if (database.refusesUserWrite("deleteRole")) {
       return;
     }
@@ -442,7 +459,7 @@ class OcptRoleIndexService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Handle the removed-role banner's "keep it" action: role [roleId] stops being owned by
   /// [reconcile]
@@ -452,10 +469,11 @@ class OcptRoleIndexService extends AbsOcptService {
   /// through [setRoleEpisodes].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> keepOrphanedRoleAsSilent({
+  @useResult
+  Future<OcptDatabaseOutcome> keepOrphanedRoleAsSilent({
     required OcptProjectDatabase database,
     required String roleId,
-  }) async {
+  }) => guardOutcome("keepOrphanedRoleAsSilent", () async {
     if (database.refusesUserWrite("keepOrphanedRoleAsSilent")) {
       return;
     }
@@ -484,17 +502,18 @@ class OcptRoleIndexService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Move role [roleId] to [newPosition] (0-based) within the **project's** whole cast, by giving
   /// it a `sortKey` sitting between the two roles it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderRole({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderRole({
     required OcptProjectDatabase database,
     required String roleId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderRole", () async {
     if (database.refusesUserWrite("reorderRole")) {
       return;
     }
@@ -528,7 +547,7 @@ class OcptRoleIndexService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone every `role_episodes` row naming episode [screenplayId]:
   /// `OcptScreenplayService.deleteEpisode`'s cascade, the last of the links it takes before

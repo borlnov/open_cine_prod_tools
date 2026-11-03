@@ -139,7 +139,7 @@ void main() {
         name: "LÉA",
         kind: OcptRoleKind.silent,
       )
-      .then((id) => id!);
+      .valueOrFail;
 
   /// Saves [fountainText] as the screenplay's only content and returns its single resulting scene.
   Future<OcptSceneRow> saveSingleScene(String fountainText) async {

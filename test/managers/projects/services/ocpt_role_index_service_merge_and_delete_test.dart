@@ -171,65 +171,61 @@ void main() {
     late String targetRoleId;
 
     setUp(() async {
-      sourceRoleId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "Source",
-        kind: OcptRoleKind.silent,
-      ))!;
-      targetRoleId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "Target",
-        kind: OcptRoleKind.silent,
-      ))!;
+      sourceRoleId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "Source",
+            kind: OcptRoleKind.silent,
+          )
+          .valueOrFail);
+      targetRoleId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "Target",
+            kind: OcptRoleKind.silent,
+          )
+          .valueOrFail);
     });
 
     test("is a no-op when source and target are the same id", () async {
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: sourceRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: sourceRoleId)
+          .okOrFail;
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles.map((role) => role.id).toSet(), {sourceRoleId, targetRoleId});
     });
 
     test("is a no-op when source is missing or already tombstoned", () async {
-      await roleIndexService.deleteRole(database: database, roleId: sourceRoleId);
+      await roleIndexService.deleteRole(database: database, roleId: sourceRoleId).okOrFail;
 
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles.map((role) => role.id), [targetRoleId]);
     });
 
     test("is a no-op when target is missing or already tombstoned", () async {
-      await roleIndexService.deleteRole(database: database, roleId: targetRoleId);
+      await roleIndexService.deleteRole(database: database, roleId: targetRoleId).okOrFail;
 
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles.map((role) => role.id), [sourceRoleId]);
     });
 
     test("tombstones source, and the survivor is whichever id was passed as target", () async {
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       expect(roles.map((role) => role.id), [targetRoleId]);
 
       final sourceRow = await (database.select(
@@ -250,19 +246,16 @@ INT. HOUSE - DAY
 CLARA
 Hello.
 ''');
-        final speakingRoleId = (await roleIndexService.loadRoles(
-          database: database,
-        )).firstWhere((role) => role.name == "CLARA").id;
+        final speakingRoleId = (await roleIndexService.loadRoles(database: database).valueOrFail)
+            .firstWhere((role) => role.name == "CLARA")
+            .id;
 
-        await roleIndexService.mergeRole(
-          database: database,
-          sourceRoleId: speakingRoleId,
-          targetRoleId: targetRoleId,
-        );
+        await roleIndexService
+            .mergeRole(database: database, sourceRoleId: speakingRoleId, targetRoleId: targetRoleId)
+            .okOrFail;
 
-        final survivor = (await roleIndexService.loadRoles(
-          database: database,
-        )).singleWhere((role) => role.id == targetRoleId);
+        final survivor = (await roleIndexService.loadRoles(database: database).valueOrFail)
+            .singleWhere((role) => role.id == targetRoleId);
         expect(survivor.isFromScreenplay, isFalse);
       },
     );
@@ -291,11 +284,9 @@ Hello.
           sortKey: "b",
         );
 
-        await roleIndexService.mergeRole(
-          database: database,
-          sourceRoleId: sourceRoleId,
-          targetRoleId: targetRoleId,
-        );
+        await roleIndexService
+            .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+            .okOrFail;
 
         final rows = await database.select(database.ocptShotCharactersTable).get();
 
@@ -339,11 +330,9 @@ Hello.
           roleId: targetRoleId,
         );
 
-        await roleIndexService.mergeRole(
-          database: database,
-          sourceRoleId: sourceRoleId,
-          targetRoleId: targetRoleId,
-        );
+        await roleIndexService
+            .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+            .okOrFail;
 
         final rows = await database.select(database.ocptShootingSlotCastTable).get();
 
@@ -367,11 +356,9 @@ Hello.
       await _insertRoleTag(database, id: "tag-1", sceneId: "scene-1", roleId: sourceRoleId);
       await _insertRoleTag(database, id: "tag-2", sceneId: "scene-1", roleId: sourceRoleId);
 
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
       final tags = await database.select(database.ocptBreakdownTagsTable).get();
       expect(tags.every((tag) => !tag.isDeleted), isTrue);
@@ -406,11 +393,9 @@ Hello.
           .addRoleElement(database: database, roleId: sourceRoleId, elementId: elementB)
           .maybeValueOrFail;
 
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
       final links = await database.select(database.ocptRoleElementsTable).get();
       final targetLiveElementIds = links
@@ -446,11 +431,9 @@ Hello.
         deviceId: testDeviceId,
       ).addCandidate(database: database, roleId: sourceRoleId, personId: personB).maybeValueOrFail;
 
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
       final candidates = await database.select(database.ocptRoleCandidatesTable).get();
       final targetLivePersonIds = candidates
@@ -478,21 +461,20 @@ Hello.
           );
       // source is already linked to screenplayId (via addRole in setUp) — the shared episode, a
       // duplicate target must drop — and gets a second link the target lacks.
-      await roleIndexService.setRoleEpisodes(
-        database: database,
-        roleId: sourceRoleId,
-        screenplayIds: {screenplayId, otherScreenplayId},
-      );
+      await roleIndexService
+          .setRoleEpisodes(
+            database: database,
+            roleId: sourceRoleId,
+            screenplayIds: {screenplayId, otherScreenplayId},
+          )
+          .okOrFail;
 
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
-      final survivor = (await roleIndexService.loadRoles(
-        database: database,
-      )).singleWhere((role) => role.id == targetRoleId);
+      final survivor = (await roleIndexService.loadRoles(database: database).valueOrFail)
+          .singleWhere((role) => role.id == targetRoleId);
       expect(survivor.episodeIds.toSet(), {screenplayId, otherScreenplayId});
 
       final sourceSharedLink =
@@ -509,21 +491,16 @@ Hello.
       await database
           .into(database.ocptPeopleTable)
           .insert(OcptPeopleTableCompanion.insert(id: personId));
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: sourceRoleId,
-        personId: const Value(personId),
-      );
+      await roleIndexService
+          .updateRole(database: database, roleId: sourceRoleId, personId: const Value(personId))
+          .okOrFail;
 
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
-      final survivor = (await roleIndexService.loadRoles(
-        database: database,
-      )).singleWhere((role) => role.id == targetRoleId);
+      final survivor = (await roleIndexService.loadRoles(database: database).valueOrFail)
+          .singleWhere((role) => role.id == targetRoleId);
       expect(survivor.personId, personId);
     });
 
@@ -535,86 +512,85 @@ Hello.
             .into(database.ocptPeopleTable)
             .insert(OcptPeopleTableCompanion.insert(id: id));
       }
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: sourceRoleId,
-        personId: const Value(sourcePersonId),
-      );
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: targetRoleId,
-        personId: const Value(targetPersonId),
-      );
+      await roleIndexService
+          .updateRole(
+            database: database,
+            roleId: sourceRoleId,
+            personId: const Value(sourcePersonId),
+          )
+          .okOrFail;
+      await roleIndexService
+          .updateRole(
+            database: database,
+            roleId: targetRoleId,
+            personId: const Value(targetPersonId),
+          )
+          .okOrFail;
 
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
-      final survivor = (await roleIndexService.loadRoles(
-        database: database,
-      )).singleWhere((role) => role.id == targetRoleId);
+      final survivor = (await roleIndexService.loadRoles(database: database).valueOrFail)
+          .singleWhere((role) => role.id == targetRoleId);
       expect(survivor.personId, targetPersonId);
     });
 
     test("carries source's castingNotes onto target only when target's own are empty", () async {
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: sourceRoleId,
-        castingNotes: const Value("Great fit"),
-      );
+      await roleIndexService
+          .updateRole(
+            database: database,
+            roleId: sourceRoleId,
+            castingNotes: const Value("Great fit"),
+          )
+          .okOrFail;
 
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
-      final survivor = (await roleIndexService.loadRoles(
-        database: database,
-      )).singleWhere((role) => role.id == targetRoleId);
+      final survivor = (await roleIndexService.loadRoles(database: database).valueOrFail)
+          .singleWhere((role) => role.id == targetRoleId);
       expect(survivor.castingNotes, "Great fit");
     });
 
     test("never overwrites target's own castingNotes with source's", () async {
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: sourceRoleId,
-        castingNotes: const Value("From source"),
-      );
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: targetRoleId,
-        castingNotes: const Value("From target"),
-      );
+      await roleIndexService
+          .updateRole(
+            database: database,
+            roleId: sourceRoleId,
+            castingNotes: const Value("From source"),
+          )
+          .okOrFail;
+      await roleIndexService
+          .updateRole(
+            database: database,
+            roleId: targetRoleId,
+            castingNotes: const Value("From target"),
+          )
+          .okOrFail;
 
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
-      );
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
 
-      final survivor = (await roleIndexService.loadRoles(
-        database: database,
-      )).singleWhere((role) => role.id == targetRoleId);
+      final survivor = (await roleIndexService.loadRoles(database: database).valueOrFail)
+          .singleWhere((role) => role.id == targetRoleId);
       expect(survivor.castingNotes, "From target");
     });
 
     test("never touches target's kind, sortKey, isFromScreenplay or orphanedName", () async {
-      final before = (await roleIndexService.loadRoles(
-        database: database,
-      )).singleWhere((role) => role.id == targetRoleId);
-
-      await roleIndexService.mergeRole(
-        database: database,
-        sourceRoleId: sourceRoleId,
-        targetRoleId: targetRoleId,
+      final before = (await roleIndexService.loadRoles(database: database).valueOrFail).singleWhere(
+        (role) => role.id == targetRoleId,
       );
 
-      final after = (await roleIndexService.loadRoles(
-        database: database,
-      )).singleWhere((role) => role.id == targetRoleId);
+      await roleIndexService
+          .mergeRole(database: database, sourceRoleId: sourceRoleId, targetRoleId: targetRoleId)
+          .okOrFail;
+
+      final after = (await roleIndexService.loadRoles(database: database).valueOrFail).singleWhere(
+        (role) => role.id == targetRoleId,
+      );
       expect(after.kind, before.kind);
       expect(after.isFromScreenplay, before.isFromScreenplay);
       expect(after.orphanedName, before.orphanedName);
@@ -628,16 +604,18 @@ Hello.
 
   group("deleteRole cascade (decision 5)", () {
     test("tombstones the shot_characters rows naming the role", () async {
-      final roleId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "CLARA",
-        kind: OcptRoleKind.extra,
-      ))!;
+      final roleId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "CLARA",
+            kind: OcptRoleKind.extra,
+          )
+          .valueOrFail);
       await _insertShot(database, id: "shot-1", screenplayId: screenplayId);
       await _insertShotCharacter(database, shotId: "shot-1", roleId: roleId);
 
-      await roleIndexService.deleteRole(database: database, roleId: roleId);
+      await roleIndexService.deleteRole(database: database, roleId: roleId).okOrFail;
 
       final row = await (database.select(
         database.ocptShotCharactersTable,
@@ -646,16 +624,18 @@ Hello.
     });
 
     test("tombstones the breakdown_tags rows naming the role", () async {
-      final roleId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "CLARA",
-        kind: OcptRoleKind.extra,
-      ))!;
+      final roleId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "CLARA",
+            kind: OcptRoleKind.extra,
+          )
+          .valueOrFail);
       await _insertScene(database, id: "scene-1", screenplayId: screenplayId);
       await _insertRoleTag(database, id: "tag-1", sceneId: "scene-1", roleId: roleId);
 
-      await roleIndexService.deleteRole(database: database, roleId: roleId);
+      await roleIndexService.deleteRole(database: database, roleId: roleId).okOrFail;
 
       final tag = await (database.select(
         database.ocptBreakdownTagsTable,
@@ -664,17 +644,19 @@ Hello.
     });
 
     test("leaves shooting_slot_cast untouched — decision 5's own scope", () async {
-      final roleId = (await roleIndexService.addRole(
-        database: database,
-        screenplayId: screenplayId,
-        name: "CLARA",
-        kind: OcptRoleKind.extra,
-      ))!;
+      final roleId = (await roleIndexService
+          .addRole(
+            database: database,
+            screenplayId: screenplayId,
+            name: "CLARA",
+            kind: OcptRoleKind.extra,
+          )
+          .valueOrFail);
       await _insertShootingDay(database, id: "day-1");
       await _insertShootingSlot(database, id: "slot-1", shootingDayId: "day-1");
       await _insertSlotCast(database, id: "cast-1", slotId: "slot-1", roleId: roleId);
 
-      await roleIndexService.deleteRole(database: database, roleId: roleId);
+      await roleIndexService.deleteRole(database: database, roleId: roleId).okOrFail;
 
       final cast = await (database.select(
         database.ocptShootingSlotCastTable,

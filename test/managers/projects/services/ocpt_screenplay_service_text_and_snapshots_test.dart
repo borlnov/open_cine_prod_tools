@@ -302,15 +302,17 @@ void main() {
         snapshotReason: OcptSnapshotReason.manual,
       );
 
-      final roles = await roleIndexService.loadRoles(database: database);
+      final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       final maryRole = roles.firstWhere((role) => role.name == "MARY");
 
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: maryRole.id,
-        personId: const Value("person-1"),
-        castingNotes: const Value("Understudy confirmed"),
-      );
+      await roleIndexService
+          .updateRole(
+            database: database,
+            roleId: maryRole.id,
+            personId: const Value("person-1"),
+            castingNotes: const Value("Understudy confirmed"),
+          )
+          .okOrFail;
 
       // The next save's screenplay no longer names MARY.
       await service.saveScreenplayText(
@@ -332,12 +334,14 @@ void main() {
   );
 
   test('a hand-added role survives a save mentioning none of its character', () async {
-    final handAddedId = await roleIndexService.addRole(
-      database: database,
-      screenplayId: screenplayId,
-      name: "Passerby",
-      kind: OcptRoleKind.silent,
-    );
+    final handAddedId = await roleIndexService
+        .addRole(
+          database: database,
+          screenplayId: screenplayId,
+          name: "Passerby",
+          kind: OcptRoleKind.silent,
+        )
+        .maybeValueOrFail;
 
     await service.saveScreenplayText(
       database: database,
@@ -376,7 +380,7 @@ void main() {
           name: "LÉA",
           kind: OcptRoleKind.silent,
         )
-        .then((id) => id!);
+        .valueOrFail;
 
     test(
       'a tag whose passage is unchanged is left untouched, and a stale needsCheck is cleared',

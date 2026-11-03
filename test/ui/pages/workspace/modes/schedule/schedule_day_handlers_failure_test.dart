@@ -365,12 +365,14 @@ Future<_Fixtures> _seed(OcptProjectsManager projectsManager) async {
   );
 
   final personId = (await projectsManager.peopleService.createPerson(database: database))!;
-  final roleId = (await projectsManager.roleIndexService.addRole(
-    database: database,
-    screenplayId: project.primaryScreenplayId,
-    name: "LEA",
-    kind: OcptRoleKind.silent,
-  ))!;
+  final roleId = (await projectsManager.roleIndexService
+      .addRole(
+        database: database,
+        screenplayId: project.primaryScreenplayId,
+        name: "LEA",
+        kind: OcptRoleKind.silent,
+      )
+      .valueOrFail);
   final otherPersonId = (await projectsManager.peopleService.createPerson(database: database))!;
   const convokedCandidacyId = "candidacy-1";
   const roleCandidateId = "candidacy-2";

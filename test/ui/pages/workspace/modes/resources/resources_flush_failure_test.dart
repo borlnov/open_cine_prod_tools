@@ -92,12 +92,14 @@ void main() {
     // One record in each tab, written behind the mode's back, then a typed edit in each sheet.
     final project = projectsManager.currentProject!;
     personId = (await projectsManager.peopleService.createPerson(database: project.database))!;
-    roleId = (await projectsManager.roleIndexService.addRole(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      name: "",
-      kind: OcptRoleKind.silent,
-    ))!;
+    roleId = (await projectsManager.roleIndexService
+        .addRole(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          name: "",
+          kind: OcptRoleKind.silent,
+        )
+        .valueOrFail);
     locationId = (await projectsManager.locationsService.createLocation(
       database: project.database,
       name: "",
@@ -226,7 +228,9 @@ void main() {
         isEmpty,
       );
       expect(
-        (await projectsManager.roleIndexService.loadRoles(database: database)).single.castingNotes,
+        (await projectsManager.roleIndexService.loadRoles(database: database).valueOrFail)
+            .single
+            .castingNotes,
         isEmpty,
       );
       expect(
@@ -300,7 +304,9 @@ void main() {
         "Alicia",
       );
       expect(
-        (await projectsManager.roleIndexService.loadRoles(database: database)).single.castingNotes,
+        (await projectsManager.roleIndexService.loadRoles(database: database).valueOrFail)
+            .single
+            .castingNotes,
         "Zoe",
       );
       expect(
