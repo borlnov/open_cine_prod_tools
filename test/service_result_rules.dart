@@ -521,7 +521,7 @@ class CallFinder extends RecursiveAstVisitor<void> {
     String? reason;
     if (!_abortHelpers.contains(name)) {
       reason = "is chained with $name: await it and read its answer";
-    } else if (!inTransaction) {
+    } else if (!inTransaction && !_isInGuardBody(chain)) {
       reason = "is wrapped by $name outside a transaction, where nothing catches the abort";
     } else {
       var consumer = chain.parent;
@@ -624,6 +624,29 @@ class CallFinder extends RecursiveAstVisitor<void> {
     unit.accept(finder);
 
     return finder.types.isNotEmpty && finder.types.every(_namesResultType);
+  }
+
+  /// Tell whether [node] sits in the closure handed to `guardResult` or `guardOutcome`, which
+  /// catch an abort and answer its failure.
+  bool _isInGuardBody(AstNode node) {
+    var isIn = false;
+    var current = node.parent;
+    while (current != null && !isIn) {
+      if (current is FunctionExpression) {
+        var holder = current.parent;
+        if (holder is NamedExpression) {
+          holder = holder.parent;
+        }
+        final invocation = holder is ArgumentList ? holder.parent : null;
+        isIn =
+            invocation is MethodInvocation &&
+            (invocation.methodName.name == "guardResult" ||
+                invocation.methodName.name == "guardOutcome");
+      }
+      current = current.parent;
+    }
+
+    return isIn;
   }
 
   /// Tell whether [node] is inside a closure handed to a call named `transaction`, or inside a

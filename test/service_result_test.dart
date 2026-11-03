@@ -352,6 +352,25 @@ Future<void> f() async {
       expect(offences.map(_lineOfOffence), ["3", "6", "8", "10", "12", "14", "15"]);
     });
 
+    test("an abort wrapped in the body handed to a guard is caught by it", () {
+      const source = '''
+class OtherService {
+  Future<Object> joined() => guardResult("joined", () async {
+    await thingService.read().valueOrAbort();
+    await thingService.read();
+  });
+
+  Future<void> alone() async {
+    await thingService.read().valueOrAbort();
+  }
+}
+''';
+
+      final offences = callOffencesOf({"read"}, source);
+
+      expect(offences.map(_lineOfOffence), ["4", "8"]);
+    });
+
     test("a method that takes the caller's stamps runs inside the caller's transaction", () {
       const source = '''
 class OtherService {
