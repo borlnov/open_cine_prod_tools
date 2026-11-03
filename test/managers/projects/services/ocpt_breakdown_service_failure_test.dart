@@ -414,6 +414,15 @@ void main() {
       },
     );
 
+    test(
+      "a set and its tag are not minted when the location that was to hold it is refused",
+      () async {
+        await expectNothingKept("locations", [
+          "INSERT",
+        ], () async => (await createSetAndTag(rows)).status);
+      },
+    );
+
     test("a location is not kept when its set is refused", () async {
       await expectNothingKept("sets", ["INSERT"], () async => (await createSetAndTag(rows)).status);
     });

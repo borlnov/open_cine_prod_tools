@@ -4,11 +4,10 @@
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
@@ -53,12 +52,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 /// emptying what it holds ([onModeStateChanged]).
 class OcptResourcesLocationsBloc
     extends AbsOcptViewBloc<OcptResourcesLocationsState, OcptResourcesState, OcptResourcesBloc> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "resources_locations_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
@@ -88,8 +81,7 @@ class OcptResourcesLocationsBloc
     OcptAssetsService? assetsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _locationsService =
            locationsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
@@ -190,20 +182,26 @@ class OcptResourcesLocationsBloc
     }
 
     var isWritten = false;
-    try {
-      await _writeAllPendingLocationFields(
+    var hasFailed = false;
+    final locationsWritten = await _writeAllPendingLocationFields(
+      database: project.database,
+      pending: pendingLocationEdits,
+    );
+    if (locationsWritten.isError) {
+      hasFailed = true;
+    } else {
+      final setsWritten = await _writeAllPendingSetFields(
         database: project.database,
-        pending: pendingLocationEdits,
+        pending: pendingSetEdits,
       );
-      await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
-      isWritten = true;
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+      if (setsWritten.isError) {
+        hasFailed = true;
+      } else {
+        isWritten = true;
+      }
+    }
+
+    if (hasFailed) {
       await _loseEdits(emitter);
     }
 
@@ -251,7 +249,8 @@ class OcptResourcesLocationsBloc
   ///
   /// Unlike [onFlushRequested], this never touches [state]: `emit` may only be called from inside
   /// a registered `on<Event>` handler, and by the time this runs the widget tree that would show a
-  /// fresh state is already gone anyway. A failure here is only logged.
+  /// fresh state is already gone anyway. A failure is logged by the service that failed, and
+  /// leaves the edits to be written again by the next flush.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     cancelDebounce();
@@ -267,23 +266,18 @@ class OcptResourcesLocationsBloc
       return;
     }
 
-    try {
-      await flushEditsWithoutStateUntilConverted(
-        pendingLocationEdits,
-        (edits) => _writeAllPendingLocationFields(database: project.database, pending: edits),
-      );
-      await flushEditsWithoutStateUntilConverted(
-        pendingSetEdits,
-        (edits) => _writeAllPendingSetFields(database: project.database, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final locationsFlushed = await flushEditsWithoutState(
+      pendingLocationEdits,
+      (edits) => _writeAllPendingLocationFields(database: project.database, pending: edits),
+    );
+    if (locationsFlushed.isError) {
+      return;
     }
+
+    final _ = await flushEditsWithoutState(
+      pendingSetEdits,
+      (edits) => _writeAllPendingSetFields(database: project.database, pending: edits),
+    );
   }
 
   /// Create a new, blank location at the end of the list, read the catalogue again and select
@@ -308,35 +302,34 @@ class OcptResourcesLocationsBloc
       return;
     }
 
-    try {
-      final rank = modeBloc.state.locationCount;
-      final locationId = await _locationsService.createLocation(
-        database: project.database,
-        name: "",
-      );
-      // The write was refused (a version is being previewed read-only); the shell already
-      // withholds the button that dispatches this event, so this is only ever a race.
-      if (locationId != null) {
-        await _locationsService.updateLocation(
-          database: project.database,
-          locationId: locationId,
-          colorIndex: Value(rank),
-        );
-
-        if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-          await addToModeAndWait(
-            OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.locations, recordId: locationId),
-          );
-        }
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create a location in project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final rank = modeBloc.state.locationCount;
+    final created = await _locationsService.createLocation(database: project.database, name: "");
+    if (created.isError) {
       addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    // The write was refused (a version is being previewed read-only); the shell already
+    // withholds the button that dispatches this event, so this is only ever a race.
+    final locationId = created.value;
+    if (locationId == null) {
+      return;
+    }
+
+    final coloured = await _locationsService.updateLocation(
+      database: project.database,
+      locationId: locationId,
+      colorIndex: Value(rank),
+    );
+    if (coloured.isError) {
+      addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+      await addToModeAndWait(
+        OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.locations, recordId: locationId),
+      );
     }
   }
 
@@ -362,33 +355,28 @@ class OcptResourcesLocationsBloc
       cancelDebounce();
     }
 
-    try {
-      await _locationsService.deleteLocation(
-        database: project.database,
-        locationId: event.locationId,
-      );
-      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        emitter(
-          state.copyWithLocationDeleted(
-            pendingLocationFieldEdits: _pendingLocationsWithout(event.locationId),
-            pendingSetFieldEdits: _pendingSetsWithout(setIds),
-          ),
-        );
-        await addToModeAndWait(
-          OcptResourcesRecordDroppedEvent(
-            tab: OcptResourcesTab.locations,
-            recordId: event.locationId,
-          ),
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete location ${event.locationId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final deleted = await _locationsService.deleteLocation(
+      database: project.database,
+      locationId: event.locationId,
+    );
+    if (deleted.isError) {
       addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+      emitter(
+        state.copyWithLocationDeleted(
+          pendingLocationFieldEdits: _pendingLocationsWithout(event.locationId),
+          pendingSetFieldEdits: _pendingSetsWithout(setIds),
+        ),
+      );
+      await addToModeAndWait(
+        OcptResourcesRecordDroppedEvent(
+          tab: OcptResourcesTab.locations,
+          recordId: event.locationId,
+        ),
+      );
     }
   }
 
@@ -446,7 +434,6 @@ class OcptResourcesLocationsBloc
     emitter(state.copyWithSetRemoved(pendingSetFieldEdits: pendingWithoutSet));
 
     await _writeCatalogueChange(
-      logContext: "remove set ${event.setId}",
       action: (project) =>
           _locationsService.deleteSet(database: project.database, setId: event.setId),
     );
@@ -470,37 +457,11 @@ class OcptResourcesLocationsBloc
     emitter(state.copyWithFieldEditsCleared());
   }
 
-  /// Write a discrete change to the locations through [action] and have the mode read the
-  /// catalogue again, so every derived aggregate (the sets card's lines, the status bar) reflects
-  /// what the database now says. A no-op while no project is open; a failure raises the mode's
-  /// write error.
+  /// Write a discrete change to the locations through [action], a service call that answers an
+  /// outcome, and have the mode read the catalogue again, so every derived aggregate (the sets
+  /// card's lines, the status bar) reflects what the database now says. A no-op while no project is
+  /// open; a failed outcome raises the mode's write error and reads nothing.
   Future<void> _writeCatalogueChange({
-    required String logContext,
-    required Future<void> Function(OcptOpenProjectModel project) action,
-  }) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await action(project);
-      await modeBloc.reload({OcptResourcesReloadScope.snapshot});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to $logContext of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      addToMode(const OcptResourcesWriteFailedEvent());
-    }
-  }
-
-  /// Write a discrete change through [action], a service call that answers an outcome, and have the
-  /// mode read the catalogue again; a failed outcome raises the mode's write error and reads
-  /// nothing, where [_writeCatalogueChange] gets the same from an exception.
-  Future<void> _writeCatalogueOutcome({
     required Future<OcptDatabaseOutcome> Function(OcptOpenProjectModel project) action,
   }) async {
     final project = _projectsManager.currentProject;
@@ -550,7 +511,6 @@ class OcptResourcesLocationsBloc
     OcptResourcesLocationColorChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the colour of location ${event.locationId}",
     action: (project) => _locationsService.updateLocation(
       database: project.database,
       locationId: event.locationId,
@@ -563,7 +523,6 @@ class OcptResourcesLocationsBloc
     OcptResourcesLocationPermitStatusChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the permit status of location ${event.locationId}",
     action: (project) => _locationsService.updateLocation(
       database: project.database,
       locationId: event.locationId,
@@ -576,7 +535,6 @@ class OcptResourcesLocationsBloc
     OcptResourcesLocationPermitDateChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the permit date of location ${event.locationId}",
     action: (project) => _locationsService.updateLocation(
       database: project.database,
       locationId: event.locationId,
@@ -589,7 +547,6 @@ class OcptResourcesLocationsBloc
     OcptResourcesLocationContactChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the contact of location ${event.locationId}",
     action: (project) => _locationsService.updateLocation(
       database: project.database,
       locationId: event.locationId,
@@ -602,13 +559,14 @@ class OcptResourcesLocationsBloc
     OcptResourcesSetAddedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "add a set to location ${event.locationId}",
     action: (project) async {
-      await _locationsService.createSet(
+      final added = await _locationsService.createSet(
         database: project.database,
         locationId: event.locationId,
         name: "",
       );
+
+      return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
     },
   );
 
@@ -618,7 +576,6 @@ class OcptResourcesLocationsBloc
     OcptResourcesSetLocationChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "move set ${event.setId} to location ${event.locationId}",
     action: (project) => _locationsService.moveSetToLocation(
       database: project.database,
       setId: event.setId,
@@ -631,13 +588,14 @@ class OcptResourcesLocationsBloc
     OcptResourcesSceneAssignedToSetEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "assign scene ${event.sceneId} to set ${event.setId}",
     action: (project) async {
-      await _locationsService.assignSceneToSet(
+      final added = await _locationsService.assignSceneToSet(
         database: project.database,
         sceneId: event.sceneId,
         setId: event.setId,
       );
+
+      return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
     },
   );
 
@@ -646,7 +604,6 @@ class OcptResourcesLocationsBloc
     OcptResourcesSceneRemovedFromSetEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "remove scene ${event.sceneId} from set ${event.setId}",
     action: (project) => _locationsService.removeSceneFromSet(
       database: project.database,
       sceneId: event.sceneId,
@@ -669,13 +626,14 @@ class OcptResourcesLocationsBloc
     }
 
     await _writeCatalogueChange(
-      logContext: "reference a scouting photo of location ${event.locationId}",
       action: (project) async {
-        await _locationsService.addLocationPhoto(
+        final added = await _locationsService.addLocationPhoto(
           database: project.database,
           locationId: event.locationId,
           path: path,
         );
+
+        return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
       },
     );
   }
@@ -695,13 +653,14 @@ class OcptResourcesLocationsBloc
     }
 
     await _writeCatalogueChange(
-      logContext: "reference the permit document of location ${event.locationId}",
       action: (project) async {
-        await _locationsService.setPermitDocument(
+        final added = await _locationsService.setPermitDocument(
           database: project.database,
           locationId: event.locationId,
           path: path,
         );
+
+        return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
       },
     );
   }
@@ -711,7 +670,6 @@ class OcptResourcesLocationsBloc
     OcptResourcesPermitDocumentClearedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "drop the permit document of location ${event.locationId}",
     action: (project) => _locationsService.clearPermitDocument(
       database: project.database,
       locationId: event.locationId,
@@ -722,7 +680,7 @@ class OcptResourcesLocationsBloc
   Future<void> _onAssetValidFromChanged(
     OcptResourcesAssetValidFromChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
-  ) => _writeCatalogueOutcome(
+  ) => _writeCatalogueChange(
     action: (project) => _assetsService.updateAssetValidity(
       database: project.database,
       assetId: event.assetId,
@@ -734,7 +692,7 @@ class OcptResourcesLocationsBloc
   Future<void> _onAssetValidUntilChanged(
     OcptResourcesAssetValidUntilChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
-  ) => _writeCatalogueOutcome(
+  ) => _writeCatalogueChange(
     action: (project) => _assetsService.updateAssetValidity(
       database: project.database,
       assetId: event.assetId,
@@ -746,7 +704,7 @@ class OcptResourcesLocationsBloc
   Future<void> _onAssetRemoved(
     OcptResourcesAssetRemovedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
-  ) => _writeCatalogueOutcome(
+  ) => _writeCatalogueChange(
     action: (project) =>
         _assetsService.removeAsset(database: project.database, assetId: event.assetId),
   );
@@ -756,9 +714,8 @@ class OcptResourcesLocationsBloc
     OcptResourcesLocationAvailabilityAddedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "add an availability window to location ${event.locationId}",
     action: (project) async {
-      await _locationsService.addAvailability(
+      final added = await _locationsService.addAvailability(
         database: project.database,
         locationId: event.locationId,
         startDate: event.startDate,
@@ -770,6 +727,8 @@ class OcptResourcesLocationsBloc
         kind: event.kind,
         note: event.note,
       );
+
+      return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
     },
   );
 
@@ -778,7 +737,6 @@ class OcptResourcesLocationsBloc
     OcptResourcesLocationAvailabilityUpdatedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "update the availability window ${event.id}",
     action: (project) => _locationsService.updateAvailability(
       database: project.database,
       id: event.id,
@@ -798,25 +756,33 @@ class OcptResourcesLocationsBloc
     OcptResourcesLocationAvailabilityRemovedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "remove the availability window ${event.id}",
     action: (project) =>
         _locationsService.removeAvailability(database: project.database, id: event.id),
   );
 
   /// Write every entry of [pending] through [_writeLocationField].
-  Future<void> _writeAllPendingLocationFields({
+  ///
+  /// Stops at the first write that fails and answers its failure; the entries after it are not
+  /// written.
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingLocationFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptLocationField), String> pending,
   }) async {
     for (final entry in pending.entries) {
       final (locationId, field) = entry.key;
-      await _writeLocationField(
+      final written = await _writeLocationField(
         database: database,
         locationId: locationId,
         field: field,
         rawValue: entry.value,
       );
+      if (written.isError) {
+        return written;
+      }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Write a single location field edit through `OcptLocationsService.updateLocation`, translating
@@ -826,7 +792,8 @@ class OcptResourcesLocationsBloc
   /// The two coordinate fields are the only ones not written as typed: what cannot be read as a
   /// number is written as null rather than refused, so a half-typed `48.` costs nothing and a
   /// cleared field clears the coordinate. Saying so is the sheet's job, not this one's.
-  Future<void> _writeLocationField({
+  @useResult
+  Future<OcptDatabaseOutcome> _writeLocationField({
     required OcptProjectDatabase database,
     required String locationId,
     required OcptLocationField field,
@@ -834,97 +801,97 @@ class OcptResourcesLocationsBloc
   }) async {
     switch (field) {
       case OcptLocationField.name:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           name: Value(rawValue),
         );
       case OcptLocationField.addressLine1:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           addressLine1: Value(rawValue),
         );
       case OcptLocationField.addressLine2:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           addressLine2: Value(rawValue),
         );
       case OcptLocationField.postalCode:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           postalCode: Value(rawValue),
         );
       case OcptLocationField.city:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           city: Value(rawValue),
         );
       case OcptLocationField.region:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           region: Value(rawValue),
         );
       case OcptLocationField.country:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           country: Value(rawValue),
         );
       case OcptLocationField.latitude:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           latitude: Value(double.tryParse(rawValue.trim())),
         );
       case OcptLocationField.longitude:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           longitude: Value(double.tryParse(rawValue.trim())),
         );
       case OcptLocationField.contactNotes:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           contactNotes: Value(rawValue),
         );
       case OcptLocationField.permitLabel:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           permitLabel: Value(rawValue),
         );
       case OcptLocationField.parkingNotes:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           parkingNotes: Value(rawValue),
         );
       case OcptLocationField.powerNotes:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           powerNotes: Value(rawValue),
         );
       case OcptLocationField.facilitiesNotes:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           facilitiesNotes: Value(rawValue),
         );
       case OcptLocationField.constraintsNotes:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           constraintsNotes: Value(rawValue),
         );
       case OcptLocationField.notes:
-        await _locationsService.updateLocation(
+        return _locationsService.updateLocation(
           database: database,
           locationId: locationId,
           notes: Value(rawValue),
@@ -933,19 +900,34 @@ class OcptResourcesLocationsBloc
   }
 
   /// Write every entry of [pending] through [_writeSetField].
-  Future<void> _writeAllPendingSetFields({
+  ///
+  /// Stops at the first write that fails and answers its failure; the entries after it are not
+  /// written.
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingSetFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptSetField), String> pending,
   }) async {
     for (final entry in pending.entries) {
       final (setId, field) = entry.key;
-      await _writeSetField(database: database, setId: setId, field: field, rawValue: entry.value);
+      final written = await _writeSetField(
+        database: database,
+        setId: setId,
+        field: field,
+        rawValue: entry.value,
+      );
+      if (written.isError) {
+        return written;
+      }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Write a single set field edit through `OcptLocationsService.updateSet`, translating [field]
   /// into the matching named argument (see `OcptSetField`'s own doc comment for the mapping).
-  Future<void> _writeSetField({
+  @useResult
+  Future<OcptDatabaseOutcome> _writeSetField({
     required OcptProjectDatabase database,
     required String setId,
     required OcptSetField field,
@@ -953,9 +935,13 @@ class OcptResourcesLocationsBloc
   }) async {
     switch (field) {
       case OcptSetField.name:
-        await _locationsService.updateSet(database: database, setId: setId, name: Value(rawValue));
+        return _locationsService.updateSet(database: database, setId: setId, name: Value(rawValue));
       case OcptSetField.notes:
-        await _locationsService.updateSet(database: database, setId: setId, notes: Value(rawValue));
+        return _locationsService.updateSet(
+          database: database,
+          setId: setId,
+          notes: Value(rawValue),
+        );
     }
   }
 }

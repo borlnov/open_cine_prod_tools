@@ -163,11 +163,9 @@ void main() {
   /// Returns `(sceneId, setId)`.
   Future<(String, String)> seedLinkedSet({String? sceneId, String name = "Kitchen"}) async {
     final resolvedSceneId = sceneId ?? await seedScene();
-    final setId = (await locationsService.createSetLinkedToScene(
-      database: database,
-      sceneId: resolvedSceneId,
-      name: name,
-    ))!;
+    final setId = (await locationsService
+        .createSetLinkedToScene(database: database, sceneId: resolvedSceneId, name: name)
+        .valueOrFail);
     return (resolvedSceneId, setId);
   }
 

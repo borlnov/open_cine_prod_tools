@@ -310,15 +310,12 @@ void main() {
 
     test("a refused scene note stops the set names after it", () async {
       final project = projectsManager.currentProject!;
-      final locationId = (await projectsManager.locationsService.createLocation(
-        database: project.database,
-        name: "House",
-      ))!;
-      final setId = (await projectsManager.locationsService.createSet(
-        database: project.database,
-        locationId: locationId,
-        name: "Kitchen",
-      ))!;
+      final locationId = (await projectsManager.locationsService
+          .createLocation(database: project.database, name: "House")
+          .valueOrFail);
+      final setId = (await projectsManager.locationsService
+          .createSet(database: project.database, locationId: locationId, name: "Kitchen")
+          .valueOrFail);
       inspector.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "A note"));
       inspector.add(OcptBreakdownSetNameChangedEvent(setId: setId, rawValue: "Renamed kitchen"));
       await settle();
@@ -591,8 +588,9 @@ void main() {
   });
 
   group("when the breakdown cannot be read", () {
-    // The elements, the scenes' own breakdown rows, the tags and the cast are separate reads.
-    for (final table in ["elements", "scene_breakdowns", "breakdown_tags", "roles"]) {
+    // The elements, the scenes' own breakdown rows, the tags, the cast and the locations are
+    // separate reads.
+    for (final table in ["elements", "scene_breakdowns", "breakdown_tags", "roles", "locations"]) {
       /// Make [table] unreadable.
       Future<void> lose() => projectsManager.currentProject!.database.customStatement(
         "ALTER TABLE $table RENAME TO ${table}_gone",
@@ -682,6 +680,170 @@ void main() {
 
       expect(tagged.status, OcptDatabaseStatus.databaseError);
       expect(await project.database.select(project.database.ocptBreakdownTagsTable).get(), isEmpty);
+    });
+  });
+
+  group("the inspector's set writes", () {
+    late OcptBreakdownBloc mode;
+    late OcptBreakdownInspectorBloc inspector;
+    late String linkedSetId;
+    late String freeSetId;
+
+    setUp(() async {
+      final database = projectsManager.currentProject!.database;
+      final locationId = await projectsManager.locationsService
+          .createLocation(database: database, name: "House")
+          .valueOrFail;
+      linkedSetId = await projectsManager.locationsService
+          .createSet(database: database, locationId: locationId, name: "Kitchen")
+          .valueOrFail;
+      freeSetId = await projectsManager.locationsService
+          .createSet(database: database, locationId: locationId, name: "Hall")
+          .valueOrFail;
+      await projectsManager.locationsService
+          .assignSceneToSet(database: database, sceneId: sceneId, setId: linkedSetId)
+          .valueOrFail;
+      mode = await buildMode();
+      inspector = OcptBreakdownInspectorBloc(
+        modeBloc: mode,
+        projectsManager: projectsManager,
+        fieldEditDebounce: const Duration(days: 1),
+      );
+      addTearDown(inspector.close);
+    });
+
+    /// Read straight from the database every row of the tables the set writes touch, as text.
+    Future<String> rows() async {
+      final database = projectsManager.currentProject!.database;
+      final buffer = StringBuffer();
+      for (final table in ["locations", "sets", "scene_sets", "row_field_versions"]) {
+        final result = await database.customSelect("SELECT * FROM $table ORDER BY 1, 2").get();
+        buffer.writeln("$table: ${[for (final row in result) row.data]}");
+      }
+
+      return buffer.toString();
+    }
+
+    /// Read straight from the database the name of every live set, by id.
+    Future<Map<String, String>> setNames() async {
+      final result = await projectsManager.currentProject!.database
+          .customSelect("SELECT id, name FROM sets WHERE is_deleted = 0")
+          .get();
+
+      return {for (final row in result) row.read<String>("id"): row.read<String>("name")};
+    }
+
+    /// The handlers, each with the table and the verb that fail it, and the event it dispatches.
+    final cases =
+        <String, ({String table, String verb, OcptBreakdownInspectorEvent Function() event})>{
+          "linking a set to the scene": (
+            table: "scene_sets",
+            verb: "INSERT",
+            event: () => OcptBreakdownSceneSetLinkedEvent(sceneId: sceneId, setId: freeSetId),
+          ),
+          "unlinking a set from the scene": (
+            table: "scene_sets",
+            verb: "UPDATE",
+            event: () => OcptBreakdownSceneSetUnlinkedEvent(sceneId: sceneId, setId: linkedSetId),
+          ),
+          "creating a set, with its location refused": (
+            table: "locations",
+            verb: "INSERT",
+            event: () => OcptBreakdownSceneSetCreationRequestedEvent(
+              sceneId: sceneId,
+              locationId: null,
+              name: "Garden",
+            ),
+          ),
+          "creating a set, with the set refused": (
+            table: "sets",
+            verb: "INSERT",
+            event: () => OcptBreakdownSceneSetCreationRequestedEvent(
+              sceneId: sceneId,
+              locationId: null,
+              name: "Garden",
+            ),
+          ),
+          "creating a set, with its link refused": (
+            table: "scene_sets",
+            verb: "INSERT",
+            event: () => OcptBreakdownSceneSetCreationRequestedEvent(
+              sceneId: sceneId,
+              locationId: null,
+              name: "Garden",
+            ),
+          ),
+        };
+
+    for (final entry in cases.entries) {
+      test("${entry.key} stops, writes nothing, reads nothing again, and goes through once the "
+          "refusal is lifted", () async {
+        final held = mode.state;
+        final untouched = await rows();
+        await refuse(entry.value.verb, entry.value.table);
+
+        inspector.add(entry.value.event());
+        await settle();
+
+        expect(mode.state.reloadEpoch, held.reloadEpoch, reason: "the mode read again");
+        expect(await rows(), untouched, reason: "the failed call rolled back whole");
+
+        await lift(entry.value.verb, entry.value.table);
+        inspector.add(entry.value.event());
+        await settle();
+
+        expect(mode.state.reloadEpoch, isNot(held.reloadEpoch));
+        expect(await rows(), isNot(untouched));
+      });
+    }
+
+    test("a refused set rename stops the renames after it and forgets the names", () async {
+      inspector.add(OcptBreakdownSetNameChangedEvent(setId: linkedSetId, rawValue: "Scullery"));
+      inspector.add(OcptBreakdownSetNameChangedEvent(setId: freeSetId, rawValue: "Lobby"));
+      await settle();
+      await projectsManager.currentProject!.database.customStatement(
+        "CREATE TRIGGER refuse_first BEFORE UPDATE ON sets WHEN NEW.id = '$linkedSetId' "
+        "BEGIN SELECT RAISE(ABORT, 'refused'); END",
+      );
+
+      final status = await inspector.flushPendingWrites();
+
+      expect(status, OcptPendingWritesStatus.ok);
+      expect(inspector.state.pendingSetNameEdits, isEmpty);
+      final names = await setNames();
+      expect(names[linkedSetId], "Kitchen");
+      expect(names[freeSetId], "Hall", reason: "the rename after the refused one");
+    });
+
+    test("a refused scene note on leaving stops the set renames after it", () async {
+      inspector.add(OcptBreakdownSceneNotesChangedEvent(sceneId: sceneId, rawValue: "A note"));
+      inspector.add(OcptBreakdownSetNameChangedEvent(setId: linkedSetId, rawValue: "Scullery"));
+      await settle();
+      await refuse("INSERT", "scene_breakdowns");
+
+      await inspector.flushPendingWritesWithoutState();
+
+      expect((await setNames())[linkedSetId], "Kitchen");
+
+      await lift("INSERT", "scene_breakdowns");
+      await inspector.flushPendingWritesWithoutState();
+
+      expect((await setNames())[linkedSetId], "Scullery", reason: "the rename goes through later");
+    });
+
+    test("a refused set rename on leaving is written again by the next flush", () async {
+      inspector.add(OcptBreakdownSetNameChangedEvent(setId: linkedSetId, rawValue: "Scullery"));
+      await settle();
+      await refuse("UPDATE", "sets");
+
+      await inspector.flushPendingWritesWithoutState();
+
+      expect((await setNames())[linkedSetId], "Kitchen");
+
+      await lift("UPDATE", "sets");
+      await inspector.flushPendingWritesWithoutState();
+
+      expect((await setNames())[linkedSetId], "Scullery");
     });
   });
 }

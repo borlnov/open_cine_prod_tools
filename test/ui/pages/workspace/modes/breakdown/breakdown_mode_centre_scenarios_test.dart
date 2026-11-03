@@ -253,10 +253,9 @@ void main() {
         .deleteElement(database: harness.database, elementId: teapotId)
         .okOrFail;
     final locationId = (await harness.readLocations()).single.id;
-    await harness.projectsManager.locationsService.deleteLocation(
-      database: harness.database,
-      locationId: locationId,
-    );
+    await harness.projectsManager.locationsService
+        .deleteLocation(database: harness.database, locationId: locationId)
+        .okOrFail;
 
     // Nothing reloads by itself: the next write does.
     await harness.tap(tester, find.text(tr.breakdownRightDockInspectorTabLabel));

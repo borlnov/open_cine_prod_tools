@@ -493,7 +493,15 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     final roles = rolesRead.value!;
-    final locations = await _locationsService.loadLocations(database: database);
+    final locationsRead = await _locationsService.loadLocations(database: database);
+    if (locationsRead.isError) {
+      return OcptDatabaseResult<OcptResourcesSnapshot>(
+        status: locationsRead.status,
+        extraInfo: locationsRead.extraInfo,
+      );
+    }
+
+    final locations = locationsRead.value!;
     final elementsRead = await _elementsService.loadElements(database: database);
     if (elementsRead.isError) {
       return OcptDatabaseResult<OcptResourcesSnapshot>(
@@ -516,11 +524,19 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
     final candidatesByRoleId = candidatesRead.value!;
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
-    final scenes = await _locationsService.loadScenes(
+    final scenesRead = await _locationsService.loadScenes(
       database: database,
       screenplayId: screenplayId,
       episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
     );
+    if (scenesRead.isError) {
+      return OcptDatabaseResult<OcptResourcesSnapshot>(
+        status: scenesRead.status,
+        extraInfo: scenesRead.extraInfo,
+      );
+    }
+
+    final scenes = scenesRead.value!;
 
     return OcptDatabaseResult<OcptResourcesSnapshot>(
       status: OcptDatabaseStatus.ok,
@@ -700,28 +716,24 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    try {
-      final firstLinkedScene = await _locationsService.firstLinkedSceneOf(
-        database: project.database,
-        setId: event.setId,
-      );
-      if (firstLinkedScene != null) {
-        emitter(
-          state.copyWithShotListReveal(
-            reveal: (
-              episodeId: firstLinkedScene.screenplayId,
-              sceneId: firstLinkedScene.sceneId,
-              setId: event.setId,
-            ),
+    final linkedRead = await _locationsService.firstLinkedSceneOf(
+      database: project.database,
+      setId: event.setId,
+    );
+    if (linkedRead.isError) {
+      return;
+    }
+
+    final firstLinkedScene = linkedRead.value;
+    if (firstLinkedScene != null) {
+      emitter(
+        state.copyWithShotListReveal(
+          reveal: (
+            episodeId: firstLinkedScene.screenplayId,
+            sceneId: firstLinkedScene.sceneId,
+            setId: event.setId,
           ),
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to resolve set ${event.setId}'s own first linked "
-        "sequence of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
+        ),
       );
     }
   }

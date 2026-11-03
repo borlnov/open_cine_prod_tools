@@ -145,10 +145,9 @@ void main() {
   /// Adds a location to the list behind the mode's back, as a view's own write would, and has the
   /// mode read the catalogue again so it holds it. Selects nothing.
   Future<String> seedLocation(OcptResourcesBloc bloc) async {
-    final locationId = await projectsManager.locationsService.createLocation(
-      database: projectsManager.currentProject!.database,
-      name: "",
-    );
+    final locationId = await projectsManager.locationsService
+        .createLocation(database: projectsManager.currentProject!.database, name: "")
+        .maybeValueOrFail;
     await bloc.reload({OcptResourcesReloadScope.snapshot});
 
     return locationId!;

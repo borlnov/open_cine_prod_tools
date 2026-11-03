@@ -266,11 +266,9 @@ Action.
           )
           .maybeValueOrFail;
 
-      final setId = (await locationsService.createSetLinkedToScene(
-        database: database,
-        sceneId: sceneId,
-        name: "Kitchen",
-      ))!;
+      final setId = (await locationsService
+          .createSetLinkedToScene(database: database, sceneId: sceneId, name: "Kitchen")
+          .valueOrFail);
       final setSymbolId = (await floorPlanService
           .placeSymbol(
             database: database,

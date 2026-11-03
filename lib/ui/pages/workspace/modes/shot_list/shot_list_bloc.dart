@@ -288,7 +288,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             isRead = !read.isError;
             floorPlanSnapshot = read.value;
           case OcptShotListReloadScope.locations:
-            locations = await _reader.loadLocations(project);
+            final read = await _reader.loadLocations(project);
+            isRead = !read.isError;
+            locations = read.value;
           case OcptShotListReloadScope.setScopeSymbols:
             final read = await _reader.loadSetScopeSymbolsBySetId(project);
             isRead = !read.isError;
@@ -428,7 +430,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       }
 
       final floorPlanSnapshot = floorPlanRead.value!;
-      final locations = await _reader.loadLocations(project);
+      final locationsRead = await _reader.loadLocations(project);
+      if (locationsRead.isError) {
+        return false;
+      }
+
+      final locations = locationsRead.value!;
       final setScopeSymbolsRead = await _reader.loadSetScopeSymbolsBySetId(project);
       if (setScopeSymbolsRead.isError) {
         return false;

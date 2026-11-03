@@ -530,11 +530,9 @@ class ShotListScenarioHarness {
   /// the set id.
   Future<String> seedLinkedSet(String name, {int sceneIndex = 0}) async {
     final sceneId = (await sceneIds())[sceneIndex];
-    final setId = await projectsManager.locationsService.createSetLinkedToScene(
-      database: database,
-      sceneId: sceneId,
-      name: name,
-    );
+    final setId = await projectsManager.locationsService
+        .createSetLinkedToScene(database: database, sceneId: sceneId, name: name)
+        .maybeValueOrFail;
     return setId!;
   }
 

@@ -47,8 +47,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdow
 /// edit is dropped, as the mode itself did before the inspector had a bloc of its own, since the
 /// database underneath may be another one. An ordinary re-read after a write clears nothing.
 ///
-/// A flush that fails is only logged: the edits are dropped and the action behind the flush (a
-/// selection, a preview, an export) goes ahead on the value the database holds, as it always did.
+/// A flush that fails is only logged, by the service that failed: the edits are dropped and the
+/// action behind the flush (a selection, a preview, an export) goes ahead on the value the
+/// database holds, as it always did.
 class OcptBreakdownInspectorBloc
     extends AbsOcptViewBloc<OcptBreakdownInspectorState, OcptBreakdownState, OcptBreakdownBloc> {
   /// The logger category linked to this BLoC.
@@ -157,10 +158,10 @@ class OcptBreakdownInspectorBloc
   /// field shows never falls back to a stale stored value between the two. A no-op while nothing is
   /// pending. Answers `nothingToWrite` when nothing was pending.
   ///
-  /// A write that fails is logged and what was meant to be written is forgotten, the snapshot is
-  /// not read again, and the flush answers `ok` all the same: the action behind it goes ahead on
-  /// the value the database holds. A read that fails after the write landed forgets what was
-  /// written too, the mode having logged why it could not read.
+  /// A write that fails is logged by its service and what was meant to be written is forgotten, the
+  /// snapshot is not read again, and the flush answers `ok` all the same: the action behind it goes
+  /// ahead on the value the database holds. A read that fails after the write landed forgets what
+  /// was written too, the mode having logged why it could not read.
   ///
   /// When the write landed and the `Versions` tab is the one showing, also asks the mode to refresh
   /// its working-copy card.
@@ -187,24 +188,13 @@ class OcptBreakdownInspectorBloc
       return OcptPendingWritesStatus.ok;
     }
 
-    var hasWritten = true;
-    try {
-      final written = await _writeAllPendingFields(
-        database: project.database,
-        elementFields: pendingElementFields,
-        sceneNotes: pendingSceneNotes,
-        setNames: pendingSetNames,
-      );
-      hasWritten = !written.isError;
-    } catch (error, stackTrace) {
-      hasWritten = false;
-      _logger.e(
-        "A problem occurred when tried to flush a pending breakdown field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
+    final written = await _writeAllPendingFields(
+      database: project.database,
+      elementFields: pendingElementFields,
+      sceneNotes: pendingSceneNotes,
+      setNames: pendingSetNames,
+    );
+    final hasWritten = !written.isError;
 
     if (hasWritten) {
       await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
@@ -249,7 +239,8 @@ class OcptBreakdownInspectorBloc
   ///
   /// Unlike [onFlushRequested], this never touches [state]: `emit` may only be called from inside
   /// a registered `on<Event>` handler, and by the time this runs the widget tree that would show a
-  /// fresh state is already gone anyway. A failure here is only logged.
+  /// fresh state is already gone anyway. A failure is logged by the service that failed, and
+  /// leaves the edits to be written again by the next flush.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     cancelDebounce();
@@ -266,50 +257,42 @@ class OcptBreakdownInspectorBloc
       return;
     }
 
-    try {
-      final elementsFlushed = await flushEditsWithoutStateUntilConverted(
-        pendingElementFields,
-        (edits) => _writeAllPendingFields(
-          database: project.database,
-          elementFields: edits,
-          sceneNotes: const {},
-          setNames: const {},
-        ),
-      );
-      // A flush that failed stops the ones after it, as the exception it used to raise did.
-      var isFlushed = !elementsFlushed.isError;
-      if (isFlushed) {
-        final notesFlushed = await flushEditsWithoutStateUntilConverted(
-          pendingSceneNotes,
-          (edits) => _writeAllPendingFields(
-            database: project.database,
-            elementFields: const {},
-            sceneNotes: edits,
-            setNames: const {},
-          ),
-        );
-        isFlushed = !notesFlushed.isError;
-      }
-
-      if (isFlushed) {
-        final _ = await flushEditsWithoutStateUntilConverted(
-          pendingSetNames,
-          (edits) => _writeAllPendingFields(
-            database: project.database,
-            elementFields: const {},
-            sceneNotes: const {},
-            setNames: edits,
-          ),
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending breakdown field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final elementsFlushed = await flushEditsWithoutState(
+      pendingElementFields,
+      (edits) => _writeAllPendingFields(
+        database: project.database,
+        elementFields: edits,
+        sceneNotes: const {},
+        setNames: const {},
+      ),
+    );
+    // A flush that failed stops the ones after it, as the exception it used to raise did.
+    if (elementsFlushed.isError) {
+      return;
     }
+
+    final notesFlushed = await flushEditsWithoutState(
+      pendingSceneNotes,
+      (edits) => _writeAllPendingFields(
+        database: project.database,
+        elementFields: const {},
+        sceneNotes: edits,
+        setNames: const {},
+      ),
+    );
+    if (notesFlushed.isError) {
+      return;
+    }
+
+    final _ = await flushEditsWithoutState(
+      pendingSetNames,
+      (edits) => _writeAllPendingFields(
+        database: project.database,
+        elementFields: const {},
+        sceneNotes: const {},
+        setNames: edits,
+      ),
+    );
   }
 
   /// Tell whether [inspectorState] holds a typed edit of any of the three kinds.
@@ -360,11 +343,14 @@ class OcptBreakdownInspectorBloc
       return;
     }
 
-    await _locationsService.assignSceneToSet(
+    final linked = await _locationsService.assignSceneToSet(
       database: project.database,
       sceneId: event.sceneId,
       setId: event.setId,
     );
+    if (linked.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
@@ -388,12 +374,15 @@ class OcptBreakdownInspectorBloc
     }
 
     final trimmedName = event.name.trim();
-    await _locationsService.createSetLinkedToScene(
+    final created = await _locationsService.createSetLinkedToScene(
       database: project.database,
       sceneId: event.sceneId,
       name: trimmedName.isEmpty ? event.name : trimmedName,
       locationId: event.locationId,
     );
+    if (created.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
@@ -410,11 +399,14 @@ class OcptBreakdownInspectorBloc
       return;
     }
 
-    await _locationsService.removeSceneFromSet(
+    final unlinked = await _locationsService.removeSceneFromSet(
       database: project.database,
       sceneId: event.sceneId,
       setId: event.setId,
     );
+    if (unlinked.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
@@ -525,8 +517,8 @@ class OcptBreakdownInspectorBloc
   /// through `OcptBreakdownService.updateSceneBreakdown`, then every entry of [setNames] through
   /// `OcptLocationsService.updateSet`.
   ///
-  /// Stops at the first element or scene notes write that fails and answers its failure; what comes
-  /// after it is not written. The set names still raise when the database fails.
+  /// Stops at the first write that fails and answers its failure; what comes after it is not
+  /// written.
   @useResult
   Future<OcptDatabaseOutcome> _writeAllPendingFields({
     required OcptProjectDatabase database,
@@ -598,11 +590,14 @@ class OcptBreakdownInspectorBloc
     }
 
     for (final entry in setNames.entries) {
-      await _locationsService.updateSet(
+      final namesWritten = await _locationsService.updateSet(
         database: database,
         setId: entry.key,
         name: Value(entry.value),
       );
+      if (namesWritten.isError) {
+        return namesWritten;
+      }
     }
 
     return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);

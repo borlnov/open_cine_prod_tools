@@ -159,11 +159,9 @@ void main() {
   /// Returns `(sceneId, setId)`.
   Future<(String, String)> seedLinkedSet({String? sceneId, String name = "Kitchen"}) async {
     final resolvedSceneId = sceneId ?? await seedScene();
-    final setId = (await locationsService.createSetLinkedToScene(
-      database: database,
-      sceneId: resolvedSceneId,
-      name: name,
-    ))!;
+    final setId = (await locationsService
+        .createSetLinkedToScene(database: database, sceneId: resolvedSceneId, name: name)
+        .valueOrFail);
     return (resolvedSceneId, setId);
   }
 
@@ -429,11 +427,13 @@ void main() {
             yM: 0,
           )
           .maybeValueOrFail;
-      final setWithNoPlanId = (await locationsService.createSet(
-        database: database,
-        locationId: (await database.select(database.ocptSetsTable).get()).first.locationId,
-        name: "Hallway",
-      ))!;
+      final setWithNoPlanId = (await locationsService
+          .createSet(
+            database: database,
+            locationId: (await database.select(database.ocptSetsTable).get()).first.locationId,
+            name: "Hallway",
+          )
+          .valueOrFail);
 
       final withPlan = await floorPlanService
           .liveSetIdsWithPlan(database: database, setIds: [setWithPlanId, setWithNoPlanId])

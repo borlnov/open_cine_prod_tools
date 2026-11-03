@@ -276,10 +276,9 @@ void main() {
 
       // Seed one ordinary row on A only, then let it reach B through the real folder transport —
       // proving the two replicas start identical through the engine, not by construction.
-      final office = (await deviceA.locationsService.createLocation(
-        database: replicaA,
-        name: 'Office',
-      ))!;
+      final office = (await deviceA.locationsService
+          .createLocation(database: replicaA, name: 'Office')
+          .valueOrFail);
 
       await deviceA.changesetService.pushLocalEdits(
         database: replicaA,
@@ -304,10 +303,9 @@ void main() {
         fountainText: textAtV1,
         snapshotReason: OcptSnapshotReason.manual,
       );
-      final studio = (await deviceA.locationsService.createLocation(
-        database: replicaA,
-        name: 'Studio',
-      ))!;
+      final studio = (await deviceA.locationsService
+          .createLocation(database: replicaA, name: 'Studio')
+          .valueOrFail);
 
       final v1 = await deviceA.projectVersionsService.createVersion(
         database: replicaA,
@@ -326,16 +324,15 @@ void main() {
         fountainText: textAfterV1,
         snapshotReason: OcptSnapshotReason.manual,
       );
-      await deviceA.locationsService.updateLocation(
-        database: replicaA,
-        locationId: office,
-        name: const Value('Office HQ'),
-      );
-      await deviceA.locationsService.deleteLocation(database: replicaA, locationId: studio);
-      final backlot = (await deviceA.locationsService.createLocation(
-        database: replicaA,
-        name: 'Backlot',
-      ))!;
+      await deviceA.locationsService
+          .updateLocation(database: replicaA, locationId: office, name: const Value('Office HQ'))
+          .okOrFail;
+      await deviceA.locationsService
+          .deleteLocation(database: replicaA, locationId: studio)
+          .okOrFail;
+      final backlot = (await deviceA.locationsService
+          .createLocation(database: replicaA, name: 'Backlot')
+          .valueOrFail);
 
       final restoreResult = await deviceA.projectVersionsService.restoreVersion(
         database: replicaA,

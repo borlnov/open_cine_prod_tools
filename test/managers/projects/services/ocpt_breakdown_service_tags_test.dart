@@ -180,12 +180,12 @@ void main() {
 
   /// Creates a location and a set inside it, returning the set's id.
   Future<String> createSet() async {
-    final locationId = (await locationsService.createLocation(database: database, name: "House"))!;
-    return (await locationsService.createSet(
-      database: database,
-      locationId: locationId,
-      name: "Kitchen",
-    ))!;
+    final locationId = (await locationsService
+        .createLocation(database: database, name: "House")
+        .valueOrFail);
+    return locationsService
+        .createSet(database: database, locationId: locationId, name: "Kitchen")
+        .valueOrFail;
   }
 
   group("createTag", () {
@@ -594,10 +594,9 @@ void main() {
   group("createSetAndTag", () {
     test("mints the set inside the location given, tags it and ensures the link", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
-      final locationId = (await locationsService.createLocation(
-        database: database,
-        name: "Maison des Martin",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "Maison des Martin")
+          .valueOrFail);
 
       final result = await breakdownService
           .createSetAndTag(
@@ -612,7 +611,7 @@ void main() {
           .maybeValueOrFail;
 
       expect(result, isNotNull);
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations.single.sets.single.id, result!.setId);
       expect(locations.single.sets.single.name, "Cuisine");
 
@@ -638,7 +637,7 @@ void main() {
           .maybeValueOrFail;
 
       expect(result, isNotNull);
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations.single.name, "Cuisine");
       expect(locations.single.sets.single.id, result!.setId);
     });
@@ -678,7 +677,7 @@ void main() {
 
       expect(result, isNull);
       // Neither the set nor the location minted to hold it survives the tag that was their point.
-      expect(await locationsService.loadLocations(database: database), isEmpty);
+      expect(await locationsService.loadLocations(database: database).valueOrFail, isEmpty);
       expect(await readLiveTags(), hasLength(1));
     });
   });

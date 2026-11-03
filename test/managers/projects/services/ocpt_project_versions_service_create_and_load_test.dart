@@ -628,11 +628,9 @@ void main() {
           )
           .valueOrFail);
 
-      final setId = (await locationsService.createSetLinkedToScene(
-        database: database,
-        sceneId: "scene-1",
-        name: "Kitchen",
-      ))!;
+      final setId = (await locationsService
+          .createSetLinkedToScene(database: database, sceneId: "scene-1", name: "Kitchen")
+          .valueOrFail);
       final cameraId = (await floorPlanService
           .placeSymbol(
             database: database,
@@ -882,11 +880,9 @@ void main() {
       // separately, since a synchronised table (or, here, a synchronised column) has to be wired
       // into both (see [[versions-service-two-payload-write-paths]]).
       await insertScene(id: "scene-1");
-      final setId = (await locationsService.createSetLinkedToScene(
-        database: database,
-        sceneId: "scene-1",
-        name: "Kitchen",
-      ))!;
+      final setId = (await locationsService
+          .createSetLinkedToScene(database: database, sceneId: "scene-1", name: "Kitchen")
+          .valueOrFail);
       final originalId = (await floorPlanService
           .placeSymbol(
             database: database,

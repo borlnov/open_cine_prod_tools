@@ -294,15 +294,12 @@ void main() {
             kind: OcptRoleKind.silent,
           )
           .valueOrFail);
-      final locationId = (await locationsService.createLocation(
-        database: database,
-        name: "House",
-      ))!;
-      final setId = (await locationsService.createSet(
-        database: database,
-        locationId: locationId,
-        name: "Kitchen",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "House")
+          .valueOrFail);
+      final setId = (await locationsService
+          .createSet(database: database, locationId: locationId, name: "Kitchen")
+          .valueOrFail);
 
       final elementTagId = (await breakdownService
           .createTag(

@@ -309,18 +309,16 @@ class ResourcesScenarioHarness {
 
   /// Reads the locations, with their sets, back from the database.
   Future<List<OcptLocation>> readLocations() =>
-      projectsManager.locationsService.loadLocations(database: database);
+      projectsManager.locationsService.loadLocations(database: database).valueOrFail;
 
   /// Reads the elements catalogue back from the database.
   Future<List<OcptElement>> readElements() =>
       projectsManager.elementsService.loadElements(database: database).valueOrFail;
 
   /// Reads the first episode's scenes back from the database, in screenplay order.
-  Future<List<OcptSceneRef>> readScenes() => projectsManager.locationsService.loadScenes(
-    database: database,
-    screenplayId: screenplayId,
-    episodeNumber: null,
-  );
+  Future<List<OcptSceneRef>> readScenes() => projectsManager.locationsService
+      .loadScenes(database: database, screenplayId: screenplayId, episodeNumber: null)
+      .valueOrFail;
 
   /// Creates a person called [firstName] [lastName] in the address book, returning the id.
   Future<String> seedPerson(String firstName, {String lastName = ""}) async {
@@ -353,20 +351,17 @@ class ResourcesScenarioHarness {
 
   /// Creates a location called [name], returning the id.
   Future<String> seedLocation(String name) async {
-    final id = await projectsManager.locationsService.createLocation(
-      database: database,
-      name: name,
-    );
+    final id = await projectsManager.locationsService
+        .createLocation(database: database, name: name)
+        .maybeValueOrFail;
     return id!;
   }
 
   /// Creates a set called [name] in location [locationId], returning the id.
   Future<String> seedSet(String locationId, String name) async {
-    final id = await projectsManager.locationsService.createSet(
-      database: database,
-      locationId: locationId,
-      name: name,
-    );
+    final id = await projectsManager.locationsService
+        .createSet(database: database, locationId: locationId, name: name)
+        .maybeValueOrFail;
     return id!;
   }
 
@@ -386,11 +381,9 @@ class ResourcesScenarioHarness {
   /// Says the scene at [sceneIndex] is shot in set [setId], returning the scene id.
   Future<String> seedSceneInSet(String setId, {int sceneIndex = 0}) async {
     final sceneId = (await readScenes())[sceneIndex].id;
-    await projectsManager.locationsService.assignSceneToSet(
-      database: database,
-      sceneId: sceneId,
-      setId: setId,
-    );
+    await projectsManager.locationsService
+        .assignSceneToSet(database: database, sceneId: sceneId, setId: setId)
+        .maybeValueOrFail;
     return sceneId;
   }
 

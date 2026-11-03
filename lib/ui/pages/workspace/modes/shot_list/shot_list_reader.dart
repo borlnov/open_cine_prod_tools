@@ -91,8 +91,8 @@ class OcptShotListReader {
   /// `OcptScreenplayService` already depends on), null prefix on a single-episode project.
   ///
   /// Answers the failure of the placements read, in place of the snapshot, when the schedule could
-  /// not be read. The reads of the shot list, the field suggestions, the locations and the
-  /// screenplay text still raise when the database fails.
+  /// not be read. The reads of the shot list, the field suggestions and the screenplay text still
+  /// raise when the database fails.
   @useResult
   Future<OcptDatabaseResult<OcptShotListSnapshot>> loadSnapshot(
     OcptOpenProjectModel project,
@@ -144,7 +144,10 @@ class OcptShotListReader {
   /// carrying the scenes it is linked to — what the set tabs' `＋ Set` menu groups by, and what
   /// `ocptSceneSetSuggestionOf` reads. Project-wide, unlike [loadFloorPlans]: a set the gallery
   /// offers to link may already be linked to another episode's sequence.
-  Future<List<OcptLocation>> loadLocations(OcptOpenProjectModel project) =>
+  ///
+  /// Answers the failure of the read when the database could not be read.
+  @useResult
+  Future<OcptDatabaseResult<List<OcptLocation>>> loadLocations(OcptOpenProjectModel project) =>
       _locationsService.loadLocations(database: project.database);
 
   /// Read the set-scope symbols of every live Resources set of the project, keyed by set id — the

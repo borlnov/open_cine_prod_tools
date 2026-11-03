@@ -148,10 +148,9 @@ void main() {
           commuteKmMilli: const drift.Value(10000),
         );
 
-        final locationId = await projectsManager.locationsService.createLocation(
-          database: project.database,
-          name: "Studio A",
-        );
+        final locationId = await projectsManager.locationsService
+            .createLocation(database: project.database, name: "Studio A")
+            .maybeValueOrFail;
         expect(locationId, isNotNull);
 
         final dayId = await projectsManager.scheduleService

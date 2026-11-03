@@ -96,10 +96,9 @@ void main() {
           kind: OcptRoleKind.silent,
         )
         .valueOrFail);
-    locationId = (await projectsManager.locationsService.createLocation(
-      database: project.database,
-      name: "",
-    ))!;
+    locationId = (await projectsManager.locationsService
+        .createLocation(database: project.database, name: "")
+        .valueOrFail);
     elementId = (await projectsManager.elementsService
         .createElement(
           database: project.database,

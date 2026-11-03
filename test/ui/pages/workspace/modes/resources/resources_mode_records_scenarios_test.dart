@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'resources_mode_scenarios_test_doubles.dart';
 
 /// How long a scenario lets the mode's 2 s field-edit debounce run out.
@@ -114,10 +115,9 @@ void main() {
 
     expect(await harness.readLocations(), isEmpty);
     expect(
-      await harness.projectsManager.locationsService.firstLinkedSceneOf(
-        database: harness.database,
-        setId: setId,
-      ),
+      await harness.projectsManager.locationsService
+          .firstLinkedSceneOf(database: harness.database, setId: setId)
+          .maybeValueOrFail,
       isNull,
     );
     expect(await harness.readScenes(), hasLength(2));

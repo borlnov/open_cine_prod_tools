@@ -371,11 +371,9 @@ void main() {
     await harness.seedShots(1);
     final setId = await harness.seedLinkedSet("KITCHEN");
     final secondSceneId = (await harness.sceneIds())[1];
-    await harness.projectsManager.locationsService.assignSceneToSet(
-      database: harness.database,
-      sceneId: secondSceneId,
-      setId: setId,
-    );
+    await harness.projectsManager.locationsService
+        .assignSceneToSet(database: harness.database, sceneId: secondSceneId, setId: setId)
+        .maybeValueOrFail;
     final originalId = await harness.projectsManager.floorPlanService
         .placeSymbol(
           database: harness.database,

@@ -359,10 +359,9 @@ Future<_Fixtures> _seed(OcptProjectsManager projectsManager) async {
   final holdBlockId = await schedule
       .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.hold)
       .maybeValueOrFail;
-  final locationId = await projectsManager.locationsService.createLocation(
-    database: database,
-    name: "Kitchen",
-  );
+  final locationId = await projectsManager.locationsService
+      .createLocation(database: database, name: "Kitchen")
+      .maybeValueOrFail;
 
   final personId = (await projectsManager.peopleService.createPerson(database: database))!;
   final roleId = (await projectsManager.roleIndexService

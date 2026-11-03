@@ -377,7 +377,7 @@ class BreakdownScenarioHarness {
 
   /// Reads the locations, with their sets, back from the database.
   Future<List<OcptLocation>> readLocations() =>
-      projectsManager.locationsService.loadLocations(database: database);
+      projectsManager.locationsService.loadLocations(database: database).valueOrFail;
 
   /// Reads the cast back from the database.
   Future<List<OcptRole>> readRoles() =>
@@ -405,20 +405,17 @@ class BreakdownScenarioHarness {
 
   /// Creates a location called [name], returning the id.
   Future<String> seedLocation(String name) async {
-    final id = await projectsManager.locationsService.createLocation(
-      database: database,
-      name: name,
-    );
+    final id = await projectsManager.locationsService
+        .createLocation(database: database, name: name)
+        .maybeValueOrFail;
     return id!;
   }
 
   /// Creates a set called [name] in location [locationId], returning the id.
   Future<String> seedSet(String locationId, String name) async {
-    final id = await projectsManager.locationsService.createSet(
-      database: database,
-      locationId: locationId,
-      name: name,
-    );
+    final id = await projectsManager.locationsService
+        .createSet(database: database, locationId: locationId, name: name)
+        .maybeValueOrFail;
     return id!;
   }
 

@@ -176,12 +176,12 @@ void main() {
 
   /// Creates a location and a set inside it, returning the set's id.
   Future<String> createSet() async {
-    final locationId = (await locationsService.createLocation(database: database, name: "House"))!;
-    return (await locationsService.createSet(
-      database: database,
-      locationId: locationId,
-      name: "Kitchen",
-    ))!;
+    final locationId = (await locationsService
+        .createLocation(database: database, name: "House")
+        .valueOrFail);
+    return locationsService
+        .createSet(database: database, locationId: locationId, name: "Kitchen")
+        .valueOrFail;
   }
 
   group("reconcileTags", () {

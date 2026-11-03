@@ -77,34 +77,39 @@ void main() {
 
   /// Creates a location holding one set named [name], and returns that set's id.
   Future<String> createSetInNewLocation(String name) async {
-    final locationId = (await locationsService.createLocation(database: database, name: name))!;
-    return (await locationsService.createSet(
-      database: database,
-      locationId: locationId,
-      name: name,
-    ))!;
+    final locationId = (await locationsService
+        .createLocation(database: database, name: name)
+        .valueOrFail);
+    return locationsService
+        .createSet(database: database, locationId: locationId, name: name)
+        .valueOrFail;
   }
 
   group("availability windows", () {
     test("addAvailability appends a window and loadLocations reads it back", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
 
-      await locationsService.addAvailability(
-        database: database,
-        locationId: locationId,
-        startDate: DateTime.utc(2026, 3, 2),
-        endDate: DateTime.utc(2026, 3, 20),
-        weekdays: ocptWeekdayMaskToggled(ocptEveryWeekdayMask, DateTime.sunday),
-        slot: OcptDayPartSlot.custom,
-        startMinute: 8 * 60,
-        endMinute: 19 * 60,
-        kind: OcptLocationAvailabilityKind.conditional,
-        note: "No noise after 22:00",
-      );
+      await locationsService
+          .addAvailability(
+            database: database,
+            locationId: locationId,
+            startDate: DateTime.utc(2026, 3, 2),
+            endDate: DateTime.utc(2026, 3, 20),
+            weekdays: ocptWeekdayMaskToggled(ocptEveryWeekdayMask, DateTime.sunday),
+            slot: OcptDayPartSlot.custom,
+            startMinute: 8 * 60,
+            endMinute: 19 * 60,
+            kind: OcptLocationAvailabilityKind.conditional,
+            note: "No noise after 22:00",
+          )
+          .maybeValueOrFail;
 
-      final availability = (await locationsService.loadLocations(
-        database: database,
-      )).single.availabilities.single;
+      final availability = (await locationsService.loadLocations(database: database).valueOrFail)
+          .single
+          .availabilities
+          .single;
       expect(availability.startDate, DateTime.utc(2026, 3, 2));
       expect(availability.endDate, DateTime.utc(2026, 3, 20));
       expect(ocptWeekdayMaskContains(availability.weekdays, DateTime.sunday), isFalse);
@@ -116,23 +121,29 @@ void main() {
     });
 
     test("a window is read in start-date order, whatever order it was entered in", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      await locationsService.addAvailability(
-        database: database,
-        locationId: locationId,
-        startDate: DateTime.utc(2026, 5),
-        endDate: DateTime.utc(2026, 5),
-      );
-      await locationsService.addAvailability(
-        database: database,
-        locationId: locationId,
-        startDate: DateTime.utc(2026, 3),
-        endDate: DateTime.utc(2026, 3),
-      );
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      await locationsService
+          .addAvailability(
+            database: database,
+            locationId: locationId,
+            startDate: DateTime.utc(2026, 5),
+            endDate: DateTime.utc(2026, 5),
+          )
+          .maybeValueOrFail;
+      await locationsService
+          .addAvailability(
+            database: database,
+            locationId: locationId,
+            startDate: DateTime.utc(2026, 3),
+            endDate: DateTime.utc(2026, 3),
+          )
+          .maybeValueOrFail;
 
-      final availabilities = (await locationsService.loadLocations(
-        database: database,
-      )).single.availabilities;
+      final availabilities = (await locationsService.loadLocations(database: database).valueOrFail)
+          .single
+          .availabilities;
       expect(availabilities.map((availability) => availability.startDate), [
         DateTime.utc(2026, 3),
         DateTime.utc(2026, 5),
@@ -140,74 +151,97 @@ void main() {
     });
 
     test("a range ending before it starts is clamped rather than refused", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
 
-      await locationsService.addAvailability(
-        database: database,
-        locationId: locationId,
-        startDate: DateTime.utc(2026, 3, 20),
-        endDate: DateTime.utc(2026, 3, 2),
-      );
+      await locationsService
+          .addAvailability(
+            database: database,
+            locationId: locationId,
+            startDate: DateTime.utc(2026, 3, 20),
+            endDate: DateTime.utc(2026, 3, 2),
+          )
+          .maybeValueOrFail;
 
-      final availability = (await locationsService.loadLocations(
-        database: database,
-      )).single.availabilities.single;
+      final availability = (await locationsService.loadLocations(database: database).valueOrFail)
+          .single
+          .availabilities
+          .single;
       expect(availability.endDate, DateTime.utc(2026, 3, 20));
     });
 
     test("a window covering no weekday at all falls back to every day", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
 
-      await locationsService.addAvailability(
-        database: database,
-        locationId: locationId,
-        startDate: DateTime.utc(2026, 3, 2),
-        endDate: DateTime.utc(2026, 3, 2),
-        weekdays: 0,
-      );
+      await locationsService
+          .addAvailability(
+            database: database,
+            locationId: locationId,
+            startDate: DateTime.utc(2026, 3, 2),
+            endDate: DateTime.utc(2026, 3, 2),
+            weekdays: 0,
+          )
+          .maybeValueOrFail;
 
-      final availability = (await locationsService.loadLocations(
-        database: database,
-      )).single.availabilities.single;
+      final availability = (await locationsService.loadLocations(database: database).valueOrFail)
+          .single
+          .availabilities
+          .single;
       expect(availability.weekdays, ocptEveryWeekdayMask);
     });
 
     test("updateAvailability writes only what it was passed", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final id = (await locationsService.addAvailability(
-        database: database,
-        locationId: locationId,
-        startDate: DateTime.utc(2026, 3, 2),
-        endDate: DateTime.utc(2026, 3, 2),
-        note: "Ask for Camille",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final id = (await locationsService
+          .addAvailability(
+            database: database,
+            locationId: locationId,
+            startDate: DateTime.utc(2026, 3, 2),
+            endDate: DateTime.utc(2026, 3, 2),
+            note: "Ask for Camille",
+          )
+          .valueOrFail);
 
-      await locationsService.updateAvailability(
-        database: database,
-        id: id,
-        kind: const Value(OcptLocationAvailabilityKind.conditional),
-      );
+      await locationsService
+          .updateAvailability(
+            database: database,
+            id: id,
+            kind: const Value(OcptLocationAvailabilityKind.conditional),
+          )
+          .okOrFail;
 
-      final availability = (await locationsService.loadLocations(
-        database: database,
-      )).single.availabilities.single;
+      final availability = (await locationsService.loadLocations(database: database).valueOrFail)
+          .single
+          .availabilities
+          .single;
       expect(availability.kind, OcptLocationAvailabilityKind.conditional);
       expect(availability.note, "Ask for Camille");
     });
 
     test("removeAvailability tombstones the row", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final id = (await locationsService.addAvailability(
-        database: database,
-        locationId: locationId,
-        startDate: DateTime.utc(2026, 3, 2),
-        endDate: DateTime.utc(2026, 3, 2),
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final id = (await locationsService
+          .addAvailability(
+            database: database,
+            locationId: locationId,
+            startDate: DateTime.utc(2026, 3, 2),
+            endDate: DateTime.utc(2026, 3, 2),
+          )
+          .valueOrFail);
 
-      await locationsService.removeAvailability(database: database, id: id);
+      await locationsService.removeAvailability(database: database, id: id).okOrFail;
 
       expect(
-        (await locationsService.loadLocations(database: database)).single.availabilities,
+        (await locationsService.loadLocations(database: database).valueOrFail)
+            .single
+            .availabilities,
         isEmpty,
       );
       final row = await (database.select(
@@ -217,15 +251,19 @@ void main() {
     });
 
     test("deleting a location tombstones its windows too", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final id = (await locationsService.addAvailability(
-        database: database,
-        locationId: locationId,
-        startDate: DateTime.utc(2026, 3, 2),
-        endDate: DateTime.utc(2026, 3, 2),
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final id = (await locationsService
+          .addAvailability(
+            database: database,
+            locationId: locationId,
+            startDate: DateTime.utc(2026, 3, 2),
+            endDate: DateTime.utc(2026, 3, 2),
+          )
+          .valueOrFail);
 
-      await locationsService.deleteLocation(database: database, locationId: locationId);
+      await locationsService.deleteLocation(database: database, locationId: locationId).okOrFail;
 
       final row = await (database.select(
         database.ocptLocationAvailabilitiesTable,
@@ -236,20 +274,18 @@ void main() {
 
   group("assets", () {
     test("addLocationPhoto appends a reference and loadLocations reads it back", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
 
-      await locationsService.addLocationPhoto(
-        database: database,
-        locationId: locationId,
-        path: "/photos/first.jpg",
-      );
-      await locationsService.addLocationPhoto(
-        database: database,
-        locationId: locationId,
-        path: "/photos/second.jpg",
-      );
+      await locationsService
+          .addLocationPhoto(database: database, locationId: locationId, path: "/photos/first.jpg")
+          .maybeValueOrFail;
+      await locationsService
+          .addLocationPhoto(database: database, locationId: locationId, path: "/photos/second.jpg")
+          .maybeValueOrFail;
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations.single.photos.map((photo) => photo.path), [
         "/photos/first.jpg",
         "/photos/second.jpg",
@@ -261,29 +297,34 @@ void main() {
     });
 
     test("removeAsset drops a photo from the location that held it", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final photoId = (await locationsService.addLocationPhoto(
-        database: database,
-        locationId: locationId,
-        path: "/photos/first.jpg",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final photoId = (await locationsService
+          .addLocationPhoto(database: database, locationId: locationId, path: "/photos/first.jpg")
+          .valueOrFail);
 
       await assetsService.removeAsset(database: database, assetId: photoId).okOrFail;
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations.single.photos, isEmpty);
     });
 
     test("setPermitDocument points the location at the document it references", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
 
-      await locationsService.setPermitDocument(
-        database: database,
-        locationId: locationId,
-        path: "/permits/granted.pdf",
-      );
+      await locationsService
+          .setPermitDocument(
+            database: database,
+            locationId: locationId,
+            path: "/permits/granted.pdf",
+          )
+          .maybeValueOrFail;
 
-      final location = (await locationsService.loadLocations(database: database)).single;
+      final location =
+          (await locationsService.loadLocations(database: database).valueOrFail).single;
       expect(location.permitDocument?.path, "/permits/granted.pdf");
       expect(location.permitDocument?.kind, OcptAssetKind.document);
       expect(location.permitAssetId, location.permitDocument?.id);
@@ -292,25 +333,28 @@ void main() {
     });
 
     test("setPermitDocument tombstones the document it replaces", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final firstId = (await locationsService.setPermitDocument(
-        database: database,
-        locationId: locationId,
-        path: "/permits/draft.pdf",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final firstId = (await locationsService
+          .setPermitDocument(database: database, locationId: locationId, path: "/permits/draft.pdf")
+          .valueOrFail);
 
-      await locationsService.setPermitDocument(
-        database: database,
-        locationId: locationId,
-        path: "/permits/granted.pdf",
-      );
+      await locationsService
+          .setPermitDocument(
+            database: database,
+            locationId: locationId,
+            path: "/permits/granted.pdf",
+          )
+          .maybeValueOrFail;
 
       final replaced = await (database.select(
         database.ocptAssetsTable,
       )..where((row) => row.id.equals(firstId))).getSingle();
       expect(replaced.isDeleted, isTrue);
 
-      final location = (await locationsService.loadLocations(database: database)).single;
+      final location =
+          (await locationsService.loadLocations(database: database).valueOrFail).single;
       expect(location.permitDocument?.path, "/permits/granted.pdf");
     });
 
@@ -381,16 +425,23 @@ void main() {
     });
 
     test("clearPermitDocument drops both the reference and the row", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final documentId = (await locationsService.setPermitDocument(
-        database: database,
-        locationId: locationId,
-        path: "/permits/granted.pdf",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final documentId = (await locationsService
+          .setPermitDocument(
+            database: database,
+            locationId: locationId,
+            path: "/permits/granted.pdf",
+          )
+          .valueOrFail);
 
-      await locationsService.clearPermitDocument(database: database, locationId: locationId);
+      await locationsService
+          .clearPermitDocument(database: database, locationId: locationId)
+          .okOrFail;
 
-      final location = (await locationsService.loadLocations(database: database)).single;
+      final location =
+          (await locationsService.loadLocations(database: database).valueOrFail).single;
       expect(location.permitAssetId, isNull);
       expect(location.permitDocument, isNull);
 
@@ -403,7 +454,9 @@ void main() {
 
   group("row-field-version stamps", () {
     test("createLocation stamps every column of the new row", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
 
       final stamps = await readStamps();
       final location = await readLocation(locationId);
@@ -421,47 +474,55 @@ void main() {
     });
 
     test("updateLocation stamps only the columns that actually changed", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await locationsService.updateLocation(
-        database: database,
-        locationId: locationId,
-        name: const Value("Café du port"),
-        city: const Value("Concarneau"),
-      );
+      await locationsService
+          .updateLocation(
+            database: database,
+            locationId: locationId,
+            name: const Value("Café du port"),
+            city: const Value("Concarneau"),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("locations/$locationId/")).toSet();
       expect(ownKeys, {"locations/$locationId/name", "locations/$locationId/city"});
 
       // Writing the same values again touches nothing: there is nothing left to stamp.
-      await locationsService.updateLocation(
-        database: database,
-        locationId: locationId,
-        name: const Value("Café du port"),
-      );
+      await locationsService
+          .updateLocation(
+            database: database,
+            locationId: locationId,
+            name: const Value("Café du port"),
+          )
+          .okOrFail;
       expect(await readStamps(), stamps);
     });
 
     test(
       "deleteLocation stamps isDeleted on the location, its sets and its availabilities",
       () async {
-        final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-        final setId = (await locationsService.createSet(
-          database: database,
-          locationId: locationId,
-          name: "Cuisine",
-        ))!;
-        final availabilityId = (await locationsService.addAvailability(
-          database: database,
-          locationId: locationId,
-          startDate: DateTime(2026, 3, 10),
-          endDate: DateTime(2026, 3, 10),
-        ))!;
+        final locationId = (await locationsService
+            .createLocation(database: database, name: "A")
+            .valueOrFail);
+        final setId = (await locationsService
+            .createSet(database: database, locationId: locationId, name: "Cuisine")
+            .valueOrFail);
+        final availabilityId = (await locationsService
+            .addAvailability(
+              database: database,
+              locationId: locationId,
+              startDate: DateTime(2026, 3, 10),
+              endDate: DateTime(2026, 3, 10),
+            )
+            .valueOrFail);
         await database.delete(database.ocptRowFieldVersionsTable).go();
 
-        await locationsService.deleteLocation(database: database, locationId: locationId);
+        await locationsService.deleteLocation(database: database, locationId: locationId).okOrFail;
 
         final stamps = await readStamps();
         expect(stamps["locations/$locationId/isDeleted"]!.version, 1);
@@ -471,14 +532,14 @@ void main() {
     );
 
     test("createSet stamps every column of the new row", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final setId = (await locationsService.createSet(
-        database: database,
-        locationId: locationId,
-        name: "Cuisine",
-      ))!;
+      final setId = (await locationsService
+          .createSet(database: database, locationId: locationId, name: "Cuisine")
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -516,11 +577,9 @@ void main() {
       final setId = await createSetInNewLocation("Cuisine");
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final linkId = (await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      ))!;
+      final linkId = (await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -539,18 +598,14 @@ void main() {
     test("removeSceneFromSet stamps isDeleted on the link", () async {
       await insertScreenplayAndScene();
       final setId = await createSetInNewLocation("Cuisine");
-      final linkId = (await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      ))!;
+      final linkId = (await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await locationsService.removeSceneFromSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      );
+      await locationsService
+          .removeSceneFromSet(database: database, sceneId: "scene-1", setId: setId)
+          .okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["scene_sets/$linkId/isDeleted"]!.version, 1);
@@ -559,14 +614,12 @@ void main() {
     test("deleteSet stamps isDeleted on its scene_sets links", () async {
       await insertScreenplayAndScene();
       final setId = await createSetInNewLocation("Cuisine");
-      final linkId = (await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      ))!;
+      final linkId = (await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await locationsService.deleteSet(database: database, setId: setId);
+      await locationsService.deleteSet(database: database, setId: setId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["scene_sets/$linkId/isDeleted"]!.version, 1);

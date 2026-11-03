@@ -439,17 +439,16 @@ class OcptBreakdownService extends AbsOcptService {
     try {
       created = await database.transaction(() async {
         final holdingLocationId =
-            locationId ?? await _locationsService.createLocation(database: database, name: name);
+            locationId ??
+            await _locationsService.createLocation(database: database, name: name).valueOrAbort();
         if (holdingLocationId == null) {
           // The preview guard tripped inside createLocation: nothing was written yet.
           return null;
         }
 
-        final setId = await _locationsService.createSet(
-          database: database,
-          locationId: holdingLocationId,
-          name: name,
-        );
+        final setId = await _locationsService
+            .createSet(database: database, locationId: holdingLocationId, name: name)
+            .valueOrAbort();
         if (setId == null) {
           return null;
         }
@@ -815,11 +814,9 @@ class OcptBreakdownService extends AbsOcptService {
             .addSceneElement(database: database, sceneId: sceneId, elementId: targetId)
             .valueOrAbort();
       case OcptBreakdownTargetKind.set:
-        await _locationsService.assignSceneToSet(
-          database: database,
-          sceneId: sceneId,
-          setId: targetId,
-        );
+        await _locationsService
+            .assignSceneToSet(database: database, sceneId: sceneId, setId: targetId)
+            .valueOrAbort();
       case OcptBreakdownTargetKind.role:
       // There is no `scene_roles` table: the tag itself is the link.
     }

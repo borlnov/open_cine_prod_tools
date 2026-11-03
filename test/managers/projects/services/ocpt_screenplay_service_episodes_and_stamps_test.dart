@@ -409,20 +409,15 @@ void main() {
         final sceneElementId = (await elementsService
             .addSceneElement(database: database, sceneId: scene.id, elementId: elementId)
             .valueOrFail);
-        final locationId = (await locationsService.createLocation(
-          database: database,
-          name: "La maison",
-        ))!;
-        final setId = (await locationsService.createSet(
-          database: database,
-          locationId: locationId,
-          name: "Salon",
-        ))!;
-        final sceneSetId = (await locationsService.assignSceneToSet(
-          database: database,
-          sceneId: scene.id,
-          setId: setId,
-        ))!;
+        final locationId = (await locationsService
+            .createLocation(database: database, name: "La maison")
+            .valueOrFail);
+        final setId = (await locationsService
+            .createSet(database: database, locationId: locationId, name: "Salon")
+            .valueOrFail);
+        final sceneSetId = (await locationsService
+            .assignSceneToSet(database: database, sceneId: scene.id, setId: setId)
+            .valueOrFail);
 
         // A shooting day whose one slot holds a block placing the deleted episode's shot, plus a
         // milestone block that places nothing.

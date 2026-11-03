@@ -7,13 +7,11 @@ import 'dart:async';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
@@ -66,9 +64,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 class OcptShotListFloorPlanSetsBloc
     extends AbsOcptViewBloc<OcptShotListFloorPlanSetsState, OcptShotListState, OcptShotListBloc>
     with MixinAsyncInitBloc<OcptShotListFloorPlanSetsState> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "shot_list_floor_plan_sets_bloc";
-
   /// The centre X, in metres, a set's underlay is framed at the moment it is first imported —
   /// see [_onUnderlayImportRequested].
   static const _defaultUnderlayXM = 0.0;
@@ -82,9 +77,6 @@ class OcptShotListFloorPlanSetsBloc
 
   /// The height, in metres, a set's underlay is framed at the moment it is first imported.
   static const _defaultUnderlayHeightM = 4.0;
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -113,8 +105,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptElementsService? elementsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _locationsService =
            locationsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
@@ -237,27 +228,8 @@ class OcptShotListFloorPlanSetsBloc
       return OcptPendingWritesStatus.ok;
     }
 
-    try {
-      await _writeAllPendingEdits(project: project, pending: pending);
-      await modeBloc.reload({
-        OcptShotListReloadScope.floorPlans,
-        OcptShotListReloadScope.locations,
-      });
-      emitter(
-        state.copyWithFlushedFieldEdits(
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending set name of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = await _writeAllPendingEdits(project: project, pending: pending);
+    if (written.isError) {
       emitter(
         state.copyToFlushFailed(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
@@ -266,7 +238,18 @@ class OcptShotListFloorPlanSetsBloc
           ),
         ),
       );
+      return OcptPendingWritesStatus.ok;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.floorPlans, OcptShotListReloadScope.locations});
+    emitter(
+      state.copyWithFlushedFieldEdits(
+        pendingFieldEdits: ocptPendingEditsAfterWrite(
+          current: state.pendingFieldEdits,
+          written: pending,
+        ),
+      ),
+    );
 
     return OcptPendingWritesStatus.ok;
   }
@@ -289,19 +272,10 @@ class OcptShotListFloorPlanSetsBloc
       return;
     }
 
-    try {
-      await flushEditsWithoutStateUntilConverted(
-        pending,
-        (edits) => _writeAllPendingEdits(project: project, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending set name of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
+    final _ = await flushEditsWithoutState(
+      pending,
+      (edits) => _writeAllPendingEdits(project: project, pending: edits),
+    );
   }
 
   /// Read the breakdown props of sequence `event.sequenceId` and offer them to the palette,
@@ -364,30 +338,26 @@ class OcptShotListFloorPlanSetsBloc
       return;
     }
 
-    try {
-      final setId = await _locationsService.createSetLinkedToScene(
-        database: project.database,
-        sceneId: sequence.sceneId,
-        name: ocptSceneHeadingPlaceOf(sequence.heading),
-        locationId: event.locationId,
-      );
-      if (setId != null) {
-        if (await modeBloc.reload({
-          OcptShotListReloadScope.floorPlans,
-          OcptShotListReloadScope.locations,
-          OcptShotListReloadScope.setScopeSymbols,
-        })) {
-          await addToModeAndWait(OcptShotListSetAddedEvent(setId: setId));
-        }
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create a floor plan set on scene ${sequence.sceneId} "
-        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final created = await _locationsService.createSetLinkedToScene(
+      database: project.database,
+      sceneId: sequence.sceneId,
+      name: ocptSceneHeadingPlaceOf(sequence.heading),
+      locationId: event.locationId,
+    );
+    if (created.isError) {
       emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    final setId = created.value;
+    if (setId != null) {
+      if (await modeBloc.reload({
+        OcptShotListReloadScope.floorPlans,
+        OcptShotListReloadScope.locations,
+        OcptShotListReloadScope.setScopeSymbols,
+      })) {
+        await addToModeAndWait(OcptShotListSetAddedEvent(setId: setId));
+      }
     }
   }
 
@@ -406,25 +376,20 @@ class OcptShotListFloorPlanSetsBloc
       return;
     }
 
-    try {
-      final linkId = await _locationsService.assignSceneToSet(
-        database: project.database,
-        sceneId: sequence.sceneId,
-        setId: event.setId,
-      );
-      if (linkId != null) {
-        if (await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
-          await addToModeAndWait(OcptShotListSetAddedEvent(setId: event.setId));
-        }
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to link set ${event.setId} to scene ${sequence.sceneId} "
-        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final linked = await _locationsService.assignSceneToSet(
+      database: project.database,
+      sceneId: sequence.sceneId,
+      setId: event.setId,
+    );
+    if (linked.isError) {
       emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    if (linked.value != null) {
+      if (await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
+        await addToModeAndWait(OcptShotListSetAddedEvent(setId: event.setId));
+      }
     }
   }
 
@@ -464,37 +429,31 @@ class OcptShotListFloorPlanSetsBloc
     bool isOfSet(OcptShotListPendingEditKey key) =>
         key is OcptShotListSetNameEditKey && key.setId == event.setId;
 
-    try {
-      // The set's symbols leave the floor plans the mode holds without being deleted: a label
-      // typed into one of them is written now, since the views would take it for a deleted
-      // symbol's once the mode reads the plans again.
-      await modeBloc.flushAllPendingWrites();
-      await _locationsService.removeSceneFromSet(
-        database: project.database,
-        sceneId: sceneId,
-        setId: event.setId,
-      );
-      if (await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
-        if (wasSelected) {
-          await addToModeAndWait(const OcptShotListSetRemovedEvent());
-        }
-
-        emitter(
-          state.copyWithUnlinkedSetEdits(
-            // Taken now, not before the unlink: a keystroke typed meanwhile is not the set's.
-            pendingFieldEdits: Map.of(state.pendingFieldEdits)
-              ..removeWhere((key, _) => isOfSet(key)),
-          ),
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to unlink set ${event.setId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    // The set's symbols leave the floor plans the mode holds without being deleted: a label
+    // typed into one of them is written now, since the views would take it for a deleted
+    // symbol's once the mode reads the plans again.
+    await modeBloc.flushAllPendingWrites();
+    final removed = await _locationsService.removeSceneFromSet(
+      database: project.database,
+      sceneId: sceneId,
+      setId: event.setId,
+    );
+    if (removed.isError) {
       emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    if (await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
+      if (wasSelected) {
+        await addToModeAndWait(const OcptShotListSetRemovedEvent());
+      }
+
+      emitter(
+        state.copyWithUnlinkedSetEdits(
+          // Taken now, not before the unlink: a keystroke typed meanwhile is not the set's.
+          pendingFieldEdits: Map.of(state.pendingFieldEdits)..removeWhere((key, _) => isOfSet(key)),
+        ),
+      );
     }
   }
 
@@ -513,30 +472,26 @@ class OcptShotListFloorPlanSetsBloc
       return;
     }
 
-    try {
-      final newSetId = await _locationsService.duplicateSetForScene(
-        database: project.database,
-        sourceSetId: event.setId,
-        name: event.newSetName,
-        sceneId: sceneId,
-      );
-      if (newSetId != null) {
-        if (await modeBloc.reload({
-          OcptShotListReloadScope.floorPlans,
-          OcptShotListReloadScope.locations,
-          OcptShotListReloadScope.setScopeSymbols,
-        })) {
-          await addToModeAndWait(OcptShotListSetAddedEvent(setId: newSetId));
-        }
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to duplicate set ${event.setId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final duplicated = await _locationsService.duplicateSetForScene(
+      database: project.database,
+      sourceSetId: event.setId,
+      name: event.newSetName,
+      sceneId: sceneId,
+    );
+    if (duplicated.isError) {
       emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    final newSetId = duplicated.value;
+    if (newSetId != null) {
+      if (await modeBloc.reload({
+        OcptShotListReloadScope.floorPlans,
+        OcptShotListReloadScope.locations,
+        OcptShotListReloadScope.setScopeSymbols,
+      })) {
+        await addToModeAndWait(OcptShotListSetAddedEvent(setId: newSetId));
+      }
     }
   }
 
@@ -843,18 +798,25 @@ class OcptShotListFloorPlanSetsBloc
   }
 
   /// Write every entry of [pending] through `OcptLocationsService.updateSet`.
-  Future<void> _writeAllPendingEdits({
+  ///
+  /// Stops at the first write that fails and answers its failure; the entries after it are not
+  /// written.
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingEdits({
     required OcptOpenProjectModel project,
     required Map<OcptShotListPendingEditKey, String> pending,
   }) async {
     for (final entry in pending.entries) {
       switch (entry.key) {
         case OcptShotListSetNameEditKey(:final setId):
-          await _locationsService.updateSet(
+          final written = await _locationsService.updateSet(
             database: project.database,
             setId: setId,
             name: Value(entry.value),
           );
+          if (written.isError) {
+            return written;
+          }
         case OcptShotListShotFieldEditKey() ||
             OcptShotListPanelCommentEditKey() ||
             OcptShotListAnnotationTextEditKey() ||
@@ -863,5 +825,7 @@ class OcptShotListFloorPlanSetsBloc
           break;
       }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 }

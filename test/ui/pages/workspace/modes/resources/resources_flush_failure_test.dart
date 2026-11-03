@@ -100,10 +100,9 @@ void main() {
           kind: OcptRoleKind.silent,
         )
         .valueOrFail);
-    locationId = (await projectsManager.locationsService.createLocation(
-      database: project.database,
-      name: "",
-    ))!;
+    locationId = (await projectsManager.locationsService
+        .createLocation(database: project.database, name: "")
+        .valueOrFail);
     elementId = (await projectsManager.elementsService
         .createElement(
           database: project.database,
@@ -234,7 +233,9 @@ void main() {
         isEmpty,
       );
       expect(
-        (await projectsManager.locationsService.loadLocations(database: database)).single.city,
+        (await projectsManager.locationsService.loadLocations(database: database).valueOrFail)
+            .single
+            .city,
         isEmpty,
       );
       expect(
@@ -270,7 +271,9 @@ void main() {
         "Alicia",
       );
       expect(
-        (await projectsManager.locationsService.loadLocations(database: database)).single.city,
+        (await projectsManager.locationsService.loadLocations(database: database).valueOrFail)
+            .single
+            .city,
         "Lyon",
       );
       expect(
@@ -310,7 +313,9 @@ void main() {
         "Zoe",
       );
       expect(
-        (await projectsManager.locationsService.loadLocations(database: database)).single.city,
+        (await projectsManager.locationsService.loadLocations(database: database).valueOrFail)
+            .single
+            .city,
         "Lyon",
       );
       expect(

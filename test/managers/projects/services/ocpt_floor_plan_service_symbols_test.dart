@@ -180,11 +180,9 @@ void main() {
   /// Returns `(sceneId, setId)`.
   Future<(String, String)> seedLinkedSet({String? sceneId, String name = "Kitchen"}) async {
     final resolvedSceneId = sceneId ?? await seedScene();
-    final setId = (await locationsService.createSetLinkedToScene(
-      database: database,
-      sceneId: resolvedSceneId,
-      name: name,
-    ))!;
+    final setId = (await locationsService
+        .createSetLinkedToScene(database: database, sceneId: resolvedSceneId, name: name)
+        .valueOrFail);
     return (resolvedSceneId, setId);
   }
 
@@ -691,7 +689,9 @@ void main() {
     test("the shot must belong to the overridden scene-scope symbol's own sequence", () async {
       final scenes = await seedScenes(2);
       final (_, setId) = await seedLinkedSet(sceneId: scenes[0]);
-      await locationsService.assignSceneToSet(database: database, sceneId: scenes[1], setId: setId);
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: scenes[1], setId: setId)
+          .maybeValueOrFail;
 
       final sceneOriginalId = (await floorPlanService
           .placeSymbol(

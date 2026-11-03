@@ -155,11 +155,9 @@ void main() {
   /// Returns `(sceneId, setId)`.
   Future<(String, String)> seedLinkedSet({String? sceneId, String name = "Kitchen"}) async {
     final resolvedSceneId = sceneId ?? await seedScene();
-    final setId = (await locationsService.createSetLinkedToScene(
-      database: database,
-      sceneId: resolvedSceneId,
-      name: name,
-    ))!;
+    final setId = (await locationsService
+        .createSetLinkedToScene(database: database, sceneId: resolvedSceneId, name: name)
+        .valueOrFail);
     return (resolvedSceneId, setId);
   }
 
@@ -213,7 +211,9 @@ void main() {
     test("a set linked to two scenes shows the same set-scope symbols in both", () async {
       final scenes = await seedScenes(2);
       final (_, setId) = await seedLinkedSet(sceneId: scenes[0]);
-      await locationsService.assignSceneToSet(database: database, sceneId: scenes[1], setId: setId);
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: scenes[1], setId: setId)
+          .maybeValueOrFail;
       await floorPlanService
           .placeSymbol(
             database: database,
@@ -242,7 +242,9 @@ void main() {
     test("a scene-scope symbol is loaded regardless of which scene reads the set", () async {
       final scenes = await seedScenes(2);
       final (_, setId) = await seedLinkedSet(sceneId: scenes[0]);
-      await locationsService.assignSceneToSet(database: database, sceneId: scenes[1], setId: setId);
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: scenes[1], setId: setId)
+          .maybeValueOrFail;
       await floorPlanService
           .placeSymbol(
             database: database,
@@ -525,11 +527,9 @@ void main() {
             )
             .maybeValueOrFail;
 
-        final destinationSetId = (await locationsService.createSiblingSet(
-          database: database,
-          sourceSetId: sourceSetId,
-          name: "Kitchen copy",
-        ))!;
+        final destinationSetId = (await locationsService
+            .createSiblingSet(database: database, sourceSetId: sourceSetId, name: "Kitchen copy")
+            .valueOrFail);
 
         await floorPlanService
             .duplicateSet(
@@ -567,11 +567,9 @@ void main() {
             yM: 0,
           )
           .valueOrFail);
-      final destinationSetId = (await locationsService.createSiblingSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        name: "Copy",
-      ))!;
+      final destinationSetId = (await locationsService
+          .createSiblingSet(database: database, sourceSetId: sourceSetId, name: "Copy")
+          .valueOrFail);
 
       await floorPlanService
           .duplicateSet(
@@ -624,11 +622,9 @@ void main() {
           .valueOrFail);
       await floorPlanService.deleteSymbol(database: database, symbolId: removedId).okOrFail;
 
-      final destinationSetId = (await locationsService.createSiblingSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        name: "Copy",
-      ))!;
+      final destinationSetId = (await locationsService
+          .createSiblingSet(database: database, sourceSetId: sourceSetId, name: "Copy")
+          .valueOrFail);
       await floorPlanService
           .duplicateSet(
             database: database,
@@ -646,11 +642,9 @@ void main() {
 
     test("is a no-op while the source carries no set-scope symbol at all", () async {
       final (_, sourceSetId) = await seedLinkedSet();
-      final destinationSetId = (await locationsService.createSiblingSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        name: "Copy",
-      ))!;
+      final destinationSetId = (await locationsService
+          .createSiblingSet(database: database, sourceSetId: sourceSetId, name: "Copy")
+          .valueOrFail);
 
       await floorPlanService
           .duplicateSet(

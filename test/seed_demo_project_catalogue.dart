@@ -114,63 +114,59 @@ seedLocations({
   // ------------------------------------------------------------------------- the locations and
   // their sets
 
-  final harbourId = (await locationsService.createLocation(
-    database: database,
-    name: "Douarnenez harbour",
-  ))!;
-  await locationsService.updateLocation(
-    database: database,
-    locationId: harbourId,
-    colorIndex: const Value(1),
-    addressLine1: const Value("Quai du Grand Port"),
-    postalCode: const Value("29100"),
-    city: const Value("Douarnenez"),
-    country: const Value("France"),
-    latitude: const Value(48.0947),
-    longitude: const Value(-4.3294),
-    permitStatus: const Value(OcptPermitStatus.granted),
-    permitLabel: const Value("Town hall — quay and terrace"),
-    parkingNotes: const Value("Unit base behind the fish market, 200 m from the cafe."),
-  );
-  final cafeSetId = (await locationsService.createSet(
-    database: database,
-    locationId: harbourId,
-    name: "Harbour cafe",
-  ))!;
-  final pierSetId = (await locationsService.createSet(
-    database: database,
-    locationId: harbourId,
-    name: "Pier",
-  ))!;
+  final harbourId = (await locationsService
+      .createLocation(database: database, name: "Douarnenez harbour")
+      .valueOrFail);
+  await locationsService
+      .updateLocation(
+        database: database,
+        locationId: harbourId,
+        colorIndex: const Value(1),
+        addressLine1: const Value("Quai du Grand Port"),
+        postalCode: const Value("29100"),
+        city: const Value("Douarnenez"),
+        country: const Value("France"),
+        latitude: const Value(48.0947),
+        longitude: const Value(-4.3294),
+        permitStatus: const Value(OcptPermitStatus.granted),
+        permitLabel: const Value("Town hall — quay and terrace"),
+        parkingNotes: const Value("Unit base behind the fish market, 200 m from the cafe."),
+      )
+      .okOrFail;
+  final cafeSetId = (await locationsService
+      .createSet(database: database, locationId: harbourId, name: "Harbour cafe")
+      .valueOrFail);
+  final pierSetId = (await locationsService
+      .createSet(database: database, locationId: harbourId, name: "Pier")
+      .valueOrFail);
 
-  final seaId = (await locationsService.createLocation(
-    database: database,
-    name: "Bay of Douarnenez",
-  ))!;
-  await locationsService.updateLocation(
-    database: database,
-    locationId: seaId,
-    colorIndex: const Value(5),
-    city: const Value("Douarnenez"),
-    country: const Value("France"),
-    latitude: const Value(48.1042),
-    longitude: const Value(-4.4058),
-    permitStatus: const Value(OcptPermitStatus.requested),
-    permitLabel: const Value("Maritime authority — filming at sea"),
-    constraintsNotes: const Value("Sailing window depends on the swell; skipper decides at 05:00."),
-  );
-  final boatSetId = (await locationsService.createSet(
-    database: database,
-    locationId: seaId,
-    name: "Fishing boat",
-  ))!;
+  final seaId = (await locationsService
+      .createLocation(database: database, name: "Bay of Douarnenez")
+      .valueOrFail);
+  await locationsService
+      .updateLocation(
+        database: database,
+        locationId: seaId,
+        colorIndex: const Value(5),
+        city: const Value("Douarnenez"),
+        country: const Value("France"),
+        latitude: const Value(48.1042),
+        longitude: const Value(-4.4058),
+        permitStatus: const Value(OcptPermitStatus.requested),
+        permitLabel: const Value("Maritime authority — filming at sea"),
+        constraintsNotes: const Value(
+          "Sailing window depends on the swell; skipper decides at 05:00.",
+        ),
+      )
+      .okOrFail;
+  final boatSetId = (await locationsService
+      .createSet(database: database, locationId: seaId, name: "Fishing boat")
+      .valueOrFail);
 
   for (final (index, setId) in [cafeSetId, cafeSetId, pierSetId, boatSetId].indexed) {
-    await locationsService.assignSceneToSet(
-      database: database,
-      sceneId: sceneIds[index],
-      setId: setId,
-    );
+    await locationsService
+        .assignSceneToSet(database: database, sceneId: sceneIds[index], setId: setId)
+        .maybeValueOrFail;
   }
 
   return (

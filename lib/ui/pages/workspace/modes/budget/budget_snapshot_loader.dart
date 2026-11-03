@@ -100,10 +100,10 @@ class OcptBudgetSnapshotLoader {
   ///
   /// Answers the failure of the schedule, the accounts and their lines, the cash journal's entries,
   /// commitments and receipts, the resources, the mileage rates, the defrayals, the takings, the
-  /// shares, the elements and the roles reads, in place of the whole read: they are the only reads
-  /// that answer a result so far. The reads of the people, the locations and the project settings
+  /// shares, the elements, the roles, the people and the locations reads, in place of the whole
+  /// read: they are the only reads that answer a result so far. The reads of the project settings
   /// still raise when the database fails, and the caller catches what they raise. This sentence
-  /// changes as those services convert, each read then answering its failure in the same way.
+  /// changes as those reads convert, each read then answering its failure in the same way.
   @useResult
   Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     final database = project.database;
@@ -175,7 +175,12 @@ class OcptBudgetSnapshotLoader {
     }
 
     final elements = elementsRead.value!;
-    final locations = await _locationsService.loadLocations(database: database);
+    final locationsRead = await _locationsService.loadLocations(database: database);
+    if (locationsRead.isError) {
+      return OcptDatabaseResult(status: locationsRead.status, extraInfo: locationsRead.extraInfo);
+    }
+
+    final locations = locationsRead.value!;
     final mileageRatesRead = await _budgetFinancingService.loadMileageRates(database: database);
     if (mileageRatesRead.isError) {
       return OcptDatabaseResult(

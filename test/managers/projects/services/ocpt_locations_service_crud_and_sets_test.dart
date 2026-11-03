@@ -5,12 +5,12 @@
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import '../../../ocpt_result_expectations.dart';
@@ -76,19 +76,19 @@ void main() {
 
   /// Creates a location holding one set named [name], and returns that set's id.
   Future<String> createSetInNewLocation(String name) async {
-    final locationId = (await locationsService.createLocation(database: database, name: name))!;
-    return (await locationsService.createSet(
-      database: database,
-      locationId: locationId,
-      name: name,
-    ))!;
+    final locationId = (await locationsService
+        .createLocation(database: database, name: name)
+        .valueOrFail);
+    return locationsService
+        .createSet(database: database, locationId: locationId, name: name)
+        .valueOrFail;
   }
 
   /// The ids of the scenes set [setId] holds, read back through
   /// [OcptLocationsService.loadLocations] — the one way the app itself ever reads a `scene_sets`
   /// row.
   Future<List<String>> sceneIdsOfSet(String setId) async {
-    final locations = await locationsService.loadLocations(database: database);
+    final locations = await locationsService.loadLocations(database: database).valueOrFail;
     for (final location in locations) {
       for (final set in location.sets) {
         if (set.id == setId) {
@@ -101,49 +101,51 @@ void main() {
 
   group("locations CRUD and ordering", () {
     test("createLocation appends at the end and loadLocations reads it back", () async {
-      final firstId = (await locationsService.createLocation(
-        database: database,
-        name: "La maison des Pains",
-      ))!;
-      final secondId = (await locationsService.createLocation(
-        database: database,
-        name: "Le hangar",
-      ))!;
+      final firstId = (await locationsService
+          .createLocation(database: database, name: "La maison des Pains")
+          .valueOrFail);
+      final secondId = (await locationsService
+          .createLocation(database: database, name: "Le hangar")
+          .valueOrFail);
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations.map((location) => location.id), [firstId, secondId]);
       expect(locations.map((location) => location.name), ["La maison des Pains", "Le hangar"]);
     });
 
     test("createLocation in the middle keeps sortKey ordering", () async {
-      final firstId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final secondId = (await locationsService.createLocation(database: database, name: "B"))!;
+      final firstId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final secondId = (await locationsService
+          .createLocation(database: database, name: "B")
+          .valueOrFail);
 
-      await locationsService.reorderLocation(
-        database: database,
-        locationId: secondId,
-        newPosition: 0,
-      );
-      final thirdId = (await locationsService.createLocation(database: database, name: "C"))!;
-      await locationsService.reorderLocation(
-        database: database,
-        locationId: thirdId,
-        newPosition: 1,
-      );
+      await locationsService
+          .reorderLocation(database: database, locationId: secondId, newPosition: 0)
+          .okOrFail;
+      final thirdId = (await locationsService
+          .createLocation(database: database, name: "C")
+          .valueOrFail);
+      await locationsService
+          .reorderLocation(database: database, locationId: thirdId, newPosition: 1)
+          .okOrFail;
 
       final rows = await readLocations();
       expect(rows.map((row) => row.id), [secondId, thirdId, firstId]);
     });
 
     test("updateLocation only touches the fields it's given a Value for", () async {
-      final id = (await locationsService.createLocation(database: database, name: "A"))!;
+      final id = (await locationsService.createLocation(database: database, name: "A").valueOrFail);
 
-      await locationsService.updateLocation(
-        database: database,
-        locationId: id,
-        city: const Value("Lyon"),
-        permitStatus: const Value(OcptPermitStatus.requested),
-      );
+      await locationsService
+          .updateLocation(
+            database: database,
+            locationId: id,
+            city: const Value("Lyon"),
+            permitStatus: const Value(OcptPermitStatus.requested),
+          )
+          .okOrFail;
 
       final row = await readLocation(id);
       expect(row.city, "Lyon");
@@ -152,16 +154,20 @@ void main() {
     });
 
     test("reorderLocation moves a location by writing exactly one row", () async {
-      final firstId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final secondId = (await locationsService.createLocation(database: database, name: "B"))!;
-      final thirdId = (await locationsService.createLocation(database: database, name: "C"))!;
+      final firstId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final secondId = (await locationsService
+          .createLocation(database: database, name: "B")
+          .valueOrFail);
+      final thirdId = (await locationsService
+          .createLocation(database: database, name: "C")
+          .valueOrFail);
 
       final keysBefore = {for (final row in await readLocations()) row.id: row.sortKey};
-      await locationsService.reorderLocation(
-        database: database,
-        locationId: firstId,
-        newPosition: 2,
-      );
+      await locationsService
+          .reorderLocation(database: database, locationId: firstId, newPosition: 2)
+          .okOrFail;
       final keysAfter = {for (final row in await readLocations()) row.id: row.sortKey};
 
       expect((await readLocations()).map((row) => row.id), [secondId, thirdId, firstId]);
@@ -169,12 +175,16 @@ void main() {
     });
 
     test("deleteLocation writes a tombstone and the row disappears from every read", () async {
-      final firstId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final secondId = (await locationsService.createLocation(database: database, name: "B"))!;
+      final firstId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final secondId = (await locationsService
+          .createLocation(database: database, name: "B")
+          .valueOrFail);
 
-      await locationsService.deleteLocation(database: database, locationId: firstId);
+      await locationsService.deleteLocation(database: database, locationId: firstId).okOrFail;
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations.map((location) => location.id), [secondId]);
 
       final tombstoned = await readLocation(firstId);
@@ -182,15 +192,12 @@ void main() {
     });
 
     test("deleteLocation tombstones its sets and the scene_sets links onto them", () async {
-      final locationId = (await locationsService.createLocation(
-        database: database,
-        name: "La maison des Pains",
-      ))!;
-      final setId = (await locationsService.createSet(
-        database: database,
-        locationId: locationId,
-        name: "Cuisine",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "La maison des Pains")
+          .valueOrFail);
+      final setId = (await locationsService
+          .createSet(database: database, locationId: locationId, name: "Cuisine")
+          .valueOrFail);
       await database
           .into(database.ocptScreenplaysTable)
           .insert(
@@ -212,16 +219,12 @@ void main() {
               charEnd: 10,
             ),
           );
-      final linkId = (await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      ))!;
-      final photoId = (await locationsService.addLocationPhoto(
-        database: database,
-        locationId: locationId,
-        path: "/tmp/repérage.jpg",
-      ))!;
+      final linkId = (await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .valueOrFail);
+      final photoId = (await locationsService
+          .addLocationPhoto(database: database, locationId: locationId, path: "/tmp/repérage.jpg")
+          .valueOrFail);
       final symbolId = (await floorPlanService
           .placeSymbol(
             database: database,
@@ -234,7 +237,7 @@ void main() {
           )
           .valueOrFail);
 
-      await locationsService.deleteLocation(database: database, locationId: locationId);
+      await locationsService.deleteLocation(database: database, locationId: locationId).okOrFail;
 
       final setRow = await (database.select(
         database.ocptSetsTable,
@@ -267,101 +270,87 @@ void main() {
     test(
       "createSet appends within its location and loadLocations reads them back in order",
       () async {
-        final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+        final locationId = (await locationsService
+            .createLocation(database: database, name: "A")
+            .valueOrFail);
 
-        await locationsService.createSet(
-          database: database,
-          locationId: locationId,
-          name: "Hangar",
-        );
-        await locationsService.createSet(
-          database: database,
-          locationId: locationId,
-          name: "Jardin",
-        );
+        await locationsService
+            .createSet(database: database, locationId: locationId, name: "Hangar")
+            .maybeValueOrFail;
+        await locationsService
+            .createSet(database: database, locationId: locationId, name: "Jardin")
+            .maybeValueOrFail;
 
-        final locations = await locationsService.loadLocations(database: database);
+        final locations = await locationsService.loadLocations(database: database).valueOrFail;
         expect(locations.single.sets.map((set) => set.name), ["Hangar", "Jardin"]);
       },
     );
 
     test("createSet codes a set across the whole project, not within its location", () async {
-      final firstLocationId = (await locationsService.createLocation(
-        database: database,
-        name: "Maison",
-      ))!;
-      final secondLocationId = (await locationsService.createLocation(
-        database: database,
-        name: "Hangar",
-      ))!;
+      final firstLocationId = (await locationsService
+          .createLocation(database: database, name: "Maison")
+          .valueOrFail);
+      final secondLocationId = (await locationsService
+          .createLocation(database: database, name: "Hangar")
+          .valueOrFail);
 
-      await locationsService.createSet(
-        database: database,
-        locationId: firstLocationId,
-        name: "Cuisine",
-      );
-      await locationsService.createSet(
-        database: database,
-        locationId: firstLocationId,
-        name: "Jardin",
-      );
-      await locationsService.createSet(
-        database: database,
-        locationId: secondLocationId,
-        name: "Atelier",
-      );
+      await locationsService
+          .createSet(database: database, locationId: firstLocationId, name: "Cuisine")
+          .maybeValueOrFail;
+      await locationsService
+          .createSet(database: database, locationId: firstLocationId, name: "Jardin")
+          .maybeValueOrFail;
+      await locationsService
+          .createSet(database: database, locationId: secondLocationId, name: "Atelier")
+          .maybeValueOrFail;
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations.first.sets.map((set) => set.code), ["A", "B"]);
       expect(locations.last.sets.single.code, "C");
     });
 
     test("updateSet only touches the fields it's given a Value for", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final setId = (await locationsService.createSet(
-        database: database,
-        locationId: locationId,
-        name: "Hangar",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final setId = (await locationsService
+          .createSet(database: database, locationId: locationId, name: "Hangar")
+          .valueOrFail);
 
-      await locationsService.updateSet(
-        database: database,
-        setId: setId,
-        notes: const Value("Nord"),
-      );
+      await locationsService
+          .updateSet(database: database, setId: setId, notes: const Value("Nord"))
+          .okOrFail;
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       final set = locations.single.sets.single;
       expect(set.notes, "Nord");
       expect(set.name, "Hangar");
     });
 
     test("deleteSet tombstones it and it disappears from loadLocations", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final firstSetId = (await locationsService.createSet(
-        database: database,
-        locationId: locationId,
-        name: "Hangar",
-      ))!;
-      final secondSetId = (await locationsService.createSet(
-        database: database,
-        locationId: locationId,
-        name: "Jardin",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final firstSetId = (await locationsService
+          .createSet(database: database, locationId: locationId, name: "Hangar")
+          .valueOrFail);
+      final secondSetId = (await locationsService
+          .createSet(database: database, locationId: locationId, name: "Jardin")
+          .valueOrFail);
 
-      await locationsService.deleteSet(database: database, setId: firstSetId);
+      await locationsService.deleteSet(database: database, setId: firstSetId).okOrFail;
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations.single.sets.map((set) => set.id), [secondSetId]);
     });
 
     test("deleteSet tombstones its floor plan, symbols and arrows", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final setId = (await locationsService.createSet(
-        database: database,
-        locationId: locationId,
-        name: "Hangar",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final setId = (await locationsService
+          .createSet(database: database, locationId: locationId, name: "Hangar")
+          .valueOrFail);
       final firstSymbolId = (await floorPlanService
           .placeSymbol(
             database: database,
@@ -385,7 +374,7 @@ void main() {
           )
           .valueOrFail);
 
-      await locationsService.deleteSet(database: database, setId: setId);
+      await locationsService.deleteSet(database: database, setId: setId).okOrFail;
 
       final planRow = await (database.select(
         database.ocptFloorPlanSetsTable,
@@ -398,21 +387,19 @@ void main() {
     });
 
     test("createSiblingSet mints a new set in the same location", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final sourceSetId = (await locationsService.createSet(
-        database: database,
-        locationId: locationId,
-        name: "Hangar",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final sourceSetId = (await locationsService
+          .createSet(database: database, locationId: locationId, name: "Hangar")
+          .valueOrFail);
 
-      final newSetId = (await locationsService.createSiblingSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        name: "Hangar copy",
-      ))!;
+      final newSetId = (await locationsService
+          .createSiblingSet(database: database, sourceSetId: sourceSetId, name: "Hangar copy")
+          .valueOrFail);
 
       expect(newSetId, isNot(sourceSetId));
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(
         locations.single.sets.map((set) => set.id),
         containsAll(<String>[sourceSetId, newSetId]),
@@ -425,11 +412,9 @@ void main() {
     });
 
     test("createSiblingSet does nothing for a set that doesn't exist", () async {
-      final newSetId = await locationsService.createSiblingSet(
-        database: database,
-        sourceSetId: "nope",
-        name: "Copy",
-      );
+      final newSetId = await locationsService
+          .createSiblingSet(database: database, sourceSetId: "nope", name: "Copy")
+          .maybeValueOrFail;
       expect(newSetId, isNull);
     });
 
@@ -448,15 +433,12 @@ void main() {
       });
 
       test("mints the sibling set, copies its plan and links it, in one call", () async {
-        final locationId = (await locationsService.createLocation(
-          database: database,
-          name: "Maison",
-        ))!;
-        final sourceSetId = (await locationsService.createSet(
-          database: database,
-          locationId: locationId,
-          name: "Cuisine",
-        ))!;
+        final locationId = (await locationsService
+            .createLocation(database: database, name: "Maison")
+            .valueOrFail);
+        final sourceSetId = (await locationsService
+            .createSet(database: database, locationId: locationId, name: "Cuisine")
+            .valueOrFail);
         await floorPlanService
             .placeSymbol(
               database: database,
@@ -469,17 +451,19 @@ void main() {
             )
             .maybeValueOrFail;
 
-        final newSetId = await locationsService.duplicateSetForScene(
-          database: database,
-          sourceSetId: sourceSetId,
-          name: "Cuisine copy",
-          sceneId: "scene-1",
-        );
+        final newSetId = await locationsService
+            .duplicateSetForScene(
+              database: database,
+              sourceSetId: sourceSetId,
+              name: "Cuisine copy",
+              sceneId: "scene-1",
+            )
+            .maybeValueOrFail;
 
         expect(newSetId, isNotNull);
         expect(newSetId, isNot(sourceSetId));
 
-        final locations = await locationsService.loadLocations(database: database);
+        final locations = await locationsService.loadLocations(database: database).valueOrFail;
         final newSet = locations.single.sets.firstWhere((set) => set.id == newSetId);
         expect(newSet.name, "Cuisine copy");
         expect(newSet.sceneIds, ["scene-1"]);
@@ -493,15 +477,12 @@ void main() {
       });
 
       test("a failure in the copy step leaves no new set and no link behind", () async {
-        final locationId = (await locationsService.createLocation(
-          database: database,
-          name: "Maison",
-        ))!;
-        final sourceSetId = (await locationsService.createSet(
-          database: database,
-          locationId: locationId,
-          name: "Cuisine",
-        ))!;
+        final locationId = (await locationsService
+            .createLocation(database: database, name: "Maison")
+            .valueOrFail);
+        final sourceSetId = (await locationsService
+            .createSet(database: database, locationId: locationId, name: "Cuisine")
+            .valueOrFail);
 
         final setRowsBefore = await database.select(database.ocptSetsTable).get();
 
@@ -511,15 +492,14 @@ void main() {
         // this call already wrote (the sibling set, its copied plan) rather than only its own
         // half, once the exception keeps propagating out to this method's own outermost
         // `transaction()`.
-        await expectLater(
-          locationsService.duplicateSetForScene(
-            database: database,
-            sourceSetId: sourceSetId,
-            name: "Cuisine copy",
-            sceneId: "no-such-scene",
-          ),
-          throwsA(anything),
+        final duplicated = await locationsService.duplicateSetForScene(
+          database: database,
+          sourceSetId: sourceSetId,
+          name: "Cuisine copy",
+          sceneId: "no-such-scene",
         );
+        expect(duplicated.status, OcptDatabaseStatus.databaseError);
+        expect(duplicated.value, isNull);
 
         final setRowsAfter = await database.select(database.ocptSetsTable).get();
         expect(
@@ -537,15 +517,12 @@ void main() {
       });
 
       test("a refusal of the plan copy leaves no new set and no link behind", () async {
-        final locationId = (await locationsService.createLocation(
-          database: database,
-          name: "Maison",
-        ))!;
-        final sourceSetId = (await locationsService.createSet(
-          database: database,
-          locationId: locationId,
-          name: "Cuisine",
-        ))!;
+        final locationId = (await locationsService
+            .createLocation(database: database, name: "Maison")
+            .valueOrFail);
+        final sourceSetId = (await locationsService
+            .createSet(database: database, locationId: locationId, name: "Cuisine")
+            .valueOrFail);
         await floorPlanService
             .placeSymbol(
               database: database,
@@ -568,15 +545,14 @@ void main() {
           "BEGIN SELECT RAISE(ABORT, 'refused'); END",
         );
 
-        await expectLater(
-          locationsService.duplicateSetForScene(
-            database: database,
-            sourceSetId: sourceSetId,
-            name: "Cuisine copy",
-            sceneId: "scene-1",
-          ),
-          throwsA(isA<OcptDatabaseAbort>()),
+        final duplicated = await locationsService.duplicateSetForScene(
+          database: database,
+          sourceSetId: sourceSetId,
+          name: "Cuisine copy",
+          sceneId: "scene-1",
         );
+        expect(duplicated.status, OcptDatabaseStatus.databaseError);
+        expect(duplicated.value, isNull);
 
         final setRowsAfter = await database.select(database.ocptSetsTable).get();
         expect(
@@ -591,24 +567,21 @@ void main() {
     });
 
     test("reorderSet moves a set by writing exactly one row", () async {
-      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
       final ids = [
         for (var i = 0; i < 3; i++)
-          (await locationsService.createSet(
-            database: database,
-            locationId: locationId,
-            name: "Set $i",
-          ))!,
+          (await locationsService
+              .createSet(database: database, locationId: locationId, name: "Set $i")
+              .valueOrFail),
       ];
 
-      await locationsService.reorderSet(
-        database: database,
-        locationId: locationId,
-        setId: ids[0],
-        newPosition: 2,
-      );
+      await locationsService
+          .reorderSet(database: database, locationId: locationId, setId: ids[0], newPosition: 2)
+          .okOrFail;
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations.single.sets.map((set) => set.id), [ids[1], ids[2], ids[0]]);
     });
   });
@@ -629,13 +602,11 @@ void main() {
     });
 
     test("createSetLinkedToScene mints a location of its own when given none", () async {
-      final setId = await locationsService.createSetLinkedToScene(
-        database: database,
-        sceneId: "scene-1",
-        name: "CUISINE",
-      );
+      final setId = await locationsService
+          .createSetLinkedToScene(database: database, sceneId: "scene-1", name: "CUISINE")
+          .maybeValueOrFail;
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations, hasLength(1));
       expect(locations.single.name, "CUISINE");
       expect(locations.single.sets.single.id, setId);
@@ -644,37 +615,46 @@ void main() {
     });
 
     test("createSetLinkedToScene files the set under the location it's given", () async {
-      final locationId = (await locationsService.createLocation(
-        database: database,
-        name: "Maison",
-      ))!;
+      final locationId = (await locationsService
+          .createLocation(database: database, name: "Maison")
+          .valueOrFail);
 
-      await locationsService.createSetLinkedToScene(
-        database: database,
-        sceneId: "scene-1",
-        name: "Cuisine",
-        locationId: locationId,
-      );
+      await locationsService
+          .createSetLinkedToScene(
+            database: database,
+            sceneId: "scene-1",
+            name: "Cuisine",
+            locationId: locationId,
+          )
+          .maybeValueOrFail;
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations, hasLength(1));
       expect(locations.single.sets.single.sceneIds, ["scene-1"]);
     });
 
     test("moveSetToLocation hands a set over with its scenes, appended at the end", () async {
-      final fromId = (await locationsService.createLocation(database: database, name: "A"))!;
-      final toId = (await locationsService.createLocation(database: database, name: "B"))!;
-      await locationsService.createSet(database: database, locationId: toId, name: "Salon");
-      final setId = (await locationsService.createSet(
-        database: database,
-        locationId: fromId,
-        name: "Cuisine",
-      ))!;
-      await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
+      final fromId = (await locationsService
+          .createLocation(database: database, name: "A")
+          .valueOrFail);
+      final toId = (await locationsService
+          .createLocation(database: database, name: "B")
+          .valueOrFail);
+      await locationsService
+          .createSet(database: database, locationId: toId, name: "Salon")
+          .maybeValueOrFail;
+      final setId = (await locationsService
+          .createSet(database: database, locationId: fromId, name: "Cuisine")
+          .valueOrFail);
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .maybeValueOrFail;
 
-      await locationsService.moveSetToLocation(database: database, setId: setId, locationId: toId);
+      await locationsService
+          .moveSetToLocation(database: database, setId: setId, locationId: toId)
+          .okOrFail;
 
-      final locations = await locationsService.loadLocations(database: database);
+      final locations = await locationsService.loadLocations(database: database).valueOrFail;
       expect(locations.first.sets, isEmpty);
       // Appended rather than slotted in: the sortKey it held ranked it among its former siblings.
       expect(locations.last.sets.map((set) => set.name), ["Salon", "Cuisine"]);
@@ -684,7 +664,9 @@ void main() {
     test("assignSceneToSet links a scene to a set and loadLocations reads it back", () async {
       final setId = await createSetInNewLocation("Cuisine");
 
-      await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .maybeValueOrFail;
 
       expect(await sceneIdsOfSet(setId), ["scene-1"]);
     });
@@ -692,8 +674,12 @@ void main() {
     test("a set's scenes come back in the screenplay's own order", () async {
       final setId = await createSetInNewLocation("Cuisine");
 
-      await locationsService.assignSceneToSet(database: database, sceneId: "scene-2", setId: setId);
-      await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-2", setId: setId)
+          .maybeValueOrFail;
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .maybeValueOrFail;
 
       expect(await sceneIdsOfSet(setId), ["scene-1", "scene-2"]);
     });
@@ -702,16 +688,12 @@ void main() {
       final firstSetId = await createSetInNewLocation("Cuisine");
       final secondSetId = await createSetInNewLocation("Hangar");
 
-      await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: firstSetId,
-      );
-      await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: secondSetId,
-      );
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: firstSetId)
+          .maybeValueOrFail;
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: secondSetId)
+          .maybeValueOrFail;
 
       // Assigning adds; it never answers "no longer there" on the user's behalf.
       expect(await sceneIdsOfSet(firstSetId), ["scene-1"]);
@@ -721,22 +703,16 @@ void main() {
     test("dropping one of a scene's sets leaves the others alone", () async {
       final firstSetId = await createSetInNewLocation("Cuisine");
       final secondSetId = await createSetInNewLocation("Hangar");
-      await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: firstSetId,
-      );
-      await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: secondSetId,
-      );
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: firstSetId)
+          .maybeValueOrFail;
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: secondSetId)
+          .maybeValueOrFail;
 
-      await locationsService.removeSceneFromSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: firstSetId,
-      );
+      await locationsService
+          .removeSceneFromSet(database: database, sceneId: "scene-1", setId: firstSetId)
+          .okOrFail;
 
       expect(await sceneIdsOfSet(firstSetId), isEmpty);
       expect(await sceneIdsOfSet(secondSetId), ["scene-1"]);
@@ -744,22 +720,16 @@ void main() {
 
     test("re-assigning a dropped link revives it rather than adding a second one", () async {
       final setId = await createSetInNewLocation("Cuisine");
-      final firstLinkId = await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      );
-      await locationsService.removeSceneFromSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      );
+      final firstLinkId = await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .maybeValueOrFail;
+      await locationsService
+          .removeSceneFromSet(database: database, sceneId: "scene-1", setId: setId)
+          .okOrFail;
 
-      final revivedLinkId = await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      );
+      final revivedLinkId = await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .maybeValueOrFail;
 
       expect(revivedLinkId, firstLinkId);
       expect(await sceneIdsOfSet(setId), ["scene-1"]);
@@ -770,16 +740,12 @@ void main() {
     test("assigning a scene to the set it already sits in keeps the same link", () async {
       final setId = await createSetInNewLocation("Cuisine");
 
-      final firstLinkId = await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      );
-      final secondLinkId = await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      );
+      final firstLinkId = await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .maybeValueOrFail;
+      final secondLinkId = await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .maybeValueOrFail;
 
       expect(secondLinkId, firstLinkId);
       expect(await sceneIdsOfSet(setId), ["scene-1"]);
@@ -787,20 +753,22 @@ void main() {
 
     test("removeSceneFromSet tombstones the link", () async {
       final setId = await createSetInNewLocation("Cuisine");
-      await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .maybeValueOrFail;
 
-      await locationsService.removeSceneFromSet(
-        database: database,
-        sceneId: "scene-1",
-        setId: setId,
-      );
+      await locationsService
+          .removeSceneFromSet(database: database, sceneId: "scene-1", setId: setId)
+          .okOrFail;
 
       expect(await sceneIdsOfSet(setId), isEmpty);
     });
 
     test("a link onto a tombstoned scene is left out of the set that holds it", () async {
       final setId = await createSetInNewLocation("Cuisine");
-      await locationsService.assignSceneToSet(database: database, sceneId: "scene-1", setId: setId);
+      await locationsService
+          .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+          .maybeValueOrFail;
 
       await (database.update(database.ocptScenesTable)..where((row) => row.id.equals("scene-1")))
           .write(const OcptScenesTableCompanion(isDeleted: Value(true)));
@@ -809,22 +777,18 @@ void main() {
     });
 
     test("loadScenes reads the screenplay's live scenes in source order", () async {
-      final scenes = await locationsService.loadScenes(
-        database: database,
-        screenplayId: "screenplay-1",
-        episodeNumber: null,
-      );
+      final scenes = await locationsService
+          .loadScenes(database: database, screenplayId: "screenplay-1", episodeNumber: null)
+          .valueOrFail;
 
       expect(scenes.map((scene) => scene.id), ["scene-1", "scene-2"]);
       expect(scenes.map((scene) => scene.displayNumber), ["1", "2"]);
     });
 
     test("loadScenes carries the given episode number onto every scene's displayNumber", () async {
-      final scenes = await locationsService.loadScenes(
-        database: database,
-        screenplayId: "screenplay-1",
-        episodeNumber: 2,
-      );
+      final scenes = await locationsService
+          .loadScenes(database: database, screenplayId: "screenplay-1", episodeNumber: 2)
+          .valueOrFail;
 
       expect(scenes.map((scene) => scene.displayNumber), ["2.1", "2.2"]);
     });
@@ -833,23 +797,26 @@ void main() {
       test("names null while the set carries no live link at all", () async {
         final setId = await createSetInNewLocation("Cuisine");
 
-        expect(await locationsService.firstLinkedSceneOf(database: database, setId: setId), isNull);
+        expect(
+          await locationsService
+              .firstLinkedSceneOf(database: database, setId: setId)
+              .maybeValueOrFail,
+          isNull,
+        );
       });
 
       test("picks the earlier scene of the same episode when linked to two", () async {
         final setId = await createSetInNewLocation("Cuisine");
-        await locationsService.assignSceneToSet(
-          database: database,
-          sceneId: "scene-2",
-          setId: setId,
-        );
-        await locationsService.assignSceneToSet(
-          database: database,
-          sceneId: "scene-1",
-          setId: setId,
-        );
+        await locationsService
+            .assignSceneToSet(database: database, sceneId: "scene-2", setId: setId)
+            .maybeValueOrFail;
+        await locationsService
+            .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+            .maybeValueOrFail;
 
-        final first = await locationsService.firstLinkedSceneOf(database: database, setId: setId);
+        final first = await locationsService
+            .firstLinkedSceneOf(database: database, setId: setId)
+            .maybeValueOrFail;
 
         expect(first, (sceneId: "scene-1", screenplayId: "screenplay-1"));
       });
@@ -885,18 +852,16 @@ void main() {
         // scene-1 (position 0 of screenplay-1, the later episode) is linked first, scene-0
         // (position 5 of screenplay-0, the earlier episode) linked after — episode order must
         // still win over insertion order and over the raw scene position.
-        await locationsService.assignSceneToSet(
-          database: database,
-          sceneId: "scene-1",
-          setId: setId,
-        );
-        await locationsService.assignSceneToSet(
-          database: database,
-          sceneId: "scene-0",
-          setId: setId,
-        );
+        await locationsService
+            .assignSceneToSet(database: database, sceneId: "scene-1", setId: setId)
+            .maybeValueOrFail;
+        await locationsService
+            .assignSceneToSet(database: database, sceneId: "scene-0", setId: setId)
+            .maybeValueOrFail;
 
-        final first = await locationsService.firstLinkedSceneOf(database: database, setId: setId);
+        final first = await locationsService
+            .firstLinkedSceneOf(database: database, setId: setId)
+            .maybeValueOrFail;
 
         expect(first, (sceneId: "scene-0", screenplayId: "screenplay-0"));
       });

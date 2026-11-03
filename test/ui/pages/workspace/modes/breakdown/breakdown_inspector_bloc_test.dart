@@ -332,15 +332,12 @@ void main() {
     final sceneId = (await (project.database.select(
       project.database.ocptScenesTable,
     )).get()).single.id;
-    final locationId = (await projectsManager.locationsService.createLocation(
-      database: project.database,
-      name: "Maison des Martin",
-    ))!;
-    final setId = (await projectsManager.locationsService.createSet(
-      database: project.database,
-      locationId: locationId,
-      name: "Cuisine",
-    ))!;
+    final locationId = (await projectsManager.locationsService
+        .createLocation(database: project.database, name: "Maison des Martin")
+        .valueOrFail);
+    final setId = (await projectsManager.locationsService
+        .createSet(database: project.database, locationId: locationId, name: "Cuisine")
+        .valueOrFail);
 
     final bloc = buildBloc();
     final inspectorBloc = buildInspector(bloc);

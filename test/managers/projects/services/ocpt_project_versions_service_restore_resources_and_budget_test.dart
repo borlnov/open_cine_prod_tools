@@ -842,11 +842,13 @@ void main() {
       await database
           .into(database.ocptLocationsTable)
           .insert(OcptLocationsTableCompanion.insert(id: "location-1", name: "Le hangar"));
-      final photoId = (await locationsService.addLocationPhoto(
-        database: database,
-        locationId: "location-1",
-        path: "/photos/repérage.jpg",
-      ))!;
+      final photoId = (await locationsService
+          .addLocationPhoto(
+            database: database,
+            locationId: "location-1",
+            path: "/photos/repérage.jpg",
+          )
+          .valueOrFail);
 
       final version = await createVersion();
       await peopleService.deletePerson(database: database, personId: "person-1");

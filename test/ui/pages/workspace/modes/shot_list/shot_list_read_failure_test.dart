@@ -220,4 +220,53 @@ void main() {
     expect(mode.state.selectedShotId, shotId);
     expect(mode.state.snapshot, same(snapshot));
   });
+
+  group("when the locations cannot be read", () {
+    /// Make the locations unreadable.
+    Future<void> loseTheLocations() => projectsManager.currentProject!.database.customStatement(
+      "ALTER TABLE locations RENAME TO locations_gone",
+    );
+
+    test("the reader answers the failure of the locations", () async {
+      await buildMode();
+      await loseTheLocations();
+      final reader = OcptShotListReader(
+        projectsManager: projectsManager,
+        propertiesManager: propertiesManager,
+        shotListService: projectsManager.shotListService,
+        roleIndexService: projectsManager.roleIndexService,
+        scheduleService: projectsManager.scheduleService,
+        storyboardService: projectsManager.storyboardService,
+        floorPlanService: projectsManager.floorPlanService,
+        locationsService: projectsManager.locationsService,
+        screenplayIdOf: (project) => project.primaryScreenplayId,
+      );
+
+      final read = await reader.loadLocations(projectsManager.currentProject!);
+
+      expect(read.status, OcptDatabaseStatus.databaseError);
+      expect(read.value, isNull);
+    });
+
+    test("a mode that cannot read them stays loading", () async {
+      await loseTheLocations();
+
+      await buildMode(expectsLoaded: false);
+
+      expect(mode.state.isLoading, isTrue);
+    });
+
+    test("reading them again answers false and shows the write error", () async {
+      await buildMode();
+      final locations = mode.state.locations;
+      final epoch = mode.state.reloadEpoch;
+      await loseTheLocations();
+
+      expect(await mode.reload({OcptShotListReloadScope.locations}), isFalse);
+
+      expect(mode.state.hasWriteError, isTrue);
+      expect(mode.state.locations, same(locations));
+      expect(mode.state.reloadEpoch, epoch);
+    });
+  });
 }

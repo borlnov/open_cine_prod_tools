@@ -56,21 +56,27 @@ class _FailingLocationsService extends OcptLocationsService {
 
   /// Fail as a refused set creation does.
   @override
-  Future<String?> createSetLinkedToScene({
+  Future<OcptDatabaseResult<String>> createSetLinkedToScene({
     required OcptProjectDatabase database,
     required String sceneId,
     required String name,
     String? locationId,
-  }) async => throw StateError("set creation intentionally failed for the test");
+  }) async => const OcptDatabaseResult(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "set creation intentionally failed for the test",
+  );
 
   /// Fail as a refused set rename does.
   @override
-  Future<void> updateSet({
+  Future<OcptDatabaseOutcome> updateSet({
     required OcptProjectDatabase database,
     required String setId,
     Value<String> name = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async => throw StateError("set rename intentionally failed for the test");
+  }) async => const OcptDatabaseOutcome(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "set rename intentionally failed for the test",
+  );
 }
 
 /// An elements service whose prop reads of one scene can be held back: while [heldScenes] holds
@@ -658,9 +664,9 @@ void main() {
         }
 
         final project = projectsManager.currentProject!;
-        final locations = await projectsManager.locationsService.loadLocations(
-          database: project.database,
-        );
+        final locations = await projectsManager.locationsService
+            .loadLocations(database: project.database)
+            .valueOrFail;
         expect(
           locations.expand((location) => location.sets).firstWhere((set) => set.id == setId).name,
           "Kept",
@@ -668,16 +674,16 @@ void main() {
         );
 
         // The next round starts from a project without that set.
-        await projectsManager.locationsService.removeSceneFromSet(
-          database: project.database,
-          sceneId: (mode.state.sequences.first as OcptSceneShotSequence).sceneId,
-          setId: setId,
-        );
-        await projectsManager.locationsService.updateSet(
-          database: project.database,
-          setId: setId,
-          name: const Value("Gone"),
-        );
+        await projectsManager.locationsService
+            .removeSceneFromSet(
+              database: project.database,
+              sceneId: (mode.state.sequences.first as OcptSceneShotSequence).sceneId,
+              setId: setId,
+            )
+            .okOrFail;
+        await projectsManager.locationsService
+            .updateSet(database: project.database, setId: setId, name: const Value("Gone"))
+            .okOrFail;
       }
     });
 
