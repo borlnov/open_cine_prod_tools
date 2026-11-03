@@ -19,7 +19,8 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_sync_merge_failure.dart';
 import 'package:open_cine_prod_tools/types/ocpt_merge_status.dart';
 
 /// Thrown inside [OcptMergeService.applyChangeset]'s transaction when the changeset names a table
-/// or a column this replica does not know, so the transaction rolls back what the changeset had
+/// or a column this replica does not know, or when the merge of a screenplay's text fails, so the
+/// transaction rolls back what the changeset had
 /// already applied; caught by the same method, which answers it as a status. It never leaves the
 /// service.
 class _OcptMergeRefusal implements Exception {
@@ -32,6 +33,15 @@ class _OcptMergeRefusal implements Exception {
   /// Class constructor
   _OcptMergeRefusal({required this.status, required String message})
     : failure = OcptSyncMergeFailure(error: StateError(message), stackTrace: StackTrace.current);
+
+  /// Build the refusal of a screenplay text merge that failed: [failure] is what it answered, and
+  /// the type of what failed is what the sync session quotes when it goes offline.
+  _OcptMergeRefusal.databaseFailure(StatusWithExtraInfo<MixinResultStatus> merged)
+    : status = OcptMergeStatus.databaseError,
+      failure = OcptSyncMergeFailure(
+        error: merged.extraInfo ?? StateError("The merge of a screenplay's text failed"),
+        stackTrace: StackTrace.current,
+      );
 }
 
 /// Apply an incoming [OcptChangeset] to a project's own file, per column: the **inbound** half of
@@ -236,11 +246,17 @@ class OcptMergeService extends AbsOcptService {
       return null;
     }
 
-    return mergeService!.mergeIncomingFountainText(
+    final merged = await mergeService!.mergeIncomingFountainText(
       fileDatabase: database,
       screenplayId: rowId,
       incomingText: fountainTextStamp.value! as String,
     );
+    if (merged.isError) {
+      // Thrown for the transaction to roll back what the changeset had already applied.
+      throw _OcptMergeRefusal.databaseFailure(merged);
+    }
+
+    return merged.value;
   }
 
   /// Overlay [winners] onto [table]'s row [rowId] in [database] and advance `row_field_versions`

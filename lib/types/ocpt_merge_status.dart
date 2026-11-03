@@ -17,7 +17,11 @@ enum OcptMergeStatus with MixinResultStatus {
   unknownTable(isSuccess: false, canBeRetried: false),
 
   /// A stamp names a column that no column of its table maps to.
-  unknownColumn(isSuccess: false, canBeRetried: false);
+  unknownColumn(isSuccess: false, canBeRetried: false),
+
+  /// The merge of a screenplay's text failed on the database: nothing of the changeset is applied.
+  /// The `extraInfo` is an `OcptSyncMergeFailure` carrying the type of what failed.
+  databaseError(isSuccess: false, canBeRetried: true);
 
   /// {@macro act_dart_result.MixinResultStatus.isSuccess}
   @override

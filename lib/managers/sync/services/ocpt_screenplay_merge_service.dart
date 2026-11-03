@@ -3,12 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_three_way_merge.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
 /// The three-way line merge for a screenplay's `fountainText` — the one column `OcptMergeService`
@@ -54,25 +56,21 @@ class OcptScreenplayMergeService extends AbsOcptService {
   });
 
   /// Merge [incomingText] into the screenplay [screenplayId]'s current text on [fileDatabase],
-  /// writing a clean result back and returning `null`, or leaving the text untouched and returning
-  /// the [OcptScreenplayMergeConflict] to record when the two sides overlap. See this class's own
-  /// doc comment for the full algorithm.
-  Future<OcptScreenplayMergeConflict?> mergeIncomingFountainText({
+  /// writing a clean result back and answering `ok` with no value, or leaving the text untouched
+  /// and answering the [OcptScreenplayMergeConflict] to record when the two sides overlap. See this
+  /// class's own doc comment for the full algorithm.
+  ///
+  /// A text that cannot be read, a base that cannot be found out, or a write that fails is
+  /// answered as a failure, with the type of what failed as its `extraInfo`.
+  @useResult
+  Future<OcptDatabaseResult<OcptScreenplayMergeConflict>> mergeIncomingFountainText({
     required OcptProjectDatabase fileDatabase,
     required String screenplayId,
     required String incomingText,
-  }) async {
-    final localRead = await screenplayService.loadScreenplayText(
-      database: fileDatabase,
-      screenplayId: screenplayId,
-    );
-    if (localRead.isError) {
-      // Raises as the database used to, for the sync session to go offline on and for the merge's
-      // transaction to roll back: this goes when this service answers a result of its own.
-      throw StateError("The local text of the screenplay could not be read for its merge");
-    }
-
-    final localText = localRead.value!;
+  }) => guardResult("mergeIncomingFountainText", () async {
+    final localText = (await screenplayService
+        .loadScreenplayText(database: fileDatabase, screenplayId: screenplayId)
+        .valueOrAbort())!;
 
     if (localText == incomingText) {
       // Nothing to merge: either a replay of a changeset already reflected here, or this replica
@@ -116,7 +114,7 @@ class OcptScreenplayMergeService extends AbsOcptService {
           incomingText: incomingText,
         );
     }
-  }
+  });
 
   /// Write [mergedText] back as the screenplay [screenplayId]'s new text, through
   /// `OcptScreenplayService.reconcileScreenplayText`, seeding and flushing its own

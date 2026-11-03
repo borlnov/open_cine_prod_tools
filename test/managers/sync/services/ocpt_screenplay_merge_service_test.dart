@@ -5,6 +5,7 @@
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
@@ -22,7 +23,9 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:uuid/uuid.dart';
 import '../../../ocpt_result_expectations.dart';
 
@@ -161,11 +164,13 @@ void main() {
   test('an incoming text identical to the local one needs no merge at all', () async {
     await setStoredTextDirectly('INT. HOUSE - DAY\n\nAction.');
 
-    final conflict = await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText: 'INT. HOUSE - DAY\n\nAction.',
-    );
+    final conflict = await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'INT. HOUSE - DAY\n\nAction.',
+        )
+        .maybeValueOrFail;
 
     expect(conflict, isNull);
     expect(await storedText(), 'INT. HOUSE - DAY\n\nAction.');
@@ -174,11 +179,13 @@ void main() {
   test('no common snapshot at all is surfaced as a full-text conflict, not a crash', () async {
     await setStoredTextDirectly('local text');
 
-    final conflict = await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText: 'incoming text',
-    );
+    final conflict = await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'incoming text',
+        )
+        .maybeValueOrFail;
 
     expect(
       conflict,
@@ -209,12 +216,14 @@ void main() {
         )
         .okOrFail;
 
-    final conflict = await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText:
-          'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, incoming.',
-    );
+    final conflict = await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText:
+              'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, incoming.',
+        )
+        .maybeValueOrFail;
 
     expect(conflict, isNull);
     expect(
@@ -242,11 +251,13 @@ void main() {
         )
         .okOrFail;
 
-    await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText: 'a\nb\nc\nd-incoming\ne',
-    );
+    await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'a\nb\nc\nd-incoming\ne',
+        )
+        .maybeValueOrFail;
 
     final mergeSnapshots = await (database.select(
       database.ocptScreenplaySnapshotsTable,
@@ -267,11 +278,13 @@ void main() {
         )
         .okOrFail;
 
-    final conflict = await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText: 'a\nb-incoming\nc',
-    );
+    final conflict = await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'a\nb-incoming\nc',
+        )
+        .maybeValueOrFail;
 
     expect(
       conflict,
@@ -303,28 +316,30 @@ void main() {
 
     await setStoredTextDirectly('line1-edited\nline2\nline3');
 
-    final conflict = await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText: 'line1\nline2\nline3-edited',
-    );
+    final conflict = await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'line1\nline2\nline3-edited',
+        )
+        .maybeValueOrFail;
 
     expect(conflict, isNull);
     expect(await storedText(), 'line1-edited\nline2\nline3-edited');
   });
 
-  test('a local text that cannot be read raises, for the sync session to go offline on', () async {
+  test('a local text that cannot be read is answered as a failure of the database', () async {
     await setStoredTextDirectly('local text');
     await database.customStatement('ALTER TABLE screenplays RENAME TO screenplays_gone');
 
-    await expectLater(
-      mergeService.mergeIncomingFountainText(
-        fileDatabase: database,
-        screenplayId: screenplayId,
-        incomingText: 'incoming text',
-      ),
-      throwsStateError,
+    final merged = await mergeService.mergeIncomingFountainText(
+      fileDatabase: database,
+      screenplayId: screenplayId,
+      incomingText: 'incoming text',
     );
+
+    expect(merged.status, OcptDatabaseStatus.databaseError);
+    expect(merged.extraInfo, SqliteException);
   });
 
   test('a merge whose local text cannot be read rolls back the transaction it runs in', () async {
@@ -336,15 +351,40 @@ void main() {
     await expectLater(
       database.transaction(() async {
         await database.customStatement('DELETE FROM screenplay_snapshots');
-        await mergeService.mergeIncomingFountainText(
-          fileDatabase: database,
-          screenplayId: screenplayId,
-          incomingText: 'incoming text',
-        );
+        await mergeService
+            .mergeIncomingFountainText(
+              fileDatabase: database,
+              screenplayId: screenplayId,
+              incomingText: 'incoming text',
+            )
+            .valueOrAbort();
       }),
-      throwsStateError,
+      throwsA(isA<OcptDatabaseAbort>()),
     );
 
     expect((await database.select(database.ocptScreenplaySnapshotsTable).get()).length, snapshots);
+  });
+
+  test('a write that the database refuses is answered, and leaves the text as it was', () async {
+    await setStoredTextDirectly('line1\nline2\nline3');
+    await insertSnapshotDirectly(
+      fountainText: 'line1\nline2\nline3',
+      createdAt: DateTime.utc(2026, 6),
+    );
+    await setStoredTextDirectly('line1-edited\nline2\nline3');
+    await database.customStatement(
+      "CREATE TRIGGER refuse_text BEFORE UPDATE ON screenplays "
+      "BEGIN SELECT RAISE(ABORT, 'refused'); END",
+    );
+
+    final merged = await mergeService.mergeIncomingFountainText(
+      fileDatabase: database,
+      screenplayId: screenplayId,
+      incomingText: 'line1\nline2\nline3-edited',
+    );
+
+    expect(merged.status, OcptDatabaseStatus.databaseError);
+    expect(merged.extraInfo, SqliteException);
+    expect(await storedText(), 'line1-edited\nline2\nline3');
   });
 }

@@ -347,12 +347,14 @@ void main() {
         current: current,
         next: current.copyWith(name: name),
       );
-      await service.pushLocalEdits(
-        database: online,
-        storage: storage,
-        relayId: relayId,
-        deviceId: 'device-online',
-      );
+      await service
+          .pushLocalEdits(
+            database: online,
+            storage: storage,
+            relayId: relayId,
+            deviceId: 'device-online',
+          )
+          .okOrFail;
     }
 
     expect((await storage.readSince(OcptSequenceNumber.zero)).value, hasLength(3));

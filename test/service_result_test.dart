@@ -14,7 +14,10 @@ import 'service_result_rules.dart';
 const _servicesFolder = "lib/managers/projects/services";
 
 /// The services outside that folder that answer through the same boundary.
-const _extraServiceFiles = ["lib/managers/sync/services/ocpt_merge_service.dart"];
+const _extraServiceFiles = [
+  "lib/managers/sync/services/ocpt_merge_service.dart",
+  "lib/managers/sync/services/ocpt_screenplay_merge_service.dart",
+];
 
 /// The one file that may build an `OcptDatabaseAbort`, which is where the helpers that raise it
 /// live.

@@ -279,12 +279,14 @@ void main() {
           .createLocation(database: replicaA, name: 'Office')
           .valueOrFail);
 
-      await deviceA.changesetService.pushLocalEdits(
-        database: replicaA,
-        storage: storage,
-        relayId: relayId,
-        deviceId: 'device-a',
-      );
+      await deviceA.changesetService
+          .pushLocalEdits(
+            database: replicaA,
+            storage: storage,
+            relayId: relayId,
+            deviceId: 'device-a',
+          )
+          .okOrFail;
       await deviceB.changesetService
           .pullAndApply(database: replicaB, storage: storage, relayId: relayId)
           .okOrFail;
@@ -364,12 +366,14 @@ void main() {
       expect(await liveLocationNames(replicaA), ['Office', 'Studio']);
 
       // One push carries every stamp the restore (and everything since the baseline sync) wrote.
-      await deviceA.changesetService.pushLocalEdits(
-        database: replicaA,
-        storage: storage,
-        relayId: relayId,
-        deviceId: 'device-a',
-      );
+      await deviceA.changesetService
+          .pushLocalEdits(
+            database: replicaA,
+            storage: storage,
+            relayId: relayId,
+            deviceId: 'device-a',
+          )
+          .okOrFail;
 
       // Bring B online: a single pullAndApply catches up on everything appended since the
       // baseline, in one call.
