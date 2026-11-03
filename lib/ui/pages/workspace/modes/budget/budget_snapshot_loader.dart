@@ -99,10 +99,10 @@ class OcptBudgetSnapshotLoader {
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   ///
   /// Answers the failure of the schedule, the accounts and their lines, the cash journal's entries,
-  /// commitments and receipts, the resources, the mileage rates, the defrayals, the takings and the
-  /// shares reads, in place of the whole read: they are the only reads that answer a result so far.
-  /// The reads of the roles, the people, the elements, the locations and the project settings still
-  /// raise when the database fails, and the caller catches what they raise. This sentence changes
+  /// commitments and receipts, the resources, the mileage rates, the defrayals, the takings, the
+  /// shares and the elements reads, in place of the whole read: they are the only reads that answer
+  /// a result so far. The reads of the roles, the people, the locations and the project settings
+  /// still raise when the database fails, and the caller catches what they raise. This sentence changes
   /// as those services convert, each read then answering its failure in the same way.
   @useResult
   Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
@@ -164,7 +164,12 @@ class OcptBudgetSnapshotLoader {
     final scheduleSnapshot = scheduleRead.value!;
     final roles = await _roleIndexService.loadRoles(database: database);
     final people = await _peopleService.loadPeople(database: database);
-    final elements = await _elementsService.loadElements(database: database);
+    final elementsRead = await _elementsService.loadElements(database: database);
+    if (elementsRead.isError) {
+      return OcptDatabaseResult(status: elementsRead.status, extraInfo: elementsRead.extraInfo);
+    }
+
+    final elements = elementsRead.value!;
     final locations = await _locationsService.loadLocations(database: database);
     final mileageRatesRead = await _budgetFinancingService.loadMileageRates(database: database);
     if (mileageRatesRead.isError) {

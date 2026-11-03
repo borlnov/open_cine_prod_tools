@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// A router manager whose [pop] does nothing: these bloc tests don't build a real GoRouter for it
 /// to operate on.
@@ -101,12 +102,14 @@ void main() {
       database: project.database,
       name: "",
     ))!;
-    elementId = (await projectsManager.elementsService.createElement(
-      database: project.database,
-      name: "",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    ))!;
+    elementId = (await projectsManager.elementsService
+        .createElement(
+          database: project.database,
+          name: "",
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .valueOrFail);
 
     modeBloc = OcptResourcesBloc(
       projectsManager: projectsManager,
@@ -231,7 +234,9 @@ void main() {
         isEmpty,
       );
       expect(
-        (await projectsManager.elementsService.loadElements(database: database)).single.notes,
+        (await projectsManager.elementsService.loadElements(database: database).valueOrFail)
+            .single
+            .notes,
         isEmpty,
       );
     },
@@ -265,7 +270,9 @@ void main() {
         "Lyon",
       );
       expect(
-        (await projectsManager.elementsService.loadElements(database: database)).single.notes,
+        (await projectsManager.elementsService.loadElements(database: database).valueOrFail)
+            .single
+            .notes,
         isEmpty,
       );
     },
@@ -301,7 +308,9 @@ void main() {
         "Lyon",
       );
       expect(
-        (await projectsManager.elementsService.loadElements(database: database)).single.notes,
+        (await projectsManager.elementsService.loadElements(database: database).valueOrFail)
+            .single
+            .notes,
         "Fragile",
       );
     },

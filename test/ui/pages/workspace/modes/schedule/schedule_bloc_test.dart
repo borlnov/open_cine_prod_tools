@@ -151,13 +151,14 @@ void main() {
   group("loading the schedule", () {
     test("reads the project's whole elements catalogue into the state", () async {
       final project = projectsManager.currentProject!;
-      final elementId = await projectsManager.elementsService.createElement(
-        database: project.database,
-        name: "Umbrella",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      );
-      expect(elementId, isNotNull);
+      final elementId = await projectsManager.elementsService
+          .createElement(
+            database: project.database,
+            name: "Umbrella",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail;
 
       final bloc = buildBloc();
       final state = await waitForState(bloc, (state) => !state.isLoading);

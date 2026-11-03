@@ -4,17 +4,17 @@
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
@@ -53,12 +53,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 /// emptying what it holds ([onModeStateChanged]).
 class OcptResourcesElementsBloc
     extends AbsOcptViewBloc<OcptResourcesElementsState, OcptResourcesState, OcptResourcesBloc> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "resources_elements_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
@@ -79,8 +73,7 @@ class OcptResourcesElementsBloc
     OcptElementsService? elementsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
@@ -169,21 +162,12 @@ class OcptResourcesElementsBloc
       return OcptPendingWritesStatus.ok;
     }
 
-    var isWritten = false;
-    try {
-      await _writeAllPendingElementFields(database: project.database, pending: pending);
-      isWritten = true;
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = await _writeAllPendingElementFields(
+      database: project.database,
+      pending: pending,
+    );
+    if (written.isError) {
       await _loseEdits(emitter);
-    }
-
-    if (!isWritten) {
       return OcptPendingWritesStatus.ok;
     }
 
@@ -238,19 +222,10 @@ class OcptResourcesElementsBloc
       return;
     }
 
-    try {
-      await flushEditsWithoutStateUntilConverted(
-        pending,
-        (edits) => _writeAllPendingElementFields(database: project.database, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
+    final _ = await flushEditsWithoutState(
+      pending,
+      (edits) => _writeAllPendingElementFields(database: project.database, pending: edits),
+    );
   }
 
   /// Create a new, blank element of `event.category` at the end of the catalogue, read the
@@ -274,30 +249,26 @@ class OcptResourcesElementsBloc
       return;
     }
 
-    try {
-      final elementId = await _elementsService.createElement(
-        database: project.database,
-        name: "",
-        category: event.category,
-        sourceKind: OcptElementSourceKind.owned,
-      );
-      // The write was refused (a version is being previewed read-only); the shell already
-      // withholds the button that dispatches this event, so this is only ever a race.
-      if (elementId != null) {
-        if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-          await addToModeAndWait(
-            OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.elements, recordId: elementId),
-          );
-        }
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create an element in project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final created = await _elementsService.createElement(
+      database: project.database,
+      name: "",
+      category: event.category,
+      sourceKind: OcptElementSourceKind.owned,
+    );
+    if (created.isError) {
       addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    // The write was refused (a version is being previewed read-only); the shell already
+    // withholds the button that dispatches this event, so this is only ever a race.
+    final elementId = created.value;
+    if (elementId != null) {
+      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+        await addToModeAndWait(
+          OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.elements, recordId: elementId),
+        );
+      }
     }
   }
 
@@ -316,29 +287,24 @@ class OcptResourcesElementsBloc
       cancelDebounce();
     }
 
-    try {
-      await _elementsService.deleteElement(database: project.database, elementId: event.elementId);
-      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        emitter(
-          state.copyWithElementDeleted(
-            pendingElementFieldEdits: _pendingWithoutElement(event.elementId),
-          ),
-        );
-        await addToModeAndWait(
-          OcptResourcesRecordDroppedEvent(
-            tab: OcptResourcesTab.elements,
-            recordId: event.elementId,
-          ),
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete element ${event.elementId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final deleted = await _elementsService.deleteElement(
+      database: project.database,
+      elementId: event.elementId,
+    );
+    if (deleted.isError) {
       addToMode(const OcptResourcesWriteFailedEvent());
+      return;
+    }
+
+    if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+      emitter(
+        state.copyWithElementDeleted(
+          pendingElementFieldEdits: _pendingWithoutElement(event.elementId),
+        ),
+      );
+      await addToModeAndWait(
+        OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.elements, recordId: event.elementId),
+      );
     }
   }
 
@@ -382,29 +348,28 @@ class OcptResourcesElementsBloc
   /// Write a discrete change to the elements catalogue through [action] and have the mode read the
   /// catalogue again, so every derived aggregate (the roles an element concerns, the status bar's
   /// counts) reflects what the database now says. A no-op while no project is open; a failure
-  /// raises the mode's write error.
+  /// [action] answers raises the mode's write error and reads nothing.
   Future<void> _writeCatalogueChange({
-    required String logContext,
-    required Future<void> Function(OcptOpenProjectModel project) action,
+    required Future<OcptDatabaseOutcome> Function(OcptOpenProjectModel project) action,
   }) async {
     final project = _projectsManager.currentProject;
     if (project == null) {
       return;
     }
 
-    try {
-      await action(project);
-      await modeBloc.reload({OcptResourcesReloadScope.snapshot});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to $logContext of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = await action(project);
+    if (written.isError) {
       addToMode(const OcptResourcesWriteFailedEvent());
+      return;
     }
+
+    await modeBloc.reload({OcptResourcesReloadScope.snapshot});
   }
+
+  /// Get what a write that answered [result] answers once it is read as an outcome.
+  @useResult
+  OcptDatabaseOutcome _outcomeOf(OcptDatabaseResult<Object> result) =>
+      OcptDatabaseOutcome(status: result.status, extraInfo: result.extraInfo);
 
   /// Show the native "open" dialog and return the path of the file picked, or null when the user
   /// cancelled it, when it failed, or when the platform gave a file with no path at all.
@@ -440,7 +405,6 @@ class OcptResourcesElementsBloc
     Emitter<OcptResourcesElementsState> emitter,
   ) async {
     await _writeCatalogueChange(
-      logContext: "change the category of element ${event.elementId}",
       action: (project) => _elementsService.updateElement(
         database: project.database,
         elementId: event.elementId,
@@ -454,7 +418,6 @@ class OcptResourcesElementsBloc
     OcptResourcesElementSourceKindChangedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the provenance of element ${event.elementId}",
     action: (project) => _elementsService.updateElement(
       database: project.database,
       elementId: event.elementId,
@@ -467,7 +430,6 @@ class OcptResourcesElementsBloc
     OcptResourcesElementOwnerChangedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the owner of element ${event.elementId}",
     action: (project) => _elementsService.updateElement(
       database: project.database,
       elementId: event.elementId,
@@ -480,7 +442,6 @@ class OcptResourcesElementsBloc
     OcptResourcesElementBringerChangedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change who brings element ${event.elementId}",
     action: (project) => _elementsService.updateElement(
       database: project.database,
       elementId: event.elementId,
@@ -493,24 +454,19 @@ class OcptResourcesElementsBloc
     OcptResourcesElementTrackingFlagChangedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "change the ${event.flag.name} flag of element ${event.elementId}",
-    action: (project) => switch (event.flag) {
-      OcptElementTrackingFlag.secured => _elementsService.updateElement(
-        database: project.database,
-        elementId: event.elementId,
-        isSecured: Value(event.value),
-      ),
-      OcptElementTrackingFlag.readyForShoot => _elementsService.updateElement(
-        database: project.database,
-        elementId: event.elementId,
-        isReadyForShoot: Value(event.value),
-      ),
-      OcptElementTrackingFlag.returned => _elementsService.updateElement(
-        database: project.database,
-        elementId: event.elementId,
-        isReturned: Value(event.value),
-      ),
-    },
+    action: (project) => _elementsService.updateElement(
+      database: project.database,
+      elementId: event.elementId,
+      isSecured: event.flag == OcptElementTrackingFlag.secured
+          ? Value(event.value)
+          : const Value.absent(),
+      isReadyForShoot: event.flag == OcptElementTrackingFlag.readyForShoot
+          ? Value(event.value)
+          : const Value.absent(),
+      isReturned: event.flag == OcptElementTrackingFlag.returned
+          ? Value(event.value)
+          : const Value.absent(),
+    ),
   );
 
   /// Say element `event.elementId` is needed in scene `event.sceneId`, written immediately.
@@ -518,14 +474,13 @@ class OcptResourcesElementsBloc
     OcptResourcesSceneAssignedToElementEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "assign scene ${event.sceneId} to element ${event.elementId}",
-    action: (project) async {
+    action: (project) async => _outcomeOf(
       await _elementsService.addSceneElement(
         database: project.database,
         sceneId: event.sceneId,
         elementId: event.elementId,
-      );
-    },
+      ),
+    ),
   );
 
   /// Update the quantity and the notes of the scene ↔ element link `event.id`, written
@@ -534,7 +489,6 @@ class OcptResourcesElementsBloc
     OcptResourcesSceneElementUpdatedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "update the scene ↔ element link ${event.id}",
     action: (project) => _elementsService.updateSceneElement(
       database: project.database,
       id: event.id,
@@ -548,7 +502,6 @@ class OcptResourcesElementsBloc
     OcptResourcesSceneElementRemovedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "remove the scene ↔ element link ${event.id}",
     action: (project) =>
         _elementsService.removeSceneElement(database: project.database, id: event.id),
   );
@@ -558,14 +511,13 @@ class OcptResourcesElementsBloc
     OcptResourcesElementLinkedToRoleEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "link element ${event.elementId} to role ${event.roleId}",
-    action: (project) async {
+    action: (project) async => _outcomeOf(
       await _elementsService.addRoleElement(
         database: project.database,
         roleId: event.roleId,
         elementId: event.elementId,
-      );
-    },
+      ),
+    ),
   );
 
   /// Update the notes of the role ↔ element link `event.id`, written immediately.
@@ -573,7 +525,6 @@ class OcptResourcesElementsBloc
     OcptResourcesRoleElementUpdatedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "update the role ↔ element link ${event.id}",
     action: (project) => _elementsService.updateRoleElement(
       database: project.database,
       id: event.id,
@@ -586,7 +537,6 @@ class OcptResourcesElementsBloc
     OcptResourcesRoleElementRemovedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "remove the role ↔ element link ${event.id}",
     action: (project) =>
         _elementsService.removeRoleElement(database: project.database, id: event.id),
   );
@@ -606,14 +556,13 @@ class OcptResourcesElementsBloc
     }
 
     await _writeCatalogueChange(
-      logContext: "reference the photo of element ${event.elementId}",
-      action: (project) async {
+      action: (project) async => _outcomeOf(
         await _elementsService.setElementPhoto(
           database: project.database,
           elementId: event.elementId,
           path: path,
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -622,25 +571,33 @@ class OcptResourcesElementsBloc
     OcptResourcesElementPhotoClearedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
   ) => _writeCatalogueChange(
-    logContext: "drop the photo of element ${event.elementId}",
     action: (project) =>
         _elementsService.clearElementPhoto(database: project.database, elementId: event.elementId),
   );
 
   /// Write every entry of [pending] through [_writeElementField].
-  Future<void> _writeAllPendingElementFields({
+  ///
+  /// Stops at the first write that fails and answers its failure; the entries after it are not
+  /// written.
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingElementFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptElementField), String> pending,
   }) async {
     for (final entry in pending.entries) {
       final (elementId, field) = entry.key;
-      await _writeElementField(
+      final written = await _writeElementField(
         database: database,
         elementId: elementId,
         field: field,
         rawValue: entry.value,
       );
+      if (written.isError) {
+        return written;
+      }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Write a single element field edit through `OcptElementsService.updateElement`, translating
@@ -651,7 +608,8 @@ class OcptResourcesElementsBloc
   /// written as null rather than refused, so a `gratuit` costs nothing and a cleared field clears
   /// the price. Saying so is the sheet's job, not this one's — the same trade the two coordinate
   /// fields of a location make.
-  Future<void> _writeElementField({
+  @useResult
+  Future<OcptDatabaseOutcome> _writeElementField({
     required OcptProjectDatabase database,
     required String elementId,
     required OcptElementField field,
@@ -659,49 +617,49 @@ class OcptResourcesElementsBloc
   }) async {
     switch (field) {
       case OcptElementField.name:
-        await _elementsService.updateElement(
+        return _elementsService.updateElement(
           database: database,
           elementId: elementId,
           name: Value(rawValue),
         );
       case OcptElementField.subCategory:
-        await _elementsService.updateElement(
+        return _elementsService.updateElement(
           database: database,
           elementId: elementId,
           subCategory: Value(rawValue),
         );
       case OcptElementField.quantity:
-        await _elementsService.updateElement(
+        return _elementsService.updateElement(
           database: database,
           elementId: elementId,
           quantity: Value(rawValue),
         );
       case OcptElementField.ownerNotes:
-        await _elementsService.updateElement(
+        return _elementsService.updateElement(
           database: database,
           elementId: elementId,
           ownerNotes: Value(rawValue),
         );
       case OcptElementField.storageNotes:
-        await _elementsService.updateElement(
+        return _elementsService.updateElement(
           database: database,
           elementId: elementId,
           storageNotes: Value(rawValue),
         );
       case OcptElementField.cost:
-        await _elementsService.updateElement(
+        return _elementsService.updateElement(
           database: database,
           elementId: elementId,
           cost: Value(ocptCostCentsOf(rawValue)),
         );
       case OcptElementField.purposeNotes:
-        await _elementsService.updateElement(
+        return _elementsService.updateElement(
           database: database,
           elementId: elementId,
           purposeNotes: Value(rawValue),
         );
       case OcptElementField.notes:
-        await _elementsService.updateElement(
+        return _elementsService.updateElement(
           database: database,
           elementId: elementId,
           notes: Value(rawValue),

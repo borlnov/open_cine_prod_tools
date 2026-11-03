@@ -10,6 +10,7 @@ import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -29,6 +30,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
@@ -266,18 +268,28 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     var isReloaded = false;
     try {
       OcptBreakdownSnapshot? snapshot;
+      var isRead = true;
 
       // A switch statement over an enum must name every value: a scope added to the enum does not
       // compile until it is read here.
       for (final scope in scopes) {
         switch (scope) {
           case OcptBreakdownReloadScope.snapshot:
-            snapshot = await _loadSnapshot(project);
+            final read = await _loadSnapshot(project);
+            isRead = !read.isError;
+            snapshot = read.value;
+        }
+
+        if (!isRead) {
+          break;
         }
       }
 
-      emitter(state.copyWithReloadedSnapshot(snapshot: snapshot));
-      isReloaded = true;
+      if (isRead) {
+        emitter(state.copyWithReloadedSnapshot(snapshot: snapshot));
+      }
+
+      isReloaded = isRead;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read again the $scopes of project "
@@ -293,10 +305,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<bool> reloadFromProjectDatabase(Emitter<OcptBreakdownState> emitter) async {
-    await _load(emitter);
-    return true;
-  }
+  Future<bool> reloadFromProjectDatabase(Emitter<OcptBreakdownState> emitter) => _load(emitter);
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   ///
@@ -306,7 +315,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   @override
   Future<void> initAsyncBloc({required Emitter<OcptBreakdownState> emit}) async {
     await super.initAsyncBloc(emit: emit);
-    await _load(emit);
+    final _ = await _load(emit);
   }
 
   /// Persist the `Inspector` tab as the last right dock tab ahead of a selection of a target that
@@ -338,7 +347,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// for, and any element field edit or scene notes edit still sitting in the debounce (the caller
   /// flushes it through [flushPendingProjectWrites] first whenever losing it here would matter; a
   /// bare page-format reload never reaches this method at all, see [_onProjectSettingsChanged]).
-  Future<void> _load(Emitter<OcptBreakdownState> emitter) async {
+  ///
+  /// Answers false when the breakdown could not be read, in which case nothing is emitted.
+  @useResult
+  Future<bool> _load(Emitter<OcptBreakdownState> emitter) async {
     final leftDockFraction =
         await _propertiesManager.breakdownLeftDockFraction.load() ??
         OcptWorkspaceDock.leftDefaultFraction;
@@ -358,16 +370,21 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           lastRightDockTab: lastRightDockTab,
         ),
       );
-      return;
+      return true;
     }
 
     // Queued with the views' reloads: a read made here but emitted after a newer one would put
     // older data over it.
-    await runSerially(() async {
+    return runSerially(() async {
       final previewedVersion = project.previewedVersion;
       final screenplayText = await _loadScreenplayText(project);
       final pageSetup = await _loadPageSetup(project);
-      final snapshot = await _loadSnapshot(project);
+      final snapshotRead = await _loadSnapshot(project);
+      if (snapshotRead.isError) {
+        return false;
+      }
+
+      final snapshot = snapshotRead.value!;
 
       emitter(
         state.copyToLoaded(
@@ -381,6 +398,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           lastRightDockTab: lastRightDockTab,
         ),
       );
+      return true;
     });
   }
 
@@ -412,7 +430,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// episodes through [_projectsManager]'s own `screenplayService` (never through
   /// [_breakdownService], which `OcptScreenplayService` already depends on) and resolves the
   /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
-  Future<OcptBreakdownSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
+  ///
+  /// Answers the failure of the elements read, in place of the snapshot: the scenes, the tags, the
+  /// roles, the locations and the people reads still raise when the database fails.
+  @useResult
+  Future<OcptDatabaseResult<OcptBreakdownSnapshot>> _loadSnapshot(
+    OcptOpenProjectModel project,
+  ) async {
     final database = project.database;
     final screenplayId = _screenplayIdOf(project);
 
@@ -428,20 +452,28 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       database: database,
       screenplayId: screenplayId,
     );
-    final elements = await _elementsService.loadElements(database: database);
+    final elementsRead = await _elementsService.loadElements(database: database);
+    if (elementsRead.isError) {
+      return OcptDatabaseResult(status: elementsRead.status, extraInfo: elementsRead.extraInfo);
+    }
+
+    final elements = elementsRead.value!;
     final roles = await _roleIndexService.loadRoles(database: database);
     final locations = await _locationsService.loadLocations(database: database);
     final people = await _peopleService.loadPeople(database: database);
 
-    return OcptBreakdownSnapshot.build(
-      screenplayId: screenplayId,
-      scenes: scenes,
-      tags: [for (final row in tagRows) OcptBreakdownTag.fromRow(row)],
-      elements: elements,
-      roles: roles,
-      sets: [for (final location in locations) ...location.sets],
-      locations: locations,
-      people: people,
+    return OcptDatabaseResult(
+      status: OcptDatabaseStatus.ok,
+      value: OcptBreakdownSnapshot.build(
+        screenplayId: screenplayId,
+        scenes: scenes,
+        tags: [for (final row in tagRows) OcptBreakdownTag.fromRow(row)],
+        elements: elements,
+        roles: roles,
+        sets: [for (final location in locations) ...location.sets],
+        locations: locations,
+        people: people,
+      ),
     );
   }
 

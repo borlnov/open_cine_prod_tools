@@ -213,17 +213,17 @@ void main() {
   test("props that cannot be read leave the sequence with none", () async {
     final database = projectsManager.currentProject!.database;
     final sequence = mode.state.selectedSequence! as OcptSceneShotSequence;
-    final elementId = (await projectsManager.elementsService.createElement(
-      database: database,
-      name: "Candles",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    ))!;
-    await projectsManager.elementsService.addSceneElement(
-      database: database,
-      sceneId: sequence.sceneId,
-      elementId: elementId,
-    );
+    final elementId = (await projectsManager.elementsService
+        .createElement(
+          database: database,
+          name: "Candles",
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .valueOrFail);
+    await projectsManager.elementsService
+        .addSceneElement(database: database, sceneId: sequence.sceneId, elementId: elementId)
+        .maybeValueOrFail;
     sets.add(
       OcptShotListFloorPlanPropsLoadRequestedEvent(sequenceId: mode.state.selectedSequenceId),
     );

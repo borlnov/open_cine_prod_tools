@@ -363,12 +363,14 @@ class OcptBreakdownService extends AbsOcptService {
     ({String elementId, String tagId})? created;
     try {
       created = await database.transaction(() async {
-        final elementId = await _elementsService.createElement(
-          database: database,
-          name: name,
-          category: category,
-          sourceKind: sourceKind,
-        );
+        final elementId = await _elementsService
+            .createElement(
+              database: database,
+              name: name,
+              category: category,
+              sourceKind: sourceKind,
+            )
+            .valueOrAbort();
         if (elementId == null) {
           // The preview guard tripped inside createElement: nothing was written, so there is
           // nothing to unwind.
@@ -802,22 +804,24 @@ class OcptBreakdownService extends AbsOcptService {
       stamps: stamps,
     );
 
-    switch (targetKind) {
-      case OcptBreakdownTargetKind.element:
-        await _elementsService.addSceneElement(
-          database: database,
-          sceneId: sceneId,
-          elementId: targetId,
-        );
-      case OcptBreakdownTargetKind.set:
-        await _locationsService.assignSceneToSet(
-          database: database,
-          sceneId: sceneId,
-          setId: targetId,
-        );
-      case OcptBreakdownTargetKind.role:
-      // There is no `scene_roles` table: the tag itself is the link.
-    }
+    // Run in a transaction of its own, a savepoint of the caller's: the failure of the link the
+    // element service answers ends the call, and unwinds the tag just written with it.
+    await database.transaction(() async {
+      switch (targetKind) {
+        case OcptBreakdownTargetKind.element:
+          await _elementsService
+              .addSceneElement(database: database, sceneId: sceneId, elementId: targetId)
+              .valueOrAbort();
+        case OcptBreakdownTargetKind.set:
+          await _locationsService.assignSceneToSet(
+            database: database,
+            sceneId: sceneId,
+            setId: targetId,
+          );
+        case OcptBreakdownTargetKind.role:
+        // There is no `scene_roles` table: the tag itself is the link.
+      }
+    });
 
     return id;
   }

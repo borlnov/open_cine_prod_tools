@@ -11,6 +11,7 @@ import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -23,6 +24,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_pending_edit_key.dart
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
@@ -312,39 +314,37 @@ class OcptShotListFloorPlanSetsBloc
       return;
     }
 
-    try {
-      final props = await _loadPropsOfSequence(project: project, sequenceId: event.sequenceId);
-      if (modeBloc.state.selectedSequenceId == event.sequenceId) {
-        emitter(state.copyWithSequenceProps(props: props));
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to read the props of sequence ${event.sequenceId} of "
-        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final propsRead = await _loadPropsOfSequence(project: project, sequenceId: event.sequenceId);
+    if (propsRead.isError) {
       // The props kept meanwhile belong to another sequence: none is better than a wrong one.
       emitter(state.copyWithSequencePropsCleared());
+      return;
+    }
+
+    if (modeBloc.state.selectedSequenceId == event.sequenceId) {
+      emitter(state.copyWithSequenceProps(props: propsRead.value!));
     }
   }
 
   /// Get [sequenceId]'s own breakdown props (`OcptElementsService.propsOfScene`), or an empty list
   /// while [sequenceId] is null or names the orphan group, which has no scene of its own to read —
   /// the floor plans palette's own `Sequence` group chips.
-  Future<List<OcptScenePropSummary>> _loadPropsOfSequence({
+  ///
+  /// Answers the failure of the read when the database could not be read.
+  @useResult
+  Future<OcptDatabaseResult<List<OcptScenePropSummary>>> _loadPropsOfSequence({
     required OcptOpenProjectModel project,
     required String? sequenceId,
   }) async {
     if (sequenceId == null) {
-      return const [];
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok, value: []);
     }
     for (final sequence in modeBloc.state.sequences) {
       if (sequence.id == sequenceId && sequence is OcptSceneShotSequence) {
         return _elementsService.propsOfScene(database: project.database, sceneId: sequence.sceneId);
       }
     }
-    return const [];
+    return const OcptDatabaseResult(status: OcptDatabaseStatus.ok, value: []);
   }
 
   /// Create a new Resources set named after the selected sequence's own heading place, in

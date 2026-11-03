@@ -394,17 +394,17 @@ void main() {
 
         // A scene_elements link and a scene_sets link on the deleted episode's scene, neither one
         // created through a tag — the plain links the resources mode itself writes.
-        final elementId = (await elementsService.createElement(
-          database: database,
-          name: "Lampe",
-          category: OcptElementCategory.prop,
-          sourceKind: OcptElementSourceKind.owned,
-        ))!;
-        final sceneElementId = (await elementsService.addSceneElement(
-          database: database,
-          sceneId: scene.id,
-          elementId: elementId,
-        ))!;
+        final elementId = (await elementsService
+            .createElement(
+              database: database,
+              name: "Lampe",
+              category: OcptElementCategory.prop,
+              sourceKind: OcptElementSourceKind.owned,
+            )
+            .valueOrFail);
+        final sceneElementId = (await elementsService
+            .addSceneElement(database: database, sceneId: scene.id, elementId: elementId)
+            .valueOrFail);
         final locationId = (await locationsService.createLocation(
           database: database,
           name: "La maison",

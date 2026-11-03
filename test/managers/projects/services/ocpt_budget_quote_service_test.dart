@@ -252,12 +252,14 @@ void main() {
     test(
       "createLine can be minted from an element, carrying its own elementId and unit price",
       () async {
-        final elementId = await elementsService.createElement(
-          database: database,
-          name: "Camera body",
-          category: OcptElementCategory.camera,
-          sourceKind: OcptElementSourceKind.owned,
-        );
+        final elementId = await elementsService
+            .createElement(
+              database: database,
+              name: "Camera body",
+              category: OcptElementCategory.camera,
+              sourceKind: OcptElementSourceKind.owned,
+            )
+            .maybeValueOrFail;
         expect(elementId, isNotNull);
 
         final lineId = await service
@@ -283,12 +285,14 @@ void main() {
     test(
       "createLine given no unit price at all defaults exactly as an ordinary line does",
       () async {
-        final elementId = await elementsService.createElement(
-          database: database,
-          name: "Dolly",
-          category: OcptElementCategory.specialEquipment,
-          sourceKind: OcptElementSourceKind.toBuy,
-        );
+        final elementId = await elementsService
+            .createElement(
+              database: database,
+              name: "Dolly",
+              category: OcptElementCategory.specialEquipment,
+              sourceKind: OcptElementSourceKind.toBuy,
+            )
+            .maybeValueOrFail;
         expect(elementId, isNotNull);
 
         // Mirrors an element whose own `cost` is null: the caller passes no `unitAmountCents` at

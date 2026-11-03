@@ -186,19 +186,23 @@ void main() {
         final expensesBloc = buildExpenses(bloc);
         final project = projectsManager.currentProject!;
 
-        final pricedElementId = await projectsManager.elementsService.createElement(
-          database: project.database,
-          name: "Camera body",
-          category: OcptElementCategory.camera,
-          sourceKind: OcptElementSourceKind.owned,
-        );
+        final pricedElementId = await projectsManager.elementsService
+            .createElement(
+              database: project.database,
+              name: "Camera body",
+              category: OcptElementCategory.camera,
+              sourceKind: OcptElementSourceKind.owned,
+            )
+            .maybeValueOrFail;
         expect(pricedElementId, isNotNull);
-        final unpricedElementId = await projectsManager.elementsService.createElement(
-          database: project.database,
-          name: "Dolly",
-          category: OcptElementCategory.specialEquipment,
-          sourceKind: OcptElementSourceKind.toBuy,
-        );
+        final unpricedElementId = await projectsManager.elementsService
+            .createElement(
+              database: project.database,
+              name: "Dolly",
+              category: OcptElementCategory.specialEquipment,
+              sourceKind: OcptElementSourceKind.toBuy,
+            )
+            .maybeValueOrFail;
         expect(unpricedElementId, isNotNull);
 
         final loaded = await waitForState(bloc, (state) => state.elements.length == 2);
@@ -223,18 +227,22 @@ void main() {
         final expensesBloc = buildExpenses(bloc);
         final project = projectsManager.currentProject!;
 
-        final elementId = await projectsManager.elementsService.createElement(
-          database: project.database,
-          name: "Camera body",
-          category: OcptElementCategory.camera,
-          sourceKind: OcptElementSourceKind.owned,
-        );
+        final elementId = await projectsManager.elementsService
+            .createElement(
+              database: project.database,
+              name: "Camera body",
+              category: OcptElementCategory.camera,
+              sourceKind: OcptElementSourceKind.owned,
+            )
+            .maybeValueOrFail;
         expect(elementId, isNotNull);
-        await projectsManager.elementsService.updateElement(
-          database: project.database,
-          elementId: elementId!,
-          cost: const drift.Value(5000),
-        );
+        await projectsManager.elementsService
+            .updateElement(
+              database: project.database,
+              elementId: elementId!,
+              cost: const drift.Value(5000),
+            )
+            .okOrFail;
 
         final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
         final accountId = loaded.accounts.first.id;
@@ -266,12 +274,14 @@ void main() {
         final expensesBloc = buildExpenses(bloc);
         final project = projectsManager.currentProject!;
 
-        final elementId = await projectsManager.elementsService.createElement(
-          database: project.database,
-          name: "Rostrum",
-          category: OcptElementCategory.specialEquipment,
-          sourceKind: OcptElementSourceKind.toBuy,
-        );
+        final elementId = await projectsManager.elementsService
+            .createElement(
+              database: project.database,
+              name: "Rostrum",
+              category: OcptElementCategory.specialEquipment,
+              sourceKind: OcptElementSourceKind.toBuy,
+            )
+            .maybeValueOrFail;
         expect(elementId, isNotNull);
 
         final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
@@ -323,12 +333,14 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc, fieldEditDebounce: const Duration(days: 1));
       final project = projectsManager.currentProject!;
-      final elementId = await projectsManager.elementsService.createElement(
-        database: project.database,
-        name: "Camera body",
-        category: OcptElementCategory.camera,
-        sourceKind: OcptElementSourceKind.owned,
-      );
+      final elementId = await projectsManager.elementsService
+          .createElement(
+            database: project.database,
+            name: "Camera body",
+            category: OcptElementCategory.camera,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .maybeValueOrFail;
       final loaded = await waitForState(bloc, (state) => state.elements.isNotEmpty);
       final accountId = loaded.accounts.first.id;
       final otherAccountId = loaded.accounts.last.id;

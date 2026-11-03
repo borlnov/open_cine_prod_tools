@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'ocpt_role_index_service_test_doubles.dart';
 
 /// An [OcptProjectDatabase] that counts how many transactions it opens, so a test can assert
@@ -543,17 +544,17 @@ Nobody is there anymore.
         name: "CLARA",
         kind: OcptRoleKind.extra,
       ))!;
-      final elementId = (await elementsService.createElement(
-        database: database,
-        name: "Manteau rouge",
-        category: OcptElementCategory.costume,
-        sourceKind: OcptElementSourceKind.owned,
-      ))!;
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: roleId,
-        elementId: elementId,
-      );
+      final elementId = (await elementsService
+          .createElement(
+            database: database,
+            name: "Manteau rouge",
+            category: OcptElementCategory.costume,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail);
+      await elementsService
+          .addRoleElement(database: database, roleId: roleId, elementId: elementId)
+          .maybeValueOrFail;
 
       await roleIndexService.deleteRole(database: database, roleId: roleId);
 
@@ -563,7 +564,7 @@ Nobody is there anymore.
 
       // …and the coat is still in the catalogue, which is the whole point: it outlives the
       // character who wore it.
-      final element = (await elementsService.loadElements(database: database)).single;
+      final element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.name, "Manteau rouge");
       expect(element.roleLinks, isEmpty);
     });

@@ -305,8 +305,8 @@ void main() {
     );
   });
 
-  group("when the cash journal cannot be read", () {
-    for (final table in ["budget_entries", "budget_commitments", "assets"]) {
+  group("when a table the budget is read from is gone", () {
+    for (final table in ["budget_entries", "budget_commitments", "assets", "elements"]) {
       /// Make [table] unreadable.
       Future<void> lose() => harness.projectsManager.currentProject!.database.customStatement(
         "ALTER TABLE $table RENAME TO ${table}_gone",

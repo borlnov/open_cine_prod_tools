@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 
+import 'ocpt_result_expectations.dart';
 import 'seed_demo_project_data.dart';
 
 /// Seeds the address book: the crew and the cast members, plus the script supervisor's
@@ -207,18 +208,17 @@ seedElements({
     OcptElementStatus status = OcptElementStatus.toFind,
     String notes = "",
   }) async {
-    final elementId = (await elementsService.createElement(
-      database: database,
-      name: name,
-      category: category,
-      sourceKind: sourceKind,
-    ))!;
-    await elementsService.updateElement(
-      database: database,
-      elementId: elementId,
-      status: Value(status),
-      notes: Value(notes),
-    );
+    final elementId = (await elementsService
+        .createElement(database: database, name: name, category: category, sourceKind: sourceKind)
+        .valueOrFail);
+    await elementsService
+        .updateElement(
+          database: database,
+          elementId: elementId,
+          status: Value(status),
+          notes: Value(notes),
+        )
+        .okOrFail;
     return elementId;
   }
 

@@ -313,7 +313,7 @@ class ResourcesScenarioHarness {
 
   /// Reads the elements catalogue back from the database.
   Future<List<OcptElement>> readElements() =>
-      projectsManager.elementsService.loadElements(database: database);
+      projectsManager.elementsService.loadElements(database: database).valueOrFail;
 
   /// Reads the first episode's scenes back from the database, in screenplay order.
   Future<List<OcptSceneRef>> readScenes() => projectsManager.locationsService.loadScenes(
@@ -370,12 +370,14 @@ class ResourcesScenarioHarness {
 
   /// Creates a prop called [name], returning the id.
   Future<String> seedElement(String name) async {
-    final id = await projectsManager.elementsService.createElement(
-      database: database,
-      name: name,
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    );
+    final id = await projectsManager.elementsService
+        .createElement(
+          database: database,
+          name: name,
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .maybeValueOrFail;
     return id!;
   }
 
@@ -392,21 +394,17 @@ class ResourcesScenarioHarness {
 
   /// Links element [elementId] to role [roleId], the way the role sheet's `Their things` card does.
   Future<void> seedRoleElement(String roleId, String elementId) async {
-    await projectsManager.elementsService.addRoleElement(
-      database: database,
-      roleId: roleId,
-      elementId: elementId,
-    );
+    await projectsManager.elementsService
+        .addRoleElement(database: database, roleId: roleId, elementId: elementId)
+        .maybeValueOrFail;
   }
 
   /// Links element [elementId] to the scene at [sceneIndex], returning the scene id.
   Future<String> seedSceneElement(String elementId, {int sceneIndex = 0}) async {
     final sceneId = (await readScenes())[sceneIndex].id;
-    await projectsManager.elementsService.addSceneElement(
-      database: database,
-      sceneId: sceneId,
-      elementId: elementId,
-    );
+    await projectsManager.elementsService
+        .addSceneElement(database: database, sceneId: sceneId, elementId: elementId)
+        .maybeValueOrFail;
     return sceneId;
   }
 

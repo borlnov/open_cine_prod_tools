@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of [OcptElementsService].
 void main() {
@@ -64,14 +65,14 @@ void main() {
         category: OcptElementCategory.prop,
         sourceKind: OcptElementSourceKind.owned,
       )
-      .then((id) => id!);
+      .valueOrFail;
 
   group("elements CRUD and ordering", () {
     test("createElement appends at the end and loadElements reads it back", () async {
       final firstId = await createElement("Valise");
       final secondId = await createElement("Lampe torche");
 
-      final elements = await elementsService.loadElements(database: database);
+      final elements = await elementsService.loadElements(database: database).valueOrFail;
       expect(elements.map((element) => element.id), [firstId, secondId]);
       expect(elements.map((element) => element.category), [
         OcptElementCategory.prop,
@@ -89,7 +90,7 @@ void main() {
             category: OcptElementCategory.vehicle,
             sourceKind: OcptElementSourceKind.borrowed,
           )
-          .then((id) => id!);
+          .valueOrFail;
 
       expect((await readElement(firstPropId)).code, "PRP-1");
       expect((await readElement(secondPropId)).code, "PRP-2");
@@ -101,11 +102,13 @@ void main() {
       final movedId = await createElement("Renault 4L");
       expect((await readElement(movedId)).code, "PRP-2");
 
-      await elementsService.updateElement(
-        database: database,
-        elementId: movedId,
-        category: const Value(OcptElementCategory.vehicle),
-      );
+      await elementsService
+          .updateElement(
+            database: database,
+            elementId: movedId,
+            category: const Value(OcptElementCategory.vehicle),
+          )
+          .okOrFail;
 
       expect((await readElement(movedId)).code, "VEH-1");
     });
@@ -114,12 +117,14 @@ void main() {
       await createElement("Valise");
       final elementId = await createElement("Lampe torche");
 
-      await elementsService.updateElement(
-        database: database,
-        elementId: elementId,
-        category: const Value(OcptElementCategory.prop),
-        name: const Value("Lampe frontale"),
-      );
+      await elementsService
+          .updateElement(
+            database: database,
+            elementId: elementId,
+            category: const Value(OcptElementCategory.prop),
+            name: const Value("Lampe frontale"),
+          )
+          .okOrFail;
 
       expect((await readElement(elementId)).code, "PRP-2");
     });
@@ -128,9 +133,13 @@ void main() {
       final firstId = await createElement("A");
       final secondId = await createElement("B");
 
-      await elementsService.reorderElement(database: database, elementId: secondId, newPosition: 0);
+      await elementsService
+          .reorderElement(database: database, elementId: secondId, newPosition: 0)
+          .okOrFail;
       final thirdId = await createElement("C");
-      await elementsService.reorderElement(database: database, elementId: thirdId, newPosition: 1);
+      await elementsService
+          .reorderElement(database: database, elementId: thirdId, newPosition: 1)
+          .okOrFail;
 
       final rows = await readElements();
       expect(rows.map((row) => row.id), [secondId, thirdId, firstId]);
@@ -139,12 +148,14 @@ void main() {
     test("updateElement only touches the fields it's given a Value for", () async {
       final id = await createElement("Valise");
 
-      await elementsService.updateElement(
-        database: database,
-        elementId: id,
-        quantity: const Value("1"),
-        isSecured: const Value(true),
-      );
+      await elementsService
+          .updateElement(
+            database: database,
+            elementId: id,
+            quantity: const Value("1"),
+            isSecured: const Value(true),
+          )
+          .okOrFail;
 
       final row = await readElement(id);
       expect(row.quantity, "1");
@@ -157,11 +168,13 @@ void main() {
       final id = await createElement("Valise");
       expect((await readElement(id)).status, OcptElementStatus.toFind);
 
-      await elementsService.updateElement(
-        database: database,
-        elementId: id,
-        status: const Value(OcptElementStatus.confirmed),
-      );
+      await elementsService
+          .updateElement(
+            database: database,
+            elementId: id,
+            status: const Value(OcptElementStatus.confirmed),
+          )
+          .okOrFail;
 
       expect((await readElement(id)).status, OcptElementStatus.confirmed);
     });
@@ -172,7 +185,9 @@ void main() {
       final thirdId = await createElement("C");
 
       final keysBefore = {for (final row in await readElements()) row.id: row.sortKey};
-      await elementsService.reorderElement(database: database, elementId: firstId, newPosition: 2);
+      await elementsService
+          .reorderElement(database: database, elementId: firstId, newPosition: 2)
+          .okOrFail;
       final keysAfter = {for (final row in await readElements()) row.id: row.sortKey};
 
       expect((await readElements()).map((row) => row.id), [secondId, thirdId, firstId]);
@@ -183,9 +198,9 @@ void main() {
       final firstId = await createElement("A");
       final secondId = await createElement("B");
 
-      await elementsService.deleteElement(database: database, elementId: firstId);
+      await elementsService.deleteElement(database: database, elementId: firstId).okOrFail;
 
-      final elements = await elementsService.loadElements(database: database);
+      final elements = await elementsService.loadElements(database: database).valueOrFail;
       expect(elements.map((element) => element.id), [secondId]);
 
       final tombstoned = await readElement(firstId);
@@ -195,57 +210,57 @@ void main() {
 
   group("referenced photo", () {
     test("setElementPhoto references the file and points the element at it", () async {
-      final id = (await elementsService.createElement(
-        database: database,
-        name: "Vélo rouge",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.toBuy,
-      ))!;
+      final id = (await elementsService
+          .createElement(
+            database: database,
+            name: "Vélo rouge",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.toBuy,
+          )
+          .valueOrFail);
 
-      await elementsService.setElementPhoto(
-        database: database,
-        elementId: id,
-        path: "/photos/velo.jpg",
-      );
+      await elementsService
+          .setElementPhoto(database: database, elementId: id, path: "/photos/velo.jpg")
+          .maybeValueOrFail;
 
-      final elements = await elementsService.loadElements(database: database);
+      final elements = await elementsService.loadElements(database: database).valueOrFail;
       expect(elements.single.photo?.path, "/photos/velo.jpg");
       expect(elements.single.photo?.kind, OcptAssetKind.elementPhoto);
     });
 
     test("clearElementPhoto tombstones the row and nulls the column", () async {
-      final id = (await elementsService.createElement(
-        database: database,
-        name: "Vélo rouge",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.toBuy,
-      ))!;
-      await elementsService.setElementPhoto(
-        database: database,
-        elementId: id,
-        path: "/photos/velo.jpg",
-      );
+      final id = (await elementsService
+          .createElement(
+            database: database,
+            name: "Vélo rouge",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.toBuy,
+          )
+          .valueOrFail);
+      await elementsService
+          .setElementPhoto(database: database, elementId: id, path: "/photos/velo.jpg")
+          .maybeValueOrFail;
 
-      await elementsService.clearElementPhoto(database: database, elementId: id);
+      await elementsService.clearElementPhoto(database: database, elementId: id).okOrFail;
 
-      final elements = await elementsService.loadElements(database: database);
+      final elements = await elementsService.loadElements(database: database).valueOrFail;
       expect(elements.single.photo, isNull);
     });
 
     test("deleting an element carries its photo away with it", () async {
-      final id = (await elementsService.createElement(
-        database: database,
-        name: "Vélo rouge",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.toBuy,
-      ))!;
-      final assetId = (await elementsService.setElementPhoto(
-        database: database,
-        elementId: id,
-        path: "/photos/velo.jpg",
-      ))!;
+      final id = (await elementsService
+          .createElement(
+            database: database,
+            name: "Vélo rouge",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.toBuy,
+          )
+          .valueOrFail);
+      final assetId = (await elementsService
+          .setElementPhoto(database: database, elementId: id, path: "/photos/velo.jpg")
+          .valueOrFail);
 
-      await elementsService.deleteElement(database: database, elementId: id);
+      await elementsService.deleteElement(database: database, elementId: id).okOrFail;
 
       // Nothing can reach that row any more, which is what makes it an orphan rather than history.
       final asset = await (database.select(
@@ -295,17 +310,18 @@ void main() {
     test("addSceneElement links a scene to an element", () async {
       final elementId = await createElement("Valise");
 
-      await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-        quantity: "2",
-      );
+      await elementsService
+          .addSceneElement(
+            database: database,
+            sceneId: "scene-1",
+            elementId: elementId,
+            quantity: "2",
+          )
+          .maybeValueOrFail;
 
-      final links = await elementsService.sceneElementsOfScene(
-        database: database,
-        sceneId: "scene-1",
-      );
+      final links = await elementsService
+          .sceneElementsOfScene(database: database, sceneId: "scene-1")
+          .valueOrFail;
       expect(links, hasLength(1));
       expect(links.single.elementId, elementId);
       expect(links.single.quantity, "2");
@@ -313,81 +329,72 @@ void main() {
 
     test("updateSceneElement only touches the fields it's given a Value for", () async {
       final elementId = await createElement("Valise");
-      final linkId = (await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-        quantity: "1",
-      ))!;
+      final linkId = (await elementsService
+          .addSceneElement(
+            database: database,
+            sceneId: "scene-1",
+            elementId: elementId,
+            quantity: "1",
+          )
+          .valueOrFail);
 
-      await elementsService.updateSceneElement(
-        database: database,
-        id: linkId,
-        notes: const Value("Sur la table"),
-      );
+      await elementsService
+          .updateSceneElement(database: database, id: linkId, notes: const Value("Sur la table"))
+          .okOrFail;
 
-      final links = await elementsService.sceneElementsOfScene(
-        database: database,
-        sceneId: "scene-1",
-      );
+      final links = await elementsService
+          .sceneElementsOfScene(database: database, sceneId: "scene-1")
+          .valueOrFail;
       expect(links.single.quantity, "1"); // untouched
       expect(links.single.notes, "Sur la table");
     });
 
     test("deleteElement tombstones its scene_elements links along with it", () async {
       final elementId = await createElement("Valise");
-      await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-      );
+      await elementsService
+          .addSceneElement(database: database, sceneId: "scene-1", elementId: elementId)
+          .maybeValueOrFail;
 
-      await elementsService.deleteElement(database: database, elementId: elementId);
+      await elementsService.deleteElement(database: database, elementId: elementId).okOrFail;
 
-      final links = await elementsService.sceneElementsOfScene(
-        database: database,
-        sceneId: "scene-1",
-      );
+      final links = await elementsService
+          .sceneElementsOfScene(database: database, sceneId: "scene-1")
+          .valueOrFail;
       expect(links, isEmpty);
     });
 
     test("removeSceneElement tombstones the link", () async {
       final elementId = await createElement("Valise");
-      final linkId = (await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-      ))!;
+      final linkId = (await elementsService
+          .addSceneElement(database: database, sceneId: "scene-1", elementId: elementId)
+          .valueOrFail);
 
-      await elementsService.removeSceneElement(database: database, id: linkId);
+      await elementsService.removeSceneElement(database: database, id: linkId).okOrFail;
 
-      final links = await elementsService.sceneElementsOfScene(
-        database: database,
-        sceneId: "scene-1",
-      );
+      final links = await elementsService
+          .sceneElementsOfScene(database: database, sceneId: "scene-1")
+          .valueOrFail;
       expect(links, isEmpty);
     });
     test("propsOfScene reads only prop-category elements, quantity resolved from the link's own "
         "override or the catalogue's own default", () async {
       final candlesId = await createElement("Candles");
-      await elementsService.updateElement(
-        database: database,
-        elementId: candlesId,
-        quantity: const Value("6"),
-      );
-      await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: candlesId,
-        quantity: "12",
-      );
+      await elementsService
+          .updateElement(database: database, elementId: candlesId, quantity: const Value("6"))
+          .okOrFail;
+      await elementsService
+          .addSceneElement(
+            database: database,
+            sceneId: "scene-1",
+            elementId: candlesId,
+            quantity: "12",
+          )
+          .maybeValueOrFail;
 
       final vaseId = await createElement("Vase");
-      await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: vaseId,
-      );
+      await elementsService
+          .addSceneElement(database: database, sceneId: "scene-1", elementId: vaseId)
+          .maybeValueOrFail;
 
       // A costume, never a prop chip.
       final costumeId = await elementsService
@@ -397,22 +404,20 @@ void main() {
             category: OcptElementCategory.costume,
             sourceKind: OcptElementSourceKind.owned,
           )
-          .then((id) => id!);
-      await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: costumeId,
-      );
+          .valueOrFail;
+      await elementsService
+          .addSceneElement(database: database, sceneId: "scene-1", elementId: costumeId)
+          .maybeValueOrFail;
 
       // A prop of a different scene, never in scene-1's own list.
       final elsewhereId = await createElement("Lantern");
-      await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-2",
-        elementId: elsewhereId,
-      );
+      await elementsService
+          .addSceneElement(database: database, sceneId: "scene-2", elementId: elsewhereId)
+          .maybeValueOrFail;
 
-      final props = await elementsService.propsOfScene(database: database, sceneId: "scene-1");
+      final props = await elementsService
+          .propsOfScene(database: database, sceneId: "scene-1")
+          .valueOrFail;
 
       expect(props.map((prop) => prop.elementId), [candlesId, vaseId]);
       final candles = props.firstWhere((prop) => prop.elementId == candlesId);
@@ -424,39 +429,43 @@ void main() {
 
     test("propsOfScene leaves out a tombstoned element or link", () async {
       final elementId = await createElement("Valise");
-      final linkId = (await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-      ))!;
+      final linkId = (await elementsService
+          .addSceneElement(database: database, sceneId: "scene-1", elementId: elementId)
+          .valueOrFail);
 
-      final beforeDelete = await elementsService.propsOfScene(
-        database: database,
-        sceneId: "scene-1",
-      );
+      final beforeDelete = await elementsService
+          .propsOfScene(database: database, sceneId: "scene-1")
+          .valueOrFail;
       expect(beforeDelete, hasLength(1));
 
-      await elementsService.removeSceneElement(database: database, id: linkId);
-      expect(await elementsService.propsOfScene(database: database, sceneId: "scene-1"), isEmpty);
+      await elementsService.removeSceneElement(database: database, id: linkId).okOrFail;
+      expect(
+        await elementsService.propsOfScene(database: database, sceneId: "scene-1").valueOrFail,
+        isEmpty,
+      );
     });
 
     test("loadElements joins the links in the screenplay's own scene order", () async {
       final elementId = await createElement("Valise");
-      await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-2",
-        elementId: elementId,
-        quantity: "1",
-      );
-      await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-        quantity: "2",
-        notes: "Sur la table",
-      );
+      await elementsService
+          .addSceneElement(
+            database: database,
+            sceneId: "scene-2",
+            elementId: elementId,
+            quantity: "1",
+          )
+          .maybeValueOrFail;
+      await elementsService
+          .addSceneElement(
+            database: database,
+            sceneId: "scene-1",
+            elementId: elementId,
+            quantity: "2",
+            notes: "Sur la table",
+          )
+          .maybeValueOrFail;
 
-      final element = (await elementsService.loadElements(database: database)).single;
+      final element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.sceneLinks.map((link) => link.sceneId), ["scene-1", "scene-2"]);
       expect(element.sceneLinks.first.quantity, "2");
       expect(element.sceneLinks.first.notes, "Sur la table");
@@ -464,64 +473,60 @@ void main() {
 
     test("a link onto a tombstoned scene is left out of the element it points at", () async {
       final elementId = await createElement("Valise");
-      await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-      );
-      await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-2",
-        elementId: elementId,
-      );
+      await elementsService
+          .addSceneElement(database: database, sceneId: "scene-1", elementId: elementId)
+          .maybeValueOrFail;
+      await elementsService
+          .addSceneElement(database: database, sceneId: "scene-2", elementId: elementId)
+          .maybeValueOrFail;
 
       await (database.update(database.ocptScenesTable)..where((row) => row.id.equals("scene-1")))
           .write(const OcptScenesTableCompanion(isDeleted: Value(true)));
 
-      final element = (await elementsService.loadElements(database: database)).single;
+      final element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.sceneLinks.map((link) => link.sceneId), ["scene-2"]);
     });
 
     test("addSceneElement on a scene already linked returns the link it already has", () async {
       final elementId = await createElement("Valise");
-      final firstId = await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-        quantity: "2",
-      );
+      final firstId = await elementsService
+          .addSceneElement(
+            database: database,
+            sceneId: "scene-1",
+            elementId: elementId,
+            quantity: "2",
+          )
+          .maybeValueOrFail;
 
-      final secondId = await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-      );
+      final secondId = await elementsService
+          .addSceneElement(database: database, sceneId: "scene-1", elementId: elementId)
+          .maybeValueOrFail;
 
       expect(secondId, firstId);
-      final element = (await elementsService.loadElements(database: database)).single;
+      final element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.sceneLinks, hasLength(1));
       expect(element.sceneLinks.single.quantity, "2");
     });
 
     test("addSceneElement revives a removed link rather than duplicating it", () async {
       final elementId = await createElement("Valise");
-      final linkId = (await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-        quantity: "2",
-        notes: "Sur la table",
-      ))!;
-      await elementsService.removeSceneElement(database: database, id: linkId);
+      final linkId = (await elementsService
+          .addSceneElement(
+            database: database,
+            sceneId: "scene-1",
+            elementId: elementId,
+            quantity: "2",
+            notes: "Sur la table",
+          )
+          .valueOrFail);
+      await elementsService.removeSceneElement(database: database, id: linkId).okOrFail;
 
-      final revivedId = await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-      );
+      final revivedId = await elementsService
+          .addSceneElement(database: database, sceneId: "scene-1", elementId: elementId)
+          .maybeValueOrFail;
 
       expect(revivedId, linkId);
-      final element = (await elementsService.loadElements(database: database)).single;
+      final element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.sceneLinks, hasLength(1));
       expect(element.sceneLinks.single.quantity, "2");
       expect(element.sceneLinks.single.notes, "Sur la table");
@@ -564,14 +569,16 @@ void main() {
     test("addRoleElement links a role to an element, read back off the element", () async {
       final elementId = await createElement("Manteau rouge");
 
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-        notes: "Taché à partir de la séquence 12",
-      );
+      await elementsService
+          .addRoleElement(
+            database: database,
+            roleId: "role-1",
+            elementId: elementId,
+            notes: "Taché à partir de la séquence 12",
+          )
+          .maybeValueOrFail;
 
-      final element = (await elementsService.loadElements(database: database)).single;
+      final element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.roleLinks, hasLength(1));
       expect(element.roleLinks.single.roleId, "role-1");
       expect(element.roleLinks.single.notes, "Taché à partir de la séquence 12");
@@ -581,81 +588,73 @@ void main() {
       final elementId = await createElement("Manteau rouge");
 
       // Linked in the reverse of the cast's order, so the read cannot be passing by accident.
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-2",
-        elementId: elementId,
-      );
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-      );
+      await elementsService
+          .addRoleElement(database: database, roleId: "role-2", elementId: elementId)
+          .maybeValueOrFail;
+      await elementsService
+          .addRoleElement(database: database, roleId: "role-1", elementId: elementId)
+          .maybeValueOrFail;
 
-      final element = (await elementsService.loadElements(database: database)).single;
+      final element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.roleLinks.map((link) => link.roleId), ["role-1", "role-2"]);
     });
 
     test("addRoleElement returns the existing link rather than a second one", () async {
       final elementId = await createElement("Manteau rouge");
-      final linkId = (await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-        notes: "Taché",
-      ))!;
+      final linkId = (await elementsService
+          .addRoleElement(
+            database: database,
+            roleId: "role-1",
+            elementId: elementId,
+            notes: "Taché",
+          )
+          .valueOrFail);
 
-      final again = await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-      );
+      final again = await elementsService
+          .addRoleElement(database: database, roleId: "role-1", elementId: elementId)
+          .maybeValueOrFail;
 
       expect(again, linkId);
-      final element = (await elementsService.loadElements(database: database)).single;
+      final element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.roleLinks, hasLength(1));
       expect(element.roleLinks.single.notes, "Taché");
     });
 
     test("addRoleElement revives a removed link, note included", () async {
       final elementId = await createElement("Manteau rouge");
-      final linkId = (await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-        notes: "Taché",
-      ))!;
-      await elementsService.removeRoleElement(database: database, id: linkId);
+      final linkId = (await elementsService
+          .addRoleElement(
+            database: database,
+            roleId: "role-1",
+            elementId: elementId,
+            notes: "Taché",
+          )
+          .valueOrFail);
+      await elementsService.removeRoleElement(database: database, id: linkId).okOrFail;
 
-      final revivedId = await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-      );
+      final revivedId = await elementsService
+          .addRoleElement(database: database, roleId: "role-1", elementId: elementId)
+          .maybeValueOrFail;
 
       expect(revivedId, linkId);
-      final element = (await elementsService.loadElements(database: database)).single;
+      final element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.roleLinks.single.notes, "Taché");
     });
 
     test("updateRoleElement writes the note, and removeRoleElement tombstones", () async {
       final elementId = await createElement("Manteau rouge");
-      final linkId = (await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-      ))!;
+      final linkId = (await elementsService
+          .addRoleElement(database: database, roleId: "role-1", elementId: elementId)
+          .valueOrFail);
 
-      await elementsService.updateRoleElement(
-        database: database,
-        id: linkId,
-        notes: "Doublure changée",
-      );
-      var element = (await elementsService.loadElements(database: database)).single;
+      await elementsService
+          .updateRoleElement(database: database, id: linkId, notes: "Doublure changée")
+          .okOrFail;
+      var element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.roleLinks.single.notes, "Doublure changée");
 
-      await elementsService.removeRoleElement(database: database, id: linkId);
-      element = (await elementsService.loadElements(database: database)).single;
+      await elementsService.removeRoleElement(database: database, id: linkId).okOrFail;
+      element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.roleLinks, isEmpty);
 
       // Tombstoned rather than deleted: the row is still there, flagged.
@@ -665,28 +664,24 @@ void main() {
 
     test("a link onto a tombstoned role is left out of the read", () async {
       final elementId = await createElement("Manteau rouge");
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-      );
+      await elementsService
+          .addRoleElement(database: database, roleId: "role-1", elementId: elementId)
+          .maybeValueOrFail;
 
       await (database.update(database.ocptRolesTable)..where((row) => row.id.equals("role-1")))
           .write(const OcptRolesTableCompanion(isDeleted: Value(true)));
 
-      final element = (await elementsService.loadElements(database: database)).single;
+      final element = (await elementsService.loadElements(database: database).valueOrFail).single;
       expect(element.roleLinks, isEmpty);
     });
 
     test("deleteElement carries its role links off with it", () async {
       final elementId = await createElement("Manteau rouge");
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-      );
+      await elementsService
+          .addRoleElement(database: database, roleId: "role-1", elementId: elementId)
+          .maybeValueOrFail;
 
-      await elementsService.deleteElement(database: database, elementId: elementId);
+      await elementsService.deleteElement(database: database, elementId: elementId).okOrFail;
 
       final rows = await database.select(database.ocptRoleElementsTable).get();
       expect(rows.single.isDeleted, isTrue);
@@ -695,12 +690,12 @@ void main() {
     test("tombstoneRoleLinksOfRole takes every link of one role and no other", () async {
       final wornId = await createElement("Manteau rouge");
       final otherId = await createElement("Valise");
-      await elementsService.addRoleElement(database: database, roleId: "role-1", elementId: wornId);
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-2",
-        elementId: otherId,
-      );
+      await elementsService
+          .addRoleElement(database: database, roleId: "role-1", elementId: wornId)
+          .maybeValueOrFail;
+      await elementsService
+          .addRoleElement(database: database, roleId: "role-2", elementId: otherId)
+          .maybeValueOrFail;
 
       await elementsService.tombstoneRoleLinksOfRole(
         database: database,
@@ -708,7 +703,7 @@ void main() {
         stamps: null,
       );
 
-      final elements = await elementsService.loadElements(database: database);
+      final elements = await elementsService.loadElements(database: database).valueOrFail;
       final byId = {for (final element in elements) element.id: element};
       expect(byId[wornId]!.roleLinks, isEmpty);
       expect(byId[otherId]!.roleLinks.single.roleId, "role-2");
@@ -720,11 +715,9 @@ void main() {
     test("addRoleElement is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
 
-      final linkId = await elementsService.addRoleElement(
-        database: preview,
-        roleId: "role-1",
-        elementId: "element-1",
-      );
+      final linkId = await elementsService
+          .addRoleElement(database: preview, roleId: "role-1", elementId: "element-1")
+          .maybeValueOrFail;
 
       expect(linkId, isNull);
       expect(await preview.select(preview.ocptRoleElementsTable).get(), isEmpty);
@@ -770,37 +763,39 @@ void main() {
       final elementId = await createElement("Manteau rouge");
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await elementsService.updateElement(
-        database: database,
-        elementId: elementId,
-        name: const Value("Manteau bleu"),
-        notes: const Value("Taché à la séquence 12"),
-      );
+      await elementsService
+          .updateElement(
+            database: database,
+            elementId: elementId,
+            name: const Value("Manteau bleu"),
+            notes: const Value("Taché à la séquence 12"),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("elements/$elementId/")).toSet();
       expect(ownKeys, {"elements/$elementId/name", "elements/$elementId/notes"});
 
       // Writing the same values again touches nothing: there is nothing left to stamp.
-      await elementsService.updateElement(
-        database: database,
-        elementId: elementId,
-        name: const Value("Manteau bleu"),
-      );
+      await elementsService
+          .updateElement(
+            database: database,
+            elementId: elementId,
+            name: const Value("Manteau bleu"),
+          )
+          .okOrFail;
       expect(await readStamps(), stamps);
     });
 
     test("deleteElement stamps isDeleted on the element and its role_elements links", () async {
       final elementId = await createElement("Manteau rouge");
       await insertRole("role-1");
-      final linkId = (await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-      ))!;
+      final linkId = (await elementsService
+          .addRoleElement(database: database, roleId: "role-1", elementId: elementId)
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await elementsService.deleteElement(database: database, elementId: elementId);
+      await elementsService.deleteElement(database: database, elementId: elementId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["elements/$elementId/isDeleted"]!.version, 1);
@@ -812,11 +807,9 @@ void main() {
       await insertRole("role-1");
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final linkId = (await elementsService.addRoleElement(
-        database: database,
-        roleId: "role-1",
-        elementId: elementId,
-      ))!;
+      final linkId = (await elementsService
+          .addRoleElement(database: database, roleId: "role-1", elementId: elementId)
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -864,12 +857,14 @@ void main() {
       final elementId = await createElement("Valise");
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final linkId = (await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-        quantity: "2",
-      ))!;
+      final linkId = (await elementsService
+          .addSceneElement(
+            database: database,
+            sceneId: "scene-1",
+            elementId: elementId,
+            quantity: "2",
+          )
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -888,19 +883,19 @@ void main() {
     test("updateSceneElement stamps only the columns that actually changed", () async {
       await insertScene();
       final elementId = await createElement("Valise");
-      final linkId = (await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-        quantity: "1",
-      ))!;
+      final linkId = (await elementsService
+          .addSceneElement(
+            database: database,
+            sceneId: "scene-1",
+            elementId: elementId,
+            quantity: "1",
+          )
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await elementsService.updateSceneElement(
-        database: database,
-        id: linkId,
-        notes: const Value("Sur la table"),
-      );
+      await elementsService
+          .updateSceneElement(database: database, id: linkId, notes: const Value("Sur la table"))
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("scene_elements/$linkId/")).toSet();
@@ -910,14 +905,12 @@ void main() {
     test("removeSceneElement stamps isDeleted on the link", () async {
       await insertScene();
       final elementId = await createElement("Valise");
-      final linkId = (await elementsService.addSceneElement(
-        database: database,
-        sceneId: "scene-1",
-        elementId: elementId,
-      ))!;
+      final linkId = (await elementsService
+          .addSceneElement(database: database, sceneId: "scene-1", elementId: elementId)
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await elementsService.removeSceneElement(database: database, id: linkId);
+      await elementsService.removeSceneElement(database: database, id: linkId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["scene_elements/$linkId/isDeleted"]!.version, 1);

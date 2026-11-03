@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_role_link_ops.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_scene_prop_summary.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_element_code.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
@@ -77,7 +79,10 @@ class OcptElementsService extends AbsOcptService {
   /// on its own if the scene does — `OcptSceneIndexService` reuses a scene's id for as long as it
   /// can match it. That is `OcptLocationsService.loadLocations`' own rule for a set's scenes, and
   /// the two must not disagree about what a link onto a vanished scene means.
-  Future<List<OcptElement>> loadElements({required OcptProjectDatabase database}) async {
+  @useResult
+  Future<OcptDatabaseResult<List<OcptElement>>> loadElements({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadElements", () async {
     final rows = await _liveElementRows(database);
     final elementIds = rows.map((row) => row.id).toList(growable: false);
 
@@ -108,7 +113,7 @@ class OcptElementsService extends AbsOcptService {
           photo: assetsById[row.photoAssetId],
         ),
     ];
-  }
+  });
 
   /// Create a new element named [name], of [category] and [sourceKind], in [database], appended at
   /// the end of the catalogue, and return its freshly generated id.
@@ -120,12 +125,13 @@ class OcptElementsService extends AbsOcptService {
   /// decision: the sheet's own field overwrites it.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createElement({
+  @useResult
+  Future<OcptDatabaseResult<String>> createElement({
     required OcptProjectDatabase database,
     required String name,
     required OcptElementCategory category,
     required OcptElementSourceKind sourceKind,
-  }) async {
+  }) => guardResult("createElement", () async {
     if (database.refusesUserWrite("createElement")) {
       return null;
     }
@@ -170,7 +176,7 @@ class OcptElementsService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Update the fields of element [elementId] in [database] that are passed as something other
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
@@ -185,7 +191,8 @@ class OcptElementsService extends AbsOcptService {
   /// knowing it exists.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateElement({
+  @useResult
+  Future<OcptDatabaseOutcome> updateElement({
     required OcptProjectDatabase database,
     required String elementId,
     Value<OcptElementCategory> category = const Value.absent(),
@@ -205,7 +212,7 @@ class OcptElementsService extends AbsOcptService {
     Value<String> purposeNotes = const Value.absent(),
     Value<String> notes = const Value.absent(),
     Value<String?> photoAssetId = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateElement", () async {
     if (database.refusesUserWrite("updateElement")) {
       return;
     }
@@ -257,7 +264,7 @@ class OcptElementsService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone element [elementId] in [database] and both kinds of link onto it — the
   /// `scene_elements` ones and the `role_elements` ones — along with it.
@@ -265,10 +272,11 @@ class OcptElementsService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteElement({
+  @useResult
+  Future<OcptDatabaseOutcome> deleteElement({
     required OcptProjectDatabase database,
     required String elementId,
-  }) async {
+  }) => guardOutcome("deleteElement", () async {
     if (database.refusesUserWrite("deleteElement")) {
       return;
     }
@@ -325,7 +333,7 @@ class OcptElementsService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Reference the file at [path] as element [elementId]'s photo, replacing whichever file it
   /// referenced before, and return the freshly generated id of the `assets` row.
@@ -336,12 +344,13 @@ class OcptElementsService extends AbsOcptService {
   /// — see `docs/adr/0013-binary-assets-referenced-by-path.md`.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> setElementPhoto({
+  @useResult
+  Future<OcptDatabaseResult<String>> setElementPhoto({
     required OcptProjectDatabase database,
     required String elementId,
     required String path,
     String label = "",
-  }) async {
+  }) => guardResult("setElementPhoto", () async {
     if (database.refusesUserWrite("setElementPhoto")) {
       return null;
     }
@@ -378,7 +387,7 @@ class OcptElementsService extends AbsOcptService {
 
       return id;
     });
-  }
+  });
 
   /// Drop element [elementId]'s reference to its photo: the `assets` row is tombstoned and
   /// `photoAssetId` goes back to null. The file itself is never touched.
@@ -386,10 +395,11 @@ class OcptElementsService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearElementPhoto({
+  @useResult
+  Future<OcptDatabaseOutcome> clearElementPhoto({
     required OcptProjectDatabase database,
     required String elementId,
-  }) async {
+  }) => guardOutcome("clearElementPhoto", () async {
     if (database.refusesUserWrite("clearElementPhoto")) {
       return;
     }
@@ -415,18 +425,19 @@ class OcptElementsService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Move element [elementId] to [newPosition] (0-based) within the catalogue's flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two elements it lands between. Writes
   /// **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderElement({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderElement({
     required OcptProjectDatabase database,
     required String elementId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderElement", () async {
     if (database.refusesUserWrite("reorderElement")) {
       return;
     }
@@ -460,71 +471,100 @@ class OcptElementsService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Forward to [OcptElementsSceneLinkOps.addSceneElement].
-  Future<String?> addSceneElement({
+  @useResult
+  Future<OcptDatabaseResult<String>> addSceneElement({
     required OcptProjectDatabase database,
     required String sceneId,
     required String elementId,
     String quantity = "",
     String notes = "",
-  }) => OcptElementsSceneLinkOps.addSceneElement(
-    database: database,
-    sceneId: sceneId,
-    elementId: elementId,
-    quantity: quantity,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardResult(
+    "addSceneElement",
+    () => OcptElementsSceneLinkOps.addSceneElement(
+      database: database,
+      sceneId: sceneId,
+      elementId: elementId,
+      quantity: quantity,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptElementsSceneLinkOps.updateSceneElement].
-  Future<void> updateSceneElement({
+  @useResult
+  Future<OcptDatabaseOutcome> updateSceneElement({
     required OcptProjectDatabase database,
     required String id,
     Value<String> quantity = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) => OcptElementsSceneLinkOps.updateSceneElement(
-    database: database,
-    id: id,
-    quantity: quantity,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateSceneElement",
+    () => OcptElementsSceneLinkOps.updateSceneElement(
+      database: database,
+      id: id,
+      quantity: quantity,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptElementsSceneLinkOps.removeSceneElement].
-  Future<void> removeSceneElement({required OcptProjectDatabase database, required String id}) =>
-      OcptElementsSceneLinkOps.removeSceneElement(database: database, id: id, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseOutcome> removeSceneElement({
+    required OcptProjectDatabase database,
+    required String id,
+  }) => guardOutcome(
+    "removeSceneElement",
+    () =>
+        OcptElementsSceneLinkOps.removeSceneElement(database: database, id: id, deviceId: deviceId),
+  );
 
   /// Forward to [OcptElementsRoleLinkOps.addRoleElement].
-  Future<String?> addRoleElement({
+  @useResult
+  Future<OcptDatabaseResult<String>> addRoleElement({
     required OcptProjectDatabase database,
     required String roleId,
     required String elementId,
     String notes = "",
-  }) => OcptElementsRoleLinkOps.addRoleElement(
-    database: database,
-    roleId: roleId,
-    elementId: elementId,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardResult(
+    "addRoleElement",
+    () => OcptElementsRoleLinkOps.addRoleElement(
+      database: database,
+      roleId: roleId,
+      elementId: elementId,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptElementsRoleLinkOps.updateRoleElement].
-  Future<void> updateRoleElement({
+  @useResult
+  Future<OcptDatabaseOutcome> updateRoleElement({
     required OcptProjectDatabase database,
     required String id,
     required String notes,
-  }) => OcptElementsRoleLinkOps.updateRoleElement(
-    database: database,
-    id: id,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateRoleElement",
+    () => OcptElementsRoleLinkOps.updateRoleElement(
+      database: database,
+      id: id,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptElementsRoleLinkOps.removeRoleElement].
-  Future<void> removeRoleElement({required OcptProjectDatabase database, required String id}) =>
-      OcptElementsRoleLinkOps.removeRoleElement(database: database, id: id, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseOutcome> removeRoleElement({
+    required OcptProjectDatabase database,
+    required String id,
+  }) => guardOutcome(
+    "removeRoleElement",
+    () => OcptElementsRoleLinkOps.removeRoleElement(database: database, id: id, deviceId: deviceId),
+  );
 
   /// Forward to [OcptElementsRoleLinkOps.tombstoneRoleLinksOfRole].
   Future<void> tombstoneRoleLinksOfRole({
@@ -549,16 +589,24 @@ class OcptElementsService extends AbsOcptService {
   );
 
   /// Forward to [OcptElementsSceneLinkOps.sceneElementsOfScene].
-  Future<List<OcptSceneElementRow>> sceneElementsOfScene({
+  @useResult
+  Future<OcptDatabaseResult<List<OcptSceneElementRow>>> sceneElementsOfScene({
     required OcptProjectDatabase database,
     required String sceneId,
-  }) => OcptElementsSceneLinkOps.sceneElementsOfScene(database: database, sceneId: sceneId);
+  }) => guardResult(
+    "sceneElementsOfScene",
+    () => OcptElementsSceneLinkOps.sceneElementsOfScene(database: database, sceneId: sceneId),
+  );
 
   /// Forward to [OcptElementsSceneLinkOps.propsOfScene].
-  Future<List<OcptScenePropSummary>> propsOfScene({
+  @useResult
+  Future<OcptDatabaseResult<List<OcptScenePropSummary>>> propsOfScene({
     required OcptProjectDatabase database,
     required String sceneId,
-  }) => OcptElementsSceneLinkOps.propsOfScene(database: database, sceneId: sceneId);
+  }) => guardResult(
+    "propsOfScene",
+    () => OcptElementsSceneLinkOps.propsOfScene(database: database, sceneId: sceneId),
+  );
 
   /// Get the code element [elementId] is given as [category] is written onto it: a freshly
   /// generated

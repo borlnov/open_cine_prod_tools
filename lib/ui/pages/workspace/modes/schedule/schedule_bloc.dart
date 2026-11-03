@@ -381,7 +381,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       final locations = await _locationsService.loadLocations(database: project.database);
       final roles = await _roleIndexService.loadRoles(database: project.database);
       final people = await _peopleService.loadPeople(database: project.database);
-      final elements = await _elementsService.loadElements(database: project.database);
+      final elementsRead = await _elementsService.loadElements(database: project.database);
+      if (elementsRead.isError) {
+        return false;
+      }
+
+      final elements = elementsRead.value!;
       // Read after the address book, and out of it: a candidacy travels with the person it names,
       // and resolving one twice is how two readings of the same casting come to disagree.
       final roleCandidatesRead = await _loadRoleCandidates(project, people: people);

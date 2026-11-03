@@ -27,6 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the breakdown service tags.
 void main() {
@@ -189,12 +190,14 @@ void main() {
   group("createTag", () {
     test("writes the element column for an element target, leaving role/set null", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
-      final elementId = (await elementsService.createElement(
-        database: database,
-        name: "Desk lamp",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      ))!;
+      final elementId = (await elementsService
+          .createElement(
+            database: database,
+            name: "Desk lamp",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail);
 
       final tagId = (await breakdownService.createTag(
         database: database,
@@ -258,12 +261,14 @@ void main() {
 
     test("ensures the scene_elements link for an element target", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
-      final elementId = (await elementsService.createElement(
-        database: database,
-        name: "Desk lamp",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      ))!;
+      final elementId = (await elementsService
+          .createElement(
+            database: database,
+            name: "Desk lamp",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail);
 
       await breakdownService.createTag(
         database: database,
@@ -425,12 +430,14 @@ void main() {
   group("deleteTag", () {
     test("tombstones the tag and leaves the scene_elements link alone", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
-      final elementId = (await elementsService.createElement(
-        database: database,
-        name: "Desk lamp",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      ))!;
+      final elementId = (await elementsService
+          .createElement(
+            database: database,
+            name: "Desk lamp",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail);
       final tagId = (await breakdownService.createTag(
         database: database,
         sceneId: scene.id,

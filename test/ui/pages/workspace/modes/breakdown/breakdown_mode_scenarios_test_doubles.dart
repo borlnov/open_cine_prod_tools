@@ -46,6 +46,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The navigator [BreakdownScenarioHarness.wrap] mounts, so
 /// [BreakdownScenarioRouterManager.pop] closes a dialog opened through `showDialog` exactly as the
@@ -374,7 +375,7 @@ class BreakdownScenarioHarness {
 
   /// Reads the elements catalogue back from the database.
   Future<List<OcptElement>> readElements() =>
-      projectsManager.elementsService.loadElements(database: database);
+      projectsManager.elementsService.loadElements(database: database).valueOrFail;
 
   /// Reads the locations, with their sets, back from the database.
   Future<List<OcptLocation>> readLocations() =>
@@ -393,12 +394,14 @@ class BreakdownScenarioHarness {
 
   /// Creates a prop called [name], returning the id.
   Future<String> seedElement(String name) async {
-    final id = await projectsManager.elementsService.createElement(
-      database: database,
-      name: name,
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    );
+    final id = await projectsManager.elementsService
+        .createElement(
+          database: database,
+          name: name,
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .maybeValueOrFail;
     return id!;
   }
 

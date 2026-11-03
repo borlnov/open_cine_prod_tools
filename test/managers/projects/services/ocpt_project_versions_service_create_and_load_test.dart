@@ -543,12 +543,14 @@ void main() {
               deviceId: "device-0",
             ),
           );
-      final elementId = (await elementsService.createElement(
-        database: database,
-        name: "Desk lamp",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      ))!;
+      final elementId = (await elementsService
+          .createElement(
+            database: database,
+            name: "Desk lamp",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail);
       await breakdownService.createTag(
         database: database,
         sceneId: "scene-1",

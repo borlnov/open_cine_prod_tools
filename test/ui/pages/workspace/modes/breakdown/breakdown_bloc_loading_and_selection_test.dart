@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'breakdown_bloc_test_doubles.dart';
 
 /// Run the tests of the breakdown bloc loading and selection.
@@ -124,12 +125,14 @@ void main() {
       final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
 
       // Written behind the mode's back, as a view's own write would be.
-      await projectsManager.elementsService.createElement(
-        database: projectsManager.currentProject!.database,
-        name: "Desk lamp",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      );
+      await projectsManager.elementsService
+          .createElement(
+            database: projectsManager.currentProject!.database,
+            name: "Desk lamp",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .maybeValueOrFail;
 
       final hasRead = await bloc.reload({OcptBreakdownReloadScope.snapshot});
 
@@ -397,12 +400,14 @@ void main() {
       project.database.ocptScenesTable,
     )).get()).single.id;
 
-    final elementId = await projectsManager.elementsService.createElement(
-      database: project.database,
-      name: "Desk lamp",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    );
+    final elementId = await projectsManager.elementsService
+        .createElement(
+          database: project.database,
+          name: "Desk lamp",
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .maybeValueOrFail;
     expect(elementId, isNotNull);
 
     final tagId = await projectsManager.breakdownService.createTag(

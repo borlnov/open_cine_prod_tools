@@ -98,12 +98,14 @@ void main() {
       database: project.database,
       name: "",
     ))!;
-    elementId = (await projectsManager.elementsService.createElement(
-      database: project.database,
-      name: "",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    ))!;
+    elementId = (await projectsManager.elementsService
+        .createElement(
+          database: project.database,
+          name: "",
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .valueOrFail);
     candidateId = (await projectsManager.roleCandidatesService
         .addCandidate(database: project.database, roleId: roleId, personId: personId)
         .valueOrFail);

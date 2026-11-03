@@ -56,12 +56,14 @@ void main() {
     await quote
         .updateLine(database: database, lineId: line, vatRateBasisPoints: const Value(550))
         .okOrFail;
-    final elementId = (await harness.projectsManager.elementsService.createElement(
-      database: database,
-      name: "Camera body",
-      category: OcptElementCategory.camera,
-      sourceKind: OcptElementSourceKind.owned,
-    ))!;
+    final elementId = (await harness.projectsManager.elementsService
+        .createElement(
+          database: database,
+          name: "Camera body",
+          category: OcptElementCategory.camera,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .valueOrFail);
     final mode = await harness.buildBloc();
     final view = OcptBudgetExpensesBloc(modeBloc: mode, projectsManager: harness.projectsManager);
     addTearDown(view.close);

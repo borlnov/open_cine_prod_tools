@@ -379,34 +379,32 @@ Hello.
     });
 
     test("carries role_elements onto target, deduping by elementId", () async {
-      final elementA = (await elementsService.createElement(
-        database: database,
-        name: "Manteau",
-        category: OcptElementCategory.costume,
-        sourceKind: OcptElementSourceKind.owned,
-      ))!;
-      final elementB = (await elementsService.createElement(
-        database: database,
-        name: "Chapeau",
-        category: OcptElementCategory.costume,
-        sourceKind: OcptElementSourceKind.owned,
-      ))!;
+      final elementA = (await elementsService
+          .createElement(
+            database: database,
+            name: "Manteau",
+            category: OcptElementCategory.costume,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail);
+      final elementB = (await elementsService
+          .createElement(
+            database: database,
+            name: "Chapeau",
+            category: OcptElementCategory.costume,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail);
       // target already has elementA; source has both elementA (duplicate) and elementB (new).
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: targetRoleId,
-        elementId: elementA,
-      );
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: sourceRoleId,
-        elementId: elementA,
-      );
-      await elementsService.addRoleElement(
-        database: database,
-        roleId: sourceRoleId,
-        elementId: elementB,
-      );
+      await elementsService
+          .addRoleElement(database: database, roleId: targetRoleId, elementId: elementA)
+          .maybeValueOrFail;
+      await elementsService
+          .addRoleElement(database: database, roleId: sourceRoleId, elementId: elementA)
+          .maybeValueOrFail;
+      await elementsService
+          .addRoleElement(database: database, roleId: sourceRoleId, elementId: elementB)
+          .maybeValueOrFail;
 
       await roleIndexService.mergeRole(
         database: database,

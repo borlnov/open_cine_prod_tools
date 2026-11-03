@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_script_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_target_inspector.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'breakdown_mode_scenarios_test_doubles.dart';
 
 /// Run the tests of the breakdown mode centre scenarios.
@@ -62,12 +63,14 @@ void main() {
         targetId: teapotId,
       );
     }
-    final apronId = (await harness.projectsManager.elementsService.createElement(
-      database: harness.database,
-      name: "Apron",
-      category: OcptElementCategory.costume,
-      sourceKind: OcptElementSourceKind.owned,
-    ))!;
+    final apronId = (await harness.projectsManager.elementsService
+        .createElement(
+          database: harness.database,
+          name: "Apron",
+          category: OcptElementCategory.costume,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .valueOrFail);
     await harness.seedTag(
       sceneIndex: 0,
       text: "enters",
@@ -246,10 +249,9 @@ void main() {
     await harness.tap(tester, inScript(find.text("teapot")).first);
     expect(find.byType(OcptBreakdownTargetInspector), findsOneWidget);
 
-    await harness.projectsManager.elementsService.deleteElement(
-      database: harness.database,
-      elementId: teapotId,
-    );
+    await harness.projectsManager.elementsService
+        .deleteElement(database: harness.database, elementId: teapotId)
+        .okOrFail;
     final locationId = (await harness.readLocations()).single.id;
     await harness.projectsManager.locationsService.deleteLocation(
       database: harness.database,

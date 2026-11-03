@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
 /// real GoRouter for it to operate on.
@@ -154,12 +155,14 @@ void main() {
   /// Adds an element to the catalogue behind the mode's back, as a view's own write would, and has
   /// the mode read the catalogue again so it holds it. Selects nothing.
   Future<String> seedElement(OcptResourcesBloc bloc) async {
-    final elementId = await projectsManager.elementsService.createElement(
-      database: projectsManager.currentProject!.database,
-      name: "",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    );
+    final elementId = await projectsManager.elementsService
+        .createElement(
+          database: projectsManager.currentProject!.database,
+          name: "",
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .maybeValueOrFail;
     await bloc.reload({OcptResourcesReloadScope.snapshot});
 
     return elementId!;

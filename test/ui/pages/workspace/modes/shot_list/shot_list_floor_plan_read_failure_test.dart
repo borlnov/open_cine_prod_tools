@@ -11,16 +11,21 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_reader.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state_derived.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// A router manager whose [pop] does nothing: these bloc tests don't build a real GoRouter.
 class _SilentRouterManager extends OcptRouterManager {
@@ -187,6 +192,44 @@ void main() {
       expect(mode.state.reloadEpoch, epoch);
     });
   }
+
+  test("the props of a sequence that cannot be read leave the palette with none", () async {
+    final project = projectsManager.currentProject!;
+    final sequence = mode.state.selectedSequence! as OcptSceneShotSequence;
+    final elementId = await projectsManager.elementsService
+        .createElement(
+          database: project.database,
+          name: "Lamp",
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .valueOrFail;
+    await projectsManager.elementsService
+        .addSceneElement(
+          database: project.database,
+          sceneId: sequence.sceneId,
+          elementId: elementId,
+        )
+        .valueOrFail;
+    final sets = OcptShotListFloorPlanSetsBloc(
+      modeBloc: mode,
+      projectsManager: projectsManager,
+      fieldEditDebounce: const Duration(days: 1),
+    );
+    addTearDown(sets.close);
+    sets.add(OcptShotListFloorPlanPropsLoadRequestedEvent(sequenceId: sequence.id));
+    await settle();
+    expect(sets.state.propsOfSelectedSequence, hasLength(1));
+
+    await project.database.customStatement(
+      "ALTER TABLE scene_elements RENAME TO scene_elements_gone",
+    );
+    sets.add(OcptShotListFloorPlanPropsLoadRequestedEvent(sequenceId: sequence.id));
+    await settle();
+
+    expect(sets.state.propsOfSelectedSequence, isEmpty);
+    expect(sets.state.hasWriteError, isFalse);
+  });
 
   test("deleting a shot shows the write error and reselects nothing when the read fails", () async {
     mode.add(OcptShotListShotSelectedEvent(shotId: emptyShotId));

@@ -37,6 +37,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the project versions service rename capture and delete.
 void main() {
@@ -277,12 +278,14 @@ void main() {
       final scene1 = scenes[0];
       final scene2 = scenes[1];
 
-      final elementId = (await elementsService.createElement(
-        database: database,
-        name: "Desk lamp",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      ))!;
+      final elementId = (await elementsService
+          .createElement(
+            database: database,
+            name: "Desk lamp",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail);
       final roleId = (await roleIndexService.addRole(
         database: database,
         screenplayId: screenplayId,

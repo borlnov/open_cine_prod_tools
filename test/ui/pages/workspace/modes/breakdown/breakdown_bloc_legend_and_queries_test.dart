@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdow
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'breakdown_bloc_test_doubles.dart';
 
 /// Run the tests of the breakdown bloc legend and queries.
@@ -319,12 +320,14 @@ void main() {
       project.database.ocptScenesTable,
     )).get()).single.id;
 
-    final elementId = await projectsManager.elementsService.createElement(
-      database: project.database,
-      name: "Desk lamp",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    );
+    final elementId = await projectsManager.elementsService
+        .createElement(
+          database: project.database,
+          name: "Desk lamp",
+          category: OcptElementCategory.prop,
+          sourceKind: OcptElementSourceKind.owned,
+        )
+        .maybeValueOrFail;
     expect(elementId, isNotNull);
 
     await projectsManager.breakdownService.createTag(

@@ -6,6 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
@@ -16,6 +17,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_selection_cause.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
@@ -187,12 +189,13 @@ class OcptBreakdownInspectorBloc
 
     var hasWritten = true;
     try {
-      await _writeAllPendingFields(
+      final written = await _writeAllPendingFields(
         database: project.database,
         elementFields: pendingElementFields,
         sceneNotes: pendingSceneNotes,
         setNames: pendingSetNames,
       );
+      hasWritten = !written.isError;
     } catch (error, stackTrace) {
       hasWritten = false;
       _logger.e(
@@ -264,7 +267,7 @@ class OcptBreakdownInspectorBloc
     }
 
     try {
-      await flushEditsWithoutStateUntilConverted(
+      final elementsFlushed = await flushEditsWithoutStateUntilConverted(
         pendingElementFields,
         (edits) => _writeAllPendingFields(
           database: project.database,
@@ -273,24 +276,32 @@ class OcptBreakdownInspectorBloc
           setNames: const {},
         ),
       );
-      await flushEditsWithoutStateUntilConverted(
-        pendingSceneNotes,
-        (edits) => _writeAllPendingFields(
-          database: project.database,
-          elementFields: const {},
-          sceneNotes: edits,
-          setNames: const {},
-        ),
-      );
-      await flushEditsWithoutStateUntilConverted(
-        pendingSetNames,
-        (edits) => _writeAllPendingFields(
-          database: project.database,
-          elementFields: const {},
-          sceneNotes: const {},
-          setNames: edits,
-        ),
-      );
+      // A flush that failed stops the ones after it, as the exception it used to raise did.
+      var isFlushed = !elementsFlushed.isError;
+      if (isFlushed) {
+        final notesFlushed = await flushEditsWithoutStateUntilConverted(
+          pendingSceneNotes,
+          (edits) => _writeAllPendingFields(
+            database: project.database,
+            elementFields: const {},
+            sceneNotes: edits,
+            setNames: const {},
+          ),
+        );
+        isFlushed = !notesFlushed.isError;
+      }
+
+      if (isFlushed) {
+        final _ = await flushEditsWithoutStateUntilConverted(
+          pendingSetNames,
+          (edits) => _writeAllPendingFields(
+            database: project.database,
+            elementFields: const {},
+            sceneNotes: const {},
+            setNames: edits,
+          ),
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending breakdown field edit of project "
@@ -432,11 +443,14 @@ class OcptBreakdownInspectorBloc
       return;
     }
 
-    await _elementsService.updateElement(
+    final updated = await _elementsService.updateElement(
       database: project.database,
       elementId: event.elementId,
       status: Value(event.status),
     );
+    if (updated.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
@@ -454,11 +468,14 @@ class OcptBreakdownInspectorBloc
       return;
     }
 
-    await _elementsService.updateElement(
+    final updated = await _elementsService.updateElement(
       database: project.database,
       elementId: event.elementId,
       category: Value(event.category),
     );
+    if (updated.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
@@ -504,7 +521,11 @@ class OcptBreakdownInspectorBloc
   /// bloc's own doc comment) into the matching named argument, then every entry of [sceneNotes]
   /// through `OcptBreakdownService.updateSceneBreakdown`, then every entry of [setNames] through
   /// `OcptLocationsService.updateSet`.
-  Future<void> _writeAllPendingFields({
+  ///
+  /// Stops at the first element write that fails and answers its failure; what comes after it is
+  /// not written. The scene notes and the set names still raise when the database fails.
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptElementField), String> elementFields,
     required Map<String, String> sceneNotes,
@@ -516,29 +537,41 @@ class OcptBreakdownInspectorBloc
 
       switch (field) {
         case OcptElementField.name:
-          await _elementsService.updateElement(
+          final nameWritten = await _elementsService.updateElement(
             database: database,
             elementId: elementId,
             name: Value(rawValue),
           );
+          if (nameWritten.isError) {
+            return nameWritten;
+          }
         case OcptElementField.subCategory:
-          await _elementsService.updateElement(
+          final subCategoryWritten = await _elementsService.updateElement(
             database: database,
             elementId: elementId,
             subCategory: Value(rawValue),
           );
+          if (subCategoryWritten.isError) {
+            return subCategoryWritten;
+          }
         case OcptElementField.quantity:
-          await _elementsService.updateElement(
+          final quantityWritten = await _elementsService.updateElement(
             database: database,
             elementId: elementId,
             quantity: Value(rawValue),
           );
+          if (quantityWritten.isError) {
+            return quantityWritten;
+          }
         case OcptElementField.notes:
-          await _elementsService.updateElement(
+          final notesWritten = await _elementsService.updateElement(
             database: database,
             elementId: elementId,
             notes: Value(rawValue),
           );
+          if (notesWritten.isError) {
+            return notesWritten;
+          }
         case OcptElementField.ownerNotes ||
             OcptElementField.storageNotes ||
             OcptElementField.cost ||
@@ -565,6 +598,8 @@ class OcptBreakdownInspectorBloc
         name: Value(entry.value),
       );
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Write the selected element's new owner immediately — a pick, not typing — then have the mode
@@ -578,11 +613,14 @@ class OcptBreakdownInspectorBloc
       return;
     }
 
-    await _elementsService.updateElement(
+    final updated = await _elementsService.updateElement(
       database: project.database,
       elementId: event.elementId,
       ownerPersonId: Value(event.personId),
     );
+    if (updated.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
@@ -598,11 +636,14 @@ class OcptBreakdownInspectorBloc
       return;
     }
 
-    await _elementsService.updateElement(
+    final updated = await _elementsService.updateElement(
       database: project.database,
       elementId: event.elementId,
       broughtByPersonId: Value(event.personId),
     );
+    if (updated.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }

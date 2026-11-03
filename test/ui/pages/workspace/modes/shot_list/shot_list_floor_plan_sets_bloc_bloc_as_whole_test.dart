@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_s
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_prop_summary.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
@@ -38,6 +39,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_floor_plan_sets_bloc_test_doubles.dart';
 
 /// A locations service whose set creation and renaming always fail, to exercise the sets bloc's
@@ -98,7 +100,7 @@ class _HoldingElementsService extends OcptElementsService {
   /// Read the props of the scene as the real service does, then hold the call for the scenes to be
   /// held.
   @override
-  Future<List<OcptScenePropSummary>> propsOfScene({
+  Future<OcptDatabaseResult<List<OcptScenePropSummary>>> propsOfScene({
     required OcptProjectDatabase database,
     required String sceneId,
   }) async {
@@ -333,17 +335,17 @@ void main() {
     /// Adds a prop named [name] to the breakdown of scene [sceneId], answering its element id.
     Future<String> addProp(String sceneId, String name) async {
       final project = projectsManager.currentProject!;
-      final elementId = (await projectsManager.elementsService.createElement(
-        database: project.database,
-        name: name,
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      ))!;
-      await projectsManager.elementsService.addSceneElement(
-        database: project.database,
-        sceneId: sceneId,
-        elementId: elementId,
-      );
+      final elementId = (await projectsManager.elementsService
+          .createElement(
+            database: project.database,
+            name: name,
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail);
+      await projectsManager.elementsService
+          .addSceneElement(database: project.database, sceneId: sceneId, elementId: elementId)
+          .maybeValueOrFail;
       return elementId;
     }
 

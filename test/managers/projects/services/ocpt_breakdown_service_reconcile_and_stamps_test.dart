@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the breakdown service reconcile and stamps.
 void main() {
@@ -594,12 +595,14 @@ Action two three.
     test("deleteEpisode stamps isDeleted on breakdown_tags, scene_breakdowns, scene_elements and "
         "scene_sets", () async {
       final scene = await saveSingleScene("INT. HOUSE - DAY\n\nAction one.\n");
-      final elementId = (await elementsService.createElement(
-        database: database,
-        name: "Desk lamp",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      ))!;
+      final elementId = (await elementsService
+          .createElement(
+            database: database,
+            name: "Desk lamp",
+            category: OcptElementCategory.prop,
+            sourceKind: OcptElementSourceKind.owned,
+          )
+          .valueOrFail);
       final tagId = (await breakdownService.createTag(
         database: database,
         sceneId: scene.id,
