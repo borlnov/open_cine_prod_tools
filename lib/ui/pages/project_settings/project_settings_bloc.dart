@@ -244,7 +244,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     // own name, but what it prices is the buffet, never a snack in the trade's own words.
     final buffetPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
     final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
-    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
+    final episodesRead = await _projectsManager.screenplayService.loadEpisodes(database: _database);
+    if (episodesRead.isError) {
+      return;
+    }
+
     final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
@@ -272,7 +276,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
         mealPriceCents: mealPriceCents,
         buffetPriceCents: buffetPriceCents,
         screenplayLanguage: screenplayLanguage,
-        episodes: episodes,
+        episodes: episodesRead.value!,
         mileageRates: mileageRatesRead.value!,
         dictionaryWords: dictionaryWords.value!,
       ),
@@ -585,10 +589,18 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsEpisodeAddedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    final id = await _projectsManager.screenplayService.createEpisode(database: _database);
+    final created = await _projectsManager.screenplayService.createEpisode(database: _database);
+    if (created.isError) {
+      return;
+    }
+
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
+    if (episodes.isError) {
+      return;
+    }
+
     await _projectsManager.recordCurrentProjectEpisodeCount();
-    emitter(state.copyWithEpisodeAdded(episodes: episodes, isAdded: id != null));
+    emitter(state.copyWithEpisodeAdded(episodes: episodes.value!, isAdded: created.value != null));
   }
 
   /// Write the newly committed title of `event.screenplayId`, then re-read the project's
@@ -597,13 +609,21 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsEpisodeTitleChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.screenplayService.updateEpisode(
+    final updated = await _projectsManager.screenplayService.updateEpisode(
       database: _database,
       screenplayId: event.screenplayId,
       title: Value(event.title),
     );
+    if (updated.isError) {
+      return;
+    }
+
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    emitter(state.copyWithEpisodesChanged(episodes: episodes));
+    if (episodes.isError) {
+      return;
+    }
+
+    emitter(state.copyWithEpisodesChanged(episodes: episodes.value!));
   }
 
   /// Write the newly committed printed number of `event.screenplayId`, then re-read the
@@ -612,13 +632,21 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsEpisodeNumberChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.screenplayService.updateEpisode(
+    final updated = await _projectsManager.screenplayService.updateEpisode(
       database: _database,
       screenplayId: event.screenplayId,
       number: Value(event.number),
     );
+    if (updated.isError) {
+      return;
+    }
+
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    emitter(state.copyWithEpisodesChanged(episodes: episodes));
+    if (episodes.isError) {
+      return;
+    }
+
+    emitter(state.copyWithEpisodesChanged(episodes: episodes.value!));
   }
 
   /// Move `event.screenplayId` to [OcptProjectSettingsEpisodeMovedEvent.newPosition], then re-read
@@ -627,13 +655,21 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsEpisodeMovedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.screenplayService.reorderEpisode(
+    final moved = await _projectsManager.screenplayService.reorderEpisode(
       database: _database,
       screenplayId: event.screenplayId,
       newPosition: event.newPosition,
     );
+    if (moved.isError) {
+      return;
+    }
+
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    emitter(state.copyWithEpisodesChanged(episodes: episodes));
+    if (episodes.isError) {
+      return;
+    }
+
+    emitter(state.copyWithEpisodesChanged(episodes: episodes.value!));
   }
 
   /// Delete `event.screenplayId` and its cascade, once the page's own `OcptConfirmDialog` confirmed
@@ -653,9 +689,17 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
       database: _database,
       screenplayId: event.screenplayId,
     );
+    if (deleted.isError) {
+      return;
+    }
+
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
+    if (episodes.isError) {
+      return;
+    }
+
     await _projectsManager.recordCurrentProjectEpisodeCount();
-    emitter(state.copyWithEpisodeDeleted(episodes: episodes, isDeleted: deleted));
+    emitter(state.copyWithEpisodeDeleted(episodes: episodes.value!, isDeleted: deleted.value!));
   }
 
   /// Append a new, blank mileage rate, then re-read the project's rates so the card shows what

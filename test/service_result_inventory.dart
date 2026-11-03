@@ -9,16 +9,7 @@
 /// converted. Converting a service removes its entries: the guard fails on an entry that no longer
 /// holds, so the list only ever shrinks, and it ends empty. What stays as it is for good is in
 /// [permanentServiceExceptions], not here.
-const pendingServiceMethods = <String>{
-  'OcptScreenplayService.createEpisode',
-  'OcptScreenplayService.deleteEpisode',
-  'OcptScreenplayService.loadEpisodes',
-  'OcptScreenplayService.loadScreenplayText',
-  'OcptScreenplayService.reorderEpisode',
-  'OcptScreenplayService.saveScreenplayText',
-  'OcptScreenplayService.snapshotOnProjectOpen',
-  'OcptScreenplayService.updateEpisode',
-};
+const pendingServiceMethods = <String>{};
 
 /// What stays as it is for good, each with the reason it is allowed to.
 ///

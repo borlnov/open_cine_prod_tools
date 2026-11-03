@@ -158,12 +158,14 @@ void main() {
 
   /// Saves [fountainText] as the screenplay's only content and returns its single resulting scene.
   Future<OcptSceneRow> saveSingleScene(String fountainText) async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: fountainText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: fountainText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     return (await readScenes()).single;
   }
 
@@ -493,12 +495,14 @@ void main() {
           .valueOrFail);
 
       const newText = "INT. HOUSE - DAY\n\nAction one FOUR.\n";
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: newText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: newText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       await breakdownService.reconcileTags(
         database: database,
         screenplayId: screenplayId,
@@ -755,10 +759,11 @@ void main() {
     test(
       "filter tombstones and rows whose scene is tombstoned, ordering tags by scene then offset",
       () async {
-        await screenplayService.saveScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-          fountainText: '''
+        await screenplayService
+            .saveScreenplayText(
+              database: database,
+              screenplayId: screenplayId,
+              fountainText: '''
 INT. HOUSE - DAY
 
 Action one two.
@@ -767,8 +772,9 @@ EXT. STREET - NIGHT
 
 Action three four.
 ''',
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
         final scenes = await readScenes();
         final houseScene = scenes.firstWhere((row) => row.heading == "INT. HOUSE - DAY");
         final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");

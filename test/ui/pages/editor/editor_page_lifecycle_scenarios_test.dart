@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 
+import '../../../ocpt_result_expectations.dart';
 import 'editor_page_scenarios_test_doubles.dart';
 
 /// Run the tests of the editor page lifecycle scenarios.
@@ -184,10 +185,9 @@ void main() {
   testWidgets("a text typed just before changing episode is saved into the episode it was typed "
       "in, and each episode keeps its own text", (tester) async {
     final project = harness.projectsManager.currentProject!;
-    final secondId = (await harness.projectsManager.screenplayService.createEpisode(
-      database: project.database,
-      title: "Episode two",
-    ))!;
+    final secondId = (await harness.projectsManager.screenplayService
+        .createEpisode(database: project.database, title: "Episode two")
+        .maybeValueOrFail)!;
     await harness.seedScreenplay("INT. ATTIC - DAY\n\nDust.\n", screenplayId: secondId);
     await harness.mountWorkspace(tester);
     final tr = harness.trOf(tester);

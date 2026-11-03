@@ -212,36 +212,32 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
       return;
     }
 
-    try {
-      if (await modeBloc.flushAllPendingWrites()) {
-        await _screenplayService.saveScreenplayText(
-          database: project.database,
-          screenplayId: modeBloc.screenplayIdOf(project),
-          fountainText: imported.fountainText,
-          snapshotReason: OcptSnapshotReason.import,
-        );
+    if (!await modeBloc.flushAllPendingWrites()) {
+      return;
+    }
 
-        await addToModeAndWait(OcptEditorImportedTextAppliedEvent(text: imported.fountainText));
-
-        emitter(
-          state.copyWithIoNotice(
-            ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importSucceeded),
-          ),
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to import a fountain file into project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final saved = await _screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: modeBloc.screenplayIdOf(project),
+      fountainText: imported.fountainText,
+      snapshotReason: OcptSnapshotReason.import,
+    );
+    if (saved.isError) {
       emitter(
         state.copyWithIoNotice(
           ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importFailed),
         ),
       );
+      return;
     }
+
+    await addToModeAndWait(OcptEditorImportedTextAppliedEvent(text: imported.fountainText));
+
+    emitter(
+      state.copyWithIoNotice(
+        ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importSucceeded),
+      ),
+    );
   }
 
   /// Clear the transient export/import notice currently shown, if any.

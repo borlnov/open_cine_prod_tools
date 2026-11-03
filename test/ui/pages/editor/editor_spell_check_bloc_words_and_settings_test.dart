@@ -220,12 +220,14 @@ void main() {
         await propertiesManager.spellCheckVisible.store(true);
         await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
         final project = projectsManager.currentProject!;
-        await projectsManager.screenplayService.saveScreenplayText(
-          database: project.database,
-          screenplayId: project.primaryScreenplayId,
-          fountainText: "Some text.\n",
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+        await projectsManager.screenplayService
+            .saveScreenplayText(
+              database: project.database,
+              screenplayId: project.primaryScreenplayId,
+              fountainText: "Some text.\n",
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
         final version = await projectsManager.createProjectVersion(name: "v1", note: "");
         expect(version, isNotNull);
 

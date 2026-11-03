@@ -74,12 +74,14 @@ void main() {
   Future<void> writeScreenplay(String text) async {
     final project = projectsManager.currentProject!;
 
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: text,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   }
 
   /// Builds a bloc wired to the test project. [overrideProjectsManager] lets a test swap in a
@@ -349,15 +351,17 @@ void main() {
       "primary screenplay", () async {
     await writeScreenplay("INT. PRIMARY - DAY\n\nAction one.\n");
     final project = projectsManager.currentProject!;
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-    );
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: secondEpisodeId!,
-      fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database)
+        .maybeValueOrFail;
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: secondEpisodeId!,
+          fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
     final inspectorBloc = OcptBreakdownInspectorBloc(

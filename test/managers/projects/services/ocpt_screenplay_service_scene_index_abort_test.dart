@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_s
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import '../../../ocpt_result_expectations.dart';
 
@@ -167,34 +168,37 @@ void main() {
   test(
     "a save whose scene index fails keeps the text, the snapshot and the stamps as they were",
     () async {
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nAction.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final untouched = await snapshot();
       await refuseSceneWrites();
 
-      await expectLater(
-        service.saveScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-          fountainText: "INT. CABIN - DAY\n\nAction.\n",
-          snapshotReason: OcptSnapshotReason.manual,
-        ),
-        throwsA(anything),
-      );
-
-      expect(await snapshot(), untouched, reason: "the text and its snapshot were rolled back");
-
-      await allowSceneWrites();
-      await service.saveScreenplayText(
+      final refused = await service.saveScreenplayText(
         database: database,
         screenplayId: screenplayId,
         fountainText: "INT. CABIN - DAY\n\nAction.\n",
         snapshotReason: OcptSnapshotReason.manual,
       );
+
+      expect(refused.status, OcptDatabaseStatus.databaseError);
+
+      expect(await snapshot(), untouched, reason: "the text and its snapshot were rolled back");
+
+      await allowSceneWrites();
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: "INT. CABIN - DAY\n\nAction.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       expect(await snapshot(), isNot(untouched), reason: "the same save goes through");
     },
   );
@@ -202,13 +206,17 @@ void main() {
   test(
     "an episode deletion whose scene tombstoning fails keeps the episode and its shots",
     () async {
-      final otherId = (await service.createEpisode(database: database, title: "Episode 2"))!;
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: otherId,
-        fountainText: "INT. GARDEN - DAY\n\nAction.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      final otherId = await service
+          .createEpisode(database: database, title: "Episode 2")
+          .valueOrFail;
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: otherId,
+            fountainText: "INT. GARDEN - DAY\n\nAction.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = await (database.select(
         database.ocptScenesTable,
       )..where((table) => table.screenplayId.equals(otherId))).getSingle();
@@ -218,15 +226,17 @@ void main() {
       final untouched = await snapshot();
       await refuseSceneWrites();
 
-      await expectLater(
-        service.deleteEpisode(database: database, screenplayId: otherId),
-        throwsA(anything),
-      );
+      final refused = await service.deleteEpisode(database: database, screenplayId: otherId);
+
+      expect(refused.status, OcptDatabaseStatus.databaseError);
 
       expect(await snapshot(), untouched, reason: "nothing the episode owns was tombstoned");
 
       await allowSceneWrites();
-      expect(await service.deleteEpisode(database: database, screenplayId: otherId), isTrue);
+      expect(
+        await service.deleteEpisode(database: database, screenplayId: otherId).valueOrFail,
+        isTrue,
+      );
       expect(await snapshot(), isNot(untouched), reason: "the same deletion goes through");
     },
   );

@@ -203,12 +203,14 @@ void main() {
 
   testWidgets("a character removed from the screenplay raises a banner that follows the keep "
       "action of its role", (tester) async {
-    await harness.projectsManager.screenplayService.saveScreenplayText(
-      database: harness.database,
-      screenplayId: harness.screenplayId,
-      fountainText: "INT. KITCHEN - DAY\n\nNobody here.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await harness.projectsManager.screenplayService
+        .saveScreenplayText(
+          database: harness.database,
+          screenplayId: harness.screenplayId,
+          fountainText: "INT. KITCHEN - DAY\n\nNobody here.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 

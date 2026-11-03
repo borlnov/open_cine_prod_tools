@@ -262,11 +262,13 @@ void main() {
   /// builds on, extending [projectsManager]'s own single-screenplay project rather than a parallel
   /// one.
   Future<String> addEpisode({String title = "", int? number}) async {
-    final id = await projectsManager.screenplayService.createEpisode(
-      database: projectsManager.currentProject!.database,
-      title: title,
-      number: number,
-    );
+    final id = await projectsManager.screenplayService
+        .createEpisode(
+          database: projectsManager.currentProject!.database,
+          title: title,
+          number: number,
+        )
+        .maybeValueOrFail;
     return id!;
   }
 
@@ -638,9 +640,9 @@ void main() {
     expect(bloc.state.episodes.length, 2);
     expect(bloc.state.episodes.last.number, 2);
     expect(bloc.state.hasChanged, isTrue);
-    final episodesInDatabase = await projectsManager.screenplayService.loadEpisodes(
-      database: projectsManager.currentProject!.database,
-    );
+    final episodesInDatabase = await projectsManager.screenplayService
+        .loadEpisodes(database: projectsManager.currentProject!.database)
+        .valueOrFail;
     expect(episodesInDatabase.length, 2);
 
     // The home card's badge learns about it without waiting for the project to be closed: an app
@@ -664,9 +666,9 @@ void main() {
     expect(bloc.state.episodes.single.title, "Le départ");
     expect(bloc.state.episodes.single.number, 5);
     expect(bloc.state.hasChanged, isTrue);
-    final episodesInDatabase = await projectsManager.screenplayService.loadEpisodes(
-      database: projectsManager.currentProject!.database,
-    );
+    final episodesInDatabase = await projectsManager.screenplayService
+        .loadEpisodes(database: projectsManager.currentProject!.database)
+        .valueOrFail;
     expect(episodesInDatabase.single.title, "Le départ");
     expect(episodesInDatabase.single.number, 5);
   });
@@ -755,9 +757,9 @@ void main() {
 
     expect(bloc.state.episodes.single.id, secondId);
     expect(bloc.state.hasChanged, isTrue);
-    final episodesInDatabase = await projectsManager.screenplayService.loadEpisodes(
-      database: projectsManager.currentProject!.database,
-    );
+    final episodesInDatabase = await projectsManager.screenplayService
+        .loadEpisodes(database: projectsManager.currentProject!.database)
+        .valueOrFail;
     expect(episodesInDatabase.single.id, secondId);
 
     // The home card's badge is brought back down to one episode straight away, exactly as adding

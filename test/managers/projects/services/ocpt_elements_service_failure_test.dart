@@ -124,12 +124,14 @@ void main() {
             updatedAt: DateTime.now(),
           ),
         );
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: "INT. HOUSE - DAY\n\nAction.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     final scene = await (database.select(
       database.ocptScenesTable,
     )..where((row) => row.isDeleted.equals(false))).getSingle();

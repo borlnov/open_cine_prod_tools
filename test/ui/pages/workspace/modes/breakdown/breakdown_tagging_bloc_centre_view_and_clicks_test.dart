@@ -70,12 +70,14 @@ void main() {
   Future<void> writeScreenplay(String text) async {
     final project = projectsManager.currentProject!;
 
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: text,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   }
 
   /// Writes a one-scene screenplay, an element tagged in it, and returns the scene and element
@@ -599,10 +601,9 @@ void main() {
       // The scene's own text slice is [charStart, charEnd) of the whole screenplay, exactly what
       // `ocptBreakdownSuggestionsOf` itself reads — offsets computed against a hand-typed literal
       // would drift from the parser's own real ones (the heading's own length, in particular).
-      final screenplayText = await projectsManager.screenplayService.loadScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
+      final screenplayText = await projectsManager.screenplayService
+          .loadScreenplayText(database: project.database, screenplayId: project.primaryScreenplayId)
+          .valueOrFail;
       final sceneAText = screenplayText.substring(sceneA.charStart, sceneA.charEnd);
       final taggedStart = sceneAText.indexOf("lamp");
       final tagId = await projectsManager.breakdownService

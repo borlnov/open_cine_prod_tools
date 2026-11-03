@@ -4,6 +4,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -15,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_s
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:uuid/uuid.dart';
 
@@ -123,16 +125,14 @@ class OcptScreenplayService extends AbsOcptService {
   }
 
   /// Load the current Fountain text of the screenplay [screenplayId] in [database].
-  Future<String> loadScreenplayText({
+  @useResult
+  Future<OcptDatabaseResult<String>> loadScreenplayText({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) async {
-    final row = await (database.select(
-      database.ocptScreenplaysTable,
-    )..where((table) => table.id.equals(screenplayId) & table.isDeleted.not())).getSingle();
-
-    return row.fountainText;
-  }
+  }) => guardResult(
+    "loadScreenplayText",
+    () => _readScreenplayText(database: database, screenplayId: screenplayId),
+  );
 
   /// Take the project-open safety snapshot of the screenplay [screenplayId] in [database]: unlike
   /// [snapshotBeforeRestore], nothing has already opened a transaction or seeded an
@@ -141,15 +141,19 @@ class OcptScreenplayService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> snapshotOnProjectOpen({
+  @useResult
+  Future<OcptDatabaseOutcome> snapshotOnProjectOpen({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => _snapshotCurrentText(
-    database: database,
-    screenplayId: screenplayId,
-    reason: OcptSnapshotReason.open,
-    operation: "snapshotOnProjectOpen",
-    stamps: null,
+  }) => guardOutcome(
+    "snapshotOnProjectOpen",
+    () => _snapshotCurrentText(
+      database: database,
+      screenplayId: screenplayId,
+      reason: OcptSnapshotReason.open,
+      operation: "snapshotOnProjectOpen",
+      stamps: null,
+    ),
   );
 
   /// Take the safety snapshot of the screenplay [screenplayId] in [database] that a project
@@ -188,12 +192,13 @@ class OcptScreenplayService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveScreenplayText({
+  @useResult
+  Future<OcptDatabaseOutcome> saveScreenplayText({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String fountainText,
     required OcptSnapshotReason snapshotReason,
-  }) async {
+  }) => guardOutcome("saveScreenplayText", () async {
     if (database.refusesUserWrite("saveScreenplayText")) {
       return;
     }
@@ -214,7 +219,7 @@ class OcptScreenplayService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Overwrite the screenplay [screenplayId]'s stored text with [fountainText] in [database] and
   /// rerun everything that depends on it — the shared core of every screenplay text write in the
@@ -317,10 +322,13 @@ class OcptScreenplayService extends AbsOcptService {
 
   /// Load every live episode of the project in [database] — every live `screenplays` row — in
   /// `sortKey` order.
-  Future<List<OcptEpisode>> loadEpisodes({required OcptProjectDatabase database}) async {
+  @useResult
+  Future<OcptDatabaseResult<List<OcptEpisode>>> loadEpisodes({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadEpisodes", () async {
     final rows = await _liveEpisodeRows(database: database);
     return rows.map(OcptEpisode.fromRow).toList(growable: false);
-  }
+  });
 
   /// Create a new, empty episode in [database], appended after the last live episode, and return
   /// its freshly generated id — the project settings page's "add an episode" action.
@@ -335,11 +343,12 @@ class OcptScreenplayService extends AbsOcptService {
   /// was, in a sense, just "saved" as empty.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createEpisode({
+  @useResult
+  Future<OcptDatabaseResult<String>> createEpisode({
     required OcptProjectDatabase database,
     String title = "",
     int? number,
-  }) async {
+  }) => guardResult("createEpisode", () async {
     if (database.refusesUserWrite("createEpisode")) {
       return null;
     }
@@ -373,7 +382,7 @@ class OcptScreenplayService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Update the fields of episode [screenplayId] in [database] that are passed as something other
   /// than [Value.absent].
@@ -384,12 +393,13 @@ class OcptScreenplayService extends AbsOcptService {
   /// `OcptRoleIndexService.updateRole`.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateEpisode({
+  @useResult
+  Future<OcptDatabaseOutcome> updateEpisode({
     required OcptProjectDatabase database,
     required String screenplayId,
     Value<String> title = const Value.absent(),
     Value<int> number = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateEpisode", () async {
     if (database.refusesUserWrite("updateEpisode")) {
       return;
     }
@@ -415,7 +425,7 @@ class OcptScreenplayService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Move episode [screenplayId] to [newPosition] (0-based) among the project's live episodes, by
   /// giving it a `sortKey` sitting between the two episodes it lands between. Writes **exactly one
@@ -427,11 +437,12 @@ class OcptScreenplayService extends AbsOcptService {
   /// method refuses to produce.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderEpisode({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderEpisode({
     required OcptProjectDatabase database,
     required String screenplayId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderEpisode", () async {
     if (database.refusesUserWrite("reorderEpisode")) {
       return;
     }
@@ -471,7 +482,7 @@ class OcptScreenplayService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone episode [screenplayId] and everything it alone owns — its safety snapshots, its
   /// scenes, its shots and their coverage, its breakdown (tags, scene statuses, and — through the
@@ -508,10 +519,11 @@ class OcptScreenplayService extends AbsOcptService {
   /// already lost its reason to exist before the row it hung off does.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<bool> deleteEpisode({
+  @useResult
+  Future<OcptDatabaseResult<bool>> deleteEpisode({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) async {
+  }) => guardResult("deleteEpisode", () async {
     if (database.refusesUserWrite("deleteEpisode")) {
       return false;
     }
@@ -591,6 +603,21 @@ class OcptScreenplayService extends AbsOcptService {
 
       return true;
     });
+  });
+
+  /// Read the current Fountain text of the screenplay [screenplayId] in [database].
+  ///
+  /// What [loadScreenplayText] answers, raising when the database fails: the snapshot below runs
+  /// inside a transaction of its own, and [snapshotBeforeRestore] inside its caller's.
+  Future<String> _readScreenplayText({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    final row = await (database.select(
+      database.ocptScreenplaysTable,
+    )..where((table) => table.id.equals(screenplayId) & table.isDeleted.not())).getSingle();
+
+    return row.fountainText;
   }
 
   /// Snapshot the text the screenplay [screenplayId] currently holds in [database], tagged
@@ -612,7 +639,7 @@ class OcptScreenplayService extends AbsOcptService {
       return;
     }
 
-    final currentText = await loadScreenplayText(database: database, screenplayId: screenplayId);
+    final currentText = await _readScreenplayText(database: database, screenplayId: screenplayId);
 
     await database.transaction(() async {
       final ownStamps =

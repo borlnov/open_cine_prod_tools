@@ -127,12 +127,14 @@ void main() {
         ..writeln("Action.")
         ..writeln();
     }
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: buffer.toString(),
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: buffer.toString(),
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     final rows = await (database.select(
       database.ocptScenesTable,
     )..where((row) => row.isDeleted.equals(false))).get();

@@ -343,12 +343,14 @@ class BreakdownScenarioHarness {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: screenplay,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: screenplay,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   }
 
   /// Closes the project and removes its folder.
@@ -455,10 +457,9 @@ class BreakdownScenarioHarness {
     required String targetId,
   }) async {
     final scene = (await readScenes())[sceneIndex];
-    final fullText = await projectsManager.screenplayService.loadScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-    );
+    final fullText = await projectsManager.screenplayService
+        .loadScreenplayText(database: database, screenplayId: screenplayId)
+        .valueOrFail;
     final sceneText = fullText.substring(scene.charStart, scene.charEnd);
     final start = sceneText.indexOf(text);
     expect(start, isNonNegative, reason: "$text must be in the scene");

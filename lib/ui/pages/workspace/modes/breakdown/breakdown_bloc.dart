@@ -377,7 +377,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     // older data over it.
     return runSerially(() async {
       final previewedVersion = project.previewedVersion;
-      final screenplayText = await _loadScreenplayText(project);
+      final screenplayTextRead = await _loadScreenplayText(project);
+      if (screenplayTextRead.isError) {
+        return false;
+      }
+
+      final screenplayText = screenplayTextRead.value!;
       final pageSetup = await _loadPageSetup(project);
       final snapshotRead = await _loadSnapshot(project);
       if (snapshotRead.isError) {
@@ -404,9 +409,14 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
   /// Read the selected episode's current Fountain source text, kept in
   /// `OcptBreakdownState.screenplayText` for the script view to slice scene by scene.
-  Future<String> _loadScreenplayText(OcptOpenProjectModel project) => _projectsManager
-      .screenplayService
-      .loadScreenplayText(database: project.database, screenplayId: _screenplayIdOf(project));
+  ///
+  /// Answers the failure of the read when the database could not be read.
+  @useResult
+  Future<OcptDatabaseResult<String>> _loadScreenplayText(OcptOpenProjectModel project) =>
+      _projectsManager.screenplayService.loadScreenplayText(
+        database: project.database,
+        screenplayId: _screenplayIdOf(project),
+      );
 
   /// Read the page setup the script view is typeset with: the open project's own page format,
   /// paired with the app-wide margins preference, exactly as `OcptShotListBloc`'s own scenario
@@ -431,8 +441,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// [_breakdownService], which `OcptScreenplayService` already depends on) and resolves the
   /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
   ///
-  /// Answers the failure of the scenes, tags, elements, roles, locations or people read, in place
-  /// of the snapshot.
+  /// Answers the failure of the episodes, scenes, tags, elements, roles, locations or people read,
+  /// in place of the snapshot.
   @useResult
   Future<OcptDatabaseResult<OcptBreakdownSnapshot>> _loadSnapshot(
     OcptOpenProjectModel project,
@@ -440,8 +450,15 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final database = project.database;
     final screenplayId = _screenplayIdOf(project);
 
-    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
-    final episodeNumber = ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId);
+    final episodesRead = await _projectsManager.screenplayService.loadEpisodes(database: database);
+    if (episodesRead.isError) {
+      return OcptDatabaseResult(status: episodesRead.status, extraInfo: episodesRead.extraInfo);
+    }
+
+    final episodeNumber = ocptEpisodePrefixNumberOf(
+      episodes: episodesRead.value!,
+      screenplayId: screenplayId,
+    );
 
     final scenesRead = await _breakdownService.loadScenes(
       database: database,

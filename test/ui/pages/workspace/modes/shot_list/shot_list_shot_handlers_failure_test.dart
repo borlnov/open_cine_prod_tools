@@ -76,12 +76,14 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: text,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     final sceneId =
         (await project.database.select(project.database.ocptScenesTable).get()).single.id;
     Future<String> shot() => projectsManager.shotListService

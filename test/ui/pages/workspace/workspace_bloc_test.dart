@@ -35,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// The method channel `flutter_secure_storage` talks over — mirrors
 /// `ocpt_sync_manager_pairing_test.dart`'s own mock, which this file's [OcptPairingService] needs
@@ -419,10 +420,9 @@ void main() {
   test('loads every episode in their sortKey order, still landing on the first', () async {
     final project = projectsManager.currentProject!;
     final firstEpisodeId = project.primaryScreenplayId;
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-      title: "Episode two",
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database, title: "Episode two")
+        .maybeValueOrFail;
     expect(secondEpisodeId, isNotNull);
 
     final bloc = buildBloc();
@@ -435,10 +435,9 @@ void main() {
 
   test('selecting an episode changes nothing else', () async {
     final project = projectsManager.currentProject!;
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-      title: "Episode two",
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database, title: "Episode two")
+        .maybeValueOrFail;
     expect(secondEpisodeId, isNotNull);
 
     final bloc = buildBloc();
@@ -456,10 +455,9 @@ void main() {
 
   test('selecting an episode leaves whichever mode was already active untouched', () async {
     final project = projectsManager.currentProject!;
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-      title: "Episode two",
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database, title: "Episode two")
+        .maybeValueOrFail;
     expect(secondEpisodeId, isNotNull);
 
     final bloc = buildBloc();
@@ -480,10 +478,9 @@ void main() {
     'a currentProjectStream reload keeps the selection when it still names a live episode',
     () async {
       final project = projectsManager.currentProject!;
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-        title: "Episode two",
-      );
+      final secondEpisodeId = await projectsManager.screenplayService
+          .createEpisode(database: project.database, title: "Episode two")
+          .maybeValueOrFail;
       expect(secondEpisodeId, isNotNull);
 
       final version = await projectsManager.createProjectVersion(name: "Both episodes", note: "");
@@ -518,10 +515,9 @@ void main() {
     final version = await projectsManager.createProjectVersion(name: "One episode only", note: "");
     expect(version, isNotNull);
 
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-      title: "Episode two",
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database, title: "Episode two")
+        .maybeValueOrFail;
     expect(secondEpisodeId, isNotNull);
 
     final bloc = buildBloc();

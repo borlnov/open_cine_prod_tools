@@ -679,10 +679,11 @@ Action two.
 
   test("detaching a shot's scene through a real saveScreenplayText call preserves its shots, "
       "their heading and drops their coverage", () async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
@@ -691,8 +692,9 @@ EXT. STREET - NIGHT
 
 Action two.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final scenesBefore =
         await (database.select(database.ocptScenesTable)
@@ -718,16 +720,18 @@ Action two.
         );
 
     // The new text drops the street scene entirely.
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final shot = (await readShots()).singleWhere((row) => row.id == shotId);
     expect(shot.sceneId, isNull);

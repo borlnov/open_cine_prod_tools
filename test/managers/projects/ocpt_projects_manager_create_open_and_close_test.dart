@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../ocpt_result_expectations.dart';
 
 /// Run the tests of the projects manager create open and close.
 void main() {
@@ -62,10 +63,12 @@ void main() {
     expect(manager.currentProject?.path, filePath);
     expect(manager.currentProject?.name, "My Movie");
 
-    final screenplayText = await manager.screenplayService.loadScreenplayText(
-      database: manager.currentProject!.database,
-      screenplayId: manager.currentProject!.primaryScreenplayId,
-    );
+    final screenplayText = await manager.screenplayService
+        .loadScreenplayText(
+          database: manager.currentProject!.database,
+          screenplayId: manager.currentProject!.primaryScreenplayId,
+        )
+        .valueOrFail;
     expect(screenplayText, "");
 
     final recents = await propertiesManager.recentProjects.load();
@@ -148,7 +151,9 @@ void main() {
   test("openProject records the project's own live episode count, not a stale one", () async {
     final filePath = p.join(tempDir.path, "movie.ocpt");
     await manager.createProject(name: "My Movie", filePath: filePath);
-    await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+    await manager.screenplayService
+        .createEpisode(database: manager.currentProject!.database)
+        .maybeValueOrFail;
     await manager.closeCurrentProject();
 
     // Tamper with what's stored, so the assertion below can only pass if openProject reads the
@@ -178,7 +183,9 @@ void main() {
     final filePath = p.join(tempDir.path, "movie.ocpt");
     await manager.createProject(name: "My Movie", filePath: filePath);
 
-    await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+    await manager.screenplayService
+        .createEpisode(database: manager.currentProject!.database)
+        .maybeValueOrFail;
     await manager.closeCurrentProject();
 
     final recents = await propertiesManager.recentProjects.load();
@@ -190,7 +197,9 @@ void main() {
     final filePath = p.join(tempDir.path, "movie.ocpt");
     await manager.createProject(name: "My Movie", filePath: filePath);
 
-    await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+    await manager.screenplayService
+        .createEpisode(database: manager.currentProject!.database)
+        .maybeValueOrFail;
     await manager.recordCurrentProjectEpisodeCount();
 
     // What an app quit from inside the project would leave behind: the project is still open,
@@ -214,7 +223,9 @@ void main() {
     final version = await manager.createProjectVersion(name: "v1", note: "");
 
     // The working copy grows a second episode after the version was captured.
-    await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+    await manager.screenplayService
+        .createEpisode(database: manager.currentProject!.database)
+        .maybeValueOrFail;
 
     await manager.previewVersion(version!.id);
     await manager.recordCurrentProjectEpisodeCount();
@@ -230,7 +241,9 @@ void main() {
     final version = await manager.createProjectVersion(name: "v1", note: "");
 
     // The working copy grows a second episode after the version was captured.
-    await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+    await manager.screenplayService
+        .createEpisode(database: manager.currentProject!.database)
+        .maybeValueOrFail;
 
     await manager.previewVersion(version!.id);
     expect(manager.currentProject!.isReadOnly, isTrue);

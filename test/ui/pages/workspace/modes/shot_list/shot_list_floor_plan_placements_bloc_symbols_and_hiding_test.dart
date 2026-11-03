@@ -30,6 +30,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_floor_plan_placements_bloc_test_doubles.dart';
 
 /// Run the tests of the shot list floor plan placements bloc symbols and hiding.
@@ -108,12 +109,14 @@ void main() {
   Future<void> writeScreenplay(String text) async {
     final project = projectsManager.currentProject!;
 
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: text,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   }
 
   /// Builds the mode bloc wired to the test project, reading the floor plans through

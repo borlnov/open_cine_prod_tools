@@ -32,6 +32,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_s
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -130,13 +131,15 @@ class _RecordingScreenplayService extends OcptScreenplayService {
 
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   @override
-  Future<void> saveScreenplayText({
+  Future<OcptDatabaseOutcome> saveScreenplayText({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String fountainText,
     required OcptSnapshotReason snapshotReason,
   }) async {
     savedTexts.add(fountainText);
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 }
 

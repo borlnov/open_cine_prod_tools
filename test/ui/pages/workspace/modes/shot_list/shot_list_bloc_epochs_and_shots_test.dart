@@ -222,12 +222,14 @@ void main() {
   Future<void> writeScreenplay(String text) async {
     final project = projectsManager.currentProject!;
 
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: text,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   }
 
   /// Builds a bloc wired to the test project. [overrideProjectsManager] lets a test swap in a
@@ -674,15 +676,17 @@ void main() {
       'primary screenplay', () async {
     await writeScreenplay(twoSceneText);
     final project = projectsManager.currentProject!;
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-    );
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: secondEpisodeId!,
-      fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database)
+        .maybeValueOrFail;
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: secondEpisodeId!,
+          fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
     final state = await waitForState(bloc, (state) => !state.isLoading);
@@ -862,12 +866,14 @@ void main() {
       filePath: p.join(tempDir.path, "working_copy.ocpt"),
     );
     expect(created.status.isSuccess, isTrue);
-    await countingManager.screenplayService.saveScreenplayText(
-      database: countingManager.currentProject!.database,
-      screenplayId: countingManager.currentProject!.primaryScreenplayId,
-      fountainText: twoSceneText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await countingManager.screenplayService
+        .saveScreenplayText(
+          database: countingManager.currentProject!.database,
+          screenplayId: countingManager.currentProject!.primaryScreenplayId,
+          fountainText: twoSceneText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final bloc = buildBloc(overrideProjectsManager: countingManager);
     final inspector = OcptShotListInspectorBloc(

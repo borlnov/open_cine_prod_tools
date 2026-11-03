@@ -35,9 +35,13 @@ abstract final class OcptProjectEpisodeOps {
       return;
     }
 
-    final episodeCount = (await screenplayService.loadEpisodes(
-      database: project.fileDatabase,
-    )).length;
+    final episodes = await screenplayService.loadEpisodes(database: project.fileDatabase);
+    if (episodes.isError) {
+      // Raises as the database used to: this goes when the manager answers a result of its own.
+      throw StateError("The episodes of the project could not be counted");
+    }
+
+    final episodeCount = episodes.value!.length;
 
     onClosed();
 
@@ -77,9 +81,13 @@ abstract final class OcptProjectEpisodeOps {
       return;
     }
 
-    final episodeCount = (await screenplayService.loadEpisodes(
-      database: project.fileDatabase,
-    )).length;
+    final episodes = await screenplayService.loadEpisodes(database: project.fileDatabase);
+    if (episodes.isError) {
+      // Raises as the database used to: this goes when the manager answers a result of its own.
+      throw StateError("The episodes of the project could not be counted");
+    }
+
+    final episodeCount = episodes.value!.length;
 
     await recordEpisodeCount(
       path: project.path,

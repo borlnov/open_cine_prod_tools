@@ -8,11 +8,9 @@ import 'dart:io';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -57,12 +55,6 @@ import 'package:path/path.dart' as p;
 /// file through.
 class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     with MixinOcptProjectPackageBloc<OcptHomeState>, MixinAsyncInitBloc<OcptHomeState> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "home_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The properties manager used to read/update the recent projects list.
   final OcptPropertiesManager _propertiesManager;
 
@@ -110,8 +102,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptRouterManager? routerManager,
     FileSelectorManager? fileSelectorManager,
     OcptExportManager? exportManager,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+  }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
@@ -465,27 +456,15 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       return;
     }
 
-    var isTextSaved = false;
-    try {
-      final project = result.value!;
-      await _projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: imported.fountainText,
-        snapshotReason: OcptSnapshotReason.import,
-      );
-      isTextSaved = true;
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to import a fountain file into a project: "
-        "${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final project = result.value!;
+    final saved = await _projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      fountainText: imported.fountainText,
+      snapshotReason: OcptSnapshotReason.import,
+    );
+    if (saved.isError) {
       emitter(state.copyWithFailure(error: OcptProjectStatus.ioError));
-    }
-
-    if (!isTextSaved) {
       return;
     }
 

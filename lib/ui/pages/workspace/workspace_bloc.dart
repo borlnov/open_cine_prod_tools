@@ -9,6 +9,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
@@ -177,8 +179,12 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     await super.initAsyncBloc(emit: emit);
 
     const mode = OcptWorkspaceMode.screenplay;
-    final episodes = await _loadEpisodes();
-    emit(state.copyToLoaded(mode: mode, episodes: episodes));
+    final episodesRead = await _loadEpisodes();
+    if (episodesRead.isError) {
+      return;
+    }
+
+    emit(state.copyToLoaded(mode: mode, episodes: episodesRead.value!));
 
     // Re-host first: a *fresh* host start's own self-seed has already started the sync session (and
     // presence) against this machine's hosted relay, so the ordinary paired-project start is
@@ -295,25 +301,21 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     OcptWorkspaceEpisodesReloadRequestedEvent event,
     Emitter<OcptWorkspaceState> emitter,
   ) async {
-    try {
-      final episodes = await _loadEpisodes();
-      final currentSelection = state.selectedEpisodeId;
-      final stillLive = episodes.any((episode) => episode.id == currentSelection);
-      final selectedEpisodeId = stillLive
-          ? currentSelection
-          : (episodes.isEmpty ? null : episodes.first.id);
-
-      emitter(
-        state.copyWithReloadedEpisodes(episodes: episodes, selectedEpisodeId: selectedEpisodeId),
-      );
-    } catch (error, stackTrace) {
-      _logger.w(
-        "A problem occurred when tried to reload the project's episodes, most likely because "
-        "the project already closed: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final episodesRead = await _loadEpisodes();
+    if (episodesRead.isError) {
+      return;
     }
+
+    final episodes = episodesRead.value!;
+    final currentSelection = state.selectedEpisodeId;
+    final stillLive = episodes.any((episode) => episode.id == currentSelection);
+    final selectedEpisodeId = stillLive
+        ? currentSelection
+        : (episodes.isEmpty ? null : episodes.first.id);
+
+    emitter(
+      state.copyWithReloadedEpisodes(episodes: episodes, selectedEpisodeId: selectedEpisodeId),
+    );
   }
 
   /// Apply the episode picked from the toolbar's episode selector. Nothing else about the state
@@ -327,10 +329,11 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
   }
 
   /// Get the open project's live episodes, in `sortKey` order, or empty while no project is open.
-  Future<List<OcptEpisode>> _loadEpisodes() async {
+  @useResult
+  Future<OcptDatabaseResult<List<OcptEpisode>>> _loadEpisodes() async {
     final project = _projectsManager.currentProject;
     if (project == null) {
-      return const [];
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok, value: []);
     }
 
     return _projectsManager.screenplayService.loadEpisodes(database: project.database);

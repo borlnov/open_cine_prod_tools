@@ -536,16 +536,18 @@ void main() {
           ),
         );
 
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 John walks in.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final scene = await database.select(database.ocptScenesTable).getSingle();
     final wholeFountainText =

@@ -6,12 +6,11 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -71,9 +70,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// The default delay between the last edit and the autosave.
   static const defaultAutosaveDebounce = Duration(seconds: 2);
 
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "editor_bloc";
-
   /// The parser used to build the [FountainDocument] shown in the preview and the scene panel.
   static const _fountainParser = FountainParser();
 
@@ -86,9 +82,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     startOffset: 0,
     endOffset: 0,
   );
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -164,8 +157,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Duration parseDebounce = defaultParseDebounce,
     Duration autosaveDebounce = defaultAutosaveDebounce,
     String? selectedEpisodeId,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _isDisposing = false,
+  }) : _isDisposing = false,
        _selectedEpisodeId = selectedEpisodeId,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -260,10 +252,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<bool> reloadFromProjectDatabase(Emitter<OcptEditorState> emitter) async {
-    await _load(emitter);
-    return true;
-  }
+  Future<bool> reloadFromProjectDatabase(Emitter<OcptEditorState> emitter) => _load(emitter);
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   ///
@@ -273,7 +262,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   @override
   Future<void> initAsyncBloc({required Emitter<OcptEditorState> emit}) async {
     await super.initAsyncBloc(emit: emit);
-    await _load(emit);
+    final _ = await _load(emit);
   }
 
   /// Load the current project's screenplay text, title and page format, and parse the text,
@@ -287,7 +276,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// which version is being previewed alongside the text it just read: what it read comes from that
   /// very version's in-memory database, and the two must reach the page together (see the hook's
   /// own doc comment).
-  Future<void> _load(Emitter<OcptEditorState> emitter) async {
+  ///
+  /// Answers whether it went through: false when the screenplay's text could not be read, with
+  /// nothing emitted.
+  @useResult
+  Future<bool> _load(Emitter<OcptEditorState> emitter) async {
     final mode = await _propertiesManager.editorMode.load() ?? OcptEditorMode.styled;
     final isPageSimulationEnabled = await _propertiesManager.isPageSimulationEnabled.load() ?? true;
     final areStyledSceneNumbersVisible =
@@ -334,13 +327,18 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           forceAutoClosedRightDockTabValue: dockTabTransition.forceAutoClosedRightDockTabValue,
         ),
       );
-      return;
+      return true;
     }
 
-    final text = await _screenplayService.loadScreenplayText(
+    final textRead = await _screenplayService.loadScreenplayText(
       database: project.database,
       screenplayId: screenplayIdOf(project),
     );
+    if (textRead.isError) {
+      return false;
+    }
+
+    final text = textRead.value!;
     final document = _fountainParser.parse(text);
     final pageSetup = await _loadPageSetup(project);
 
@@ -364,6 +362,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         forceAutoClosedRightDockTabValue: dockTabTransition.forceAutoClosedRightDockTabValue,
       ),
     );
+
+    return true;
   }
 
   /// Read the page setup [project] is typeset with: the version's own while one is being
@@ -516,29 +516,23 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final textToSave = state.text;
     emitter(state.copyWithSaving());
 
-    try {
-      await _screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: screenplayIdOf(project),
-        fountainText: textToSave,
-        snapshotReason: reason,
-      );
-
-      emitter(state.copyWithSaved(isDirty: state.text != textToSave, lastSavedAt: DateTime.now()));
-
-      // The other of the two moments the working-copy card needs a fresh read for (see
-      // `_onRightDockTabSelected`): a save that lands while the tab showing it is already open.
-      if (state.rightDockTab == OcptEditorRightDockTab.versions) {
-        add(const OcptProjectWorkingCopyRefreshRequestedEvent());
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to save the screenplay of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final saved = await _screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: screenplayIdOf(project),
+      fountainText: textToSave,
+      snapshotReason: reason,
+    );
+    if (saved.isError) {
       emitter(state.copyWithSaveFailed());
+      return;
+    }
+
+    emitter(state.copyWithSaved(isDirty: state.text != textToSave, lastSavedAt: DateTime.now()));
+
+    // The other of the two moments the working-copy card needs a fresh read for (see
+    // `_onRightDockTabSelected`): a save that lands while the tab showing it is already open.
+    if (state.rightDockTab == OcptEditorRightDockTab.versions) {
+      add(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
   }
 
@@ -874,7 +868,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// Cancels the debounce timers and flushes any pending unsaved change with a best-effort save,
   /// so leaving the page right after typing never loses the last edits. The flush bypasses the
   /// event queue (the bloc is closing), and a failure here is only logged: the page is already
-  /// gone, so there is no UI left to surface it to.
+  /// gone, so there is no UI left to surface it to (the service has logged it).
   @override
   Future<void> disposeLifeCycle() async {
     _isDisposing = true;
@@ -887,21 +881,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final undeliveredText = _undeliveredText;
     final project = _projectsManager.currentProject;
     if (project != null && (state.isDirty || undeliveredText != null) && !state.isSaving) {
-      try {
-        await _screenplayService.saveScreenplayText(
-          database: project.database,
-          screenplayId: screenplayIdOf(project),
-          fountainText: undeliveredText ?? state.text,
-          snapshotReason: OcptSnapshotReason.timer,
-        );
-      } catch (error, stackTrace) {
-        _logger.e(
-          "A problem occurred when tried to flush the screenplay of project "
-          "${project.primaryScreenplayId} while leaving the editor: ${error.runtimeType}",
-          null,
-          stackTrace,
-        );
-      }
+      final _ = await _screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: screenplayIdOf(project),
+        fountainText: undeliveredText ?? state.text,
+        snapshotReason: OcptSnapshotReason.timer,
+      );
     }
 
     return super.disposeLifeCycle();

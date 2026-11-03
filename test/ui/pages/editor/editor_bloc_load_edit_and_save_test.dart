@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'editor_bloc_test_doubles.dart';
 
 /// A projects manager that counts how many times a working-copy capture actually reads the whole
@@ -150,21 +151,25 @@ void main() {
   test('constructed with a second episode selected, reads and writes that episode rather than '
       'the primary screenplay', () async {
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: "INT. PRIMARY - DAY\n\nAction one.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-    );
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: secondEpisodeId!,
-      fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "INT. PRIMARY - DAY\n\nAction one.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database)
+        .maybeValueOrFail;
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: secondEpisodeId!,
+          fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
     final state = await waitForState(bloc, (state) => !state.isLoading);
@@ -177,14 +182,12 @@ void main() {
     bloc.add(const OcptEditorSaveRequestedEvent(isManual: true));
     await waitForState(bloc, (state) => !state.isDirty && !state.isSaving);
 
-    final primaryText = await projectsManager.screenplayService.loadScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
-    final secondEpisodeText = await projectsManager.screenplayService.loadScreenplayText(
-      database: project.database,
-      screenplayId: secondEpisodeId,
-    );
+    final primaryText = await projectsManager.screenplayService
+        .loadScreenplayText(database: project.database, screenplayId: project.primaryScreenplayId)
+        .valueOrFail;
+    final secondEpisodeText = await projectsManager.screenplayService
+        .loadScreenplayText(database: project.database, screenplayId: secondEpisodeId)
+        .valueOrFail;
     expect(primaryText, contains("PRIMARY"));
     expect(secondEpisodeText, contains("REWRITTEN"));
 
@@ -258,10 +261,9 @@ void main() {
       expect(savedState.isSaving, isFalse);
 
       final project = projectsManager.currentProject!;
-      final storedText = await projectsManager.screenplayService.loadScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
+      final storedText = await projectsManager.screenplayService
+          .loadScreenplayText(database: project.database, screenplayId: project.primaryScreenplayId)
+          .valueOrFail;
       expect(storedText, editedText);
 
       final snapshots = await readSnapshots();

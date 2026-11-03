@@ -32,6 +32,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// A router manager whose [pop] does nothing: these tests never leave the workspace.
 class _SilentRouterManager extends OcptRouterManager {
@@ -154,12 +155,14 @@ void main() {
   Future<({OcptShotListBloc mode, OcptShotListInspectorBloc inspector, String versionId})>
   setUpTypedEdit() async {
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: "INT. HOUSE - DAY\n\nAction one.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "INT. HOUSE - DAY\n\nAction one.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     final version = await projectsManager.createProjectVersion(name: "v1", note: "");
 
     final mode = OcptShotListBloc(

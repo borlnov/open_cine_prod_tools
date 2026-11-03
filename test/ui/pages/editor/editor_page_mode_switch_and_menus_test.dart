@@ -46,6 +46,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 
+import '../../../ocpt_result_expectations.dart';
 import 'editor_page_test_doubles.dart';
 
 /// An export manager whose [exportFountain] is stubbed and records the episode tag it was handed,
@@ -141,12 +142,14 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: sampleText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: sampleText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   });
 
   tearDown(() async {
@@ -514,9 +517,9 @@ void main() {
     "a project holding two episodes dispatches the selected one's tag when exporting to Fountain",
     (tester) async {
       final project = projectsManager.currentProject!;
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-      );
+      final secondEpisodeId = await projectsManager.screenplayService
+          .createEpisode(database: project.database)
+          .maybeValueOrFail;
 
       final exportManager = _RecordingExportManager();
       useExportManager(exportManager);
@@ -609,12 +612,14 @@ void main() {
       (index) => "Action line number $index goes here.",
     ).join("\n\n");
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: longText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: longText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     await pumpEditorPage(tester);
     await tester.pumpAndSettle();
@@ -666,12 +671,14 @@ void main() {
       expect(version, isNotNull);
 
       // The working copy moves on, so what the preview shows and what the project holds differ.
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "EXT. ROOFTOP - DAWN\n\nThe rewrite.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "EXT. ROOFTOP - DAWN\n\nThe rewrite.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       await pumpEditorPage(tester);
       await tester.pumpAndSettle();

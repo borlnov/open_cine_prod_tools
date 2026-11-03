@@ -138,16 +138,18 @@ void main() {
 
   group("addRange", () {
     test("computes and stores the digest of the covered text", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final shotId = (await shotListService
           .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
@@ -175,16 +177,18 @@ Action one.
     });
 
     test("accepts a range spanning more than one block", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final shotId = (await shotListService
           .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
@@ -218,16 +222,18 @@ Action one.
     });
 
     test("merges a range into the one it overlaps, keeping a single row", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one two three.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final shotId = (await shotListService
           .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
@@ -267,16 +273,18 @@ Action one two three.
     });
 
     test("merges two ranges a single space apart: they already read as one highlight", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one two three.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final shotId = (await shotListService
           .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
@@ -313,16 +321,18 @@ Action one two three.
     });
 
     test("a range bridging two existing ones absorbs both", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one two three four.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final shotId = (await shotListService
           .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
@@ -374,16 +384,18 @@ Action one two three four.
     });
 
     test("leaves apart two ranges with real text between them", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one two three.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final shotId = (await shotListService
           .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
@@ -419,16 +431,18 @@ Action one two three.
     });
 
     test("never merges across two shots, nor across two scenes", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one two.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final shotA = (await shotListService
           .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
@@ -469,16 +483,18 @@ Action one two.
     });
 
     test("still rejects an empty, inverted or negative range, writing nothing", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final shotId = (await shotListService
           .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
@@ -504,10 +520,11 @@ Action one.
 
   test("a coverage range survives a scene that moves because a scene above it grew: "
       "no digest change, no needsCheck", () async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
@@ -516,8 +533,9 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final streetScene = (await readScenes()).firstWhere(
       (row) => row.heading == "EXT. STREET - NIGHT",
@@ -553,12 +571,14 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''';
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: newText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: newText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     await coverageService.refreshStaleness(
       database: database,
@@ -578,10 +598,11 @@ Action two three.
   });
 
   test("an edit inside the covered range flags the owning shot", () async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action.
@@ -590,8 +611,9 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final streetScene = (await readScenes()).firstWhere(
       (row) => row.heading == "EXT. STREET - NIGHT",
@@ -626,12 +648,14 @@ EXT. STREET - NIGHT
 
 Action TWO three.
 ''';
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: newText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: newText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     await coverageService.refreshStaleness(
       database: database,
       screenplayId: screenplayId,
@@ -648,16 +672,18 @@ Action TWO three.
     // The other staleness tests call refreshStaleness explicitly, which would still pass if the
     // save pass had never been wired to it. This one never calls it: saving is the only trigger,
     // exactly as it is in the running app.
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action one two.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final scene = (await readScenes()).single;
     final shotId = (await shotListService
@@ -682,16 +708,18 @@ Action one two.
 
     expect((await readShot(shotId)).needsCheck, isFalse);
 
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action ONE two.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final shot = await readShot(shotId);
     expect(shot.needsCheck, isTrue);
@@ -699,10 +727,11 @@ Action ONE two.
   });
 
   test("an edit after the covered range, still inside the same scene, stays quiet", () async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action.
@@ -711,8 +740,9 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final streetScene = (await readScenes()).firstWhere(
       (row) => row.heading == "EXT. STREET - NIGHT",
@@ -749,12 +779,14 @@ EXT. STREET - NIGHT
 
 Action two four.
 ''';
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: newText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: newText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     await coverageService.refreshStaleness(
       database: database,
       screenplayId: screenplayId,
@@ -768,10 +800,11 @@ Action two four.
   });
 
   test("a range that no longer fits its scene is clamped and flagged as out of bounds", () async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action.
@@ -780,8 +813,9 @@ EXT. STREET - NIGHT
 
 Action two three four.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final streetScene = (await readScenes()).firstWhere(
       (row) => row.heading == "EXT. STREET - NIGHT",
@@ -818,12 +852,14 @@ EXT. STREET - NIGHT
 
 Action two.
 ''';
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: newText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: newText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     await coverageService.refreshStaleness(
       database: database,
       screenplayId: screenplayId,

@@ -310,9 +310,20 @@ abstract final class OcptProjectOpenOps {
     );
     onOpened(project);
 
-    await screenplayService.snapshotOnProjectOpen(database: database, screenplayId: screenplay.id);
+    final snapshotted = await screenplayService.snapshotOnProjectOpen(
+      database: database,
+      screenplayId: screenplay.id,
+    );
+    if (snapshotted.isError) {
+      return _failedOpening(database: database, failure: snapshotted);
+    }
 
-    final episodeCount = (await screenplayService.loadEpisodes(database: database)).length;
+    final episodes = await screenplayService.loadEpisodes(database: database);
+    if (episodes.isError) {
+      return _failedOpening(database: database, failure: episodes);
+    }
+
+    final episodeCount = episodes.value!.length;
 
     await propertiesManager.addRecentProject(
       OcptRecentProjectModel(
@@ -326,6 +337,25 @@ abstract final class OcptProjectOpenOps {
     logger.i("A project was opened: ${screenplay.id}, $episodeCount episode(s)");
 
     return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
+  }
+
+  /// Close [database] and answer the status [openProject] gives a step of the opening that raised:
+  /// a file that sqlite itself refused is corrupted, anything else is an I/O failure.
+  ///
+  /// The screenplay service answers the failure of such a step instead of raising it, with the
+  /// type of what it caught as `extraInfo`: the verdict is the one [openProject] reaches for an
+  /// exception of the same type.
+  static Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> _failedOpening({
+    required OcptProjectDatabase database,
+    required StatusWithExtraInfo<MixinResultStatus> failure,
+  }) async {
+    await database.close();
+
+    return ResultWithStatus(
+      status: failure.extraInfo == SqliteException
+          ? OcptProjectStatus.corruptedFile
+          : OcptProjectStatus.ioError,
+    );
   }
 
   /// Answer whether the file at [filePath] may be handed to drift, and take the backup when a

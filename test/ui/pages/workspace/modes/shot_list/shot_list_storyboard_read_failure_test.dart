@@ -89,12 +89,14 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: twoSceneText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: twoSceneText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     // Two shots, the second one holding a panel: the first one can be deleted without reading the
     // marks, which the read after it cannot do.

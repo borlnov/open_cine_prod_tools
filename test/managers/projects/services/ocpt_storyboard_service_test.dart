@@ -118,16 +118,18 @@ void main() {
   /// Saves a one-scene screenplay and returns the fresh shot id created inside it, ready for a
   /// panel to be attached to.
   Future<String> seedShot() async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     final scene = await (database.select(
       database.ocptScenesTable,
     )..where((row) => row.isDeleted.equals(false))).getSingle();

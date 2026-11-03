@@ -224,12 +224,15 @@ void main() {
     final tr = harness.trOf(tester);
     expect(find.text(tr.roleAlertCompactOrphanedLine("SAM")), findsNothing);
 
-    await harness.projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: "INT. KITCHEN - DAY\n\nHe enters.\n\nEXT. GARDEN - NIGHT\n\nA teapot rests.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await harness.projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText:
+              "INT. KITCHEN - DAY\n\nHe enters.\n\nEXT. GARDEN - NIGHT\n\nA teapot rests.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     // Any write reloads the snapshot the banner reads its cast from.
     await harness.openRightDock(tester);
     await harness.tap(tester, find.text("INT. KITCHEN - DAY").last);

@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_set_picker_popover.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_target_inspector.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'breakdown_mode_scenarios_test_doubles.dart';
 
 /// Run the tests of the breakdown mode inspector scenarios.
@@ -459,14 +460,16 @@ void main() {
       targetId: teapotId,
     );
     final project = harness.projectsManager.currentProject!;
-    await harness.projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText:
-          "INT. KITCHEN - DAY\n\nSAM enters with a kettle on the chair.\n\nSAM\nHello.\n\n"
-          "EXT. GARDEN - NIGHT\n\nA teapot rests by the old rake.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await harness.projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText:
+              "INT. KITCHEN - DAY\n\nSAM enters with a kettle on the chair.\n\nSAM\nHello.\n\n"
+              "EXT. GARDEN - NIGHT\n\nA teapot rests by the old rake.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     expect((await harness.readTags()).where((tag) => tag.needsCheck), hasLength(2));
     await harness.mount(tester);
     final tr = harness.trOf(tester);

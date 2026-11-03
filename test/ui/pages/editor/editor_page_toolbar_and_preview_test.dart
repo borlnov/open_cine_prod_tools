@@ -38,6 +38,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 
+import '../../../ocpt_result_expectations.dart';
 import 'editor_page_test_doubles.dart';
 
 /// Run the tests of the editor page toolbar and preview.
@@ -109,12 +110,14 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: sampleText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: sampleText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   });
 
   tearDown(() async {
@@ -240,12 +243,14 @@ void main() {
       final text = buffer.toString();
       final project = projectsManager.currentProject!;
       await tester.runAsync(
-        () => projectsManager.screenplayService.saveScreenplayText(
-          database: project.database,
-          screenplayId: project.primaryScreenplayId,
-          fountainText: text,
-          snapshotReason: OcptSnapshotReason.manual,
-        ),
+        () => projectsManager.screenplayService
+            .saveScreenplayText(
+              database: project.database,
+              screenplayId: project.primaryScreenplayId,
+              fountainText: text,
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail,
       );
 
       await pumpEditorPage(tester);

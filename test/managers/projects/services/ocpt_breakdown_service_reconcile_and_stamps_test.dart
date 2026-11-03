@@ -154,12 +154,14 @@ void main() {
 
   /// Saves [fountainText] as the screenplay's only content and returns its single resulting scene.
   Future<OcptSceneRow> saveSingleScene(String fountainText) async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: fountainText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: fountainText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     return (await readScenes()).single;
   }
 
@@ -236,12 +238,14 @@ void main() {
           .valueOrFail);
 
       const newText = "INT. HOUSE - DAY\n\nAction one, with a lot more happening, two.\n";
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: newText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: newText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       await breakdownService.reconcileTags(
         database: database,
         screenplayId: screenplayId,
@@ -258,10 +262,11 @@ void main() {
     });
 
     test("needs no re-anchoring when the edit is in a preceding scene", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
@@ -270,8 +275,9 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final streetScene = (await readScenes()).firstWhere(
         (row) => row.heading == "EXT. STREET - NIGHT",
       );
@@ -301,12 +307,14 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''';
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: newText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: newText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       await breakdownService.reconcileTags(
         database: database,
         screenplayId: screenplayId,
@@ -340,12 +348,14 @@ Action two three.
           .valueOrFail);
 
       const newText = "INT. HOUSE - DAY\n\nAction one FOUR.\n";
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: newText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: newText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       await breakdownService.reconcileTags(
         database: database,
         screenplayId: screenplayId,
@@ -381,12 +391,14 @@ Action two three.
       // Inserting a word before "alpha" shifts the stored offset off "beta", and a second "beta"
       // appears right after the first: now ambiguous.
       const newText = "INT. HOUSE - DAY\n\nAction extra alpha beta beta.\n";
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: newText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: newText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       await breakdownService.reconcileTags(
         database: database,
         screenplayId: screenplayId,
@@ -419,12 +431,14 @@ Action two three.
           .valueOrFail);
 
       const goneText = "INT. HOUSE - DAY\n\nAction one FOUR.\n";
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: goneText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: goneText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       await breakdownService.reconcileTags(
         database: database,
         screenplayId: screenplayId,
@@ -434,12 +448,14 @@ Action two three.
       expect((await readTag(tagId)).needsCheck, isTrue);
 
       // Back to the exact original text: the stored offsets are valid again.
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: originalText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: originalText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       await breakdownService.reconcileTags(
         database: database,
         screenplayId: screenplayId,
@@ -454,10 +470,11 @@ Action two three.
     });
 
     test("tombstones a tag whose scene disappeared", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
@@ -466,8 +483,9 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final streetScene = (await readScenes()).firstWhere(
         (row) => row.heading == "EXT. STREET - NIGHT",
       );
@@ -485,12 +503,14 @@ Action two three.
           .valueOrFail);
 
       const newText = "INT. HOUSE - DAY\n\nAction one.\n";
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: newText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: newText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       await breakdownService.reconcileTags(
         database: database,
         screenplayId: screenplayId,
@@ -662,14 +682,15 @@ Action two three.
       final sceneSetId = (await readLiveSceneSets()).single.id;
 
       // A second, unrelated episode so this one is not the project's last live one.
-      await screenplayService.createEpisode(database: database, title: "Episode 2");
+      await screenplayService
+          .createEpisode(database: database, title: "Episode 2")
+          .maybeValueOrFail;
 
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final deleted = await screenplayService.deleteEpisode(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final deleted = await screenplayService
+          .deleteEpisode(database: database, screenplayId: screenplayId)
+          .valueOrFail;
       expect(deleted, isTrue);
 
       final stamps = await readStamps();

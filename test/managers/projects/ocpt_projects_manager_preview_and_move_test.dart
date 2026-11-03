@@ -89,21 +89,25 @@ void main() {
         filePath: p.join(tempDir.path, "movie.ocpt"),
       )).value!;
 
-      await manager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: text,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await manager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: text,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final version = (await manager.createProjectVersion(name: "v1 — First read", note: ""))!;
 
-      await manager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: textAfterwards,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await manager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: textAfterwards,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       return version;
     }
@@ -112,19 +116,20 @@ void main() {
     /// through (the previewed one while a preview is up).
     Future<String> readTextThroughCurrentDatabase() async {
       final project = manager.currentProject!;
-      return manager.screenplayService.loadScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
+      return manager.screenplayService
+          .loadScreenplayText(database: project.database, screenplayId: project.primaryScreenplayId)
+          .valueOrFail;
     }
 
     /// The text of the open project's screenplay, read through the project file itself.
     Future<String> readTextThroughFile() async {
       final project = manager.currentProject!;
-      return manager.screenplayService.loadScreenplayText(
-        database: project.fileDatabase,
-        screenplayId: project.primaryScreenplayId,
-      );
+      return manager.screenplayService
+          .loadScreenplayText(
+            database: project.fileDatabase,
+            screenplayId: project.primaryScreenplayId,
+          )
+          .valueOrFail;
     }
 
     test('shows the version through the project model, and emits a model of its own', () async {
@@ -162,12 +167,14 @@ void main() {
 
       // And it is still writable: a preview is not a write lock on the project, only on what the
       // user is looking at. This is the slot the sync engine will write incoming changesets to.
-      await manager.screenplayService.saveScreenplayText(
-        database: fileDatabase,
-        screenplayId: manager.currentProject!.primaryScreenplayId,
-        fountainText: "EXT. STREET - NIGHT\n\nWritten while a version was on screen.",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await manager.screenplayService
+          .saveScreenplayText(
+            database: fileDatabase,
+            screenplayId: manager.currentProject!.primaryScreenplayId,
+            fountainText: "EXT. STREET - NIGHT\n\nWritten while a version was on screen.",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       await manager.exitPreview();
 
@@ -218,12 +225,14 @@ void main() {
 
       final project = manager.currentProject!;
 
-      await manager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nAn edit that must not happen.",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await manager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nAn edit that must not happen.",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final createdShotId = await manager.shotListService
           .createShot(
             database: project.database,
@@ -383,7 +392,9 @@ void main() {
 
     test("restoring records the episode count the restored version brings back", () async {
       final version = await createDivergedProject();
-      await manager.screenplayService.createEpisode(database: manager.currentProject!.database);
+      await manager.screenplayService
+          .createEpisode(database: manager.currentProject!.database)
+          .maybeValueOrFail;
       await manager.recordCurrentProjectEpisodeCount();
 
       await manager.restoreProjectVersion(versionId: version.id, safetyVersionName: "Before");
@@ -589,12 +600,14 @@ void main() {
         final oldPath = p.join(tempDir.path, "movie.ocpt");
         final newPath = p.join(tempDir.path, "moved", "movie.ocpt");
         await manager.createProject(name: "My Movie", filePath: oldPath);
-        await manager.screenplayService.saveScreenplayText(
-          database: manager.currentProject!.database,
-          screenplayId: manager.currentProject!.primaryScreenplayId,
-          fountainText: "INT. HOUSE - DAY\n\nAction.\n",
-          snapshotReason: OcptSnapshotReason.timer,
-        );
+        await manager.screenplayService
+            .saveScreenplayText(
+              database: manager.currentProject!.database,
+              screenplayId: manager.currentProject!.primaryScreenplayId,
+              fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+              snapshotReason: OcptSnapshotReason.timer,
+            )
+            .okOrFail;
 
         final result = await manager.moveCurrentProject(newFilePath: newPath);
 
@@ -604,10 +617,12 @@ void main() {
         expect(File(oldPath).existsSync(), isFalse);
         expect(File(newPath).existsSync(), isTrue);
 
-        final screenplayText = await manager.screenplayService.loadScreenplayText(
-          database: manager.currentProject!.database,
-          screenplayId: manager.currentProject!.primaryScreenplayId,
-        );
+        final screenplayText = await manager.screenplayService
+            .loadScreenplayText(
+              database: manager.currentProject!.database,
+              screenplayId: manager.currentProject!.primaryScreenplayId,
+            )
+            .valueOrFail;
         expect(screenplayText, "INT. HOUSE - DAY\n\nAction.\n");
       },
     );

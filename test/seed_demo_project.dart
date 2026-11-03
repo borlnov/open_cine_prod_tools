@@ -45,6 +45,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:uuid/uuid.dart';
 
+import 'ocpt_result_expectations.dart';
 import 'seed_demo_project_budget.dart';
 import 'seed_demo_project_catalogue.dart';
 import 'seed_demo_project_data.dart';
@@ -177,12 +178,14 @@ void main() {
           ),
         );
 
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: demoFountainText,
-      snapshotReason: OcptSnapshotReason.import,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: demoFountainText,
+          snapshotReason: OcptSnapshotReason.import,
+        )
+        .okOrFail;
 
     // ---------------------------------------------------------------- the scene index just built
 

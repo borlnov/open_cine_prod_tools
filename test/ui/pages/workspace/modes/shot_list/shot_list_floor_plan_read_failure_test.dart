@@ -111,12 +111,14 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: twoSceneText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: twoSceneText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     // A set linked to the first scene, so that the plans have something to read, and two shots:
     // the first one can be selected, and deleted, whatever the plans hold.

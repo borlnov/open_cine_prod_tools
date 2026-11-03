@@ -85,12 +85,14 @@ void main() {
   Future<void> writeScreenplay(String text) async {
     final project = projectsManager.currentProject!;
 
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: text,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   }
 
   /// Writes a one-scene screenplay, creates a shot in it, a shooting day with its default slot,
@@ -182,16 +184,18 @@ void main() {
       await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
       final project = projectsManager.currentProject!;
 
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-      );
+      final secondEpisodeId = await projectsManager.screenplayService
+          .createEpisode(database: project.database)
+          .maybeValueOrFail;
       expect(secondEpisodeId, isNotNull);
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: secondEpisodeId!,
-        fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: secondEpisodeId!,
+            fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final firstSceneId = (await (project.database.select(
         project.database.ocptScenesTable,
@@ -295,16 +299,18 @@ void main() {
       await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
       final project = projectsManager.currentProject!;
 
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-      );
+      final secondEpisodeId = await projectsManager.screenplayService
+          .createEpisode(database: project.database)
+          .maybeValueOrFail;
       expect(secondEpisodeId, isNotNull);
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: secondEpisodeId!,
-        fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: secondEpisodeId!,
+            fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final secondSceneId = (await (project.database.select(
         project.database.ocptScenesTable,
@@ -323,10 +329,9 @@ void main() {
 
       // What the settings page's own Episodes card writes before it pops.
       expect(
-        await projectsManager.screenplayService.deleteEpisode(
-          database: project.database,
-          screenplayId: secondEpisodeId,
-        ),
+        await projectsManager.screenplayService
+            .deleteEpisode(database: project.database, screenplayId: secondEpisodeId)
+            .valueOrFail,
         isTrue,
       );
 

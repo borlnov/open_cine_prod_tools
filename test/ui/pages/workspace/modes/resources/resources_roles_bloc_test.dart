@@ -172,21 +172,25 @@ void main() {
     test("constructed with a second episode selected, reads and writes that episode rather than "
         "the primary screenplay", () async {
       final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. PRIMARY - DAY\n\nAction one.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-      );
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: secondEpisodeId!,
-        fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. PRIMARY - DAY\n\nAction one.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
+      final secondEpisodeId = await projectsManager.screenplayService
+          .createEpisode(database: project.database)
+          .maybeValueOrFail;
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: secondEpisodeId!,
+            fountainText: "INT. SECOND EPISODE - NIGHT\n\nAction two.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final bloc = buildBloc(selectedEpisodeId: secondEpisodeId);
       final rolesBloc = buildRoles(bloc);
@@ -289,9 +293,9 @@ void main() {
       "changing a role's episodes writes through setRoleEpisodes and the reload shows it",
       () async {
         final project = projectsManager.currentProject!;
-        final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-          database: project.database,
-        );
+        final secondEpisodeId = await projectsManager.screenplayService
+            .createEpisode(database: project.database)
+            .maybeValueOrFail;
 
         final bloc = buildBloc();
         final rolesBloc = buildRoles(bloc);
@@ -430,12 +434,14 @@ void main() {
       "make a hand-added role sharing a screenplay role's name raise a collision alert",
       () async {
         final project = projectsManager.currentProject!;
-        await projectsManager.screenplayService.saveScreenplayText(
-          database: project.database,
-          screenplayId: project.primaryScreenplayId,
-          fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+        await projectsManager.screenplayService
+            .saveScreenplayText(
+              database: project.database,
+              screenplayId: project.primaryScreenplayId,
+              fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
 
         final bloc = buildBloc();
         final rolesBloc = buildRoles(bloc, fieldEditDebounce: _neverDebounce);

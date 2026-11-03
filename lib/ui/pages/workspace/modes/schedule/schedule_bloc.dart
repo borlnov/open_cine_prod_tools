@@ -549,14 +549,18 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// read of [_projectsManager]'s own `screenplayService` right after this one returned would risk
   /// disagreeing with it if an episode was renamed or reordered in between.
   ///
-  /// Answers the failure of the first shot list that could not be read, in place of the episodes
-  /// and their shot lists. The read of the episodes still raises when the database fails.
+  /// Answers the failure of the episodes, or of the first shot list that could not be read, in
+  /// place of the episodes and their shot lists.
   @useResult
   Future<OcptDatabaseResult<({List<OcptEpisode> episodes, List<OcptShotListSnapshot> shotLists})>>
   _loadShotLists(OcptOpenProjectModel project) async {
     final database = project.database;
-    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
+    final episodesRead = await _projectsManager.screenplayService.loadEpisodes(database: database);
+    if (episodesRead.isError) {
+      return OcptDatabaseResult(status: episodesRead.status, extraInfo: episodesRead.extraInfo);
+    }
 
+    final episodes = episodesRead.value!;
     final shotLists = <OcptShotListSnapshot>[];
     for (final episode in episodes) {
       final shotListRead = await _shotListService.loadShotList(

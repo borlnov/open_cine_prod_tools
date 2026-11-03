@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
 /// The app language every projects manager built here is given, so a created project's own
@@ -108,12 +109,15 @@ class FailingScreenplayService extends OcptScreenplayService {
 
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   @override
-  Future<void> saveScreenplayText({
+  Future<OcptDatabaseOutcome> saveScreenplayText({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String fountainText,
     required OcptSnapshotReason snapshotReason,
-  }) async => throw StateError("save intentionally failed for the test");
+  }) async => const OcptDatabaseOutcome(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "save intentionally failed for the test",
+  );
 }
 
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a

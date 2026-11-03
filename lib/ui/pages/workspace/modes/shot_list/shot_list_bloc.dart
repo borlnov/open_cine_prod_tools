@@ -257,85 +257,72 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return false;
     }
 
-    var isReloaded = false;
-    try {
-      OcptShotListSnapshot? snapshot;
-      OcptShotFieldSuggestions? suggestions;
-      OcptStoryboardSnapshot? storyboardSnapshot;
-      OcptFloorPlanSnapshot? floorPlanSnapshot;
-      List<OcptLocation>? locations;
-      Map<String, List<OcptFloorPlanSymbol>>? setScopeSymbolsBySetId;
-      List<OcptRole>? roles;
+    OcptShotListSnapshot? snapshot;
+    OcptShotFieldSuggestions? suggestions;
+    OcptStoryboardSnapshot? storyboardSnapshot;
+    OcptFloorPlanSnapshot? floorPlanSnapshot;
+    List<OcptLocation>? locations;
+    Map<String, List<OcptFloorPlanSymbol>>? setScopeSymbolsBySetId;
+    List<OcptRole>? roles;
 
-      var isRead = true;
+    var isRead = true;
 
-      // A switch statement over an enum must name every value: a scope added to the enum does not
-      // compile until it is read here.
-      for (final scope in scopes) {
-        switch (scope) {
-          case OcptShotListReloadScope.snapshot:
-            final read = await _reader.loadSnapshot(project);
-            isRead = !read.isError;
-            snapshot = read.value;
-          case OcptShotListReloadScope.suggestions:
-            final read = await _reader.loadSuggestions(project);
-            isRead = !read.isError;
-            suggestions = read.value;
-          case OcptShotListReloadScope.storyboard:
-            final read = await _reader.loadStoryboard(project);
-            isRead = !read.isError;
-            storyboardSnapshot = read.value;
-          case OcptShotListReloadScope.floorPlans:
-            final read = await _reader.loadFloorPlans(project);
-            isRead = !read.isError;
-            floorPlanSnapshot = read.value;
-          case OcptShotListReloadScope.locations:
-            final read = await _reader.loadLocations(project);
-            isRead = !read.isError;
-            locations = read.value;
-          case OcptShotListReloadScope.setScopeSymbols:
-            final read = await _reader.loadSetScopeSymbolsBySetId(project);
-            isRead = !read.isError;
-            setScopeSymbolsBySetId = read.value;
-          case OcptShotListReloadScope.roles:
-            final read = await _reader.loadRoles(project);
-            isRead = !read.isError;
-            roles = read.value;
-        }
-
-        if (!isRead) {
-          break;
-        }
+    // A switch statement over an enum must name every value: a scope added to the enum does not
+    // compile until it is read here.
+    for (final scope in scopes) {
+      switch (scope) {
+        case OcptShotListReloadScope.snapshot:
+          final read = await _reader.loadSnapshot(project);
+          isRead = !read.isError;
+          snapshot = read.value;
+        case OcptShotListReloadScope.suggestions:
+          final read = await _reader.loadSuggestions(project);
+          isRead = !read.isError;
+          suggestions = read.value;
+        case OcptShotListReloadScope.storyboard:
+          final read = await _reader.loadStoryboard(project);
+          isRead = !read.isError;
+          storyboardSnapshot = read.value;
+        case OcptShotListReloadScope.floorPlans:
+          final read = await _reader.loadFloorPlans(project);
+          isRead = !read.isError;
+          floorPlanSnapshot = read.value;
+        case OcptShotListReloadScope.locations:
+          final read = await _reader.loadLocations(project);
+          isRead = !read.isError;
+          locations = read.value;
+        case OcptShotListReloadScope.setScopeSymbols:
+          final read = await _reader.loadSetScopeSymbolsBySetId(project);
+          isRead = !read.isError;
+          setScopeSymbolsBySetId = read.value;
+        case OcptShotListReloadScope.roles:
+          final read = await _reader.loadRoles(project);
+          isRead = !read.isError;
+          roles = read.value;
       }
 
-      if (isRead) {
-        emitter(
-          state.copyWithReloadedData(
-            snapshot: snapshot,
-            suggestions: suggestions,
-            storyboardSnapshot: storyboardSnapshot,
-            floorPlanSnapshot: floorPlanSnapshot,
-            locations: locations,
-            setScopeSymbolsBySetId: setScopeSymbolsBySetId,
-            roles: roles,
-          ),
-        );
-      } else {
-        emitter(state.copyToWriteFailed());
+      if (!isRead) {
+        break;
       }
+    }
 
-      isReloaded = isRead;
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to read again the $scopes of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
+    if (isRead) {
+      emitter(
+        state.copyWithReloadedData(
+          snapshot: snapshot,
+          suggestions: suggestions,
+          storyboardSnapshot: storyboardSnapshot,
+          floorPlanSnapshot: floorPlanSnapshot,
+          locations: locations,
+          setScopeSymbolsBySetId: setScopeSymbolsBySetId,
+          roles: roles,
+        ),
       );
+    } else {
       emitter(state.copyToWriteFailed());
     }
 
-    return isReloaded;
+    return isRead;
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
@@ -375,9 +362,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// which version is being previewed alongside the shot list it just read, the two reaching the
   /// mode together (see the hook's own doc comment).
   ///
-  /// Answers false when the shot list, the board, the floor plans, the locations, the cast or the
-  /// field suggestions could not be read, in which case nothing is emitted and the caller stops
-  /// there. The read of the screenplay text and the episodes still raises when the database fails.
+  /// Answers false when the screenplay text, the shot list, the board, the floor plans, the
+  /// locations, the cast or the field suggestions could not be read, in which case nothing is
+  /// emitted and the caller stops there.
   @useResult
   Future<bool> _load(Emitter<OcptShotListState> emitter) async {
     final leftDockFraction =
@@ -413,7 +400,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     // older data over it.
     return runSerially(() async {
       final previewedVersion = project.previewedVersion;
-      final screenplayText = await _reader.loadScreenplayText(project);
+      final screenplayTextRead = await _reader.loadScreenplayText(project);
+      if (screenplayTextRead.isError) {
+        return false;
+      }
+
+      final screenplayText = screenplayTextRead.value!;
       final pageSetup = await _reader.loadPageSetup(project);
       final snapshotRead = await _reader.loadSnapshot(project);
       if (snapshotRead.isError) {
@@ -807,64 +799,54 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    try {
-      await runSerially(() async {
-        final snapshotRead = await _reader.loadSnapshot(project);
-        if (snapshotRead.isError) {
-          emitter(state.copyToWriteFailed());
-          return;
-        }
+    await runSerially(() async {
+      final snapshotRead = await _reader.loadSnapshot(project);
+      if (snapshotRead.isError) {
+        emitter(state.copyToWriteFailed());
+        return;
+      }
 
-        final snapshot = snapshotRead.value!;
-        final reselectedShotId = wasSelected
-            ? ocptFirstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
-            : state.selectedShotId;
+      final snapshot = snapshotRead.value!;
+      final reselectedShotId = wasSelected
+          ? ocptFirstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
+          : state.selectedShotId;
 
-        final suggestionsRead = await _reader.loadSuggestions(project);
-        if (suggestionsRead.isError) {
-          emitter(state.copyToWriteFailed());
-          return;
-        }
+      final suggestionsRead = await _reader.loadSuggestions(project);
+      if (suggestionsRead.isError) {
+        emitter(state.copyToWriteFailed());
+        return;
+      }
 
-        final suggestions = suggestionsRead.value!;
-        final storyboardRead = await _reader.loadStoryboard(project);
-        if (storyboardRead.isError) {
-          emitter(state.copyToWriteFailed());
-          return;
-        }
+      final suggestions = suggestionsRead.value!;
+      final storyboardRead = await _reader.loadStoryboard(project);
+      if (storyboardRead.isError) {
+        emitter(state.copyToWriteFailed());
+        return;
+      }
 
-        final storyboardSnapshot = storyboardRead.value!;
-        final floorPlanRead = await _reader.loadFloorPlans(project);
-        if (floorPlanRead.isError) {
-          emitter(state.copyToWriteFailed());
-          return;
-        }
+      final storyboardSnapshot = storyboardRead.value!;
+      final floorPlanRead = await _reader.loadFloorPlans(project);
+      if (floorPlanRead.isError) {
+        emitter(state.copyToWriteFailed());
+        return;
+      }
 
-        final floorPlanSnapshot = floorPlanRead.value!;
-        emitter(
-          state.copyWithDeletedShot(
-            snapshot: snapshot,
-            suggestions: suggestions,
-            storyboardSnapshot: storyboardSnapshot,
-            // `OcptShotListService.deleteShot`'s own cascade tombstones the shot's floor plan
-            // symbols and arrows alongside it
-            // (`OcptFloorPlanService.tombstoneFloorPlanRowsOfShot`), so the floor plans view must
-            // re-read too, exactly as the board does above.
-            floorPlanSnapshot: floorPlanSnapshot,
-            reselectedShotId: reselectedShotId,
-            wasSelected: wasSelected,
-          ),
-        );
-      });
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete shot ${event.shotId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
+      final floorPlanSnapshot = floorPlanRead.value!;
+      emitter(
+        state.copyWithDeletedShot(
+          snapshot: snapshot,
+          suggestions: suggestions,
+          storyboardSnapshot: storyboardSnapshot,
+          // `OcptShotListService.deleteShot`'s own cascade tombstones the shot's floor plan
+          // symbols and arrows alongside it
+          // (`OcptFloorPlanService.tombstoneFloorPlanRowsOfShot`), so the floor plans view must
+          // re-read too, exactly as the board does above.
+          floorPlanSnapshot: floorPlanSnapshot,
+          reselectedShotId: reselectedShotId,
+          wasSelected: wasSelected,
+        ),
       );
-      emitter(state.copyToWriteFailed());
-    }
+    });
   }
 
   /// Select centre view `event.view`, dispatched by `OcptShotListCentreHeader`'s own switch, and

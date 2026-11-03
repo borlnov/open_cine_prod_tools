@@ -42,6 +42,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_mode_test_doubles.dart';
 
 /// An export manager whose [exportShotListXlsx] is stubbed and records the episode tag it was
@@ -132,12 +133,14 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   });
 
   tearDown(() async {
@@ -342,9 +345,9 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final project = projectsManager.currentProject!;
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database)
+        .maybeValueOrFail;
 
     final exportManager = _RecordingExportManager();
     useExportManager(exportManager);

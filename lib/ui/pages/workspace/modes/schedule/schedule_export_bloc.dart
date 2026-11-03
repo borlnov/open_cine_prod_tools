@@ -6,6 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_sides_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
@@ -14,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
@@ -455,33 +457,41 @@ class OcptScheduleExportBloc
       return;
     }
 
+    var isReadFailed = false;
     try {
       final options = event.options;
-      final documents = await _documentsOfDay(project: project, plan: plan, dayId: options.dayId);
-
-      final outcome = await _exportManager.exportSides(
+      final documentsRead = await _documentsOfDay(
+        project: project,
         plan: plan,
         dayId: options.dayId,
-        documents: documents,
-        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
-        labels: event.labels,
-        projectName: modeBloc.state.title,
-        includeSceneNumbers: options.includeSceneNumbers,
-        presentation: options.presentation,
-        fileTypeLabel: event.fileTypeLabel,
-        shareAnchor: event.shareAnchor,
       );
-      // The user cancelled the save dialog (a null outcome): nothing is reported.
-      if (outcome != null) {
-        emitter(
-          state.copyWithIoNotice(
-            ioNotice: OcptScheduleIoNotice(
-              kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
-              path: outcome.savedPath,
-              wasShared: outcome.wasShared,
-            ),
-          ),
+      isReadFailed = documentsRead.isError;
+      final documents = documentsRead.value;
+      if (documents != null) {
+        final outcome = await _exportManager.exportSides(
+          plan: plan,
+          dayId: options.dayId,
+          documents: documents,
+          pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
+          labels: event.labels,
+          projectName: modeBloc.state.title,
+          includeSceneNumbers: options.includeSceneNumbers,
+          presentation: options.presentation,
+          fileTypeLabel: event.fileTypeLabel,
+          shareAnchor: event.shareAnchor,
         );
+        // The user cancelled the save dialog (a null outcome): nothing is reported.
+        if (outcome != null) {
+          emitter(
+            state.copyWithIoNotice(
+              ioNotice: OcptScheduleIoNotice(
+                kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+                path: outcome.savedPath,
+                wasShared: outcome.wasShared,
+              ),
+            ),
+          );
+        }
       }
     } catch (error, stackTrace) {
       _logger.e(
@@ -490,6 +500,14 @@ class OcptScheduleExportBloc
         null,
         stackTrace,
       );
+      emitter(
+        state.copyWithIoNotice(
+          ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
+        ),
+      );
+    }
+
+    if (isReadFailed) {
       emitter(
         state.copyWithIoNotice(
           ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
@@ -508,7 +526,11 @@ class OcptScheduleExportBloc
   /// set is walked against [OcptScheduleState.episodes] rather than the other way round, so an
   /// episode the day does not play is silently absent and the ones it does play come out in the
   /// project's own episode order regardless of which scene happened to name them first.
-  Future<List<({String screenplayId, FountainDocument document})>> _documentsOfDay({
+  ///
+  /// Answers the failure of the first screenplay that could not be read, in place of the documents.
+  @useResult
+  Future<OcptDatabaseResult<List<({String screenplayId, FountainDocument document})>>>
+  _documentsOfDay({
     required OcptOpenProjectModel project,
     required OcptSchedulePlanSnapshot plan,
     required String dayId,
@@ -525,14 +547,21 @@ class OcptScheduleExportBloc
         continue;
       }
 
-      final screenplayText = await _projectsManager.screenplayService.loadScreenplayText(
+      final screenplayRead = await _projectsManager.screenplayService.loadScreenplayText(
         database: project.database,
         screenplayId: episode.id,
       );
-      documents.add((screenplayId: episode.id, document: parser.parse(screenplayText)));
+      if (screenplayRead.isError) {
+        return OcptDatabaseResult(
+          status: screenplayRead.status,
+          extraInfo: screenplayRead.extraInfo,
+        );
+      }
+
+      documents.add((screenplayId: episode.id, document: parser.parse(screenplayRead.value!)));
     }
 
-    return documents;
+    return OcptDatabaseResult(status: OcptDatabaseStatus.ok, value: documents);
   }
 
   /// Clear the transient export notice currently shown, if any.

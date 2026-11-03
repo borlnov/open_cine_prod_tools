@@ -193,12 +193,14 @@ void main() {
   /// ordered as they appear in the text — the real reconciliation path, rather than a hand-inserted
   /// scene, since the breakdown restore tests below need real scene ids a real tag can point at.
   Future<List<OcptSceneRow>> saveScreenplayScenes(String fountainText) async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: fountainText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: fountainText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     return (database.select(database.ocptScenesTable)
           ..where((table) => table.isDeleted.equals(false))

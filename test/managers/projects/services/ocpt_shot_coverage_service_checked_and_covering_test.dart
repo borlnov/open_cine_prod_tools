@@ -144,10 +144,11 @@ void main() {
           .get();
 
   test("markAsChecked re-stamps digests so a second refreshStaleness stays quiet", () async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action.
@@ -156,8 +157,9 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final streetScene = (await readScenes()).firstWhere(
       (row) => row.heading == "EXT. STREET - NIGHT",
@@ -191,12 +193,14 @@ EXT. STREET - NIGHT
 
 Action TWO three.
 ''';
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: editedText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: editedText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     await coverageService.refreshStaleness(
       database: database,
       screenplayId: screenplayId,
@@ -228,16 +232,18 @@ Action TWO three.
   });
 
   test("removing a coverage range tombstones its row", () async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action one two three.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final scene = (await readScenes()).single;
     final shotA = (await shotListService
@@ -285,16 +291,18 @@ Action one two three.
   });
 
   test("a shot whose ranges were all cleared stops being flagged stale by a later save", () async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action one two three.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final scene = (await readScenes()).single;
     final shotId = (await shotListService
@@ -319,16 +327,18 @@ Action one two three.
     expect(await readRanges(), isEmpty);
 
     // Rewriting the text the cleared range covered must not raise a flag through a tombstone.
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action four five six.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     expect((await readShot(shotId)).needsCheck, isFalse);
   });
@@ -485,16 +495,18 @@ Action four five six.
     /// A shot on a fresh, single-scene screenplay, and that scene's own current text — ready for a
     /// test to add a coverage range against.
     Future<(String shotId, OcptSceneRow scene, String sceneText)> insertShotWithScene() async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one two three.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final shotId = (await shotListService
           .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)

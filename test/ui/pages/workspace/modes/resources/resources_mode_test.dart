@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close the
 /// export panel opened through `showDialog` exactly as the real `GoRouter.pop` would — both push
@@ -228,12 +229,14 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptResourcesMode()));
       await tester.pumpAndSettle();
@@ -247,12 +250,14 @@ void main() {
       // (`OcptResourcesMode` itself only wires the `BlocProvider` up), so that's where a test
       // reaches it from — mirroring `editor_page_mode_switch_and_menus_test.dart`'s own
       // `BlocProvider.of` calls.
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final bloc = BlocProvider.of<OcptResourcesBloc>(
         tester.element(find.byType(OcptWorkspaceShell)),
       );

@@ -258,10 +258,11 @@ Action.
     });
 
     test("a scene tombstoned by a save no longer shows a sequence of its own", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
@@ -270,8 +271,9 @@ EXT. STREET - NIGHT
 
 Action two.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       expect(
         (await shotListService
@@ -281,16 +283,18 @@ Action two.
         hasLength(2),
       );
 
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final sequences =
           (await shotListService
@@ -346,16 +350,18 @@ Action two.
           .maybeValueOrFail;
 
       // Dropping the street scene orphans its shot.
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final snapshot = await shotListService
           .loadShotList(database: database, screenplayId: screenplayId, episodeNumber: 3)

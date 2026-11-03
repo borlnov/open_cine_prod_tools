@@ -37,6 +37,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_mode_test_doubles.dart';
 
 /// Run the tests of the shot list mode floor plans.
@@ -83,12 +84,14 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   });
 
   tearDown(() async {
@@ -370,12 +373,15 @@ void main() {
       (tester) async {
         // A second scene, so the set can be linked to two sequences.
         final project = projectsManager.currentProject!;
-        await projectsManager.screenplayService.saveScreenplayText(
-          database: project.database,
-          screenplayId: project.primaryScreenplayId,
-          fountainText: "INT. KITCHEN - DAY\n\nAction.\n\nEXT. GARDEN - NIGHT\n\nMore action.\n",
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+        await projectsManager.screenplayService
+            .saveScreenplayText(
+              database: project.database,
+              screenplayId: project.primaryScreenplayId,
+              fountainText:
+                  "INT. KITCHEN - DAY\n\nAction.\n\nEXT. GARDEN - NIGHT\n\nMore action.\n",
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
 
         final bloc = await mountWithACase(tester);
         final tr = Tr.of(tester.element(find.byType(OcptShotListMode)));

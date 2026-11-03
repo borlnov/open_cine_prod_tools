@@ -90,10 +90,8 @@ class OcptShotListReader {
   /// [_projectsManager]'s `screenplayService` (never through [_shotListService], which
   /// `OcptScreenplayService` already depends on), null prefix on a single-episode project.
   ///
-  /// Answers the failure of the shot list read or of the placements read, in place of the snapshot,
-  /// when the database could not be read. The read of the episodes and the read of the screenplay
-  /// text ([loadScreenplayText]) still raise when the database fails, so the callers of both keep
-  /// their `try`.
+  /// Answers the failure of the episodes read, of the shot list read or of the placements read, in
+  /// place of the snapshot, when the database could not be read.
   @useResult
   Future<OcptDatabaseResult<OcptShotListSnapshot>> loadSnapshot(
     OcptOpenProjectModel project,
@@ -101,11 +99,18 @@ class OcptShotListReader {
     final database = project.database;
     final screenplayId = _screenplayIdOf(project);
 
-    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
+    final episodesRead = await _projectsManager.screenplayService.loadEpisodes(database: database);
+    if (episodesRead.isError) {
+      return OcptDatabaseResult(status: episodesRead.status, extraInfo: episodesRead.extraInfo);
+    }
+
     final snapshotRead = await _shotListService.loadShotList(
       database: database,
       screenplayId: screenplayId,
-      episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
+      episodeNumber: ocptEpisodePrefixNumberOf(
+        episodes: episodesRead.value!,
+        screenplayId: screenplayId,
+      ),
     );
     if (snapshotRead.isError) {
       return OcptDatabaseResult(status: snapshotRead.status, extraInfo: snapshotRead.extraInfo);
@@ -175,9 +180,14 @@ class OcptShotListReader {
 
   /// Read the selected episode's current Fountain source text, kept in
   /// `OcptShotListState.screenplayText` for `ocptScreenplayCharactersOf` and the scenario coverage.
-  Future<String> loadScreenplayText(OcptOpenProjectModel project) => _projectsManager
-      .screenplayService
-      .loadScreenplayText(database: project.database, screenplayId: _screenplayIdOf(project));
+  ///
+  /// Answers the failure of the read when the database could not be read.
+  @useResult
+  Future<OcptDatabaseResult<String>> loadScreenplayText(OcptOpenProjectModel project) =>
+      _projectsManager.screenplayService.loadScreenplayText(
+        database: project.database,
+        screenplayId: _screenplayIdOf(project),
+      );
 
   /// Read the page setup the screenplay is typeset with: the open project's own page format,
   /// paired with the app-wide margins preference, exactly as the screenplay editor's own bloc

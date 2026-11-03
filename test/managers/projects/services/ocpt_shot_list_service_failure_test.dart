@@ -137,12 +137,14 @@ void main() {
             updatedAt: DateTime.now(),
           ),
         );
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: sceneText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: sceneText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     final scenes = await database.select(database.ocptScenesTable).get()
       ..sort((a, b) => a.position.compareTo(b.position));
     final sceneId = scenes.first.id;

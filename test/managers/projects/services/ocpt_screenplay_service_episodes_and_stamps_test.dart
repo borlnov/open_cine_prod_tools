@@ -170,15 +170,19 @@ void main() {
     test(
       'loadEpisodes returns live episodes in sortKey order, leaving tombstoned ones out',
       () async {
-        final secondId = (await service.createEpisode(database: database, title: "Ep 2"))!;
-        final thirdId = (await service.createEpisode(database: database, title: "Ep 3"))!;
+        final secondId = (await service
+            .createEpisode(database: database, title: "Ep 2")
+            .maybeValueOrFail)!;
+        final thirdId = (await service
+            .createEpisode(database: database, title: "Ep 3")
+            .maybeValueOrFail)!;
 
         // A middle episode removed some other way is still a tombstone `loadEpisodes` must filter.
         await (database.update(database.ocptScreenplaysTable)
               ..where((table) => table.id.equals(secondId)))
             .write(const OcptScreenplaysTableCompanion(isDeleted: Value(true)));
 
-        final episodes = await service.loadEpisodes(database: database);
+        final episodes = await service.loadEpisodes(database: database).valueOrFail;
 
         expect(episodes.map((episode) => episode.id), [screenplayId, thirdId]);
       },
@@ -186,17 +190,21 @@ void main() {
 
     test('createEpisode appends after the last live episode and numbers it last + 1, and honours '
         'an explicit number', () async {
-      final secondId = (await service.createEpisode(database: database, title: "Ep 2"))!;
+      final secondId = (await service
+          .createEpisode(database: database, title: "Ep 2")
+          .maybeValueOrFail)!;
 
-      final afterSecond = await service.loadEpisodes(database: database);
+      final afterSecond = await service.loadEpisodes(database: database).valueOrFail;
       expect(afterSecond.map((episode) => episode.id), [screenplayId, secondId]);
       final second = afterSecond.firstWhere((episode) => episode.id == secondId);
       expect(second.number, 2);
       expect(second.title, "Ep 2");
 
-      final explicitId = (await service.createEpisode(database: database, number: 99))!;
+      final explicitId = (await service
+          .createEpisode(database: database, number: 99)
+          .maybeValueOrFail)!;
 
-      final afterExplicit = await service.loadEpisodes(database: database);
+      final afterExplicit = await service.loadEpisodes(database: database).valueOrFail;
       // Appended at the tail, whatever its own printed number turned out to be.
       expect(afterExplicit.last.id, explicitId);
       expect(afterExplicit.firstWhere((episode) => episode.id == explicitId).number, 99);
@@ -204,20 +212,24 @@ void main() {
 
     test('updateEpisode writes only what it is given, touching neither sortKey, fountainText '
         'nor updatedAt', () async {
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nAction.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final before = await readEpisode(screenplayId);
 
-      await service.updateEpisode(
-        database: database,
-        screenplayId: screenplayId,
-        title: const Value("Pilot"),
-        number: const Value(7),
-      );
+      await service
+          .updateEpisode(
+            database: database,
+            screenplayId: screenplayId,
+            title: const Value("Pilot"),
+            number: const Value(7),
+          )
+          .okOrFail;
 
       final after = await readEpisode(screenplayId);
       expect(after.title, "Pilot");
@@ -230,20 +242,26 @@ void main() {
     test(
       'reorderEpisode moves an episode and writes exactly one row, leaving every number alone',
       () async {
-        final secondId = (await service.createEpisode(database: database, title: "Ep 2"))!;
-        final thirdId = (await service.createEpisode(database: database, title: "Ep 3"))!;
+        final secondId = (await service
+            .createEpisode(database: database, title: "Ep 2")
+            .maybeValueOrFail)!;
+        final thirdId = (await service
+            .createEpisode(database: database, title: "Ep 3")
+            .maybeValueOrFail)!;
 
         final before = {
           for (final row in await database.select(database.ocptScreenplaysTable).get()) row.id: row,
         };
 
         // The third episode moves to the front.
-        await service.reorderEpisode(database: database, screenplayId: thirdId, newPosition: 0);
+        await service
+            .reorderEpisode(database: database, screenplayId: thirdId, newPosition: 0)
+            .okOrFail;
 
         final after = await database.select(database.ocptScreenplaysTable).get();
-        final order = (await service.loadEpisodes(
-          database: database,
-        )).map((episode) => episode.id).toList();
+        final order = (await service.loadEpisodes(database: database).valueOrFail)
+            .map((episode) => episode.id)
+            .toList();
         expect(order, [thirdId, screenplayId, secondId]);
 
         final rowsWithChangedSortKey = after
@@ -261,7 +279,9 @@ void main() {
     test(
       "deleteEpisode refuses to remove the project's last live episode, writing nothing",
       () async {
-        final result = await service.deleteEpisode(database: database, screenplayId: screenplayId);
+        final result = await service
+            .deleteEpisode(database: database, screenplayId: screenplayId)
+            .valueOrFail;
 
         expect(result, isFalse);
         final row = await readEpisode(screenplayId);
@@ -295,7 +315,9 @@ void main() {
               ),
             );
 
-        final result = await service.deleteEpisode(database: preview, screenplayId: screenplayId);
+        final result = await service
+            .deleteEpisode(database: preview, screenplayId: screenplayId)
+            .valueOrFail;
 
         expect(result, isFalse);
         final row = await (preview.select(
@@ -308,25 +330,28 @@ void main() {
     test(
       'deleteEpisode tombstones everything the deleted episode owns, and leaves everything else',
       () async {
-        final otherScreenplayId = (await service.createEpisode(
-          database: database,
-          title: "Episode 2",
-        ))!;
+        final otherScreenplayId = (await service
+            .createEpisode(database: database, title: "Episode 2")
+            .maybeValueOrFail)!;
 
         // The deleted episode's own text: JOHN speaks only here, MARY speaks here and elsewhere.
-        await service.saveScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-          fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+        await service
+            .saveScreenplayText(
+              database: database,
+              screenplayId: screenplayId,
+              fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
         // The surviving episode's own text: MARY also speaks here.
-        await service.saveScreenplayText(
-          database: database,
-          screenplayId: otherScreenplayId,
-          fountainText: 'INT. GARDEN - DAY\n\nMARY\nStill here.\n',
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+        await service
+            .saveScreenplayText(
+              database: database,
+              screenplayId: otherScreenplayId,
+              fountainText: 'INT. GARDEN - DAY\n\nMARY\nStill here.\n',
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
 
         final scene = await (database.select(
           database.ocptScenesTable,
@@ -346,10 +371,9 @@ void main() {
         await shotListService
             .attachCharacter(database: database, shotId: shotId, roleId: johnRole.id)
             .okOrFail;
-        final screenplayText = await service.loadScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-        );
+        final screenplayText = await service
+            .loadScreenplayText(database: database, screenplayId: screenplayId)
+            .valueOrFail;
         final sceneText = screenplayText.substring(scene.charStart, scene.charEnd);
         final coverageStart = sceneText.indexOf("Hello");
         await shotCoverageService
@@ -432,7 +456,9 @@ void main() {
             )
             .valueOrFail);
 
-        final deleted = await service.deleteEpisode(database: database, screenplayId: screenplayId);
+        final deleted = await service
+            .deleteEpisode(database: database, screenplayId: screenplayId)
+            .valueOrFail;
         expect(deleted, isTrue);
 
         // The episode itself, and everything keyed to it or its scenes, is gone.
@@ -584,12 +610,14 @@ void main() {
     });
 
     test('saveScreenplayText stamps fountainText and updatedAt of the screenplay row', () async {
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nAction.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["screenplays/$screenplayId/fountainText"]!.version, 1);
@@ -597,12 +625,14 @@ void main() {
     });
 
     test('saveScreenplayText stamps every column of the pre-save snapshot it inserts', () async {
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: "first version",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: "first version",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final snapshotId = (await readSnapshots()).single.id;
       final stamps = await readStamps();
@@ -624,12 +654,14 @@ void main() {
 
     test('a pruned snapshot has its isDeleted and fountainText columns stamped', () async {
       for (var i = 0; i < 35; i++) {
-        await service.saveScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-          fountainText: "version $i",
-          snapshotReason: OcptSnapshotReason.timer,
-        );
+        await service
+            .saveScreenplayText(
+              database: database,
+              screenplayId: screenplayId,
+              fountainText: "version $i",
+              snapshotReason: OcptSnapshotReason.timer,
+            )
+            .okOrFail;
       }
 
       final pruned = (await readSnapshotsIncludingTombstones()).where((row) => row.isDeleted).first;
@@ -640,7 +672,7 @@ void main() {
     });
 
     test('snapshotOnProjectOpen stamps every column of the snapshot it takes', () async {
-      await service.snapshotOnProjectOpen(database: database, screenplayId: screenplayId);
+      await service.snapshotOnProjectOpen(database: database, screenplayId: screenplayId).okOrFail;
 
       final snapshotId = (await readSnapshots()).single.id;
       final stamps = await readStamps();
@@ -654,7 +686,7 @@ void main() {
     });
 
     test('createEpisode stamps every column of the new episode', () async {
-      final id = (await service.createEpisode(database: database, title: "Ep 2"))!;
+      final id = (await service.createEpisode(database: database, title: "Ep 2").maybeValueOrFail)!;
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -676,11 +708,13 @@ void main() {
     test('updateEpisode stamps only the columns that actually changed', () async {
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.updateEpisode(
-        database: database,
-        screenplayId: screenplayId,
-        title: const Value("Pilot"),
-      );
+      await service
+          .updateEpisode(
+            database: database,
+            screenplayId: screenplayId,
+            title: const Value("Pilot"),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys
@@ -690,10 +724,14 @@ void main() {
     });
 
     test('reorderEpisode stamps only sortKey', () async {
-      final secondId = (await service.createEpisode(database: database, title: "Ep 2"))!;
+      final secondId = (await service
+          .createEpisode(database: database, title: "Ep 2")
+          .maybeValueOrFail)!;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.reorderEpisode(database: database, screenplayId: secondId, newPosition: 0);
+      await service
+          .reorderEpisode(database: database, screenplayId: secondId, newPosition: 0)
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("screenplays/$secondId/")).toSet();
@@ -701,15 +739,16 @@ void main() {
     });
 
     test('deleteEpisode stamps isDeleted on the screenplay and its snapshots', () async {
-      final otherScreenplayId = (await service.createEpisode(
-        database: database,
-        title: "Episode 2",
-      ))!;
-      await service.snapshotOnProjectOpen(database: database, screenplayId: screenplayId);
+      final otherScreenplayId = (await service
+          .createEpisode(database: database, title: "Episode 2")
+          .maybeValueOrFail)!;
+      await service.snapshotOnProjectOpen(database: database, screenplayId: screenplayId).okOrFail;
       final snapshotId = (await readSnapshots()).single.id;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final deleted = await service.deleteEpisode(database: database, screenplayId: screenplayId);
+      final deleted = await service
+          .deleteEpisode(database: database, screenplayId: screenplayId)
+          .valueOrFail;
       expect(deleted, isTrue);
 
       final stamps = await readStamps();

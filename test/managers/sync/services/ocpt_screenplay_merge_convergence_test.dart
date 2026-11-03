@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Two replicas of the same project, converging over one shared [OcptFolderRemoteStorage], exactly
 /// as `ocpt_changeset_service_test.dart` and `ocpt_merge_service_test.dart` already exercise for
@@ -181,20 +182,24 @@ void main() {
       final deviceA = buildDevice('device-a');
       final deviceB = buildDevice('device-b');
 
-      await deviceA.screenplayService.saveScreenplayText(
-        database: replicaA,
-        screenplayId: screenplayId,
-        fountainText:
-            'INT. HOUSE - DAY\n\nAction one, from A.\n\nEXT. STREET - NIGHT\n\nAction two.',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      await deviceB.screenplayService.saveScreenplayText(
-        database: replicaB,
-        screenplayId: screenplayId,
-        fountainText:
-            'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, from B.',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await deviceA.screenplayService
+          .saveScreenplayText(
+            database: replicaA,
+            screenplayId: screenplayId,
+            fountainText:
+                'INT. HOUSE - DAY\n\nAction one, from A.\n\nEXT. STREET - NIGHT\n\nAction two.',
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
+      await deviceB.screenplayService
+          .saveScreenplayText(
+            database: replicaB,
+            screenplayId: screenplayId,
+            fountainText:
+                'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, from B.',
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       // The usual round-robin: A pushes and pulls (nothing new to pull yet), B pushes and pulls
       // (picks up A's edit alongside its own, merging the two), and a second round for A picks up
@@ -226,17 +231,15 @@ void main() {
           'INT. HOUSE - DAY\n\nAction one, from A.\n\nEXT. STREET - NIGHT\n\nAction two, from B.';
 
       expect(
-        await deviceA.screenplayService.loadScreenplayText(
-          database: replicaA,
-          screenplayId: screenplayId,
-        ),
+        await deviceA.screenplayService
+            .loadScreenplayText(database: replicaA, screenplayId: screenplayId)
+            .valueOrFail,
         mergedText,
       );
       expect(
-        await deviceB.screenplayService.loadScreenplayText(
-          database: replicaB,
-          screenplayId: screenplayId,
-        ),
+        await deviceB.screenplayService
+            .loadScreenplayText(database: replicaB, screenplayId: screenplayId)
+            .valueOrFail,
         mergedText,
       );
 
@@ -252,18 +255,24 @@ void main() {
     final deviceA = buildDevice('device-a');
     final deviceB = buildDevice('device-b');
 
-    await deviceA.screenplayService.saveScreenplayText(
-      database: replicaA,
-      screenplayId: screenplayId,
-      fountainText: 'INT. HOUSE - DAY\n\nAction one, from A.\n\nEXT. STREET - NIGHT\n\nAction two.',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
-    await deviceB.screenplayService.saveScreenplayText(
-      database: replicaB,
-      screenplayId: screenplayId,
-      fountainText: 'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, from B.',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await deviceA.screenplayService
+        .saveScreenplayText(
+          database: replicaA,
+          screenplayId: screenplayId,
+          fountainText:
+              'INT. HOUSE - DAY\n\nAction one, from A.\n\nEXT. STREET - NIGHT\n\nAction two.',
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
+    await deviceB.screenplayService
+        .saveScreenplayText(
+          database: replicaB,
+          screenplayId: screenplayId,
+          fountainText:
+              'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, from B.',
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     await deviceA.changesetService.syncOnce(
       database: replicaA,
@@ -306,18 +315,22 @@ void main() {
       const localTextOnB =
           'INT. HOUSE - DAY\n\nAction one, from B.\n\nEXT. STREET - NIGHT\n\nAction two.';
 
-      await deviceA.screenplayService.saveScreenplayText(
-        database: replicaA,
-        screenplayId: screenplayId,
-        fountainText: localTextOnA,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      await deviceB.screenplayService.saveScreenplayText(
-        database: replicaB,
-        screenplayId: screenplayId,
-        fountainText: localTextOnB,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await deviceA.screenplayService
+          .saveScreenplayText(
+            database: replicaA,
+            screenplayId: screenplayId,
+            fountainText: localTextOnA,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
+      await deviceB.screenplayService
+          .saveScreenplayText(
+            database: replicaB,
+            screenplayId: screenplayId,
+            fountainText: localTextOnB,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       await deviceA.changesetService.syncOnce(
         database: replicaA,
@@ -343,10 +356,9 @@ void main() {
 
       // Nothing was lost or silently overwritten: B's own text is exactly as it stood.
       expect(
-        await deviceB.screenplayService.loadScreenplayText(
-          database: replicaB,
-          screenplayId: screenplayId,
-        ),
+        await deviceB.screenplayService
+            .loadScreenplayText(database: replicaB, screenplayId: screenplayId)
+            .valueOrFail,
         localTextOnB,
       );
 
@@ -366,10 +378,9 @@ void main() {
         ),
       ]);
       expect(
-        await deviceA.screenplayService.loadScreenplayText(
-          database: replicaA,
-          screenplayId: screenplayId,
-        ),
+        await deviceA.screenplayService
+            .loadScreenplayText(database: replicaA, screenplayId: screenplayId)
+            .valueOrFail,
         localTextOnA,
       );
     },

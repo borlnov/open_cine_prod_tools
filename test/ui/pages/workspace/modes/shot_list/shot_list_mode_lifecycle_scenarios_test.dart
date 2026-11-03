@@ -305,12 +305,15 @@ void main() {
     await harness.projectsManager.shotListService
         .attachCharacter(database: harness.database, shotId: shotIds.single, roleId: role.id)
         .okOrFail;
-    await harness.projectsManager.screenplayService.saveScreenplayText(
-      database: harness.database,
-      screenplayId: harness.screenplayId,
-      fountainText: "INT. KITCHEN - DAY\n\nNobody speaks.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await harness.projectsManager.screenplayService
+        .saveScreenplayText(
+          database: harness.database,
+          screenplayId: harness.screenplayId,
+          fountainText:
+              "INT. KITCHEN - DAY\n\nNobody speaks.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 

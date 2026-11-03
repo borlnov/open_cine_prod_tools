@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:uuid/uuid.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of [OcptScreenplayMergeService].
 void main() {
@@ -153,8 +154,9 @@ void main() {
         ),
       );
 
-  Future<String> storedText() =>
-      screenplayService.loadScreenplayText(database: database, screenplayId: screenplayId);
+  Future<String> storedText() => screenplayService
+      .loadScreenplayText(database: database, screenplayId: screenplayId)
+      .valueOrFail;
 
   test('an incoming text identical to the local one needs no merge at all', () async {
     await setStoredTextDirectly('INT. HOUSE - DAY\n\nAction.');
@@ -197,12 +199,15 @@ void main() {
     await setStoredTextDirectly(
       'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two.',
     );
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: 'INT. HOUSE - DAY\n\nAction one, local.\n\nEXT. STREET - NIGHT\n\nAction two.',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText:
+              'INT. HOUSE - DAY\n\nAction one, local.\n\nEXT. STREET - NIGHT\n\nAction two.',
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final conflict = await mergeService.mergeIncomingFountainText(
       fileDatabase: database,
@@ -228,12 +233,14 @@ void main() {
     // between two independent edits to be treated as non-overlapping, exactly as
     // `ocpt_three_way_merge_test.dart`'s own "non-overlapping changes" case does.
     await setStoredTextDirectly('a\nb\nc\nd\ne');
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: 'a\nb-local\nc\nd\ne',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: 'a\nb-local\nc\nd\ne',
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     await mergeService.mergeIncomingFountainText(
       fileDatabase: database,
@@ -251,12 +258,14 @@ void main() {
 
   test('overlapping edits are a conflict, and the local text is left untouched', () async {
     await setStoredTextDirectly('a\nb\nc');
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: 'a\nb-local\nc',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: 'a\nb-local\nc',
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final conflict = await mergeService.mergeIncomingFountainText(
       fileDatabase: database,
@@ -302,5 +311,40 @@ void main() {
 
     expect(conflict, isNull);
     expect(await storedText(), 'line1-edited\nline2\nline3-edited');
+  });
+
+  test('a local text that cannot be read raises, for the sync session to go offline on', () async {
+    await setStoredTextDirectly('local text');
+    await database.customStatement('ALTER TABLE screenplays RENAME TO screenplays_gone');
+
+    await expectLater(
+      mergeService.mergeIncomingFountainText(
+        fileDatabase: database,
+        screenplayId: screenplayId,
+        incomingText: 'incoming text',
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('a merge whose local text cannot be read rolls back the transaction it runs in', () async {
+    await setStoredTextDirectly('local text');
+    await insertSnapshotDirectly(fountainText: 'base text', createdAt: DateTime.utc(2026));
+    final snapshots = (await database.select(database.ocptScreenplaySnapshotsTable).get()).length;
+    await database.customStatement('ALTER TABLE screenplays RENAME TO screenplays_gone');
+
+    await expectLater(
+      database.transaction(() async {
+        await database.customStatement('DELETE FROM screenplay_snapshots');
+        await mergeService.mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'incoming text',
+        );
+      }),
+      throwsStateError,
+    );
+
+    expect((await database.select(database.ocptScreenplaySnapshotsTable).get()).length, snapshots);
   });
 }

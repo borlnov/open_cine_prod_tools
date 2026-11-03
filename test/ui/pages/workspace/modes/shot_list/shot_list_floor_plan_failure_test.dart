@@ -121,12 +121,14 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: twoSceneText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: twoSceneText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     await build();
 
     final epoch = mode.state.selectionEpoch;

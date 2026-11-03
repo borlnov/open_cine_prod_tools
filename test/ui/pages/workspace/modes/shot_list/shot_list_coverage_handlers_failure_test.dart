@@ -79,12 +79,14 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: text,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     mode = OcptShotListBloc(
       projectsManager: projectsManager,
@@ -289,12 +291,14 @@ void main() {
   test("a refused check raises the write error and keeps the flag", () async {
     await seedRange();
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: "INT. HOUSE - DAY\n\nJOHN\nHello you.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "INT. HOUSE - DAY\n\nJOHN\nHello you.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     await mode.reload({OcptShotListReloadScope.snapshot});
     await refuse("UPDATE", "shots");
     await addShotBehindTheModesBack();

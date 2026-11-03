@@ -230,7 +230,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.createEpisode(database: project.database);
+      await projectsManager.screenplayService
+          .createEpisode(database: project.database)
+          .maybeValueOrFail;
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
       await tester.pumpAndSettle();

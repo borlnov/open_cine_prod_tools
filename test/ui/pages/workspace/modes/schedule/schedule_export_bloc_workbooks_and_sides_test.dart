@@ -71,12 +71,14 @@ void main() {
   Future<void> writeScreenplay(String text) async {
     final project = projectsManager.currentProject!;
 
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: text,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   }
 
   /// Writes a one-scene screenplay, creates a shot in it, a shooting day with its default slot,
@@ -440,16 +442,18 @@ void main() {
         final fixture = await writePlacedShot();
         final project = projectsManager.currentProject!;
 
-        final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-          database: project.database,
-        );
+        final secondEpisodeId = await projectsManager.screenplayService
+            .createEpisode(database: project.database)
+            .maybeValueOrFail;
         expect(secondEpisodeId, isNotNull);
-        await projectsManager.screenplayService.saveScreenplayText(
-          database: project.database,
-          screenplayId: secondEpisodeId!,
-          fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+        await projectsManager.screenplayService
+            .saveScreenplayText(
+              database: project.database,
+              screenplayId: secondEpisodeId!,
+              fountainText: "EXT. STREET - NIGHT\n\nAction two.\n",
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
         final secondSceneId = (await (project.database.select(
           project.database.ocptScenesTable,
         )..where((table) => table.screenplayId.equals(secondEpisodeId))).get()).single.id;
@@ -513,6 +517,32 @@ void main() {
       await exportBloc.close();
       await bloc.close();
     });
+
+    test(
+      "raises the export-failed notice, and exports nothing, when a text cannot be read",
+      () async {
+        final fixture = await writePlacedShot();
+        final bloc = buildBloc();
+        await waitForState(bloc, (state) => !state.isLoading);
+        final exportManager = FakeScheduleExportManager(sidesResult: "/tmp/sides.pdf");
+        final exportBloc = buildExportBloc(bloc, exportManager: exportManager);
+        final database = projectsManager.currentProject!.database;
+        final primaryId = projectsManager.currentProject!.primaryScreenplayId;
+        await database.customStatement(
+          "UPDATE screenplays SET number = 'unreadable' WHERE id = '$primaryId'",
+        );
+
+        exportBloc.add(requestFor(fixture.dayId));
+        final state = await waitForExportState(exportBloc, (state) => state.ioNotice != null);
+
+        expect(state.ioNotice?.kind, OcptScheduleIoNoticeKind.exportFailed);
+        expect(exportManager.lastSidesScreenplayIds, isNull);
+
+        await database.customStatement("UPDATE screenplays SET number = 1");
+        await exportBloc.close();
+        await bloc.close();
+      },
+    );
 
     test("raises the export-failed notice when the export throws", () async {
       final fixture = await writePlacedShot();

@@ -26,6 +26,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:super_editor/super_editor.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// A router manager whose [pop] only records that it was called: these page tests pump the
 /// workspace page directly, without a real GoRouter for it to operate on.
@@ -202,10 +203,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final project = projectsManager.currentProject!;
-    final storedText = await projectsManager.screenplayService.loadScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
+    final storedText = await projectsManager.screenplayService
+        .loadScreenplayText(database: project.database, screenplayId: project.primaryScreenplayId)
+        .valueOrFail;
     expect(storedText, editedText);
     // The project itself must have stayed open across the mode switch: only the workspace's own
     // back action closes it.
@@ -215,10 +215,9 @@ void main() {
   testWidgets('switching episode remounts the mode', (tester) async {
     final project = projectsManager.currentProject!;
     final firstEpisodeId = project.primaryScreenplayId;
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-      title: "Episode two",
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database, title: "Episode two")
+        .maybeValueOrFail;
     expect(secondEpisodeId, isNotNull);
 
     await tester.pumpWidget(_wrapWithLocalization(const OcptWorkspacePage()));

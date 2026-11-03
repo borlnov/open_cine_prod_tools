@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_r
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:super_editor/super_editor.dart';
 
+import '../../../ocpt_result_expectations.dart';
 import 'editor_page_scenarios_test_doubles.dart';
 
 /// What the screenplay reads in the version the preview and restore scenarios capture.
@@ -290,10 +291,12 @@ void main() {
     await harness.mountWorkspace(tester);
     final tr = harness.trOf(tester);
 
-    await harness.projectsManager.screenplayService.createEpisode(
-      database: harness.projectsManager.currentProject!.database,
-      title: "Episode two",
-    );
+    await harness.projectsManager.screenplayService
+        .createEpisode(
+          database: harness.projectsManager.currentProject!.database,
+          title: "Episode two",
+        )
+        .maybeValueOrFail;
     harness.routerManager.pushAnswer = true;
     await harness.tap(tester, find.text(tr.workspaceAddEpisodeAction));
 

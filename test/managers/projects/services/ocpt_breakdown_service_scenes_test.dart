@@ -143,12 +143,14 @@ void main() {
 
   /// Saves [fountainText] as the screenplay's only content and returns its single resulting scene.
   Future<OcptSceneRow> saveSingleScene(String fountainText) async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: fountainText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: fountainText,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     return (await readScenes()).single;
   }
 
@@ -157,10 +159,11 @@ void main() {
       "loads every live scene in position order, joined with its scene_breakdowns row, tags left "
       "empty",
       () async {
-        await screenplayService.saveScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-          fountainText: '''
+        await screenplayService
+            .saveScreenplayText(
+              database: database,
+              screenplayId: screenplayId,
+              fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
@@ -169,8 +172,9 @@ EXT. STREET - NIGHT
 
 Action two.
 ''',
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
         final scenes = await readScenes();
         final houseScene = scenes.firstWhere((row) => row.heading == "INT. HOUSE - DAY");
         final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
@@ -214,10 +218,11 @@ Action two.
     );
 
     test("filters out a tombstoned scene", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
@@ -226,8 +231,9 @@ EXT. STREET - NIGHT
 
 Action two.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scenes = await readScenes();
       final streetScene = scenes.firstWhere((row) => row.heading == "EXT. STREET - NIGHT");
 
@@ -269,10 +275,11 @@ Action two.
     );
 
     test("carries the given episode number onto every scene's displayNumber", () async {
-      await screenplayService.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: '''
+      await screenplayService
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: '''
 INT. HOUSE - DAY
 
 Action one.
@@ -281,8 +288,9 @@ EXT. STREET - NIGHT
 
 Action two.
 ''',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final loadedWithoutEpisode = await breakdownService
           .loadScenes(database: database, screenplayId: screenplayId, episodeNumber: null)

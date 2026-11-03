@@ -35,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close a
 /// dialog opened through `showDialog` (the export panel, the breakdown sheets options dialog)
@@ -214,12 +215,14 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBreakdownMode()));
       await tester.pumpAndSettle();
@@ -251,12 +254,14 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBreakdownMode()));
       await tester.pumpAndSettle();
@@ -284,12 +289,14 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final exportManager = _RecordingExportManager();
       useExportManager(exportManager);
@@ -317,15 +324,17 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "INT. KITCHEN - DAY\n\nAction.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database)
+        .maybeValueOrFail;
 
     final exportManager = _RecordingExportManager();
     useExportManager(exportManager);
@@ -361,12 +370,14 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptBreakdownMode()));
       await tester.pumpAndSettle();
@@ -380,12 +391,14 @@ void main() {
       // `OcptWorkspaceShell` (`OcptBreakdownMode` itself only wires the `BlocProvider` up), so
       // that's where a test reaches it from — mirroring
       // `editor_page_mode_switch_and_menus_test.dart`'s own `BlocProvider.of` calls.
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final shellContext = tester.element(find.byType(OcptWorkspaceShell));
       BlocProvider.of<OcptBreakdownBloc>(shellContext).add(const AsyncInitEvent());
       await tester.pumpAndSettle();

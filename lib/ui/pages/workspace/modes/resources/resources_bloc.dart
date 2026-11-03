@@ -531,11 +531,21 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     final candidatesByRoleId = candidatesRead.value!;
-    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
+    final episodesRead = await _projectsManager.screenplayService.loadEpisodes(database: database);
+    if (episodesRead.isError) {
+      return OcptDatabaseResult<OcptResourcesSnapshot>(
+        status: episodesRead.status,
+        extraInfo: episodesRead.extraInfo,
+      );
+    }
+
     final scenesRead = await _locationsService.loadScenes(
       database: database,
       screenplayId: screenplayId,
-      episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
+      episodeNumber: ocptEpisodePrefixNumberOf(
+        episodes: episodesRead.value!,
+        screenplayId: screenplayId,
+      ),
     );
     if (scenesRead.isError) {
       return OcptDatabaseResult<OcptResourcesSnapshot>(

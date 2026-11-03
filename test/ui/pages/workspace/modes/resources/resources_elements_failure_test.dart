@@ -96,12 +96,14 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText: "INT. HOUSE - DAY\n\nAction one.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText: "INT. HOUSE - DAY\n\nAction one.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     final scene = await (project.database.select(project.database.ocptScenesTable)).getSingle();
     final elements = projectsManager.elementsService;
     final elementId = await elements

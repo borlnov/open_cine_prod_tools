@@ -76,13 +76,15 @@ void main() {
     expect(result.status.isSuccess, isTrue);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-      fountainText:
-          "INT. HOUSE - DAY\n\nA lamp sits on the desk.\n\nINT. GARDEN - DAY\n\nA bench.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: project.primaryScreenplayId,
+          fountainText:
+              "INT. HOUSE - DAY\n\nA lamp sits on the desk.\n\nINT. GARDEN - DAY\n\nA bench.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     final scenes = await (project.database.select(
       project.database.ocptScenesTable,
     )..orderBy([(scene) => OrderingTerm.asc(scene.position)])).get();

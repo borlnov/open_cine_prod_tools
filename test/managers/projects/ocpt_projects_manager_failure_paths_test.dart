@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
@@ -25,6 +26,8 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:sqlite3/sqlite3.dart';
+import '../../ocpt_result_expectations.dart';
 
 /// A properties manager that cannot record a recent project, which is the last step of creating
 /// or opening a project.
@@ -219,6 +222,36 @@ void main() {
     expect(manager.currentProject, same(before));
   });
 
+  group("a project whose episodes cannot be read", () {
+    late String secondId;
+
+    setUp(() async {
+      await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
+      secondId = await manager.screenplayService
+          .createEpisode(database: manager.currentProject!.database, title: "Two")
+          .valueOrFail;
+      await manager.currentProject!.database.customStatement(
+        "UPDATE screenplays SET number = 'unreadable' WHERE id = '$secondId'",
+      );
+    });
+
+    tearDown(() async {
+      await manager.currentProject?.database.customStatement(
+        "UPDATE screenplays SET number = 2 WHERE id = '$secondId'",
+      );
+    });
+
+    test("is not closed, and closing it raises", () async {
+      await expectLater(manager.closeCurrentProject(), throwsStateError);
+
+      expect(manager.currentProject, isNotNull);
+    });
+
+    test("records no episode count, and recording it raises", () async {
+      await expectLater(manager.recordCurrentProjectEpisodeCount(), throwsStateError);
+    });
+  });
+
   group("a version operation still raises when the project file cannot answer it", () {
     late String versionId;
 
@@ -252,6 +285,70 @@ void main() {
 
       expect(manager.currentProject, same(before));
       expect(manager.currentProject!.isReadOnly, isFalse);
+    });
+  });
+
+  group("opening a project whose screenplay the database refuses", () {
+    OcptProjectsManager? opened;
+
+    /// Create a project at [path] holding a second episode, run [statement] in it, and close it.
+    Future<String> prepare(String statement) async {
+      final path = p.join(tempDir.path, "movie.ocpt");
+      await manager.createProject(name: "My Movie", filePath: path);
+      await manager.screenplayService
+          .createEpisode(database: manager.currentProject!.database, title: "Two")
+          .okOrFail;
+      await manager.closeCurrentProject();
+      sqlite3.open(path)
+        ..execute(statement)
+        ..dispose();
+
+      return path;
+    }
+
+    /// Expect the database of the project the failed opening left behind to be closed.
+    Future<void> expectDatabaseClosed() async {
+      final database = opened!.currentProject!.database;
+
+      await expectLater(database.select(database.ocptScreenplaysTable).get(), throwsA(anything));
+    }
+
+    /// Open [path] on a manager of its own: a project whose opening failed stays the current one,
+    /// and closing it would read the episodes the opening could not.
+    Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> openOnAFreshManager(
+      String path,
+    ) async {
+      final opener = OcptProjectsManager(
+        propertiesManager: propertiesManager,
+        appLanguageCode: () => "en",
+      );
+      await opener.initLifeCycle();
+      opened = opener;
+
+      return opener.openProject(filePath: path);
+    }
+
+    test("the project-open snapshot that sqlite refuses answers corruptedFile", () async {
+      final path = await prepare(
+        "CREATE TRIGGER refuse_snapshots BEFORE INSERT ON screenplay_snapshots "
+        "BEGIN SELECT RAISE(ABORT, 'refused'); END",
+      );
+
+      final result = await openOnAFreshManager(path);
+
+      expect(result.status, OcptProjectStatus.corruptedFile);
+      await expectDatabaseClosed();
+    });
+
+    test("episodes that cannot be read at opening answer ioError", () async {
+      final path = await prepare(
+        "UPDATE screenplays SET number = 'unreadable' WHERE title = 'Two'",
+      );
+
+      final result = await openOnAFreshManager(path);
+
+      expect(result.status, OcptProjectStatus.ioError);
+      await expectDatabaseClosed();
     });
   });
 }

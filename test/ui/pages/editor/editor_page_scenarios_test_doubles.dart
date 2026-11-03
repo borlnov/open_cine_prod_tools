@@ -40,6 +40,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_page.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// The sample screenplay most scenarios start from: two scenes, one dialogue and some action.
 const scenarioSampleText = """
@@ -388,21 +389,24 @@ class EditorScenarioHarness {
   /// Writes [text] as the screenplay of the open project, as an earlier session would have left it.
   Future<void> seedScreenplay(String text, {String? screenplayId}) async {
     final project = projectsManager.currentProject!;
-    await projectsManager.screenplayService.saveScreenplayText(
-      database: project.database,
-      screenplayId: screenplayId ?? project.primaryScreenplayId,
-      fountainText: text,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await projectsManager.screenplayService
+        .saveScreenplayText(
+          database: project.database,
+          screenplayId: screenplayId ?? project.primaryScreenplayId,
+          fountainText: text,
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
   }
 
   /// Reads the stored text of the episode [screenplayId], by default the first one, from the
   /// working copy file.
-  Future<String> storedText({String? screenplayId}) =>
-      projectsManager.screenplayService.loadScreenplayText(
+  Future<String> storedText({String? screenplayId}) => projectsManager.screenplayService
+      .loadScreenplayText(
         database: projectsManager.currentProject!.fileDatabase,
         screenplayId: screenplayId ?? episodeId,
-      );
+      )
+      .valueOrFail;
 
   /// Opens the scenario's project file again, as the home page would after the page left it.
   Future<void> reopenProject() async {

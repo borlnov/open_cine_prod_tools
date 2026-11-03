@@ -574,23 +574,27 @@ void main() {
 
     test("orphanedRoleAlerts reports a role the screenplay no longer names", () async {
       final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final bloc = buildBloc();
       final loaded = await waitForState(bloc, (state) => state.roleCount == 1);
       expect(loaded.orphanedRoleAlerts, isEmpty);
 
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: "INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n",
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await projectsManager.screenplayService
+          .saveScreenplayText(
+            database: project.database,
+            screenplayId: project.primaryScreenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       bloc.add(const OcptResourcesProjectSettingsChangedEvent());
       final orphaned = await waitForState(bloc, (state) => state.orphanedRoleAlerts.isNotEmpty);
 

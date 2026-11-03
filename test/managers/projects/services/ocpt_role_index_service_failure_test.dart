@@ -131,12 +131,14 @@ void main() {
             OcptScreenplaysTableCompanion.insert(id: id, title: id, updatedAt: DateTime.now()),
           );
     }
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello there.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: "INT. HOUSE - DAY\n\nCLARA\nHello there.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     final fromScreenplay = (await roleIndexService.loadRoles(database: database).valueOrFail)
         .singleWhere((role) => role.name == "CLARA");
     Future<String> role(String name) => roleIndexService

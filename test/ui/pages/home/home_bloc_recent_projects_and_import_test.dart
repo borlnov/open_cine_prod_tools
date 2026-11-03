@@ -31,6 +31,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'home_bloc_test_doubles.dart';
 
 /// A projects manager that closes the database of every project it creates, so the first write
@@ -125,7 +126,9 @@ void main() {
         // closing the project is what writes the new count onto the recent projects entry.
         final project = projectsManager.currentProject!;
         expect(
-          await projectsManager.screenplayService.createEpisode(database: project.database),
+          await projectsManager.screenplayService
+              .createEpisode(database: project.database)
+              .maybeValueOrFail,
           isNotNull,
         );
         await projectsManager.closeCurrentProject();
@@ -248,10 +251,9 @@ void main() {
     expect(project.name, "My Movie");
     expect(project.path, savedPath);
 
-    final storedText = await projectsManager.screenplayService.loadScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
+    final storedText = await projectsManager.screenplayService
+        .loadScreenplayText(database: project.database, screenplayId: project.primaryScreenplayId)
+        .valueOrFail;
     expect(storedText, importedText);
 
     final snapshots = await (project.database.select(

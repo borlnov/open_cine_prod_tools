@@ -62,10 +62,17 @@ class OcptScreenplayMergeService extends AbsOcptService {
     required String screenplayId,
     required String incomingText,
   }) async {
-    final localText = await screenplayService.loadScreenplayText(
+    final localRead = await screenplayService.loadScreenplayText(
       database: fileDatabase,
       screenplayId: screenplayId,
     );
+    if (localRead.isError) {
+      // Raises as the database used to, for the sync session to go offline on and for the merge's
+      // transaction to roll back: this goes when this service answers a result of its own.
+      throw StateError("The local text of the screenplay could not be read for its merge");
+    }
+
+    final localText = localRead.value!;
 
     if (localText == incomingText) {
       // Nothing to merge: either a replay of a changeset already reflected here, or this replica

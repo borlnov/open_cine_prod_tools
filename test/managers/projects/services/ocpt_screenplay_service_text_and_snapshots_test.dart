@@ -140,19 +140,25 @@ void main() {
   )..orderBy([(row) => OrderingTerm.asc(row.createdAt)])).get();
 
   test('loadScreenplayText returns the empty text of a freshly created screenplay', () async {
-    final text = await service.loadScreenplayText(database: database, screenplayId: screenplayId);
+    final text = await service
+        .loadScreenplayText(database: database, screenplayId: screenplayId)
+        .valueOrFail;
     expect(text, "");
   });
 
   test('saveScreenplayText updates the stored text and reconciles the scene index', () async {
-    await service.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: "INT. HOUSE - DAY\n\nAction.\n",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await service
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
-    final text = await service.loadScreenplayText(database: database, screenplayId: screenplayId);
+    final text = await service
+        .loadScreenplayText(database: database, screenplayId: screenplayId)
+        .valueOrFail;
     expect(text, "INT. HOUSE - DAY\n\nAction.\n");
 
     final scenes = await database.select(database.ocptScenesTable).get();
@@ -161,18 +167,22 @@ void main() {
   });
 
   test('saveScreenplayText snapshots the text as it was before the overwrite', () async {
-    await service.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: "first version",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
-    await service.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: "second version",
-      snapshotReason: OcptSnapshotReason.timer,
-    );
+    await service
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: "first version",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
+    await service
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: "second version",
+          snapshotReason: OcptSnapshotReason.timer,
+        )
+        .okOrFail;
 
     final snapshots = await readSnapshots();
 
@@ -185,14 +195,16 @@ void main() {
   });
 
   test('snapshotOnProjectOpen takes a snapshot of the current text, tagged "open"', () async {
-    await service.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: "current text",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await service
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: "current text",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
-    await service.snapshotOnProjectOpen(database: database, screenplayId: screenplayId);
+    await service.snapshotOnProjectOpen(database: database, screenplayId: screenplayId).okOrFail;
 
     final snapshots = await readSnapshots();
     expect(snapshots.last.fountainText, "current text");
@@ -201,12 +213,14 @@ void main() {
 
   test('snapshots beyond the 30 most recent are pruned after every save', () async {
     for (var i = 0; i < 35; i++) {
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: "version $i",
-        snapshotReason: OcptSnapshotReason.timer,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: "version $i",
+            snapshotReason: OcptSnapshotReason.timer,
+          )
+          .okOrFail;
     }
 
     final snapshots = await readSnapshots();
@@ -220,12 +234,14 @@ void main() {
 
   test('a pruned snapshot is a tombstone with its text dropped, not a deleted row', () async {
     for (var i = 0; i < 35; i++) {
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: "version $i",
-        snapshotReason: OcptSnapshotReason.timer,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: "version $i",
+            snapshotReason: OcptSnapshotReason.timer,
+          )
+          .okOrFail;
     }
 
     final everyRow = await readSnapshotsIncludingTombstones();
@@ -253,30 +269,34 @@ void main() {
           ),
         );
 
-    await service.saveScreenplayText(
-      database: preview,
-      screenplayId: screenplayId,
-      fountainText: "EXT. STREET - NIGHT",
-      snapshotReason: OcptSnapshotReason.manual,
-    );
-    await service.snapshotOnProjectOpen(database: preview, screenplayId: screenplayId);
+    await service
+        .saveScreenplayText(
+          database: preview,
+          screenplayId: screenplayId,
+          fountainText: "EXT. STREET - NIGHT",
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
+    await service.snapshotOnProjectOpen(database: preview, screenplayId: screenplayId).okOrFail;
 
     // The user may not edit a version they are only reading, and the UI having hidden the
     // affordance isn't what makes that true: the service refuses the write itself.
     expect(
-      await service.loadScreenplayText(database: preview, screenplayId: screenplayId),
+      await service.loadScreenplayText(database: preview, screenplayId: screenplayId).valueOrFail,
       "INT. HOUSE - DAY",
     );
     expect(await preview.select(preview.ocptScreenplaySnapshotsTable).get(), isEmpty);
   });
 
   test('saveScreenplayText reconciles the cast, inserting a speaking role per character', () async {
-    await service.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await service
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final roles = await (database.select(
       database.ocptRolesTable,
@@ -295,12 +315,14 @@ void main() {
           .into(database.ocptPeopleTable)
           .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
 
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
       final maryRole = roles.firstWhere((role) => role.name == "MARY");
@@ -315,12 +337,14 @@ void main() {
           .okOrFail;
 
       // The next save's screenplay no longer names MARY.
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n',
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n',
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final row = await (database.select(
         database.ocptRolesTable,
@@ -343,12 +367,14 @@ void main() {
         )
         .maybeValueOrFail;
 
-    await service.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await service
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n',
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final row = await (database.select(
       database.ocptRolesTable,
@@ -386,12 +412,14 @@ void main() {
       'a tag whose passage is unchanged is left untouched, and a stale needsCheck is cleared',
       () async {
         const text = "INT. HOUSE - DAY\n\nAction one two.\n";
-        await service.saveScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-          fountainText: text,
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+        await service
+            .saveScreenplayText(
+              database: database,
+              screenplayId: screenplayId,
+              fountainText: text,
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
         final scene = (await readScenes()).single;
         final sceneText = text.substring(scene.charStart, scene.charEnd);
         final roleId = await createRole();
@@ -414,12 +442,14 @@ void main() {
             .write(const OcptBreakdownTagsTableCompanion(needsCheck: Value(true)));
 
         // The same text saved again: nothing about the tagged passage changed.
-        await service.saveScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-          fountainText: text,
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+        await service
+            .saveScreenplayText(
+              database: database,
+              screenplayId: screenplayId,
+              fountainText: text,
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
 
         final tag = await readTag(tagId);
         expect(tag.startOffset, start);
@@ -440,12 +470,14 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''';
-        await service.saveScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-          fountainText: originalText,
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+        await service
+            .saveScreenplayText(
+              database: database,
+              screenplayId: screenplayId,
+              fountainText: originalText,
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
         final streetScene = (await readScenes()).firstWhere(
           (row) => row.heading == "EXT. STREET - NIGHT",
         );
@@ -474,12 +506,14 @@ EXT. STREET - NIGHT
 
 Action two three.
 ''';
-        await service.saveScreenplayText(
-          database: database,
-          screenplayId: screenplayId,
-          fountainText: editedText,
-          snapshotReason: OcptSnapshotReason.manual,
-        );
+        await service
+            .saveScreenplayText(
+              database: database,
+              screenplayId: screenplayId,
+              fountainText: editedText,
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
 
         final newStreetScene = (await readScenes()).firstWhere(
           (row) => row.heading == "EXT. STREET - NIGHT",
@@ -497,12 +531,14 @@ Action two three.
 
     test('an edit earlier inside the tagged scene re-anchors the tag silently', () async {
       const text = "INT. HOUSE - DAY\n\nAction one two.\n";
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: text,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: text,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final sceneText = text.substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
@@ -520,12 +556,14 @@ Action two three.
           .valueOrFail);
 
       const editedText = "INT. HOUSE - DAY\n\nAction one, with a lot more happening, two.\n";
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: editedText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: editedText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final newScene = (await readScenes()).single;
       final newSceneText = editedText.substring(newScene.charStart, newScene.charEnd);
@@ -538,12 +576,14 @@ Action two three.
 
     test('a passage that no longer occurs at all is flagged, offsets left alone', () async {
       const text = "INT. HOUSE - DAY\n\nAction one two.\n";
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: text,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: text,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final sceneText = text.substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
@@ -561,12 +601,14 @@ Action two three.
           .valueOrFail);
 
       const editedText = "INT. HOUSE - DAY\n\nAction one FOUR.\n";
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: editedText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: editedText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final tag = await readTag(tagId);
       expect(tag.needsCheck, isTrue);
@@ -576,12 +618,14 @@ Action two three.
 
     test('a passage that now occurs twice is flagged, offsets left alone', () async {
       const text = "INT. HOUSE - DAY\n\nAction alpha beta.\n";
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: text,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: text,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final scene = (await readScenes()).single;
       final sceneText = text.substring(scene.charStart, scene.charEnd);
       final roleId = await createRole();
@@ -601,12 +645,14 @@ Action two three.
       // Inserting a word before "alpha" shifts the stored offset off "beta", and a second "beta"
       // appears right after the first: now ambiguous.
       const editedText = "INT. HOUSE - DAY\n\nAction extra alpha beta beta.\n";
-      await service.saveScreenplayText(
-        database: database,
-        screenplayId: screenplayId,
-        fountainText: editedText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: editedText,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
 
       final tag = await readTag(tagId);
       expect(tag.needsCheck, isTrue);

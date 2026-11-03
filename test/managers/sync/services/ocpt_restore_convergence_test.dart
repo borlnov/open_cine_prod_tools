@@ -269,10 +269,9 @@ void main() {
       // of the shared starting text (`OcptScreenplayService.snapshotOnProjectOpen`, exactly what
       // the real app calls on every project open) — the common ancestor its own later merge, made
       // with no edit of its own, needs to diff against.
-      await deviceB.screenplayService.snapshotOnProjectOpen(
-        database: replicaB,
-        screenplayId: screenplayId,
-      );
+      await deviceB.screenplayService
+          .snapshotOnProjectOpen(database: replicaB, screenplayId: screenplayId)
+          .okOrFail;
 
       // Seed one ordinary row on A only, then let it reach B through the real folder transport —
       // proving the two replicas start identical through the engine, not by construction.
@@ -297,12 +296,14 @@ void main() {
 
       // On A: edit the screenplay, add a location, and capture that as version V1 — "the earlier
       // version" this test restores back to.
-      await deviceA.screenplayService.saveScreenplayText(
-        database: replicaA,
-        screenplayId: screenplayId,
-        fountainText: textAtV1,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await deviceA.screenplayService
+          .saveScreenplayText(
+            database: replicaA,
+            screenplayId: screenplayId,
+            fountainText: textAtV1,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       final studio = (await deviceA.locationsService
           .createLocation(database: replicaA, name: 'Studio')
           .valueOrFail);
@@ -320,12 +321,14 @@ void main() {
 
       // Diverge from V1 in every way a restore has to undo: change the screenplay text again,
       // rename a row V1 held, delete a row V1 held, and add a row V1 never held.
-      await deviceA.screenplayService.saveScreenplayText(
-        database: replicaA,
-        screenplayId: screenplayId,
-        fountainText: textAfterV1,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
+      await deviceA.screenplayService
+          .saveScreenplayText(
+            database: replicaA,
+            screenplayId: screenplayId,
+            fountainText: textAfterV1,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
       await deviceA.locationsService
           .updateLocation(database: replicaA, locationId: office, name: const Value('Office HQ'))
           .okOrFail;
@@ -349,10 +352,9 @@ void main() {
       // Sanity, on A itself, before anything is even pushed: the restore reverted the rename,
       // resurrected the deletion, tombstoned the addition, and put the screenplay text back.
       expect(
-        await deviceA.screenplayService.loadScreenplayText(
-          database: replicaA,
-          screenplayId: screenplayId,
-        ),
+        await deviceA.screenplayService
+            .loadScreenplayText(database: replicaA, screenplayId: screenplayId)
+            .valueOrFail,
         textAtV1,
       );
       expect((await locationRow(replicaA, office)).name, 'Office');
@@ -381,10 +383,9 @@ void main() {
       // The screenplay text converges to A's restored text through the three-way merge — B's own
       // side of that merge is unchanged since the baseline, so this is the clean case.
       expect(
-        await deviceB.screenplayService.loadScreenplayText(
-          database: replicaB,
-          screenplayId: screenplayId,
-        ),
+        await deviceB.screenplayService
+            .loadScreenplayText(database: replicaB, screenplayId: screenplayId)
+            .valueOrFail,
         textAtV1,
       );
 
