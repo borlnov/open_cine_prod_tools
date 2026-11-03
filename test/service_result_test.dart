@@ -360,12 +360,16 @@ Future<void> f() async {
       expect(offences.map(_lineOfOffence), ["3", "6", "8", "10", "12", "14", "15"]);
     });
 
-    test("an abort wrapped in the body handed to a guard is caught by it", () {
+    test("an abort wrapped in a guard body is accepted only in the listed methods", () {
       const source = '''
 class OtherService {
-  Future<Object> joined() => guardResult("joined", () async {
+  Future<Object> mergeIncomingFountainText() => guardResult("joined", () async {
     await thingService.read().valueOrAbort();
     await thingService.read();
+  });
+
+  Future<Object> another() => guardResult("another", () async {
+    await thingService.read().valueOrAbort();
   });
 
   Future<void> alone() async {
@@ -376,7 +380,7 @@ class OtherService {
 
       final offences = callOffencesOf({"read"}, source);
 
-      expect(offences.map(_lineOfOffence), ["4", "8"]);
+      expect(offences.map(_lineOfOffence), ["4", "8", "12"]);
     });
 
     test("a method that takes the caller's stamps runs inside the caller's transaction", () {

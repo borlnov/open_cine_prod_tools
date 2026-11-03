@@ -47,6 +47,15 @@ const _resultReturnTypes = [
 /// The two extensions that cancel a transaction when the call they wrap failed.
 const _abortHelpers = {"okOrAbort", "valueOrAbort"};
 
+/// The methods whose `guardResult` or `guardOutcome` body may wrap a call in `valueOrAbort` or
+/// `okOrAbort` without a transaction of their own, each with the reason: the guard catches the
+/// abort and answers its failure, and that is only wanted where the caller turns the answer back
+/// into a throw inside a transaction of its own.
+const abortInGuardBodyMethods = <String, String>{
+  "mergeIncomingFountainText":
+      "its caller's transaction wraps it and throws on the failure it answers",
+};
+
 /// The helpers declared in another file that take a closure answering a result, and so may be
 /// handed one that returns a converted call. None yet.
 const helpersTakingAResult = <String>{};
@@ -521,7 +530,7 @@ class CallFinder extends RecursiveAstVisitor<void> {
     String? reason;
     if (!_abortHelpers.contains(name)) {
       reason = "is chained with $name: await it and read its answer";
-    } else if (!inTransaction && !_isInGuardBody(chain)) {
+    } else if (!inTransaction && !_isInAllowedGuardBody(chain)) {
       reason = "is wrapped by $name outside a transaction, where nothing catches the abort";
     } else {
       var consumer = chain.parent;
@@ -627,8 +636,8 @@ class CallFinder extends RecursiveAstVisitor<void> {
   }
 
   /// Tell whether [node] sits in the closure handed to `guardResult` or `guardOutcome`, which
-  /// catch an abort and answer its failure.
-  bool _isInGuardBody(AstNode node) {
+  /// catch an abort and answer its failure, inside one of the [abortInGuardBodyMethods].
+  bool _isInAllowedGuardBody(AstNode node) {
     var isIn = false;
     var current = node.parent;
     while (current != null && !isIn) {
@@ -640,7 +649,10 @@ class CallFinder extends RecursiveAstVisitor<void> {
         final invocation = holder is ArgumentList ? holder.parent : null;
         isIn =
             invocation is MethodInvocation &&
-            const {"guardResult", "guardOutcome"}.contains(invocation.methodName.name);
+            const {"guardResult", "guardOutcome"}.contains(invocation.methodName.name) &&
+            abortInGuardBodyMethods.containsKey(
+              invocation.thisOrAncestorOfType<MethodDeclaration>()?.name.lexeme,
+            );
       }
       current = current.parent;
     }
