@@ -257,63 +257,100 @@ Follow the public ACT coding standards (read them when in doubt), starting from
 
 A project rule overrides these. The overrides this project has made:
 
-- **RG2:** `import`, `export` and `part` lines, a URL alone in a comment, a doc `{@template}` line
-  and the Fountain text of the demo screenplay in `test/seed_demo_project_data.dart` may run past
-  100 characters, since none of them can be broken. `test/line_length_test.dart` fails on any
-  other.
-- **RG3:** Dart is indented with 2 spaces, which `dart format` imposes and the Flutter standard's own
-  examples follow. Shell scripts are indented with 4.
+- **RG1, RG2, RG3:** they bind the Dart and the shell scripts. In Dart, `import`, `export` and
+  `part` lines, a URL alone in a comment, a doc `{@template}` line and the Fountain text of the demo
+  screenplay in `test/seed_demo_project_data.dart` may run past 100 characters, since none of them
+  can be broken; `test/line_length_test.dart` reads Dart only and fails on any other. Dart is
+  indented with 2 spaces, which `dart format` imposes and the Flutter standard's own examples
+  follow, and shell scripts with 4. Every other format follows its own: the CI, Docker and config
+  files (a few lines run long), YAML, JSON and TypeScript at 2 spaces, the ARB files (one key per
+  line, `intl_en_GB.arb` past 1000 lines), Markdown (`.markdownlint.yaml`), the licence texts and
+  the `flutter create` platform scaffolding.
 - **RG8:** a `release-x.y.z` branch carries no issue number.
 - **RG26:** the project has one maintainer, so a change is reviewed through an independent agent
   review and the maintainer's own testing rather than a second human reviewer.
-- **RD1:** a package keeps its own prefix (`fountain_kit`, `spell_kit`, `ocpt_sync_*`), and a test
-  double shared between test files has none.
-- **RD2:** a test imports its neighbour with a relative path, since `test/` has no `package:` URI.
+- **RD1:** a package keeps its own prefix (`Fountain` for `fountain_kit`, `Spell` and `Hunspell` for
+  `spell_kit`, `Script`, `Celtx` and `Fdx` for `script_import_kit`, `Ocpt` for `ocpt_sync_*`), and a
+  test double or a guard's helper class shared between test files has none.
+- **RD2:** a test imports another test file with a relative path (its neighbour, or a helper at the
+  root of `test/` through `../`), since `test/` has no `package:` URI.
 - **RD3:** the app itself has no barrel file and no `src/` folder, since nothing imports it. The
   packages under `packages/` do follow the rule.
-- **RD8, RD11:** the project services and the projects manager answer an `OcptDatabaseStatus`
-  result, except where a failure must throw so a transaction rolls back (`OcptRowStampService` and
-  the `stamps` participants, the static `Ops` and `Rows`, the private abort exceptions), where a
-  method keeps its own status (`permanentServiceExceptions`: `restoreVersion`, the package read and
-  write, the merge), and where a sync service leaves its caller to settle (`OcptChangesetService`'s
-  reads and cursor writes, `OcptPairingService`, `OcptSyncManager`'s relay pairing).
-  `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a malformed document with
-  a typed exception, which the app converts to a `Result` at its boundary: `act_dart_result`
-  depends on Flutter, and the relay compiles without it.
+- **RD4, RD7:** the private working classes of an algorithm in `lib/models/` (the scenario coverage
+  and script sides layouts, the breakdown suggestions, the budget match, the three-way merge) are
+  neither `Equatable` nor given a `toString`: they are built, read and dropped inside one function,
+  and never compared or printed.
+- **RD8, RD11:** the project services answer an `OcptDatabaseStatus` result, and
+  `OcptProjectsManager` does for its project reads and writes, while its project, preview and move
+  operations and `restoreProjectVersion` answer a status of their own (`OcptProjectStatus`,
+  `OcptProjectPreviewStatus`, `OcptProjectMoveStatus`, `OcptProjectRestoreStatus`). A failure still
+  throws where a transaction must roll back (`OcptRowStampService` and the `stamps` participants,
+  the static `Ops` and `Rows`, the private abort exceptions), and a method keeps its own status
+  where it has one (`permanentServiceExceptions`: `restoreVersion`, the package read and write, the
+  merge). What stays outside that boundary raises, and is settled by a `try` of the caller where
+  there is one (`OcptSyncSession`, the workspace and project settings blocs, the export blocs),
+  and by nothing otherwise: the sync services (`OcptChangesetService`'s reads and cursor writes,
+  `OcptPairingService`, `OcptSyncManager`'s relay pairing and `loadPairedProjectId`,
+  `OcptSnapshotService`'s file I/O), whose callers include the sharing bloc's invite read and the
+  hosting bloc; the directory methods of `OcptProjectsManager` (`dart:io`, `path_provider`), which
+  the home and joining blocs call bare; `launchUrl` in the about section; the PDF services'
+  `generate`, which the export blocs catch; and the relay store (`sqlite3`) and upstream client. `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a
+  malformed document with a typed exception, which the app converts to a `Result` at its boundary:
+  `act_dart_result` depends on Flutter, and the relay compiles without it.
 - **RD14:** `OcptPresenceService.roster` stays a getter over a hand-written controller, since it is
   derived on every read (a heartbeat changes it without any emission) and a keeper's value would go
   stale.
-- **RD18:** a doc block repeated fewer than five times may stay where it is, since a short sentence
-  reads better in place than behind a template name.
-- **RD22:** a `<feature>_test_doubles.dart` beside the test files may hold several public doubles. A
-  sealed family shares a file, which Dart requires, as do a manager and its builder, and an extension
-  may sit beside the enum it extends.
-- **RD25:** a Flutter `State` and a test double may initialize their fields at declaration, and so
-  may a mixin, which has no constructor. A `late final` field computed from the other fields of its
-  object, on first read, stays `late final`.
+- **RD18:** a doc block repeated fewer than five times may stay where it is in `lib/`, since a
+  short sentence reads better in place than behind a template name; a test file carries its own
+  doubles by design, so a block repeats there as often as the doubles do.
+- **RD22:** a `<feature>_test_doubles.dart` beside the test files, and the files holding a guard's
+  helpers (`test/service_result_rules.dart`, `test/service_result_answer_rules.dart`,
+  `test/ocpt_result_expectations.dart`), may hold several public types. A sealed family shares a
+  file, which Dart requires, as do a manager and its builder, and an extension may sit beside the
+  enum it extends.
+- **RD25:** a Flutter `State`, a test double and a guard's helper class may initialize their fields
+  at declaration, and so may a mixin, which has no constructor. A `late final` field computed from
+  the other fields of its object, on first read, stays `late final`.
 - **RFL2:** a test's mounting helper (`Widget _wrap(...)`) may stay a function, since it is never
-  rebuilt.
-- **RFL3:** a page's view may be public (`OcptXxxView`) when its widget tests pump it directly
-  with a stubbed bloc, and it then shares the page's file.
+  rebuilt. So may `OcptStyledContextMenu.wrap`, a method of a handler that is no widget, and a
+  method returning `List<Widget>` (the home header's and the new-entry dialog's actions), which
+  `test/widget_function_test.dart` lets through; a file building a PDF returns the `pdf` package's
+  `Widget`, a layout object and not a Flutter one.
+- **RFL3:** a page's or a view's `OcptXxxView` may be public when its widget tests pump it directly
+  with a stubbed bloc. It lives in its own file (`<x>_view.dart`).
 - **RFL5:** `ScreenUtilInit` stays at the app root, but only the theme uses its extensions, and only
   on a phone (`OcptMainAppUi`). Widgets do not use them and may state logical pixel sizes: the
   density of this desktop-first UI lives in the component themes of `lib/constants/ocpt_theme.dart`.
+- **RFL6:** the label field of a person's position row is seeded once from `Tr.of(context)`: it holds
+  text the user edits, which a re-seed on a language change would overwrite.
 - **RFL18:** `OcptRowStampService`, an accumulator built for one transaction and owned by nobody, and
   `OcptFolderRemoteStorage`, a file adapter that logs nothing, stay off the services' common base,
   which requires a logger.
 - **RFL23:** a production mode is `Ocpt<X>Mode` in `<x>_mode.dart`, and a widget is named after its
-  role (`Card`, `Panel`, `Dialog`, `Sheet`) rather than ending in `Widget`.
+  role (`Card`, `Panel`, `Dialog`, `Sheet`) rather than ending in `Widget`. A service named after
+  what it is, not `Service`, stays so: `OcptProjectVersionCodec`, `OcptRelayRemoteStorage`,
+  `OcptSyncSession`.
+- **RFL24:** the repository URL of the about section, the sync push, heartbeat and peer timeout
+  intervals, the relay reconnect delay and the maps URL template of the call sheet are constants
+  of the code: the intervals and the delay are defaults a caller passes over, and none of them
+  differs between deployments.
 - **RFL26:** a model owned by no manager builds its `LogsHelper` where it logs instead of keeping one,
-  since the global logger it hangs from can be replaced.
+  since the global logger it hangs from can be replaced. `OcptConfigManager` logs through
+  `appLogger()`: it is built first and the logger manager is built from it, so no manager logger
+  exists yet.
 - **RFL35:** `AbstractSecretsManager` is what stores the secrets, in secure storage; the rule and
   the "look in `actlibs/` first" rule above contradict each other on this point, so the latter wins.
 - **RFL36:** a `build` may look an id up in a list, or filter or sum a list, when the list is already
-  in hand and short (the payments of a line, the columns of a table), and may join text it translated
-  itself, since a state holds no `Tr`.
+  in hand and short (the payments of a line, the columns of a table), or find the one selected row
+  of a longer list by its id, and may join text it translated itself, since a state holds no `Tr`.
 - **RFL38:** a list may stay eager when it would otherwise misbehave: the breakdown script, whose tag
   popover lives in its scene's subtree and has no way back once scrolled away; a list shrinking to
   its content inside an `AlertDialog`, whose intrinsic width a lazy viewport cannot answer; the two
-  budget columns walked row for row.
+  budget columns walked row for row; the breakdown scene inspector, whose notes field keeps a
+  controller and a focus node that a lazy list would dispose once scrolled away; and the floor plan
+  set gallery, a `Wrap` of fixed-width cards that a sliver grid would stretch to fill each row.
+- **RFL39:** the fatal error page declares `Tr.delegate` itself and reads `Tr.of`: the generated
+  delegate needs no manager, so the page still translates when every manager failed to start.
 - **RFL41:** a bloc may keep a non-final field, or a final collection whose content changes,
   where the value is read or written outside an event handler, so that no `emit` runs: a stream
   listener, `close`, an overridden `add`, a widget leaving the tree. Or where it marks work in
@@ -327,11 +364,13 @@ The rule asking for doc comments that start with an imperative verb is read this
 method, getter, setter, operator or function opens with the verb (`Build`, `Get the`, `Tell
 whether`), never with an article or a third-person verb (`Builds`): `test/documentation_test.dart`
 fails on it, except in `test/`, which is exempt. A constructor opens with `Class constructor`, the
-idiom `actlibs/` uses throughout. A class, mixin, enum, extension or typedef opens with the noun
-phrase saying what it is, except an event, which may open with the verb it asks for (`Request`,
-`Select`, `Toggle`); a field, constant or enum value opens with a noun phrase. The guard reads only
-the members listed first: the opening of a constructor, a class or a field is a convention that
-nothing checks.
+idiom `actlibs/` uses throughout, or with `Create` or `Build` for a named one. A class, mixin, enum,
+extension or typedef opens with the noun phrase saying what it is, except what is named after an
+action: an event or a request (`Request`, `Select`, `Toggle`), a service, an `Ops` class or a
+parser (`Render`, `Convert`, `Read`), a manager builder (`Build`) and a painter (`Paint`), which
+open with the verb. A field, constant or enum value opens with a noun phrase, and a callback field
+with `Called` or a verb (`Resolves`, `Asks`, `Matches`). The guard reads only the members listed
+first: the opening of a constructor, a class or a field is a convention that nothing checks.
 
 House style: `Ocpt` prefix on app classes, doc comments on every declaration, match the
 existing files' idioms exactly. Tests use inline private test doubles (no shared helpers
