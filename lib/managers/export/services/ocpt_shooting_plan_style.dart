@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_elements_grid_row.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grid_column.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grid_row.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;

@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xls
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_elements_grid_row.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grid_column.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grid_row.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
