@@ -149,7 +149,7 @@ class _CountingProjectsManager extends OcptProjectsManager {
 
   /// Count the capture, then delegate to the real one.
   @override
-  Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
+  Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> captureWorkingCopyState() async {
     captureCount++;
     return super.captureWorkingCopyState();
   }

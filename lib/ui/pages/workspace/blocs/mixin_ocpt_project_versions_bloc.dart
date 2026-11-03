@@ -7,9 +7,11 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
@@ -191,19 +193,12 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
       return;
     }
 
-    OcptProjectVersionNoticeKind? failure;
-    try {
-      await projectsManager.createProjectVersion(name: event.name, note: event.note);
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create a project version: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      failure = OcptProjectVersionNoticeKind.creationFailed;
-    }
+    final created = await projectsManager.createProjectVersion(name: event.name, note: event.note);
 
-    await _emitVersions(emitter, notice: failure);
+    await _emitVersions(
+      emitter,
+      notice: created.isError ? OcptProjectVersionNoticeKind.creationFailed : null,
+    );
   });
 
   /// Show the inline delete confirmation of one card, replacing whichever answer any card was
@@ -231,20 +226,12 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
     OcptProjectVersionDeletionConfirmedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
-    OcptProjectVersionNoticeKind? failure;
-    try {
-      await projectsManager.deleteProjectVersion(event.versionId);
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete the project version ${event.versionId}: "
-        "${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      failure = OcptProjectVersionNoticeKind.deletionFailed;
-    }
+    final deleted = await projectsManager.deleteProjectVersion(event.versionId);
 
-    await _emitVersions(emitter, notice: failure);
+    await _emitVersions(
+      emitter,
+      notice: deleted.isError ? OcptProjectVersionNoticeKind.deletionFailed : null,
+    );
   });
 
   /// Show the inline restore confirmation of one card, replacing whichever answer any card was
@@ -294,6 +281,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
       safetyVersionName: event.safetyVersionName,
     );
 
+    if (status == OcptProjectRestoreStatus.databaseError) {
+      return;
+    }
+
     if (!status.isSuccess) {
       await _emitVersions(emitter, notice: _noticeForRestoreStatus(status));
       return;
@@ -331,24 +322,16 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
     OcptProjectVersionRenameConfirmedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
-    OcptProjectVersionNoticeKind? failure;
-    try {
-      await projectsManager.renameProjectVersion(
-        versionId: event.versionId,
-        name: event.name,
-        note: event.note,
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to rename the project version ${event.versionId}: "
-        "${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      failure = OcptProjectVersionNoticeKind.renameFailed;
-    }
+    final renamed = await projectsManager.renameProjectVersion(
+      versionId: event.versionId,
+      name: event.name,
+      note: event.note,
+    );
 
-    await _emitVersions(emitter, notice: failure);
+    await _emitVersions(
+      emitter,
+      notice: renamed.isError ? OcptProjectVersionNoticeKind.renameFailed : null,
+    );
   });
 
   /// Enter the read-only preview of a version: flushes whatever the mode still holds, asks the
@@ -387,6 +370,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
     }
 
     final result = await projectsManager.previewVersion(event.versionId);
+    if (result.status == OcptProjectPreviewStatus.databaseError) {
+      return;
+    }
+
     if (!result.status.isSuccess) {
       await _emitVersions(emitter, notice: _noticeForPreviewStatus(result.status));
       return;
@@ -415,10 +402,17 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
     OcptProjectVersionPreviewExitRequestedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
-    await projectsManager.exitPreview();
+    final left = await projectsManager.exitPreview();
+    if (left.isError) {
+      return;
+    }
 
-    final workingCopy = await _captureWorkingCopyState();
-    emitter(state.copyWithCapturedWorkingCopy(workingCopy: workingCopy));
+    final captured = await _captureWorkingCopyState();
+    if (captured.isError) {
+      return;
+    }
+
+    emitter(state.copyWithCapturedWorkingCopy(workingCopy: captured.value));
 
     if (!await reloadFromProjectDatabase(emitter)) {
       return;
@@ -452,27 +446,25 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
   /// on its way out, and every caller already reports its own failures through [notice] before
   /// ever reaching this.
   Future<void> _emitVersions(Emitter<S> emitter, {OcptProjectVersionNoticeKind? notice}) async {
-    try {
-      final versions = await projectsManager.listProjectVersions();
-      final previewedVersionId = projectsManager.currentProject?.previewedVersion?.id;
-      final workingCopy = await _captureWorkingCopyState();
-
-      emitter(
-        state.copyWithReloadedVersions(
-          versions: versions,
-          previewedVersionId: previewedVersionId,
-          workingCopy: workingCopy,
-          notice: notice,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.w(
-        "A problem occurred when tried to read the project's versions, most likely because the "
-        "project already closed: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final versions = await projectsManager.listProjectVersions();
+    if (versions.isError) {
+      return;
     }
+
+    final previewedVersionId = projectsManager.currentProject?.previewedVersion?.id;
+    final captured = await _captureWorkingCopyState();
+    if (captured.isError) {
+      return;
+    }
+
+    emitter(
+      state.copyWithReloadedVersions(
+        versions: versions.value!,
+        previewedVersionId: previewedVersionId,
+        workingCopy: captured.value,
+        notice: notice,
+      ),
+    );
   }
 
   /// Capture the working copy's live state through
@@ -489,14 +481,17 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
   /// answers the other two cases without touching the file, so there is nothing to throttle, and
   /// stamping them would make the first real capture after a preview wait out a window nothing
   /// ever paid for.
-  Future<OcptProjectWorkingCopyState?> _captureWorkingCopyState() async {
-    final workingCopy = await projectsManager.captureWorkingCopyState();
+  ///
+  /// Answers the failure of the capture as it came, and the caller stops there.
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> _captureWorkingCopyState() async {
+    final captured = await projectsManager.captureWorkingCopyState();
 
-    if (workingCopy != null) {
+    if (!captured.isError && captured.value != null) {
       _lastWorkingCopyCaptureAt = DateTime.now();
     }
 
-    return workingCopy;
+    return captured;
   }
 
   /// Refresh the working copy's own card alone, throttled to at most one real capture every
@@ -520,17 +515,12 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
       return;
     }
 
-    try {
-      final workingCopy = await _captureWorkingCopyState();
-      emitter(state.copyWithCapturedWorkingCopy(workingCopy: workingCopy));
-    } catch (error, stackTrace) {
-      _logger.w(
-        "A problem occurred when tried to refresh the working copy, most likely because the "
-        "project already closed: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final captured = await _captureWorkingCopyState();
+    if (captured.isError) {
+      return;
     }
+
+    emitter(state.copyWithCapturedWorkingCopy(workingCopy: captured.value));
   });
 
   /// Get the notice reporting the failed restore [status] to the user.

@@ -163,7 +163,9 @@ void main() {
           snapshotReason: OcptSnapshotReason.manual,
         )
         .okOrFail;
-    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+    final version = await projectsManager
+        .createProjectVersion(name: "v1", note: "")
+        .maybeValueOrFail;
 
     final mode = OcptShotListBloc(
       projectsManager: projectsManager,
@@ -217,7 +219,7 @@ void main() {
 
     test("does not stop a restore, and raises the write error", () async {
       final fixture = await setUpTypedEdit();
-      final versionCount = (await projectsManager.listProjectVersions()).length;
+      final versionCount = (await projectsManager.listProjectVersions().valueOrFail).length;
 
       fixture.mode.add(
         OcptProjectVersionRestoreConfirmedEvent(
@@ -228,7 +230,7 @@ void main() {
       await pumpEventQueue(times: 400);
 
       expect(
-        (await projectsManager.listProjectVersions()).length,
+        (await projectsManager.listProjectVersions().valueOrFail).length,
         greaterThan(versionCount),
         reason: "the restore ran, and took a safety version of the changed working copy",
       );

@@ -599,7 +599,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
       return;
     }
 
-    await _projectsManager.recordCurrentProjectEpisodeCount();
+    final recorded = await _projectsManager.recordCurrentProjectEpisodeCount();
+    if (recorded.isError) {
+      return;
+    }
+
     emitter(state.copyWithEpisodeAdded(episodes: episodes.value!, isAdded: created.value != null));
   }
 
@@ -698,7 +702,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
       return;
     }
 
-    await _projectsManager.recordCurrentProjectEpisodeCount();
+    final recorded = await _projectsManager.recordCurrentProjectEpisodeCount();
+    if (recorded.isError) {
+      return;
+    }
+
     emitter(state.copyWithEpisodeDeleted(episodes: episodes.value!, isDeleted: deleted.value!));
   }
 

@@ -66,7 +66,7 @@ void main() {
   });
 
   tearDown(() async {
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
     await tempDir.delete(recursive: true);
   });
 
@@ -290,7 +290,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+    final version = await projectsManager
+        .createProjectVersion(name: "v1", note: "")
+        .maybeValueOrFail;
     expect(version, isNotNull);
     final versionId = version!.id;
     final previewResult = await projectsManager.previewVersion(versionId);
@@ -313,7 +315,7 @@ void main() {
     expect(find.text(tr.budgetHelpExpensesBody5), findsOneWidget);
 
     // Leave the preview so the working copy is what the next test opens onto.
-    await projectsManager.exitPreview();
+    await projectsManager.exitPreview().okOrFail;
   });
 
   testWidgets(
@@ -405,7 +407,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+    final version = await projectsManager
+        .createProjectVersion(name: "v1", note: "")
+        .maybeValueOrFail;
     expect(version, isNotNull);
     final versionId = version!.id;
     final previewResult = await projectsManager.previewVersion(versionId);
@@ -429,7 +433,7 @@ void main() {
     expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
 
     // Leave the preview so the working copy is what the next test opens onto.
-    await projectsManager.exitPreview();
+    await projectsManager.exitPreview().okOrFail;
   });
 
   testWidgets("selecting a poste row opens the fiche without narrowing any view", (tester) async {
@@ -648,7 +652,9 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "")
+          .maybeValueOrFail;
       expect(version, isNotNull);
       final previewResult = await projectsManager.previewVersion(version!.id);
       expect(previewResult.status.isSuccess, isTrue);
@@ -659,7 +665,7 @@ void main() {
       expect(find.byType(FloatingActionButton), findsNothing);
 
       // Leave the preview so the working copy is what the next test opens onto.
-      await projectsManager.exitPreview();
+      await projectsManager.exitPreview().okOrFail;
     });
   });
 }

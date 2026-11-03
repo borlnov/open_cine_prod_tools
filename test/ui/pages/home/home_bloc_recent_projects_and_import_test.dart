@@ -131,7 +131,7 @@ void main() {
               .maybeValueOrFail,
           isNotNull,
         );
-        await projectsManager.closeCurrentProject();
+        await projectsManager.closeCurrentProject().okOrFail;
       },
     );
 
@@ -471,7 +471,7 @@ void main() {
     /// the user is about to confirm is one that actually runs.
     Future<void> createProjectAtPreviousFormat(String filePath) async {
       await projectsManager.createProject(name: "My Movie", filePath: filePath);
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
 
       final database = sqlite3.open(filePath);
       database
@@ -495,7 +495,7 @@ void main() {
     /// it, which is all a file from the future has to state to be refused.
     Future<void> createProjectFromTheFuture(String filePath) async {
       await projectsManager.createProject(name: "My Movie", filePath: filePath);
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
 
       final database = sqlite3.open(filePath);
       database
@@ -578,7 +578,7 @@ void main() {
     /// an older schema to exist, unlike the two tests above.
     Future<void> createProjectWrittenByAnotherDevBuild(String filePath) async {
       await projectsManager.createProject(name: "My Movie", filePath: filePath);
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
 
       final database = sqlite3.open(filePath);
       database
@@ -656,7 +656,7 @@ void main() {
       () async {
         final currentPath = p.join(tempDir.path, "current.ocpt");
         await projectsManager.createProject(name: "Current", filePath: currentPath);
-        await projectsManager.closeCurrentProject();
+        await projectsManager.closeCurrentProject().okOrFail;
 
         final olderPath = p.join(tempDir.path, "older.ocpt");
         await createProjectAtPreviousFormat(olderPath);
@@ -709,7 +709,7 @@ void main() {
     test("opens the project and pushes the Partager screen instead of the workspace", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await projectsManager.createProject(name: "My Movie", filePath: filePath);
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
 
       final routerManager = RecordingRouterManager();
       final bloc = buildBloc(routerManager: routerManager);

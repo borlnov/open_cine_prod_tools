@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -40,7 +41,7 @@ class _CountingProjectsManager extends OcptProjectsManager {
 
   /// Count the capture, then delegate to the real one.
   @override
-  Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
+  Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> captureWorkingCopyState() async {
     captureCount++;
     return super.captureWorkingCopyState();
   }

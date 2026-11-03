@@ -355,7 +355,7 @@ class BreakdownScenarioHarness {
 
   /// Closes the project and removes its folder.
   Future<void> tearDown() async {
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
     await tempDir.delete(recursive: true);
   }
 

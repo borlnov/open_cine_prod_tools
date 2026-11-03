@@ -149,7 +149,7 @@ void main() {
     test("reading again with no project open answers false and moves nothing", () async {
       final bloc = buildBloc();
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
 
       final hasRead = await bloc.reload({OcptBreakdownReloadScope.snapshot});
 

@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 
 /// Close the open project and keep the recent-projects entry's episode count truthful.
 ///
@@ -24,7 +26,11 @@ abstract final class OcptProjectEpisodeOps {
   /// version is being previewed — so a session that added or deleted episodes leaves a truthful
   /// count behind rather than the one it opened with, and previewing a version never overwrites it
   /// with a count that isn't the project's own.
-  static Future<void> closeProject({
+  ///
+  /// Answers the failure of that read as it came, with the type of what failed as its `extraInfo`:
+  /// the project is then left open, nothing is closed and no count is recorded.
+  @useResult
+  static Future<OcptDatabaseOutcome> closeProject({
     required OcptOpenProjectModel? project,
     required OcptScreenplayService screenplayService,
     required OcptPropertiesManager propertiesManager,
@@ -32,13 +38,12 @@ abstract final class OcptProjectEpisodeOps {
     required void Function() onClosed,
   }) async {
     if (project == null) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
     final episodes = await screenplayService.loadEpisodes(database: project.fileDatabase);
     if (episodes.isError) {
-      // Raises as the database used to: this goes when the manager answers a result of its own.
-      throw StateError("The episodes of the project could not be counted");
+      return OcptDatabaseOutcome(status: episodes.status, extraInfo: episodes.extraInfo);
     }
 
     final episodeCount = episodes.value!.length;
@@ -58,6 +63,8 @@ abstract final class OcptProjectEpisodeOps {
     );
 
     logger.i("A project was closed: ${project.primaryScreenplayId}");
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Update the recent-projects entry for the `currentProject` so it carries the episode count
@@ -72,19 +79,21 @@ abstract final class OcptProjectEpisodeOps {
   /// The live count is read over [OcptOpenProjectModel.fileDatabase] — the working copy, **never**
   /// [OcptOpenProjectModel.database], which would be the in-memory preview database while a
   /// version is being previewed.
-  static Future<void> recordOpenProjectEpisodeCount({
+  ///
+  /// Answers the failure of that read as it came, with nothing recorded.
+  @useResult
+  static Future<OcptDatabaseOutcome> recordOpenProjectEpisodeCount({
     required OcptOpenProjectModel? project,
     required OcptScreenplayService screenplayService,
     required OcptPropertiesManager propertiesManager,
   }) async {
     if (project == null) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
     final episodes = await screenplayService.loadEpisodes(database: project.fileDatabase);
     if (episodes.isError) {
-      // Raises as the database used to: this goes when the manager answers a result of its own.
-      throw StateError("The episodes of the project could not be counted");
+      return OcptDatabaseOutcome(status: episodes.status, extraInfo: episodes.extraInfo);
     }
 
     final episodeCount = episodes.value!.length;
@@ -94,6 +103,8 @@ abstract final class OcptProjectEpisodeOps {
       episodeCount: episodeCount,
       propertiesManager: propertiesManager,
     );
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Update the recent-projects entry for [path], if it is still in the list, so it carries

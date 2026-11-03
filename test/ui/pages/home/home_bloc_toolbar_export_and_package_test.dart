@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_packa
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'home_bloc_test_doubles.dart';
 
 /// A file selector manager whose [openSelector] is stubbed, to exercise the bloc's import flows
@@ -162,7 +163,7 @@ void main() {
               addedAt: DateTime.utc(2026, 8, 19),
             ),
           );
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
     }
 
     test(
@@ -247,7 +248,7 @@ void main() {
     Future<String> exportedPackage(String packagePath) async {
       final projectFilePath = p.join(tempDir.path, "source.ocpt");
       await projectsManager.createProject(name: "Les Vagues", filePath: projectFilePath);
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
 
       final result = await projectsManager.exportProjectPackage(
         projectFilePath: projectFilePath,

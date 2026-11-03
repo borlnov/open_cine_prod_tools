@@ -27,6 +27,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../ocpt_result_expectations.dart';
 
 /// The app language every projects manager built here is given, so a created project never depends
 /// on the machine the tests run on.
@@ -317,7 +318,7 @@ void main() {
   test("a named target is packaged even while no project is open at all", () async {
     final movieFilePath = p.join(tempDir.path, "movie.ocpt");
     await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
 
     final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
     final bloc = await buildLoadedBloc(saveLocationService);
@@ -340,7 +341,9 @@ void main() {
   test("the read-only preview refusal does not apply to a named target", () async {
     final movieFilePath = p.join(tempDir.path, "movie.ocpt");
     await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
-    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+    final version = await projectsManager
+        .createProjectVersion(name: "v1", note: "")
+        .maybeValueOrFail;
     await projectsManager.previewVersion(version!.id);
     expect(projectsManager.currentProject!.isReadOnly, isTrue);
 

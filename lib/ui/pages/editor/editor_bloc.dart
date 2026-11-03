@@ -859,7 +859,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       await _onSaveRequested(const OcptEditorSaveRequestedEvent(isManual: true), emitter);
     }
 
-    await _projectsManager.closeCurrentProject();
+    final closed = await _projectsManager.closeCurrentProject();
+    if (closed.isError) {
+      return;
+    }
+
     _routerManager.pop();
   }
 

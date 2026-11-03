@@ -208,7 +208,7 @@ void main() {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
 
       final hasRead = await bloc.reload({OcptBudgetReloadScope.snapshot});
 

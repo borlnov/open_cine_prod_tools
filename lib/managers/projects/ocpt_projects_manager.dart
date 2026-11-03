@@ -12,6 +12,7 @@ import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -53,6 +54,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_free_file_path.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
@@ -641,37 +643,36 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// They are also the only operations of the app that go through
   /// [OcptOpenProjectModel.fileDatabase] rather than [OcptOpenProjectModel.database]: the version
   /// list belongs to the project file, and stays readable and editable while a preview is on
-  /// screen — deleting a version you happen not to be previewing is perfectly legitimate then. A
-  /// failure of the file raises a [StateError], until this manager answers a result of its own.
+  /// screen — deleting a version you happen not to be previewing is perfectly legitimate then.
+  ///
+  /// A failure of the project file is answered as the service answered it, with the type of what
+  /// failed as its `extraInfo`.
   /// {@endtemplate}
-  Future<List<OcptProjectVersion>> listProjectVersions() async {
+  @useResult
+  Future<OcptDatabaseResult<List<OcptProjectVersion>>> listProjectVersions() async {
     final project = currentProject;
     if (project == null) {
-      return const [];
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok, value: []);
     }
 
-    final listed = await projectVersionsService.listVersions(database: project.fileDatabase);
-    if (listed.isError) {
-      throw StateError("The project versions could not be listed");
-    }
-
-    return listed.value!;
+    return projectVersionsService.listVersions(database: project.fileDatabase);
   }
 
   /// Capture the [currentProject] as a new version named [name], with the user's [note], and return
-  /// it. Returns null if no project is open.
+  /// it. Answers `ok` with no value if no project is open.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
-  Future<OcptProjectVersion?> createProjectVersion({
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectVersion>> createProjectVersion({
     required String name,
     required String note,
   }) async {
     final project = currentProject;
     if (project == null) {
-      return null;
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok);
     }
 
-    final created = await projectVersionsService.createVersion(
+    return projectVersionsService.createVersion(
       database: project.fileDatabase,
       name: name,
       note: note,
@@ -679,11 +680,6 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       deviceId: await _propertiesManager.loadOrCreateDeviceId(),
       pageMargins: await _loadPageMargins(),
     );
-    if (created.isError) {
-      throw StateError("The project version could not be created");
-    }
-
-    return created.value;
   }
 
   /// Rename the version [versionId] of the [currentProject] to [name], replacing its [note]. Does
@@ -694,51 +690,46 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// never reads the project's data, so there is nothing here a preview could make stale.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
-  Future<void> renameProjectVersion({
+  @useResult
+  Future<OcptDatabaseOutcome> renameProjectVersion({
     required String versionId,
     required String name,
     required String note,
   }) async {
     final project = currentProject;
     if (project == null) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
-    final renamed = await projectVersionsService.renameVersion(
+    return projectVersionsService.renameVersion(
       database: project.fileDatabase,
       id: versionId,
       name: name,
       note: note,
     );
-    if (renamed.isError) {
-      throw StateError("The project version could not be renamed");
-    }
   }
 
   /// Measure the [currentProject]'s working copy exactly as
-  /// [OcptProjectVersionsService.captureWorkingCopyState] does, or null if no project is open.
+  /// [OcptProjectVersionsService.captureWorkingCopyState] does, or `ok` with no value if no project
+  /// is open.
   ///
-  /// Also null while a version is being previewed, for the same reason [createProjectVersion] is
+  /// Also no value while a version is being previewed, for the same reason [createProjectVersion] is
   /// refused by the bloc that calls it then: this reads [OcptOpenProjectModel.fileDatabase], the
   /// project file underneath whatever the user is actually looking at, so a working-copy card built
   /// from it during a preview would describe a state that isn't on screen.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
-  Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> captureWorkingCopyState() async {
     final project = currentProject;
     if (project == null || project.isReadOnly) {
-      return null;
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok);
     }
 
-    final captured = await projectVersionsService.captureWorkingCopyState(
+    return projectVersionsService.captureWorkingCopyState(
       database: project.fileDatabase,
       pageMargins: await _loadPageMargins(),
     );
-    if (captured.isError) {
-      throw StateError("The working copy could not be measured");
-    }
-
-    return captured.value;
   }
 
   /// Delete the version [versionId] of the [currentProject]. Does nothing if no project is open,
@@ -750,10 +741,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// under the user would leave them reading something the project no longer has.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
-  Future<void> deleteProjectVersion(String versionId) async {
+  @useResult
+  Future<OcptDatabaseOutcome> deleteProjectVersion(String versionId) async {
     final project = currentProject;
     if (project == null) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
     if (project.previewedVersion?.id == versionId) {
@@ -761,16 +753,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         "The project version $versionId can't be deleted while it's the one being previewed: "
         "leave the preview first",
       );
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
-    final deleted = await projectVersionsService.deleteVersion(
-      database: project.fileDatabase,
-      id: versionId,
-    );
-    if (deleted.isError) {
-      throw StateError("The project version could not be deleted");
-    }
+    return projectVersionsService.deleteVersion(database: project.fileDatabase, id: versionId);
   }
 
   /// Put the [currentProject] back into the state the version [versionId] captured, keeping the
@@ -791,6 +777,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// that would have written them.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  @useResult
   Future<OcptProjectRestoreStatus> restoreProjectVersion({
     required String versionId,
     required String safetyVersionName,
@@ -799,7 +786,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       return OcptProjectRestoreStatus.noProjectOpen;
     }
 
-    await exitPreview();
+    final left = await exitPreview();
+    if (left.isError) {
+      return OcptProjectRestoreStatus.databaseError;
+    }
 
     final project = currentProject!;
     final result = await projectVersionsService.restoreVersion(
@@ -821,7 +811,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     _currentProject.value = project.workingCopy;
 
     // A restored version may hold a different number of episodes than the working copy did.
-    await recordCurrentProjectEpisodeCount();
+    final recorded = await recordCurrentProjectEpisodeCount();
+    if (recorded.isError) {
+      return OcptProjectRestoreStatus.databaseError;
+    }
 
     return result.status;
   }
@@ -857,19 +850,36 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// project is open or if none is being previewed.
   ///
   /// The model is re-emitted *before* the preview database is closed, so every mode has already
-  /// been told to read from the project file again by the time that connection goes.
-  Future<void> exitPreview() async {
+  /// been told to read from the project file again by the time that connection goes. A preview
+  /// database that cannot be closed is answered as a failure, with the type of what failed as its
+  /// `extraInfo`: the working copy is on screen by then all the same.
+  @useResult
+  Future<OcptDatabaseOutcome> exitPreview() async {
     final project = currentProject;
     if (project == null || !project.isReadOnly) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
     final previewDatabase = project.database;
     _currentProject.value = project.workingCopy;
 
-    await previewDatabase.close();
+    try {
+      await previewDatabase.close();
+    } catch (error, stackTrace) {
+      _logger.e(
+        "The database of a project version's preview could not be closed: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      return OcptDatabaseOutcome(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: error.runtimeType,
+      );
+    }
 
     _logger.i("Left the preview of a project version");
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 
   /// Stat every file the project stored at [projectFilePath] references, without writing
@@ -926,7 +936,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
   /// Close the [currentProject], disposing its database handle. Does nothing if no project is
   /// open.
-  Future<void> closeCurrentProject() => OcptProjectEpisodeOps.closeProject(
+  ///
+  /// A project whose episodes cannot be counted is left open, and the failure is answered with the
+  /// type of what failed as its `extraInfo`.
+  @useResult
+  Future<OcptDatabaseOutcome> closeCurrentProject() => OcptProjectEpisodeOps.closeProject(
     project: currentProject,
     screenplayService: screenplayService,
     propertiesManager: _propertiesManager,
@@ -936,7 +950,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
   /// Update the recent-projects entry for the [currentProject] so it carries the episode count
   /// the project holds right now. Does nothing when no project is open.
-  Future<void> recordCurrentProjectEpisodeCount() =>
+  @useResult
+  Future<OcptDatabaseOutcome> recordCurrentProjectEpisodeCount() =>
       OcptProjectEpisodeOps.recordOpenProjectEpisodeCount(
         project: currentProject,
         screenplayService: screenplayService,
@@ -973,7 +988,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   @override
   Future<void> disposeLifeCycle() async {
     _logger.i("The projects manager is being disposed");
-    await closeCurrentProject();
+    final closed = await closeCurrentProject();
+    if (closed.isError) {
+      // Nothing after this runs, as when the close raised: the project is still open, and its
+      // database with it.
+      return;
+    }
+
     await _currentProject.disposeLifeCycle();
     await scheduleService.disposeLifeCycle();
     await breakdownService.disposeLifeCycle();

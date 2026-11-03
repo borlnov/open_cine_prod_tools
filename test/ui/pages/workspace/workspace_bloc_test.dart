@@ -483,7 +483,9 @@ void main() {
           .maybeValueOrFail;
       expect(secondEpisodeId, isNotNull);
 
-      final version = await projectsManager.createProjectVersion(name: "Both episodes", note: "");
+      final version = await projectsManager
+          .createProjectVersion(name: "Both episodes", note: "")
+          .maybeValueOrFail;
       expect(version, isNotNull);
 
       final bloc = buildBloc();
@@ -512,7 +514,9 @@ void main() {
     final project = projectsManager.currentProject!;
     final firstEpisodeId = project.primaryScreenplayId;
 
-    final version = await projectsManager.createProjectVersion(name: "One episode only", note: "");
+    final version = await projectsManager
+        .createProjectVersion(name: "One episode only", note: "")
+        .maybeValueOrFail;
     expect(version, isNotNull);
 
     final secondEpisodeId = await projectsManager.screenplayService

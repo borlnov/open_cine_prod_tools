@@ -98,7 +98,9 @@ void main() {
           )
           .okOrFail;
 
-      final version = (await manager.createProjectVersion(name: "v1 — First read", note: ""))!;
+      final version = await manager
+          .createProjectVersion(name: "v1 — First read", note: "")
+          .valueOrFail;
 
       await manager.screenplayService
           .saveScreenplayText(
@@ -176,7 +178,7 @@ void main() {
           )
           .okOrFail;
 
-      await manager.exitPreview();
+      await manager.exitPreview().okOrFail;
 
       expect(manager.currentProject!.isReadOnly, isFalse);
       expect(manager.currentProject!.previewedVersion, isNull);
@@ -214,7 +216,7 @@ void main() {
       // writes it back, and only once its transaction has committed.
       expect(await propertiesManager.pageMargins.load(), workingCopyMargins);
 
-      await manager.exitPreview();
+      await manager.exitPreview().okOrFail;
 
       expect(await propertiesManager.pageMargins.load(), workingCopyMargins);
     });
@@ -274,7 +276,7 @@ void main() {
       expect((await manager.previewVersion(version.id)).status, OcptProjectPreviewStatus.ok);
 
       // An unregistered reporter is never asked again, even if it would still say yes.
-      await manager.exitPreview();
+      await manager.exitPreview().okOrFail;
       isDirty = true;
       unregister();
       expect(manager.hasUnsavedChanges, isFalse);
@@ -298,7 +300,9 @@ void main() {
 
     test('previewing another version replaces the one on screen', () async {
       final first = await createDivergedProject();
-      final second = (await manager.createProjectVersion(name: "v2 — Rewritten", note: ""))!;
+      final second = await manager
+          .createProjectVersion(name: "v2 — Rewritten", note: "")
+          .valueOrFail;
 
       await manager.previewVersion(first.id);
       final firstPreviewDatabase = manager.currentProject!.database;
@@ -314,24 +318,28 @@ void main() {
       final version = await createDivergedProject();
       await manager.previewVersion(version.id);
 
-      await manager.deleteProjectVersion(version.id);
+      await manager.deleteProjectVersion(version.id).okOrFail;
 
-      expect((await manager.listProjectVersions()).map((entry) => entry.id), [version.id]);
+      expect((await manager.listProjectVersions().valueOrFail).map((entry) => entry.id), [
+        version.id,
+      ]);
       expect(manager.currentProject!.previewedVersion, version);
 
       // Another version, on the other hand, may go while a preview is up: the version list lives
       // in the project file, which a preview never takes over.
-      final other = (await manager.createProjectVersion(name: "v2", note: ""))!;
-      await manager.deleteProjectVersion(other.id);
-      expect((await manager.listProjectVersions()).map((entry) => entry.id), [version.id]);
+      final other = await manager.createProjectVersion(name: "v2", note: "").valueOrFail;
+      await manager.deleteProjectVersion(other.id).okOrFail;
+      expect((await manager.listProjectVersions().valueOrFail).map((entry) => entry.id), [
+        version.id,
+      ]);
     });
 
     test('exitPreview is a no-op when nothing is being previewed', () async {
-      await expectLater(manager.exitPreview(), completes);
+      await expectLater(manager.exitPreview().okOrFail, completes);
 
       await createDivergedProject();
 
-      await expectLater(manager.exitPreview(), completes);
+      await expectLater(manager.exitPreview().okOrFail, completes);
       expect(manager.currentProject!.isReadOnly, isFalse);
     });
 
@@ -350,7 +358,7 @@ void main() {
 
       // The state the restore replaced is a version of its own, and the project descends from the
       // one it was put back on.
-      final versions = await manager.listProjectVersions();
+      final versions = await manager.listProjectVersions().valueOrFail;
       expect(
         versions.map((entry) => entry.name),
         containsAll(["Before restoring v1 — First read", "v1 — First read"]),
@@ -362,7 +370,7 @@ void main() {
       final version = await createDivergedProject();
       await manager.previewVersion(version.id);
 
-      expect(await manager.captureWorkingCopyState(), isNull);
+      expect(await manager.captureWorkingCopyState().maybeValueOrFail, isNull);
     });
 
     test('restoring writes the version page margins back, once it has committed', () async {
@@ -383,7 +391,10 @@ void main() {
       final version = await createDivergedProject();
       await propertiesManager.pageMargins.store(workingCopyMargins);
 
-      await manager.restoreProjectVersion(versionId: version.id, safetyVersionName: "Before");
+      expect(
+        await manager.restoreProjectVersion(versionId: version.id, safetyVersionName: "Before"),
+        OcptProjectRestoreStatus.ok,
+      );
 
       // The margins are an app-wide preference rather than project data, so they are the one part
       // of a restore that lives outside its transaction — written only once that has committed.
@@ -395,9 +406,12 @@ void main() {
       await manager.screenplayService
           .createEpisode(database: manager.currentProject!.database)
           .maybeValueOrFail;
-      await manager.recordCurrentProjectEpisodeCount();
+      await manager.recordCurrentProjectEpisodeCount().okOrFail;
 
-      await manager.restoreProjectVersion(versionId: version.id, safetyVersionName: "Before");
+      expect(
+        await manager.restoreProjectVersion(versionId: version.id, safetyVersionName: "Before"),
+        OcptProjectRestoreStatus.ok,
+      );
 
       // The version was captured while the project held its single episode; the second one the
       // working copy grew afterwards is not part of what came back.
@@ -439,7 +453,7 @@ void main() {
       final previewDatabase = manager.currentProject!.database;
       final fileDatabase = manager.currentProject!.fileDatabase;
 
-      await manager.closeCurrentProject();
+      await manager.closeCurrentProject().okOrFail;
 
       expect(manager.currentProject, isNull);
       await expectLater(
@@ -495,7 +509,7 @@ void main() {
     test("a file from a newer build is refused, and comes back byte-identical", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await manager.createProject(name: "From The Future", filePath: filePath);
-      await manager.closeCurrentProject();
+      await manager.closeCurrentProject().okOrFail;
       stampFormat(filePath, OcptProjectDatabase.currentSchemaVersion + 1);
       await propertiesManager.deleteAll();
 
@@ -537,7 +551,7 @@ void main() {
 
       final foreignPath = p.join(tempDir.path, "foreign.ocpt");
       await manager.createProject(name: "From Another Workshop", filePath: foreignPath);
-      await manager.closeCurrentProject();
+      await manager.closeCurrentProject().okOrFail;
       // A pre-release writer, whereas the manager's own fallback under `flutter test` is the
       // stable "0.3.0" (per `OcptProjectsManager._appVersion`): same schema, and a pre-release
       // is involved on the writer side, so the file is a foreign dev build.
@@ -555,7 +569,7 @@ void main() {
     test("a file stamped with this exact build's own version opens normally", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await manager.createProject(name: "My Movie", filePath: filePath);
-      await manager.closeCurrentProject();
+      await manager.closeCurrentProject().okOrFail;
       // The manager's own local/dev fallback under `flutter test` — see
       // `OcptProjectsManager._appVersion`. Already stamped by createProject, but stamped again
       // explicitly here to state exactly what this test is about.
@@ -658,7 +672,7 @@ void main() {
       final firstPath = p.join(tempDir.path, "first.ocpt");
       final secondPath = p.join(tempDir.path, "second.ocpt");
       await manager.createProject(name: "First", filePath: firstPath);
-      await manager.closeCurrentProject();
+      await manager.closeCurrentProject().okOrFail;
       await manager.createProject(name: "Second", filePath: secondPath);
 
       final result = await manager.moveCurrentProject(newFilePath: firstPath);

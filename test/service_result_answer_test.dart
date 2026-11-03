@@ -34,6 +34,24 @@ const _stopCarriers = {
   "lib/ui/pages/workspace/modes/resources/resources_bloc.dart": {"_load"},
   "lib/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart": {"_load"},
   "lib/ui/pages/editor/editor_bloc.dart": {"_load"},
+  "lib/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart": {
+    "_captureWorkingCopyState",
+  },
+  "lib/managers/projects/ocpt_projects_manager.dart": {
+    "listProjectVersions",
+    "createProjectVersion",
+    "renameProjectVersion",
+    "captureWorkingCopyState",
+    "deleteProjectVersion",
+    "restoreProjectVersion",
+    "exitPreview",
+    "closeCurrentProject",
+    "recordCurrentProjectEpisodeCount",
+  },
+  "lib/managers/projects/ocpt_project_episode_ops.dart": {
+    "closeProject",
+    "recordOpenProjectEpisodeCount",
+  },
 };
 
 /// List a file's lines of offences as `path:line: reason`.

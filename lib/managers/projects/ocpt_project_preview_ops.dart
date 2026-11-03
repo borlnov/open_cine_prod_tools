@@ -33,7 +33,8 @@ abstract final class OcptProjectPreviewOps {
   ///
   /// Refused with [OcptProjectPreviewStatus.unsavedChanges] while any mode reports itself dirty:
   /// the caller saves first and retries. Refused as a whole on any failure — a preview that can't
-  /// be entered leaves the working copy on screen, untouched.
+  /// be entered leaves the working copy on screen, untouched. A project file that cannot be read
+  /// is [OcptProjectPreviewStatus.databaseError], with the type of what failed as its `extraInfo`.
   static Future<ResultWithStatus<OcptProjectPreviewStatus, OcptOpenProjectModel>> previewVersion({
     required OcptOpenProjectModel? project,
     required String versionId,
@@ -59,8 +60,10 @@ abstract final class OcptProjectPreviewOps {
       id: versionId,
     );
     if (versionRead.isError) {
-      // Raises as the database used to: this goes when the manager answers a result of its own.
-      throw StateError("The project version could not be read for its preview");
+      return ResultWithStatus(
+        status: OcptProjectPreviewStatus.databaseError,
+        extraInfo: versionRead.extraInfo,
+      );
     }
 
     final version = versionRead.value;
@@ -76,8 +79,10 @@ abstract final class OcptProjectPreviewOps {
       id: versionId,
     );
     if (payloadRead.isError) {
-      // Raises as the database used to: this goes when the manager answers a result of its own.
-      throw StateError("The payload of the project version could not be read for its preview");
+      return ResultWithStatus(
+        status: OcptProjectPreviewStatus.databaseError,
+        extraInfo: payloadRead.extraInfo,
+      );
     }
 
     final payloadResult = payloadRead.value!;

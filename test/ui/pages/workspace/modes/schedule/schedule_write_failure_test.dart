@@ -343,7 +343,9 @@ void main() {
     test("stops before the version list is emitted over it", () async {
       final service = _ReadFailsScheduleService();
       await buildBlocs(service: service);
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "")
+          .maybeValueOrFail;
       await projectsManager.scheduleService
           .createDay(
             database: projectsManager.currentProject!.database,
@@ -364,7 +366,7 @@ void main() {
       await settle();
 
       expect(
-        (await projectsManager.listProjectVersions()).length,
+        (await projectsManager.listProjectVersions().valueOrFail).length,
         greaterThan(listed),
         reason: "the restore ran and took its safety version",
       );

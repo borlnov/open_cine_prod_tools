@@ -825,7 +825,7 @@ void main() {
 
       // With no project open every write handler returns at its first line: the handlers are
       // reached without any of the rows the events name having to exist.
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
 
       // A bloc asserts, in debug mode, that an event it is given has a handler registered.
       for (final event in events) {

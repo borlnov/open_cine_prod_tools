@@ -155,7 +155,9 @@ void main() {
         .loadSchedule(database: project.database)
         .valueOrFail;
     final slotId = snapshot.slotsByDayId[dayId]!.single.id;
-    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+    final version = await projectsManager
+        .createProjectVersion(name: "v1", note: "")
+        .maybeValueOrFail;
 
     final mode = OcptScheduleBloc(
       projectsManager: projectsManager,
@@ -220,7 +222,7 @@ void main() {
       await projectsManager.scheduleService
           .createDay(database: project.database, date: DateTime(2026, 8, 11))
           .maybeValueOrFail;
-      final versionCount = (await projectsManager.listProjectVersions()).length;
+      final versionCount = (await projectsManager.listProjectVersions().valueOrFail).length;
 
       fixture.mode.add(
         OcptProjectVersionRestoreConfirmedEvent(
@@ -231,7 +233,7 @@ void main() {
       await pumpEventQueue(times: 200);
 
       expect(
-        (await projectsManager.listProjectVersions()).length,
+        (await projectsManager.listProjectVersions().valueOrFail).length,
         versionCount,
         reason: "a restore of a changed working copy takes a safety version",
       );
@@ -243,12 +245,12 @@ void main() {
     test("is not lost to a version being saved, which does not run", () async {
       final service = _FlakyScheduleService();
       final fixture = await setUpTypedEdit(service);
-      final versionCount = (await projectsManager.listProjectVersions()).length;
+      final versionCount = (await projectsManager.listProjectVersions().valueOrFail).length;
 
       fixture.mode.add(const OcptProjectVersionCreationRequestedEvent(name: "v2", note: ""));
       await pumpEventQueue(times: 200);
 
-      expect((await projectsManager.listProjectVersions()).length, versionCount);
+      expect((await projectsManager.listProjectVersions().valueOrFail).length, versionCount);
       expect(fixture.day.state.pendingFieldEdits, isNotEmpty);
 
       await fixture.close();

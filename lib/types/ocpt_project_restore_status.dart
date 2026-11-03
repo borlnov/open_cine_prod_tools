@@ -30,7 +30,12 @@ enum OcptProjectRestoreStatus with MixinResultStatus {
 
   /// The payload was read but writing it back failed; the transaction rolled back and the project
   /// is untouched.
-  writeFailed(isSuccess: false, canBeRetried: true);
+  writeFailed(isSuccess: false, canBeRetried: true),
+
+  /// The database failed a step around the restore itself — leaving the preview before it, or
+  /// recording the project's episode count after it —: the caller stops there, with no notice to
+  /// show for it. The `extraInfo` is the type of what failed.
+  databaseError(isSuccess: false, canBeRetried: true);
 
   /// {@macro act_dart_result.MixinResultStatus.isSuccess}
   @override

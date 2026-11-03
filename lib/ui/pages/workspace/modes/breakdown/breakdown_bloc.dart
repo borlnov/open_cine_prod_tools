@@ -524,7 +524,11 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     OcptBreakdownBackRequestedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    await _projectsManager.closeCurrentProject();
+    final closed = await _projectsManager.closeCurrentProject();
+    if (closed.isError) {
+      return;
+    }
+
     _routerManager.pop();
   }
 

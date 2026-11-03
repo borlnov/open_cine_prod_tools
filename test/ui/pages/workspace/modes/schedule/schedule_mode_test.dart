@@ -100,7 +100,7 @@ void main() {
   });
 
   tearDown(() async {
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
     await tempDir.delete(recursive: true);
   });
 

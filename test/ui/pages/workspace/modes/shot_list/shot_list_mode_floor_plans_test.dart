@@ -95,7 +95,7 @@ void main() {
   });
 
   tearDown(() async {
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
     await tempDir.delete(recursive: true);
   });
 
@@ -559,7 +559,9 @@ void main() {
     ) async {
       await mountWithACase(tester);
 
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "")
+          .maybeValueOrFail;
       expect(version, isNotNull);
       final previewResult = await projectsManager.previewVersion(version!.id);
       expect(previewResult.status.isSuccess, isTrue);
@@ -619,7 +621,7 @@ void main() {
       expect(canvas.onGhostShotFocusRequested, isNotNull);
 
       // Leave the preview so the working copy is what the next test opens onto.
-      await projectsManager.exitPreview();
+      await projectsManager.exitPreview().okOrFail;
     });
 
     testWidgets("creating a second shot's own chip selects it, always one active", (tester) async {

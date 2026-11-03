@@ -112,7 +112,7 @@ void main() {
   });
 
   tearDown(() async {
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
     await tempDir.delete(recursive: true);
   });
 
@@ -433,7 +433,9 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "note");
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "note")
+          .maybeValueOrFail;
       expect(version, isNotNull);
 
       await pumpEditorPage(tester);
@@ -701,7 +703,9 @@ void main() {
     });
 
     testWidgets('withheld entirely under a read-only preview', (tester) async {
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "note");
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "note")
+          .maybeValueOrFail;
       expect(version, isNotNull);
 
       await pumpEditorPage(tester);

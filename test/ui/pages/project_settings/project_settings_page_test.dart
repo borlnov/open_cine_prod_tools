@@ -736,7 +736,7 @@ void main() {
     final secondId = await addEpisode(title: "Les falaises");
     // The fixture stands for an episode the user added, so the recent-projects entry counts it
     // too — which is what makes the assertion on that count below say something.
-    await projectsManager.recordCurrentProjectEpisodeCount();
+    await projectsManager.recordCurrentProjectEpisodeCount().okOrFail;
     final bloc = await pumpView(tester);
     final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
     final firstEpisode = bloc.state.episodes.first;

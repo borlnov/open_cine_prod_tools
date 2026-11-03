@@ -301,7 +301,9 @@ void main() {
             snapshotReason: OcptSnapshotReason.manual,
           )
           .okOrFail;
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "")
+          .maybeValueOrFail;
       expect(version, isNotNull);
 
       final bloc = buildBloc(spellCheckManager: manager);
@@ -466,7 +468,9 @@ void main() {
             snapshotReason: OcptSnapshotReason.manual,
           )
           .okOrFail;
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "")
+          .maybeValueOrFail;
       expect(version, isNotNull);
 
       final bloc = buildBloc(spellCheckManager: manager);
@@ -628,7 +632,9 @@ void main() {
               snapshotReason: OcptSnapshotReason.manual,
             )
             .okOrFail;
-        final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+        final version = await projectsManager
+            .createProjectVersion(name: "v1", note: "")
+            .maybeValueOrFail;
         expect(version, isNotNull);
 
         final bloc = buildBloc(spellCheckManager: manager);

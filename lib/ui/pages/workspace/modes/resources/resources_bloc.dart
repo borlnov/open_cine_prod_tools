@@ -576,7 +576,11 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     Emitter<OcptResourcesState> emitter,
   ) async {
     await runPendingWritesFlushers();
-    await _projectsManager.closeCurrentProject();
+    final closed = await _projectsManager.closeCurrentProject();
+    if (closed.isError) {
+      return;
+    }
+
     _routerManager.pop();
   }
 

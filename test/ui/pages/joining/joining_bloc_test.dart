@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// The method channel `flutter_secure_storage` talks over — mirrors `sharing_bloc_test.dart`'s own
 /// mock, which this file's [OcptPairingService] needs the exact same wiring for (never actually
@@ -313,12 +314,12 @@ void main() {
     // one that actually opens it, exactly as it would the real joined file.
     joinedProjectPath = p.join(tempDir.path, "joined-shared-movie.ocpt");
     await projectsManager.createProject(name: "Shared Movie", filePath: joinedProjectPath);
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
   });
 
   tearDown(() async {
     if (projectsManager.currentProject != null) {
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
     }
     await projectsManager.disposeLifeCycle();
     await tempDir.delete(recursive: true);

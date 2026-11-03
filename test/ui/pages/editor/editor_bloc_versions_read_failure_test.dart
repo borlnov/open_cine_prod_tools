@@ -63,7 +63,7 @@ void main() {
           snapshotReason: OcptSnapshotReason.manual,
         )
         .okOrFail;
-    versionId = (await projectsManager.createProjectVersion(name: "v1", note: ""))!.id;
+    versionId = (await projectsManager.createProjectVersion(name: "v1", note: "").valueOrFail).id;
 
     service = UnreadableScreenplayService();
     bloc = OcptEditorBloc(
@@ -91,7 +91,8 @@ void main() {
   }
 
   /// Count the versions the project file holds.
-  Future<int> storedVersionCount() async => (await projectsManager.listProjectVersions()).length;
+  Future<int> storedVersionCount() async =>
+      (await projectsManager.listProjectVersions().valueOrFail).length;
 
   test("entering a preview stops before the confirmation is dismissed", () async {
     await askForDeletion();

@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
@@ -59,7 +60,7 @@ abstract final class OcptProjectOpenOps {
     required LogsHelper logger,
     required OcptPropertiesManager propertiesManager,
     required void Function(OcptOpenProjectModel project) onCreated,
-    required Future<void> Function() closeCurrentProject,
+    required Future<OcptDatabaseOutcome> Function() closeCurrentProject,
     required Future<void> Function(String directoryPath) rememberProjectsDirectory,
   }) async {
     OcptProjectDatabase? database;
@@ -123,7 +124,7 @@ abstract final class OcptProjectOpenOps {
     required OcptScreenplayService screenplayService,
     required OcptProjectFileCompatibility Function({required String filePath}) probeProjectFile,
     required void Function(OcptOpenProjectModel project) onOpened,
-    required Future<void> Function() closeCurrentProject,
+    required Future<OcptDatabaseOutcome> Function() closeCurrentProject,
   }) async {
     OcptProjectDatabase? database;
     ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel> result;
@@ -172,7 +173,7 @@ abstract final class OcptProjectOpenOps {
     required LogsHelper logger,
     required void Function(OcptProjectDatabase database) onDatabaseOpened,
     required void Function(OcptOpenProjectModel project) onCreated,
-    required Future<void> Function() closeCurrentProject,
+    required Future<OcptDatabaseOutcome> Function() closeCurrentProject,
     required Future<void> Function(String directoryPath) rememberProjectsDirectory,
   }) async {
     final file = File(filePath);
@@ -181,7 +182,10 @@ abstract final class OcptProjectOpenOps {
     }
 
     if (currentProject != null) {
-      await closeCurrentProject();
+      final closed = await closeCurrentProject();
+      if (closed.isError) {
+        return const ResultWithStatus(status: OcptProjectStatus.ioError);
+      }
     }
 
     await file.parent.create(recursive: true);
@@ -252,7 +256,7 @@ abstract final class OcptProjectOpenOps {
     required OcptProjectFileCompatibility Function({required String filePath}) probeProjectFile,
     required void Function(OcptProjectDatabase database) onDatabaseOpened,
     required void Function(OcptOpenProjectModel project) onOpened,
-    required Future<void> Function() closeCurrentProject,
+    required Future<OcptDatabaseOutcome> Function() closeCurrentProject,
   }) async {
     if (!File(filePath).existsSync()) {
       return const ResultWithStatus(status: OcptProjectStatus.fileNotFound);
@@ -270,7 +274,10 @@ abstract final class OcptProjectOpenOps {
     }
 
     if (currentProject != null) {
-      await closeCurrentProject();
+      final closed = await closeCurrentProject();
+      if (closed.isError) {
+        return _failedOpening(database: null, failure: closed);
+      }
     }
 
     final database = OcptProjectDatabase(File(filePath));
@@ -339,17 +346,19 @@ abstract final class OcptProjectOpenOps {
     return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
   }
 
-  /// Close [database] and answer the status [openProject] gives a step of the opening that raised:
-  /// a file that sqlite itself refused is corrupted, anything else is an I/O failure.
+  /// Close [database], when the opening got as far as opening one, and answer the status
+  /// [openProject] gives a step of the opening that raised: a file that sqlite itself refused is
+  /// corrupted, anything else is an I/O failure.
   ///
-  /// The screenplay service answers the failure of such a step instead of raising it, with the
-  /// type of what it caught as `extraInfo`: the verdict is the one [openProject] reaches for an
-  /// exception of the same type.
+  /// The screenplay service and the manager's close answer the failure of such a step instead of
+  /// raising it, with the type of what they caught as `extraInfo`: the verdict is the one
+  /// [openProject] reaches for an exception of the same type. That is why a failure is handed on
+  /// as it came, never rebuilt on the way.
   static Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> _failedOpening({
-    required OcptProjectDatabase database,
+    required OcptProjectDatabase? database,
     required StatusWithExtraInfo<MixinResultStatus> failure,
   }) async {
-    await database.close();
+    await database?.close();
 
     return ResultWithStatus(
       status: failure.extraInfo == SqliteException

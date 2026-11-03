@@ -586,7 +586,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleBackRequestedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    await _projectsManager.closeCurrentProject();
+    final closed = await _projectsManager.closeCurrentProject();
+    if (closed.isError) {
+      return;
+    }
+
     _routerManager.pop();
   }
 

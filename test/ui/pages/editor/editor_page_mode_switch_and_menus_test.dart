@@ -153,7 +153,7 @@ void main() {
   });
 
   tearDown(() async {
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
     await tempDir.delete(recursive: true);
   });
 
@@ -664,10 +664,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      final version = await projectsManager.createProjectVersion(
-        name: "v1",
-        note: "Before the rewrite",
-      );
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "Before the rewrite")
+          .maybeValueOrFail;
       expect(version, isNotNull);
 
       // The working copy moves on, so what the preview shows and what the project holds differ.

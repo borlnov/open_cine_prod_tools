@@ -738,7 +738,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     Emitter<OcptShotListState> emitter,
   ) async {
     await _flushAllPendingWrites(emitter);
-    await _projectsManager.closeCurrentProject();
+    final closed = await _projectsManager.closeCurrentProject();
+    if (closed.isError) {
+      return;
+    }
+
     _routerManager.pop();
   }
 

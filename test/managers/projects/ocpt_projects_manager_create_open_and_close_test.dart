@@ -136,7 +136,7 @@ void main() {
   test('openProject opens a previously created project and makes it current', () async {
     final filePath = p.join(tempDir.path, "movie.ocpt");
     await manager.createProject(name: "My Movie", filePath: filePath);
-    await manager.closeCurrentProject();
+    await manager.closeCurrentProject().okOrFail;
 
     final result = await manager.openProject(filePath: filePath);
 
@@ -154,7 +154,7 @@ void main() {
     await manager.screenplayService
         .createEpisode(database: manager.currentProject!.database)
         .maybeValueOrFail;
-    await manager.closeCurrentProject();
+    await manager.closeCurrentProject().okOrFail;
 
     // Tamper with what's stored, so the assertion below can only pass if openProject reads the
     // file's own episodes afresh rather than trusting whatever the list already says.
@@ -170,11 +170,11 @@ void main() {
   test('closeCurrentProject clears the current project and is a no-op when none is open', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
 
-    await manager.closeCurrentProject();
+    await manager.closeCurrentProject().okOrFail;
     expect(manager.currentProject, isNull);
 
     // Closing again must not throw.
-    await manager.closeCurrentProject();
+    await manager.closeCurrentProject().okOrFail;
     expect(manager.currentProject, isNull);
   });
 
@@ -186,7 +186,7 @@ void main() {
     await manager.screenplayService
         .createEpisode(database: manager.currentProject!.database)
         .maybeValueOrFail;
-    await manager.closeCurrentProject();
+    await manager.closeCurrentProject().okOrFail;
 
     final recents = await propertiesManager.recentProjects.load();
     expect(recents?.first.episodeCount, 2);
@@ -200,7 +200,7 @@ void main() {
     await manager.screenplayService
         .createEpisode(database: manager.currentProject!.database)
         .maybeValueOrFail;
-    await manager.recordCurrentProjectEpisodeCount();
+    await manager.recordCurrentProjectEpisodeCount().okOrFail;
 
     // What an app quit from inside the project would leave behind: the project is still open,
     // and the recent-projects entry already knows about the second episode.
@@ -208,10 +208,10 @@ void main() {
     final recents = await propertiesManager.recentProjects.load();
     expect(recents?.first.episodeCount, 2);
 
-    await manager.closeCurrentProject();
+    await manager.closeCurrentProject().okOrFail;
 
     // Calling it with no project open must not throw, nor touch what's stored.
-    await manager.recordCurrentProjectEpisodeCount();
+    await manager.recordCurrentProjectEpisodeCount().okOrFail;
     final unchanged = await propertiesManager.recentProjects.load();
     expect(unchanged?.first.episodeCount, 2);
   });
@@ -220,7 +220,7 @@ void main() {
       "never the previewed version's", () async {
     final filePath = p.join(tempDir.path, "movie.ocpt");
     await manager.createProject(name: "My Movie", filePath: filePath);
-    final version = await manager.createProjectVersion(name: "v1", note: "");
+    final version = await manager.createProjectVersion(name: "v1", note: "").maybeValueOrFail;
 
     // The working copy grows a second episode after the version was captured.
     await manager.screenplayService
@@ -228,7 +228,7 @@ void main() {
         .maybeValueOrFail;
 
     await manager.previewVersion(version!.id);
-    await manager.recordCurrentProjectEpisodeCount();
+    await manager.recordCurrentProjectEpisodeCount().okOrFail;
 
     final recents = await propertiesManager.recentProjects.load();
     expect(recents?.first.episodeCount, 2);
@@ -238,7 +238,7 @@ void main() {
       "previewed version's", () async {
     final filePath = p.join(tempDir.path, "movie.ocpt");
     await manager.createProject(name: "My Movie", filePath: filePath);
-    final version = await manager.createProjectVersion(name: "v1", note: "");
+    final version = await manager.createProjectVersion(name: "v1", note: "").maybeValueOrFail;
 
     // The working copy grows a second episode after the version was captured.
     await manager.screenplayService
@@ -248,7 +248,7 @@ void main() {
     await manager.previewVersion(version!.id);
     expect(manager.currentProject!.isReadOnly, isTrue);
 
-    await manager.closeCurrentProject();
+    await manager.closeCurrentProject().okOrFail;
 
     final recents = await propertiesManager.recentProjects.load();
     // The previewed version only ever held one episode; the working copy — read through
@@ -266,7 +266,7 @@ void main() {
     );
 
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
-    await manager.closeCurrentProject();
+    await manager.closeCurrentProject().okOrFail;
 
     await expectation;
   });
@@ -441,15 +441,14 @@ void main() {
     () async {
       await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
 
-      final created = await manager.createProjectVersion(
-        name: "v1 — First read",
-        note: "Before the rewrite",
-      );
+      final created = await manager
+          .createProjectVersion(name: "v1 — First read", note: "Before the rewrite")
+          .maybeValueOrFail;
 
       expect(created?.name, "v1 — First read");
       expect(created?.isBase, isTrue);
 
-      final versions = await manager.listProjectVersions();
+      final versions = await manager.listProjectVersions().valueOrFail;
       expect(versions.map((version) => version.id), [created?.id]);
       expect(versions.single.note, "Before the rewrite");
 
@@ -461,41 +460,45 @@ void main() {
 
   test('deleteProjectVersion removes the version from the open project', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
-    final created = await manager.createProjectVersion(name: "v1", note: "");
+    final created = await manager.createProjectVersion(name: "v1", note: "").maybeValueOrFail;
 
-    await manager.deleteProjectVersion(created!.id);
+    await manager.deleteProjectVersion(created!.id).okOrFail;
 
-    expect(await manager.listProjectVersions(), isEmpty);
+    expect(await manager.listProjectVersions().valueOrFail, isEmpty);
   });
 
   test('renameProjectVersion renames a version of the open project', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
-    final created = await manager.createProjectVersion(name: "v1", note: "First cut");
+    final created = await manager
+        .createProjectVersion(name: "v1", note: "First cut")
+        .maybeValueOrFail;
 
-    await manager.renameProjectVersion(versionId: created!.id, name: "v1 bis", note: "Renamed");
+    await manager
+        .renameProjectVersion(versionId: created!.id, name: "v1 bis", note: "Renamed")
+        .okOrFail;
 
-    final versions = await manager.listProjectVersions();
+    final versions = await manager.listProjectVersions().valueOrFail;
     expect(versions.single.name, "v1 bis");
     expect(versions.single.note, "Renamed");
   });
 
   test('captureWorkingCopyState reads the open project, null with none open', () async {
-    expect(await manager.captureWorkingCopyState(), isNull);
+    expect(await manager.captureWorkingCopyState().maybeValueOrFail, isNull);
 
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
-    final version = await manager.createProjectVersion(name: "v1", note: "");
+    final version = await manager.createProjectVersion(name: "v1", note: "").maybeValueOrFail;
 
-    final clean = await manager.captureWorkingCopyState();
-    expect(clean?.baseVersionId, version?.id);
-    expect(clean?.isModifiedSinceBase, isFalse);
+    final clean = await manager.captureWorkingCopyState().valueOrFail;
+    expect(clean.baseVersionId, version?.id);
+    expect(clean.isModifiedSinceBase, isFalse);
   });
 
   test('the version operations are no-ops when no project is open', () async {
-    expect(await manager.listProjectVersions(), isEmpty);
-    expect(await manager.createProjectVersion(name: "v1", note: ""), isNull);
-    await expectLater(manager.deleteProjectVersion("no-such-version"), completes);
+    expect(await manager.listProjectVersions().valueOrFail, isEmpty);
+    expect(await manager.createProjectVersion(name: "v1", note: "").maybeValueOrFail, isNull);
+    await expectLater(manager.deleteProjectVersion("no-such-version").okOrFail, completes);
     await expectLater(
-      manager.renameProjectVersion(versionId: "no-such-version", name: "v1", note: ""),
+      manager.renameProjectVersion(versionId: "no-such-version", name: "v1", note: "").okOrFail,
       completes,
     );
   });

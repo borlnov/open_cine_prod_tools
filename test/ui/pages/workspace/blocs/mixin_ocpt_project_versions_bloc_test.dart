@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
@@ -46,11 +47,14 @@ class _FailingRenameProjectsManager extends OcptProjectsManager {
 
   /// Fail as a refused rename does.
   @override
-  Future<void> renameProjectVersion({
+  Future<OcptDatabaseOutcome> renameProjectVersion({
     required String versionId,
     required String name,
     required String note,
-  }) async => throw StateError("rename intentionally failed for the test");
+  }) async => const OcptDatabaseOutcome(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "rename intentionally failed for the test",
+  );
 }
 
 /// A projects manager whose [createProjectVersion] always fails, to exercise the bloc's creation
@@ -62,10 +66,13 @@ class _FailingCreateProjectsManager extends OcptProjectsManager {
 
   /// Fail as a refused creation does.
   @override
-  Future<OcptProjectVersion?> createProjectVersion({
+  Future<OcptDatabaseResult<OcptProjectVersion>> createProjectVersion({
     required String name,
     required String note,
-  }) async => throw StateError("creation intentionally failed for the test");
+  }) async => const OcptDatabaseResult(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "creation intentionally failed for the test",
+  );
 }
 
 /// A projects manager whose [deleteProjectVersion] always fails, to exercise the bloc's deletion
@@ -77,8 +84,11 @@ class _FailingDeleteProjectsManager extends OcptProjectsManager {
 
   /// Fail as a refused deletion does.
   @override
-  Future<void> deleteProjectVersion(String versionId) async =>
-      throw StateError("deletion intentionally failed for the test");
+  Future<OcptDatabaseOutcome> deleteProjectVersion(String versionId) async =>
+      const OcptDatabaseOutcome(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "deletion intentionally failed for the test",
+      );
 }
 
 /// A projects manager that counts how many times a working-copy capture actually reads the whole
@@ -95,7 +105,7 @@ class _CountingProjectsManager extends OcptProjectsManager {
 
   /// Count the capture, then delegate to the real one.
   @override
-  Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
+  Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> captureWorkingCopyState() async {
     captureCount++;
     return super.captureWorkingCopyState();
   }
@@ -296,7 +306,7 @@ void main() {
       filePath: p.join(tempDir.path, "failing.ocpt"),
     );
     expect(created.status.isSuccess, isTrue);
-    await failingManager.createProjectVersion(name: "v1", note: "");
+    await failingManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail;
 
     final bloc = buildBloc(overrideProjectsManager: failingManager);
     await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
@@ -320,7 +330,7 @@ void main() {
       filePath: p.join(tempDir.path, "failing.ocpt"),
     );
     expect(created.status.isSuccess, isTrue);
-    await failingManager.createProjectVersion(name: "v1", note: "");
+    await failingManager.createProjectVersion(name: "v1", note: "").maybeValueOrFail;
 
     final bloc = buildBloc(overrideProjectsManager: failingManager);
     await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);

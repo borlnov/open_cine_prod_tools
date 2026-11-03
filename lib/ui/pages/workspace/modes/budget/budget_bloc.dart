@@ -366,7 +366,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetBackRequestedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    await _projectsManager.closeCurrentProject();
+    final closed = await _projectsManager.closeCurrentProject();
+    if (closed.isError) {
+      return;
+    }
+
     _routerManager.pop();
   }
 

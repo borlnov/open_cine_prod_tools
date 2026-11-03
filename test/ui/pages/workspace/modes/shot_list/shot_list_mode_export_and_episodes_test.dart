@@ -144,7 +144,7 @@ void main() {
   });
 
   tearDown(() async {
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
     await tempDir.delete(recursive: true);
   });
 
@@ -440,7 +440,9 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "")
+          .maybeValueOrFail;
       expect(version, isNotNull);
       final previewResult = await projectsManager.previewVersion(version!.id);
       expect(previewResult.status.isSuccess, isTrue);
@@ -451,7 +453,7 @@ void main() {
       expect(find.byType(FloatingActionButton), findsNothing);
 
       // Leave the preview so the working copy is what the next test opens onto.
-      await projectsManager.exitPreview();
+      await projectsManager.exitPreview().okOrFail;
     });
   });
 
@@ -597,7 +599,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(bloc.state.panelsOfShot(bloc.state.selectedShotId!), hasLength(1));
 
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "")
+          .maybeValueOrFail;
       expect(version, isNotNull);
       final previewResult = await projectsManager.previewVersion(version!.id);
       expect(previewResult.status.isSuccess, isTrue);
@@ -638,7 +642,7 @@ void main() {
       expect(find.byIcon(Icons.delete_outline), findsNothing);
 
       // Leave the preview so the working copy is what the next test opens onto.
-      await projectsManager.exitPreview();
+      await projectsManager.exitPreview().okOrFail;
     });
 
     group("annotations", () {
@@ -726,7 +730,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(boardOf(tester).state.selectedPanelIn(bloc.state)!.annotations, hasLength(1));
 
-        final version = await projectsManager.createProjectVersion(name: "With a mark", note: "");
+        final version = await projectsManager
+            .createProjectVersion(name: "With a mark", note: "")
+            .maybeValueOrFail;
         expect(version, isNotNull);
         final previewResult = await projectsManager.previewVersion(version!.id);
         expect(previewResult.status.isSuccess, isTrue);
@@ -780,7 +786,7 @@ void main() {
         );
 
         // Leave the preview so the working copy is what the next test opens onto.
-        await projectsManager.exitPreview();
+        await projectsManager.exitPreview().okOrFail;
       });
     });
   });

@@ -69,7 +69,7 @@ void main() {
   });
 
   tearDown(() async {
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
     await tempDir.delete(recursive: true);
   });
 
@@ -484,7 +484,9 @@ void main() {
         )
         .maybeValueOrFail;
 
-    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+    final version = await projectsManager
+        .createProjectVersion(name: "v1", note: "")
+        .maybeValueOrFail;
     expect(version, isNotNull);
     final versionId = version!.id;
     final previewResult = await projectsManager.previewVersion(versionId);
@@ -500,7 +502,7 @@ void main() {
     expect(find.byType(PopupMenuButton<String>), findsNothing);
 
     // Leave the preview so the working copy is what the next test opens onto.
-    await projectsManager.exitPreview();
+    await projectsManager.exitPreview().okOrFail;
   });
 
   testWidgets(
@@ -511,7 +513,9 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+      final version = await projectsManager
+          .createProjectVersion(name: "v1", note: "")
+          .maybeValueOrFail;
       expect(version, isNotNull);
       final versionId = version!.id;
       final previewResult = await projectsManager.previewVersion(versionId);
@@ -526,7 +530,7 @@ void main() {
       expect(find.byType(PopupMenuButton<String>), findsNothing);
 
       // Leave the preview so the working copy is what the next test opens onto.
-      await projectsManager.exitPreview();
+      await projectsManager.exitPreview().okOrFail;
     },
   );
 
@@ -795,7 +799,9 @@ void main() {
         )
         .maybeValueOrFail;
 
-    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
+    final version = await projectsManager
+        .createProjectVersion(name: "v1", note: "")
+        .maybeValueOrFail;
     expect(version, isNotNull);
     final versionId = version!.id;
     final previewResult = await projectsManager.previewVersion(versionId);
@@ -823,7 +829,7 @@ void main() {
     expect(find.text(tr.budgetCommittedDeleteAction), findsNothing);
 
     // Leave the preview so the working copy is what the next test opens onto.
-    await projectsManager.exitPreview();
+    await projectsManager.exitPreview().okOrFail;
   });
 
   testWidgets("the export panel draws all four documents plus the standing project-package card", (

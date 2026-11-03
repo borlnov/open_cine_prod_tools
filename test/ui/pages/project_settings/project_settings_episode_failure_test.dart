@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_project_episode_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
@@ -21,6 +22,20 @@ import '../../../ocpt_result_expectations.dart';
 /// How long a handler that failed is given to emit anything: it must emit nothing at all.
 const _quietPeriod = Duration(milliseconds: 300);
 
+/// A projects manager that cannot record the episode count of the open project.
+class _UncountedProjectsManager extends OcptProjectsManager {
+  /// Class constructor
+  _UncountedProjectsManager({required super.propertiesManager})
+    : super(appLanguageCode: () => "en");
+
+  /// Fail as an episodes read that is refused does.
+  @override
+  Future<OcptDatabaseOutcome> recordCurrentProjectEpisodeCount() async => const OcptDatabaseOutcome(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "count intentionally failed for the test",
+  );
+}
+
 /// What the project settings bloc does when the database refuses a call on the episodes, or cannot
 /// read them: the handler stops where the call failed and emits nothing, then goes through once
 /// the refusal is lifted.
@@ -28,7 +43,6 @@ void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
   late Directory tempDir;
-  late String firstId;
   late String secondId;
 
   setUpAll(() async {
@@ -50,7 +64,6 @@ void main() {
       name: "My Movie",
       filePath: p.join(tempDir.path, "movie.ocpt"),
     );
-    firstId = projectsManager.currentProject!.primaryScreenplayId;
     secondId = await projectsManager.screenplayService
         .createEpisode(database: projectsManager.currentProject!.database, title: "Two")
         .valueOrFail;
@@ -264,6 +277,44 @@ void main() {
     expect(emitted, isEmpty);
     expect(await liveCounts(), before, reason: "the scenes and shots tombstoned first rolled back");
   });
+
+  for (final entry in {
+    "adding an episode": (
+      event: () => const OcptProjectSettingsEpisodeAddedEvent() as OcptProjectSettingsEvent,
+      done: (OcptProjectSettingsState state) => state.episodes.length == 3,
+    ),
+    "deleting an episode": (
+      event: () =>
+          OcptProjectSettingsEpisodeDeletionConfirmedEvent(screenplayId: secondId)
+              as OcptProjectSettingsEvent,
+      done: (OcptProjectSettingsState state) => state.episodes.length == 1,
+    ),
+  }.entries) {
+    test("${entry.key} emits nothing when the episode count cannot be recorded", () async {
+      final path = projectsManager.currentProject!.path;
+      await projectsManager.closeCurrentProject().okOrFail;
+      final manager = _UncountedProjectsManager(propertiesManager: propertiesManager);
+      await manager.initLifeCycle();
+      addTearDown(manager.disposeLifeCycle);
+      await manager.openProject(filePath: path);
+      final bloc = OcptProjectSettingsBloc(projectsManager: manager);
+      addTearDown(bloc.close);
+      await bloc.stream.firstWhere((state) => !state.isLoading).timeout(const Duration(seconds: 5));
+      final emitted = <OcptProjectSettingsState>[];
+      final subscription = bloc.stream.listen(emitted.add);
+      addTearDown(subscription.cancel);
+
+      bloc.add(entry.value.event());
+      await Future<void>.delayed(_quietPeriod);
+
+      expect(emitted, isEmpty);
+      expect(entry.value.done(bloc.state), isFalse);
+      final rows = await manager.currentProject!.database
+          .customSelect("SELECT id FROM screenplays WHERE is_deleted = 0")
+          .get();
+      expect(rows.length, entry.key == "adding an episode" ? 3 : 1, reason: "the write landed");
+    });
+  }
 
   test("episodes that cannot be read leave the page loading", () async {
     await run("ALTER TABLE screenplays RENAME TO screenplays_gone");
