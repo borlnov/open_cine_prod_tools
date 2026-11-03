@@ -36,6 +36,8 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
+import '../../../ocpt_result_expectations.dart';
+
 /// Run the tests of `restoreVersion`.
 void main() {
   // Reading a version's stored summary logs through appLogger(), which requires a global manager
@@ -205,14 +207,16 @@ void main() {
 
   /// Creates a version named [name], with the fixed provenance every test here uses.
   Future<OcptProjectVersion> createVersion({String name = "v1 — First read", String note = ""}) =>
-      service.createVersion(
-        database: database,
-        name: name,
-        note: note,
-        appVersion: appVersion,
-        deviceId: deviceId,
-        pageMargins: margins,
-      );
+      service
+          .createVersion(
+            database: database,
+            name: name,
+            note: note,
+            appVersion: appVersion,
+            deviceId: deviceId,
+            pageMargins: margins,
+          )
+          .valueOrFail;
 
   /// The payload stored with the version [id], decoded.
   Future<OcptProjectVersionPayload> readPayload(String id) async {
@@ -369,7 +373,7 @@ void main() {
 
       await restore(version.id);
 
-      final versions = await service.listVersions(database: database);
+      final versions = await service.listVersions(database: database).valueOrFail;
       final safety = versions.firstWhere((entry) => entry.name == "Before restoring");
 
       // The project descends from the version it was put back on, not from the safety copy taken
@@ -391,7 +395,7 @@ void main() {
 
       await restore(version.id);
 
-      final versions = await service.listVersions(database: database);
+      final versions = await service.listVersions(database: database).valueOrFail;
       expect(versions.map((entry) => entry.name), ["Before restoring", "v1 — First read"]);
     });
 
@@ -408,7 +412,7 @@ void main() {
 
       // The list is exactly what it was — no safety version — apart from the pointer, which now
       // names the version just restored instead of the one the working copy stood on beforehand.
-      final versions = await service.listVersions(database: database);
+      final versions = await service.listVersions(database: database).valueOrFail;
       expect(versions.map((entry) => entry.id), unorderedEquals([first.id, second.id]));
       expect(await readCurrentVersionId(), first.id);
     });
@@ -425,7 +429,7 @@ void main() {
 
       await restore(version.id);
 
-      final versions = await service.listVersions(database: database);
+      final versions = await service.listVersions(database: database).valueOrFail;
       expect(
         versions.map((entry) => entry.name),
         containsAll(["v1 — First read", "Before restoring"]),
@@ -511,7 +515,7 @@ void main() {
             ),
           );
 
-      final versionsBefore = await service.listVersions(database: database);
+      final versionsBefore = await service.listVersions(database: database).valueOrFail;
 
       final result = await restore("version-inconsistent");
 
@@ -523,7 +527,7 @@ void main() {
       // The safety version is part of the same transaction, so a failed restore doesn't even leave
       // that behind.
       expect(
-        (await service.listVersions(database: database)).map((entry) => entry.id),
+        (await service.listVersions(database: database).valueOrFail).map((entry) => entry.id),
         versionsBefore.map((entry) => entry.id),
       );
     });

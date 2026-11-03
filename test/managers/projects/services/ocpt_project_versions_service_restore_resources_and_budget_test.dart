@@ -215,14 +215,16 @@ void main() {
 
   /// Creates a version named [name], with the fixed provenance every test here uses.
   Future<OcptProjectVersion> createVersion({String name = "v1 — First read", String note = ""}) =>
-      service.createVersion(
-        database: database,
-        name: name,
-        note: note,
-        appVersion: appVersion,
-        deviceId: deviceId,
-        pageMargins: margins,
-      );
+      service
+          .createVersion(
+            database: database,
+            name: name,
+            note: note,
+            appVersion: appVersion,
+            deviceId: deviceId,
+            pageMargins: margins,
+          )
+          .valueOrFail;
 
   group("restoreVersion", () {
     /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>`.
@@ -895,15 +897,18 @@ void main() {
       // every mode draws its sheets from: scrubbing only the restore would put an erased person's
       // contact details and allergies back on screen, one click away, for as long as the version
       // lives.
-      final payload = (await service.loadPayload(database: database, id: version.id)).value!;
+      final payload =
+          (await service.loadPayload(database: database, id: version.id).valueOrFail).value!;
 
       final previewDatabase = OcptProjectDatabase.memory(isPreview: true);
       addTearDown(previewDatabase.close);
-      await service.hydratePreview(
-        database: previewDatabase,
-        projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
-        payload: payload,
-      );
+      await service
+          .hydratePreview(
+            database: previewDatabase,
+            projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+            payload: payload,
+          )
+          .okOrFail;
 
       final person = await (previewDatabase.select(
         previewDatabase.ocptPeopleTable,

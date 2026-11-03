@@ -223,14 +223,16 @@ void main() {
 
   /// Creates a version named [name], with the fixed provenance every test here uses.
   Future<OcptProjectVersion> createVersion({String name = "v1 — First read", String note = ""}) =>
-      service.createVersion(
-        database: database,
-        name: name,
-        note: note,
-        appVersion: appVersion,
-        deviceId: deviceId,
-        pageMargins: margins,
-      );
+      service
+          .createVersion(
+            database: database,
+            name: name,
+            note: note,
+            appVersion: appVersion,
+            deviceId: deviceId,
+            pageMargins: margins,
+          )
+          .valueOrFail;
 
   /// The payload stored with the version [id], decoded.
   Future<OcptProjectVersionPayload> readPayload(String id) async {
@@ -462,12 +464,9 @@ void main() {
     test("updates the name and the note, and nothing else", () async {
       final version = await createVersion(name: "v1", note: "First cut");
 
-      await service.renameVersion(
-        database: database,
-        id: version.id,
-        name: "v1 bis",
-        note: "Renamed",
-      );
+      await service
+          .renameVersion(database: database, id: version.id, name: "v1 bis", note: "Renamed")
+          .okOrFail;
 
       final row = await database.select(database.ocptProjectVersionsTable).getSingle();
       expect(row.name, "v1 bis");
@@ -483,7 +482,9 @@ void main() {
       final version = await createVersion(name: "v1");
 
       await expectLater(
-        service.renameVersion(database: database, id: version.id, name: "v1 bis", note: ""),
+        service
+            .renameVersion(database: database, id: version.id, name: "v1 bis", note: "")
+            .okOrFail,
         completes,
       );
     });
@@ -494,7 +495,9 @@ void main() {
       await insertScene(id: "scene-1");
       final version = await createVersion();
 
-      final state = await service.captureWorkingCopyState(database: database, pageMargins: margins);
+      final state = await service
+          .captureWorkingCopyState(database: database, pageMargins: margins)
+          .valueOrFail;
 
       expect(state.baseVersionId, version.id);
       expect(state.isModifiedSinceBase, isFalse);
@@ -509,14 +512,18 @@ void main() {
           .update(database.ocptScreenplaysTable)
           .write(const OcptScreenplaysTableCompanion(fountainText: Value("EXT. STREET - NIGHT")));
 
-      final state = await service.captureWorkingCopyState(database: database, pageMargins: margins);
+      final state = await service
+          .captureWorkingCopyState(database: database, pageMargins: margins)
+          .valueOrFail;
 
       expect(state.baseVersionId, version.id);
       expect(state.isModifiedSinceBase, isTrue);
     });
 
     test("reads as modified when the project has never had a base version", () async {
-      final state = await service.captureWorkingCopyState(database: database, pageMargins: margins);
+      final state = await service
+          .captureWorkingCopyState(database: database, pageMargins: margins)
+          .valueOrFail;
 
       expect(state.baseVersionId, isNull);
       expect(state.isModifiedSinceBase, isTrue);
@@ -527,9 +534,9 @@ void main() {
     test("deletes the version and clears the pointer when it pointed at it", () async {
       final version = await createVersion();
 
-      await service.deleteVersion(database: database, id: version.id);
+      await service.deleteVersion(database: database, id: version.id).okOrFail;
 
-      expect(await service.listVersions(database: database), isEmpty);
+      expect(await service.listVersions(database: database).valueOrFail, isEmpty);
       expect(await readCurrentVersionId(), isNull);
     });
 
@@ -537,9 +544,9 @@ void main() {
       final first = await createVersion(name: "v1");
       final second = await createVersion(name: "v2");
 
-      await service.deleteVersion(database: database, id: first.id);
+      await service.deleteVersion(database: database, id: first.id).okOrFail;
 
-      final versions = await service.listVersions(database: database);
+      final versions = await service.listVersions(database: database).valueOrFail;
       expect(versions.map((version) => version.id), [second.id]);
       expect(versions.single.isBase, isTrue);
       expect(await readCurrentVersionId(), second.id);
@@ -548,10 +555,10 @@ void main() {
     test("deleting a version that doesn't exist changes nothing", () async {
       final version = await createVersion();
 
-      await service.deleteVersion(database: database, id: "no-such-version");
+      await service.deleteVersion(database: database, id: "no-such-version").okOrFail;
 
       expect(await readCurrentVersionId(), version.id);
-      expect(await service.listVersions(database: database), hasLength(1));
+      expect(await service.listVersions(database: database).valueOrFail, hasLength(1));
     });
   });
 }

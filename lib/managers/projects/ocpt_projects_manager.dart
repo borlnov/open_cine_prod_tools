@@ -634,14 +634,14 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// List the [currentProject]'s versions, newest first, or an empty list if no project is open.
   ///
   /// {@template open_cine_prod_tools.OcptProjectsManager.versionOperations}
-  /// The version operations live here rather than being called on [projectVersionsService]
-  /// directly, because the service is handed facts only this manager holds: the open project's
-  /// database, the app version, this replica's device id and the app-wide page margins.
+  /// The version operations live here rather than on [projectVersionsService], because the service
+  /// is handed facts only this manager holds: the open project's database, the app version, this
+  /// replica's device id and the app-wide page margins.
   ///
-  /// They are also the only operations of the app that go through
-  /// [OcptOpenProjectModel.fileDatabase] rather than [OcptOpenProjectModel.database]: the version
-  /// list belongs to the project file, and stays readable and editable while a preview is on
-  /// screen — deleting a version you happen not to be previewing is perfectly legitimate then.
+  /// They are also the only operations that go through [OcptOpenProjectModel.fileDatabase] rather
+  /// than [OcptOpenProjectModel.database]: the version list belongs to the project file, and stays
+  /// editable while a preview is on screen. A failure of the file raises a [StateError], until this
+  /// manager answers a result of its own.
   /// {@endtemplate}
   Future<List<OcptProjectVersion>> listProjectVersions() async {
     final project = currentProject;
@@ -649,7 +649,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       return const [];
     }
 
-    return projectVersionsService.listVersions(database: project.fileDatabase);
+    final listed = await projectVersionsService.listVersions(database: project.fileDatabase);
+    if (listed.isError) {
+      throw StateError("The project versions could not be listed");
+    }
+
+    return listed.value!;
   }
 
   /// Capture the [currentProject] as a new version named [name], with the user's [note], and return
@@ -665,7 +670,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       return null;
     }
 
-    return projectVersionsService.createVersion(
+    final created = await projectVersionsService.createVersion(
       database: project.fileDatabase,
       name: name,
       note: note,
@@ -673,6 +678,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       deviceId: await _propertiesManager.loadOrCreateDeviceId(),
       pageMargins: await _loadPageMargins(),
     );
+    if (created.isError) {
+      throw StateError("The project version could not be created");
+    }
+
+    return created.value;
   }
 
   /// Rename the version [versionId] of the [currentProject] to [name], replacing its [note]. Does
@@ -693,21 +703,23 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       return;
     }
 
-    await projectVersionsService.renameVersion(
+    final renamed = await projectVersionsService.renameVersion(
       database: project.fileDatabase,
       id: versionId,
       name: name,
       note: note,
     );
+    if (renamed.isError) {
+      throw StateError("The project version could not be renamed");
+    }
   }
 
   /// Measure the [currentProject]'s working copy exactly as
   /// [OcptProjectVersionsService.captureWorkingCopyState] does, or null if no project is open.
   ///
-  /// Also null while a version is being previewed, for the same reason [createProjectVersion] is
-  /// refused by the bloc that calls it then: this reads [OcptOpenProjectModel.fileDatabase], the
-  /// project file underneath whatever the user is actually looking at, so a working-copy card built
-  /// from it during a preview would describe a state that isn't on screen.
+  /// Also null while a version is being previewed: this reads [OcptOpenProjectModel.fileDatabase],
+  /// the project file underneath what the user is looking at, so a card built from it would
+  /// describe a state that isn't on screen.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
   Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
@@ -716,19 +728,23 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       return null;
     }
 
-    return projectVersionsService.captureWorkingCopyState(
+    final captured = await projectVersionsService.captureWorkingCopyState(
       database: project.fileDatabase,
       pageMargins: await _loadPageMargins(),
     );
+    if (captured.isError) {
+      throw StateError("The working copy could not be measured");
+    }
+
+    return captured.value;
   }
 
   /// Delete the version [versionId] of the [currentProject]. Does nothing if no project is open,
   /// or if [versionId] is the version currently being previewed.
   ///
-  /// Refusing to delete the previewed version is a matter of the open project's state rather than
-  /// of the database, which is why it lives here rather than in [projectVersionsService]: the
-  /// preview on screen reads from a database hydrated out of that very row, and pulling it from
-  /// under the user would leave them reading something the project no longer has.
+  /// Refusing to delete the previewed version is a matter of the open project's state, which is
+  /// why it lives here rather than in [projectVersionsService]: the preview on screen was hydrated
+  /// out of that very row.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
   Future<void> deleteProjectVersion(String versionId) async {
@@ -745,7 +761,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       return;
     }
 
-    await projectVersionsService.deleteVersion(database: project.fileDatabase, id: versionId);
+    final deleted = await projectVersionsService.deleteVersion(
+      database: project.fileDatabase,
+      id: versionId,
+    );
+    if (deleted.isError) {
+      throw StateError("The project version could not be deleted");
+    }
   }
 
   /// Put the [currentProject] back into the state the version [versionId] captured, keeping the
@@ -754,10 +776,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// [OcptProjectVersionsService.restoreVersion] skips it rather than mint a duplicate of a card
   /// already in the list.
   ///
-  /// A preview is left first, whichever version it was showing: the working copy is about to become
-  /// something else, and a preview outliving that would go on describing a project that no longer
-  /// exists. The project model is re-emitted once the restore has committed, so every mode reloads
-  /// what it shows from the restored database.
+  /// A preview is left first, whichever version it was showing: a preview outliving the restore
+  /// would go on describing a project that no longer exists. The project model is re-emitted once
+  /// the restore has committed, so every mode reloads what it shows from the restored database.
   ///
   /// The page setup travels with the version (see
   /// [OcptProjectVersionsService.restoreVersion]): the format is written by the restore's own

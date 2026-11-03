@@ -220,14 +220,16 @@ void main() {
 
   /// Creates a version named [name], with the fixed provenance every test here uses.
   Future<OcptProjectVersion> createVersion({String name = "v1 — First read", String note = ""}) =>
-      service.createVersion(
-        database: database,
-        name: name,
-        note: note,
-        appVersion: appVersion,
-        deviceId: deviceId,
-        pageMargins: margins,
-      );
+      service
+          .createVersion(
+            database: database,
+            name: name,
+            note: note,
+            appVersion: appVersion,
+            deviceId: deviceId,
+            pageMargins: margins,
+          )
+          .valueOrFail;
 
   /// The payload stored with the version [id], decoded.
   Future<OcptProjectVersionPayload> readPayload(String id) async {
@@ -395,7 +397,7 @@ void main() {
           .update(database.ocptProjectInfoTable)
           .write(OcptProjectInfoTableCompanion(currentVersionId: Value(second.id)));
 
-      final versions = await service.listVersions(database: database);
+      final versions = await service.listVersions(database: database).valueOrFail;
 
       expect(versions.map((version) => version.id), [third.id, second.id, first.id]);
       expect(versions.map((version) => version.isBase), [false, true, false]);
@@ -418,14 +420,14 @@ void main() {
             ),
           );
 
-      final versions = await service.listVersions(database: database);
+      final versions = await service.listVersions(database: database).valueOrFail;
 
       expect(versions.single.name, "v1 — Written by something else");
       expect(versions.single.summary.pageCount, 0);
     });
 
     test("a project which never had a version lists none", () async {
-      expect(await service.listVersions(database: database), isEmpty);
+      expect(await service.listVersions(database: database).valueOrFail, isEmpty);
     });
   });
 
@@ -434,7 +436,7 @@ void main() {
       await createVersion(name: "v1");
       final second = await createVersion(name: "v2 — Shot list", note: "Seq. 1 to 3");
 
-      final version = await service.loadVersion(database: database, id: second.id);
+      final version = await service.loadVersion(database: database, id: second.id).maybeValueOrFail;
 
       expect(version?.id, second.id);
       expect(version?.name, "v2 — Shot list");
@@ -447,7 +449,10 @@ void main() {
     test("returns null for a version this project doesn't have", () async {
       await createVersion();
 
-      expect(await service.loadVersion(database: database, id: "no-such-version"), isNull);
+      expect(
+        await service.loadVersion(database: database, id: "no-such-version").maybeValueOrFail,
+        isNull,
+      );
     });
   });
 
@@ -457,7 +462,7 @@ void main() {
       await insertShot(id: "shot-1", sceneId: "scene-1");
       final version = await createVersion();
 
-      final result = await service.loadPayload(database: database, id: version.id);
+      final result = await service.loadPayload(database: database, id: version.id).valueOrFail;
 
       expect(result.status, OcptProjectVersionPayloadStatus.ok);
       expect(result.value?.scenes.single.id, "scene-1");
@@ -481,14 +486,18 @@ void main() {
             ),
           );
 
-      final result = await service.loadPayload(database: database, id: "version-from-the-future");
+      final result = await service
+          .loadPayload(database: database, id: "version-from-the-future")
+          .valueOrFail;
 
       expect(result.status, OcptProjectVersionPayloadStatus.unsupportedFutureFormat);
       expect(result.value, isNull);
     });
 
     test("reports a version this project doesn't have rather than throwing", () async {
-      final result = await service.loadPayload(database: database, id: "no-such-version");
+      final result = await service
+          .loadPayload(database: database, id: "no-such-version")
+          .valueOrFail;
 
       expect(result.status, OcptProjectVersionPayloadStatus.malformedPayload);
       expect(result.value, isNull);
@@ -576,11 +585,13 @@ void main() {
       final preview = OcptProjectDatabase.memory(isPreview: true);
       addTearDown(preview.close);
 
-      await service.hydratePreview(
-        database: preview,
-        projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
-        payload: payload,
-      );
+      await service
+          .hydratePreview(
+            database: preview,
+            projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+            payload: payload,
+          )
+          .okOrFail;
 
       expect(await preview.select(preview.ocptScreenplaysTable).get(), payload.screenplays);
       expect(await preview.select(preview.ocptScenesTable).get(), payload.scenes);
@@ -714,11 +725,13 @@ void main() {
       final preview = OcptProjectDatabase.memory(isPreview: true);
       addTearDown(preview.close);
 
-      await service.hydratePreview(
-        database: preview,
-        projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
-        payload: payload,
-      );
+      await service
+          .hydratePreview(
+            database: preview,
+            projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+            payload: payload,
+          )
+          .okOrFail;
 
       final restoredPanel = await (preview.select(
         preview.ocptStoryboardPanelsTable,
@@ -797,11 +810,13 @@ void main() {
       final preview = OcptProjectDatabase.memory(isPreview: true);
       addTearDown(preview.close);
 
-      await service.hydratePreview(
-        database: preview,
-        projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
-        payload: payload,
-      );
+      await service
+          .hydratePreview(
+            database: preview,
+            projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+            payload: payload,
+          )
+          .okOrFail;
 
       final info = await preview.select(preview.ocptProjectInfoTable).getSingle();
       expect(info.name, "My Movie");

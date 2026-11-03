@@ -54,11 +54,16 @@ abstract final class OcptProjectPreviewOps {
       return const ResultWithStatus(status: OcptProjectPreviewStatus.unsavedChanges);
     }
 
-    final version = await projectVersionsService.loadVersion(
+    final versionRead = await projectVersionsService.loadVersion(
       database: project.fileDatabase,
       id: versionId,
     );
+    if (versionRead.isError) {
+      // Raises as the database used to: this goes when the manager answers a result of its own.
+      throw StateError("The project version could not be read for its preview");
+    }
 
+    final version = versionRead.value;
     if (version == null) {
       logger.w(
         "The project version $versionId can't be previewed: no such version in this project",
@@ -66,11 +71,16 @@ abstract final class OcptProjectPreviewOps {
       return const ResultWithStatus(status: OcptProjectPreviewStatus.versionNotFound);
     }
 
-    final payloadResult = await projectVersionsService.loadPayload(
+    final payloadRead = await projectVersionsService.loadPayload(
       database: project.fileDatabase,
       id: versionId,
     );
+    if (payloadRead.isError) {
+      // Raises as the database used to: this goes when the manager answers a result of its own.
+      throw StateError("The payload of the project version could not be read for its preview");
+    }
 
+    final payloadResult = payloadRead.value!;
     final payload = payloadResult.value;
     if (payload == null) {
       return ResultWithStatus(
@@ -84,15 +94,17 @@ abstract final class OcptProjectPreviewOps {
 
     final previewDatabase = OcptProjectDatabase.memory(isPreview: true);
     var isHydrated = false;
+    var isHydrationFailed = false;
     try {
-      await projectVersionsService.hydratePreview(
+      final hydrated = await projectVersionsService.hydratePreview(
         database: previewDatabase,
         projectInfo: await project.fileDatabase
             .select(project.fileDatabase.ocptProjectInfoTable)
             .getSingle(),
         payload: payload,
       );
-      isHydrated = true;
+      isHydrationFailed = hydrated.isError;
+      isHydrated = !isHydrationFailed;
     } catch (error, stackTrace) {
       logger.e(
         "A problem occurred when tried to hydrate the preview of the project version "
@@ -100,6 +112,10 @@ abstract final class OcptProjectPreviewOps {
         null,
         stackTrace,
       );
+      await previewDatabase.close();
+    }
+
+    if (isHydrationFailed) {
       await previewDatabase.close();
     }
 

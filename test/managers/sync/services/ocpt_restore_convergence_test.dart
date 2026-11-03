@@ -307,14 +307,16 @@ void main() {
           .createLocation(database: replicaA, name: 'Studio')
           .valueOrFail);
 
-      final v1 = await deviceA.projectVersionsService.createVersion(
-        database: replicaA,
-        name: 'v1',
-        note: '',
-        appVersion: appVersion,
-        deviceId: 'device-a',
-        pageMargins: margins,
-      );
+      final v1 = await deviceA.projectVersionsService
+          .createVersion(
+            database: replicaA,
+            name: 'v1',
+            note: '',
+            appVersion: appVersion,
+            deviceId: 'device-a',
+            pageMargins: margins,
+          )
+          .valueOrFail;
 
       // Diverge from V1 in every way a restore has to undo: change the screenplay text again,
       // rename a row V1 held, delete a row V1 held, and add a row V1 never held.

@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_payload_ops.dart';
@@ -18,6 +19,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:uuid/uuid.dart';
@@ -63,7 +65,10 @@ class OcptProjectVersionsService extends AbsOcptService {
   ///
   /// Deliberately does **not** deserialize any payload: a card renders from the counters stored
   /// with the version, and a payload is hundreds of kilobytes.
-  Future<List<OcptProjectVersion>> listVersions({required OcptProjectDatabase database}) async {
+  @useResult
+  Future<OcptDatabaseResult<List<OcptProjectVersion>>> listVersions({
+    required OcptProjectDatabase database,
+  }) => guardResult("listVersions", () async {
     final rows = await (database.select(
       database.ocptProjectVersionsTable,
     )..orderBy([(table) => OrderingTerm.desc(table.createdAt)])).get();
@@ -74,7 +79,7 @@ class OcptProjectVersionsService extends AbsOcptService {
       for (final row in rows)
         OcptProjectVersion.fromRow(row: row, isBase: row.id == info?.currentVersionId),
     ];
-  }
+  });
 
   /// Capture the current state of the project in [database] as a new version named [name], with
   /// the user's [note], and makes it the version the working copy descends from.
@@ -88,24 +93,28 @@ class OcptProjectVersionsService extends AbsOcptService {
   ///
   /// The capture, the insertion and the pointer update all happen in one transaction, so a version
   /// can never describe a project state that never existed.
-  Future<OcptProjectVersion> createVersion({
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectVersion>> createVersion({
     required OcptProjectDatabase database,
     required String name,
     required String note,
     required String appVersion,
     required String deviceId,
     required FountainPageMargins pageMargins,
-  }) => database.transaction(
-    () async => _insertVersion(
-      database: database,
-      payload: await OcptProjectVersionsPayloadOps.capturePayload(
+  }) => guardResult(
+    "createVersion",
+    () => database.transaction(
+      () async => _insertVersion(
         database: database,
-        pageMargins: pageMargins,
+        payload: await OcptProjectVersionsPayloadOps.capturePayload(
+          database: database,
+          pageMargins: pageMargins,
+        ),
+        name: name,
+        note: note,
+        appVersion: appVersion,
+        deviceId: deviceId,
       ),
-      name: name,
-      note: note,
-      appVersion: appVersion,
-      deviceId: deviceId,
     ),
   );
 
@@ -115,16 +124,17 @@ class OcptProjectVersionsService extends AbsOcptService {
   /// about the project's *data*, only writes to the version's own row, so — unlike restoring or
   /// deleting — it stays available while a preview is up. Renaming the card the user happens to be
   /// looking at, or any other, changes nothing about what a preview reads.
-  Future<void> renameVersion({
+  @useResult
+  Future<OcptDatabaseOutcome> renameVersion({
     required OcptProjectDatabase database,
     required String id,
     required String name,
     required String note,
-  }) async {
+  }) => guardOutcome("renameVersion", () async {
     await (database.update(database.ocptProjectVersionsTable)
           ..where((table) => table.id.equals(id)))
         .write(OcptProjectVersionsTableCompanion(name: Value(name), note: Value(note)));
-  }
+  });
 
   /// Load the single version [id] of the project in [database], or null if it has no such
   /// version.
@@ -132,40 +142,20 @@ class OcptProjectVersionsService extends AbsOcptService {
   /// Reads the card's columns alone, deliberately leaving `payload` in the file: this is what the
   /// preview asks for the version's *identity* with, and it must stay as cheap as [listVersions]
   /// even though the payload of that same row is about to be read by [loadPayload].
-  Future<OcptProjectVersion?> loadVersion({
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectVersion>> loadVersion({
     required OcptProjectDatabase database,
     required String id,
-  }) async {
-    final table = database.ocptProjectVersionsTable;
-
-    final row =
-        await (database.selectOnly(table)
-              ..addColumns([table.id, table.name, table.note, table.createdAt, table.summaryJson])
-              ..where(table.id.equals(id)))
-            .getSingleOrNull();
-
-    if (row == null) {
-      return null;
-    }
-
-    final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
-
-    return OcptProjectVersion(
-      id: row.read(table.id)!,
-      name: row.read(table.name)!,
-      note: row.read(table.note)!,
-      createdAt: row.read(table.createdAt)!,
-      summary: OcptProjectVersionSummary.parse(row.read(table.summaryJson)!),
-      isBase: info?.currentVersionId == id,
-    );
-  }
+  }) => guardResult("loadVersion", () => _readVersion(database: database, id: id));
 
   /// Read and decode the payload of the version [id] of the project in [database].
   ///
   /// This is the one read that does deserialize a payload, and it exists for the two operations
   /// that need the state itself rather than the card: entering a version's preview, and restoring
   /// it. Every failure comes back as a status — a version whose payload can't be read is a version
-  /// the user must be told about, never an exception thrown at whichever screen asked.
+  /// the user must be told about, never an exception thrown at whichever screen asked. A payload
+  /// that can't be decoded is the status of the answer's value, and a database that can't be read
+  /// is the status of the answer itself.
   ///
   /// **This is also where an erased person is scrubbed back out**
   /// ([OcptProjectVersionsPayloadOps.scrubErasedPeople]), and being the single door both operations
@@ -176,33 +166,12 @@ class OcptProjectVersionsService extends AbsOcptService {
   /// modes draw every sheet from — so a scrub that only guarded the restore would put the phone
   /// number, the address and the allergies of somebody who asked to be removed straight back on
   /// screen, one click away, for as long as the version exists.
-  Future<ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload>> loadPayload({
-    required OcptProjectDatabase database,
-    required String id,
-  }) async {
-    final row = await (database.select(
-      database.ocptProjectVersionsTable,
-    )..where((table) => table.id.equals(id))).getSingleOrNull();
-
-    if (row == null) {
-      logger.w("The project version $id can't be loaded: no such version in this project");
-      return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
-    }
-
-    final decoded = _codec.decode(row.payload);
-    final payload = decoded.value;
-    if (payload == null) {
-      return decoded;
-    }
-
-    return ResultWithStatus(
-      status: decoded.status,
-      value: await OcptProjectVersionsPayloadOps.scrubErasedPeople(
-        database: database,
-        payload: payload,
-      ),
-    );
-  }
+  @useResult
+  Future<
+    OcptDatabaseResult<ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload>>
+  >
+  loadPayload({required OcptProjectDatabase database, required String id}) =>
+      guardResult("loadPayload", () => _readPayload(database: database, id: id));
 
   /// Write [payload] into [database], an empty [OcptProjectDatabase.memory] opened for a preview,
   /// so the modes find the version's state exactly where they usually find the working copy's.
@@ -217,14 +186,18 @@ class OcptProjectVersionsService extends AbsOcptService {
   /// payload carries are not written here — they are an app-wide preference, and a preview never
   /// touches the user's preferences (they travel on `OcptOpenProjectModel.previewedPageSetup`
   /// instead).
-  Future<void> hydratePreview({
+  @useResult
+  Future<OcptDatabaseOutcome> hydratePreview({
     required OcptProjectDatabase database,
     required OcptProjectInfoRow projectInfo,
     required OcptProjectVersionPayload payload,
-  }) => OcptProjectVersionsRestoreOps.hydratePreview(
-    database: database,
-    projectInfo: projectInfo,
-    payload: payload,
+  }) => guardOutcome(
+    "hydratePreview",
+    () => OcptProjectVersionsRestoreOps.hydratePreview(
+      database: database,
+      projectInfo: projectInfo,
+      payload: payload,
+    ),
   );
 
   /// Measure the working copy of the project in [database] exactly as a stored version would be,
@@ -235,11 +208,15 @@ class OcptProjectVersionsService extends AbsOcptService {
   /// tables [createVersion] does. [restoreVersion] needs the very same two facts to decide whether
   /// it owes a safety version, and reuses this method's private half so it never pays for that
   /// read twice.
-  Future<OcptProjectWorkingCopyState> captureWorkingCopyState({
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> captureWorkingCopyState({
     required OcptProjectDatabase database,
     required FountainPageMargins pageMargins,
-  }) async =>
-      (await _captureWorkingCopySnapshot(database: database, pageMargins: pageMargins)).state;
+  }) => guardResult(
+    "captureWorkingCopyState",
+    () async =>
+        (await _captureWorkingCopySnapshot(database: database, pageMargins: pageMargins)).state,
+  );
 
   /// Put the project in [database] back into the state the version [id] captured, and makes it the
   /// version the working copy descends from.
@@ -296,12 +273,12 @@ class OcptProjectVersionsService extends AbsOcptService {
       return const ResultWithStatus(status: OcptProjectRestoreStatus.writeFailed);
     }
 
-    if (await loadVersion(database: database, id: id) == null) {
+    if (await _readVersion(database: database, id: id) == null) {
       logger.w("The project version $id can't be restored: no such version in this project");
       return const ResultWithStatus(status: OcptProjectRestoreStatus.versionNotFound);
     }
 
-    final payloadResult = await loadPayload(database: database, id: id);
+    final payloadResult = await _readPayload(database: database, id: id);
     final payload = payloadResult.value;
     if (payload == null) {
       return ResultWithStatus(
@@ -396,7 +373,11 @@ class OcptProjectVersionsService extends AbsOcptService {
   /// Deleting the version *currently being previewed* has to be refused, but that is a matter of
   /// the open project's state rather than of the database, so it belongs to `OcptProjectsManager`
   /// alongside the preview it owns — which doesn't exist yet.
-  Future<void> deleteVersion({required OcptProjectDatabase database, required String id}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> deleteVersion({
+    required OcptProjectDatabase database,
+    required String id,
+  }) => guardOutcome("deleteVersion", () async {
     await database.transaction(() async {
       final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
 
@@ -412,6 +393,68 @@ class OcptProjectVersionsService extends AbsOcptService {
     });
 
     logger.i("The project version $id was deleted");
+  });
+
+  /// Read the single version [id] of the project in [database], or null if it has no such version.
+  ///
+  /// What [loadVersion] answers, raising when the database fails: [restoreVersion] reads it too and
+  /// lets the failure leave it, exactly as it always has.
+  Future<OcptProjectVersion?> _readVersion({
+    required OcptProjectDatabase database,
+    required String id,
+  }) async {
+    final table = database.ocptProjectVersionsTable;
+
+    final row =
+        await (database.selectOnly(table)
+              ..addColumns([table.id, table.name, table.note, table.createdAt, table.summaryJson])
+              ..where(table.id.equals(id)))
+            .getSingleOrNull();
+
+    if (row == null) {
+      return null;
+    }
+
+    final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
+
+    return OcptProjectVersion(
+      id: row.read(table.id)!,
+      name: row.read(table.name)!,
+      note: row.read(table.note)!,
+      createdAt: row.read(table.createdAt)!,
+      summary: OcptProjectVersionSummary.parse(row.read(table.summaryJson)!),
+      isBase: info?.currentVersionId == id,
+    );
+  }
+
+  /// Read and decode the payload of the version [id] of the project in [database].
+  ///
+  /// What [loadPayload] answers, raising when the database fails: [restoreVersion] reads it too and
+  /// lets the failure leave it, exactly as it always has.
+  Future<ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload>>
+  _readPayload({required OcptProjectDatabase database, required String id}) async {
+    final row = await (database.select(
+      database.ocptProjectVersionsTable,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+    if (row == null) {
+      logger.w("The project version $id can't be loaded: no such version in this project");
+      return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
+    }
+
+    final decoded = _codec.decode(row.payload);
+    final payload = decoded.value;
+    if (payload == null) {
+      return decoded;
+    }
+
+    return ResultWithStatus(
+      status: decoded.status,
+      value: await OcptProjectVersionsPayloadOps.scrubErasedPeople(
+        database: database,
+        payload: payload,
+      ),
+    );
   }
 
   /// Write [payload] as a new version row named [name], with the user's [note], and makes it the
