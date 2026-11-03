@@ -16,11 +16,11 @@ import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/mixin_ocpt_project_settings.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_project_episode_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_project_move_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_project_open_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_project_preview_ops.dart';
-import 'package:open_cine_prod_tools/managers/projects/ocpt_project_settings_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_services.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
@@ -55,13 +55,11 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_free_file_path.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -114,7 +112,7 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// a state of the open project rather than of the database and so belongs here rather than in
 /// [projectVersionsService]: previewing swaps the database the modes read through for an in-memory
 /// one hydrated from the version's payload, and re-emits the project on [currentProjectStream].
-class OcptProjectsManager extends AbsWithLifeCycle {
+class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings {
   /// The extension used by project files, without the leading dot.
   ///
   /// The one definition lives in [ocptProjectFileExtension], which the package service reads too:
@@ -268,7 +266,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   String get appVersion => _appVersion;
 
   /// Get the project currently open, or null if none is.
+  @override
   OcptOpenProjectModel? get currentProject => _currentProject.value;
+
+  /// Get the logger the failures of the project settings are written to: this manager's own.
+  @override
+  LogsHelper get settingsLogger => _logger;
 
   /// Emit the project currently open (or null) every time it changes.
   Stream<OcptOpenProjectModel?> get currentProjectStream => _currentProject.valueStream;
@@ -525,113 +528,6 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       _isBusy = false;
     }
   }
-
-  /// Load the page format stored in the [currentProject]'s `project_info` table, or null if no
-  /// project is currently open.
-  Future<OcptPageFormat?> loadCurrentProjectPageFormat() =>
-      OcptProjectSettingsOps.loadCurrentProjectPageFormat(project: currentProject);
-
-  /// Update the page format stored in the [currentProject]'s `project_info` table. Does nothing if
-  /// no project is currently open.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectPageFormat(OcptPageFormat format) =>
-      OcptProjectSettingsOps.saveCurrentProjectPageFormat(project: currentProject, format: format);
-
-  /// Load the ISO 4217 currency code stored in the [currentProject]'s `project_info` table, or
-  /// null if no project is currently open.
-  Future<String?> loadCurrentProjectCurrencyCode() =>
-      OcptProjectSettingsOps.loadCurrentProjectCurrencyCode(project: currentProject);
-
-  /// Update the currency code stored in the [currentProject]'s `project_info` table. Does nothing
-  /// if no project is currently open.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectCurrencyCode(String code) =>
-      OcptProjectSettingsOps.saveCurrentProjectCurrencyCode(project: currentProject, code: code);
-
-  /// Load the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table, or
-  /// null.
-  Future<int?> loadCurrentProjectMinimumRestMinutes() =>
-      OcptProjectSettingsOps.loadCurrentProjectMinimumRestMinutes(project: currentProject);
-
-  /// Update the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table, or
-  /// clear it when [minutes] is null — a production that decides it no longer wants to record
-  /// one is as real a gesture as setting it. Does nothing if no project is currently open.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectMinimumRestMinutes(int? minutes) =>
-      OcptProjectSettingsOps.saveCurrentProjectMinimumRestMinutes(
-        project: currentProject,
-        minutes: minutes,
-      );
-
-  /// Load the screenplay language stored in the [currentProject]'s `project_info` table, or null.
-  Future<OcptScreenplayLanguage?> loadCurrentProjectScreenplayLanguage() =>
-      OcptProjectSettingsOps.loadCurrentProjectScreenplayLanguage(project: currentProject);
-
-  /// Update the screenplay language stored in the [currentProject]'s `project_info` table, or clear
-  /// it when [language] is null — a writer who decides the checker should stay off this
-  /// screenplay is making as real a choice as picking one of the two bundled languages. Does
-  /// nothing if no project is currently open.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage? language) =>
-      OcptProjectSettingsOps.saveCurrentProjectScreenplayLanguage(
-        project: currentProject,
-        language: language,
-      );
-
-  /// Load the default VAT rate, in basis points, stored in the [currentProject]'s `project_info`
-  /// table, or null.
-  Future<int?> loadCurrentProjectDefaultVatRateBasisPoints() =>
-      OcptProjectSettingsOps.loadCurrentProjectDefaultVatRateBasisPoints(project: currentProject);
-
-  /// Update the default VAT rate, in basis points, stored in the [currentProject]'s `project_info`
-  /// table, or clear it when [basisPoints] is null — a production putting the rate back to "not
-  /// recorded" is as real a gesture as setting it (`OcptProjectSettingsBudgetSection`'s `No rate`
-  /// button). Does nothing if no project is currently open.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectDefaultVatRateBasisPoints(int? basisPoints) =>
-      OcptProjectSettingsOps.saveCurrentProjectDefaultVatRateBasisPoints(
-        project: currentProject,
-        basisPoints: basisPoints,
-      );
-
-  /// Load the price of one meal, in cents, stored in the [currentProject]'s `project_info` table,
-  /// or null — the same "nobody has said" reading [loadCurrentProjectDefaultVatRateBasisPoints]
-  /// gets.
-  Future<int?> loadCurrentProjectMealPriceCents() =>
-      OcptProjectSettingsOps.loadCurrentProjectMealPriceCents(project: currentProject);
-
-  /// Update the price of one meal, in cents, stored in the [currentProject]'s `project_info` table,
-  /// or clear it when [cents] is null. Does nothing if no project is currently open.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectMealPriceCents(int? cents) =>
-      OcptProjectSettingsOps.saveCurrentProjectMealPriceCents(
-        project: currentProject,
-        cents: cents,
-      );
-
-  /// Load the price of the buffet, in cents, stored in the [currentProject]'s `project_info`
-  /// table, or null — [loadCurrentProjectMealPriceCents]'s sibling, read the same way. **Named
-  /// after the column it reads, `project_info.snackPriceCents`, kept for the schema (ADR 0007's
-  /// schema-number rule); the UI names this figure the buffet, or craft services, never a snack.**
-  Future<int?> loadCurrentProjectSnackPriceCents() =>
-      OcptProjectSettingsOps.loadCurrentProjectSnackPriceCents(project: currentProject);
-
-  /// Update the price of the buffet, in cents, stored in the [currentProject]'s `project_info`
-  /// table, or clear it when [cents] is null — [saveCurrentProjectMealPriceCents]'s sibling. See
-  /// [loadCurrentProjectSnackPriceCents]'s own doc comment for why this keeps the column's name.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectSnackPriceCents(int? cents) =>
-      OcptProjectSettingsOps.saveCurrentProjectSnackPriceCents(
-        project: currentProject,
-        cents: cents,
-      );
 
   /// List the [currentProject]'s versions, newest first, or an empty list if no project is open.
   ///

@@ -288,7 +288,7 @@ void main() {
 
     // Asserts against whatever the manager actually seeded, not a hardcoded EUR: the device
     // locale running the test may suggest a different one.
-    final currencyCode = await projectsManager.loadCurrentProjectCurrencyCode();
+    final currencyCode = await projectsManager.loadCurrentProjectCurrencyCode().maybeValueOrFail;
     final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
     expect(find.text("$currencyCode — $currencySymbol"), findsOneWidget);
   });
@@ -297,7 +297,7 @@ void main() {
     tester,
   ) async {
     final bloc = await pumpView(tester);
-    final initialCode = await projectsManager.loadCurrentProjectCurrencyCode();
+    final initialCode = await projectsManager.loadCurrentProjectCurrencyCode().maybeValueOrFail;
     final otherCode = initialCode == "USD" ? "GBP" : "USD";
     final otherSymbol = NumberFormat.simpleCurrency(name: otherCode).currencySymbol;
 
@@ -308,14 +308,14 @@ void main() {
 
     expect(bloc.state.currencyCode, otherCode);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectCurrencyCode(), otherCode);
+    expect(await projectsManager.loadCurrentProjectCurrencyCode().maybeValueOrFail, otherCode);
   });
 
   testWidgets("picking a page format writes it to the project and marks the state changed", (
     tester,
   ) async {
     final bloc = await pumpView(tester);
-    final initialFormat = await projectsManager.loadCurrentProjectPageFormat();
+    final initialFormat = await projectsManager.loadCurrentProjectPageFormat().maybeValueOrFail;
     final otherFormat = initialFormat == OcptPageFormat.usLetter
         ? OcptPageFormat.a4
         : OcptPageFormat.usLetter;
@@ -332,13 +332,13 @@ void main() {
 
     expect(bloc.state.pageFormat, otherFormat);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectPageFormat(), otherFormat);
+    expect(await projectsManager.loadCurrentProjectPageFormat().maybeValueOrFail, otherFormat);
   });
 
   testWidgets("shows the project's currently seeded screenplay language", (tester) async {
     await pumpView(tester);
 
-    final language = await projectsManager.loadCurrentProjectScreenplayLanguage();
+    final language = await projectsManager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail;
     final context = tester.element(find.byType(OcptProjectSettingsView));
     final tr = Tr.of(context);
     final label = switch (language) {
@@ -353,7 +353,9 @@ void main() {
     "picking a screenplay language writes it to the project and marks the state changed",
     (tester) async {
       final bloc = await pumpView(tester);
-      final initialLanguage = await projectsManager.loadCurrentProjectScreenplayLanguage();
+      final initialLanguage = await projectsManager
+          .loadCurrentProjectScreenplayLanguage()
+          .maybeValueOrFail;
       final otherLanguage = initialLanguage == OcptScreenplayLanguage.fr
           ? OcptScreenplayLanguage.enGb
           : OcptScreenplayLanguage.fr;
@@ -370,7 +372,10 @@ void main() {
 
       expect(bloc.state.screenplayLanguage, otherLanguage);
       expect(bloc.state.hasChanged, isTrue);
-      expect(await projectsManager.loadCurrentProjectScreenplayLanguage(), otherLanguage);
+      expect(
+        await projectsManager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail,
+        otherLanguage,
+      );
     },
   );
 
@@ -386,7 +391,7 @@ void main() {
 
     expect(bloc.state.screenplayLanguage, isNull);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectScreenplayLanguage(), isNull);
+    expect(await projectsManager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail, isNull);
   });
 
   testWidgets("the dictionary section shows the empty state for a project with no learned word", (
@@ -485,7 +490,7 @@ void main() {
   });
 
   testWidgets("shows the project's currently recorded minimum rest, in hours", (tester) async {
-    await projectsManager.saveCurrentProjectMinimumRestMinutes(90);
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(90).okOrFail;
 
     await pumpView(tester);
 
@@ -503,11 +508,11 @@ void main() {
 
     expect(bloc.state.minimumRestMinutes, 660);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 660);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, 660);
   });
 
   testWidgets("a committed minimum rest can be typed over again", (tester) async {
-    await projectsManager.saveCurrentProjectMinimumRestMinutes(660);
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(660).okOrFail;
     final bloc = await pumpView(tester);
 
     // What the field shows after a commit is what it accepts back: the digits alone, the unit
@@ -519,12 +524,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bloc.state.minimumRestMinutes, 750);
-    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 750);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, 750);
     expect(find.text("12.5"), findsOneWidget);
   });
 
   testWidgets("clearing the minimum rest writes null to the project", (tester) async {
-    await projectsManager.saveCurrentProjectMinimumRestMinutes(660);
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(660).okOrFail;
     final bloc = await pumpView(tester);
 
     await tester.enterText(minimumRestField(), "");
@@ -533,11 +538,11 @@ void main() {
 
     expect(bloc.state.minimumRestMinutes, isNull);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), isNull);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, isNull);
   });
 
   testWidgets("a zero or negative minimum rest is rejected and nothing is written", (tester) async {
-    await projectsManager.saveCurrentProjectMinimumRestMinutes(90);
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(90).okOrFail;
     final bloc = await pumpView(tester);
 
     await tester.enterText(minimumRestField(), "-5");
@@ -546,7 +551,7 @@ void main() {
 
     expect(bloc.state.minimumRestMinutes, 90);
     expect(bloc.state.hasChanged, isFalse);
-    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 90);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, 90);
     // The field reverts to the last committed value's own reading.
     expect(find.text(ocptMinimumRestHoursTextOf(90)), findsOneWidget);
   });
@@ -562,11 +567,14 @@ void main() {
 
     expect(bloc.state.defaultVatRateBasisPoints, 2000);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectDefaultVatRateBasisPoints(), 2000);
+    expect(
+      await projectsManager.loadCurrentProjectDefaultVatRateBasisPoints().maybeValueOrFail,
+      2000,
+    );
   });
 
   testWidgets("the No rate button clears a recorded default VAT rate", (tester) async {
-    await projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(2000);
+    await projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(2000).okOrFail;
     final bloc = await pumpView(tester);
     final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
 
@@ -575,7 +583,10 @@ void main() {
 
     expect(bloc.state.defaultVatRateBasisPoints, isNull);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectDefaultVatRateBasisPoints(), isNull);
+    expect(
+      await projectsManager.loadCurrentProjectDefaultVatRateBasisPoints().maybeValueOrFail,
+      isNull,
+    );
   });
 
   testWidgets("tapping the back arrow pops with whether anything changed", (tester) async {
@@ -591,7 +602,7 @@ void main() {
 
   testWidgets("popping after a change hands back true", (tester) async {
     await pumpView(tester);
-    final initialFormat = await projectsManager.loadCurrentProjectPageFormat();
+    final initialFormat = await projectsManager.loadCurrentProjectPageFormat().maybeValueOrFail;
     final otherFormat = initialFormat == OcptPageFormat.usLetter
         ? OcptPageFormat.a4
         : OcptPageFormat.usLetter;

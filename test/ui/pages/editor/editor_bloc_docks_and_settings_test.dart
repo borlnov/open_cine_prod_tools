@@ -188,7 +188,10 @@ void main() {
 
     final state = await waitForState(bloc, (state) => state.pageSetup == newSetup);
     expect(state.pageSetup, newSetup);
-    expect(await projectsManager.loadCurrentProjectPageFormat(), OcptPageFormat.a4);
+    expect(
+      await projectsManager.loadCurrentProjectPageFormat().maybeValueOrFail,
+      OcptPageFormat.a4,
+    );
     expect(await propertiesManager.pageMargins.load(), newSetup.margins);
 
     await bloc.close();

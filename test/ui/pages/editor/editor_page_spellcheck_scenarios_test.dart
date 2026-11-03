@@ -42,7 +42,7 @@ void main() {
   Future<void> enableSpellCheck({
     OcptScreenplayLanguage? language = OcptScreenplayLanguage.enGb,
   }) async {
-    await harness.projectsManager.saveCurrentProjectScreenplayLanguage(language);
+    await harness.projectsManager.saveCurrentProjectScreenplayLanguage(language).okOrFail;
     await harness.propertiesManager.spellCheckVisible.store(true);
   }
 
@@ -205,7 +205,9 @@ void main() {
     final tr = harness.trOf(tester);
 
     // The settings page writes the language, then closes answering that something changed.
-    await harness.projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+    await harness.projectsManager
+        .saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb)
+        .okOrFail;
     harness.routerManager.pushAnswer = true;
     await harness.tap(tester, find.byTooltip(tr.workspaceProjectSettingsTooltip));
     await harness.pumpUntil(
@@ -227,7 +229,9 @@ void main() {
     await harness.pumpUntil(tester, () => harness.underlinedWords(tester).isNotEmpty);
     final tr = harness.trOf(tester);
 
-    await harness.projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.fr);
+    await harness.projectsManager
+        .saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.fr)
+        .okOrFail;
     harness.routerManager.pushAnswer = false;
     await harness.tap(tester, find.byTooltip(tr.workspaceProjectSettingsTooltip));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));

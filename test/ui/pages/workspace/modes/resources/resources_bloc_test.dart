@@ -382,7 +382,7 @@ void main() {
     final initialCode = bloc.state.currencyCode;
     final otherCode = initialCode == "USD" ? "GBP" : "USD";
 
-    await projectsManager.saveCurrentProjectCurrencyCode(otherCode);
+    await projectsManager.saveCurrentProjectCurrencyCode(otherCode).okOrFail;
 
     bloc.add(const OcptResourcesProjectSettingsChangedEvent());
     final state = await waitForState(bloc, (state) => state.currencyCode == otherCode);
@@ -393,7 +393,7 @@ void main() {
   });
 
   test("the initial load reads the project's currency", () async {
-    await projectsManager.saveCurrentProjectCurrencyCode("GBP");
+    await projectsManager.saveCurrentProjectCurrencyCode("GBP").okOrFail;
 
     final bloc = buildBloc();
     final state = await waitForState(bloc, (state) => !state.isLoading);

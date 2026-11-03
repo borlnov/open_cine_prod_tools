@@ -8,7 +8,6 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fountain_kit/fountain_kit.dart';
 import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
@@ -22,18 +21,17 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candid
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
-import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_page_setup_loading.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
@@ -331,8 +329,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// selection reset: a preview or a restore changes the whole database underneath, so a stale
   /// selection is dropped rather than trusted to still mean the same thing.
   ///
-  /// Answers false when the catalogue could not be read, in which case nothing is emitted and the
-  /// caller stops there.
+  /// Answers false when the catalogue, the currency, the page format, the mileage rates or the sets
+  /// with a floor plan could not be read, in which case nothing is emitted and the caller stops
+  /// there.
   @useResult
   Future<bool> _load(Emitter<OcptResourcesState> emitter) async {
     final leftDockFraction =
@@ -363,8 +362,22 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       }
 
       final snapshot = snapshotRead.value!;
-      final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
-      final pageSetup = await _loadPageSetup(project);
+      final currencyRead = await _projectsManager.loadCurrentProjectCurrencyCode();
+      if (currencyRead.isError) {
+        return false;
+      }
+
+      final currencyCode = currencyRead.value;
+      final pageSetupRead = await ocptLoadPageSetup(
+        project: project,
+        projectsManager: _projectsManager,
+        propertiesManager: _propertiesManager,
+      );
+      if (pageSetupRead.isError) {
+        return false;
+      }
+
+      final pageSetup = pageSetupRead.value!;
       final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
         database: project.database,
       );
@@ -454,20 +467,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
             : tabbed,
     };
   }
-
-  /// Read the page setup the contact list export dialog is pre-filled with: the open project's own
-  /// page format, paired with the app-wide margins preference, exactly as `OcptBreakdownBloc`'s own
-  /// `_loadPageSetup` pairs them.
-  ///
-  /// A version being previewed is laid out with the setup it was written against instead, which
-  /// travels on the open project model and is never written anywhere.
-  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
-      project.previewedPageSetup ??
-      OcptPageSetup(
-        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins:
-            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
-      );
 
   /// Read the whole resources catalogue of [project], joining the four services' own reads into
   /// one [OcptResourcesSnapshot].
@@ -609,7 +608,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       }
 
       final snapshot = snapshotRead.value!;
-      final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
+      final currencyRead = await _projectsManager.loadCurrentProjectCurrencyCode();
+      if (currencyRead.isError) {
+        return;
+      }
+
+      final currencyCode = currencyRead.value;
 
       emitter(
         state.copyWithReloadedProjectSettings(

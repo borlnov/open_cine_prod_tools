@@ -228,7 +228,7 @@ void main() {
       "while a plain return reads nothing", (tester) async {
     await harness.mount(tester);
     final tr = harness.trOf(tester);
-    await harness.projectsManager.saveCurrentProjectPageFormat(OcptPageFormat.a4);
+    await harness.projectsManager.saveCurrentProjectPageFormat(OcptPageFormat.a4).okOrFail;
 
     harness.routerManager.pushAnswer = false;
     await harness.tap(tester, find.byTooltip(tr.workspaceProjectSettingsTooltip));

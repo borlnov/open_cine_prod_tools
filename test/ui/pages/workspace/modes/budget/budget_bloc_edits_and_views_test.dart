@@ -354,8 +354,8 @@ void main() {
 
     test("reads the project's own currency and default VAT rate", () async {
       final project = projectsManager.currentProject!;
-      await projectsManager.saveCurrentProjectCurrencyCode("USD");
-      await projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(2000);
+      await projectsManager.saveCurrentProjectCurrencyCode("USD").okOrFail;
+      await projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(2000).okOrFail;
 
       final bloc = buildBloc();
       addTearDown(bloc.close);

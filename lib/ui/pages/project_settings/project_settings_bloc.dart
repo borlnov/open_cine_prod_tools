@@ -234,16 +234,50 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     final isMobile = _exportManager?.isMobile ?? false;
     final isMoveWithheldByHosting = await _isHostingOnlineForCurrentProject();
 
-    final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
-    final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
-    final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
-    final defaultVatRateBasisPoints = await _projectsManager
-        .loadCurrentProjectDefaultVatRateBasisPoints();
-    final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
+    final currencyRead = await _projectsManager.loadCurrentProjectCurrencyCode();
+    if (currencyRead.isError) {
+      return;
+    }
+
+    final currencyCode = currencyRead.value;
+    final pageFormatRead = await _projectsManager.loadCurrentProjectPageFormat();
+    if (pageFormatRead.isError) {
+      return;
+    }
+
+    final pageFormat = pageFormatRead.value;
+    final minimumRestRead = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
+    if (minimumRestRead.isError) {
+      return;
+    }
+
+    final minimumRestMinutes = minimumRestRead.value;
+    final defaultVatRateRead = await _projectsManager.loadCurrentProjectDefaultVatRateBasisPoints();
+    if (defaultVatRateRead.isError) {
+      return;
+    }
+
+    final defaultVatRateBasisPoints = defaultVatRateRead.value;
+    final mealPriceRead = await _projectsManager.loadCurrentProjectMealPriceCents();
+    if (mealPriceRead.isError) {
+      return;
+    }
+
+    final mealPriceCents = mealPriceRead.value;
     // `project_info.snackPriceCents` under its user-facing name — the column keeps the schema's
     // own name, but what it prices is the buffet, never a snack in the trade's own words.
-    final buffetPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
-    final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
+    final buffetPriceRead = await _projectsManager.loadCurrentProjectSnackPriceCents();
+    if (buffetPriceRead.isError) {
+      return;
+    }
+
+    final buffetPriceCents = buffetPriceRead.value;
+    final screenplayLanguageRead = await _projectsManager.loadCurrentProjectScreenplayLanguage();
+    if (screenplayLanguageRead.isError) {
+      return;
+    }
+
+    final screenplayLanguage = screenplayLanguageRead.value;
     final episodesRead = await _projectsManager.screenplayService.loadEpisodes(database: _database);
     if (episodesRead.isError) {
       return;
@@ -458,7 +492,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsCurrencyChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectCurrencyCode(event.currencyCode);
+    final saved = await _projectsManager.saveCurrentProjectCurrencyCode(event.currencyCode);
+    if (saved.isError) {
+      return;
+    }
+
     emitter(state.copyWithCurrencyCode(currencyCode: event.currencyCode));
   }
 
@@ -467,7 +505,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsPageFormatChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectPageFormat(event.pageFormat);
+    final saved = await _projectsManager.saveCurrentProjectPageFormat(event.pageFormat);
+    if (saved.isError) {
+      return;
+    }
+
     emitter(state.copyWithPageFormat(pageFormat: event.pageFormat));
   }
 
@@ -480,7 +522,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsMinimumRestMinutesChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectMinimumRestMinutes(event.minutes);
+    final saved = await _projectsManager.saveCurrentProjectMinimumRestMinutes(event.minutes);
+    if (saved.isError) {
+      return;
+    }
+
     emitter(state.copyWithMinimumRestMinutes(minimumRestMinutes: event.minutes));
   }
 
@@ -493,7 +539,13 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(event.basisPoints);
+    final saved = await _projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(
+      event.basisPoints,
+    );
+    if (saved.isError) {
+      return;
+    }
+
     emitter(state.copyWithDefaultVatRate(defaultVatRateBasisPoints: event.basisPoints));
   }
 
@@ -502,7 +554,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsMealPriceCentsChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectMealPriceCents(event.cents);
+    final saved = await _projectsManager.saveCurrentProjectMealPriceCents(event.cents);
+    if (saved.isError) {
+      return;
+    }
+
     emitter(state.copyWithMealPrice(mealPriceCents: event.cents));
   }
 
@@ -513,7 +569,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsBuffetPriceCentsChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectSnackPriceCents(event.cents);
+    final saved = await _projectsManager.saveCurrentProjectSnackPriceCents(event.cents);
+    if (saved.isError) {
+      return;
+    }
+
     emitter(state.copyWithBuffetPrice(buffetPriceCents: event.cents));
   }
 
@@ -526,7 +586,13 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsScreenplayLanguageChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectScreenplayLanguage(event.screenplayLanguage);
+    final saved = await _projectsManager.saveCurrentProjectScreenplayLanguage(
+      event.screenplayLanguage,
+    );
+    if (saved.isError) {
+      return;
+    }
+
     emitter(state.copyWithScreenplayLanguage(screenplayLanguage: event.screenplayLanguage));
   }
 

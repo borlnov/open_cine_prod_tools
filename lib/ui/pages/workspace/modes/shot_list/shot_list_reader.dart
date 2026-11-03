@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:fountain_kit/fountain_kit.dart';
 import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -23,7 +22,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_page_setup_loading.dart';
 
 /// The reads `OcptShotListBloc` makes of the data its mode shows: the shot list joined with the
 /// schedule, the storyboard, the floor plans, the Resources locations and their set-scope symbols,
@@ -196,12 +195,14 @@ class OcptShotListReader {
   /// A version being previewed is laid out with the setup it was written against instead, which
   /// travels on the open project model and is never written anywhere — again exactly as the
   /// screenplay editor's own bloc does it.
-  Future<OcptPageSetup> loadPageSetup(OcptOpenProjectModel project) async =>
-      project.previewedPageSetup ??
-      OcptPageSetup(
-        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins:
-            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
+  ///
+  /// Answers the failure of the read of the page format as it came.
+  @useResult
+  Future<OcptDatabaseResult<OcptPageSetup>> loadPageSetup(OcptOpenProjectModel project) =>
+      ocptLoadPageSetup(
+        project: project,
+        projectsManager: _projectsManager,
+        propertiesManager: _propertiesManager,
       );
 
   /// Read every free-text field's suggestion list, scoped to the selected episode.

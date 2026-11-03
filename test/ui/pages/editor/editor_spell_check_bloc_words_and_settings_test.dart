@@ -112,7 +112,9 @@ void main() {
       final manager = FakeSpellCheckManager();
       await propertiesManager.spellCheckVisible.store(true);
       await propertiesManager.editorMode.store(OcptEditorMode.raw);
-      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+      await projectsManager
+          .saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb)
+          .okOrFail;
 
       final bloc = buildBloc(spellCheckManager: manager);
       await waitForState(bloc, (state) => !state.isLoading);
@@ -154,7 +156,9 @@ void main() {
       final manager = FakeSpellCheckManager();
       await propertiesManager.spellCheckVisible.store(true);
       await propertiesManager.editorMode.store(OcptEditorMode.raw);
-      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+      await projectsManager
+          .saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb)
+          .okOrFail;
 
       final bloc = buildBloc(spellCheckManager: manager);
       await waitForState(bloc, (state) => !state.isLoading);
@@ -218,7 +222,9 @@ void main() {
       () async {
         final manager = FakeSpellCheckManager();
         await propertiesManager.spellCheckVisible.store(true);
-        await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+        await projectsManager
+            .saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb)
+            .okOrFail;
         final project = projectsManager.currentProject!;
         await projectsManager.screenplayService
             .saveScreenplayText(
@@ -277,7 +283,9 @@ void main() {
       final manager = FakeSpellCheckManager();
       await propertiesManager.spellCheckVisible.store(true);
       await propertiesManager.editorMode.store(OcptEditorMode.raw);
-      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+      await projectsManager
+          .saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb)
+          .okOrFail;
 
       final bloc = buildBloc(spellCheckManager: manager);
       await waitForState(bloc, (state) => !state.isLoading);
@@ -319,7 +327,9 @@ void main() {
       final manager = FakeSpellCheckManager();
       await propertiesManager.spellCheckVisible.store(true);
       await propertiesManager.editorMode.store(OcptEditorMode.raw);
-      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+      await projectsManager
+          .saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb)
+          .okOrFail;
 
       final bloc = buildBloc(spellCheckManager: manager);
       await waitForState(bloc, (state) => !state.isLoading);
@@ -338,7 +348,7 @@ void main() {
       final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
           ? OcptPageFormat.a4
           : OcptPageFormat.usLetter;
-      await projectsManager.saveCurrentProjectPageFormat(otherFormat);
+      await projectsManager.saveCurrentProjectPageFormat(otherFormat).okOrFail;
 
       bloc
         ..add(const OcptEditorProjectSettingsChangedEvent())
@@ -374,7 +384,9 @@ void main() {
       final manager = FakeSpellCheckManager()..answerFor = (requested) => {};
       await propertiesManager.spellCheckVisible.store(true);
       await propertiesManager.editorMode.store(OcptEditorMode.raw);
-      await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+      await projectsManager
+          .saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb)
+          .okOrFail;
       final bloc = buildBloc(spellCheckManager: manager);
       await waitForState(bloc, (state) => !state.isLoading);
       bloc.add(const OcptEditorTextChangedEvent(text: "INT. HOUSE - DAY\n\nAction.\n"));

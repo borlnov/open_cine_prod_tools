@@ -9,7 +9,6 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fountain_kit/fountain_kit.dart';
 import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
@@ -19,14 +18,13 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/models/ocpt_budget_account_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
-import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection_cause.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_page_setup_loading.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_snapshot_loader.dart';
@@ -295,8 +293,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// database underneath, so a stale selection is dropped rather than trusted to still mean
   /// something.
   ///
-  /// Answers false when the budget could not be read, in which case nothing is emitted and the
-  /// caller stops there.
+  /// Answers false when the budget or the page format could not be read, in which case nothing is
+  /// emitted and the caller stops there.
   @useResult
   Future<bool> _load(Emitter<OcptBudgetState> emitter) async {
     final rightDockFraction =
@@ -326,7 +324,16 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       }
 
       final loaded = read.value!;
-      final pageSetup = await _loadPageSetup(project);
+      final pageSetupRead = await ocptLoadPageSetup(
+        project: project,
+        projectsManager: _projectsManager,
+        propertiesManager: _propertiesManager,
+      );
+      if (pageSetupRead.isError) {
+        return false;
+      }
+
+      final pageSetup = pageSetupRead.value!;
 
       emitter(
         state.copyToLoaded(
@@ -346,20 +353,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return true;
     });
   }
-
-  /// Read the page setup the mode's own three PDF export dialogs are pre-filled with: the open
-  /// project's own page format, paired with the app-wide margins preference, exactly as
-  /// `OcptResourcesBloc`'s own `_loadPageSetup` pairs them.
-  ///
-  /// A version being previewed is laid out with the setup it was written against instead, which
-  /// travels on the open project model and is never written anywhere.
-  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
-      project.previewedPageSetup ??
-      OcptPageSetup(
-        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins:
-            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
-      );
 
   /// Leave the workspace: closes the current project and navigates back to the home page.
   Future<void> _onBackRequested(

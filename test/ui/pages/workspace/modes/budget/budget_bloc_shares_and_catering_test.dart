@@ -175,8 +175,8 @@ void main() {
             .addSlotCrewMember(database: project.database, slotId: slotId, personId: personId)
             .maybeValueOrFail;
 
-        await projectsManager.saveCurrentProjectMealPriceCents(1200);
-        await projectsManager.saveCurrentProjectSnackPriceCents(400);
+        await projectsManager.saveCurrentProjectMealPriceCents(1200).okOrFail;
+        await projectsManager.saveCurrentProjectSnackPriceCents(400).okOrFail;
 
         // A mileage scale, there to pre-fill a defrayal somebody types — never to deduce one.
         await projectsManager.budgetFinancingService

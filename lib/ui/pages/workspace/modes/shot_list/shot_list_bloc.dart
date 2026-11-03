@@ -363,8 +363,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// mode together (see the hook's own doc comment).
   ///
   /// Answers false when the screenplay text, the shot list, the board, the floor plans, the
-  /// locations, the cast or the field suggestions could not be read, in which case nothing is
-  /// emitted and the caller stops there.
+  /// locations, the cast, the page format or the field suggestions could not be read, in which case
+  /// nothing is emitted and the caller stops there.
   @useResult
   Future<bool> _load(Emitter<OcptShotListState> emitter) async {
     final leftDockFraction =
@@ -406,7 +406,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       }
 
       final screenplayText = screenplayTextRead.value!;
-      final pageSetup = await _reader.loadPageSetup(project);
+      final pageSetupRead = await _reader.loadPageSetup(project);
+      if (pageSetupRead.isError) {
+        return false;
+      }
+
+      final pageSetup = pageSetupRead.value!;
       final snapshotRead = await _reader.loadSnapshot(project);
       if (snapshotRead.isError) {
         return false;
@@ -758,7 +763,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     await runSerially(() async {
-      final pageSetup = await _reader.loadPageSetup(project);
+      final pageSetupRead = await _reader.loadPageSetup(project);
+      if (pageSetupRead.isError) {
+        return;
+      }
+
+      final pageSetup = pageSetupRead.value!;
       emitter(state.copyWithPageSetup(pageSetup: pageSetup));
     });
   }

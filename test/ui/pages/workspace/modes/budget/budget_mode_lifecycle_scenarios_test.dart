@@ -200,7 +200,7 @@ void main() {
           creditCents: 4000,
         )
         .maybeValueOrFail;
-    await harness.projectsManager.saveCurrentProjectPageFormat(OcptPageFormat.a4);
+    await harness.projectsManager.saveCurrentProjectPageFormat(OcptPageFormat.a4).okOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -241,7 +241,7 @@ void main() {
     await harness.seedAccount("Camera");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
-    await harness.projectsManager.saveCurrentProjectPageFormat(OcptPageFormat.a4);
+    await harness.projectsManager.saveCurrentProjectPageFormat(OcptPageFormat.a4).okOrFail;
 
     harness.routerManager.pushAnswer = false;
     await harness.tap(tester, find.byTooltip(tr.workspaceProjectSettingsTooltip));

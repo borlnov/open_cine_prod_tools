@@ -9,7 +9,6 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fountain_kit/fountain_kit.dart';
 import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -24,7 +23,6 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
-import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
@@ -33,12 +31,12 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_page_setup_loading.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
@@ -344,9 +342,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// is dropped for the same reason and then chosen afresh out of what was just read, by
   /// [_defaultSelectedDayOf] — never carried over.
   ///
-  /// Answers false when the schedule, the shot lists, the locations or the casting (the roles,
-  /// the people, the elements and the candidacies) could not be read, in which case nothing is
-  /// emitted and the caller stops there.
+  /// Answers false when the schedule, the shot lists, the locations, the casting (the roles, the
+  /// people, the elements and the candidacies), the page format or the minimum rest could not be
+  /// read, in which case nothing is emitted and the caller stops there.
   @useResult
   Future<bool> _load(Emitter<OcptScheduleState> emitter) async {
     final leftDockFraction =
@@ -421,8 +419,22 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       }
 
       final roleCandidates = roleCandidatesRead.value!;
-      final pageSetup = await _loadPageSetup(project);
-      final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
+      final pageSetupRead = await ocptLoadPageSetup(
+        project: project,
+        projectsManager: _projectsManager,
+        propertiesManager: _propertiesManager,
+      );
+      if (pageSetupRead.isError) {
+        return false;
+      }
+
+      final pageSetup = pageSetupRead.value!;
+      final minimumRestRead = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
+      if (minimumRestRead.isError) {
+        return false;
+      }
+
+      final minimumRestMinutes = minimumRestRead.value;
 
       final defaultDay = _defaultSelectedDayOf(snapshot.days);
 
@@ -451,20 +463,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return true;
     });
   }
-
-  /// Read the page setup the three PDF exports are typeset with: the open project's own page
-  /// format, paired with the app-wide margins preference, exactly as the shot list mode's own bloc
-  /// pairs them for the scenario coverage export.
-  ///
-  /// A version being previewed is laid out with the setup it was written against instead, which
-  /// travels on the open project model and is never written anywhere.
-  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
-      project.previewedPageSetup ??
-      OcptPageSetup(
-        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins:
-            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
-      );
 
   /// Get the day a load lands on: the one dated today, failing that the next one still to come, and
   /// failing that the last one shot — null only for a project holding no day at all.

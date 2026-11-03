@@ -16,16 +16,15 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
-import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_page_setup_loading.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
@@ -277,8 +276,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// very version's in-memory database, and the two must reach the page together (see the hook's
   /// own doc comment).
   ///
-  /// Answers whether it went through: false when the screenplay's text could not be read, with
-  /// nothing emitted.
+  /// Answers whether it went through: false when the screenplay's language, its text or its page
+  /// format could not be read, with nothing emitted.
   @useResult
   Future<bool> _load(Emitter<OcptEditorState> emitter) async {
     final mode = await _propertiesManager.editorMode.load() ?? OcptEditorMode.styled;
@@ -292,7 +291,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         await _propertiesManager.editorRightDockFraction.load() ??
         OcptWorkspaceDock.rightDefaultFraction;
     final isSpellCheckVisible = await _propertiesManager.spellCheckVisible.load() ?? true;
-    final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
+    final languageRead = await _projectsManager.loadCurrentProjectScreenplayLanguage();
+    if (languageRead.isError) {
+      return false;
+    }
+
+    final screenplayLanguage = languageRead.value;
 
     final project = _projectsManager.currentProject;
     final previewedVersion = project?.previewedVersion;
@@ -340,7 +344,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
     final text = textRead.value!;
     final document = _fountainParser.parse(text);
-    final pageSetup = await _loadPageSetup(project);
+    final pageSetupRead = await ocptLoadPageSetup(
+      project: project,
+      projectsManager: _projectsManager,
+      propertiesManager: _propertiesManager,
+    );
+    if (pageSetupRead.isError) {
+      return false;
+    }
+
+    final pageSetup = pageSetupRead.value!;
 
     emitter(
       state.copyToLoaded(
@@ -365,22 +378,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
     return true;
   }
-
-  /// Read the page setup [project] is typeset with: the version's own while one is being
-  /// previewed, and the project's page format paired with the app-wide margins preference
-  /// otherwise.
-  ///
-  /// A previewed version is laid out with the setup it was written against — that is what keeps the
-  /// page count shown on its card true — and that setup travels on the open project model alone: a
-  /// preview never writes it anywhere, since its margins half is an app-wide preference that has
-  /// nothing to do with this project.
-  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
-      project.previewedPageSetup ??
-      OcptPageSetup(
-        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins:
-            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
-      );
 
   /// Compute how the right dock's active tab and its "auto-closed" memory should change when the
   /// editing mode becomes [newMode], applied identically by [_onModeToggled] and by
@@ -725,7 +722,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorPageSetupChangedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectPageFormat(event.pageSetup.format);
+    final saved = await _projectsManager.saveCurrentProjectPageFormat(event.pageSetup.format);
+    if (saved.isError) {
+      return;
+    }
+
     await _propertiesManager.pageMargins.store(event.pageSetup.margins);
     emitter(state.copyWithPageSetup(pageSetup: event.pageSetup));
   }
@@ -742,12 +743,22 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorProjectSettingsChangedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
+    final pageFormatRead = await _projectsManager.loadCurrentProjectPageFormat();
+    if (pageFormatRead.isError) {
+      return;
+    }
+
+    final pageFormat = pageFormatRead.value;
     if (pageFormat != null && pageFormat != state.pageSetup.format) {
       emitter(state.copyWithPageFormat(pageFormat: pageFormat));
     }
 
-    final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
+    final languageRead = await _projectsManager.loadCurrentProjectScreenplayLanguage();
+    if (languageRead.isError) {
+      return;
+    }
+
+    final screenplayLanguage = languageRead.value;
     if (screenplayLanguage != state.screenplayLanguage) {
       emitter(state.copyWithScreenplayLanguage(screenplayLanguage: screenplayLanguage));
     }

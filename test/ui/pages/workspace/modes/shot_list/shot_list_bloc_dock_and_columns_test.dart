@@ -414,7 +414,7 @@ void main() {
           : OcptPageFormat.usLetter;
       // Written directly through the manager, the way the project settings page itself writes it
       // — this bloc never sees the new value on an event, only the fact that something changed.
-      await projectsManager.saveCurrentProjectPageFormat(otherFormat);
+      await projectsManager.saveCurrentProjectPageFormat(otherFormat).okOrFail;
 
       bloc.add(const OcptShotListProjectSettingsChangedEvent());
       final state = await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);

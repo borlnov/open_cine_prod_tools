@@ -243,16 +243,21 @@ void main() {
                 (await project.database.select(project.database.ocptScenesTable).get()).first.id,
           )
           .maybeValueOrFail;
-      await manager.saveCurrentProjectPageFormat(
-        project.previewedPageSetup!.format == OcptPageFormat.a4
-            ? OcptPageFormat.usLetter
-            : OcptPageFormat.a4,
-      );
+      await manager
+          .saveCurrentProjectPageFormat(
+            project.previewedPageSetup!.format == OcptPageFormat.a4
+                ? OcptPageFormat.usLetter
+                : OcptPageFormat.a4,
+          )
+          .okOrFail;
 
       expect(createdShotId, isNull);
       expect(await readTextThroughCurrentDatabase(), "INT. HOUSE - DAY\n\nCLARA enters.");
       expect(await project.database.select(project.database.ocptShotsTable).get(), isEmpty);
-      expect(await manager.loadCurrentProjectPageFormat(), project.previewedPageSetup!.format);
+      expect(
+        await manager.loadCurrentProjectPageFormat().maybeValueOrFail,
+        project.previewedPageSetup!.format,
+      );
 
       // And the project file itself is untouched by any of it either.
       expect(await readTextThroughFile(), "EXT. STREET - NIGHT\n\nThe rewrite.");

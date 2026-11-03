@@ -643,7 +643,7 @@ void main() {
       service.holdsNextRead = true;
       final reload = bloc.reload({OcptShotListReloadScope.floorPlans});
       await waitUntil(() => service.holdCount == 1);
-      await projectsManager.saveCurrentProjectPageFormat(other);
+      await projectsManager.saveCurrentProjectPageFormat(other).okOrFail;
       bloc.add(const OcptShotListProjectSettingsChangedEvent());
       await Future<void>.delayed(const Duration(milliseconds: 150));
       expect(bloc.state.pageSetup.format, format);

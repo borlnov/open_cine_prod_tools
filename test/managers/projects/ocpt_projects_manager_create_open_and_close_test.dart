@@ -295,19 +295,19 @@ void main() {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await manager.createProject(name: "My Movie", filePath: filePath);
 
-      final initialFormat = await manager.loadCurrentProjectPageFormat();
+      final initialFormat = await manager.loadCurrentProjectPageFormat().maybeValueOrFail;
       final otherFormat = initialFormat == OcptPageFormat.usLetter
           ? OcptPageFormat.a4
           : OcptPageFormat.usLetter;
 
-      await manager.saveCurrentProjectPageFormat(otherFormat);
+      await manager.saveCurrentProjectPageFormat(otherFormat).okOrFail;
 
-      expect(await manager.loadCurrentProjectPageFormat(), otherFormat);
+      expect(await manager.loadCurrentProjectPageFormat().maybeValueOrFail, otherFormat);
     },
   );
 
   test('saveCurrentProjectPageFormat is a no-op when no project is open', () async {
-    await expectLater(manager.saveCurrentProjectPageFormat(OcptPageFormat.a4), completes);
+    await expectLater(manager.saveCurrentProjectPageFormat(OcptPageFormat.a4).okOrFail, completes);
     expect(manager.currentProject, isNull);
   });
 
@@ -317,22 +317,22 @@ void main() {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await manager.createProject(name: "My Movie", filePath: filePath);
 
-      final initialCode = await manager.loadCurrentProjectCurrencyCode();
+      final initialCode = await manager.loadCurrentProjectCurrencyCode().maybeValueOrFail;
       final otherCode = initialCode == "USD" ? "GBP" : "USD";
 
-      await manager.saveCurrentProjectCurrencyCode(otherCode);
+      await manager.saveCurrentProjectCurrencyCode(otherCode).okOrFail;
 
-      expect(await manager.loadCurrentProjectCurrencyCode(), otherCode);
+      expect(await manager.loadCurrentProjectCurrencyCode().maybeValueOrFail, otherCode);
     },
   );
 
   test('saveCurrentProjectCurrencyCode is a no-op when no project is open', () async {
-    await expectLater(manager.saveCurrentProjectCurrencyCode("USD"), completes);
+    await expectLater(manager.saveCurrentProjectCurrencyCode("USD").okOrFail, completes);
     expect(manager.currentProject, isNull);
   });
 
   test('loadCurrentProjectCurrencyCode returns null when no project is open', () async {
-    expect(await manager.loadCurrentProjectCurrencyCode(), isNull);
+    expect(await manager.loadCurrentProjectCurrencyCode().maybeValueOrFail, isNull);
   });
 
   test('saveCurrentProjectMinimumRestMinutes writes the minutes, '
@@ -341,29 +341,29 @@ void main() {
     await manager.createProject(name: "My Movie", filePath: filePath);
 
     // Nobody has recorded a minimum yet — not "no minimum required".
-    expect(await manager.loadCurrentProjectMinimumRestMinutes(), isNull);
+    expect(await manager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, isNull);
 
-    await manager.saveCurrentProjectMinimumRestMinutes(660);
+    await manager.saveCurrentProjectMinimumRestMinutes(660).okOrFail;
 
-    expect(await manager.loadCurrentProjectMinimumRestMinutes(), 660);
+    expect(await manager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, 660);
   });
 
   test('saveCurrentProjectMinimumRestMinutes can clear a minimum already recorded', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
-    await manager.saveCurrentProjectMinimumRestMinutes(660);
+    await manager.saveCurrentProjectMinimumRestMinutes(660).okOrFail;
 
-    await manager.saveCurrentProjectMinimumRestMinutes(null);
+    await manager.saveCurrentProjectMinimumRestMinutes(null).okOrFail;
 
-    expect(await manager.loadCurrentProjectMinimumRestMinutes(), isNull);
+    expect(await manager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, isNull);
   });
 
   test('saveCurrentProjectMinimumRestMinutes is a no-op when no project is open', () async {
-    await expectLater(manager.saveCurrentProjectMinimumRestMinutes(660), completes);
+    await expectLater(manager.saveCurrentProjectMinimumRestMinutes(660).okOrFail, completes);
     expect(manager.currentProject, isNull);
   });
 
   test('loadCurrentProjectMinimumRestMinutes returns null when no project is open', () async {
-    expect(await manager.loadCurrentProjectMinimumRestMinutes(), isNull);
+    expect(await manager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, isNull);
   });
 
   test("createProject seeds the screenplay language from the app's own language", () async {
@@ -379,7 +379,10 @@ void main() {
       filePath: p.join(tempDir.path, "mon_film.ocpt"),
     );
 
-    expect(await frenchManager.loadCurrentProjectScreenplayLanguage(), OcptScreenplayLanguage.fr);
+    expect(
+      await frenchManager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail,
+      OcptScreenplayLanguage.fr,
+    );
   });
 
   test('createProject leaves the screenplay language unset when no dictionary matches', () async {
@@ -397,7 +400,7 @@ void main() {
 
     // No dictionary is bundled for German, so nothing is guessed: no language means no
     // spell-check underlines, rather than every word underlined against the wrong one.
-    expect(await germanManager.loadCurrentProjectScreenplayLanguage(), isNull);
+    expect(await germanManager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail, isNull);
   });
 
   test('saveCurrentProjectScreenplayLanguage writes the language, '
@@ -405,35 +408,35 @@ void main() {
     final filePath = p.join(tempDir.path, "movie.ocpt");
     await manager.createProject(name: "My Movie", filePath: filePath);
 
-    final initialLanguage = await manager.loadCurrentProjectScreenplayLanguage();
+    final initialLanguage = await manager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail;
     final otherLanguage = initialLanguage == OcptScreenplayLanguage.fr
         ? OcptScreenplayLanguage.enGb
         : OcptScreenplayLanguage.fr;
 
-    await manager.saveCurrentProjectScreenplayLanguage(otherLanguage);
+    await manager.saveCurrentProjectScreenplayLanguage(otherLanguage).okOrFail;
 
-    expect(await manager.loadCurrentProjectScreenplayLanguage(), otherLanguage);
+    expect(await manager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail, otherLanguage);
   });
 
   test('saveCurrentProjectScreenplayLanguage can clear a language already recorded', () async {
     await manager.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
-    await manager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.fr);
+    await manager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.fr).okOrFail;
 
-    await manager.saveCurrentProjectScreenplayLanguage(null);
+    await manager.saveCurrentProjectScreenplayLanguage(null).okOrFail;
 
-    expect(await manager.loadCurrentProjectScreenplayLanguage(), isNull);
+    expect(await manager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail, isNull);
   });
 
   test('saveCurrentProjectScreenplayLanguage is a no-op when no project is open', () async {
     await expectLater(
-      manager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.fr),
+      manager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.fr).okOrFail,
       completes,
     );
     expect(manager.currentProject, isNull);
   });
 
   test('loadCurrentProjectScreenplayLanguage returns null when no project is open', () async {
-    expect(await manager.loadCurrentProjectScreenplayLanguage(), isNull);
+    expect(await manager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail, isNull);
   });
 
   test(

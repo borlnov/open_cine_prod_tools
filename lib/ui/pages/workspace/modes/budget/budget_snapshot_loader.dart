@@ -100,10 +100,8 @@ class OcptBudgetSnapshotLoader {
   ///
   /// Answers the failure of the schedule, the accounts and their lines, the cash journal's entries,
   /// commitments and receipts, the resources, the mileage rates, the defrayals, the takings, the
-  /// shares, the elements, the roles, the people and the locations reads, in place of the whole
-  /// read: they are the only reads that answer a result so far. The reads of the project settings
-  /// still raise when the database fails, and the caller catches what they raise. This sentence
-  /// changes as those reads convert, each read then answering its failure in the same way.
+  /// shares, the elements, the roles, the people, the locations and the project settings reads, in
+  /// place of the whole read.
   @useResult
   Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     final database = project.database;
@@ -152,9 +150,21 @@ class OcptBudgetSnapshotLoader {
     }
 
     final receipts = receiptsRead.value!;
-    final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
-    final defaultVatRateBasisPoints = await _projectsManager
-        .loadCurrentProjectDefaultVatRateBasisPoints();
+    final currencyRead = await _projectsManager.loadCurrentProjectCurrencyCode();
+    if (currencyRead.isError) {
+      return OcptDatabaseResult(status: currencyRead.status, extraInfo: currencyRead.extraInfo);
+    }
+
+    final currencyCode = currencyRead.value;
+    final defaultVatRateRead = await _projectsManager.loadCurrentProjectDefaultVatRateBasisPoints();
+    if (defaultVatRateRead.isError) {
+      return OcptDatabaseResult(
+        status: defaultVatRateRead.status,
+        extraInfo: defaultVatRateRead.extraInfo,
+      );
+    }
+
+    final defaultVatRateBasisPoints = defaultVatRateRead.value;
 
     final scheduleRead = await _scheduleService.loadSchedule(database: database);
     if (scheduleRead.isError) {
@@ -201,10 +211,23 @@ class OcptBudgetSnapshotLoader {
     }
 
     final allowances = allowancesRead.value!;
-    final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
+    final mealPriceRead = await _projectsManager.loadCurrentProjectMealPriceCents();
+    if (mealPriceRead.isError) {
+      return OcptDatabaseResult(status: mealPriceRead.status, extraInfo: mealPriceRead.extraInfo);
+    }
+
+    final mealPriceCents = mealPriceRead.value;
     // `project_info.snackPriceCents` under its user-facing name — the column keeps the schema's
     // own name, but what it prices is the buffet, never a snack in the trade's own words.
-    final buffetPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
+    final buffetPriceRead = await _projectsManager.loadCurrentProjectSnackPriceCents();
+    if (buffetPriceRead.isError) {
+      return OcptDatabaseResult(
+        status: buffetPriceRead.status,
+        extraInfo: buffetPriceRead.extraInfo,
+      );
+    }
+
+    final buffetPriceCents = buffetPriceRead.value;
 
     final snapshot = OcptBudgetSnapshot.build(
       accounts: accounts,

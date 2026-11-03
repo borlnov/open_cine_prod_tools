@@ -9,7 +9,6 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fountain_kit/fountain_kit.dart';
 import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
@@ -24,17 +23,16 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
-import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_page_setup_loading.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_state.dart';
@@ -383,7 +381,16 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       }
 
       final screenplayText = screenplayTextRead.value!;
-      final pageSetup = await _loadPageSetup(project);
+      final pageSetupRead = await ocptLoadPageSetup(
+        project: project,
+        projectsManager: _projectsManager,
+        propertiesManager: _propertiesManager,
+      );
+      if (pageSetupRead.isError) {
+        return false;
+      }
+
+      final pageSetup = pageSetupRead.value!;
       final snapshotRead = await _loadSnapshot(project);
       if (snapshotRead.isError) {
         return false;
@@ -416,20 +423,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       _projectsManager.screenplayService.loadScreenplayText(
         database: project.database,
         screenplayId: _screenplayIdOf(project),
-      );
-
-  /// Read the page setup the script view is typeset with: the open project's own page format,
-  /// paired with the app-wide margins preference, exactly as `OcptShotListBloc`'s own scenario
-  /// coverage dialog pairs them.
-  ///
-  /// A version being previewed is laid out with the setup it was written against instead, which
-  /// travels on the open project model and is never written anywhere.
-  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
-      project.previewedPageSetup ??
-      OcptPageSetup(
-        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins:
-            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
   /// Read the whole breakdown of the selected episode's screenplay, joining [_breakdownService]'s
@@ -547,7 +540,16 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
 
     await runSerially(() async {
-      final pageSetup = await _loadPageSetup(project);
+      final pageSetupRead = await ocptLoadPageSetup(
+        project: project,
+        projectsManager: _projectsManager,
+        propertiesManager: _propertiesManager,
+      );
+      if (pageSetupRead.isError) {
+        return;
+      }
+
+      final pageSetup = pageSetupRead.value!;
       emitter(state.copyWithReloadedPageSetup(pageSetup: pageSetup));
     });
   }

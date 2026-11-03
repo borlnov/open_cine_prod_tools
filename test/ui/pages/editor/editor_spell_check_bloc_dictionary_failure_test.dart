@@ -82,7 +82,9 @@ void main() {
     expect(result.status.isSuccess, isTrue);
     await propertiesManager.spellCheckVisible.store(true);
     await propertiesManager.editorMode.store(OcptEditorMode.raw);
-    await projectsManager.saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb);
+    await projectsManager
+        .saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage.enGb)
+        .okOrFail;
   });
 
   tearDown(() async {
