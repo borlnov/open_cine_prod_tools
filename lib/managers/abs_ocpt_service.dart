@@ -2,56 +2,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_foundation/act_foundation.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:flutter/foundation.dart' show protected;
+import 'package:open_cine_prod_tools/managers/ocpt_database_abort.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
-
-/// Thrown inside a transaction when a call to another service answered a failure: the transaction
-/// must not commit what was written before it.
-///
-/// Only [AbsOcptService.guardResult] and [AbsOcptService.guardOutcome] catch it, and they answer
-/// its [failure] as a `databaseError` without logging it again, since whoever answered the failure
-/// has logged it.
-class OcptDatabaseAbort implements Exception {
-  /// The failure the other service answered.
-  final StatusWithExtraInfo<MixinResultStatus> failure;
-
-  /// Class constructor
-  const OcptDatabaseAbort(this.failure);
-}
-
-/// Make a call to another service, inside a `transaction`, abort that transaction when it answered
-/// a failure.
-///
-/// A transaction rolls back only on an exception leaving its closure, and a service answers a
-/// status instead of raising: `await other.write().okOrAbort()` is the one way to call a converted
-/// service from inside a transaction, so that a failure of the other service cannot let the
-/// transaction commit what was written before it.
-extension OcptDatabaseOutcomeAbort on Future<OcptDatabaseOutcome> {
-  /// Await the answer and raise [OcptDatabaseAbort] when it is a failure.
-  Future<void> okOrAbort() async {
-    final outcome = await this;
-    if (outcome.isError) {
-      throw OcptDatabaseAbort(outcome);
-    }
-  }
-}
-
-/// The same for a call that answers a value.
-extension OcptDatabaseResultAbort<T> on Future<OcptDatabaseResult<T>> {
-  /// Await the answer and raise [OcptDatabaseAbort] when it is a failure, else give its value,
-  /// which is null when the call succeeded without one (a write the read-only preview refuses).
-  Future<T?> valueOrAbort() async {
-    final result = await this;
-    if (result.isError) {
-      throw OcptDatabaseAbort(result);
-    }
-
-    return result.value;
-  }
-}
 
 /// The base of every `Ocpt…Service`.
 ///

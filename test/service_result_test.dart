@@ -19,9 +19,14 @@ const _extraServiceFiles = [
   "lib/managers/sync/services/ocpt_screenplay_merge_service.dart",
 ];
 
-/// The one file that may build an `OcptDatabaseAbort`, which is where the helpers that raise it
+/// The files that may build an `OcptDatabaseAbort`, which are where the helpers that raise it
 /// live.
-const _abortFile = "lib/managers/abs_ocpt_service.dart";
+const _abortFiles = [
+  "lib/managers/abs_ocpt_service.dart",
+  "lib/managers/ocpt_database_abort.dart",
+  "lib/managers/ocpt_database_outcome_abort.dart",
+  "lib/managers/ocpt_database_result_abort.dart",
+];
 
 /// The methods that answer a result of a status of their own and must still be read.
 const _readOnlyResults = [
@@ -168,7 +173,7 @@ void main() {
   test("an abort is raised by the helpers and by nothing else", () {
     final offences = <String>[];
     for (final file in dartFilesUnder("lib")) {
-      if (file.path == _abortFile) {
+      if (_abortFiles.contains(file.path)) {
         continue;
       }
       for (final line in referencesOf({"OcptDatabaseAbort"}, file.readAsStringSync())) {
