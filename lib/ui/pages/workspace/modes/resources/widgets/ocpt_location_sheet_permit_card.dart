@@ -10,18 +10,18 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// "Filming permit": what the permit *is* — the reference it was granted under, the date that
 /// happened, and the signed document itself.
 ///
-/// The status itself is not here: it is the header's badge (see `OcptLocationSheetHeader`), where it
-/// is read at a glance beside the location's name, and asking for it twice on one sheet would be
+/// The status itself is not here: it is the header's badge (see `OcptLocationSheetHeader`), where
+/// it is read at a glance beside the location's name, and asking for it twice on one sheet would be
 /// two controls answering one question.
 ///
-/// The document is **referenced, never stored** (`docs/adr/0013-binary-assets-referenced-by-path.md`):
-/// referencing another one replaces the reference, and neither file is ever read, copied or
-/// deleted by this app.
+/// The document is **referenced, never stored**
+/// (`docs/adr/0013-binary-assets-referenced-by-path.md`): referencing another one replaces the
+/// reference, and neither file is ever read, copied or deleted by this app.
 ///
 /// Once a document is referenced, this card also shows its own **validity window** —
 /// `OcptAssetRef.validFrom`/`validUntil` — right under its file line: a permit is a document with
@@ -43,8 +43,7 @@ class OcptLocationSheetPermitCard extends StatelessWidget {
   /// The location's current value for `field`.
   final String Function(OcptLocationField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptLocationField field, String rawValue)? onFieldChanged;
 
   /// Called with the newly picked date (or null to clear it), or null while it may not be changed.
@@ -80,6 +79,7 @@ class OcptLocationSheetPermitCard extends StatelessWidget {
     required this.onPermitDocumentValidUntilChanged,
   });
 
+  /// Build the location sheet permit card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -106,17 +106,55 @@ class OcptLocationSheetPermitCard extends StatelessWidget {
             onChanged: onPermitDateChanged,
           ),
           const SizedBox(height: 10),
-          _buildDocument(context, tr),
+          _Document(
+            permitDocument: permitDocument,
+            onPermitDocumentPickRequested: onPermitDocumentPickRequested,
+            onPermitDocumentCleared: onPermitDocumentCleared,
+            onPermitDocumentValidFromChanged: onPermitDocumentValidFromChanged,
+            onPermitDocumentValidUntilChanged: onPermitDocumentValidUntilChanged,
+          ),
         ],
       ),
     );
   }
+}
 
-  /// The permit document: its own line once one is referenced, its validity window right under it,
-  /// and the action referencing (or replacing) it. A read-only sheet with no document at all shows
-  /// neither — there is nothing to say and nothing to do.
-  Widget _buildDocument(BuildContext context, Tr tr) {
+/// The permit document: its own line once one is referenced, its validity window right under it,
+/// and the action referencing (or replacing) it. A read-only sheet with no document at all shows
+/// neither — there is nothing to say and nothing to do.
+class _Document extends StatelessWidget {
+  /// The referenced permit document, or null while there is none.
+  final OcptAssetRef? permitDocument;
+
+  /// Called when the action referencing (or replacing) the document is clicked, or null while it
+  /// may not be used.
+  final VoidCallback? onPermitDocumentPickRequested;
+
+  /// Called when the document's remove control is clicked, or null while it may not be used.
+  final VoidCallback? onPermitDocumentCleared;
+
+  /// Called with the document's newly picked "valid from" date, or null while it may not be
+  /// changed.
+  final ValueChanged<DateTime?>? onPermitDocumentValidFromChanged;
+
+  /// Called with the document's newly picked "valid until" date, or null while it may not be
+  /// changed.
+  final ValueChanged<DateTime?>? onPermitDocumentValidUntilChanged;
+
+  /// Class constructor
+  const _Document({
+    required this.permitDocument,
+    required this.onPermitDocumentPickRequested,
+    required this.onPermitDocumentCleared,
+    required this.onPermitDocumentValidFromChanged,
+    required this.onPermitDocumentValidUntilChanged,
+  });
+
+  /// Build the document as a [Column].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final permitDocument = this.permitDocument;
     final onPermitDocumentPickRequested = this.onPermitDocumentPickRequested;
 

@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_currency_codes.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The project settings page's "Currency" section card: a single dropdown over
@@ -27,6 +27,7 @@ class OcptProjectSettingsCurrencySection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings currency section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -52,7 +53,7 @@ class OcptProjectSettingsCurrencySection extends StatelessWidget {
                       onCurrencyCodeChanged(value);
                     }
                   },
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   // The current code is folded in even when it isn't one of the seven curated
                   // ones: a project created before this page shipped may have been seeded from a
                   // device locale `ocptCurrencyCodes` doesn't offer, and `DropdownButton` requires
@@ -70,7 +71,7 @@ class OcptProjectSettingsCurrencySection extends StatelessWidget {
     );
   }
 
-  /// The label shown for [code] in the picker: the code itself and its symbol, e.g. `EUR — €`.
+  /// Get the label shown for [code] in the picker: the code itself and its symbol, e.g. `EUR — €`.
   ///
   /// Both come from `intl`'s own currency table rather than an ARB key: the codes are data, and
   /// `intl` already knows how to present them in every supported locale.

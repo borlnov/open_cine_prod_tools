@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:spell_kit/src/hunspell_affix_file.dart';
+import 'package:spell_kit/src/hunspell_affix_rule.dart';
 
 /// An index over a [HunspellAffixFile]'s rules, narrowing the set a lookup
 /// has to try.
@@ -24,12 +25,18 @@ import 'package:spell_kit/src/hunspell_affix_file.dart';
 /// and this index is what keeps the first, uncached look at a word from
 /// touching every rule in the file.
 class HunspellAffixRuleIndex {
-  /// Builds a [HunspellAffixRuleIndex] over [affixFile]'s rules.
-  HunspellAffixRuleIndex(HunspellAffixFile affixFile) {
+  /// Suffix rules bucketed by the last character of their `append`, with
+  /// the empty-`append` rules filed under the empty string key.
+  final Map<String, List<HunspellAffixRule>> _suffixByTail;
+
+  /// Prefix rules bucketed by the first character of their `append`, with
+  /// the empty-`append` rules filed under the empty string key.
+  final Map<String, List<HunspellAffixRule>> _prefixByHead;
+
+  /// Build a [HunspellAffixRuleIndex] over [affixFile]'s rules.
+  HunspellAffixRuleIndex(HunspellAffixFile affixFile) : _suffixByTail = {}, _prefixByHead = {} {
     for (final rule in affixFile.suffixRules) {
-      final key = rule.append.isEmpty
-          ? ''
-          : rule.append[rule.append.length - 1];
+      final key = rule.append.isEmpty ? '' : rule.append[rule.append.length - 1];
       (_suffixByTail[key] ??= []).add(rule);
     }
     for (final rule in affixFile.prefixRules) {
@@ -38,15 +45,7 @@ class HunspellAffixRuleIndex {
     }
   }
 
-  /// Suffix rules bucketed by the last character of their `append`, with
-  /// the empty-`append` rules filed under the empty string key.
-  final Map<String, List<HunspellAffixRule>> _suffixByTail = {};
-
-  /// Prefix rules bucketed by the first character of their `append`, with
-  /// the empty-`append` rules filed under the empty string key.
-  final Map<String, List<HunspellAffixRule>> _prefixByHead = {};
-
-  /// The suffix rules worth trying against [form]: those whose `append`
+  /// Get the suffix rules worth trying against [form]: those whose `append`
   /// ends in [form]'s last character, plus every empty-`append` rule.
   Iterable<HunspellAffixRule> suffixRulesFor(String form) sync* {
     final tailKey = form.isEmpty ? '' : form[form.length - 1];
@@ -56,7 +55,7 @@ class HunspellAffixRuleIndex {
     }
   }
 
-  /// The prefix rules worth trying against [form]: those whose `append`
+  /// Get the prefix rules worth trying against [form]: those whose `append`
   /// starts with [form]'s first character, plus every empty-`append` rule.
   Iterable<HunspellAffixRule> prefixRulesFor(String form) sync* {
     final headKey = form.isEmpty ? '' : form[0];

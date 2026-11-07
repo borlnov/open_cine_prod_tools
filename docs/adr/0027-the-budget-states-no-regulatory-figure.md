@@ -49,10 +49,10 @@ advancing a legal figure nobody here validated.
   advancing a figure, exactly as `minimumRestMinutes` does.
 - **There is no cash floor and no threshold of any kind.** `ocptComputeBudgetAlerts`
   (`lib/utils/ocpt_budget_alerts.dart`) raises exactly two alerts, and both are arithmetic over data
-  the user entered: a poste whose paid plus committed exceeds its own quote, and the cash projection
-  — the journal's balance carried forward over the unsettled commitments, instalment by instalment —
-  going negative, at the date and by the amount its own first negative step states. Each calibrates
-  itself and states something anybody can check against the rows it read.
+  the user entered: an account whose paid plus committed exceeds its own quote, and the cash
+  projection — the journal's balance carried forward over the unsettled commitments, instalment by
+  instalment — going negative, at the date and by the amount its own first negative step states.
+  Each calibrates itself and states something anybody can check against the rows it read.
 
 ## Consequences
 
@@ -65,7 +65,7 @@ Every reader has to be able to print that absence. `ocpt_budget_vat.dart` answer
 zero, `OcptBudgetCoveredTotal` says how many rows a total covers, and each view has a silent state
 to draw. That cost is paid once per reading and permanently.
 
-It also forbids a whole class of future feature: no benchmark ("this poste is usually 8 % of a
+It also forbids a whole class of future feature: no benchmark ("this account is usually 8 % of a
 budget this size"), no suggested rate, no imported scale presented as authoritative. A future
 version may import a scale the **user** points it at; it may not ship one.
 

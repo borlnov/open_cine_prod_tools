@@ -5,12 +5,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_unavailability.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dated_window_controls.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_date_range_control.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_day_part_slot_selector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_time_window_control.dart';
 
 /// How long an unavailability row waits after the last keystroke in its reason field before
 /// dispatching the update — this card's own local debounce, mirroring
@@ -75,6 +77,7 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
     required this.onAdded,
   });
 
+  /// Build the person sheet unavailabilities card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -143,7 +146,7 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
     );
   }
 
-  /// Opens the platform date picker, reporting the pick to [onAdded] as one full day; does nothing
+  /// Open the platform date picker, reporting the pick to [onAdded] as one full day; does nothing
   /// if it is dismissed with no pick.
   Future<void> _handleAddRequested(
     BuildContext context,
@@ -210,6 +213,7 @@ class _OcptUnavailabilityRow extends StatefulWidget {
     required this.onSlotAdded,
   });
 
+  /// Create the [_OcptUnavailabilityRowState] holding the state of the unavailability row.
   @override
   State<_OcptUnavailabilityRow> createState() => _OcptUnavailabilityRowState();
 }
@@ -253,147 +257,14 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
   /// Whether a local reason edit is waiting to be flushed.
   bool _isDirty = false;
 
+  /// Register [_flushOnFocusLost] as a listener of [_reasonFocusNode].
   @override
   void initState() {
     super.initState();
     _reasonFocusNode.addListener(_flushOnFocusLost);
   }
 
-  @override
-  void dispose() {
-    _flushIfDirty();
-    _debounce?.cancel();
-    _reasonFocusNode.dispose();
-    _reasonController.dispose();
-    super.dispose();
-  }
-
-  /// Flushes a pending reason edit the moment the field loses focus.
-  void _flushOnFocusLost() {
-    if (!_reasonFocusNode.hasFocus) {
-      _flushIfDirty();
-    }
-  }
-
-  /// Records that the reason field changed and (re)starts the debounce.
-  void _onReasonChanged(String text) {
-    _isDirty = true;
-    _debounce?.cancel();
-    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
-  }
-
-  /// Reports the row's current fields, if a local reason edit is actually waiting.
-  void _flushIfDirty() {
-    _debounce?.cancel();
-    if (!_isDirty) {
-      return;
-    }
-    _isDirty = false;
-    _report();
-  }
-
-  /// Reports the row's current fields, whatever the debounce was doing: what every discrete change
-  /// (a date, the slot, a window bound) calls, so it never waits out the reason's own debounce.
-  void _report() {
-    _debounce?.cancel();
-    _isDirty = false;
-    widget.onUpdated?.call(
-      startDate: _startDate,
-      endDate: _endDate,
-      slot: _slot,
-      startMinute: _startMinute,
-      endMinute: _endMinute,
-      reason: _reasonController.text,
-    );
-  }
-
-  /// Picks a new first or last date for this range, written immediately.
-  ///
-  /// The two ends are kept in order rather than the pick refused: moving the start past the end
-  /// drags the end with it, and picking an end before the start pulls the start back — a date
-  /// picker slip should not need an error message to recover from.
-  Future<void> _pickDate({required bool isStart}) async {
-    final anchor = isStart ? _startDate : _endDate;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: anchor,
-      firstDate: DateTime(1900),
-      lastDate: DateTime(anchor.year + 5),
-    );
-    if (picked == null) {
-      return;
-    }
-
-    setState(() {
-      if (isStart) {
-        _startDate = picked;
-        if (_endDate.isBefore(picked)) {
-          _endDate = picked;
-        }
-      } else {
-        _endDate = picked;
-        if (picked.isBefore(_startDate)) {
-          _startDate = picked;
-        }
-      }
-    });
-    _report();
-  }
-
-  /// Sets this unavailability's slot, written immediately.
-  ///
-  /// Switching to [OcptDayPartSlot.custom] seeds a plausible working-day window when the
-  /// row has none yet; switching away from it drops the window, since the three other slots say
-  /// everything themselves and a leftover pair of minutes would only ever come back wrong.
-  void _setSlot(OcptDayPartSlot slot) {
-    if (slot == _slot) {
-      return;
-    }
-
-    setState(() {
-      _slot = slot;
-      if (slot == OcptDayPartSlot.custom) {
-        _startMinute ??= ocptDefaultWindowStartMinute;
-        _endMinute ??= ocptDefaultWindowEndMinute;
-      } else {
-        _startMinute = null;
-        _endMinute = null;
-      }
-    });
-    _report();
-  }
-
-  /// Picks one bound of the custom window, written immediately. The end is pushed to the start
-  /// when a pick would invert them, for the same reason [_pickDate] keeps the two dates in order.
-  Future<void> _pickTime({required bool isStart}) async {
-    final currentMinute =
-        (isStart ? _startMinute : _endMinute) ??
-        (isStart ? ocptDefaultWindowStartMinute : ocptDefaultWindowEndMinute);
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: currentMinute ~/ 60, minute: currentMinute % 60),
-    );
-    if (picked == null) {
-      return;
-    }
-
-    final pickedMinute = picked.hour * 60 + picked.minute;
-    setState(() {
-      if (isStart) {
-        _startMinute = pickedMinute;
-        if ((_endMinute ?? ocptDefaultWindowEndMinute) < pickedMinute) {
-          _endMinute = pickedMinute;
-        }
-      } else {
-        _endMinute = pickedMinute;
-        if (pickedMinute < (_startMinute ?? ocptDefaultWindowStartMinute)) {
-          _startMinute = pickedMinute;
-        }
-      }
-    });
-    _report();
-  }
-
+  /// Build the unavailability row as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -405,7 +276,7 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
@@ -460,11 +331,150 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
             minLines: _reasonMinLines,
             maxLines: null,
             style: theme.textTheme.bodySmall,
-            decoration: InputDecoration(isDense: true, hintText: tr.resourcesUnavailabilityReasonHint),
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: tr.resourcesUnavailabilityReasonHint,
+            ),
           ),
         ],
       ),
     );
   }
 
+  /// Flush a pending reason edit the moment the field loses focus.
+  void _flushOnFocusLost() {
+    if (!_reasonFocusNode.hasFocus) {
+      _flushIfDirty();
+    }
+  }
+
+  /// Record that the reason field changed and (re)starts the debounce.
+  void _onReasonChanged(String text) {
+    _isDirty = true;
+    _debounce?.cancel();
+    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
+  }
+
+  /// Report the row's current fields, if a local reason edit is actually waiting.
+  void _flushIfDirty() {
+    _debounce?.cancel();
+    if (!_isDirty) {
+      return;
+    }
+    _isDirty = false;
+    _report();
+  }
+
+  /// Report the row's current fields, whatever the debounce was doing: what every discrete change
+  /// (a date, the slot, a window bound) calls, so it never waits out the reason's own debounce.
+  void _report() {
+    _debounce?.cancel();
+    _isDirty = false;
+    widget.onUpdated?.call(
+      startDate: _startDate,
+      endDate: _endDate,
+      slot: _slot,
+      startMinute: _startMinute,
+      endMinute: _endMinute,
+      reason: _reasonController.text,
+    );
+  }
+
+  /// Pick a new first or last date for this range, written immediately.
+  ///
+  /// The two ends are kept in order rather than the pick refused: moving the start past the end
+  /// drags the end with it, and picking an end before the start pulls the start back — a date
+  /// picker slip should not need an error message to recover from.
+  Future<void> _pickDate({required bool isStart}) async {
+    final anchor = isStart ? _startDate : _endDate;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: anchor,
+      firstDate: DateTime(1900),
+      lastDate: DateTime(anchor.year + 5),
+    );
+    if (picked == null) {
+      return;
+    }
+
+    setState(() {
+      if (isStart) {
+        _startDate = picked;
+        if (_endDate.isBefore(picked)) {
+          _endDate = picked;
+        }
+      } else {
+        _endDate = picked;
+        if (picked.isBefore(_startDate)) {
+          _startDate = picked;
+        }
+      }
+    });
+    _report();
+  }
+
+  /// Set this unavailability's slot, written immediately.
+  ///
+  /// Switching to [OcptDayPartSlot.custom] seeds a plausible working-day window when the
+  /// row has none yet; switching away from it drops the window, since the three other slots say
+  /// everything themselves and a leftover pair of minutes would only ever come back wrong.
+  void _setSlot(OcptDayPartSlot slot) {
+    if (slot == _slot) {
+      return;
+    }
+
+    setState(() {
+      _slot = slot;
+      if (slot == OcptDayPartSlot.custom) {
+        _startMinute ??= ocptDefaultWindowStartMinute;
+        _endMinute ??= ocptDefaultWindowEndMinute;
+      } else {
+        _startMinute = null;
+        _endMinute = null;
+      }
+    });
+    _report();
+  }
+
+  /// Pick one bound of the custom window, written immediately. The end is pushed to the start
+  /// when a pick would invert them, for the same reason [_pickDate] keeps the two dates in order.
+  Future<void> _pickTime({required bool isStart}) async {
+    final currentMinute =
+        (isStart ? _startMinute : _endMinute) ??
+        (isStart ? ocptDefaultWindowStartMinute : ocptDefaultWindowEndMinute);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: currentMinute ~/ 60, minute: currentMinute % 60),
+    );
+    if (picked == null) {
+      return;
+    }
+
+    final pickedMinute = picked.hour * 60 + picked.minute;
+    setState(() {
+      if (isStart) {
+        _startMinute = pickedMinute;
+        if ((_endMinute ?? ocptDefaultWindowEndMinute) < pickedMinute) {
+          _endMinute = pickedMinute;
+        }
+      } else {
+        _endMinute = pickedMinute;
+        if (pickedMinute < (_startMinute ?? ocptDefaultWindowStartMinute)) {
+          _startMinute = pickedMinute;
+        }
+      }
+    });
+    _report();
+  }
+
+  /// Flush the pending edit, cancel [_debounce], then dispose [_reasonFocusNode] and
+  /// [_reasonController].
+  @override
+  void dispose() {
+    _flushIfDirty();
+    _debounce?.cancel();
+    _reasonFocusNode.dispose();
+    _reasonController.dispose();
+    super.dispose();
+  }
 }

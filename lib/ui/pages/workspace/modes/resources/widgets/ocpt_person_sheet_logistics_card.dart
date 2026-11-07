@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// "Logistics": whether the person can travel to set on their own (a real tri-state — unknown is
 /// itself a selectable value, not a missing one), where they stay during the shoot, their travel
@@ -65,6 +65,7 @@ class OcptPersonSheetLogisticsCard extends StatelessWidget {
     required this.onMileageRateChanged,
   });
 
+  /// Build the person sheet logistics card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -130,7 +131,8 @@ class OcptPersonSheetLogisticsCard extends StatelessWidget {
     );
   }
 
-  /// What is wrong with the typed commute distance [value], or null when there is nothing to say
+  /// Describe what is wrong with the typed commute distance [value], or null when there is nothing
+  /// to say
   /// about it.
   ///
   /// A **remark, never a gate**, exactly as `OcptPersonSheetMaxPresenceCard._errorTextOf` is for
@@ -144,7 +146,8 @@ class OcptPersonSheetLogisticsCard extends StatelessWidget {
     return tr.resourcesCommuteDistanceFormatError;
   }
 
-  /// The `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or null
+  /// Get the `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or
+  /// null
   /// while the sheet may not be written to.
   ValueChanged<String>? _onFieldChangedOrNull(OcptPersonField field) {
     final onFieldChanged = this.onFieldChanged;
@@ -169,6 +172,7 @@ class _OcptTransportAutonomyControl extends StatelessWidget {
   /// Class constructor
   const _OcptTransportAutonomyControl({required this.value, required this.onChanged});
 
+  /// Build the transport autonomy control as a [Container].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -178,49 +182,16 @@ class _OcptTransportAutonomyControl extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildOption(context, null, tr.resourcesTransportAutonomyUnknown),
-          _buildOption(context, false, tr.resourcesTransportAutonomyNo),
-          _buildOption(context, true, tr.resourcesTransportAutonomyYes),
+          _Option(control: this, optionValue: null, label: tr.resourcesTransportAutonomyUnknown),
+          _Option(control: this, optionValue: false, label: tr.resourcesTransportAutonomyNo),
+          _Option(control: this, optionValue: true, label: tr.resourcesTransportAutonomyYes),
         ],
       ),
-    );
-  }
-
-  /// Builds one option of the control.
-  Widget _buildOption(BuildContext context, bool? optionValue, String label) {
-    final theme = Theme.of(context);
-    final isSelected = optionValue == value;
-    final onChanged = this.onChanged;
-
-    final pill = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: isSelected ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha) : null,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
-    );
-
-    if (onChanged == null) {
-      return pill;
-    }
-
-    return InkWell(
-      onTap: () => onChanged(optionValue),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      child: pill,
     );
   }
 }
@@ -252,6 +223,7 @@ class _OcptMileageRatePicker extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the mileage rate picker as a [DropdownButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -280,12 +252,63 @@ class _OcptMileageRatePicker extends StatelessWidget {
       value: liveRate?.id,
       isExpanded: true,
       onChanged: onChanged,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface),
       items: [
         DropdownMenuItem(child: Text(tr.resourcesMileageRateNoRateOption)),
         for (final rate in mileageRates) DropdownMenuItem(value: rate.id, child: Text(rate.label)),
       ],
+    );
+  }
+}
+
+/// Build one option of the control.
+class _Option extends StatelessWidget {
+  /// The widget this one belongs to.
+  final _OcptTransportAutonomyControl control;
+
+  /// The value this option picks: true, false, or null for "not asked yet".
+  final bool? optionValue;
+
+  /// The option's label.
+  final String label;
+
+  /// Class constructor
+  const _Option({required this.control, required this.optionValue, required this.label});
+
+  /// Build the option as an [InkWell].
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isSelected = optionValue == control.value;
+    final onChanged = control.onChanged;
+
+    final pill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
+            : null,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+    );
+
+    if (onChanged == null) {
+      return pill;
+    }
+
+    return InkWell(
+      onTap: () => onChanged(optionValue),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
+      child: pill,
     );
   }
 }

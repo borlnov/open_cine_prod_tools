@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 /// test` runs from).
 Future<String> _readDictionaryAssetFromDisk(String assetKey) => File(assetKey).readAsString();
 
+/// Run the tests of [OcptSpellCheckManager].
 void main() {
   // OcptScreenplayLanguage (through appLogger(), used by the manager and its worker) requires a
   // global manager instance to exist; merely accessing it creates the (otherwise unused)
@@ -54,10 +55,7 @@ void main() {
       final keyA = (sceneId: 'scene-1', lineIndex: 3);
       final keyB = (sceneId: 'scene-2', lineIndex: 7);
 
-      final result = await manager.check({
-        keyA: "aujourd'hui",
-        keyB: 'aujourdhuiii',
-      });
+      final result = await manager.check({keyA: "aujourd'hui", keyB: 'aujourdhuiii'});
 
       expect(result.keys, containsAll([keyA, keyB]));
       expect(result[keyA], isEmpty);
@@ -78,34 +76,37 @@ void main() {
       manager.setLearnedWords(const {});
     });
 
-    test('ignoreWord accumulates on top of an earlier ignoreWord call, and bumps generation', () async {
-      const firstWord = 'zorglurbe';
-      const secondWord = 'flannaise';
+    test(
+      'ignoreWord accumulates on top of an earlier ignoreWord call, and bumps generation',
+      () async {
+        const firstWord = 'zorglurbe';
+        const secondWord = 'flannaise';
 
-      final before = await manager.check({'a': firstWord, 'b': secondWord});
-      expect(before['a'], isNotEmpty);
-      expect(before['b'], isNotEmpty);
+        final before = await manager.check({'a': firstWord, 'b': secondWord});
+        expect(before['a'], isNotEmpty);
+        expect(before['b'], isNotEmpty);
 
-      final generationBeforeFirst = manager.generation;
-      manager.ignoreWord(firstWord);
-      expect(manager.generation, greaterThan(generationBeforeFirst));
+        final generationBeforeFirst = manager.generation;
+        manager.ignoreWord(firstWord);
+        expect(manager.generation, greaterThan(generationBeforeFirst));
 
-      final afterFirst = await manager.check({'a': firstWord, 'b': secondWord});
-      expect(afterFirst['a'], isEmpty);
-      // The second word isn't ignored yet: ignoreWord must accumulate, not replace.
-      expect(afterFirst['b'], isNotEmpty);
+        final afterFirst = await manager.check({'a': firstWord, 'b': secondWord});
+        expect(afterFirst['a'], isEmpty);
+        // The second word isn't ignored yet: ignoreWord must accumulate, not replace.
+        expect(afterFirst['b'], isNotEmpty);
 
-      final generationBeforeSecond = manager.generation;
-      manager.ignoreWord(secondWord);
-      expect(manager.generation, greaterThan(generationBeforeSecond));
+        final generationBeforeSecond = manager.generation;
+        manager.ignoreWord(secondWord);
+        expect(manager.generation, greaterThan(generationBeforeSecond));
 
-      final afterSecond = await manager.check({'a': firstWord, 'b': secondWord});
-      expect(afterSecond['a'], isEmpty);
-      expect(afterSecond['b'], isEmpty);
+        final afterSecond = await manager.check({'a': firstWord, 'b': secondWord});
+        expect(afterSecond['a'], isEmpty);
+        expect(afterSecond['b'], isEmpty);
 
-      // Leave the manager as the other tests in this group expect it.
-      manager.ignoreWords(const {});
-    });
+        // Leave the manager as the other tests in this group expect it.
+        manager.ignoreWords(const {});
+      },
+    );
 
     test('drops a response whose request was issued under a stale generation', () async {
       final pending = manager.check({'a': "aujourd'hui"});

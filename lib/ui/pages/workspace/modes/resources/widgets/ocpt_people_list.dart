@@ -3,15 +3,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_resources_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_avatar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
-/// The subset of [people] matching [query], through [ocptResourcesSearchMatches] against every
+/// Get the subset of [people] matching [query], through [ocptResourcesSearchMatches] against every
 /// field a row shows or that names the person: the display name, every position (its localized
 /// label, or the free custom one when it has no catalogue id), the email, the phone and the city.
 ///
@@ -26,7 +26,7 @@ List<OcptPerson> ocptFilteredPeopleOf({
     if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(tr, person))) person,
 ];
 
-/// Every field of [person] a search query may match against, see [ocptFilteredPeopleOf].
+/// Get every field of [person] a search query may match against, see [ocptFilteredPeopleOf].
 Iterable<String> _searchFieldsOf(Tr tr, OcptPerson person) => [
   person.displayName,
   for (final position in person.positions)
@@ -42,9 +42,8 @@ Iterable<String> _searchFieldsOf(Tr tr, OcptPerson person) => [
 /// with the person's own colour and carrying their initials, the display name, and under it the
 /// positions summary in a muted small style.
 ///
-/// Role chips and the day count the mock-up's own row also shows belong to later milestones (roles
-/// and the schedule aren't wired up yet): this row deliberately leaves them out rather than
-/// faking them.
+/// Role chips and the day count the mock-up's own row also shows are deliberately left out of this
+/// row rather than faked.
 class OcptPeopleList extends StatelessWidget {
   /// The people to list, in display order.
   final List<OcptPerson> people;
@@ -68,6 +67,7 @@ class OcptPeopleList extends StatelessWidget {
     required this.onPersonSelected,
   });
 
+  /// Build the people list as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -106,6 +106,7 @@ class _OcptPersonEntry extends StatelessWidget {
   /// Class constructor
   const _OcptPersonEntry({required this.person, required this.isSelected, required this.onTap});
 
+  /// Build the person entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -116,10 +117,10 @@ class _OcptPersonEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -161,7 +162,7 @@ class _OcptPersonEntry extends StatelessWidget {
     );
   }
 
-  /// [person]'s positions, localized and joined, or empty when they hold none — the row's own
+  /// Get [person]'s positions, localized and joined, or empty when they hold none — the row's own
   /// "postes" summary line.
   String _positionsSummary(Tr tr) => person.positions
       .map(

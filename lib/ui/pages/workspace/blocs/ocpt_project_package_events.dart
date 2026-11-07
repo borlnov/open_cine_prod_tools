@@ -8,9 +8,13 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 /// The events handled by `MixinOcptProjectPackageBloc`, i.e. by every production mode's bloc and
 /// by the home page's.
 ///
-/// They extend [BlocEventForMixin] directly rather than joining a mode's own sealed event
-/// hierarchy, exactly as the project versions' own events do: what they act on is the project, and
-/// the mode is only where the user happened to ask from.
+/// They form a hierarchy of their own rather than joining a mode's own sealed event hierarchy,
+/// exactly as the project versions' own events do: what they act on is the project, and the mode is
+/// only where the user happened to ask from.
+sealed class OcptProjectPackageEvent extends BlocEventForMixin {
+  /// Class constructor
+  const OcptProjectPackageEvent();
+}
 
 /// Requests writing a project out as a portable package.
 ///
@@ -21,7 +25,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 ///
 /// [fileTypeLabel] is the native save dialog's own type filter label, resolved by the mode or the
 /// page — the last place holding a `Tr` before this reaches the manager layer.
-class OcptProjectPackageExportRequestedEvent extends BlocEventForMixin {
+class OcptProjectPackageExportRequestedEvent extends OcptProjectPackageEvent {
   /// The label of the save dialog's type filter.
   final String fileTypeLabel;
 
@@ -36,42 +40,42 @@ class OcptProjectPackageExportRequestedEvent extends BlocEventForMixin {
   /// Class constructor
   const OcptProjectPackageExportRequestedEvent({required this.fileTypeLabel, this.target});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fileTypeLabel, target];
 }
 
-/// Reports that the mode has opened the question about the missing files, which clears it from the
+/// Report that the mode has opened the question about the missing files, which clears it from the
 /// state.
 ///
 /// The one-shot state field is consumed the moment it has been acted on, exactly as every transient
 /// notice of this app is: the question is a modal dialog the user still has in front of them, and a
 /// later state emission must not open a second one behind it.
-class OcptProjectPackageMissingFilesAskDismissedEvent extends BlocEventForMixin {
+class OcptProjectPackageMissingFilesAskDismissedEvent extends OcptProjectPackageEvent {
   /// Class constructor
   const OcptProjectPackageMissingFilesAskDismissedEvent();
 }
 
-/// Reports that the user answered the missing-files question by asking for the package anyway.
+/// Report that the user answered the missing-files question by asking for the package anyway.
 ///
 /// Carries [fileTypeLabel] again rather than having the handler remember what the request event
 /// brought: the mode resolves it from the very context it just showed the dialog in, and a bloc
 /// holding a resolved string across a user's think time would be holding a word from a locale that
 /// may have changed under it.
-class OcptProjectPackageExportConfirmedEvent extends BlocEventForMixin {
+class OcptProjectPackageExportConfirmedEvent extends OcptProjectPackageEvent {
   /// The label of the save dialog's type filter.
   final String fileTypeLabel;
 
   /// Class constructor
   const OcptProjectPackageExportConfirmedEvent({required this.fileTypeLabel});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fileTypeLabel];
 }
 
-/// Clears the transient project package notice currently shown, if any.
-class OcptProjectPackageNoticeDismissedEvent extends BlocEventForMixin {
+/// Clear the transient project package notice currently shown, if any.
+class OcptProjectPackageNoticeDismissedEvent extends OcptProjectPackageEvent {
   /// Class constructor
   const OcptProjectPackageNoticeDismissedEvent();
 }

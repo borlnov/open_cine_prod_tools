@@ -36,7 +36,7 @@ schedule will want it too the day it prints travel times.
 
 **The budget mode reads the other modes' tables and stores nothing it can read.**
 
-- The catering-and-travel pass (`lib/utils/ocpt_budget_regie.dart`) counts meals and snacks off
+- The catering-and-travel pass (`lib/utils/ocpt_budget_logistics.dart`) counts meals and snacks off
   `OcptScheduleSnapshot`'s own days, slots and per-slot crew, cast and guests, priced by
   `project_info.mealPriceCents`/`snackPriceCents`. It writes nothing, carries no `isReadOnly` flag
   because there is nothing to withhold, and every row of it reports a click upward so a reader who
@@ -66,8 +66,8 @@ break a budget reading, and the catering pass is coupled to `OcptShootingSlot`'s
 guest links in a way a stored copy would not have been.
 
 It also constrains what may be shown: the budget can only state a figure some other mode already
-holds, which is why `Consumed` prints the em dash for a poste with no quote and why a traveller with
-no recorded distance is still listed, with the money silent — the absence is the reading.
+holds, which is why `Consumed` prints the em dash for an account with no quote and why a traveller
+with no recorded distance is still listed, with the money silent — the absence is the reading.
 
 In exchange, nothing is entered twice, and a figure that changes changes everywhere at once. The
 cross-links each view carries are what make that navigable rather than merely true.

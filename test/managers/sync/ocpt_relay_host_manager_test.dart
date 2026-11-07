@@ -5,7 +5,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,11 +20,13 @@ import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -33,6 +37,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 /// the exact same wiring for.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -65,13 +70,14 @@ void _mockSecureStorage(Map<String, String> store) {
 
 /// A [PlatformManager] whose [isMobile] is stubbed, so the manager's desktop guard can be
 /// exercised on either branch without a real platform underneath it — mirrors
-/// `ocpt_export_manager_test.dart`'s own stub.
+/// `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own stub.
 class _StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  _StubPlatformManager({required this.isMobile});
-
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A spy [OcptSyncManager] recording whether `OcptRelayHostManager.startHosting`'s self-seed
@@ -81,18 +87,43 @@ class _StubPlatformManager extends PlatformManager {
 /// [OcptRelayHostManager] calls the right one, with the right localhost URI, and tears the session
 /// down again on `OcptRelayHostManager.stopHosting`.
 class _SpySyncManager extends OcptSyncManager {
-  _SpySyncManager() : super(changesetService: const OcptChangesetService());
-
+  /// The relay address seeded into the pairing, when there is one.
   Uri? seededRelayBaseUri;
+
+  /// The enrolment secret seeded into the pairing, when there is one.
   String? seededEnrolmentSecret;
+
+  /// The project id seeded into the pairing, when there is one.
   String? seededProjectId;
+
+  /// Whether the manager paired the project.
   bool didPair = false;
+
+  /// Whether the manager repointed the project.
   bool didRepoint = false;
+
+  /// Whether the manager stopped the sync session.
   bool didStopSession = false;
+
+  /// The roster to answer with while the pairing is seeded.
   OcptPresenceRoster? rosterWhileSeeded;
 
+  /// Read the roster to answer with.
   @override
-  Future<OcptRelayInvite> pairProjectToRelay({
+  OcptPresenceRoster? get presenceRoster => rosterWhileSeeded;
+
+  /// Class constructor
+  _SpySyncManager()
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
+
+  /// Record the pairing, the values it was seeded with and the roster at that time.
+  @override
+  Future<ResultWithStatus<OcptSyncFlowStatus, OcptRelayInvite>> pairProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -114,14 +145,21 @@ class _SpySyncManager extends OcptSyncManager {
     await database
         .into(database.ocptSyncPairingsTable)
         .insertOnConflictUpdate(
-          OcptSyncPairingsTableCompanion.insert(projectId: projectId, relayBaseUrl: relayBaseUri.toString()),
+          OcptSyncPairingsTableCompanion.insert(
+            projectId: projectId,
+            relayBaseUrl: relayBaseUri.toString(),
+          ),
         );
 
-    return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: 'spy-token');
+    return ResultWithStatus(
+      status: OcptSyncFlowStatus.ok,
+      value: OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: 'spy-token'),
+    );
   }
 
+  /// Record the repointing, the values it was seeded with and the roster at that time.
   @override
-  Future<void> repointProjectToRelay({
+  Future<StatusWithExtraInfo<OcptSyncFlowStatus>> repointProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -139,19 +177,23 @@ class _SpySyncManager extends OcptSyncManager {
     await database
         .into(database.ocptSyncPairingsTable)
         .insertOnConflictUpdate(
-          OcptSyncPairingsTableCompanion.insert(projectId: projectId, relayBaseUrl: relayBaseUri.toString()),
+          OcptSyncPairingsTableCompanion.insert(
+            projectId: projectId,
+            relayBaseUrl: relayBaseUri.toString(),
+          ),
         );
+
+    return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
 
+  /// Record that the session was stopped.
   @override
   Future<void> stopSyncSession() async {
     didStopSession = true;
   }
-
-  @override
-  OcptPresenceRoster? get presenceRoster => rosterWhileSeeded;
 }
 
+/// Run the tests of [OcptRelayHostManager].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -231,31 +273,37 @@ void main() {
     expect(spy.seededProjectId, manager.hostedProjectId);
   });
 
-  test('an already-paired project re-points itself to its own hosted relay, reusing its id', () async {
-    await database
-        .into(database.ocptSyncPairingsTable)
-        .insert(
-          OcptSyncPairingsTableCompanion.insert(
-            projectId: 'existing-project',
-            relayBaseUrl: 'https://prep.example.org/',
-          ),
-        );
+  test(
+    'an already-paired project re-points itself to its own hosted relay, reusing its id',
+    () async {
+      await database
+          .into(database.ocptSyncPairingsTable)
+          .insert(
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'existing-project',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
+          );
 
-    await startHosting();
+      await startHosting();
 
-    expect(spy.didRepoint, isTrue);
-    expect(spy.didPair, isFalse);
-    expect(spy.seededProjectId, 'existing-project');
-    expect(spy.seededRelayBaseUri!.host, 'localhost');
-  });
+      expect(spy.didRepoint, isTrue);
+      expect(spy.didPair, isFalse);
+      expect(spy.seededProjectId, 'existing-project');
+      expect(spy.seededRelayBaseUri!.host, 'localhost');
+    },
+  );
 
-  test('the presence roster is reachable while hosting, once the self-seed has started a session', () async {
-    await startHosting();
+  test(
+    'the presence roster is reachable while hosting, once the self-seed has started a session',
+    () async {
+      await startHosting();
 
-    // The hosting panel reads OcptSyncManager.presenceRoster directly (Phase E) — this only
-    // proves the self-seed actually started a session, which is what makes presence live at all.
-    expect(spy.presenceRoster, isNotNull);
-  });
+      // The hosting panel reads OcptSyncManager.presenceRoster directly — this only proves the
+      // self-seed actually started a session, which is what makes presence live at all.
+      expect(spy.presenceRoster, isNotNull);
+    },
+  );
 
   test('stopHosting ends the self-seeded sync session', () async {
     await startHosting();
@@ -421,7 +469,10 @@ void main() {
       await database
           .into(database.ocptSyncPairingsTable)
           .insert(
-            OcptSyncPairingsTableCompanion.insert(projectId: 'project-1', relayBaseUrl: 'https://prep.example.org/'),
+            OcptSyncPairingsTableCompanion.insert(
+              projectId: 'project-1',
+              relayBaseUrl: 'https://prep.example.org/',
+            ),
           );
 
       upstreamStore = OcptRelayStore(':memory:');
@@ -429,7 +480,11 @@ void main() {
       upstreamHttp = await shelf_io.serve(upstreamServer.handler, 'localhost', 0);
       upstreamBaseUri = Uri.parse('http://localhost:${upstreamHttp.port}');
 
-      invite = OcptRelayInvite(relayBaseUri: upstreamBaseUri, projectId: 'project-1', token: 'token-1');
+      invite = OcptRelayInvite(
+        relayBaseUri: upstreamBaseUri,
+        projectId: 'project-1',
+        token: 'token-1',
+      );
     });
 
     tearDown(() async {
@@ -465,6 +520,21 @@ void main() {
         'changeset-2',
         'changeset-3',
       ]);
+    });
+
+    test('reports a failure when the upstream refuses the reconcile', () async {
+      await reconcileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      final outcome = await reconcileManager.reconcileWithUpstream(invite);
+
+      expect(outcome, isA<OcptReconcileFailed>());
+      expect((outcome as OcptReconcileFailed).message, startsWith('Reconcile failed:'));
     });
 
     test('pulls what the upstream holds while pushing what the local store holds', () async {
@@ -528,21 +598,28 @@ void main() {
       expect(outcome, isA<OcptReconcileFailed>());
     });
 
-    test('reports a failed outcome when the invite names a different project than the hosted one', () async {
-      await reconcileManager.startHosting(
-        database: database,
-        projectFilePath: projectPath,
-        projectName: 'Les Vagues',
-        appVersion: '0.1.0',
-        deviceId: 'device-1',
-      );
+    test(
+      'reports a failed outcome when the invite names a different project than the hosted one',
+      () async {
+        await reconcileManager.startHosting(
+          database: database,
+          projectFilePath: projectPath,
+          projectName: 'Les Vagues',
+          appVersion: '0.1.0',
+          deviceId: 'device-1',
+        );
 
-      final outcome = await reconcileManager.reconcileWithUpstream(
-        OcptRelayInvite(relayBaseUri: upstreamBaseUri, projectId: 'other-project', token: 'token-1'),
-      );
+        final outcome = await reconcileManager.reconcileWithUpstream(
+          OcptRelayInvite(
+            relayBaseUri: upstreamBaseUri,
+            projectId: 'other-project',
+            token: 'token-1',
+          ),
+        );
 
-      expect(outcome, isA<OcptReconcileFailed>());
-    });
+        expect(outcome, isA<OcptReconcileFailed>());
+      },
+    );
   });
 
   group('rankLanAddresses', () {

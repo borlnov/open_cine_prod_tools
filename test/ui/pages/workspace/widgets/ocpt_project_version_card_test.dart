@@ -79,6 +79,7 @@ Widget _card({
   onRenameCancelled: onRenameCancelled ?? () {},
 );
 
+/// Run the tests of [OcptProjectVersionCard].
 void main() {
   testWidgets('shows the name, the counters and the note of the version', (tester) async {
     await tester.pumpWidget(
@@ -132,9 +133,7 @@ void main() {
   ) async {
     var exited = 0;
     await tester.pumpWidget(
-      _wrapWithLocalization(
-        _card(version: _version(), isPreviewed: true, onTap: () => exited++),
-      ),
+      _wrapWithLocalization(_card(version: _version(), isPreviewed: true, onTap: () => exited++)),
     );
 
     final context = tester.element(find.byType(OcptProjectVersionCard));
@@ -309,5 +308,6 @@ String? _fieldText(WidgetTester tester, String label) =>
     tester.widget<TextFormField>(find.widgetWithText(TextFormField, label)).controller?.text;
 
 /// The `Save` button of the inline rename form.
-FilledButton _saveButton(WidgetTester tester, Tr tr) =>
-    tester.widget<FilledButton>(find.widgetWithText(FilledButton, tr.projectVersionRenameConfirmAction));
+FilledButton _saveButton(WidgetTester tester, Tr tr) => tester.widget<FilledButton>(
+  find.widgetWithText(FilledButton, tr.projectVersionRenameConfirmAction),
+);

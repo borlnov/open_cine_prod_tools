@@ -55,6 +55,27 @@ class OcptOpenProjectModel extends Equatable {
   /// the preview database's header is what makes that impossible to get wrong.
   final OcptPageSetup? previewedPageSetup;
 
+  /// Tell whether what is on screen is a version being previewed, which the user may not edit.
+  ///
+  /// This is the single source of truth for the read-only state: each mode's bloc gets it from the
+  /// project stream it already listens to and gates its own affordances with it, and the mutating
+  /// services refuse a write handed the preview database (see
+  /// `OcptProjectDatabase.refusesUserWrite`). It is derived from [previewedVersion] rather than
+  /// stored beside it so the two can't disagree.
+  bool get isReadOnly => previewedVersion != null;
+
+  /// Get the same open project, back on its own file: what `OcptProjectsManager.exitPreview` emits
+  /// once it has closed the preview database.
+  OcptOpenProjectModel get workingCopy => OcptOpenProjectModel._(
+    path: path,
+    name: name,
+    primaryScreenplayId: primaryScreenplayId,
+    database: fileDatabase,
+    fileDatabase: fileDatabase,
+    previewedVersion: null,
+    previewedPageSetup: null,
+  );
+
   /// Class constructor
   ///
   /// [database] is both slots at once: a freshly opened project has no preview, so what the modes
@@ -69,7 +90,7 @@ class OcptOpenProjectModel extends Equatable {
        previewedVersion = null,
        previewedPageSetup = null;
 
-  /// Builds the previewing/working-copy variants of an existing model.
+  /// Build the previewing/working-copy variants of an existing model.
   const OcptOpenProjectModel._({
     required this.path,
     required this.name,
@@ -80,16 +101,7 @@ class OcptOpenProjectModel extends Equatable {
     required this.previewedPageSetup,
   });
 
-  /// Whether what is on screen is a version being previewed, which the user may not edit.
-  ///
-  /// This is the single source of truth for the read-only state: each mode's bloc gets it from the
-  /// project stream it already listens to and gates its own affordances with it, and the mutating
-  /// services refuse a write handed the preview database (see
-  /// `OcptProjectDatabase.refusesUserWrite`). It is derived from [previewedVersion] rather than
-  /// stored beside it so the two can't disagree.
-  bool get isReadOnly => previewedVersion != null;
-
-  /// The same open project, seen through [previewDatabase]: the in-memory database [version]'s
+  /// Get the same open project, seen through [previewDatabase]: the in-memory database [version]'s
   /// payload was hydrated into, laid out with [pageSetup].
   ///
   /// [fileDatabase] is carried over untouched — the project file stays open, and stays writable
@@ -108,24 +120,12 @@ class OcptOpenProjectModel extends Equatable {
     previewedPageSetup: pageSetup,
   );
 
-  /// The same open project, back on its own file: what `OcptProjectsManager.exitPreview` emits
-  /// once it has closed the preview database.
-  OcptOpenProjectModel get workingCopy => OcptOpenProjectModel._(
-    path: path,
-    name: name,
-    primaryScreenplayId: primaryScreenplayId,
-    database: fileDatabase,
-    fileDatabase: fileDatabase,
-    previewedVersion: null,
-    previewedPageSetup: null,
-  );
-
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptOpenProjectModel(path: $path, name: $name, previewedVersion: $previewedVersion)";
 
-  /// Object properties
+  /// Get the object properties
   ///
   /// Neither [database] nor [fileDatabase] is part of the equality: two [OcptOpenProjectModel]
   /// describing the same project file are considered equal regardless of the identity of their

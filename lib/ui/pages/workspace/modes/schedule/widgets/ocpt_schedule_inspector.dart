@@ -12,15 +12,17 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timelines.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_sun_times.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_events_list.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_status_control.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 
 /// The right dock's own `Inspector` tab content, in order of precedence: the selected **block**'s
 /// read-out, else the selected **shot**'s own, else the selected **day**'s own, else a plain hint.
@@ -196,20 +198,13 @@ class OcptScheduleInspector extends StatelessWidget {
     required this.isReadOnly,
   });
 
+  /// Build the schedule inspector as a [ListView].
   @override
   Widget build(BuildContext context) {
     final block = this.block;
-    if (block != null) {
-      return _buildBlockInspector(context, block);
-    }
-
     final shot = this.shot;
-    if (shot != null) {
-      return _buildShotInspector(context, shot);
-    }
-
     final day = this.day;
-    if (day == null) {
+    if (block == null && shot == null && day == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -224,16 +219,156 @@ class OcptScheduleInspector extends StatelessWidget {
       );
     }
 
-    return _buildDayInspector(context, day);
+    // One list at one place in the tree whichever kind is selected: a list of its own per kind
+    // would be a new element each time, and the scroll position would go back to the top on every
+    // switch of selection.
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (block != null)
+          _OcptScheduleBlockInspector(
+            block: block,
+            blockShot: blockShot,
+            blockSlotLabel: blockSlotLabel,
+            blockEntry: blockEntry,
+            onShotStatusChanged: onShotStatusChanged,
+            onBlockDurationChanged: onBlockDurationChanged,
+            blockCrewNoteValue: blockCrewNoteValue,
+            onBlockCrewNoteChanged: onBlockCrewNoteChanged,
+            blockNotesValue: blockNotesValue,
+            onBlockNotesChanged: onBlockNotesChanged,
+          )
+        else if (shot != null)
+          _OcptScheduleShotInspector(
+            shot: shot,
+            shotSequenceLabel: shotSequenceLabel,
+            shotPlacedDayNumbers: shotPlacedDayNumbers,
+            onShotStatusChanged: onShotStatusChanged,
+          )
+        else
+          _OcptScheduleDayInspector(
+            day: day!,
+            slots: slots,
+            locationById: locationById,
+            setById: setById,
+            timeline: timeline,
+            dayArrivalMinute: dayArrivalMinute,
+            sunTimes: sunTimes,
+            crewNoteValue: crewNoteValue,
+            weatherNoteValue: weatherNoteValue,
+            events: events,
+            eventLabelValueOf: eventLabelValueOf,
+            eventNotesValueOf: eventNotesValueOf,
+            onEventAdded: onEventAdded,
+            onEventMinuteChanged: onEventMinuteChanged,
+            onEventLabelChanged: onEventLabelChanged,
+            onEventNotesChanged: onEventNotesChanged,
+            onEventDeletionRequested: onEventDeletionRequested,
+            onDayStatusChanged: onDayStatusChanged,
+            onCrewNoteChanged: onCrewNoteChanged,
+            onWeatherNoteChanged: onWeatherNoteChanged,
+          ),
+      ],
+    );
   }
+}
 
-  /// The day inspector: date, status, locations, sets, slots, the arrival → the estimated end,
-  /// the sun times and the UTC offset they were computed with, its own events, weather note, crew
-  /// note.
-  Widget _buildDayInspector(BuildContext context, OcptShootingDay day) {
+/// The day inspector: date, status, locations, sets, slots, the arrival → the estimated end,
+/// the sun times and the UTC offset they were computed with, its own events, weather note, crew
+/// note.
+class _OcptScheduleDayInspector extends StatelessWidget {
+  /// The selected day.
+  final OcptShootingDay day;
+
+  /// The day's live slots, in `sortKey` order.
+  final List<OcptShootingSlot> slots;
+
+  /// The whole location catalogue, keyed by id.
+  final Map<String, OcptLocation> locationById;
+
+  /// The whole set catalogue, keyed by id.
+  final Map<String, OcptSet> setById;
+
+  /// The day's computed timetable, or null while nothing is placed.
+  final OcptShootingDayTimelines? timeline;
+
+  /// The day's earliest arrival, or null while it has no live slot.
+  final int? dayArrivalMinute;
+
+  /// The day's computed sun times, or null while unknown.
+  final OcptSunTimes? sunTimes;
+
+  /// The day's crew note, as currently held.
+  final String crewNoteValue;
+
+  /// The day's weather note, as currently held.
+  final String weatherNoteValue;
+
+  /// The day's live events, ordered by hour.
+  final List<OcptShootingDayEvent> events;
+
+  /// Resolves an event's id to its label as currently held.
+  final String Function(String eventId) eventLabelValueOf;
+
+  /// Resolves an event's id to its notes as currently held.
+  final String Function(String eventId) eventNotesValueOf;
+
+  /// Called when the `+ Event` footer is clicked, or null while withheld.
+  final VoidCallback? onEventAdded;
+
+  /// Called with an event's id and its new minute, or null while withheld.
+  final void Function(String eventId, int minute)? onEventMinuteChanged;
+
+  /// Called with an event's id and its raw label text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventLabelChanged;
+
+  /// Called with an event's id and its raw note text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventNotesChanged;
+
+  /// Called with an event's id when its remove control is clicked, or null while withheld.
+  final ValueChanged<String>? onEventDeletionRequested;
+
+  /// Called with the status just picked, or null while withheld.
+  final ValueChanged<OcptShootingDayStatus>? onDayStatusChanged;
+
+  /// Called with the crew note's raw text, or null while withheld.
+  final ValueChanged<String>? onCrewNoteChanged;
+
+  /// Called with the weather note's raw text, or null while withheld.
+  final ValueChanged<String>? onWeatherNoteChanged;
+
+  /// Class constructor
+  const _OcptScheduleDayInspector({
+    required this.day,
+    required this.slots,
+    required this.locationById,
+    required this.setById,
+    required this.timeline,
+    required this.dayArrivalMinute,
+    required this.sunTimes,
+    required this.crewNoteValue,
+    required this.weatherNoteValue,
+    required this.events,
+    required this.eventLabelValueOf,
+    required this.eventNotesValueOf,
+    required this.onEventAdded,
+    required this.onEventMinuteChanged,
+    required this.onEventLabelChanged,
+    required this.onEventNotesChanged,
+    required this.onEventDeletionRequested,
+    required this.onDayStatusChanged,
+    required this.onCrewNoteChanged,
+    required this.onWeatherNoteChanged,
+  });
+
+  /// Build the schedule day inspector as a [Column].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final dateLabel = DateFormat.yMMMEd(Localizations.localeOf(context).toString()).format(day.date);
+    final dateLabel = DateFormat.yMMMEd(
+      Localizations.localeOf(context).toString(),
+    ).format(day.date);
     final locationNames = {
       for (final slot in slots)
         if (slot.locationId != null) locationById[slot.locationId]?.name,
@@ -242,9 +377,17 @@ class OcptScheduleInspector extends StatelessWidget {
       for (final slot in slots)
         if (slot.setId != null) setById[slot.setId]?.name,
     }.whereType<String>().toList();
+    final slotRangeLabels = {
+      for (final slot in slots)
+        slot.id: ocptScheduleDayMinuteRangeLabel(
+          timeline?.bySlotId[slot.id]?.startMinute,
+          timeline?.bySlotId[slot.id]?.endMinute,
+        ),
+    };
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           tr.scheduleInspectorDayTitle(ocptScheduleDayTagLabel(tr, day.dayNumber)),
@@ -308,10 +451,7 @@ class OcptScheduleInspector extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 2),
                         child: Text(
                           "${slot.label.isEmpty ? tr.scheduleInspectorUnnamedSlot : slot.label} · "
-                          "${ocptScheduleDayMinuteRangeLabel(
-                            timeline?.bySlotId[slot.id]?.startMinute,
-                            timeline?.bySlotId[slot.id]?.endMinute,
-                          )}",
+                          "${slotRangeLabels[slot.id]}",
                           style: theme.textTheme.bodySmall,
                         ),
                       ),
@@ -362,25 +502,77 @@ class OcptScheduleInspector extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// The block inspector: kind, (for a shot) its own code/size/characters and status control, the
-  /// computed start/end/duration, its own slot, its crew note (the one that prints) and its
-  /// private notes (the one that never does).
-  Widget _buildBlockInspector(BuildContext context, OcptShootingDayBlock block) {
+/// The block inspector: kind, (for a shot) its own code/size/characters and status control, the
+/// computed start/end/duration, its own slot, its crew note (the one that prints) and its
+/// private notes (the one that never does).
+class _OcptScheduleBlockInspector extends StatelessWidget {
+  /// The selected block.
+  final OcptShootingDayBlock block;
+
+  /// The shot [block] names, when it is a shot block.
+  final OcptShot? blockShot;
+
+  /// The label of the slot [block] sits in, or null while it sits in none.
+  final String? blockSlotLabel;
+
+  /// [block]'s computed timeline entry, or null while the day has no timeline yet.
+  final OcptShootingTimelineEntry? blockEntry;
+
+  /// Called with the status just picked for [blockShot], or null while withheld.
+  final ValueChanged<OcptShotStatus>? onShotStatusChanged;
+
+  /// Called with the new duration in minutes, or null while withheld.
+  final ValueChanged<int>? onBlockDurationChanged;
+
+  /// The block's crew note, as currently held.
+  final String blockCrewNoteValue;
+
+  /// Called with the crew note's raw text, or null while withheld.
+  final ValueChanged<String>? onBlockCrewNoteChanged;
+
+  /// The block's private notes, as currently held.
+  final String blockNotesValue;
+
+  /// Called with the notes' raw text, or null while withheld.
+  final ValueChanged<String>? onBlockNotesChanged;
+
+  /// Class constructor
+  const _OcptScheduleBlockInspector({
+    required this.block,
+    required this.blockShot,
+    required this.blockSlotLabel,
+    required this.blockEntry,
+    required this.onShotStatusChanged,
+    required this.onBlockDurationChanged,
+    required this.blockCrewNoteValue,
+    required this.onBlockCrewNoteChanged,
+    required this.blockNotesValue,
+    required this.onBlockNotesChanged,
+  });
+
+  /// Build the schedule block inspector as a [Column].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final blockShot = this.blockShot;
     final entry = blockEntry;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(ocptShootingBlockKindLabel(tr, block.kind), style: theme.textTheme.titleSmall),
         const SizedBox(height: 12),
         if (block.kind == OcptShootingBlockKind.shot && blockShot != null) ...[
           _OcptScheduleInspectorSection(
             label: tr.scheduleInspectorShotLabel,
-            child: Text("${blockShot.code} · ${blockShot.shotSize}", style: theme.textTheme.bodySmall),
+            child: Text(
+              "${blockShot.code} · ${blockShot.shotSize}",
+              style: theme.textTheme.bodySmall,
+            ),
           ),
           if (blockShot.characters.isNotEmpty)
             _OcptScheduleInspectorSection(
@@ -389,7 +581,10 @@ class OcptScheduleInspector extends StatelessWidget {
             ),
           _OcptScheduleInspectorSection(
             label: tr.scheduleInspectorShotStatusLabel,
-            child: _buildShotStatusControl(context, blockShot.status),
+            child: OcptScheduleShotStatusControl(
+              status: blockShot.status,
+              onChanged: onShotStatusChanged,
+            ),
           ),
         ] else if (block.label.isNotEmpty)
           _OcptScheduleInspectorSection(
@@ -407,7 +602,7 @@ class OcptScheduleInspector extends StatelessWidget {
             entry == null
                 ? "—"
                 : "${ocptScheduleDayMinuteRangeLabel(entry.startMinute, entry.endMinute)} · "
-                    "${ocptFormatMinuteDuration(entry.durationMinutes)}",
+                      "${ocptFormatMinuteDuration(entry.durationMinutes)}",
             style: theme.textTheme.bodySmall,
           ),
         ),
@@ -440,17 +635,42 @@ class OcptScheduleInspector extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// The shot inspector: the top title is the very label a shot block itself wears
-  /// ([ocptShootingBlockKindLabel] of [OcptShootingBlockKind.shot]), then its own code/size, its
-  /// sequence, its characters (when it has any), its estimated duration, where it is placed, and
-  /// its status control — the same one [_buildBlockInspector] uses.
-  Widget _buildShotInspector(BuildContext context, OcptShot shot) {
+/// The shot inspector: the top title is the very label a shot block itself wears
+/// ([ocptShootingBlockKindLabel] of [OcptShootingBlockKind.shot]), then its own code/size, its
+/// sequence, its characters (when it has any), its estimated duration, where it is placed, and
+/// its status control — the same one [_OcptScheduleBlockInspector] uses.
+class _OcptScheduleShotInspector extends StatelessWidget {
+  /// The selected shot.
+  final OcptShot shot;
+
+  /// [shot]'s sequence, as the left dock heads it.
+  final String? shotSequenceLabel;
+
+  /// The day numbers [shot] is placed on, in ascending order.
+  final List<int> shotPlacedDayNumbers;
+
+  /// Called with the status just picked, or null while withheld.
+  final ValueChanged<OcptShotStatus>? onShotStatusChanged;
+
+  /// Class constructor
+  const _OcptScheduleShotInspector({
+    required this.shot,
+    required this.shotSequenceLabel,
+    required this.shotPlacedDayNumbers,
+    required this.onShotStatusChanged,
+  });
+
+  /// Build the schedule shot inspector as a [Column].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           ocptShootingBlockKindLabel(tr, OcptShootingBlockKind.shot),
@@ -472,7 +692,10 @@ class OcptScheduleInspector extends StatelessWidget {
           ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorEstimatedDurationLabel,
-          child: Text(ocptFormatShotDuration(shot.estimatedDurationMs), style: theme.textTheme.bodySmall),
+          child: Text(
+            ocptFormatShotDuration(shot.estimatedDurationMs),
+            style: theme.textTheme.bodySmall,
+          ),
         ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorPlacementLabel,
@@ -485,46 +708,9 @@ class OcptScheduleInspector extends StatelessWidget {
         ),
         _OcptScheduleInspectorSection(
           label: tr.scheduleInspectorShotStatusLabel,
-          child: _buildShotStatusControl(context, shot.status),
+          child: OcptScheduleShotStatusControl(status: shot.status, onChanged: onShotStatusChanged),
         ),
       ],
-    );
-  }
-
-  /// The shot status control: plain text while [onShotStatusChanged] is withheld, a picker
-  /// otherwise — shared by [_buildBlockInspector] (for the block's own shot) and
-  /// [_buildShotInspector] (for the selected shot itself), the very same column either way
-  /// (`shots.status`).
-  Widget _buildShotStatusControl(BuildContext context, OcptShotStatus status) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final onShotStatusChanged = this.onShotStatusChanged;
-
-    if (onShotStatusChanged == null) {
-      return Text(ocptShotStatusLabel(tr, status), style: theme.textTheme.bodySmall);
-    }
-
-    return PopupMenuButton<OcptShotStatus>(
-      tooltip: "",
-      onSelected: onShotStatusChanged,
-      itemBuilder: (context) => [
-        for (final candidate in OcptShotStatus.values)
-          PopupMenuItem<OcptShotStatus>(
-            value: candidate,
-            child: Text(ocptShotStatusLabel(tr, candidate)),
-          ),
-      ],
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            ocptShotStatusLabel(tr, status),
-            style: theme.textTheme.bodySmall?.copyWith(color: ocptShotStatusColor(context, status)),
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.arrow_drop_down, size: 16),
-        ],
-      ),
     );
   }
 }
@@ -541,6 +727,7 @@ class _OcptScheduleInspectorSection extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleInspectorSection({required this.label, required this.child});
 
+  /// Build the schedule inspector section as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -581,21 +768,26 @@ class _OcptScheduleNoteField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
 
   /// Class constructor
-  const _OcptScheduleNoteField({required this.ownerId, required this.value, required this.onChanged});
+  const _OcptScheduleNoteField({
+    required this.ownerId,
+    required this.value,
+    required this.onChanged,
+  });
 
+  /// Create the [_OcptScheduleNoteFieldState] holding the state of the schedule note field.
   @override
   State<_OcptScheduleNoteField> createState() => _OcptScheduleNoteFieldState();
 }
 
 /// The state of [_OcptScheduleNoteField]: owns the controller the class doc comment explains.
 class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
   /// The [_OcptScheduleNoteField.ownerId] the controller was last synced against.
   late String _trackedOwnerId = widget.ownerId;
 
+  /// Show the new note when the owner or its value differs from the text in the field.
   @override
   void didUpdateWidget(covariant _OcptScheduleNoteField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -606,12 +798,7 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
     }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+  /// Build the schedule note field as a [TextField].
   @override
   Widget build(BuildContext context) {
     final onChanged = widget.onChanged;
@@ -631,6 +818,13 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
       decoration: const InputDecoration(isDense: true),
     );
   }
+
+  /// Dispose [_controller].
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }
 
 /// A field editing the selected block's own resolved duration, typed freely — `12` is a legal
@@ -639,9 +833,9 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
 /// in steps of five.
 ///
 /// Follows [_OcptScheduleNoteField]'s own controller-sync idiom ([blockId] resets the controller,
-/// never mid-typing) and `OcptScheduleMinuteField`'s own commit-on-submit-or-focus-loss idiom, guarded
-/// by [_OcptScheduleBlockDurationFieldState._lastReportedDurationMinutes] against the double commit
-/// a submission's own focus loss would otherwise cause.
+/// never mid-typing) and `OcptScheduleMinuteField`'s own commit-on-submit-or-focus-loss idiom,
+/// guarded by [_OcptScheduleBlockDurationFieldState._lastReportedDurationMinutes] against the
+/// double commit a submission's own focus loss would otherwise cause.
 ///
 /// [durationMinutes] is the block's own **resolved** duration — the same figure the timetable's own
 /// row prints (a shot block with no `durationMinutes` column of its own falls back to its shot's
@@ -669,6 +863,8 @@ class _OcptScheduleBlockDurationField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptScheduleBlockDurationFieldState] holding the state of the schedule block
+  /// duration field.
   @override
   State<_OcptScheduleBlockDurationField> createState() => _OcptScheduleBlockDurationFieldState();
 }
@@ -676,8 +872,11 @@ class _OcptScheduleBlockDurationField extends StatefulWidget {
 /// The state of [_OcptScheduleBlockDurationField]: owns the controller and the focus-loss commit
 /// the class doc comment explains.
 class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurationField> {
-  /// The field's own text controller, seeded from [_OcptScheduleBlockDurationField.durationMinutes].
-  late final TextEditingController _controller = TextEditingController(text: "${widget.durationMinutes}");
+  /// The field's own text controller, seeded from
+  /// [_OcptScheduleBlockDurationField.durationMinutes].
+  late final TextEditingController _controller = TextEditingController(
+    text: "${widget.durationMinutes}",
+  );
 
   /// The field's own focus node, committing the moment it loses focus.
   final FocusNode _focusNode = FocusNode();
@@ -691,12 +890,15 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
   /// commit the very same edit twice.
   late int _lastReportedDurationMinutes = widget.durationMinutes;
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new duration in the field when the block or its duration changes and the field is not
+  /// focused.
   @override
   void didUpdateWidget(covariant _OcptScheduleBlockDurationField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -711,16 +913,36 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
     }
   }
 
+  /// Build the schedule block duration field as a [SizedBox].
   @override
-  void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onChanged = widget.onChanged;
+
+    if (onChanged == null) {
+      return Text(
+        ocptFormatMinuteDuration(widget.durationMinutes),
+        style: theme.textTheme.bodySmall,
+      );
+    }
+
+    return SizedBox(
+      width: 76,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onSubmitted: (_) => _commit(),
+        keyboardType: TextInputType.number,
+        style: theme.textTheme.bodySmall,
+        decoration: InputDecoration(
+          isDense: true,
+          suffixText: Tr.of(context).scheduleBlockDurationSuffix,
+        ),
+      ),
+    );
   }
 
-  /// Commits the field's current text once it loses focus, mirroring `OcptScheduleMinuteField`'s
+  /// Commit the field's current text once it loses focus, mirroring `OcptScheduleMinuteField`'s
   /// own flush-on-focus-lost idiom.
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
@@ -728,7 +950,7 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
     }
   }
 
-  /// Parses the field's current text and reports it, or reverts the field to
+  /// Parse the field's current text and report it, or revert the field to
   /// [_OcptScheduleBlockDurationField.durationMinutes]'s own formatted reading when the text is
   /// empty, unparseable or negative.
   void _commit() {
@@ -750,25 +972,13 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
     }
   }
 
+  /// Detach [_onFocusChanged] from [_focusNode], then dispose [_focusNode] and [_controller].
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onChanged = widget.onChanged;
-
-    if (onChanged == null) {
-      return Text(ocptFormatMinuteDuration(widget.durationMinutes), style: theme.textTheme.bodySmall);
-    }
-
-    return SizedBox(
-      width: 76,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: (_) => _commit(),
-        keyboardType: TextInputType.number,
-        style: theme.textTheme.bodySmall,
-        decoration: const InputDecoration(isDense: true, suffixText: "min"),
-      ),
-    );
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }

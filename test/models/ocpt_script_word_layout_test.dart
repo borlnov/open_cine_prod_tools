@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
@@ -18,9 +19,11 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../ocpt_result_expectations.dart';
 
 /// Builds an [OcptShotCoverageRange] test double with sensible defaults for the fields a given
 /// test doesn't care about.
@@ -38,6 +41,7 @@ OcptShotCoverageRange _buildRange({
   isStale: false,
 );
 
+/// Run the tests of [OcptScriptWordLayout].
 void main() {
   const sceneId = "scene-1";
 
@@ -119,35 +123,13 @@ void main() {
         sceneId: sceneId,
         sceneText: withoutTrailingNewline,
       );
-      final layoutWith = OcptScriptWordLayout.of(
-        sceneId: sceneId,
-        sceneText: withTrailingNewline,
-      );
+      final layoutWith = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: withTrailingNewline);
 
       // Both still see exactly the two non-blank blocks; a trailing newline only adds a blank
       // line, which never carries a block of its own.
       expect(layoutWithout.blocks, hasLength(2));
       expect(layoutWith.blocks, hasLength(2));
       expect(layoutWith.blocks, layoutWithout.blocks);
-    });
-  });
-
-  group("OcptScriptWordLayout.blockContaining", () {
-    test("returns the block holding the given offset", () {
-      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
-      final actionBlock = layout.blocks[1];
-
-      final found = layout.blockContaining(actionBlock.startOffset + 2);
-
-      expect(found, actionBlock);
-    });
-
-    test("returns null for an offset on a blank line", () {
-      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
-      // Offset right after "INT. HOUSE - DAY\n": the blank line.
-      final blankLineOffset = "INT. HOUSE - DAY\n".length;
-
-      expect(layout.blockContaining(blankLineOffset), isNull);
     });
   });
 
@@ -369,7 +351,8 @@ void main() {
     // Two speakers, the second one cued twice, so first-appearance order and deduplication are
     // both observable; JOHN's cue carries an extension and a forcing marker, neither of which may
     // reach the name the shot list stores.
-    const dialogueSceneText = 'INT. HOUSE - DAY\n\nJohn walks in.\n\n@JOHN (V.O.)\n'
+    const dialogueSceneText =
+        'INT. HOUSE - DAY\n\nJohn walks in.\n\n@JOHN (V.O.)\n'
         '(whispering)\nHello there.\n\nSARAH\nHello back.\n\nThey wait.\n\nJOHN\nStill here.';
 
     /// The layout of [dialogueSceneText], and the span of the block whose text is [blockText].
@@ -382,10 +365,7 @@ void main() {
       final (layout, block) = layoutAndBlock("@JOHN (V.O.)");
 
       expect(
-        layout.charactersCoveredBy(
-          startOffset: block.startOffset,
-          endOffset: block.endOffset,
-        ),
+        layout.charactersCoveredBy(startOffset: block.startOffset, endOffset: block.endOffset),
         ["JOHN"],
       );
     });
@@ -425,7 +405,8 @@ void main() {
     });
 
     test("names the character a covered action line introduces in capitals", () {
-      const sceneWithSilentRole = 'INT. HOUSE - DAY\n\nELISA entre dans la pièce.\n\nJOHN\n'
+      const sceneWithSilentRole =
+          'INT. HOUSE - DAY\n\nELISA entre dans la pièce.\n\nJOHN\n'
           'Hello there.';
       final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneWithSilentRole);
       final action = layout.blocks.firstWhere((block) => block.text.startsWith("ELISA"));
@@ -448,19 +429,18 @@ void main() {
         layout.charactersCoveredBy(startOffset: heading.startOffset, endOffset: heading.endOffset),
         isEmpty,
       );
-      expect(
-        layout.charactersCoveredBy(startOffset: 0, endOffset: sceneWithTightHeading.length),
-        ["MARIE"],
-      );
+      expect(layout.charactersCoveredBy(startOffset: 0, endOffset: sceneWithTightHeading.length), [
+        "MARIE",
+      ]);
     });
 
     test("names every speaker of a wider span once, in first-appearance order", () {
       final (layout, _) = layoutAndBlock("INT. HOUSE - DAY");
 
-      expect(
-        layout.charactersCoveredBy(startOffset: 0, endOffset: dialogueSceneText.length),
-        ["JOHN", "SARAH"],
-      );
+      expect(layout.charactersCoveredBy(startOffset: 0, endOffset: dialogueSceneText.length), [
+        "JOHN",
+        "SARAH",
+      ]);
     });
 
     test("stops naming a speaker once the dialogue group is over", () {
@@ -482,40 +462,64 @@ void main() {
   test("a range built from two words of one block passes OcptShotCoverageService.addRange's "
       "own single-block rule", () async {
     Future<String> testDeviceId() async => "test-device";
-    final coverageService = OcptShotCoverageService(deviceId: testDeviceId);
-    const sceneIndexService = OcptSceneIndexService();
-    final assetsService = OcptAssetsService(deviceId: testDeviceId);
+    final coverageService = OcptShotCoverageService(
+      logger: const SilentLogger(),
+      deviceId: testDeviceId,
+    );
+    const sceneIndexService = OcptSceneIndexService(logger: SilentLogger());
+    final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: testDeviceId);
     final elementsService = OcptElementsService(
+      logger: const SilentLogger(),
       assetsService: assetsService,
       deviceId: testDeviceId,
     );
     final locationsService = OcptLocationsService(
+      logger: const SilentLogger(),
       assetsService: assetsService,
-      floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
+      floorPlanService: OcptFloorPlanService(
+        logger: const SilentLogger(),
+        assetsService: assetsService,
+        deviceId: testDeviceId,
+      ),
       deviceId: testDeviceId,
     );
     final roleIndexService = OcptRoleIndexService(
+      logger: const SilentLogger(),
       elementsService: elementsService,
-      roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
+      roleCandidatesService: OcptRoleCandidatesService(
+        logger: const SilentLogger(),
+        deviceId: testDeviceId,
+      ),
       deviceId: testDeviceId,
     );
     final shotListService = OcptShotListService(
+      logger: const SilentLogger(),
       roleIndexService: roleIndexService,
-      storyboardService: OcptStoryboardService(assetsService: assetsService, deviceId: testDeviceId),
-      floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
+      storyboardService: OcptStoryboardService(
+        logger: const SilentLogger(),
+        assetsService: assetsService,
+        deviceId: testDeviceId,
+      ),
+      floorPlanService: OcptFloorPlanService(
+        logger: const SilentLogger(),
+        assetsService: assetsService,
+        deviceId: testDeviceId,
+      ),
       deviceId: testDeviceId,
     );
     final screenplayService = OcptScreenplayService(
+      logger: const SilentLogger(),
       sceneIndexService: sceneIndexService,
       shotListService: shotListService,
       shotCoverageService: coverageService,
       roleIndexService: roleIndexService,
       breakdownService: OcptBreakdownService(
+        logger: const SilentLogger(),
         elementsService: elementsService,
         locationsService: locationsService,
         deviceId: testDeviceId,
       ),
-      scheduleService: OcptScheduleService(deviceId: testDeviceId),
+      scheduleService: OcptScheduleService(logger: const SilentLogger(), deviceId: testDeviceId),
       deviceId: testDeviceId,
     );
     const screenplayId = "screenplay-1";
@@ -532,16 +536,18 @@ void main() {
           ),
         );
 
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 John walks in.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
     final scene = await database.select(database.ocptScenesTable).getSingle();
     final wholeFountainText =
@@ -555,21 +561,21 @@ John walks in.
       layout.blocks.last.words.last,
     );
 
-    final shotId = (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: scene.id,
-    ))!;
+    final shotId = (await shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
+        .valueOrFail);
 
     // Must not throw: a range built from two of the layout's words is exactly the shape addRange
     // expects, whether the two words sit in one block or in two.
-    await coverageService.addRange(
-      database: database,
-      shotId: shotId,
-      sceneId: scene.id,
-      startOffset: range.startOffset,
-      endOffset: range.endOffset,
-      sceneText: sceneText,
-    );
+    await coverageService
+        .addRange(
+          database: database,
+          shotId: shotId,
+          sceneId: scene.id,
+          startOffset: range.startOffset,
+          endOffset: range.endOffset,
+          sceneText: sceneText,
+        )
+        .maybeValueOrFail;
   });
 }

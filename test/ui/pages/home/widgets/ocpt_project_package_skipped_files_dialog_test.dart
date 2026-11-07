@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
+import 'package:open_cine_prod_tools/models/ocpt_skipped_asset.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_package_skipped_files_dialog.dart';
 
 /// The navigator [_buildHost] wires its `MaterialApp` to, so [_RecordingRouterManager.pop] has a
@@ -19,6 +19,7 @@ final _navigatorKey = GlobalKey<NavigatorState>();
 /// A router manager whose [pop] dismisses through [_navigatorKey] instead of a real `GoRouter`,
 /// which this file has none of.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Pop the route of the test's own navigator.
   @override
   void pop<Y extends Object?>([Y? result]) => _navigatorKey.currentState?.pop<Y>(result);
 }
@@ -36,15 +37,14 @@ Widget _buildHost(List<OcptSkippedAsset> skippedAssets) => MaterialApp(
   supportedLocales: Tr.delegate.supportedLocales,
   home: Builder(
     builder: (context) => ElevatedButton(
-      onPressed: () => OcptProjectPackageSkippedFilesDialog.show(
-        context,
-        skippedAssets: skippedAssets,
-      ),
+      onPressed: () =>
+          OcptProjectPackageSkippedFilesDialog.show(context, skippedAssets: skippedAssets),
       child: const Text('show'),
     ),
   ),
 );
 
+/// Run the tests of [OcptProjectPackageSkippedFilesDialog].
 void main() {
   setUpAll(() {
     OcptGlobalManager.instance.managers.registerSingleton<OcptRouterManager>(

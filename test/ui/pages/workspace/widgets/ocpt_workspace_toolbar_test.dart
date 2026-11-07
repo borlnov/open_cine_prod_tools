@@ -7,7 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
-import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo_glyph.dart';
 
 /// Wraps [child] with the localization delegates so the toolbar's [Tr.of] tooltip lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
@@ -21,17 +21,14 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptWorkspaceToolbar].
 void main() {
   testWidgets("the back action fires onBack when clicked", (tester) async {
     var backCount = 0;
 
     await tester.pumpWidget(
       _wrapInApp(
-        OcptWorkspaceToolbar(
-          title: "My Movie",
-          isDirty: false,
-          onBack: () => backCount++,
-        ),
+        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () => backCount++),
       ),
     );
     await tester.pumpAndSettle();
@@ -47,9 +44,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -61,9 +56,7 @@ void main() {
 
   testWidgets("the dirty marker is shown only while there are unsaved changes", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -71,9 +64,7 @@ void main() {
     expect(find.byTooltip(tr.editorUnsavedChangesTooltip), findsNothing);
 
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: true, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: true, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -106,9 +97,7 @@ void main() {
 
   testWidgets("no read-only pill is shown outside a preview", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: true, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: true, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -153,9 +142,7 @@ void main() {
 
   testWidgets("the mode label is rendered only when one is given", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -178,9 +165,7 @@ void main() {
 
   testWidgets("the export action is rendered only when one is given", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -241,9 +226,7 @@ void main() {
 
   testWidgets("an empty overflowEntries list renders no ⋮ button", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 
@@ -252,9 +235,7 @@ void main() {
 
   testWidgets("the episode control is rendered only when one is given", (tester) async {
     await tester.pumpWidget(
-      _wrapInApp(
-        OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {}),
-      ),
+      _wrapInApp(OcptWorkspaceToolbar(title: "My Movie", isDirty: false, onBack: () {})),
     );
     await tester.pumpAndSettle();
 

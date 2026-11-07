@@ -65,7 +65,7 @@ how.
    **hand-added** (`isFromScreenplay` false), born **silent** — `speaking` stays reserved to
    `reconcile`, which alone reads it off a cue — and linked to the **episode the shot belongs to**,
    exactly as `OcptRoleIndexService.addRole` already does from the resources mode. It shows up in
-   Ressources at once, castable and dressable, which is the whole point.
+   Resources at once, castable and dressable, which is the whole point.
 
 2. **A name a hand-added role shares with a new cue is surfaced, never adopted silently.** When a
    character invented in the shot list later gets a line, `reconcile` creates the speaking role it
@@ -114,7 +114,7 @@ how.
 5. **Deleting a role deletes it everywhere.** `OcptRoleIndexService.deleteRole` gains two cascades
    it lacks today: it tombstones the `shot_characters` rows and the `breakdown_tags` rows naming the
    role, beside the `role_elements`, `role_candidates` and `role_episodes` links it already carries
-   off. A role removed in Ressources therefore leaves the plans and the dépouillement at the same
+   off. A role removed in Resources therefore leaves the plans and the dépouillement at the same
    time. The irreversible-action confirmation dialog gates it as it does every deletion.
 
 6. **The migration reshapes `shot_characters`, and backfills with deterministic identity.** The step
@@ -137,7 +137,7 @@ how.
 
 The three costs above go away together. A rename is repaired by a merge that keeps the casting; a
 character invented while shot-listing is a real role from the moment it is typed; and the découpage,
-the dépouillement and Ressources can no longer disagree about who exists, because there is one cast.
+the dépouillement and Resources can no longer disagree about who exists, because there is one cast.
 The merge that issue #88 asks for is the same operation everywhere, reached from one banner.
 
 The price is the migration. It is the first step that is not additive, it recreates a table and
@@ -162,6 +162,4 @@ deliberate choice of decision 2, the same "surface the state, let the user decid
 already makes.
 
 `reconcile` itself is untouched in how it matches and what it writes; the unification lives in the
-store, the services around it and the shared banner, not in the reconciliation. The plan that
-carries this out is `docs/plans/shot-characters-are-roles.md`, deleted once the work ships and its
-outcome is folded into `docs/architecture/`.
+store, the services around it and the shared banner, not in the reconciliation.

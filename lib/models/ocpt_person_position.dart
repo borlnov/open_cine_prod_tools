@@ -31,7 +31,7 @@ class OcptPersonPosition extends Equatable {
     required this.customLabel,
   });
 
-  /// Builds an [OcptPersonPosition] from its stored [row].
+  /// Build an [OcptPersonPosition] from its stored [row].
   factory OcptPersonPosition.fromRow(OcptPersonPositionRow row) => OcptPersonPosition(
     id: row.id,
     personId: row.personId,
@@ -39,12 +39,12 @@ class OcptPersonPosition extends Equatable {
     customLabel: row.customLabel,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptPersonPosition(id: $id, positionId: $positionId, customLabel: $customLabel)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, personId, positionId, customLabel];
 }

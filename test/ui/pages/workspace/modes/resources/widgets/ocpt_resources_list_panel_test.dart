@@ -126,7 +126,7 @@ OcptElement _element({
   required String name,
   OcptElementCategory category = OcptElementCategory.prop,
 }) => OcptElement(
-      status: OcptElementStatus.toFind,
+  status: OcptElementStatus.toFind,
   id: id,
   category: category,
   subCategory: "",
@@ -150,6 +150,7 @@ OcptElement _element({
   roleLinks: const [],
 );
 
+/// Run the tests of [OcptResourcesListPanel].
 void main() {
   /// Pumps the panel on [activeTab], with the four contextual creation callbacks a tab may carry.
   Future<void> pumpPanel(
@@ -262,7 +263,10 @@ void main() {
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptResourcesListPanel)));
-    expect(find.text("${tr.resourcesStatsRoles(2)} · ${tr.resourcesStatsRolesCast(1)}"), findsOneWidget);
+    expect(
+      find.text("${tr.resourcesStatsRoles(2)} · ${tr.resourcesStatsRolesCast(1)}"),
+      findsOneWidget,
+    );
   });
 
   testWidgets("the roles tab header only counts the filtered roles", (tester) async {
@@ -277,7 +281,10 @@ void main() {
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptResourcesListPanel)));
-    expect(find.text("${tr.resourcesStatsRoles(1)} · ${tr.resourcesStatsRolesCast(1)}"), findsOneWidget);
+    expect(
+      find.text("${tr.resourcesStatsRoles(1)} · ${tr.resourcesStatsRolesCast(1)}"),
+      findsOneWidget,
+    );
   });
 
   testWidgets("the locations tab lists its locations and offers the creation button", (
@@ -310,9 +317,7 @@ void main() {
     expect(find.text("La maison des Pains"), findsOneWidget);
   });
 
-  testWidgets("the elements tab lists its catalogue and offers the category menu", (
-    tester,
-  ) async {
+  testWidgets("the elements tab lists its catalogue and offers the category menu", (tester) async {
     OcptElementCategory? pickedCategory;
     String? selectedElementId;
 
@@ -367,11 +372,7 @@ void main() {
   testWidgets("typing into the search field reports every keystroke", (tester) async {
     String? typed;
 
-    await pumpPanel(
-      tester,
-      isSearchVisible: true,
-      onSearchQueryChanged: (query) => typed = query,
-    );
+    await pumpPanel(tester, isSearchVisible: true, onSearchQueryChanged: (query) => typed = query);
 
     await tester.enterText(find.byType(TextField), "berger");
     await tester.pumpAndSettle();

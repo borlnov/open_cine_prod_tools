@@ -20,7 +20,7 @@ const defaultRelayPort = 8080;
 /// README). Required: [buildRelayServerFromEnvironment] throws [StateError] when it is missing or
 /// empty, since a relay with no enrolment secret can never have a project created on it. It is set
 /// by the operator at deploy time and is never typed into the server by anyone else — see
-/// `docs/plans/collaboration-and-sync.md` §5.2.
+/// `docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md`.
 const relayEnrolmentSecretEnvVar = 'OCPT_RELAY_ENROLMENT_SECRET';
 
 /// The environment variable naming the SQLite database file [buildRelayServerFromEnvironment]
@@ -41,9 +41,6 @@ const defaultRelayDbPath = 'relay.sqlite';
 /// `bin/ocpt_sync_relay.dart`'s job, via `shelf_io.serve(binding.server.handler, ...)` — so this
 /// wiring stays coverable by a plain test that never opens a socket either.
 class OcptRelayBinding {
-  /// Pairs [server] with the [store] backing it and the [port] it was resolved to listen on.
-  const OcptRelayBinding({required this.server, required this.store, required this.port, required this.dbPath});
-
   /// The constructed relay server, ready to be handed to `shelf_io.serve`.
   final OcptRelayServer server;
 
@@ -59,9 +56,17 @@ class OcptRelayBinding {
   /// (or [defaultRelayDbPath] when it was unset). Safe to log at startup — unlike the enrolment
   /// secret, it carries no credential.
   final String dbPath;
+
+  /// Pair [server] with the [store] backing it and the [port] it was resolved to listen on.
+  const OcptRelayBinding({
+    required this.server,
+    required this.store,
+    required this.port,
+    required this.dbPath,
+  });
 }
 
-/// Reads [environment] (typically `Platform.environment`) and builds an [OcptRelayServer] and the
+/// Read [environment] (typically `Platform.environment`) and build an [OcptRelayServer] and the
 /// [OcptRelayStore] behind it together, so `bin/ocpt_sync_relay.dart` stays a thin loop around
 /// `shelf_io.serve` and this wiring itself stays covered by a test that never opens a socket.
 ///

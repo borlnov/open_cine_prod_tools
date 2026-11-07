@@ -25,6 +25,7 @@ class OcptResourcesSheetCard extends StatelessWidget {
   /// Class constructor
   const OcptResourcesSheetCard({super.key, required this.title, this.hint, required this.child});
 
+  /// Build the resources sheet card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

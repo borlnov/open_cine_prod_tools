@@ -5,6 +5,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,11 +18,15 @@ import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -30,6 +36,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// the exact same wiring for.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -64,38 +71,76 @@ void _mockSecureStorage(Map<String, String> store) {
 /// uploaded, and carrying no network at all — everything [OcptSyncManager.pairProjectToRelay]'s own
 /// tests below need of a transport.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// The envelopes appended so far.
   final List<OcptChangesetEnvelope> appended = [];
+
+  /// The last snapshot uploaded, or null before any.
   (OcptSnapshotDescriptor, Uint8List)? uploaded;
 
+  /// When set, the status every request/response call answers instead of succeeding.
+  OcptRemoteStorageStatus? failWith;
+
+  /// The controller behind [newWorkStream].
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
-  @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async {
-    appended.add(envelope);
-
-    return OcptSequenceNumber(appended.length);
-  }
-
-  @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
-
-  @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {
-    uploaded = (descriptor, bytes);
-  }
-
-  @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => uploaded;
-
+  /// Emit the pings the test adds to the controller.
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
 
-  @override
-  void sendPresence(String opaquePayload) {}
-
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Fail with the canned failure when there is one, otherwise keep the envelope and answer with
+  /// the next sequence number.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async {
+    final failure = failWith;
+    if (failure != null) {
+      return ResultWithStatus(status: failure);
+    }
+    appended.add(envelope);
+
+    return ResultWithStatus(
+      status: OcptRemoteStorageStatus.ok,
+      value: OcptSequenceNumber(appended.length),
+    );
+  }
+
+  /// Answer with an empty log.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
+
+  /// Fail with the canned failure when there is one, otherwise keep the snapshot as the latest.
+  @override
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async {
+    final failure = failWith;
+    if (failure != null) {
+      return StatusWithExtraInfo(status: failure);
+    }
+    uploaded = (descriptor, bytes);
+
+    return const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
+  }
+
+  /// Answer with the snapshot uploaded last.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async =>
+      ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: uploaded);
+
+  /// Drop the payload.
+  @override
+  void sendPresence(String opaquePayload) {}
+
+  /// Close the controller behind [newWorkStream].
   Future<void> dispose() => _newWorkController.close();
 }
 
@@ -104,10 +149,10 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// [pairProjectToRelay] itself has no seam for a transport (it always builds its own, per its own
 /// doc comment), so this is how its own tests exercise it with no network at all.
 class _FakeTransportSyncManager extends OcptSyncManager {
-  _FakeTransportSyncManager({required this.storage, required OcptPairingService super.pairingService})
-    : super(changesetService: const OcptChangesetService());
-
+  /// The storage every transport opened by the double is.
   final OcptRemoteStorage storage;
+
+  /// The enrolment secret the last transport was opened with.
   String? capturedEnrolmentSecret;
 
   /// Set by `repointProjectToRelay`'s own tests to hand back a second, distinct
@@ -115,6 +160,18 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   /// asserted apart from the first [pairProjectToRelay] call's [storage].
   OcptRemoteStorage? storageOverride;
 
+  /// Class constructor
+  _FakeTransportSyncManager({
+    required this.storage,
+    required OcptPairingService super.pairingService,
+  }) : super(
+         changesetService: const OcptChangesetService(
+           logger: SilentLogger(),
+           mergeService: OcptMergeService(logger: SilentLogger()),
+         ),
+       );
+
+  /// Remember the enrolment secret, and answer with the storage override or the storage.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -127,6 +184,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   }
 }
 
+/// Run the tests of the sync manager pairing.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -159,7 +217,10 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    pairingService = OcptPairingService(secretsManager: secretsManager);
+    pairingService = OcptPairingService(
+      logger: const SilentLogger(),
+      secretsManager: secretsManager,
+    );
   });
 
   late Directory workspace;
@@ -228,7 +289,7 @@ void main() {
 
   group('pairProjectToRelay', () {
     test('saves the pairing with a freshly minted token', () async {
-      final invite = await manager.pairProjectToRelay(
+      final paired = await manager.pairProjectToRelay(
         database: database,
         projectId: projectId,
         projectFilePath: projectPath,
@@ -238,6 +299,8 @@ void main() {
         enrolmentSecret: 'enrolment-secret-1',
         deviceId: deviceId,
       );
+      expect(paired.status, OcptSyncFlowStatus.ok);
+      final invite = paired.value!;
 
       final pairing = await pairingService.loadPairing(database: database, projectId: projectId);
       expect(pairing, isNotNull);
@@ -290,11 +353,13 @@ void main() {
 
       expect(storage.uploaded, isNotNull);
 
-      final relayId = OcptSyncManager.relayIdFor(OcptProjectPairing(relayBaseUri: relayBaseUri, token: 't'));
-      final sequenceUpTo = await const OcptChangesetService().highestAppendedSequence(
-        database: database,
-        relayId: relayId,
+      final relayId = OcptSyncManager.relayIdFor(
+        OcptProjectPairing(relayBaseUri: relayBaseUri, token: 't'),
       );
+      final sequenceUpTo = await const OcptChangesetService(
+        logger: SilentLogger(),
+        mergeService: OcptMergeService(logger: SilentLogger()),
+      ).highestAppendedSequence(database: database, relayId: relayId);
       expect(storage.uploaded!.$1.sequenceUpTo, sequenceUpTo);
       expect(sequenceUpTo, isNot(OcptSequenceNumber.zero));
     });
@@ -314,8 +379,10 @@ void main() {
       expect(manager.syncStatus, isNotNull);
     });
 
-    test('returns an invite matching the relay, the project and the minted token', () async {
-      final invite = await manager.pairProjectToRelay(
+    test('answers the transport failure and starts no session when the push fails', () async {
+      storage.failWith = OcptRemoteStorageStatus.unreachable;
+
+      final paired = await manager.pairProjectToRelay(
         database: database,
         projectId: projectId,
         projectFilePath: projectPath,
@@ -325,6 +392,26 @@ void main() {
         enrolmentSecret: 'enrolment-secret-1',
         deviceId: deviceId,
       );
+
+      expect(paired.status, OcptSyncFlowStatus.unreachable);
+      expect(paired.value, isNull);
+      expect(manager.syncStatus, isNull);
+      expect(storage.uploaded, isNull);
+    });
+
+    test('returns an invite matching the relay, the project and the minted token', () async {
+      final paired = await manager.pairProjectToRelay(
+        database: database,
+        projectId: projectId,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        relayBaseUri: relayBaseUri,
+        enrolmentSecret: 'enrolment-secret-1',
+        deviceId: deviceId,
+      );
+      expect(paired.status, OcptSyncFlowStatus.ok);
+      final invite = paired.value!;
 
       final pairing = await pairingService.loadPairing(database: database, projectId: projectId);
       expect(
@@ -338,7 +425,7 @@ void main() {
     final newRelayBaseUri = Uri.parse('https://set-relay.example.org/');
 
     test('reuses the existing token and re-saves the pairing against the new relay', () async {
-      final invite = await manager.pairProjectToRelay(
+      final paired = await manager.pairProjectToRelay(
         database: database,
         projectId: projectId,
         projectFilePath: projectPath,
@@ -348,6 +435,8 @@ void main() {
         enrolmentSecret: 'enrolment-secret-1',
         deviceId: deviceId,
       );
+      expect(paired.status, OcptSyncFlowStatus.ok);
+      final invite = paired.value!;
 
       await manager.repointProjectToRelay(
         database: database,
@@ -425,29 +514,29 @@ void main() {
       final relayId = OcptSyncManager.relayIdFor(
         OcptProjectPairing(relayBaseUri: newRelayBaseUri, token: 't'),
       );
-      final sequenceUpTo = await const OcptChangesetService().highestAppendedSequence(
-        database: database,
-        relayId: relayId,
-      );
+      final sequenceUpTo = await const OcptChangesetService(
+        logger: SilentLogger(),
+        mergeService: OcptMergeService(logger: SilentLogger()),
+      ).highestAppendedSequence(database: database, relayId: relayId);
       expect(newStorage.uploaded!.$1.sequenceUpTo, sequenceUpTo);
 
       await newStorage.dispose();
     });
 
-    test('throws a StateError when the project has no existing pairing', () async {
-      expect(
-        () => manager.repointProjectToRelay(
-          database: database,
-          projectId: projectId,
-          projectFilePath: projectPath,
-          projectName: 'Les Vagues',
-          appVersion: '0.1.0',
-          relayBaseUri: newRelayBaseUri,
-          enrolmentSecret: 'set-relay-secret',
-          deviceId: deviceId,
-        ),
-        throwsA(isA<StateError>()),
+    test('answers the not-paired status when the project has no existing pairing', () async {
+      final result = await manager.repointProjectToRelay(
+        database: database,
+        projectId: projectId,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        relayBaseUri: newRelayBaseUri,
+        enrolmentSecret: 'set-relay-secret',
+        deviceId: deviceId,
       );
+
+      expect(result.status, OcptSyncFlowStatus.notPaired);
+      expect(manager.syncStatus, isNull);
     });
   });
 }

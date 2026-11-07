@@ -3,11 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_kind.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_severity.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The mark a day wears wherever the schedule mode draws one, saying that the plan raises something
 /// about **that** day: the left dock's own day cards, the three agenda presentations, and the day
@@ -54,6 +56,7 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
     this.onTap,
   });
 
+  /// Build the schedule day alert badge as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     if (alerts.isEmpty) {
@@ -74,7 +77,7 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: isCompact ? 2 : 5, vertical: 1),
       decoration: BoxDecoration(
         color: color.withValues(alpha: _ocptScheduleDayAlertBadgeAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -84,7 +87,10 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
             const SizedBox(width: 3),
             Text(
               "${alerts.length}",
-              style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.bold),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ],
@@ -97,14 +103,15 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
           ? badge
           : InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(ocptRadiusSmall),
-              mouseCursor: ocptClickableCursor,
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               child: badge,
             ),
     );
   }
 
-  /// The tooltip: how many alerts this day raises, then the distinct kinds among them, each named
+  /// Get the tooltip: how many alerts this day raises, then the distinct kinds among them, each
+  /// named
   /// once however many times it was raised — a day with six "role not convoked" alerts reads as one
   /// problem to go and look at, not as a wall of the same sentence.
   String _tooltipOf(Tr tr) {

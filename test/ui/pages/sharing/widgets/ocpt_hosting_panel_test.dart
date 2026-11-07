@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_qr_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_hosting_panel.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_qr_code.dart';
@@ -20,7 +21,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_qr_code.dart';
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve,
 /// exactly `sharing_page_test.dart`'s own `_wrapWithLocalization`.
 Widget _wrap(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -31,6 +32,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptHostingPanel].
 void main() {
   final onlineHostState = OcptRelayHostOnline(
     lanBaseUri: Uri.parse("http://192.168.1.42:53187"),
@@ -68,6 +70,7 @@ void main() {
     boundPort: 53187,
     enrolment: enrolment,
     joinInvite: joinInvite,
+    qrKind: OcptHostingQrKind.join,
   );
 
   const stoppedState = OcptHostingState(
@@ -79,6 +82,12 @@ void main() {
     isReconciling: false,
     reconcileOutcome: null,
     reconcileInviteInvalid: false,
+    availableAddresses: [],
+    selectedAddress: null,
+    boundPort: null,
+    enrolment: null,
+    joinInvite: null,
+    qrKind: OcptHostingQrKind.join,
   );
 
   /// Pumps [OcptHostingPanel] over [state], on a surface wide and tall enough that nothing in the
@@ -215,7 +224,7 @@ void main() {
   });
 
   testWidgets("an empty peer list shows the no-peers line instead of the wrap", (tester) async {
-    await pumpPanel(tester, onlineState.copyWith(clearPresenceRoster: true));
+    await pumpPanel(tester, onlineState.copyWith(forcePresenceRosterValue: true));
 
     final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
     expect(find.text(tr.hostingNoPeers), findsOneWidget);

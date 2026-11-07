@@ -4,18 +4,19 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timelines.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
 /// The strip agenda: one card per shooting day, in order, each carrying its own placed shots as
 /// chips (mock's `bandeDays`, `design.html` lines 129-168).
@@ -38,8 +39,8 @@ class OcptScheduleStripAgenda extends StatelessWidget {
   final Map<String, OcptLocation?> firstLocationByDayId;
 
   /// A day's own resolved tint, under whichever `OcptScheduleAgendaColorMode` is currently active —
-  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this widget
-  /// stays ignorant of which fact a day is coloured by.
+  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this
+  /// widget stays ignorant of which fact a day is coloured by.
   final Color Function(String dayId) dayTintOf;
 
   /// Each day's own live blocks, keyed by day id.
@@ -82,6 +83,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
     required this.onBlockSelected,
   });
 
+  /// Build the schedule strip agenda as a [ListView].
   @override
   Widget build(BuildContext context) {
     if (days.isEmpty) {
@@ -170,14 +172,18 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
     required this.onBlockSelected,
   });
 
+  /// Build the schedule strip day card as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final dateLabel = DateFormat.yMMMEd(Localizations.localeOf(context).toString()).format(day.date);
+    final dateLabel = DateFormat.yMMMEd(
+      Localizations.localeOf(context).toString(),
+    ).format(day.date);
     final shotBlocks = blocks.where((block) => block.kind == OcptShootingBlockKind.shot).toList();
     final entryByBlockId = <String, OcptShootingTimelineEntry>{
-      for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[]) entry.blockId: entry,
+      for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[])
+        entry.blockId: entry,
     };
 
     return Container(
@@ -186,9 +192,9 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
           color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
         ),
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -196,7 +202,7 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
         children: [
           InkWell(
             onTap: onSelected,
-            mouseCursor: ocptClickableCursor,
+            mouseCursor: ocpt_theme.ocptClickableCursor,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
               child: Row(
@@ -331,6 +337,7 @@ class _OcptScheduleStripShotChip extends StatelessWidget {
     required this.onSelected,
   });
 
+  /// Build the schedule strip shot chip as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -338,13 +345,13 @@ class _OcptScheduleStripShotChip extends StatelessWidget {
 
     return InkWell(
       onTap: onSelected,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -356,7 +363,9 @@ class _OcptScheduleStripShotChip extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               shot?.shotSize ?? "",
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             if (startMinute != null) ...[
               const SizedBox(width: 6),

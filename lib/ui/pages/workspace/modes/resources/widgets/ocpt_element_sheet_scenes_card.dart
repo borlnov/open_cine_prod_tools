@@ -5,13 +5,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_decimal_input.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_decimal_input.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// How long a row waits after the last keystroke before reporting what was typed into it.
 const Duration _localFieldDebounce = Duration(milliseconds: 600);
@@ -58,6 +58,7 @@ class OcptElementSheetScenesCard extends StatelessWidget {
     required this.onLinkRemoved,
   });
 
+  /// Build the element sheet scenes card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -91,16 +92,37 @@ class OcptElementSheetScenesCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
             ],
-          if (onSceneAssigned != null) _buildScenePicker(context, tr),
+          if (onSceneAssigned != null)
+            _ScenePicker(sceneLinks: sceneLinks, scenes: scenes, onSceneAssigned: onSceneAssigned!),
         ],
       ),
     );
   }
+}
 
-  /// The `Scene` picker: every scene this element is not already needed in, in the screenplay's
-  /// own order. Renders nothing at all once there is none left to offer.
-  Widget _buildScenePicker(BuildContext context, Tr tr) {
-    final onSceneAssigned = this.onSceneAssigned!;
+/// The `Scene` picker: every scene this element is not already needed in, in the screenplay's
+/// own order. Renders nothing at all once there is none left to offer.
+class _ScenePicker extends StatelessWidget {
+  /// The links of the element the picker belongs to.
+  final List<OcptSceneElementLink> sceneLinks;
+
+  /// Every scene of the project's screenplay, in source order.
+  final List<OcptSceneRef> scenes;
+
+  /// Called with a scene's id when the picker adds it.
+  final ValueChanged<String> onSceneAssigned;
+
+  /// Class constructor
+  const _ScenePicker({
+    required this.sceneLinks,
+    required this.scenes,
+    required this.onSceneAssigned,
+  });
+
+  /// Build the scene picker as an [Align].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final linkedSceneIds = {for (final link in sceneLinks) link.sceneId};
     final offered = [
       for (final scene in scenes)
@@ -154,6 +176,7 @@ class _OcptSceneLinkRow extends StatefulWidget {
     required this.onRemoved,
   });
 
+  /// Create the [_OcptSceneLinkRowState] holding the state of the scene link row.
   @override
   State<_OcptSceneLinkRow> createState() => _OcptSceneLinkRowState();
 }
@@ -186,49 +209,14 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
   /// Whether a local edit is waiting to be flushed.
   bool _isDirty = false;
 
+  /// Register [_flushOnFocusLost] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_flushOnFocusLost);
   }
 
-  @override
-  void dispose() {
-    _flushIfDirty();
-    _debounce?.cancel();
-    _focusNode.dispose();
-    _quantityController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  /// Flushes a pending edit the moment the row loses focus.
-  void _flushOnFocusLost() {
-    if (!_focusNode.hasFocus) {
-      _flushIfDirty();
-    }
-  }
-
-  /// Records that one of the two fields changed and (re)starts the debounce.
-  void _onFieldChanged(String text) {
-    _isDirty = true;
-    _debounce?.cancel();
-    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
-  }
-
-  /// Reports the row's current fields, if a local edit is actually waiting.
-  void _flushIfDirty() {
-    _debounce?.cancel();
-    if (!_isDirty) {
-      return;
-    }
-    _isDirty = false;
-    widget.onUpdated?.call(
-      quantity: _quantityController.text,
-      notes: _notesController.text,
-    );
-  }
-
+  /// Build the scene link row as a [Focus].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -247,7 +235,7 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(ocptRadiusLarge),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,9 +264,9 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
               children: [
                 SizedBox(
                   width: _quantityFieldWidth,
-                  child: _buildField(
-                    context,
+                  child: _RowField(
                     controller: _quantityController,
+                    onChanged: _onFieldChanged,
                     label: tr.resourcesSceneElementQuantityLabel,
                     isReadOnly: isReadOnly,
                     isDecimal: true,
@@ -286,9 +274,9 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _buildField(
-                    context,
+                  child: _RowField(
                     controller: _notesController,
+                    onChanged: _onFieldChanged,
                     label: tr.resourcesSceneElementNotesLabel,
                     isReadOnly: isReadOnly,
                   ),
@@ -301,17 +289,75 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
     );
   }
 
-  /// One of the row's two fields: an uppercase, muted label over a themed text field, the same
-  /// chrome `OcptResourcesSheetField` gives every other field of the mode — written here rather
-  /// than reused because these two are driven by the row's own controllers and debounce, not by the
-  /// bloc's pending-edit map.
-  Widget _buildField(
-    BuildContext context, {
-    required TextEditingController controller,
-    required String label,
-    required bool isReadOnly,
-    bool isDecimal = false,
-  }) {
+  /// Flush a pending edit the moment the row loses focus.
+  void _flushOnFocusLost() {
+    if (!_focusNode.hasFocus) {
+      _flushIfDirty();
+    }
+  }
+
+  /// Record that one of the two fields changed and (re)starts the debounce.
+  void _onFieldChanged(String text) {
+    _isDirty = true;
+    _debounce?.cancel();
+    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
+  }
+
+  /// Report the row's current fields, if a local edit is actually waiting.
+  void _flushIfDirty() {
+    _debounce?.cancel();
+    if (!_isDirty) {
+      return;
+    }
+    _isDirty = false;
+    widget.onUpdated?.call(quantity: _quantityController.text, notes: _notesController.text);
+  }
+
+  /// Flush the pending edit, cancel [_debounce], then dispose [_focusNode], [_quantityController]
+  /// and [_notesController].
+  @override
+  void dispose() {
+    _flushIfDirty();
+    _debounce?.cancel();
+    _focusNode.dispose();
+    _quantityController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+}
+
+/// One of the row's two fields: an uppercase, muted label over a themed text field, the same
+/// chrome `OcptResourcesSheetField` gives every other field of the mode — written here rather
+/// than reused because these two are driven by the row's own controllers and debounce, not by the
+/// bloc's pending-edit map.
+class _RowField extends StatelessWidget {
+  /// The controller driving the field.
+  final TextEditingController controller;
+
+  /// The field's label, shown uppercase above it.
+  final String label;
+
+  /// Whether the field may not be written to.
+  final bool isReadOnly;
+
+  /// Whether the field takes a decimal number.
+  final bool isDecimal;
+
+  /// Called with the field's text on every keystroke.
+  final ValueChanged<String> onChanged;
+
+  /// Class constructor
+  const _RowField({
+    required this.controller,
+    required this.label,
+    required this.isReadOnly,
+    required this.onChanged,
+    this.isDecimal = false,
+  });
+
+  /// Build the row field as a [Column].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Column(
@@ -325,7 +371,7 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
         TextField(
           controller: controller,
           readOnly: isReadOnly,
-          onChanged: isReadOnly ? null : _onFieldChanged,
+          onChanged: isReadOnly ? null : onChanged,
           inputFormatters: isDecimal ? ocptDecimalInputFormatters : null,
           keyboardType: isDecimal ? ocptDecimalKeyboardType : null,
           style: theme.textTheme.bodySmall,

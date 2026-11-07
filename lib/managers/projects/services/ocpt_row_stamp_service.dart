@@ -2,30 +2,31 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_diff.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_version.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_diff.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_version.dart';
 
-/// Resolves the device id a domain service's own writes stamp with, once per write rather than
+/// Resolve the device id a domain service's own writes stamp with, once per write rather than
 /// baked in at construction: `OcptPropertiesManager.loadOrCreateDeviceId` is the only
 /// implementation the app ships, injected into a service exactly the way it already takes every
 /// other collaborator — a constructor parameter, defaulting to nothing so a caller can never
 /// forget to wire it — and a test hands in a fixed id instead.
 typedef OcptDeviceIdGetter = Future<String> Function();
 
-/// Writes a row into a synchronised table and stamps exactly the columns it actually changed, from
+/// Write a row into a synchronised table and stamp exactly the columns it actually changed, from
 /// inside an already-open transaction.
 ///
 /// This is the row-stamping machinery of `docs/adr/0010-sync-ready-data-model-prerequisites.md`,
 /// factored out of `OcptProjectVersionsService.restoreVersion` — its restore was the first writer
 /// of a `row_field_versions` stamp, and the changeset engine of
-/// `docs/plans/collaboration-and-sync.md` (M3) is what will make an ordinary domain-service write
+/// `OcptChangesetService` (`docs/architecture/sync.md`) makes an ordinary domain-service write
 /// the second: both need the very same three things, "what changed", "what version does that
 /// change carry" and "batch the stamps rather than writing one row at a time", so this is where
 /// they live once. Everything in [ocptChangedColumnNames] and [ocptNextRowStampVersion] — the pure
-/// halves of the same rule — is deliberately kept out of this class, in `lib/utils/`, so they can
-/// be tested with no database at all.
+/// halves of the same rule — is deliberately kept out of this class, in `lib/models/rules/`, so
+/// they can be tested with no database at all.
 ///
 /// `version` is a **device-local Lamport clock**, one per instance rather than one per stamped
 /// column: [seed] reads the highest version this device has ever recorded anywhere in
@@ -45,7 +46,7 @@ typedef OcptDeviceIdGetter = Future<String> Function();
 /// and never synchronised) simply never receives a stamp: every stamping call in this class takes
 /// the accumulator itself as an optional parameter or method, and the caller passes `null` to skip
 /// it, exactly as [OcptRowFieldVersionRow]'s own class doc names `scenes` as the one exception.
-class OcptRowStampService {
+class OcptRowStampService extends AbsWithLifeCycle {
   /// The device id every stamp this instance writes carries: this replica's own.
   final String deviceId;
 
@@ -61,11 +62,64 @@ class OcptRowStampService {
   int? _version;
 
   /// The stamps written so far, waiting for [flush].
-  final _pending = <OcptRowFieldVersionsTableCompanion>[];
+  final List<OcptRowFieldVersionsTableCompanion> _pending;
 
-  OcptRowStampService._({required this.deviceId, required int clock}) : _clock = clock;
+  /// Create a service for [deviceId] whose clock starts at [clock], with nothing pending.
+  OcptRowStampService._({required this.deviceId, required int clock})
+    : _pending = <OcptRowFieldVersionsTableCompanion>[],
+      _clock = clock;
 
-  /// Seeds a new instance from the highest version [database] currently holds anywhere in
+  /// Raise this device's clock to at least the version each of [floorStamps] carries, through
+  /// [ocptMergedRowStampFloor].
+  ///
+  /// This is what a restore uses to fold the version's own stamps in as a floor, never as a value
+  /// written verbatim: the version being restored may itself carry a stamp above what the working
+  /// copy holds — a device that pushed a change, then had that very version restored to it — and
+  /// [writeAndStamp] must still leave every column it touches strictly above that stamp, not merely
+  /// above the working copy's own. See `OcptProjectVersionsService._applyPayload`. Calling this
+  /// after [_version] has already been reserved would leave stamps already handed out behind the
+  /// raised clock, so a caller folds every floor in before its first [writeAndStamp] call — exactly
+  /// how `_applyPayload` uses it, right after [seed] and before any restore write.
+  void raiseFloor(Iterable<OcptRowFieldVersionRow> floorStamps) {
+    for (final stamp in floorStamps) {
+      _clock = ocptMergedRowStampFloor(_clock, stamp.version);
+    }
+  }
+
+  /// Write every stamp handed out since this instance was seeded into [database].
+  Future<void> flush(OcptProjectDatabase database) async {
+    if (_pending.isEmpty) {
+      return;
+    }
+
+    await database.batch(
+      (batch) => batch.insertAllOnConflictUpdate(database.ocptRowFieldVersionsTable, _pending),
+    );
+  }
+
+  /// Stamp [columnNames] of the row [rowId] of [table] as written, now, by [deviceId] — every one
+  /// of them carrying [_version], this instance's single shared tick.
+  void _stamp({
+    required TableInfo<Table, DataClass> table,
+    required String rowId,
+    required Iterable<String> columnNames,
+  }) {
+    final version = _version ??= ocptNextRowStampVersion(_clock);
+
+    for (final columnName in columnNames) {
+      _pending.add(
+        OcptRowFieldVersionsTableCompanion.insert(
+          targetTableName: table.actualTableName,
+          rowId: rowId,
+          columnName: columnName,
+          version: version,
+          deviceId: deviceId,
+        ),
+      );
+    }
+  }
+
+  /// Seed a new instance from the highest version [database] currently holds anywhere in
   /// `row_field_versions`, to be written by [deviceId].
   ///
   /// This alone is everything an ordinary domain-service write needs: the clock starts at or above
@@ -84,25 +138,8 @@ class OcptRowStampService {
     return OcptRowStampService._(deviceId: deviceId, clock: row?.read(maxVersion) ?? 0);
   }
 
-  /// Raises this device's clock to at least the version each of [floorStamps] carries, through
-  /// [ocptMergedRowStampFloor].
-  ///
-  /// This is what a restore uses to fold the version's own stamps in as a floor, never as a value
-  /// written verbatim: the version being restored may itself carry a stamp above what the working
-  /// copy holds — a device that pushed a change, then had that very version restored to it — and
-  /// [writeAndStamp] must still leave every column it touches strictly above that stamp, not merely
-  /// above the working copy's own. See `OcptProjectVersionsService._applyPayload`. Calling this
-  /// after [_version] has already been reserved would leave stamps already handed out behind the
-  /// raised clock, so a caller folds every floor in before its first [writeAndStamp] call — exactly
-  /// how `_applyPayload` uses it, right after [seed] and before any restore write.
-  void raiseFloor(Iterable<OcptRowFieldVersionRow> floorStamps) {
-    for (final stamp in floorStamps) {
-      _clock = ocptMergedRowStampFloor(_clock, stamp.version);
-    }
-  }
-
-  /// Writes [next] into [table] of [database], in place of [current] — or as a fresh row when
-  /// [current] is `null` — and, when [stamps] is given, stamps exactly the columns that changed
+  /// Write [next] into [table] of [database], in place of [current] — or as a fresh row when
+  /// [current] is `null` — and, when [stamps] is given, stamp exactly the columns that changed
   /// under [rowId].
   ///
   /// [current] being `null` means every column [next] carries is new, so every one of them is
@@ -112,8 +149,8 @@ class OcptRowStampService {
   /// and its own tombstoned copy as [next], and only the tombstone column (or whichever few columns
   /// that copy actually flips) ends up written and stamped.
   ///
-  /// [stamps] is `null` for a table no merge ever needs to see (`scenes`): the row is still written,
-  /// simply with nothing recorded about it in `row_field_versions`.
+  /// [stamps] is `null` for a table no merge ever needs to see (`scenes`): the row is still
+  /// written, simply with nothing recorded about it in `row_field_versions`.
   static Future<void> writeAndStamp<D extends DataClass>({
     required OcptProjectDatabase database,
     required TableInfo<Table, D> table,
@@ -137,40 +174,7 @@ class OcptRowStampService {
     stamps?._stamp(table: table, rowId: rowId, columnNames: changedColumnNames);
   }
 
-  /// Stamps [columnNames] of the row [rowId] of [table] as written, now, by [deviceId] — every one
-  /// of them carrying [_version], this instance's single shared tick.
-  void _stamp({
-    required TableInfo<Table, DataClass> table,
-    required String rowId,
-    required Iterable<String> columnNames,
-  }) {
-    final version = _version ??= ocptNextRowStampVersion(_clock);
-
-    for (final columnName in columnNames) {
-      _pending.add(
-        OcptRowFieldVersionsTableCompanion.insert(
-          targetTableName: table.actualTableName,
-          rowId: rowId,
-          columnName: columnName,
-          version: version,
-          deviceId: deviceId,
-        ),
-      );
-    }
-  }
-
-  /// Writes every stamp handed out since this instance was seeded into [database].
-  Future<void> flush(OcptProjectDatabase database) async {
-    if (_pending.isEmpty) {
-      return;
-    }
-
-    await database.batch(
-      (batch) => batch.insertAllOnConflictUpdate(database.ocptRowFieldVersionsTable, _pending),
-    );
-  }
-
-  /// [row] seen as an `UpdateCompanion` with every column marked present — even the null ones —
+  /// Get [row] seen as an `UpdateCompanion` with every column marked present — even the null ones —
   /// which every generated row class provides as `toCompanion(false)` but which, like the
   /// `Insertable` cast it replaces, [DataClass] itself doesn't declare, so calling it generically
   /// still needs a dynamic invocation.

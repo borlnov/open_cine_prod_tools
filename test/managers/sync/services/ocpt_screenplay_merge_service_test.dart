@@ -2,8 +2,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_database_abort.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_database_result_abort.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
@@ -21,9 +24,13 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:uuid/uuid.dart';
+import '../../../ocpt_result_expectations.dart';
 
+/// Run the tests of [OcptScreenplayMergeService].
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton —
@@ -34,34 +41,61 @@ void main() {
   const deviceId = 'test-device';
   Future<String> testDeviceId() async => deviceId;
 
-  final assetsService = OcptAssetsService(deviceId: testDeviceId);
-  final roleCandidatesService = OcptRoleCandidatesService(deviceId: testDeviceId);
-  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: testDeviceId);
-  final locationsService = OcptLocationsService(
+  final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: testDeviceId);
+  final roleCandidatesService = OcptRoleCandidatesService(
+    logger: const SilentLogger(),
+    deviceId: testDeviceId,
+  );
+  final elementsService = OcptElementsService(
+    logger: const SilentLogger(),
     assetsService: assetsService,
-    floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
+    deviceId: testDeviceId,
+  );
+  final locationsService = OcptLocationsService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    floorPlanService: OcptFloorPlanService(
+      logger: const SilentLogger(),
+      assetsService: assetsService,
+      deviceId: testDeviceId,
+    ),
     deviceId: testDeviceId,
   );
   final roleIndexService = OcptRoleIndexService(
+    logger: const SilentLogger(),
     elementsService: elementsService,
     roleCandidatesService: roleCandidatesService,
     deviceId: testDeviceId,
   );
   final breakdownService = OcptBreakdownService(
+    logger: const SilentLogger(),
     elementsService: elementsService,
     locationsService: locationsService,
     deviceId: testDeviceId,
   );
-  final scheduleService = OcptScheduleService(deviceId: testDeviceId);
-  const sceneIndexService = OcptSceneIndexService();
+  final scheduleService = OcptScheduleService(logger: const SilentLogger(), deviceId: testDeviceId);
+  const sceneIndexService = OcptSceneIndexService(logger: SilentLogger());
   final shotListService = OcptShotListService(
+    logger: const SilentLogger(),
     roleIndexService: roleIndexService,
-    storyboardService: OcptStoryboardService(assetsService: assetsService, deviceId: testDeviceId),
-    floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: testDeviceId),
+    storyboardService: OcptStoryboardService(
+      logger: const SilentLogger(),
+      assetsService: assetsService,
+      deviceId: testDeviceId,
+    ),
+    floorPlanService: OcptFloorPlanService(
+      logger: const SilentLogger(),
+      assetsService: assetsService,
+      deviceId: testDeviceId,
+    ),
     deviceId: testDeviceId,
   );
-  final shotCoverageService = OcptShotCoverageService(deviceId: testDeviceId);
+  final shotCoverageService = OcptShotCoverageService(
+    logger: const SilentLogger(),
+    deviceId: testDeviceId,
+  );
   final screenplayService = OcptScreenplayService(
+    logger: const SilentLogger(),
     sceneIndexService: sceneIndexService,
     shotListService: shotListService,
     shotCoverageService: shotCoverageService,
@@ -70,7 +104,11 @@ void main() {
     scheduleService: scheduleService,
     deviceId: testDeviceId,
   );
-  final mergeService = OcptScreenplayMergeService(screenplayService: screenplayService, deviceId: testDeviceId);
+  final mergeService = OcptScreenplayMergeService(
+    logger: const SilentLogger(),
+    screenplayService: screenplayService,
+    deviceId: testDeviceId,
+  );
 
   late OcptProjectDatabase database;
 
@@ -79,7 +117,11 @@ void main() {
     await database
         .into(database.ocptScreenplaysTable)
         .insert(
-          OcptScreenplaysTableCompanion.insert(id: screenplayId, title: 'Title', updatedAt: DateTime.utc(2026)),
+          OcptScreenplaysTableCompanion.insert(
+            id: screenplayId,
+            title: 'Title',
+            updatedAt: DateTime.utc(2026),
+          ),
         );
   });
 
@@ -101,30 +143,35 @@ void main() {
 
   /// Inserts a live snapshot row for the screenplay directly, with a caller-chosen `createdAt` —
   /// used to control which of several snapshots the "nearest common base" heuristic should pick.
-  Future<void> insertSnapshotDirectly({required String fountainText, required DateTime createdAt}) =>
-      database
-          .into(database.ocptScreenplaySnapshotsTable)
-          .insert(
-            OcptScreenplaySnapshotsTableCompanion.insert(
-              id: const Uuid().v4(),
-              screenplayId: screenplayId,
-              createdAt: createdAt,
-              reason: OcptSnapshotReason.manual,
-              fountainText: fountainText,
-            ),
-          );
+  Future<void> insertSnapshotDirectly({
+    required String fountainText,
+    required DateTime createdAt,
+  }) => database
+      .into(database.ocptScreenplaySnapshotsTable)
+      .insert(
+        OcptScreenplaySnapshotsTableCompanion.insert(
+          id: const Uuid().v4(),
+          screenplayId: screenplayId,
+          createdAt: createdAt,
+          reason: OcptSnapshotReason.manual,
+          fountainText: fountainText,
+        ),
+      );
 
-  Future<String> storedText() =>
-      screenplayService.loadScreenplayText(database: database, screenplayId: screenplayId);
+  Future<String> storedText() => screenplayService
+      .loadScreenplayText(database: database, screenplayId: screenplayId)
+      .valueOrFail;
 
   test('an incoming text identical to the local one needs no merge at all', () async {
     await setStoredTextDirectly('INT. HOUSE - DAY\n\nAction.');
 
-    final conflict = await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText: 'INT. HOUSE - DAY\n\nAction.',
-    );
+    final conflict = await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'INT. HOUSE - DAY\n\nAction.',
+        )
+        .maybeValueOrFail;
 
     expect(conflict, isNull);
     expect(await storedText(), 'INT. HOUSE - DAY\n\nAction.');
@@ -133,11 +180,13 @@ void main() {
   test('no common snapshot at all is surfaced as a full-text conflict, not a crash', () async {
     await setStoredTextDirectly('local text');
 
-    final conflict = await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText: 'incoming text',
-    );
+    final conflict = await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'incoming text',
+        )
+        .maybeValueOrFail;
 
     expect(
       conflict,
@@ -155,19 +204,27 @@ void main() {
   test('a clean merge writes the merged text back and recomputes scenes', () async {
     // The snapshot is what saveScreenplayText itself takes, right before the overwrite: it
     // captures the original text as the merge base, exactly like a real edit would.
-    await setStoredTextDirectly('INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two.');
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: 'INT. HOUSE - DAY\n\nAction one, local.\n\nEXT. STREET - NIGHT\n\nAction two.',
-      snapshotReason: OcptSnapshotReason.manual,
+    await setStoredTextDirectly(
+      'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two.',
     );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText:
+              'INT. HOUSE - DAY\n\nAction one, local.\n\nEXT. STREET - NIGHT\n\nAction two.',
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
-    final conflict = await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText: 'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, incoming.',
-    );
+    final conflict = await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText:
+              'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two, incoming.',
+        )
+        .maybeValueOrFail;
 
     expect(conflict, isNull);
     expect(
@@ -186,23 +243,26 @@ void main() {
     // between two independent edits to be treated as non-overlapping, exactly as
     // `ocpt_three_way_merge_test.dart`'s own "non-overlapping changes" case does.
     await setStoredTextDirectly('a\nb\nc\nd\ne');
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: 'a\nb-local\nc\nd\ne',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: 'a\nb-local\nc\nd\ne',
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
-    await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText: 'a\nb\nc\nd-incoming\ne',
-    );
+    await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'a\nb\nc\nd-incoming\ne',
+        )
+        .maybeValueOrFail;
 
-    final mergeSnapshots =
-        await (database.select(database.ocptScreenplaySnapshotsTable)
-              ..where((table) => table.reason.equalsValue(OcptSnapshotReason.merge)))
-            .get();
+    final mergeSnapshots = await (database.select(
+      database.ocptScreenplaySnapshotsTable,
+    )..where((table) => table.reason.equalsValue(OcptSnapshotReason.merge))).get();
 
     expect(mergeSnapshots, hasLength(1));
     expect(mergeSnapshots.single.fountainText, 'a\nb-local\nc\nd\ne');
@@ -210,18 +270,22 @@ void main() {
 
   test('overlapping edits are a conflict, and the local text is left untouched', () async {
     await setStoredTextDirectly('a\nb\nc');
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: 'a\nb-local\nc',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: 'a\nb-local\nc',
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
 
-    final conflict = await mergeService.mergeIncomingFountainText(
-      fileDatabase: database,
-      screenplayId: screenplayId,
-      incomingText: 'a\nb-incoming\nc',
-    );
+    final conflict = await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'a\nb-incoming\nc',
+        )
+        .maybeValueOrFail;
 
     expect(
       conflict,
@@ -246,17 +310,82 @@ void main() {
     // clean merge this test expects.
     await insertSnapshotDirectly(fountainText: 'AAAA\nBBBB\nCCCC', createdAt: DateTime.utc(2026));
     // The true, more recent common ancestor both local and incoming actually edited from.
-    await insertSnapshotDirectly(fountainText: 'line1\nline2\nline3', createdAt: DateTime.utc(2026, 6));
+    await insertSnapshotDirectly(
+      fountainText: 'line1\nline2\nline3',
+      createdAt: DateTime.utc(2026, 6),
+    );
 
     await setStoredTextDirectly('line1-edited\nline2\nline3');
 
-    final conflict = await mergeService.mergeIncomingFountainText(
+    final conflict = await mergeService
+        .mergeIncomingFountainText(
+          fileDatabase: database,
+          screenplayId: screenplayId,
+          incomingText: 'line1\nline2\nline3-edited',
+        )
+        .maybeValueOrFail;
+
+    expect(conflict, isNull);
+    expect(await storedText(), 'line1-edited\nline2\nline3-edited');
+  });
+
+  test('a local text that cannot be read is answered as a failure of the database', () async {
+    await setStoredTextDirectly('local text');
+    await database.customStatement('ALTER TABLE screenplays RENAME TO screenplays_gone');
+
+    final merged = await mergeService.mergeIncomingFountainText(
+      fileDatabase: database,
+      screenplayId: screenplayId,
+      incomingText: 'incoming text',
+    );
+
+    expect(merged.status, OcptDatabaseStatus.databaseError);
+    expect(merged.extraInfo, SqliteException);
+  });
+
+  test('a merge whose local text cannot be read rolls back the transaction it runs in', () async {
+    await setStoredTextDirectly('local text');
+    await insertSnapshotDirectly(fountainText: 'base text', createdAt: DateTime.utc(2026));
+    final snapshots = (await database.select(database.ocptScreenplaySnapshotsTable).get()).length;
+    await database.customStatement('ALTER TABLE screenplays RENAME TO screenplays_gone');
+
+    await expectLater(
+      database.transaction(() async {
+        await database.customStatement('DELETE FROM screenplay_snapshots');
+        await mergeService
+            .mergeIncomingFountainText(
+              fileDatabase: database,
+              screenplayId: screenplayId,
+              incomingText: 'incoming text',
+            )
+            .valueOrAbort();
+      }),
+      throwsA(isA<OcptDatabaseAbort>()),
+    );
+
+    expect((await database.select(database.ocptScreenplaySnapshotsTable).get()).length, snapshots);
+  });
+
+  test('a write that the database refuses is answered, and leaves the text as it was', () async {
+    await setStoredTextDirectly('line1\nline2\nline3');
+    await insertSnapshotDirectly(
+      fountainText: 'line1\nline2\nline3',
+      createdAt: DateTime.utc(2026, 6),
+    );
+    await setStoredTextDirectly('line1-edited\nline2\nline3');
+    await database.customStatement(
+      "CREATE TRIGGER refuse_text BEFORE UPDATE ON screenplays "
+      "BEGIN SELECT RAISE(ABORT, 'refused'); END",
+    );
+
+    final merged = await mergeService.mergeIncomingFountainText(
       fileDatabase: database,
       screenplayId: screenplayId,
       incomingText: 'line1\nline2\nline3-edited',
     );
 
-    expect(conflict, isNull);
-    expect(await storedText(), 'line1-edited\nline2\nline3-edited');
+    expect(merged.status, OcptDatabaseStatus.databaseError);
+    expect(merged.extraInfo, SqliteException);
+    expect(await storedText(), 'line1-edited\nline2\nline3');
   });
 }

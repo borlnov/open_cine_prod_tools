@@ -4,7 +4,6 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:collection/collection.dart';
-import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -12,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
@@ -20,71 +20,32 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
-/// The kind of transient notice [OcptResourcesIoNotice] carries, one per resources export outcome.
-enum OcptResourcesIoNoticeKind {
-  /// The resources catalogue was successfully exported to a four-sheet XLSX workbook.
-  xlsxExportSucceeded,
+export 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state_copies.dart';
 
-  /// Exporting the resources catalogue to a four-sheet XLSX workbook failed.
-  xlsxExportFailed,
-
-  /// The contact list was successfully exported to a PDF.
-  contactListExportSucceeded,
-
-  /// Exporting the contact list to a PDF failed.
-  contactListExportFailed,
-}
-
-/// A transient notice, produced by `OcptResourcesBloc`, reporting the outcome of an export, shown
-/// as a SnackBar then dismissed. Modelled on `OcptShotListIoNotice`.
-class OcptResourcesIoNotice extends Equatable {
-  /// The outcome this notice reports.
-  final OcptResourcesIoNoticeKind kind;
-
-  /// The path the export was written to, only set when [kind] is the succeeded kind and
-  /// [wasShared] is false — a mobile export hands the file to the OS share sheet instead of
-  /// writing it to a path the user picked, so there is none to show.
-  final String? path;
-
-  /// Whether the export was handed to the OS share sheet rather than written to [path] — mobile's
-  /// own outcome, `file_selector`'s `getSaveLocation` having no Android or iOS implementation.
-  final bool wasShared;
-
-  /// Class constructor
-  const OcptResourcesIoNotice({required this.kind, this.path, this.wasShared = false});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [kind, path, wasShared];
-}
-
-/// The state of `OcptResourcesBloc`.
+/// The state of `OcptResourcesBloc`, the mode bloc: the catalogue, the selection, the chrome and
+/// the project versions and package mixins.
 ///
-/// Unlike the screenplay editor's own state, this one carries no single dirty/saving pair: a
-/// person's discrete fields (colour, birth date, transport autonomy, image rights status/date)
-/// and every sub-list (positions, skills, unavailabilities) write straight to the project database
-/// the moment they change, and so do a role's cast member and kind, a location's colour, permit
-/// status and date, a candidacy's status and audition date, and every scene ↔ set link. The six
-/// `pending…FieldEdits` maps are the exception — the typed free-text fields of the person, role,
-/// location, set, element and candidates card sheets all go through the same 2 s autosave
-/// debounce, mirroring `OcptShotListState.pendingFieldEdits`.
+/// It carries no pending edit. A person's, role's, location's, set's, element's and candidacy's
+/// typed free-text fields go through a 2 s autosave debounce, and each lives in its view bloc's own
+/// state (`OcptResourcesPeopleState`, `OcptResourcesRolesState`, `OcptResourcesLocationsState` and
+/// `OcptResourcesElementsState`), which also write every discrete change — a colour, a status, a
+/// date, a sub-list — straight to the project database and then ask the mode to read the catalogue
+/// again.
 class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     with
         MixinOcptProjectVersionsState<OcptResourcesState>,
-        MixinOcptProjectPackageState<OcptResourcesState> {
+        MixinOcptProjectPackageState<OcptResourcesState>,
+        MixinOcptModeState<OcptResourcesState> {
   /// Whether the resources catalogue is still being loaded from the project database.
   final bool isLoading;
 
@@ -177,10 +138,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// dismissed.
   final bool hasWriteError;
 
-  /// The outcome of the last resources export, or null while there is nothing to report; shown as
-  /// a transient SnackBar then dismissed.
-  final OcptResourcesIoNotice? ioNotice;
-
   /// The cross-mode switch the sets card's own `Open in shot list` action just resolved
   /// (`OcptLocationsService.firstLinkedSceneOf`), or null while none is pending — a one-shot
   /// trigger the mode's own listener reads and reports taken into account
@@ -190,53 +147,30 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// episodes must land the shot list mode on the right one.
   final ({String episodeId, String sceneId, String setId})? pendingShotListReveal;
 
-  /// Every field edit currently sitting in the field-edit autosave debounce, keyed by the person id
-  /// and the field, holding the raw text last typed for it.
+  /// What the first load should open on, handed over by the mode that sent the user here, or null
+  /// to open on the mode's own default.
   ///
-  /// What a field shows takes this map's entry over the person's own stored value whenever one is
-  /// present, so typing is never overwritten by a reload triggered by an unrelated write. An entry
-  /// is removed the moment its write lands, whether through the debounce elapsing or an explicit
-  /// flush.
-  final Map<(String, OcptPersonField), String> pendingFieldEdits;
+  /// Consumed — set back to null — by that first load, so it is applied exactly once: every later
+  /// load goes through the very same method (entering or leaving a version preview reloads from the
+  /// project database), and re-applying it there would yank the user back to a record they may
+  /// well have navigated away from.
+  final OcptResourcesRevealRequest? pendingRevealRequest;
 
-  /// Every role field edit currently sitting in the field-edit autosave debounce, keyed by the
-  /// role id and the field, holding the raw text last typed for it.
-  ///
-  /// Rides the same debounce timer as [pendingFieldEdits] (see `OcptResourcesBloc`'s own doc
-  /// comment): a role's typed name or casting notes and a person's typed fields are flushed
-  /// together, never one without the other.
-  final Map<(String, OcptRoleField), String> pendingRoleFieldEdits;
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
+  @override
+  final int reloadEpoch;
 
-  /// Every location field edit currently sitting in the field-edit autosave debounce, keyed by the
-  /// location id and the field, holding the raw text last typed for it.
-  ///
-  /// Rides the same debounce timer as [pendingFieldEdits] (see `OcptResourcesBloc`'s own doc
-  /// comment).
-  final Map<(String, OcptLocationField), String> pendingLocationFieldEdits;
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.selectionEpoch}
+  @override
+  final int selectionEpoch;
 
-  /// Every set field edit currently sitting in the field-edit autosave debounce, keyed by the
-  /// **set** id and the field, holding the raw text last typed for it.
-  ///
-  /// Keyed by the set rather than by the location holding it: a location sheet shows every one of
-  /// its sets at once, each with its own code, name and notes, so two sets being typed into are two
-  /// pending edits (see `OcptSetField`). Rides the same debounce timer as [pendingFieldEdits].
-  final Map<(String, OcptSetField), String> pendingSetFieldEdits;
+  /// What moved the selection the last time [selectionEpoch] advanced.
+  final OcptResourcesSelectionCause selectionCause;
 
-  /// Every element field edit currently sitting in the field-edit autosave debounce, keyed by the
-  /// element id and the field, holding the raw text last typed for it.
-  ///
-  /// Rides the same debounce timer as [pendingFieldEdits] (see `OcptResourcesBloc`'s own doc
-  /// comment).
-  final Map<(String, OcptElementField), String> pendingElementFieldEdits;
-
-  /// Every candidacy field edit currently sitting in the field-edit autosave debounce, keyed by the
-  /// **candidacy** id (`role_candidates.id`) and the field, holding the raw text last typed for it.
-  ///
-  /// Keyed by the candidacy rather than by the role it names, for the same reason
-  /// [pendingSetFieldEdits] is keyed by the set: a role's candidates card shows every one of its
-  /// candidates at once, each with its own note, so two candidates being typed into are two pending
-  /// edits (see `OcptRoleCandidateField`). Rides the same debounce timer as [pendingFieldEdits].
-  final Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits;
+  /// How many times writing the typed edits failed (`OcptResourcesPendingEditsLostEvent`): a view
+  /// bloc that sees it rise drops the edits it holds, since the mode has shown the write error and
+  /// the fields fall back to what the database holds.
+  final int lostEditsEpoch;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -274,10 +208,14 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
 
-  /// Every person of [snapshot], in display order (empty while nothing is loaded).
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExportTarget}
+  @override
+  final OcptProjectPackageTarget? projectPackagePendingExportTarget;
+
+  /// Get every person of [snapshot], in display order (empty while nothing is loaded).
   List<OcptPerson> get people => snapshot?.people ?? const [];
 
-  /// The person [selectedPersonId] identifies, or null if none is selected (or the selected one
+  /// Get the person [selectedPersonId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [snapshot], e.g. it was just deleted).
   OcptPerson? get selectedPerson {
     final selectedPersonId = this.selectedPersonId;
@@ -294,10 +232,10 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// Every role of [snapshot], in display order (empty while nothing is loaded).
+  /// Get every role of [snapshot], in display order (empty while nothing is loaded).
   List<OcptRole> get roles => snapshot?.roles ?? const [];
 
-  /// The role [selectedRoleId] identifies, or null if none is selected (or the selected one
+  /// Get the role [selectedRoleId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [snapshot], e.g. it was just deleted).
   OcptRole? get selectedRole {
     final selectedRoleId = this.selectedRoleId;
@@ -314,7 +252,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// The removed-role alert of [selectedRole], or null while none is selected or the selected role
+  /// Get the removed-role alert of [selectedRole], or null while none is selected or the selected
+  /// role
   /// is still spoken in the screenplay.
   ///
   /// One alert at a time rather than every alert of the project: the banner reporting it lives
@@ -329,16 +268,16 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return OcptRemovedRoleAlert.of(selectedRole);
   }
 
-  /// Every orphaned-role alert found in the whole cast (ADR 0030, decision 4, refined by the M4
-  /// step of `docs/plans/shot-characters-are-roles.md`): what the mode-level compact banner is
-  /// built from, above [selectedRoleAlert]'s own "one at a time" reasoning — the compact banner
-  /// reports the whole cast, not just the selected role's sheet.
+  /// Get every orphaned-role alert found in the whole cast (ADR 0030, decision 4): what the
+  /// mode-level
+  /// compact banner is built from, above [selectedRoleAlert]'s own "one at a time" reasoning — the
+  /// compact banner reports the whole cast, not just the selected role's sheet.
   List<OcptRemovedRoleAlert> get orphanedRoleAlerts => OcptRemovedRoleAlert.buildAll(roles);
 
-  /// Every name-collision alert found in the whole cast (ADR 0030, decision 2), sorted stably.
+  /// Get every name-collision alert found in the whole cast (ADR 0030, decision 2), sorted stably.
   List<OcptRoleCollisionAlert> get roleCollisionAlerts => OcptRoleCollisionAlert.buildAll(roles);
 
-  /// The collision alert naming [selectedRole] — either side of it — or null while none is
+  /// Get the collision alert naming [selectedRole] — either side of it — or null while none is
   /// selected or it collides with nothing. Mirrors [selectedRoleAlert]'s "one alert at a time"
   /// reasoning: the banner reporting it lives inside the sheet of one of the two roles it names.
   OcptRoleCollisionAlert? get selectedRoleCollisionAlert {
@@ -353,34 +292,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     );
   }
 
-  /// The screenplay roles [alert]'s own orphaned role can be merged into: every live,
-  /// `isFromScreenplay` role of [roles] that isn't itself orphaned and isn't [alert]'s own — the
-  /// orphaned banner's `Merge with:` chips.
-  List<OcptRole> mergeTargetsOf(OcptRemovedRoleAlert alert) => [
-    for (final role in roles)
-      if (role.isFromScreenplay && role.orphanedName == null && role.id != alert.roleId) role,
-  ];
-
-  /// Every live candidacy of role [roleId], in its own `sortKey` order — [snapshot]'s own group, or
-  /// the empty list while nothing is loaded or [roleId] has none.
-  List<OcptRoleCandidate> candidatesOfRole(String roleId) =>
-      snapshot?.candidatesByRoleId[roleId] ?? const [];
-
-  /// [candidatesOfRole] of [selectedRoleId], or the empty list while no role is selected — what
-  /// the candidates card of the selected role's sheet draws.
-  List<OcptRoleCandidate> get selectedRoleCandidates {
-    final selectedRoleId = this.selectedRoleId;
-    if (selectedRoleId == null) {
-      return const [];
-    }
-
-    return candidatesOfRole(selectedRoleId);
-  }
-
-  /// Every location of [snapshot], in display order (empty while nothing is loaded).
+  /// Get every location of [snapshot], in display order (empty while nothing is loaded).
   List<OcptLocation> get locations => snapshot?.locations ?? const [];
 
-  /// The location [selectedLocationId] identifies, or null if none is selected (or the selected one
+  /// Get the location [selectedLocationId] identifies, or null if none is selected (or the selected
+  /// one
   /// disappeared from a freshly loaded [snapshot], e.g. it was just deleted).
   OcptLocation? get selectedLocation {
     final selectedLocationId = this.selectedLocationId;
@@ -397,10 +313,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// Every element of [snapshot], in display order (empty while nothing is loaded).
+  /// Get every element of [snapshot], in display order (empty while nothing is loaded).
   List<OcptElement> get elements => snapshot?.elements ?? const [];
 
-  /// The element [selectedElementId] identifies, or null if none is selected (or the selected one
+  /// Get the element [selectedElementId] identifies, or null if none is selected (or the selected
+  /// one
   /// disappeared from a freshly loaded [snapshot], e.g. it was just deleted).
   OcptElement? get selectedElement {
     final selectedElementId = this.selectedElementId;
@@ -417,24 +334,24 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// Every scene of the selected episode's screenplay, in source order (empty while nothing is
+  /// Get every scene of the selected episode's screenplay, in source order (empty while nothing is
   /// loaded): what a set's scenes are picked from, and what an element's own scenes are picked
   /// from.
   List<OcptSceneRef> get scenes => snapshot?.scenes ?? const [];
 
-  /// `snapshot.peopleCount`, the status bar's first counter.
+  /// Get `snapshot.peopleCount`, the status bar's first counter.
   int get peopleCount => snapshot?.peopleCount ?? 0;
 
-  /// `snapshot.roleCount`, the status bar's second counter.
+  /// Get `snapshot.roleCount`, the status bar's second counter.
   int get roleCount => snapshot?.roleCount ?? 0;
 
-  /// `snapshot.positionCount`, the status bar's third counter.
+  /// Get `snapshot.positionCount`, the status bar's third counter.
   int get positionCount => snapshot?.positionCount ?? 0;
 
-  /// `snapshot.locationCount`, the status bar's fourth counter.
+  /// Get `snapshot.locationCount`, the status bar's fourth counter.
   int get locationCount => snapshot?.locationCount ?? 0;
 
-  /// `snapshot.elementCount`, the status bar's fifth counter.
+  /// Get `snapshot.elementCount`, the status bar's fifth counter.
   int get elementCount => snapshot?.elementCount ?? 0;
 
   /// Class constructor
@@ -458,14 +375,12 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.hasWriteError,
-    required this.ioNotice,
     required this.pendingShotListReveal,
-    required this.pendingFieldEdits,
-    required this.pendingRoleFieldEdits,
-    required this.pendingLocationFieldEdits,
-    required this.pendingSetFieldEdits,
-    required this.pendingElementFieldEdits,
-    required this.pendingCandidateFieldEdits,
+    required this.pendingRevealRequest,
+    required this.reloadEpoch,
+    required this.selectionEpoch,
+    required this.selectionCause,
+    required this.lostEditsEpoch,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -475,10 +390,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.projectVersionNotice,
     required this.projectPackagePendingExport,
     required this.projectPackageNotice,
+    required this.projectPackagePendingExportTarget,
   });
 
   /// Init class constructor
-  OcptResourcesState.init()
+  OcptResourcesState.init({OcptResourcesRevealRequest? revealRequest})
     : isLoading = true,
       title = "",
       currencyCode = "",
@@ -498,14 +414,12 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       hasWriteError = false,
-      ioNotice = null,
       pendingShotListReveal = null,
-      pendingFieldEdits = const {},
-      pendingRoleFieldEdits = const {},
-      pendingLocationFieldEdits = const {},
-      pendingSetFieldEdits = const {},
-      pendingElementFieldEdits = const {},
-      pendingCandidateFieldEdits = const {},
+      pendingRevealRequest = revealRequest,
+      reloadEpoch = 0,
+      selectionEpoch = 0,
+      selectionCause = OcptResourcesSelectionCause.none,
+      lostEditsEpoch = 0,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -514,21 +428,57 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       versionPendingRenameId = null,
       projectVersionNotice = null,
       projectPackagePendingExport = null,
-      projectPackageNotice = null;
+      projectPackageNotice = null,
+      projectPackagePendingExportTarget = null;
+
+  /// Get the person [personId] names, or null when it is null or names nobody in the loaded address
+  /// book (a stale reference from a snapshot rebuilt underneath).
+  OcptPerson? personOf(String? personId) {
+    if (personId == null) {
+      return null;
+    }
+
+    for (final person in people) {
+      if (person.id == personId) {
+        return person;
+      }
+    }
+
+    return null;
+  }
+
+  /// Get the screenplay roles [alert]'s own orphaned role can be merged into: every live,
+  /// `isFromScreenplay` role of [roles] that isn't itself orphaned and isn't [alert]'s own — the
+  /// orphaned banner's `Merge with:` chips.
+  List<OcptRole> mergeTargetsOf(OcptRemovedRoleAlert alert) => [
+    for (final role in roles)
+      if (role.isFromScreenplay && role.orphanedName == null && role.id != alert.roleId) role,
+  ];
+
+  /// Get every live candidacy of role [roleId], in its own `sortKey` order — [snapshot]'s own
+  /// group, or
+  /// the empty list while nothing is loaded or [roleId] has none.
+  List<OcptRoleCandidate> candidatesOfRole(String roleId) =>
+      snapshot?.candidatesByRoleId[roleId] ?? const [];
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
+  /// **[reloadEpoch] moves by itself** whenever a copy replaces any of the data read from the
+  /// project database ([snapshot], [currencyCode], [pageSetup], [mileageRates], [setIdsWithPlan]),
+  /// so no handler can read the data again and forget to tell the views. An explicit [reloadEpoch]
+  /// wins, for an emit that moves it without replacing anything.
+  ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no clear flag. [selectedPersonId], [selectedRoleId], [selectedLocationId],
-  /// [selectedElementId], [rightDockTab] and [ioNotice] all legitimately go back to null while the
-  /// mode is alive (nothing selected any more, the dock closed, the export notice dismissed), so
-  /// each has its own clear flag instead.
+  /// so it needs no force flag. [selectedPersonId], [selectedRoleId], [selectedLocationId],
+  /// [selectedElementId] and [rightDockTab] all legitimately go back to null while the mode is
+  /// alive (nothing selected any more, the dock closed), so each has its own force flag instead.
   @override
   OcptResourcesState copyWith({
     bool? isLoading,
     String? title,
     String? currencyCode,
     OcptResourcesSnapshot? snapshot,
+    bool forceSnapshotValue = false,
     OcptPageSetup? pageSetup,
     List<OcptBudgetMileageRate>? mileageRates,
     Set<String>? setIdsWithPlan,
@@ -536,103 +486,111 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     bool? isSearchVisible,
     String? searchQuery,
     String? selectedPersonId,
-    bool clearSelectedPersonId = false,
+    bool forceSelectedPersonIdValue = false,
     String? selectedRoleId,
-    bool clearSelectedRoleId = false,
+    bool forceSelectedRoleIdValue = false,
     String? selectedLocationId,
-    bool clearSelectedLocationId = false,
+    bool forceSelectedLocationIdValue = false,
     String? selectedElementId,
-    bool clearSelectedElementId = false,
+    bool forceSelectedElementIdValue = false,
     bool? isListPanelVisible,
     OcptResourcesRightDockTab? rightDockTab,
-    bool clearRightDockTab = false,
+    bool forceRightDockTabValue = false,
     double? leftDockFraction,
     double? rightDockFraction,
     bool? hasWriteError,
-    OcptResourcesIoNotice? ioNotice,
-    bool clearIoNotice = false,
     ({String episodeId, String sceneId, String setId})? pendingShotListReveal,
-    bool clearPendingShotListReveal = false,
-    Map<(String, OcptPersonField), String>? pendingFieldEdits,
-    Map<(String, OcptRoleField), String>? pendingRoleFieldEdits,
-    Map<(String, OcptLocationField), String>? pendingLocationFieldEdits,
-    Map<(String, OcptSetField), String>? pendingSetFieldEdits,
-    Map<(String, OcptElementField), String>? pendingElementFieldEdits,
-    Map<(String, OcptRoleCandidateField), String>? pendingCandidateFieldEdits,
+    bool forcePendingShotListRevealValue = false,
+    OcptResourcesRevealRequest? pendingRevealRequest,
+    bool forcePendingRevealRequestValue = false,
+    int? reloadEpoch,
+    int? selectionEpoch,
+    OcptResourcesSelectionCause? selectionCause,
+    int? lostEditsEpoch,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => OcptResourcesState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
     currencyCode: currencyCode ?? this.currencyCode,
-    snapshot: snapshot ?? this.snapshot,
+    snapshot: snapshot ?? (forceSnapshotValue ? null : this.snapshot),
     pageSetup: pageSetup ?? this.pageSetup,
     mileageRates: mileageRates ?? this.mileageRates,
     setIdsWithPlan: setIdsWithPlan ?? this.setIdsWithPlan,
     activeTab: activeTab ?? this.activeTab,
     isSearchVisible: isSearchVisible ?? this.isSearchVisible,
     searchQuery: searchQuery ?? this.searchQuery,
-    selectedPersonId: clearSelectedPersonId ? null : (selectedPersonId ?? this.selectedPersonId),
-    selectedRoleId: clearSelectedRoleId ? null : (selectedRoleId ?? this.selectedRoleId),
-    selectedLocationId: clearSelectedLocationId
-        ? null
-        : (selectedLocationId ?? this.selectedLocationId),
-    selectedElementId: clearSelectedElementId
-        ? null
-        : (selectedElementId ?? this.selectedElementId),
+    selectedPersonId:
+        selectedPersonId ?? (forceSelectedPersonIdValue ? null : this.selectedPersonId),
+    selectedRoleId: selectedRoleId ?? (forceSelectedRoleIdValue ? null : this.selectedRoleId),
+    selectedLocationId:
+        selectedLocationId ?? (forceSelectedLocationIdValue ? null : this.selectedLocationId),
+    selectedElementId:
+        selectedElementId ?? (forceSelectedElementIdValue ? null : this.selectedElementId),
     isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
-    rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
+    rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     hasWriteError: hasWriteError ?? this.hasWriteError,
-    ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
-    pendingShotListReveal: clearPendingShotListReveal
-        ? null
-        : (pendingShotListReveal ?? this.pendingShotListReveal),
-    pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
-    pendingRoleFieldEdits: pendingRoleFieldEdits ?? this.pendingRoleFieldEdits,
-    pendingLocationFieldEdits: pendingLocationFieldEdits ?? this.pendingLocationFieldEdits,
-    pendingSetFieldEdits: pendingSetFieldEdits ?? this.pendingSetFieldEdits,
-    pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
-    pendingCandidateFieldEdits: pendingCandidateFieldEdits ?? this.pendingCandidateFieldEdits,
+    pendingShotListReveal:
+        pendingShotListReveal ??
+        (forcePendingShotListRevealValue ? null : this.pendingShotListReveal),
+    pendingRevealRequest:
+        pendingRevealRequest ?? (forcePendingRevealRequestValue ? null : this.pendingRevealRequest),
+    reloadEpoch:
+        reloadEpoch ??
+        (snapshot != null ||
+                currencyCode != null ||
+                pageSetup != null ||
+                mileageRates != null ||
+                setIdsWithPlan != null
+            ? this.reloadEpoch + 1
+            : this.reloadEpoch),
+    selectionEpoch: selectionEpoch ?? this.selectionEpoch,
+    selectionCause: selectionCause ?? this.selectionCause,
+    lostEditsEpoch: lostEditsEpoch ?? this.lostEditsEpoch,
     projectVersions: projectVersions ?? this.projectVersions,
-    previewedVersionId: clearPreviewedVersionId
-        ? null
-        : (previewedVersionId ?? this.previewedVersionId),
-    workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
-    versionPendingDeletionId: clearVersionPendingDeletionId
-        ? null
-        : (versionPendingDeletionId ?? this.versionPendingDeletionId),
-    versionPendingRestoreId: clearVersionPendingRestoreId
-        ? null
-        : (versionPendingRestoreId ?? this.versionPendingRestoreId),
-    versionPendingRenameId: clearVersionPendingRenameId
-        ? null
-        : (versionPendingRenameId ?? this.versionPendingRenameId),
-    projectVersionNotice: clearProjectVersionNotice
-        ? null
-        : (projectVersionNotice ?? this.projectVersionNotice),
-    projectPackagePendingExport: clearProjectPackagePendingExport
-        ? null
-        : (projectPackagePendingExport ?? this.projectPackagePendingExport),
-    projectPackageNotice: clearProjectPackageNotice
-        ? null
-        : (projectPackageNotice ?? this.projectPackageNotice),
+    previewedVersionId:
+        previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
+    workingCopy: workingCopy ?? (forceWorkingCopyValue ? null : this.workingCopy),
+    versionPendingDeletionId:
+        versionPendingDeletionId ??
+        (forceVersionPendingDeletionIdValue ? null : this.versionPendingDeletionId),
+    versionPendingRestoreId:
+        versionPendingRestoreId ??
+        (forceVersionPendingRestoreIdValue ? null : this.versionPendingRestoreId),
+    versionPendingRenameId:
+        versionPendingRenameId ??
+        (forceVersionPendingRenameIdValue ? null : this.versionPendingRenameId),
+    projectVersionNotice:
+        projectVersionNotice ?? (forceProjectVersionNoticeValue ? null : this.projectVersionNotice),
+    projectPackagePendingExport:
+        projectPackagePendingExport ??
+        (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
+    projectPackageNotice:
+        projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
+    projectPackagePendingExportTarget:
+        projectPackagePendingExportTarget ??
+        (forceProjectPackagePendingExportTargetValue
+            ? null
+            : this.projectPackagePendingExportTarget),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -640,48 +598,52 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   OcptResourcesState copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
   }) => copyWith(
     projectVersions: projectVersions,
     previewedVersionId: previewedVersionId,
-    clearPreviewedVersionId: clearPreviewedVersionId,
+    forcePreviewedVersionIdValue: forcePreviewedVersionIdValue,
     workingCopy: workingCopy,
-    clearWorkingCopy: clearWorkingCopy,
+    forceWorkingCopyValue: forceWorkingCopyValue,
     versionPendingDeletionId: versionPendingDeletionId,
-    clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    forceVersionPendingDeletionIdValue: forceVersionPendingDeletionIdValue,
     versionPendingRestoreId: versionPendingRestoreId,
-    clearVersionPendingRestoreId: clearVersionPendingRestoreId,
+    forceVersionPendingRestoreIdValue: forceVersionPendingRestoreIdValue,
     versionPendingRenameId: versionPendingRenameId,
-    clearVersionPendingRenameId: clearVersionPendingRenameId,
+    forceVersionPendingRenameIdValue: forceVersionPendingRenameIdValue,
     projectVersionNotice: projectVersionNotice,
-    clearProjectVersionNotice: clearProjectVersionNotice,
+    forceProjectVersionNoticeValue: forceProjectVersionNoticeValue,
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
   @override
   OcptResourcesState copyProjectPackageState({
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
-    clearProjectPackagePendingExport: clearProjectPackagePendingExport,
+    forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
-    clearProjectPackageNotice: clearProjectPackageNotice,
+    forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
+    projectPackagePendingExportTarget: projectPackagePendingExportTarget,
+    forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -704,13 +666,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     leftDockFraction,
     rightDockFraction,
     hasWriteError,
-    ioNotice,
     pendingShotListReveal,
-    pendingFieldEdits,
-    pendingRoleFieldEdits,
-    pendingLocationFieldEdits,
-    pendingSetFieldEdits,
-    pendingElementFieldEdits,
-    pendingCandidateFieldEdits,
+    pendingRevealRequest,
+    reloadEpoch,
+    selectionEpoch,
+    selectionCause,
+    lostEditsEpoch,
   ];
 }

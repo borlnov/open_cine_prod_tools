@@ -16,11 +16,10 @@
 // file it leaves behind is one the application could have written itself.
 
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
@@ -41,252 +40,99 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
-import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
-import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
-import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
-/// The Fountain text of the demonstration screenplay, written for the purpose so the images carry
-/// no third-party work.
-const _fountainText = '''
-Title: The Last Ferry
-Credit: Written by
-Author: A demonstration screenplay
-Draft date: September 2026
+import 'ocpt_result_expectations.dart';
+import 'seed_demo_project_budget.dart';
+import 'seed_demo_project_catalogue.dart';
+import 'seed_demo_project_data.dart';
+import 'seed_demo_project_schedule.dart';
+import 'seed_demo_project_shots.dart';
 
-INT. HARBOUR CAFE - DAWN
-
-Rain drums on the window. NORA, 40s, coat still dripping, sets a leather satchel on the counter.
-
-The cafe is empty but for the CAFE OWNER, who polishes the same glass he has been polishing for an hour.
-
-NORA
-One coffee. And the schedule for the ferry.
-
-OWNER
-The ferry left. Storm's coming.
-
-Nora unclasps the satchel. Inside, a folded nautical chart and a brass compass that has seen better decades.
-
-NORA
-Then I'll need a boat.
-
-INT. HARBOUR CAFE - CONTINUOUS
-
-The OWNER puts down the glass. He looks at the compass for a long moment.
-
-OWNER
-There's a man at the end of the pier. He has a boat. He won't take you.
-
-NORA
-He will.
-
-She leaves a banknote under the saucer and walks out into the rain.
-
-EXT. PIER - DAWN
-
-Wind. The planks are slick. At the far end, a battered fishing boat rides the swell, and beside it, MARTIN, 60s, in a yellow oilskin, coiling a rope with hands that know the work.
-
-NORA
-They tell me you have a boat.
-
-MARTIN
-They tell you wrong. I have a wreck that floats.
-
-She unfolds the nautical chart against the wind and holds it out. Martin does not take it.
-
-MARTIN
-Nobody crosses today.
-
-NORA
-I am not asking to cross. I am asking to be put down on the island and left there.
-
-Martin looks at the chart. At the pencil ring drawn around a rock nobody lives on.
-
-EXT. FISHING BOAT - SEA - MORNING
-
-Grey water, no horizon. The boat digs into the swell. Nora braces against the wheelhouse, the satchel held shut with both hands.
-
-Martin watches the compass swing, and holds his course anyway.
-
-MARTIN
-Whatever is out there, it waited this long.
-''';
-
-/// One crew member of the demonstration project's address book: their name and the catalogue
-/// position they hold.
-typedef _CrewSeed = ({String firstName, String lastName, String positionId});
-
-/// The crew the demonstration project convokes, in the order the address book lists them.
-const _crew = <_CrewSeed>[
-  (firstName: "Camille", lastName: "Ferrand", positionId: "director"),
-  (firstName: "Yanis", lastName: "Berthier", positionId: "firstAssistantDirector"),
-  (firstName: "Elsa", lastName: "Marchand", positionId: "directorOfPhotography"),
-  (firstName: "Nadia", lastName: "Lefèvre", positionId: "scriptSupervisor"),
-  (firstName: "Tomás", lastName: "Ruiz", positionId: "soundEngineer"),
-  (firstName: "Hugo", lastName: "Danet", positionId: "gaffer"),
-  (firstName: "Marion", lastName: "Vidal", positionId: "makeupArtist"),
-  (firstName: "Paul", lastName: "Ozanne", positionId: "productionManager"),
-];
-
-/// The actors the demonstration project casts, by the screenplay character they play.
-const _cast = <String, ({String firstName, String lastName})>{
-  "NORA": (firstName: "Léa", lastName: "Combes"),
-  "OWNER": (firstName: "Gilbert", lastName: "Kervella"),
-  "MARTIN": (firstName: "André", lastName: "Le Gall"),
-};
-
-/// The table [_crc32] reduces one byte at a time against, built once.
-final _crc32Table = List<int>.generate(256, (n) {
-  var c = n;
-  for (var k = 0; k < 8; k++) {
-    c = (c & 1) != 0 ? (0xEDB88320 ^ (c >> 1)) : (c >> 1);
-  }
-  return c;
-});
-
-/// The CRC-32 of [bytes], as every PNG chunk trailer needs.
-int _crc32(List<int> bytes) {
-  var c = 0xFFFFFFFF;
-  for (final b in bytes) {
-    c = _crc32Table[(c ^ b) & 0xFF] ^ (c >> 8);
-  }
-  return c ^ 0xFFFFFFFF;
-}
-
-/// [value] as four big-endian bytes, the width every PNG chunk length and CRC field uses.
-List<int> _uint32(int value) => [
-  (value >> 24) & 0xFF,
-  (value >> 16) & 0xFF,
-  (value >> 8) & 0xFF,
-  value & 0xFF,
-];
-
-/// One length-prefixed, CRC-terminated PNG chunk of [type] wrapping [data].
-List<int> _pngChunk(String type, List<int> data) {
-  final typeBytes = type.codeUnits;
-  final out = BytesBuilder()
-    ..add(_uint32(data.length))
-    ..add(typeBytes)
-    ..add(data)
-    ..add(_uint32(_crc32([...typeBytes, ...data])));
-  return out.toBytes();
-}
-
-/// Writes a plain two-tone placeholder PNG at [path]: [topColor] over most of the frame,
-/// [bottomColor] along its bottom edge — legible enough as a storyboard frame or a floor-plan
-/// underlay in a screenshot, encoded here from raw pixels so the seed script needs no binary asset
-/// file of its own. Each call re-creates its file, exactly the "referenced by path, not embedded"
-/// shape (ADR 0013) every other photo and document in the project follows — this is simply the
-/// path's own source of truth instead of a file the repository carries.
-Future<void> _writePlaceholderImage({
-  required String path,
-  required int width,
-  required int height,
-  required int topColor,
-  required int bottomColor,
-}) async {
-  final raw = BytesBuilder();
-  for (var y = 0; y < height; y++) {
-    raw.addByte(0); // no per-scanline filter
-    final color = y < height * 0.85 ? topColor : bottomColor;
-    final r = (color >> 16) & 0xFF;
-    final g = (color >> 8) & 0xFF;
-    final b = color & 0xFF;
-    for (var x = 0; x < width; x++) {
-      raw.addByte(r);
-      raw.addByte(g);
-      raw.addByte(b);
-    }
-  }
-
-  final ihdr = BytesBuilder()
-    ..add(_uint32(width))
-    ..add(_uint32(height))
-    ..addByte(8) // bit depth
-    ..addByte(2) // colour type: truecolour (RGB)
-    ..addByte(0)
-    ..addByte(0)
-    ..addByte(0);
-
-  final png = BytesBuilder()
-    ..add(const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
-    ..add(_pngChunk("IHDR", ihdr.toBytes()))
-    ..add(_pngChunk("IDAT", ZLibEncoder().convert(raw.toBytes())))
-    ..add(_pngChunk("IEND", const []));
-
-  final file = File(path);
-  await file.parent.create(recursive: true);
-  await file.writeAsBytes(png.toBytes());
-}
-
+/// Run the tests of the seed demo project.
 void main() {
   // Every service logs through appLogger(), which needs a global manager instance to exist;
   // merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
   Future<String> deviceId() async => "seed-device";
-  final assetsService = OcptAssetsService(deviceId: deviceId);
-  final roleCandidatesService = OcptRoleCandidatesService(deviceId: deviceId);
-  final elementsService = OcptElementsService(assetsService: assetsService, deviceId: deviceId);
-  final floorPlanService = OcptFloorPlanService(assetsService: assetsService, deviceId: deviceId);
+  final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: deviceId);
+  final roleCandidatesService = OcptRoleCandidatesService(
+    logger: const SilentLogger(),
+    deviceId: deviceId,
+  );
+  final elementsService = OcptElementsService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: deviceId,
+  );
+  final floorPlanService = OcptFloorPlanService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: deviceId,
+  );
   final locationsService = OcptLocationsService(
+    logger: const SilentLogger(),
     assetsService: assetsService,
     floorPlanService: floorPlanService,
     deviceId: deviceId,
   );
   final roleIndexService = OcptRoleIndexService(
+    logger: const SilentLogger(),
     elementsService: elementsService,
     roleCandidatesService: roleCandidatesService,
     deviceId: deviceId,
   );
   final breakdownService = OcptBreakdownService(
+    logger: const SilentLogger(),
     elementsService: elementsService,
     locationsService: locationsService,
     deviceId: deviceId,
   );
-  final storyboardService = OcptStoryboardService(assetsService: assetsService, deviceId: deviceId);
+  final storyboardService = OcptStoryboardService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: deviceId,
+  );
   final shotListService = OcptShotListService(
+    logger: const SilentLogger(),
     roleIndexService: roleIndexService,
     storyboardService: storyboardService,
     floorPlanService: floorPlanService,
     deviceId: deviceId,
   );
   final peopleService = OcptPeopleService(
+    logger: const SilentLogger(),
     deviceId: deviceId,
     assetsService: assetsService,
     roleCandidatesService: roleCandidatesService,
   );
-  final scheduleService = OcptScheduleService(deviceId: deviceId);
-  final budgetQuoteService = OcptBudgetQuoteService(deviceId: deviceId);
+  final scheduleService = OcptScheduleService(logger: const SilentLogger(), deviceId: deviceId);
+  final budgetQuoteService = OcptBudgetQuoteService(
+    logger: const SilentLogger(),
+    deviceId: deviceId,
+  );
   final budgetJournalService = OcptBudgetJournalService(
+    logger: const SilentLogger(),
     assetsService: assetsService,
     deviceId: deviceId,
   );
-  final budgetFinancingService = OcptBudgetFinancingService(deviceId: deviceId);
-  final budgetSharingService = OcptBudgetSharingService(deviceId: deviceId);
+  final budgetFinancingService = OcptBudgetFinancingService(
+    logger: const SilentLogger(),
+    deviceId: deviceId,
+  );
+  final budgetSharingService = OcptBudgetSharingService(
+    logger: const SilentLogger(),
+    deviceId: deviceId,
+  );
   final screenplayService = OcptScreenplayService(
-    sceneIndexService: const OcptSceneIndexService(),
+    logger: const SilentLogger(),
+    sceneIndexService: const OcptSceneIndexService(logger: SilentLogger()),
     shotListService: shotListService,
-    shotCoverageService: OcptShotCoverageService(deviceId: deviceId),
+    shotCoverageService: OcptShotCoverageService(logger: const SilentLogger(), deviceId: deviceId),
     roleIndexService: roleIndexService,
     breakdownService: breakdownService,
     scheduleService: scheduleService,
@@ -332,12 +178,14 @@ void main() {
           ),
         );
 
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: _fountainText,
-      snapshotReason: OcptSnapshotReason.import,
-    );
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: demoFountainText,
+          snapshotReason: OcptSnapshotReason.import,
+        )
+        .okOrFail;
 
     // ---------------------------------------------------------------- the scene index just built
 
@@ -351,1352 +199,102 @@ void main() {
     expect(sceneRows, hasLength(4), reason: "the demonstration screenplay holds four scenes");
     final sceneIds = [for (final row in sceneRows) row.id];
 
-    // ------------------------------------------------------------------------------- the address
-    // book
-
-    final crewIds = <String, String>{};
-    for (final (index, member) in _crew.indexed) {
-      final personId = (await peopleService.createPerson(database: database))!;
-      await peopleService.updatePerson(
-        database: database,
-        personId: personId,
-        firstName: Value(member.firstName),
-        lastName: Value(member.lastName),
-        city: const Value("Douarnenez"),
-        country: const Value("France"),
-        colorIndex: Value(index),
-      );
-      await peopleService.addPosition(
-        database: database,
-        personId: personId,
-        positionId: member.positionId,
-        customLabel: "",
-      );
-      crewIds[member.positionId] = personId;
-    }
-
-    final actorIds = <String, String>{};
-    for (final (index, entry) in _cast.entries.indexed) {
-      final personId = (await peopleService.createPerson(database: database))!;
-      await peopleService.updatePerson(
-        database: database,
-        personId: personId,
-        firstName: Value(entry.value.firstName),
-        lastName: Value(entry.value.lastName),
-        city: const Value("Quimper"),
-        country: const Value("France"),
-        colorIndex: Value(_crew.length + index),
-      );
-      actorIds[entry.key] = personId;
-    }
-
-    // The script supervisor is away the second day, which is what the alerts panel reports against
-    // the convocations below.
-    await peopleService.addUnavailability(
+    final (:actorIds, :crewIds) = await seedAddressBook(
       database: database,
-      personId: crewIds["scriptSupervisor"]!,
-      startDate: DateTime(2026, 9, 16),
-      endDate: DateTime(2026, 9, 16),
-      slot: OcptDayPartSlot.fullDay,
-      reason: "Second unit on another production",
+      peopleService: peopleService,
     );
-
-    // ------------------------------------------------------------------------------------ the
-    // cast, reconciled from the screenplay's own speaking characters
-
-    final roles = await roleIndexService.loadRoles(database: database);
-    final roleIdByName = {for (final role in roles) role.name: role.id};
-    for (final entry in actorIds.entries) {
-      await roleIndexService.updateRole(
-        database: database,
-        roleId: roleIdByName[entry.key]!,
-        personId: Value(entry.value),
-      );
-    }
-
-    // ------------------------------------------------------------------------- the locations and
-    // their sets
-
-    final harbourId = (await locationsService.createLocation(
+    final roleIdByName = await seedCast(
+      actorIds: actorIds,
       database: database,
-      name: "Douarnenez harbour",
-    ))!;
-    await locationsService.updateLocation(
+      roleIndexService: roleIndexService,
+    );
+    final (:boatSetId, :cafeSetId, :harbourId, :pierSetId, :seaId) = await seedLocations(
       database: database,
-      locationId: harbourId,
-      colorIndex: const Value(1),
-      addressLine1: const Value("Quai du Grand Port"),
-      postalCode: const Value("29100"),
-      city: const Value("Douarnenez"),
-      country: const Value("France"),
-      latitude: const Value(48.0947),
-      longitude: const Value(-4.3294),
-      permitStatus: const Value(OcptPermitStatus.granted),
-      permitLabel: const Value("Town hall — quay and terrace"),
-      parkingNotes: const Value("Unit base behind the fish market, 200 m from the cafe."),
+      locationsService: locationsService,
+      sceneIds: sceneIds,
     );
-    final cafeSetId = (await locationsService.createSet(
+    final (
+      :banknoteId,
+      :boatId,
+      :chartId,
+      :compassId,
+      :oilskinId,
+      :rainTowerId,
+      :satchelId,
+      :wetCoatId,
+    ) = await seedElements(
       database: database,
-      locationId: harbourId,
-      name: "Harbour cafe",
-    ))!;
-    final pierSetId = (await locationsService.createSet(
+      elementsService: elementsService,
+    );
+    await seedBreakdown(
+      banknoteId: banknoteId,
+      boatId: boatId,
+      boatSetId: boatSetId,
+      breakdownService: breakdownService,
+      cafeSetId: cafeSetId,
+      chartId: chartId,
+      compassId: compassId,
       database: database,
-      locationId: harbourId,
-      name: "Pier",
-    ))!;
-
-    final seaId = (await locationsService.createLocation(
+      oilskinId: oilskinId,
+      pierSetId: pierSetId,
+      rainTowerId: rainTowerId,
+      roleIdByName: roleIdByName,
+      satchelId: satchelId,
+      sceneIds: sceneIds,
+      sceneRows: sceneRows,
+      wetCoatId: wetCoatId,
+    );
+    final shotsByScene = await seedShotList(
       database: database,
-      name: "Bay of Douarnenez",
-    ))!;
-    await locationsService.updateLocation(
+      sceneIds: sceneIds,
+      screenplayId: screenplayId,
+      shotListService: shotListService,
+    );
+    await seedFloorPlans(
+      boatSetId: boatSetId,
+      cafeSetId: cafeSetId,
       database: database,
-      locationId: seaId,
-      colorIndex: const Value(5),
-      city: const Value("Douarnenez"),
-      country: const Value("France"),
-      latitude: const Value(48.1042),
-      longitude: const Value(-4.4058),
-      permitStatus: const Value(OcptPermitStatus.requested),
-      permitLabel: const Value("Maritime authority — filming at sea"),
-      constraintsNotes: const Value("Sailing window depends on the swell; skipper decides at 05:00."),
+      floorPlanService: floorPlanService,
+      pierSetId: pierSetId,
+      sceneIds: sceneIds,
+      shotsByScene: shotsByScene,
     );
-    final boatSetId = (await locationsService.createSet(
+    await seedStoryboard(
       database: database,
-      locationId: seaId,
-      name: "Fishing boat",
-    ))!;
-
-    for (final (index, setId) in [cafeSetId, cafeSetId, pierSetId, boatSetId].indexed) {
-      await locationsService.assignSceneToSet(
-        database: database,
-        sceneId: sceneIds[index],
-        setId: setId,
-      );
-    }
-
-    // ---------------------------------------------------------------- the elements catalogue, in
-    // the order that mints the codes the resources mode shows
-
-    /// Creates one element of the catalogue and returns its id.
-    Future<String> createElement({
-      required String name,
-      required OcptElementCategory category,
-      required OcptElementSourceKind sourceKind,
-      OcptElementStatus status = OcptElementStatus.toFind,
-      String notes = "",
-    }) async {
-      final elementId = (await elementsService.createElement(
-        database: database,
-        name: name,
-        category: category,
-        sourceKind: sourceKind,
-      ))!;
-      await elementsService.updateElement(
-        database: database,
-        elementId: elementId,
-        status: Value(status),
-        notes: Value(notes),
-      );
-      return elementId;
-    }
-
-    final satchelId = await createElement(
-      name: "Leather satchel",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.rented,
-      status: OcptElementStatus.reserved,
+      file: file,
+      path: path,
+      shotsByScene: shotsByScene,
+      storyboardService: storyboardService,
     );
-    final compassId = await createElement(
-      name: "Brass compass",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.toBuy,
-      notes: "Has to read as older than the boat.",
-    );
-    final chartId = await createElement(
-      name: "Nautical chart",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.toMake,
-      status: OcptElementStatus.beingMade,
-      notes: "Pencil ring around the island, drawn by hand.",
-    );
-    final banknoteId = await createElement(
-      name: "Period banknote",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.toMake,
-      status: OcptElementStatus.beingMade,
-    );
-    final oilskinId = await createElement(
-      name: "Yellow oilskin",
-      category: OcptElementCategory.costume,
-      sourceKind: OcptElementSourceKind.rented,
-      status: OcptElementStatus.reserved,
-    );
-    final wetCoatId = await createElement(
-      name: "Nora's wet coat",
-      category: OcptElementCategory.costume,
-      sourceKind: OcptElementSourceKind.owned,
-      status: OcptElementStatus.confirmed,
-      notes: "Two of them: one soaked, one dry.",
-    );
-    final boatId = await createElement(
-      name: "Battered fishing boat",
-      category: OcptElementCategory.vehicle,
-      sourceKind: OcptElementSourceKind.borrowed,
-      status: OcptElementStatus.reserved,
-      notes: "Skipper comes with it and holds the wheel off camera.",
-    );
-    final rainTowerId = await createElement(
-      name: "Rain tower",
-      category: OcptElementCategory.specialEquipment,
-      sourceKind: OcptElementSourceKind.rented,
-      status: OcptElementStatus.reserved,
-    );
-
-    // -------------------------------------------------------------------------- the breakdown
-    // pass, which is also what links each element to the scenes that need it
-
-    /// Tags the first occurrence of [text] in scene [sceneIndex], pointing it at [targetId].
-    Future<void> tag(
-      int sceneIndex,
-      String text,
-      OcptBreakdownTargetKind targetKind,
-      String targetId,
-    ) async {
-      final row = sceneRows[sceneIndex];
-      final sceneText = _fountainText.substring(row.charStart, row.charEnd);
-      final startOffset = sceneText.indexOf(text);
-      expect(startOffset, isNonNegative, reason: "'$text' is in scene ${sceneIndex + 1}");
-
-      await breakdownService.createTag(
-        database: database,
-        sceneId: row.id,
-        startOffset: startOffset,
-        endOffset: startOffset + text.length,
-        taggedText: text,
-        targetKind: targetKind,
-        targetId: targetId,
-      );
-    }
-
-    await tag(0, "HARBOUR CAFE", OcptBreakdownTargetKind.set, cafeSetId);
-    await tag(0, "Rain drums on the window", OcptBreakdownTargetKind.element, rainTowerId);
-    await tag(0, "NORA, 40s", OcptBreakdownTargetKind.role, roleIdByName["NORA"]!);
-    await tag(0, "coat still dripping", OcptBreakdownTargetKind.element, wetCoatId);
-    await tag(0, "leather satchel", OcptBreakdownTargetKind.element, satchelId);
-    await tag(0, "CAFE OWNER", OcptBreakdownTargetKind.role, roleIdByName["OWNER"]!);
-    await tag(0, "nautical chart", OcptBreakdownTargetKind.element, chartId);
-    await tag(0, "brass compass", OcptBreakdownTargetKind.element, compassId);
-
-    await tag(1, "HARBOUR CAFE", OcptBreakdownTargetKind.set, cafeSetId);
-    await tag(1, "compass", OcptBreakdownTargetKind.element, compassId);
-    await tag(1, "banknote", OcptBreakdownTargetKind.element, banknoteId);
-
-    await tag(2, "PIER", OcptBreakdownTargetKind.set, pierSetId);
-    await tag(2, "fishing boat", OcptBreakdownTargetKind.element, boatId);
-    await tag(2, "MARTIN, 60s", OcptBreakdownTargetKind.role, roleIdByName["MARTIN"]!);
-    await tag(2, "yellow oilskin", OcptBreakdownTargetKind.element, oilskinId);
-    await tag(2, "nautical chart", OcptBreakdownTargetKind.element, chartId);
-
-    await tag(3, "FISHING BOAT", OcptBreakdownTargetKind.set, boatSetId);
-    await tag(3, "compass", OcptBreakdownTargetKind.element, compassId);
-
-    for (final (index, status) in const [
-      OcptBreakdownSceneStatus.done,
-      OcptBreakdownSceneStatus.done,
-      OcptBreakdownSceneStatus.inProgress,
-      OcptBreakdownSceneStatus.toDo,
-    ].indexed) {
-      await breakdownService.updateSceneBreakdown(
-        database: database,
-        sceneId: sceneIds[index],
-        status: Value(status),
-      );
-    }
-
-    // ------------------------------------------------------------------------------- the shot
-    // list
-
-    /// Creates one shot of scene [sceneIndex] and returns its id.
-    Future<String> createShot({
-      required int sceneIndex,
-      required String shotSize,
-      required String framing,
-      required String cameraMove,
-      required int screenSeconds,
-      required List<String> characters,
-      int difficulty = 1,
-    }) async {
-      final shotId = (await shotListService.createShot(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: sceneIds[sceneIndex],
-      ))!;
-      await shotListService.updateShot(
-        database: database,
-        shotId: shotId,
-        shotSize: Value(shotSize),
-        framing: Value(framing),
-        cameraMove: Value(cameraMove),
-        lens: const Value("35 mm"),
-        recordingFormat: const Value("4K · 25 fps"),
-        sound: const Value("Direct"),
-        estimatedDurationMs: Value(screenSeconds * 1000),
-        plannedTakes: const Value(3),
-        difficultySet: Value(difficulty),
-        difficultyCamera: Value(difficulty),
-      );
-      for (final character in characters) {
-        final roleId = (await shotListService.resolveOrCreateRoleId(
-          database: database,
-          screenplayId: screenplayId,
-          name: character,
-        ))!;
-        await shotListService.attachCharacter(database: database, shotId: shotId, roleId: roleId);
-      }
-      return shotId;
-    }
-
-    final shotsByScene = <int, List<String>>{};
-
-    /// Records [shotId] as the next shot of scene [sceneIndex].
-    void record(int sceneIndex, String shotId) =>
-        shotsByScene.putIfAbsent(sceneIndex, () => <String>[]).add(shotId);
-
-    record(
-      0,
-      await createShot(
-        sceneIndex: 0,
-        shotSize: "Wide",
-        framing: "The cafe, the rain on the window, Nora coming in.",
-        cameraMove: "Static",
-        screenSeconds: 24,
-        characters: ["NORA", "OWNER"],
-      ),
-    );
-    record(
-      0,
-      await createShot(
-        sceneIndex: 0,
-        shotSize: "Medium",
-        framing: "Nora at the counter, the satchel between them.",
-        cameraMove: "Slow push in",
-        screenSeconds: 32,
-        characters: ["NORA", "OWNER"],
-        difficulty: 2,
-      ),
-    );
-    record(
-      0,
-      await createShot(
-        sceneIndex: 0,
-        shotSize: "Close-up",
-        framing: "The brass compass in the open satchel.",
-        cameraMove: "Static",
-        screenSeconds: 9,
-        characters: ["NORA"],
-      ),
-    );
-    record(
-      0,
-      await createShot(
-        sceneIndex: 0,
-        shotSize: "Close-up",
-        framing: "The owner, still polishing, watching her.",
-        cameraMove: "Handheld",
-        screenSeconds: 11,
-        characters: ["OWNER"],
-        difficulty: 2,
-      ),
-    );
-
-    record(
-      1,
-      await createShot(
-        sceneIndex: 1,
-        shotSize: "Medium",
-        framing: "The owner puts the glass down.",
-        cameraMove: "Static",
-        screenSeconds: 18,
-        characters: ["OWNER"],
-      ),
-    );
-    record(
-      1,
-      await createShot(
-        sceneIndex: 1,
-        shotSize: "Close-up",
-        framing: "Nora, hearing what he is not saying.",
-        cameraMove: "Static",
-        screenSeconds: 14,
-        characters: ["NORA"],
-      ),
-    );
-    record(
-      1,
-      await createShot(
-        sceneIndex: 1,
-        shotSize: "Wide",
-        framing: "The banknote under the saucer, the door swinging.",
-        cameraMove: "Pan",
-        screenSeconds: 16,
-        characters: ["NORA", "OWNER"],
-      ),
-    );
-
-    record(
-      2,
-      await createShot(
-        sceneIndex: 2,
-        shotSize: "Wide",
-        framing: "The pier, the boat riding the swell, Martin at the far end.",
-        cameraMove: "Crane down",
-        screenSeconds: 22,
-        characters: ["NORA", "MARTIN"],
-        difficulty: 3,
-      ),
-    );
-    record(
-      2,
-      await createShot(
-        sceneIndex: 2,
-        shotSize: "Medium",
-        framing: "Martin coiling the rope, not looking up.",
-        cameraMove: "Static",
-        screenSeconds: 26,
-        characters: ["MARTIN"],
-        difficulty: 2,
-      ),
-    );
-    record(
-      2,
-      await createShot(
-        sceneIndex: 2,
-        shotSize: "Close-up",
-        framing: "The chart snapping in the wind, the pencil ring.",
-        cameraMove: "Handheld",
-        screenSeconds: 12,
-        characters: ["NORA"],
-        difficulty: 2,
-      ),
-    );
-    record(
-      2,
-      await createShot(
-        sceneIndex: 2,
-        shotSize: "Two-shot",
-        framing: "Nora and Martin, the wind between them.",
-        cameraMove: "Static",
-        screenSeconds: 28,
-        characters: ["NORA", "MARTIN"],
-      ),
-    );
-
-    record(
-      3,
-      await createShot(
-        sceneIndex: 3,
-        shotSize: "Wide",
-        framing: "The boat digging into the swell, no horizon.",
-        cameraMove: "Handheld",
-        screenSeconds: 20,
-        characters: ["NORA", "MARTIN"],
-        difficulty: 3,
-      ),
-    );
-    record(
-      3,
-      await createShot(
-        sceneIndex: 3,
-        shotSize: "Medium",
-        framing: "Nora braced against the wheelhouse.",
-        cameraMove: "Handheld",
-        screenSeconds: 17,
-        characters: ["NORA"],
-        difficulty: 3,
-      ),
-    );
-    record(
-      3,
-      await createShot(
-        sceneIndex: 3,
-        shotSize: "Close-up",
-        framing: "The compass swinging, the course held.",
-        cameraMove: "Static",
-        screenSeconds: 13,
-        characters: ["MARTIN"],
-      ),
-    );
-
-    // -------------------------------------------------------------------------- the floor plans
-
-    // The harbour cafe: a readable room — four thin walls (0.12 m) enclosing roughly 6 x 4 m,
-    // a gap in the south one for a door, a counter, a table with two chairs, a camera and Nora —
-    // all set-scope (shared by both scenes shot there: `cafeSetId` is linked to sceneIds[0] and
-    // sceneIds[1] above) except the camera and Nora, which belong to the opening shot alone.
-    const wallThicknessM = 0.12;
-
-    Future<void> wall({
-      required double xM,
-      required double yM,
-      required double widthM,
-      required double heightM,
-      required String label,
-    }) => floorPlanService.placeSymbol(
+    await seedSchedule(
+      boatSetId: boatSetId,
+      cafeSetId: cafeSetId,
+      crewIds: crewIds,
       database: database,
-      setId: cafeSetId,
-      sceneId: null,
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: xM,
-      yM: yM,
-      widthM: widthM,
-      heightM: heightM,
-      label: label,
-      setElementShape: OcptFloorPlanSetElementShape.wall,
+      harbourId: harbourId,
+      pierSetId: pierSetId,
+      roleIdByName: roleIdByName,
+      sceneIds: sceneIds,
+      scheduleService: scheduleService,
+      seaId: seaId,
+      shotsByScene: shotsByScene,
     );
-
-    // `xM`/`yM` are a symbol's own centre (`Rect.fromCenter` in the canvas painter), not a
-    // corner, so a wall's own centre sits on the room's own perimeter, half its thickness either
-    // side of it.
-    await wall(xM: 3, yM: 0, widthM: 6, heightM: wallThicknessM, label: "Cafe wall, north");
-    await wall(xM: 0, yM: 2, widthM: wallThicknessM, heightM: 4, label: "Cafe wall, west");
-    await wall(xM: 6, yM: 2, widthM: wallThicknessM, heightM: 4, label: "Cafe wall, east");
-    // The south wall stops short twice, once on each side of the door below.
-    await wall(
-      xM: 1.9,
-      yM: 4,
-      widthM: 3.8,
-      heightM: wallThicknessM,
-      label: "Cafe wall, south-west",
-    );
-    await wall(
-      xM: 5.6,
-      yM: 4,
-      widthM: 0.8,
-      heightM: wallThicknessM,
-      label: "Cafe wall, south-east",
-    );
-    await floorPlanService.placeSymbol(
+    final (:costumesLineId, :accountIdOf) = await seedQuote(
+      budgetQuoteService: budgetQuoteService,
       database: database,
-      setId: cafeSetId,
-      sceneId: null,
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: 4.5,
-      yM: 4,
-      widthM: 1.4,
-      heightM: wallThicknessM,
-      label: "Cafe door",
-      setElementShape: OcptFloorPlanSetElementShape.door,
     );
-
-    final counterSymbolId = (await floorPlanService.placeSymbol(
+    await seedFinancing(
+      budgetFinancingService: budgetFinancingService,
+      budgetJournalService: budgetJournalService,
+      budgetSharingService: budgetSharingService,
+      costumesLineId: costumesLineId,
       database: database,
-      setId: cafeSetId,
-      sceneId: null,
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: 2.25,
-      yM: 0.5,
-      widthM: 2.5,
-      heightM: 0.5,
-      label: "Counter",
-      setElementShape: OcptFloorPlanSetElementShape.furniture,
-    ))!;
-
-    // The second scene shot at the cafe re-dresses the counter for that sequence only — a
-    // scene-scope override: it replaces the counter above while sceneIds[1] is being drawn, and
-    // the original keeps showing for sceneIds[0].
-    await floorPlanService.placeSymbol(
+      accountIdOf: accountIdOf,
+    );
+    await seedSharing(
+      budgetJournalService: budgetJournalService,
+      budgetSharingService: budgetSharingService,
       database: database,
-      setId: cafeSetId,
-      sceneId: sceneIds[1],
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: 2.55,
-      yM: 0.7,
-      widthM: 2.5,
-      heightM: 0.5,
-      label: "Counter, cleared for the second visit",
-      setElementShape: OcptFloorPlanSetElementShape.furniture,
-      overridesSymbolId: counterSymbolId,
-    );
-
-    // A table and two chairs, well clear of the counter and of the camera's own sightline below.
-    await floorPlanService.placeSymbol(
-      database: database,
-      setId: cafeSetId,
-      sceneId: null,
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: 4.6,
-      yM: 2,
-      widthM: 1,
-      heightM: 1,
-      label: "Table",
-      setElementShape: OcptFloorPlanSetElementShape.furniture,
-    );
-    await floorPlanService.placeSymbol(
-      database: database,
-      setId: cafeSetId,
-      sceneId: null,
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: 4.1,
-      yM: 1.3,
-      widthM: 0.4,
-      heightM: 0.4,
-      label: "Chair",
-      setElementShape: OcptFloorPlanSetElementShape.furniture,
-    );
-    await floorPlanService.placeSymbol(
-      database: database,
-      setId: cafeSetId,
-      sceneId: null,
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: 5.1,
-      yM: 1.3,
-      widthM: 0.4,
-      heightM: 0.4,
-      label: "Chair",
-      setElementShape: OcptFloorPlanSetElementShape.furniture,
-    );
-
-    // A camera on the cafe's own opening shot, inside the room and aimed north at Nora, its
-    // field-of-view cone reaching well past her own position.
-    await floorPlanService.placeSymbol(
-      database: database,
-      setId: cafeSetId,
-      sceneId: null,
-      shotId: shotsByScene[0]!.first,
-      layer: OcptFloorPlanLayer.cameras,
-      xM: 2.25,
-      yM: 3.2,
-      // rotationDeg defaults to 0, which already points local "up" (north) — straight at Nora.
-      fovDeg: 50,
-      fovReachM: 2.6,
-    );
-    await floorPlanService.placeSymbol(
-      database: database,
-      setId: cafeSetId,
-      sceneId: null,
-      shotId: shotsByScene[0]!.first,
-      layer: OcptFloorPlanLayer.characters,
-      xM: 2.25,
-      yM: 1,
-      label: "NORA",
-    );
-
-    // The pier: a railing and a camera on its own first shot.
-    await floorPlanService.placeSymbol(
-      database: database,
-      setId: pierSetId,
-      sceneId: null,
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: 0,
-      yM: 0,
-      widthM: 10,
-      heightM: 2,
-      label: "Pier railing",
-      setElementShape: OcptFloorPlanSetElementShape.wall,
-    );
-    await floorPlanService.placeSymbol(
-      database: database,
-      setId: pierSetId,
-      sceneId: null,
-      shotId: shotsByScene[2]!.first,
-      layer: OcptFloorPlanLayer.cameras,
-      xM: 2,
-      yM: 4,
-      rotationDeg: 180,
-    );
-
-    // The fishing boat: the wheelhouse and a camera and a light on its own first shot.
-    await floorPlanService.placeSymbol(
-      database: database,
-      setId: boatSetId,
-      sceneId: null,
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: 0,
-      yM: 0,
-      widthM: 3,
-      heightM: 2,
-      label: "Wheelhouse",
-      setElementShape: OcptFloorPlanSetElementShape.furniture,
-    );
-    await floorPlanService.placeSymbol(
-      database: database,
-      setId: boatSetId,
-      sceneId: null,
-      shotId: shotsByScene[3]!.first,
-      layer: OcptFloorPlanLayer.cameras,
-      xM: -1,
-      yM: 3,
-    );
-    await floorPlanService.placeSymbol(
-      database: database,
-      setId: boatSetId,
-      sceneId: null,
-      shotId: shotsByScene[3]!.first,
-      layer: OcptFloorPlanLayer.lights,
-      xM: 1,
-      yM: 3,
-      label: "Key",
-    );
-
-    // ----------------------------------------------------------------------------- the storyboard
-
-    // The cafe's own opening shot gets three panels — its own leader shot, tracked through the
-    // scene — each with a placeholder frame image and a short comment, plus one movement arrow and
-    // one label, so the board shows a shot's own strip, its leader card and its annotation layer at
-    // once.
-    final frameDir = "${file.parent.path}/storyboard-frames";
-    final openingCafeShotId = shotsByScene[0]!.first;
-
-    final wideFramePath = "$frameDir/cafe-wide.png";
-    await _writePlaceholderImage(
-      path: wideFramePath,
-      width: 1600,
-      height: 900,
-      topColor: 0x1C2436,
-      bottomColor: 0x6C5CE7,
-    );
-    final widePanelId = (await storyboardService.addPanel(
-      database: database,
-      shotId: openingCafeShotId,
-    ))!;
-    await storyboardService.replacePanelImage(
-      database: database,
-      panelId: widePanelId,
-      path: wideFramePath,
-    );
-    await storyboardService.updatePanelComment(
-      database: database,
-      panelId: widePanelId,
-      comment: "Establishing — Nora alone at the counter, dawn light through the window.",
-    );
-    await storyboardService.addAnnotation(
-      database: database,
-      panelId: widePanelId,
-      kind: OcptStoryboardAnnotationKind.label,
-      x1: 0.18,
-      y1: 0.3,
-      text: "NORA",
-    );
-
-    final mediumFramePath = "$frameDir/cafe-medium.png";
-    await _writePlaceholderImage(
-      path: mediumFramePath,
-      width: 1600,
-      height: 900,
-      topColor: 0x232B1C,
-      bottomColor: 0x6C5CE7,
-    );
-    final mediumPanelId = (await storyboardService.addPanel(
-      database: database,
-      shotId: openingCafeShotId,
-    ))!;
-    await storyboardService.replacePanelImage(
-      database: database,
-      panelId: mediumPanelId,
-      path: mediumFramePath,
-    );
-    await storyboardService.updatePanelComment(
-      database: database,
-      panelId: mediumPanelId,
-      comment: "Martin enters, shaking off the rain.",
-    );
-    await storyboardService.addAnnotation(
-      database: database,
-      panelId: mediumPanelId,
-      kind: OcptStoryboardAnnotationKind.movementArrow,
-      x1: 0.85,
-      y1: 0.55,
-      x2: 0.4,
-      y2: 0.6,
-    );
-
-    final closeFramePath = "$frameDir/cafe-close.png";
-    await _writePlaceholderImage(
-      path: closeFramePath,
-      width: 1600,
-      height: 900,
-      topColor: 0x2C1C23,
-      bottomColor: 0x6C5CE7,
-    );
-    final closePanelId = (await storyboardService.addPanel(
-      database: database,
-      shotId: openingCafeShotId,
-    ))!;
-    await storyboardService.replacePanelImage(
-      database: database,
-      panelId: closePanelId,
-      path: closeFramePath,
-    );
-    await storyboardService.updatePanelComment(
-      database: database,
-      panelId: closePanelId,
-      comment: "Nora's hands around the mug.",
-    );
-
-    // ------------------------------------------------------------------------------- the schedule
-
-    /// The id of the slot [OcptScheduleService.createDay] minted with day [dayId].
-    Future<String> firstSlotOf(String dayId) async {
-      final rows =
-          await (database.select(database.ocptShootingSlotsTable)
-                ..where((row) => row.shootingDayId.equals(dayId))
-                ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
-              .get();
-      return rows.firstWhere((row) => !row.isDeleted).id;
-    }
-
-    /// Pins slot [slotId] to start at [minute] past its day's own midnight.
-    Future<void> startAt(String slotId, int minute) => scheduleService.setSlotAnchor(
-      database: database,
-      slotId: slotId,
-      edge: OcptShootingSlotAnchorEdge.start,
-      minute: minute,
-    );
-
-    /// Convokes [positionIds] and [roleNames] on slot [slotId].
-    Future<void> convoke(
-      String slotId, {
-      required List<String> positionIds,
-      required List<String> roleNames,
-    }) async {
-      for (final positionId in positionIds) {
-        await scheduleService.addSlotCrewMember(
-          database: database,
-          slotId: slotId,
-          personId: crewIds[positionId]!,
-        );
-      }
-      for (final roleName in roleNames) {
-        await scheduleService.addSlotCastRole(
-          database: database,
-          slotId: slotId,
-          roleId: roleIdByName[roleName]!,
-        );
-      }
-    }
-
-    /// Appends a milestone block of [kind] lasting [minutes] to slot [slotId].
-    Future<void> milestone(
-      String slotId,
-      OcptShootingBlockKind kind,
-      int minutes, {
-      String label = "",
-      String crewNote = "",
-    }) async {
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: kind,
-        label: label,
-        durationMinutes: minutes,
-      ))!;
-      if (crewNote.isNotEmpty) {
-        await scheduleService.updateBlock(
-          database: database,
-          blockId: blockId,
-          crewNote: Value(crewNote),
-        );
-      }
-    }
-
-    /// Places shot [shotId] on slot [slotId] for [minutes] of shooting time.
-    Future<void> place(String slotId, String shotId, int minutes) async {
-      final blockId = (await scheduleService.placeShot(
-        database: database,
-        slotId: slotId,
-        shotId: shotId,
-      ))!;
-      await scheduleService.updateBlock(
-        database: database,
-        blockId: blockId,
-        durationMinutes: Value(minutes),
-      );
-    }
-
-    // Day 1 — the cafe in the morning, the pier in the afternoon.
-    final day1 = (await scheduleService.createDay(database: database, date: DateTime(2026, 9, 15)))!;
-    await scheduleService.updateDay(
-      database: database,
-      dayId: day1,
-      crewNote: const Value(
-        "Unit base behind the fish market. The cafe opens to the public at 12:00 — everything "
-        "inside is shot before that.",
-      ),
-      weatherNote: const Value("Rain until 09:00, clearing westerly 4."),
-    );
-    final day1Cafe = await firstSlotOf(day1);
-    await scheduleService.updateSlot(
-      database: database,
-      slotId: day1Cafe,
-      label: const Value("Unit 1 — cafe"),
-      locationId: Value(harbourId),
-      setId: Value(cafeSetId),
-      notes: const Value("Key holder: Mme Quéré, 06:30 on the terrace."),
-    );
-    await startAt(day1Cafe, 7 * 60);
-    await convoke(
-      day1Cafe,
-      positionIds: const [
-        "director",
-        "firstAssistantDirector",
-        "directorOfPhotography",
-        "scriptSupervisor",
-        "soundEngineer",
-        "gaffer",
-        "makeupArtist",
-        "productionManager",
-      ],
-      roleNames: const ["NORA", "OWNER"],
-    );
-    await scheduleService.addSlotGuest(
-      database: database,
-      slotId: day1Cafe,
-      freeName: "Harbour master",
-      reason: "Lends the quay, 08:00",
-    );
-    await milestone(day1Cafe, OcptShootingBlockKind.preparation, 45, label: "Set up");
-    await milestone(
-      day1Cafe,
-      OcptShootingBlockKind.hairMakeUp,
-      45,
-      crewNote: "Nora arrives wet — hair kept damp all morning.",
-    );
-    await place(day1Cafe, shotsByScene[0]![0], 60);
-    await place(day1Cafe, shotsByScene[0]![1], 45);
-    await milestone(day1Cafe, OcptShootingBlockKind.meal, 60, label: "Lunch");
-    await place(day1Cafe, shotsByScene[0]![2], 40);
-    await place(day1Cafe, shotsByScene[0]![3], 40);
-    await milestone(day1Cafe, OcptShootingBlockKind.wrap, 30);
-
-    final day1Pier = (await scheduleService.createSlot(
-      database: database,
-      shootingDayId: day1,
-      anchorMinute: 13 * 60 + 30,
-      label: "Unit 2 — pier",
-      locationId: harbourId,
-      setId: pierSetId,
-      notes: "Planks are slick — grip lays matting before anybody walks out.",
-    ))!;
-    await convoke(
-      day1Pier,
-      positionIds: const [
-        "director",
-        "firstAssistantDirector",
-        "directorOfPhotography",
-        "gaffer",
-        "productionManager",
-      ],
-      roleNames: const ["NORA", "MARTIN"],
-    );
-    await milestone(day1Pier, OcptShootingBlockKind.travel, 20, label: "To the pier");
-    await milestone(day1Pier, OcptShootingBlockKind.preparation, 40, label: "Crane set up");
-    await place(day1Pier, shotsByScene[2]![0], 75);
-    await place(day1Pier, shotsByScene[2]![1], 50);
-    await milestone(day1Pier, OcptShootingBlockKind.wrap, 30);
-
-    await scheduleService.createDayEvent(
-      database: database,
-      dayId: day1,
-      minute: 17 * 60,
-      label: "Fish auction — the quay fills up",
-    );
-
-    // Day 2 — the rest of the cafe, then the end of the pier.
-    final day2 = (await scheduleService.createDay(database: database, date: DateTime(2026, 9, 16)))!;
-    await scheduleService.updateDay(
-      database: database,
-      dayId: day2,
-      weatherNote: const Value("Overcast, southerly 3, no rain expected."),
-    );
-    final day2Cafe = await firstSlotOf(day2);
-    await scheduleService.updateSlot(
-      database: database,
-      slotId: day2Cafe,
-      label: const Value("Unit 1 — cafe"),
-      locationId: Value(harbourId),
-      setId: Value(cafeSetId),
-    );
-    await startAt(day2Cafe, 8 * 60);
-    await convoke(
-      day2Cafe,
-      positionIds: const [
-        "director",
-        "firstAssistantDirector",
-        "directorOfPhotography",
-        "scriptSupervisor",
-        "soundEngineer",
-        "makeupArtist",
-      ],
-      roleNames: const ["NORA", "OWNER"],
-    );
-    await milestone(day2Cafe, OcptShootingBlockKind.preparation, 40, label: "Set up");
-    await place(day2Cafe, shotsByScene[1]![0], 50);
-    await place(day2Cafe, shotsByScene[1]![1], 40);
-    await milestone(day2Cafe, OcptShootingBlockKind.meal, 60, label: "Lunch");
-    await milestone(day2Cafe, OcptShootingBlockKind.wrap, 30);
-
-    final day2Pier = (await scheduleService.createSlot(
-      database: database,
-      shootingDayId: day2,
-      anchorMinute: 14 * 60,
-      label: "Unit 2 — pier",
-      locationId: harbourId,
-      setId: pierSetId,
-    ))!;
-    await convoke(
-      day2Pier,
-      positionIds: const [
-        "director",
-        "firstAssistantDirector",
-        "directorOfPhotography",
-        "gaffer",
-        "soundEngineer",
-      ],
-      roleNames: const ["NORA", "MARTIN"],
-    );
-    await milestone(day2Pier, OcptShootingBlockKind.travel, 20, label: "To the pier");
-    await place(day2Pier, shotsByScene[2]![2], 45);
-    await place(day2Pier, shotsByScene[2]![3], 60);
-    await milestone(day2Pier, OcptShootingBlockKind.wrap, 30);
-
-    // Day 3 — at sea, one unit, an early call and a hold for the sequence not yet shot-listed.
-    final day3 = (await scheduleService.createDay(database: database, date: DateTime(2026, 9, 17)))!;
-    await scheduleService.updateDay(
-      database: database,
-      dayId: day3,
-      status: const Value(OcptShootingDayStatus.planned),
-      crewNote: const Value("Skipper decides at 05:00 whether the bay is workable."),
-      weatherNote: const Value("Swell 1.5 m falling, westerly 3."),
-    );
-    final day3Sea = await firstSlotOf(day3);
-    await scheduleService.updateSlot(
-      database: database,
-      slotId: day3Sea,
-      label: const Value("Unit 1 — at sea"),
-      locationId: Value(seaId),
-      setId: Value(boatSetId),
-      notes: const Value("Six on board, no more. Everything else stays on the quay."),
-    );
-    await startAt(day3Sea, 6 * 60);
-    await convoke(
-      day3Sea,
-      positionIds: const [
-        "director",
-        "firstAssistantDirector",
-        "directorOfPhotography",
-        "soundEngineer",
-        "productionManager",
-      ],
-      roleNames: const ["NORA", "MARTIN"],
-    );
-    await milestone(day3Sea, OcptShootingBlockKind.preparation, 45, label: "Load the boat");
-    await milestone(day3Sea, OcptShootingBlockKind.travel, 40, label: "Out to the bay");
-    await place(day3Sea, shotsByScene[3]![0], 70);
-    await place(day3Sea, shotsByScene[3]![1], 50);
-    await milestone(day3Sea, OcptShootingBlockKind.meal, 45, label: "On board");
-    final holdId = (await scheduleService.createBlock(
-      database: database,
-      slotId: day3Sea,
-      kind: OcptShootingBlockKind.hold,
-      sceneId: sceneIds[3],
-      label: "Kept for the end of the sequence",
-      durationMinutes: 60,
-    ))!;
-    expect(holdId, isNotEmpty);
-    await milestone(day3Sea, OcptShootingBlockKind.travel, 40, label: "Back in");
-    await milestone(day3Sea, OcptShootingBlockKind.wrap, 30);
-
-    // The budget. The ten CNC postes are seeded by the quote service itself, on this very first
-    // read of an empty table — the labels are resolved from `Tr` in the app and written out here,
-    // this script having no BuildContext to resolve them against.
-    const posteLabels = <String, String>{
-      "1": "Artistic rights",
-      "2": "Personnel",
-      "3": "Cast",
-      "4": "Social charges",
-      "5": "Sets and costumes",
-      "6": "Transport, per diems, logistics",
-      "7": "Technical equipment",
-      "8": "Laboratory and post-production",
-      "9": "Insurance and miscellaneous",
-      "10": "Overheads",
-    };
-    final postes = await budgetQuoteService.loadPostes(
-      database: database,
-      seed: [
-        for (final poste in ocptBudgetCncPostes)
-          OcptBudgetPosteSeed(
-            id: poste.id,
-            code: poste.code,
-            label: posteLabels[poste.code]!,
-            simpleLabel: null,
-          ),
-      ],
-    );
-    expect(postes, hasLength(10));
-
-    String posteIdOf(String code) => postes.firstWhere((poste) => poste.code == code).id;
-
-    Future<String> quoteLine(
-      String code,
-      String label,
-      int quantityMilli,
-      String unit,
-      int unitAmountCents, {
-      int? vatRateBasisPoints,
-    }) async {
-      final lineId = (await budgetQuoteService.createLine(
-        database: database,
-        posteId: posteIdOf(code),
-        label: label,
-        unitAmountCents: Value(unitAmountCents),
-      ))!;
-      await budgetQuoteService.updateLine(
-        database: database,
-        lineId: lineId,
-        quantityMilli: Value(quantityMilli),
-        unit: Value(unit),
-        vatRateBasisPoints: Value(vatRateBasisPoints),
-      );
-
-      return lineId;
-    }
-
-    await quoteLine("1", "Screenplay rights", 1000, "package", 120000, vatRateBasisPoints: 0);
-    await quoteLine("2", "Director of photography", 12000, "day", 25000, vatRateBasisPoints: 0);
-    await quoteLine("2", "Sound engineer", 12000, "day", 22000, vatRateBasisPoints: 0);
-    await quoteLine("3", "Nora", 12000, "day", 30000, vatRateBasisPoints: 0);
-    await quoteLine("3", "Martin", 8000, "day", 30000, vatRateBasisPoints: 0);
-    await quoteLine("4", "Employer contributions", 1000, "package", 240000, vatRateBasisPoints: 0);
-    final costumesLineId = await quoteLine(
-      "5",
-      "Period costumes",
-      1000,
-      "package",
-      180000,
-      vatRateBasisPoints: 2000,
-    );
-    await quoteLine("5", "Set dressing — the lighthouse", 1000, "package", 95000,
-        vatRateBasisPoints: 2000);
-    await quoteLine("6", "Boat charter", 3000, "day", 48000, vatRateBasisPoints: 2000);
-    await quoteLine("7", "Camera package", 12000, "day", 39000, vatRateBasisPoints: 2000);
-    await quoteLine("8", "Colour grading", 4000, "day", 55000, vatRateBasisPoints: 2000);
-    await quoteLine("8", "Sound mix", 3000, "day", 40000, vatRateBasisPoints: 2000);
-    await quoteLine("9", "Production insurance", 1000, "package", 85000, vatRateBasisPoints: 2000);
-    await quoteLine("10", "Office and telephone", 1000, "package", 60000, vatRateBasisPoints: 2000);
-
-    // The financing plan. One contribution is reimbursable out of the takings, which is what the
-    // sharing view puts before any split at all.
-    Future<String> resource(
-      OcptBudgetResourceGroupKind groupKind,
-      String label,
-      int amountCents,
-      OcptBudgetResourceStatus status, {
-      bool isReimbursable = false,
-    }) async {
-      final id = (await budgetFinancingService.createResource(database: database, label: label))!;
-      await budgetFinancingService.updateResource(
-        database: database,
-        resourceId: id,
-        groupKind: Value(groupKind),
-        amountCents: Value(amountCents),
-        status: Value(status),
-        isReimbursable: Value(isReimbursable),
-      );
-
-      return id;
-    }
-
-    await resource(
-      OcptBudgetResourceGroupKind.subsidy,
-      "Regional production fund",
-      800000,
-      OcptBudgetResourceStatus.confirmed,
-    );
-    final ownContribution = await resource(
-      OcptBudgetResourceGroupKind.cash,
-      "The production's own contribution",
-      350000,
-      OcptBudgetResourceStatus.confirmed,
-      isReimbursable: true,
-    );
-    await resource(
-      OcptBudgetResourceGroupKind.inKind,
-      "Harbour office lent for the shoot",
-      120000,
-      OcptBudgetResourceStatus.agreed,
-    );
-
-    // What is ordered but not yet paid. One is settled by the entry below it, so the expenses tree
-    // reads a whole line → commitment → payment chain; the other two are still owed, which is what
-    // the cash-flow page's own upcoming section and its projection read.
-    final costumesCommitmentId = (await budgetJournalService.createCommitment(
-      database: database,
-      posteId: posteIdOf("5"),
-      lineId: costumesLineId,
-      label: "Maison Couronne — period costumes",
-      dueDate: DateTime.utc(2026, 9, 20),
-      amountCents: 180000,
-      vatRateBasisPoints: 2000,
-      status: OcptBudgetCommitmentStatus.invoiceReceived,
-    ))!;
-    await budgetJournalService.createCommitment(
-      database: database,
-      posteId: posteIdOf("7"),
-      label: "Camera package, second week",
-      dueDate: DateTime.utc(2026, 9, 30),
-      amountCents: 117000,
-      vatRateBasisPoints: 2000,
-    );
-    await budgetJournalService.createCommitment(
-      database: database,
-      posteId: posteIdOf("8"),
-      label: "Studio Lumière — colour grading",
-      dueDate: DateTime.utc(2026, 11, 16),
-      amountCents: 220000,
-      vatRateBasisPoints: 2000,
-      status: OcptBudgetCommitmentStatus.contractSigned,
-    );
-
-    // The cash journal, including the credit that makes the reimbursable contribution received.
-    await budgetJournalService.createEntry(
-      database: database,
-      date: DateTime.utc(2026, 8, 14),
-      label: "The production's own contribution paid in",
-      creditCents: 350000,
-      resourceId: ownContribution,
-    );
-    await budgetJournalService.createEntry(
-      database: database,
-      date: DateTime.utc(2026, 9, 2),
-      label: "Camera package, first week",
-      posteId: posteIdOf("7"),
-      debitCents: 117000,
-      vatRateBasisPoints: 2000,
-    );
-    await budgetJournalService.createEntry(
-      database: database,
-      date: DateTime.utc(2026, 9, 8),
-      label: "Boat charter",
-      posteId: posteIdOf("6"),
-      debitCents: 144000,
-      vatRateBasisPoints: 2000,
-    );
-    await budgetJournalService.createEntry(
-      database: database,
-      date: DateTime.utc(2026, 9, 20),
-      label: "Maison Couronne — period costumes",
-      posteId: posteIdOf("5"),
-      commitmentId: costumesCommitmentId,
-      debitCents: 180000,
-      vatRateBasisPoints: 2000,
-    );
-
-    // The premium came in above the line quoted for it, so poste 9 reads over its own quote — the
-    // one standing alert the demonstration project raises, and the reason the dashboard has an
-    // alerts card to draw at all.
-    await budgetJournalService.createEntry(
-      database: database,
-      date: DateTime.utc(2026, 8, 28),
-      label: "Production insurance — annual premium",
-      posteId: posteIdOf("9"),
-      debitCents: 102000,
-      vatRateBasisPoints: 2000,
-    );
-
-    // The takings, and what each of them has actually brought in.
-    Future<String> revenue(
-      DateTime date,
-      String label,
-      int amountCents,
-      OcptBudgetRevenueStatus status,
-    ) async {
-      final id = (await budgetSharingService.createRevenue(
-        database: database,
-        date: date,
-        label: label,
-      ))!;
-      await budgetSharingService.updateRevenue(
-        database: database,
-        revenueId: id,
-        amountCents: Value(amountCents),
-        status: Value(status),
-      );
-
-      return id;
-    }
-
-    final prize = await revenue(
-      DateTime.utc(2027, 2, 2),
-      "Clermont-Ferrand — audience award",
-      300000,
-      OcptBudgetRevenueStatus.confirmed,
-    );
-    final broadcast = await revenue(
-      DateTime.utc(2027, 3, 18),
-      "Regional distribution grant",
-      220000,
-      OcptBudgetRevenueStatus.confirmed,
-    );
-    await revenue(
-      DateTime.utc(2027, 5, 30),
-      "Television pre-buy — short film slot",
-      100000,
-      OcptBudgetRevenueStatus.invoiced,
-    );
-
-    await budgetJournalService.createEntry(
-      database: database,
-      date: DateTime.utc(2027, 2, 2),
-      label: "Audience award paid in",
-      creditCents: 300000,
-      revenueId: prize,
-    );
-    await budgetJournalService.createEntry(
-      database: database,
-      date: DateTime.utc(2027, 3, 18),
-      label: "Distribution grant paid in",
-      creditCents: 220000,
-      revenueId: broadcast,
-    );
-
-    // The split. The shares deliberately add up to exactly 1000 per mille here, so the demonstration
-    // project shows a plan that balances; the view states the sum whenever one does not.
-    Future<String> share(String label, int sharePermille, int reinvestPermille) async {
-      final id = (await budgetSharingService.createShare(database: database, label: label))!;
-      await budgetSharingService.updateShare(
-        database: database,
-        shareId: id,
-        sharePermille: Value(sharePermille),
-        reinvestPermille: Value(reinvestPermille),
-      );
-
-      return id;
-    }
-
-    await share("Director", 400, 1000);
-    await share("Production", 250, 0);
-    await share("Director of photography", 150, 0);
-    await share("Nora", 100, 0);
-    final editor = await share("Editor", 100, 500);
-
-    await budgetJournalService.createEntry(
-      database: database,
-      date: DateTime.utc(2027, 6, 12),
-      label: "Editor's share, first instalment",
-      debitCents: 8000,
-      shareId: editor,
     );
 
     // ignore: avoid_print, this script reports where it wrote to the terminal that ran it

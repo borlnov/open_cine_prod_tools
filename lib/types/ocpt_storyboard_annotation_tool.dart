@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
-
 /// The board's active annotation editing tool, picked from the inspector's own `Annotate` control.
 ///
 /// A **view/session state** value, exactly like `OcptStoryboardPanelSize`: held in
@@ -21,20 +19,4 @@ enum OcptStoryboardAnnotationTool {
 
   /// Places a `OcptStoryboardAnnotationKind.label` on click.
   label,
-}
-
-/// What [OcptStoryboardAnnotationTool] reads and writes as, and how it behaves — kept as an
-/// extension rather than fields on the enum itself, since both only ever matter to the board's own
-/// gesture layer.
-extension OcptStoryboardAnnotationToolBehaviour on OcptStoryboardAnnotationTool {
-  /// The kind of mark this tool draws.
-  OcptStoryboardAnnotationKind get kind => switch (this) {
-    OcptStoryboardAnnotationTool.movementArrow => OcptStoryboardAnnotationKind.movementArrow,
-    OcptStoryboardAnnotationTool.cameraMoveArrow => OcptStoryboardAnnotationKind.cameraMoveArrow,
-    OcptStoryboardAnnotationTool.label => OcptStoryboardAnnotationKind.label,
-  };
-
-  /// Whether this tool draws by dragging (an arrow, tail to head) rather than by a single click (a
-  /// label): what the board's gesture layer wires its `onPan…` callbacks against.
-  bool get isDrag => this != OcptStoryboardAnnotationTool.label;
 }

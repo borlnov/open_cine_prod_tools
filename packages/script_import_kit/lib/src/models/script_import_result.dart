@@ -12,9 +12,6 @@ import 'package:script_import_kit/src/models/script_import_format.dart';
 /// caller can tell a user which door the screenplay came in through, never
 /// to convert it back.
 class ScriptImportResult extends Equatable {
-  /// Creates a [ScriptImportResult].
-  const ScriptImportResult({required this.format, required this.fountainText});
-
   /// The format [fountainText] was converted from.
   final ScriptImportFormat format;
 
@@ -22,10 +19,14 @@ class ScriptImportResult extends Equatable {
   /// `FountainParser` or stored as a screenplay's text.
   final String fountainText;
 
+  /// Create a [ScriptImportResult].
+  const ScriptImportResult({required this.format, required this.fountainText});
+
+  /// Describe this [ScriptImportResult] for debugging and logging.
+  @override
+  String toString() => 'ScriptImportResult(${format.name}, ${fountainText.length} chars)';
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, fountainText];
-
-  @override
-  String toString() =>
-      'ScriptImportResult(${format.name}, ${fountainText.length} chars)';
 }

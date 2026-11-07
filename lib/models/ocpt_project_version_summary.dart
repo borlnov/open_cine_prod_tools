@@ -5,7 +5,7 @@
 import 'dart:convert';
 
 import 'package:act_dart_utility/act_dart_utility.dart';
-import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
@@ -17,14 +17,17 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 /// stored alongside it in `project_versions.summaryJson`: drawing the versions list must never mean
 /// deserializing and re-measuring every payload.
 class OcptProjectVersionSummary extends Equatable {
+  /// The all-zero summary, used for a version whose stored counters can't be read back.
+  static const empty = OcptProjectVersionSummary(pageCount: 0, brokenDownSequenceCount: 0);
+
+  /// The category this class logs under.
+  static const _loggerCategory = "project_version_summary";
+
   /// This is the key used to stringify or parse the [pageCount] from a JSON object
   static const _pageCountKey = "pageCount";
 
   /// This is the key used to stringify or parse the [brokenDownSequenceCount] from a JSON object
   static const _brokenDownSequenceCountKey = "brokenDownSequenceCount";
-
-  /// The all-zero summary, used for a version whose stored counters can't be read back.
-  static const empty = OcptProjectVersionSummary(pageCount: 0, brokenDownSequenceCount: 0);
 
   /// The number of printed pages the version's screenplays paginated to, at the page setup the
   /// version itself carries.
@@ -35,12 +38,9 @@ class OcptProjectVersionSummary extends Equatable {
   final int brokenDownSequenceCount;
 
   /// Class constructor
-  const OcptProjectVersionSummary({
-    required this.pageCount,
-    required this.brokenDownSequenceCount,
-  });
+  const OcptProjectVersionSummary({required this.pageCount, required this.brokenDownSequenceCount});
 
-  /// Measures [payload], at the page setup that payload carries.
+  /// Measure [payload], at the page setup that payload carries.
   ///
   /// The page count is the same one the status bar and the PDF exporter show, so a version's card
   /// and its restored project agree: it comes from [FountainScriptStatistics], summed over the live
@@ -79,6 +79,12 @@ class OcptProjectVersionSummary extends Equatable {
     _brokenDownSequenceCountKey: brokenDownSequenceCount,
   };
 
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptProjectVersionSummary(pageCount: $pageCount, "
+      "brokenDownSequenceCount: $brokenDownSequenceCount)";
+
   /// Parse the given [json] to a [OcptProjectVersionSummary] object
   ///
   /// Returns null if the given [json] doesn't hold the expected keys or if one of its values can't
@@ -87,18 +93,20 @@ class OcptProjectVersionSummary extends Equatable {
     final pageCountResult = JsonUtility.getOnePrimaryElement<int>(
       json: json,
       key: _pageCountKey,
-      logger: appLogger(),
+      logger: _createLogger(),
     );
 
     final brokenDownSequenceCountResult = JsonUtility.getOnePrimaryElement<int>(
       json: json,
       key: _brokenDownSequenceCountKey,
-      logger: appLogger(),
+      logger: _createLogger(),
     );
 
     if (!pageCountResult.isOk || !brokenDownSequenceCountResult.isOk) {
-      appLogger().w("A problem occurred when tried to get the project version summary from the "
-          "given JSON");
+      _createLogger().w(
+        "A problem occurred when tried to get the project version summary from the "
+        "given JSON",
+      );
       return null;
     }
 
@@ -108,33 +116,39 @@ class OcptProjectVersionSummary extends Equatable {
     );
   }
 
-  /// Parses the [summaryJson] text stored in a `project_versions` row, falling back to [empty].
+  /// Parse the [summaryJson] text stored in a `project_versions` row, falling back to [empty].
   ///
   /// A summary is a display detail: a version whose counters can't be read back is still perfectly
   /// restorable, so an unreadable one is logged and shown as zeroes rather than hiding the version
   /// from its own list.
   static OcptProjectVersionSummary parse(String summaryJson) {
+    var summary = empty;
     try {
       final decoded = jsonDecode(summaryJson);
       if (decoded is! Map<String, dynamic>) {
-        appLogger().w("The stored project version summary isn't a JSON object: $summaryJson");
-        return empty;
+        _createLogger().w("The stored project version summary isn't a JSON object");
+      } else {
+        summary = fromJson(decoded) ?? empty;
       }
-
-      return fromJson(decoded) ?? empty;
-    } on FormatException catch (error) {
-      appLogger().w("The stored project version summary isn't valid JSON: $error");
-      return empty;
+    } on FormatException catch (error, stackTrace) {
+      // A JSON error quotes the text around the fault, so only its type is logged.
+      _createLogger().w(
+        "The stored project version summary isn't valid JSON: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
     }
+
+    return summary;
   }
 
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptProjectVersionSummary(pageCount: $pageCount, "
-      "brokenDownSequenceCount: $brokenDownSequenceCount)";
+  /// Build the logger this class writes to.
+  ///
+  /// Built on every use rather than held: a model has no life cycle to release a logger with, and
+  /// the global logger it is built over can be replaced.
+  static LogsHelper _createLogger() => LogsHelper(category: _loggerCategory);
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pageCount, brokenDownSequenceCount];
 }

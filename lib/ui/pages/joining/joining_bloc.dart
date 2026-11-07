@@ -2,25 +2,32 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
-import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
-import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_uri_query.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/join_step.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 
 /// This is the bloc class for the Rejoindre (joining) screen: pairing this replica to a project
 /// already shared on a relay, by scanning the Partager screen's own QR code (tablet only) or by
-/// typing its connection details by hand (`docs/plans/relay.md`, Phase C, commit 4).
+/// typing its connection details by hand.
 ///
 /// Reachable with **no project open**: joining is how one comes to exist on this replica in the
 /// first place, so [OcptRoute.joining] carries none of the workspace/project settings/sharing
@@ -45,6 +52,12 @@ import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 /// Rejoindre screen is replaced rather than left underneath it: pushing on top of it (as this bloc
 /// used to) meant the workspace's own Home/back returned to Rejoindre instead of the real home.
 class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "joining_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger;
+
   /// The manager driving the actual join: opening the relay transport and fetching/materialising
   /// its latest snapshot.
   final OcptSyncManager _syncManager;
@@ -67,20 +80,12 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     OcptProjectsManager? projectsManager,
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
-  }) : _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        super(const OcptJoiningState.init());
-
-  /// Set by [_onCancelled] and checked by [_join] after every `await` along the join path, to bail
-  /// out — without navigating and without reporting success — the moment the user asks to cancel.
-  ///
-  /// This is a best-effort UI abandon only: `dart:io` gives no way to actually cancel an in-flight
-  /// snapshot fetch or materialisation already under way, so a cancelled join may still finish
-  /// writing a `.ocpt` to disk after this flag is set — that file is simply never opened or shown,
-  /// which is an acceptable cost for how rarely a cancel lands mid-write.
-  bool _cancelled = false;
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -93,7 +98,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     on<OcptJoiningCancelledEvent>(_onCancelled);
   }
 
-  /// Parses the pasted invite link into an [OcptRelayInvite], then joins — or surfaces
+  /// Parse the pasted invite link into an [OcptRelayInvite], then join — or surface
   /// [OcptJoiningState.joinFailed] straight away when it isn't one at all (an empty field or some
   /// other, unrelated text).
   ///
@@ -107,7 +112,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     Emitter<OcptJoiningState> emitter,
   ) => _joinFromRawText(event.inviteLinkText, event.destinationConfirmButtonText, emitter);
 
-  /// Parses the scanned QR text into an [OcptRelayInvite], then joins — or surfaces
+  /// Parse the scanned QR text into an [OcptRelayInvite], then join — or surface
   /// [OcptJoiningState.joinFailed] straight away when it isn't one at all (a QR aimed at some
   /// unrelated app).
   Future<void> _onInviteScanned(
@@ -115,29 +120,32 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     Emitter<OcptJoiningState> emitter,
   ) => _joinFromRawText(event.scannedText, event.destinationConfirmButtonText, emitter);
 
-  /// Parses [rawText] — a pasted invite link or a scanned QR code's own decoded text, the manual
-  /// and scan paths' shared destination — into an [OcptRelayInvite], then joins, or surfaces
+  /// Parse [rawText] — a pasted invite link or a scanned QR code's own decoded text, the manual and
+  /// scan paths' shared destination — into an [OcptRelayInvite], then join, or surface
   /// [OcptJoiningState.joinFailed] when it isn't one at all.
   Future<void> _joinFromRawText(
     String rawText,
     String destinationConfirmButtonText,
     Emitter<OcptJoiningState> emitter,
   ) async {
-    final invite = OcptRelayInvite.tryParse(rawText.trim());
+    final invite = OcptRelayInvite.parse(rawText.trim()).value;
     if (invite == null) {
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.join,
         level: OcptDiagnosticsLevel.warning,
         message: 'scanned code is not a valid join invite — ${_describeScannedText(rawText)}',
+        // The description names the host of whatever was scanned, which is not logged.
+        logMessage: 'scanned code is not a valid join invite',
       );
-      emitter(state.copyWith(joinFailed: true));
+      emitter(state.copyWithInviteRejected());
       return;
     }
 
     await _join(invite, destinationConfirmButtonText, emitter);
   }
 
-  /// A token-free description of what a rejected scan/paste actually held, for the diagnostics log:
+  /// Get a token-free description of what a rejected scan/paste actually held, for the diagnostics
+  /// log:
   /// the URI scheme and host, and which of the invite's own `r`/`p`/`t` query parameters were
   /// present (never their values — a token must never reach the log). This is what tells a rejected
   /// `ocpt://relay` enrolment QR (scanned in the wrong screen) apart from a genuinely malformed
@@ -147,7 +155,11 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     if (uri == null) {
       return 'not a URI (${rawText.trim().length} chars)';
     }
-    final query = uri.queryParameters;
+    final query = ocptQueryParametersOrNull(uri);
+    if (query == null) {
+      // A percent-escape that is not valid UTF-8 parses as a URI but throws on this read.
+      return 'scheme=${uri.scheme} host=${uri.host} params=[unreadable]';
+    }
     final present = [
       if ((query['r'] ?? '').isNotEmpty) 'r',
       if ((query['p'] ?? '').isNotEmpty) 'p',
@@ -156,15 +168,15 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     return 'scheme=${uri.scheme} host=${uri.host} params=[$present]';
   }
 
-  /// Runs the actual join against [invite]: picks a destination folder ([OcptJoinStep.connecting]),
+  /// Run the actual join against [invite]: picks a destination folder ([OcptJoinStep.connecting]),
   /// fetches and materialises the relay's latest snapshot there ([OcptJoinStep.downloading]), and
   /// opens the result ([OcptJoinStep.opening]) — leaving [OcptJoiningState.joinSucceeded] for the
   /// page's own success state to pick up; it, not this method, is what eventually navigates
   /// (see [_onOpenRequested]).
   ///
-  /// [_cancelled] is checked after every `await`: once [_onCancelled] has set it, this bails out
-  /// silently — no further state change, no navigation — rather than reporting either success or
-  /// failure for a join the user has already walked away from.
+  /// [OcptJoiningState.isCancelled] is checked after every `await`: once [_onCancelled] has set it,
+  /// this bails out silently — no further state change, no navigation — rather than reporting
+  /// either success or failure for a join the user has already walked away from.
   ///
   /// A cancelled destination picker is a silent no-op, exactly like every other import/export of
   /// this app treats one; any other failure — the relay unreachable, an invalid token, a corrupted
@@ -175,103 +187,124 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     String destinationConfirmButtonText,
     Emitter<OcptJoiningState> emitter,
   ) async {
-    _cancelled = false;
-    emitter(
-      state.copyWith(
-        isJoining: true,
-        joinFailed: false,
-        joinSucceeded: false,
-        joinStep: OcptJoinStep.connecting,
-      ),
-    );
+    emitter(state.copyWithJoinStarted());
     OcptDiagnosticsManager.log(
       category: OcptDiagnosticsCategory.join,
       message: 'connecting: project=${invite.projectId} relay=${invite.relayBaseUri}',
+      // The relay's address is not logged.
+      logMessage: 'connecting: project=${invite.projectId}',
     );
 
     try {
-      final parentDirectoryPath = await _resolveParentDirectoryPath(destinationConfirmButtonText);
-      if (_cancelled) {
-        return;
-      }
-      if (parentDirectoryPath == null) {
-        // The user cancelled the desktop folder picker.
-        emitter(state.copyWith(isJoining: false, clearJoinStep: true));
-        return;
-      }
-
-      final pairing = OcptProjectPairing(relayBaseUri: invite.relayBaseUri, token: invite.token);
-      final storage = _syncManager.openRelayRemoteStorage(pairing, invite.projectId);
-      final String projectFilePath;
-      try {
-        emitter(state.copyWith(joinStep: OcptJoinStep.downloading));
-        OcptDiagnosticsManager.log(
-          category: OcptDiagnosticsCategory.join,
-          message: 'downloading: project=${invite.projectId}',
-        );
-        projectFilePath = await _syncManager.joinFromRelay(
-          storage: storage,
-          parentDirectoryPath: parentDirectoryPath,
-          pairingService: _syncManager.pairingService,
-          relayBaseUri: invite.relayBaseUri,
-          token: invite.token,
-        );
-      } finally {
-        if (storage is OcptRelayRemoteStorage) {
-          storage.dispose();
-        }
-      }
-      if (_cancelled) {
-        return;
-      }
-
-      emitter(state.copyWith(joinStep: OcptJoinStep.opening));
-      OcptDiagnosticsManager.log(
-        category: OcptDiagnosticsCategory.join,
-        message: 'opening: project=${invite.projectId}',
-      );
-      final result = await _projectsManager.openProject(filePath: projectFilePath);
-      if (_cancelled) {
-        return;
-      }
-      if (!result.status.isSuccess) {
+      await _runJoin(invite, destinationConfirmButtonText, emitter);
+    } catch (error, stackTrace) {
+      if (!state.isCancelled) {
+        // The error can name the relay's address or a folder, so only its type is logged.
+        _logger.e('Joining a project failed: ${error.runtimeType}', null, stackTrace);
         OcptDiagnosticsManager.log(
           category: OcptDiagnosticsCategory.join,
           level: OcptDiagnosticsLevel.error,
-          message: 'failed to open joined project: project=${invite.projectId}',
+          message: 'failed: project=${invite.projectId} $error',
+          logMessage: 'failed: project=${invite.projectId} ${error.runtimeType}',
         );
-        emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
-        return;
+        emitter(state.copyWithJoinFailed());
       }
-
-      if (!_exportManager.isMobile) {
-        await _projectsManager.rememberProjectsDirectory(parentDirectoryPath);
-      }
-
-      OcptDiagnosticsManager.log(
-        category: OcptDiagnosticsCategory.join,
-        message: 'succeeded: project=${invite.projectId}',
-      );
-      emitter(state.copyWith(isJoining: false, joinSucceeded: true, clearJoinStep: true));
-    } catch (error) {
-      if (_cancelled) {
-        return;
-      }
-      OcptDiagnosticsManager.log(
-        category: OcptDiagnosticsCategory.join,
-        level: OcptDiagnosticsLevel.error,
-        message: 'failed: project=${invite.projectId} $error',
-      );
-      emitter(state.copyWith(isJoining: false, joinFailed: true, clearJoinStep: true));
     }
   }
 
-  /// Where the joined project's `.ocpt` lands: the folder picked in the native folder-picker
-  /// dialog on desktop (mirroring `OcptHomeBloc`'s own save-file dialog, suggested inside
-  /// [OcptProjectsManager.suggestedProjectsDirectory] and labelled [confirmButtonText]'s own confirm
-  /// button), or [OcptProjectsManager.newProjectsDirectory] with no dialog at all on mobile, where
-  /// `file_selector`'s `getDirectoryPath` has no Android/iOS implementation (ADR 0009) — the
-  /// application's own documents directory then.
+  /// Run the steps of [_join], whose exceptions [_join] turns into [OcptJoiningState.joinFailed].
+  /// Stops
+  /// silently at the first step that finds [OcptJoiningState.isCancelled] set.
+  Future<void> _runJoin(
+    OcptRelayInvite invite,
+    String destinationConfirmButtonText,
+    Emitter<OcptJoiningState> emitter,
+  ) async {
+    final parentDirectoryPath = await _resolveParentDirectoryPath(destinationConfirmButtonText);
+    if (state.isCancelled) {
+      return;
+    }
+    if (parentDirectoryPath == null) {
+      // The user cancelled the desktop folder picker.
+      emitter(state.copyToIdle());
+      return;
+    }
+
+    final pairing = OcptProjectPairing(relayBaseUri: invite.relayBaseUri, token: invite.token);
+    final storage = _syncManager.openRelayRemoteStorage(pairing, invite.projectId);
+    final ResultWithStatus<OcptSyncFlowStatus, String> joined;
+    try {
+      emitter(state.copyWithDownloading());
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.join,
+        message: 'downloading: project=${invite.projectId}',
+      );
+      joined = await _syncManager.joinFromRelay(
+        storage: storage,
+        parentDirectoryPath: parentDirectoryPath,
+        pairingService: _syncManager.pairingService,
+        relayBaseUri: invite.relayBaseUri,
+        token: invite.token,
+      );
+    } finally {
+      if (storage is OcptRelayRemoteStorage) {
+        storage.dispose();
+      }
+    }
+    if (state.isCancelled) {
+      return;
+    }
+    final projectFilePath = joined.value;
+    if (!joined.status.isSuccess || projectFilePath == null) {
+      // The relay's answer can name its address, so only the status is logged.
+      _logger.e('Joining a project failed: ${joined.status.name}');
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.join,
+        level: OcptDiagnosticsLevel.error,
+        message: 'failed: project=${invite.projectId} ${joined.extraInfo ?? joined.status}',
+        logMessage: 'failed: project=${invite.projectId} ${joined.status.name}',
+      );
+      emitter(state.copyWithJoinFailed());
+      return;
+    }
+
+    emitter(state.copyWithOpening());
+    OcptDiagnosticsManager.log(
+      category: OcptDiagnosticsCategory.join,
+      message: 'opening: project=${invite.projectId}',
+    );
+    final result = await _projectsManager.openProject(filePath: projectFilePath);
+    if (state.isCancelled) {
+      return;
+    }
+    if (!result.status.isSuccess) {
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.join,
+        level: OcptDiagnosticsLevel.error,
+        message: 'failed to open joined project: project=${invite.projectId}',
+      );
+      emitter(state.copyWithJoinFailed());
+      return;
+    }
+
+    if (!_exportManager.isMobile) {
+      await _projectsManager.rememberProjectsDirectory(parentDirectoryPath);
+    }
+
+    OcptDiagnosticsManager.log(
+      category: OcptDiagnosticsCategory.join,
+      message: 'succeeded: project=${invite.projectId}',
+    );
+    emitter(state.copyWithJoinSucceeded());
+  }
+
+  /// Tell where the joined project's `.ocpt` lands: the folder picked in the native folder-picker
+  /// dialog
+  /// on desktop (mirroring `OcptHomeBloc`'s own save-file dialog, suggested inside
+  /// [OcptProjectsManager.suggestedProjectsDirectory] and labelled [confirmButtonText]'s own
+  /// confirm button), or [OcptProjectsManager.newProjectsDirectory] with no dialog at all on
+  /// mobile, where `file_selector`'s `getDirectoryPath` has no Android/iOS implementation (ADR
+  /// 0009) — the application's own documents directory then.
   ///
   /// Nothing is written here: the joined project's own folder is created by the package import,
   /// which refuses to replace one already there. Returns null when the user cancelled the desktop
@@ -289,15 +322,15 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     );
   }
 
-  /// Clears [OcptJoiningState.joinFailed] once the page has shown its own snack bar for it.
+  /// Clear [OcptJoiningState.joinFailed] once the page has shown its own snack bar for it.
   Future<void> _onErrorDismissed(
     OcptJoiningErrorDismissedEvent event,
     Emitter<OcptJoiningState> emitter,
   ) async {
-    emitter(state.copyWith(joinFailed: false));
+    emitter(state.copyWithFailureDismissed());
   }
 
-  /// Pushes the workspace on the user's explicit "Ouvrir", once [OcptJoiningState.joinSucceeded] is
+  /// Push the workspace on the user's explicit "Ouvrir", once [OcptJoiningState.joinSucceeded] is
   /// true — through [OcptRouterManager.replace] rather than [OcptRouterManager.push], so the
   /// Rejoindre screen is replaced on the navigation stack instead of left underneath the workspace:
   /// a push there would mean the workspace's own Home/back returned to Rejoindre instead of the
@@ -309,14 +342,13 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     await _routerManager.replace(OcptRoute.workspace);
   }
 
-  /// Marks the in-flight join as abandoned — see [_cancelled]'s own doc comment for what this can
-  /// and cannot actually stop — and returns the page to its idle state.
+  /// Mark the in-flight join as abandoned — see [OcptJoiningState.isCancelled]'s own doc comment
+  /// for what this can and cannot actually stop — and return the page to its idle state.
   Future<void> _onCancelled(
     OcptJoiningCancelledEvent event,
     Emitter<OcptJoiningState> emitter,
   ) async {
     OcptDiagnosticsManager.log(category: OcptDiagnosticsCategory.join, message: 'cancelled');
-    _cancelled = true;
-    emitter(state.copyWith(isJoining: false, clearJoinStep: true));
+    emitter(state.copyToCancelled());
   }
 }

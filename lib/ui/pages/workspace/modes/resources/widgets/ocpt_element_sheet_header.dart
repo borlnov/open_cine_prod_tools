@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_breakdown_palette.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
@@ -13,8 +13,8 @@ import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_code_read_out.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_photo_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_decimal_input.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_decimal_input.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The width of the code read-out: a code is `PRP-3`, `VEH-1` — never a sentence.
 const double _codeFieldWidth = 92;
@@ -52,8 +52,7 @@ class OcptElementSheetHeader extends StatelessWidget {
   /// element's own stored value.
   final String Function(OcptElementField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptElementField field, String rawValue)? onFieldChanged;
 
   /// Called with the newly picked category, or null while it may not be changed.
@@ -76,42 +75,83 @@ class OcptElementSheetHeader extends StatelessWidget {
     required this.onPhotoCleared,
   });
 
+  /// Build the element sheet header as a [Row].
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      OcptResourcesPhotoSlot(
+        photo: element.photo,
+        currentColorIndex: null,
+        placeholderBuilder: (context) => _PhotoPlaceholder(category: element.category),
+        onPhotoPickRequested: onPhotoPickRequested,
+        onPhotoCleared: onPhotoCleared,
+        onColorChanged: null,
+      ),
+      const SizedBox(width: 16),
+      Expanded(
+        child: _Fields(
+          element: element,
+          fieldValueOf: fieldValueOf,
+          onFieldChanged: onFieldChanged,
+          onCategoryChanged: onCategoryChanged,
+        ),
+      ),
+    ],
+  );
+}
+
+/// What the photo slot shows while the element references none: the category's own colour, which
+/// is the colour that category already reads as everywhere in the breakdown and its exports.
+class _PhotoPlaceholder extends StatelessWidget {
+  /// The category of the element the slot belongs to.
+  final OcptElementCategory category;
+
+  /// Class constructor
+  const _PhotoPlaceholder({required this.category});
+
+  /// Build the photo placeholder as a [Center].
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        OcptResourcesPhotoSlot(
-          photo: element.photo,
-          currentColorIndex: null,
-          placeholderBuilder: _buildPhotoPlaceholder,
-          onPhotoPickRequested: onPhotoPickRequested,
-          onPhotoCleared: onPhotoCleared,
-          onColorChanged: null,
-        ),
-        const SizedBox(width: 16),
-        Expanded(child: _buildFields(context, theme, tr)),
-      ],
-    );
-  }
-
-  /// What the photo slot shows while the element references none: the category's own colour, which
-  /// is the colour that category already reads as everywhere in the breakdown and its exports.
-  Widget _buildPhotoPlaceholder(BuildContext context) {
     final color = Color(
-      ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: element.category),
+      ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: category),
     );
 
     return Center(
       child: Icon(Icons.inventory_2_outlined, size: _photoPlaceholderIconSize, color: color),
     );
   }
+}
 
-  /// The header's own two rows, to the right of the photo slot.
-  Widget _buildFields(BuildContext context, ThemeData theme, Tr tr) => Column(
+/// The header's own two rows, to the right of the photo slot.
+class _Fields extends StatelessWidget {
+  /// The element the rows show.
+  final OcptElement element;
+
+  /// [element]'s current value for `field`.
+  final String Function(OcptElementField field) fieldValueOf;
+
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
+  final void Function(OcptElementField field, String rawValue)? onFieldChanged;
+
+  /// Called with the newly picked category, or null while it may not be changed.
+  final ValueChanged<OcptElementCategory>? onCategoryChanged;
+
+  /// Class constructor
+  const _Fields({
+    required this.element,
+    required this.fieldValueOf,
+    required this.onFieldChanged,
+    required this.onCategoryChanged,
+  });
+
+  /// Build the fields as a [Column].
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Aligned by the bottom rather than by the top: the code carries a label and the name does
@@ -142,7 +182,7 @@ class OcptElementSheetHeader extends StatelessWidget {
             const SizedBox(width: 12),
             Padding(
               padding: const EdgeInsets.only(bottom: _trackingBadgeBottomInset),
-              child: _buildTrackingBadge(context, tr),
+              child: _TrackingBadge(element: element),
             ),
           ],
         ),
@@ -150,10 +190,16 @@ class OcptElementSheetHeader extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _buildCategoryPicker(context, tr)),
+            Expanded(
+              child: _CategoryPicker(element: element, onCategoryChanged: onCategoryChanged),
+            ),
             const SizedBox(width: 12),
             Expanded(
-              child: _field(OcptElementField.subCategory, tr.resourcesElementSubCategoryLabel),
+              child: _OcptElementSheetHeaderField(
+                fields: this,
+                field: OcptElementField.subCategory,
+                label: tr.resourcesElementSubCategoryLabel,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -170,17 +216,73 @@ class OcptElementSheetHeader extends StatelessWidget {
         ),
       ],
     );
+  }
 
-  /// The badge reading how far along the element is, read-only: the three checkboxes of the
-  /// tracking card are what change it.
-  Widget _buildTrackingBadge(BuildContext context, Tr tr) {
+  /// Get the `onChanged` [field] is given: the one reporting to [onFieldChanged], or null while the
+  /// sheet may not be written to, which is what makes the field read its value out instead.
+  ValueChanged<String>? _onChangedOf(OcptElementField field) {
+    final onFieldChanged = this.onFieldChanged;
+    if (onFieldChanged == null) {
+      return null;
+    }
+
+    return (value) => onFieldChanged(field, value);
+  }
+}
+
+/// One text field of the header, labelled `label` and writing `field`.
+class _OcptElementSheetHeaderField extends StatelessWidget {
+  /// The fields group whose element and callbacks the field is wired to.
+  final _Fields fields;
+
+  /// The element field the text field writes.
+  final OcptElementField field;
+
+  /// The label of the text field.
+  final String label;
+
+  /// Class constructor
+  const _OcptElementSheetHeaderField({
+    required this.fields,
+    required this.field,
+    required this.label,
+  });
+
+  /// Build the element sheet header field as an [OcptResourcesSheetField].
+  @override
+  Widget build(BuildContext context) {
+    final field = this.field;
+    final label = this.label;
+
+    return OcptResourcesSheetField(
+      ownerId: fields.element.id,
+      label: label,
+      value: fields.fieldValueOf(field),
+      onChanged: fields._onChangedOf(field),
+    );
+  }
+}
+
+/// The badge reading how far along the element is, read-only: the three checkboxes of the
+/// tracking card are what change it.
+class _TrackingBadge extends StatelessWidget {
+  /// The element the badge reads.
+  final OcptElement element;
+
+  /// Class constructor
+  const _TrackingBadge({required this.element});
+
+  /// Build the tracking badge as a [Container].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Text(
         ocptElementTrackingLabel(tr, element),
@@ -190,11 +292,26 @@ class OcptElementSheetHeader extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The category picker: a label over a badge doubling as a [PopupMenuButton] over every
-  /// [OcptElementCategory], withheld (a plain badge, no menu) while the sheet may not be written to.
-  Widget _buildCategoryPicker(BuildContext context, Tr tr) {
+/// The category picker: a label over a badge doubling as a [PopupMenuButton] over every
+/// [OcptElementCategory], withheld (a plain badge, no menu) while the sheet may not be written
+/// to.
+class _CategoryPicker extends StatelessWidget {
+  /// The element whose category is shown.
+  final OcptElement element;
+
+  /// Called with the newly picked category, or null while it may not be changed.
+  final ValueChanged<OcptElementCategory>? onCategoryChanged;
+
+  /// Class constructor
+  const _CategoryPicker({required this.element, required this.onCategoryChanged});
+
+  /// Build the category picker as a [Column].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final onCategoryChanged = this.onCategoryChanged;
 
     final badge = Row(
@@ -240,24 +357,5 @@ class OcptElementSheetHeader extends StatelessWidget {
           ),
       ],
     );
-  }
-
-  /// One text field of the header, labelled [label] and writing [field].
-  Widget _field(OcptElementField field, String label) => OcptResourcesSheetField(
-    ownerId: element.id,
-    label: label,
-    value: fieldValueOf(field),
-    onChanged: _onChangedOf(field),
-  );
-
-  /// The `onChanged` [field] is given: the one reporting to [onFieldChanged], or null while the
-  /// sheet may not be written to, which is what makes the field read its value out instead.
-  ValueChanged<String>? _onChangedOf(OcptElementField field) {
-    final onFieldChanged = this.onFieldChanged;
-    if (onFieldChanged == null) {
-      return null;
-    }
-
-    return (value) => onFieldChanged(field, value);
   }
 }

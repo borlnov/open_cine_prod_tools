@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
 
 /// A compact `HH:mm` field editing one of the schedule's own minute-from-midnight columns
 /// (`shooting_slots.anchorMinute`, a block's own anchor), shared by the slot cards, the timetable
@@ -18,8 +18,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 /// see `OcptShootingSlotsTable`'s own doc comment. A fresh clock reading typed here is placed on
 /// the same calendar day [minute] already was on (its own `minute ~/ 1440` multiple, computed via
 /// Dart's floored `%`), so re-typing a night wrap time round-trips correctly; there is no "+1 day"
-/// toggle in this milestone to move a value onto a *different* day than it already read from, which
-/// is a deliberate scope cut for M1.
+/// toggle to move a value onto a *different* day than it already read from.
 ///
 /// A block's own anchor is typed here too: the pin captures the chain's current position, and this
 /// field is what then names the minute the anchor actually exists for — a meal break's legal start,
@@ -55,6 +54,7 @@ class OcptScheduleMinuteField extends StatefulWidget {
     required this.emptyHint,
   });
 
+  /// Create the [_OcptScheduleMinuteFieldState] holding the state of the schedule minute field.
   @override
   State<OcptScheduleMinuteField> createState() => _OcptScheduleMinuteFieldState();
 }
@@ -76,16 +76,18 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
   /// a minute reaches the database immediately rather than riding the mode's own debounce.
   late int? _lastReportedMinute = widget.minute;
 
-  /// [OcptScheduleMinuteField.minute] formatted as `HH:mm`, or the empty string while it is null.
-  String get _formattedMinute =>
-      widget.minute == null ? "" : ocptFormatDayMinute(widget.minute!);
+  /// Get [OcptScheduleMinuteField.minute] formatted as `HH:mm`, or the empty string while it is
+  /// null.
+  String get _formattedMinute => widget.minute == null ? "" : ocptFormatDayMinute(widget.minute!);
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new minute in the field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant OcptScheduleMinuteField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -97,16 +99,32 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
     }
   }
 
+  /// Build the schedule minute field as a [SizedBox].
   @override
-  void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onChanged = widget.onChanged;
+
+    if (onChanged == null) {
+      return Text(
+        widget.minute == null ? widget.emptyHint : ocptFormatDayMinute(widget.minute!),
+        style: theme.textTheme.bodySmall,
+      );
+    }
+
+    return SizedBox(
+      width: 64,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onSubmitted: (_) => _commit(),
+        style: theme.textTheme.bodySmall,
+        decoration: InputDecoration(isDense: true, hintText: widget.emptyHint),
+      ),
+    );
   }
 
-  /// Commits the field's current text once it loses focus, mirroring the resources sheets' own
+  /// Commit the field's current text once it loses focus, mirroring the resources sheets' own
   /// flush-on-focus-lost idiom.
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
@@ -114,7 +132,7 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
     }
   }
 
-  /// Parses the field's current text and reports it, or reverts the field to
+  /// Parse the field's current text and report it, or revert the field to
   /// [OcptScheduleMinuteField.minute]'s own formatted reading when the text is neither empty nor a
   /// valid clock reading.
   void _commit() {
@@ -151,27 +169,13 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
     }
   }
 
+  /// Detach [_onFocusChanged] from [_focusNode], then dispose [_focusNode] and [_controller].
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onChanged = widget.onChanged;
-
-    if (onChanged == null) {
-      return Text(
-        widget.minute == null ? widget.emptyHint : ocptFormatDayMinute(widget.minute!),
-        style: theme.textTheme.bodySmall,
-      );
-    }
-
-    return SizedBox(
-      width: 64,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: (_) => _commit(),
-        style: theme.textTheme.bodySmall,
-        decoration: InputDecoration(isDense: true, hintText: widget.emptyHint),
-      ),
-    );
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }

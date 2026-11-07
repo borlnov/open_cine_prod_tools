@@ -14,10 +14,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// `OcptScenarioCoverageLabels` already exist for the exports before it.
 ///
 /// [dayTitles] and [directorLine] are the two entries resolved by the caller rather than formatted
-/// here, exactly the trade `OcptBreakdownSheetsLabels.sceneTitles` already makes: a day's own
-/// title (`FEUILLE DE SERVICE DU JEUDI 10 AOÛT 2023`) needs its date formatted through `intl` in the
-/// UI's own locale, which a manager-layer service has no `Localizations` to reach, and a director's
-/// name is the project's own text rather than something to translate.
+/// here, exactly the trade `OcptBreakdownSheetsLabels.sceneTitles` already makes: a day's own title
+/// (`FEUILLE DE SERVICE DU JEUDI 10 AOÛT 2023`) needs its date formatted through `intl` in the UI's
+/// own locale, which a manager-layer service has no `Localizations` to reach, and a director's name
+/// is the project's own text rather than something to translate.
 ///
 /// Every accessor returns an empty string (or, for a map keyed by an enum, the same) for a key it
 /// holds nothing for, exactly as `OcptBreakdownSheetsLabels`'s own accessors do: a missing
@@ -114,11 +114,6 @@ class OcptCallSheetLabels extends Equatable {
   /// `OcptShootingBlockKind.isFilming` and `OcptDayConvocation.isPatBand`.
   final String presenceLabel;
 
-  /// [patLabel] when [isPatBand] says the band covers filming, [presenceLabel] otherwise — the one
-  /// place that choice is written, so a named sheet's own band line, the day's own time band and the
-  /// cast table's own column header can never name the same kind of band differently.
-  String bandLabelOf({required bool isPatBand}) => isPatBand ? patLabel : presenceLabel;
-
   /// The header of a person's arrival figure — the cast table's own `ARRIVÉE` column, and a named
   /// sheet's own band line.
   final String arrivalHeader;
@@ -144,10 +139,10 @@ class OcptCallSheetLabels extends Equatable {
   final String plansHeader;
 
   /// The main table's `EFFET` column header.
-  final String effetHeader;
+  final String effectHeader;
 
   /// The main table's `DÉCORS` column header.
-  final String decorsHeader;
+  final String setsHeader;
 
   /// The main table's `RÔLES` column header.
   final String rolesHeader;
@@ -165,7 +160,7 @@ class OcptCallSheetLabels extends Equatable {
   /// A people list's `NOM` column header.
   final String nameHeader;
 
-  /// A people list's `POSTE(S)` column header, also used as a named sheet's own label for the
+  /// A people list's `ACCOUNT(S)` column header, also used as a named sheet's own label for the
   /// positions or role its recipient is convoked under.
   final String positionsHeader;
 
@@ -190,12 +185,13 @@ class OcptCallSheetLabels extends Equatable {
 
   /// The heading of the day's own events section — what the day does not control, at an absolute
   /// hour, printed on both sheets alike. The same word the day view's own bordered band and the day
-  /// inspector's own section already carry on screen, so a printed sheet cannot name it differently.
+  /// inspector's own section already carry on screen, so a printed sheet cannot name it
+  /// differently.
   final String eventsSectionTitle;
 
   /// The heading of the day's own audition table (`HORAIRES / RÔLE / CANDIDAT`) — printed only on a
-  /// day whose own blocks hold an audition, beside (never instead of) the main table the day's shots
-  /// print.
+  /// day whose own blocks hold an audition, beside (never instead of) the main table the day's
+  /// shots print.
   final String auditionsSectionTitle;
 
   /// The audition table's `CANDIDAT` column header — who is being seen at that hour, for that part.
@@ -246,8 +242,8 @@ class OcptCallSheetLabels extends Equatable {
     required this.blockKindLabels,
     required this.seqHeader,
     required this.plansHeader,
-    required this.effetHeader,
-    required this.decorsHeader,
+    required this.effectHeader,
+    required this.setsHeader,
     required this.rolesHeader,
     required this.castSectionTitle,
     required this.roleHeader,
@@ -268,24 +264,35 @@ class OcptCallSheetLabels extends Equatable {
     required this.guestReasonHeader,
   });
 
-  /// The title of the day [dayId], or an empty string if [dayTitles] holds none for it.
+  /// Get [patLabel] when [isPatBand] says the band covers filming, [presenceLabel] otherwise — the
+  /// one
+  /// place that choice is written, so a named sheet's own band line, the day's own time band and
+  /// the cast table's own column header can never name the same kind of band differently.
+  String bandLabelOf({required bool isPatBand}) => isPatBand ? patLabel : presenceLabel;
+
+  /// Get the title of the day [dayId], or an empty string if [dayTitles] holds none for it.
   String titleOfDay(String dayId) => dayTitles[dayId] ?? "";
 
-  /// The label of [department], or an empty string if [crewDepartmentLabels] holds none for it.
-  String crewDepartmentLabelOf(OcptCrewDepartment department) => crewDepartmentLabels[department] ?? "";
+  /// Get the label of [department], or an empty string if [crewDepartmentLabels] holds none for it.
+  String crewDepartmentLabelOf(OcptCrewDepartment department) =>
+      crewDepartmentLabels[department] ?? "";
 
-  /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
+  /// {@template open_cine_prod_tools.crewPositionLabelGetter}
+  /// Get the label of the crew position [positionId] names, or an empty string if
+  /// [crewPositionLabels]
   /// holds none for it.
+  /// {@endtemplate}
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
-  /// The default caption of [kind], or an empty string if [blockKindLabels] holds none for it.
+  /// Get the default caption of [kind], or an empty string if [blockKindLabels] holds none for it.
   String blockKindLabelOf(OcptShootingBlockKind kind) => blockKindLabels[kind] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
-  String toString() => "OcptCallSheetLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
+  String toString() =>
+      "OcptCallSheetLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNamePrefix,
@@ -317,8 +324,8 @@ class OcptCallSheetLabels extends Equatable {
     blockKindLabels,
     seqHeader,
     plansHeader,
-    effetHeader,
-    decorsHeader,
+    effectHeader,
+    setsHeader,
     rolesHeader,
     castSectionTitle,
     roleHeader,

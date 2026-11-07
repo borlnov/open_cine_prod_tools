@@ -12,7 +12,6 @@
 /// versions landed, and a mode with no right dock at all would be the only one from which a user
 /// could not seal or browse one.
 enum OcptResourcesRightDockTab {
-  /// The project's named versions: the production history the user creates, browses read-only and
-  /// deletes.
+  /// {@macro open_cine_prod_tools.versionsDockTab}
   versions,
 }

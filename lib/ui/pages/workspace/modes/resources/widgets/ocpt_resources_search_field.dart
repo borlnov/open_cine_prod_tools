@@ -30,6 +30,7 @@ class OcptResourcesSearchField extends StatefulWidget {
   /// Class constructor
   const OcptResourcesSearchField({super.key, required this.query, required this.onChanged});
 
+  /// Create the [_OcptResourcesSearchFieldState] holding the state of the resources search field.
   @override
   State<OcptResourcesSearchField> createState() => _OcptResourcesSearchFieldState();
 }
@@ -37,10 +38,10 @@ class OcptResourcesSearchField extends StatefulWidget {
 /// The state of [OcptResourcesSearchField]: owns the controller the class doc comment explains the
 /// reasoning for.
 class _OcptResourcesSearchFieldState extends State<OcptResourcesSearchField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.query);
 
+  /// Show the new query in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant OcptResourcesSearchField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -50,12 +51,7 @@ class _OcptResourcesSearchFieldState extends State<OcptResourcesSearchField> {
     }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+  /// Build the resources search field as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -83,9 +79,16 @@ class _OcptResourcesSearchFieldState extends State<OcptResourcesSearchField> {
     );
   }
 
-  /// Blanks the field and reports the empty query, without closing the search itself.
+  /// Blank the field and report the empty query, without closing the search itself.
   void _handleClear() {
     _controller.clear();
     widget.onChanged("");
+  }
+
+  /// Dispose [_controller].
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }

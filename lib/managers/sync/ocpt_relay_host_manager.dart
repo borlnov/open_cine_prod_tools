@@ -5,25 +5,31 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_dart_value_keeper/act_dart_value_keeper.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_level.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:uuid/uuid.dart';
 
-/// Resolves every address a hosted relay could be advertised on, on the local network — the seam
+/// Resolve every address a hosted relay could be advertised on, on the local network — the seam
 /// [OcptRelayHostManager] resolves through by default with [NetworkInterface.list], and a test
 /// replaces with a fixed list of [InternetAddress]es it cannot otherwise construct one of. The
 /// first entry (when any) is what [OcptRelayHostManager.startHosting] advertises by default; the
@@ -49,7 +55,7 @@ const _virtualInterfaceMarkers = [
   'loopback',
 ];
 
-/// Ranks [candidates] — every non-loopback IPv4 address this machine's network interfaces offer,
+/// Rank [candidates] — every non-loopback IPv4 address this machine's network interfaces offer,
 /// paired with the interface's own name — so the address a phone on the same LAN can actually reach
 /// comes first, ahead of a VPN or virtual adapter's own address that [NetworkInterface.list] may
 /// otherwise report first (a `10.5.0.2` tunnel, a WSL `172.20.x` bridge): a hosting panel that
@@ -92,7 +98,7 @@ List<InternetAddress> rankLanAddresses(
   return [...primary, ...plain, ...virtual];
 }
 
-/// Opens the [OcptRelayStore] [OcptRelayHostManager.startHosting] serves — the seam a test
+/// Open the [OcptRelayStore] [OcptRelayHostManager.startHosting] serves — the seam a test
 /// replaces to pre-seed the very store the live server ends up holding (a test cannot otherwise
 /// reach into a store `startHosting` opens for itself), by returning an in-memory
 /// `OcptRelayStore(':memory:')` it keeps its own reference to. Defaults to `OcptRelayStore.new`.
@@ -106,18 +112,22 @@ typedef OcptRelayStoreFactory = OcptRelayStore Function(String path);
 /// field lets a person choose another.
 const ocptDefaultInAppHostingPort = 47600;
 
-/// Builds the [OcptRelayHostManager] instance registered by the global manager.
+/// Build the [OcptRelayHostManager] instance registered by the global manager.
 class OcptRelayHostManagerBuilder extends AbsLifeCycleFactory<OcptRelayHostManager> {
   /// Class constructor
   const OcptRelayHostManagerBuilder() : super(OcptRelayHostManager.new);
 
   /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
   @override
-  Iterable<Type> dependsOn() =>
-      [LoggerManager, OcptSyncManager, OcptSecretsManager, OcptPropertiesManager];
+  Iterable<Type> dependsOn() => [
+    LoggerManager,
+    OcptSyncManager,
+    OcptSecretsManager,
+    OcptPropertiesManager,
+  ];
 }
 
-/// Owns the lifecycle of **one** in-process relay — one `OcptRelayServer` over one
+/// Own the lifecycle of **one** in-process relay — one `OcptRelayServer` over one
 /// `OcptRelayStore` — at a time, for the "Héberger sur ce poste" sharing mode
 /// (`docs/architecture/sync.md`): a small team's own laptop, on set or as the producer/director
 /// hub, being the relay instead of a separate deployment.
@@ -134,6 +144,84 @@ class OcptRelayHostManagerBuilder extends AbsLifeCycleFactory<OcptRelayHostManag
 /// (`CLAUDE.md`'s own pitfalls list): [stateStream] never replays its current value to a new
 /// listener, so a caller reads [state] first to seed a fresh subscriber.
 class OcptRelayHostManager extends AbsWithLifeCycle {
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "relay_host";
+
+  /// The port [startHosting] binds its socket to when its own `port` argument is null — the fixed
+  /// [ocptDefaultInAppHostingPort] by default (so a restart keeps the same advertised address), or
+  /// whatever a caller passed the constructor. `0` means the OS assigns a free one — what a test
+  /// passes to avoid contending for the fixed port.
+  final int port;
+
+  /// The logger this manager writes to.
+  final LogsHelper _logger;
+
+  /// The platform manager telling whether the app runs on a mobile platform.
+  final PlatformManager _platformManager;
+
+  /// The secrets manager handed in, or null to resolve the registered one on first use.
+  OcptSecretsManager? _secretsManager;
+
+  /// The sync manager handed in, or null to resolve the registered one on first use.
+  OcptSyncManager? _syncManager;
+
+  /// The properties manager handed in, or null to resolve the registered one on first use.
+  OcptPropertiesManager? _propertiesManager;
+
+  /// The address [startHosting] binds its socket to.
+  final InternetAddress _bindAddress;
+
+  /// Resolves the address advertised to peers as this hosted relay's own LAN base URI.
+  final OcptLanAddressResolver _lanAddressResolver;
+
+  /// Opens the [OcptRelayStore] [startHosting] serves — see this class's own constructor doc
+  /// comment for why this is a seam rather than a direct call.
+  final OcptRelayStoreFactory _storeFactory;
+
+  /// The current host state and the stream of its changes. It emits even a state equal to the
+  /// previous one: every move this manager makes is reported.
+  final ValueKeeperWithStream<OcptRelayHostState> _state;
+
+  /// Whether [disposeLifeCycle] has closed [_state]: a state set afterwards is dropped, since the
+  /// keeper's closed stream would throw on it.
+  bool _isDisposed;
+
+  /// The store of the hosted relay, or null while nothing is hosted.
+  OcptRelayStore? _store;
+
+  /// The HTTP server of the hosted relay, or null while nothing is hosted.
+  HttpServer? _httpServer;
+
+  /// The id of the project being hosted, or null while nothing is hosted.
+  String? _hostedProjectId;
+
+  /// Get this manager's current host state. [stateStream] never replays it to a new listener — read
+  /// this first to seed a fresh subscriber, exactly as this class's own doc comment says.
+  OcptRelayHostState get state => _state.value;
+
+  /// Emit every host state this manager moves through from the moment a listener subscribes
+  /// onward — never its current value at subscription time (see [state]).
+  Stream<OcptRelayHostState> get stateStream => _state.valueStream;
+
+  /// Get the id of the project currently being hosted, or null when nothing is.
+  String? get hostedProjectId => _hostedProjectId;
+
+  /// Get the project's hosting enrolment secret, resolved lazily through `globalGetIt()` the first
+  /// time it is actually needed — see this class's own constructor doc comment for why.
+  OcptSecretsManager get _secrets => _secretsManager ??= globalGetIt().get<OcptSecretsManager>();
+
+  /// Get the pairing/sync engine [startHosting] self-seeds this replica through, resolved lazily
+  /// through `globalGetIt()` the first time it is actually needed — see this class's own
+  /// constructor doc comment for why.
+  OcptSyncManager get _sync => _syncManager ??= globalGetIt().get<OcptSyncManager>();
+
+  /// Get the per-project "host on launch" flag [maybeAutoStartHosting] reads, resolved lazily
+  /// through
+  /// `globalGetIt()` the first time it is actually needed — see this class's own constructor doc
+  /// comment for why.
+  OcptPropertiesManager get _properties =>
+      _propertiesManager ??= globalGetIt().get<OcptPropertiesManager>();
+
   /// Class constructor
   ///
   /// [platformManager] is resolved directly (`platformManager ?? PlatformManager()`) rather than
@@ -178,79 +266,28 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     this.port = ocptDefaultInAppHostingPort,
     OcptLanAddressResolver? lanAddressResolver,
     OcptRelayStoreFactory? storeFactory,
-  }) : _platformManager = platformManager ?? PlatformManager(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _isDisposed = false,
+       _platformManager = platformManager ?? PlatformManager(),
        _secretsManager = secretsManager,
        _syncManager = syncManager,
        _propertiesManager = propertiesManager,
        _bindAddress = bindAddress ?? InternetAddress.anyIPv4,
        _lanAddressResolver = lanAddressResolver ?? _defaultLanAddress,
-       _storeFactory = storeFactory ?? OcptRelayStore.new;
+       _storeFactory = storeFactory ?? OcptRelayStore.new,
+       _state = ValueKeeperWithStream<OcptRelayHostState>(
+         value: const OcptRelayHostStopped(),
+         emitUnchangedValue: true,
+       );
 
-  final PlatformManager _platformManager;
-
-  OcptSecretsManager? _secretsManager;
-
-  /// The project's hosting enrolment secret, resolved lazily through `globalGetIt()` the first
-  /// time it is actually needed — see this class's own constructor doc comment for why.
-  OcptSecretsManager get _secrets => _secretsManager ??= globalGetIt().get<OcptSecretsManager>();
-
-  OcptSyncManager? _syncManager;
-
-  /// The pairing/sync engine [startHosting] self-seeds this replica through, resolved lazily
-  /// through `globalGetIt()` the first time it is actually needed — see this class's own
-  /// constructor doc comment for why.
-  OcptSyncManager get _sync => _syncManager ??= globalGetIt().get<OcptSyncManager>();
-
-  OcptPropertiesManager? _propertiesManager;
-
-  /// The per-project "host on launch" flag [maybeAutoStartHosting] reads, resolved lazily through
-  /// `globalGetIt()` the first time it is actually needed — see this class's own constructor doc
-  /// comment for why.
-  OcptPropertiesManager get _properties =>
-      _propertiesManager ??= globalGetIt().get<OcptPropertiesManager>();
-
-  /// The address [startHosting] binds its socket to.
-  final InternetAddress _bindAddress;
-
-  /// The port [startHosting] binds its socket to when its own `port` argument is null — the fixed
-  /// [ocptDefaultInAppHostingPort] by default (so a restart keeps the same advertised address), or
-  /// whatever a caller passed the constructor. `0` means the OS assigns a free one — what a test
-  /// passes to avoid contending for the fixed port.
-  final int port;
-
-  /// Resolves the address advertised to peers as this hosted relay's own LAN base URI.
-  final OcptLanAddressResolver _lanAddressResolver;
-
-  /// Opens the [OcptRelayStore] [startHosting] serves — see this class's own constructor doc
-  /// comment for why this is a seam rather than a direct call.
-  final OcptRelayStoreFactory _storeFactory;
-
-  OcptRelayHostState _state = const OcptRelayHostStopped();
-  final StreamController<OcptRelayHostState> _controller = StreamController<OcptRelayHostState>.broadcast();
-
-  OcptRelayStore? _store;
-  HttpServer? _httpServer;
-  String? _hostedProjectId;
-
-  /// This manager's current host state. [stateStream] never replays it to a new listener — read
-  /// this first to seed a fresh subscriber, exactly as this class's own doc comment says.
-  OcptRelayHostState get state => _state;
-
-  /// Emits every host state this manager moves through from the moment a listener subscribes
-  /// onward — never its current value at subscription time (see [state]).
-  Stream<OcptRelayHostState> get stateStream => _controller.stream;
-
-  /// The id of the project currently being hosted, or null when nothing is.
-  String? get hostedProjectId => _hostedProjectId;
-
-  /// Every non-loopback IPv4 address this machine's own network interfaces currently offer,
+  /// Get every non-loopback IPv4 address this machine's own network interfaces currently offer,
   /// straight off [_lanAddressResolver] — re-callable so the hosting panel's own address dropdown
   /// can re-detect a network switch (a Wi-Fi hop, a cable plugged in) on a fresh view entry,
   /// without restarting hosting to do it: the socket already binds [InternetAddress.anyIPv4] by
   /// default, so every one of these addresses already reaches it.
   Future<List<InternetAddress>> availableLanAddresses() => _lanAddressResolver();
 
-  /// Starts hosting [database]'s own project (whose file sits at [projectFilePath]): opens a relay
+  /// Start hosting [database]'s own project (whose file sits at [projectFilePath]): opens a relay
   /// store beside the project file, serves it, makes this replica the relay's own first member
   /// over `localhost`, and reports [OcptRelayHostOnline] once all of that is up.
   ///
@@ -295,10 +332,9 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   ///
   /// A failure at any step tears down whatever was already opened — ending the self-seeded sync
   /// session first, so it never talks to a socket that is already gone (see [_teardown]) —
-  /// reports [OcptRelayHostFailed] with the error's own message, logs a warning when a global
-  /// manager instance exists (mirroring `OcptSyncSession._logWarning`), and returns rather than
-  /// rethrowing — a bring-up failure is a state to render, exactly like `OcptSyncStatus`, not an
-  /// exception to propagate.
+  /// reports [OcptRelayHostFailed] with the error's own message, logs the failure, and returns
+  /// rather than rethrowing — a bring-up failure is a state to render, exactly like
+  /// `OcptSyncStatus`, not an exception to propagate.
   ///
   /// This method's own [port] parameter, when non-null, binds that port instead of this manager's
   /// own [port] field default — what the hosting panel's own port field applies after
@@ -326,6 +362,8 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     OcptDiagnosticsManager.log(
       category: OcptDiagnosticsCategory.hosting,
       message: 'starting hosting: project="$projectName"',
+      // The project's name is the user's own wording and does not belong in a log.
+      logMessage: 'starting hosting',
     );
 
     try {
@@ -359,8 +397,9 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
       );
 
       final localBaseUri = Uri(scheme: 'http', host: 'localhost', port: httpServer.port);
+      final StatusWithExtraInfo<OcptSyncFlowStatus> bringUp;
       if (isPaired) {
-        await _sync.repointProjectToRelay(
+        bringUp = await _sync.repointProjectToRelay(
           database: database,
           projectId: projectId,
           projectFilePath: projectFilePath,
@@ -371,7 +410,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
           deviceId: deviceId,
         );
       } else {
-        await _sync.pairProjectToRelay(
+        bringUp = await _sync.pairProjectToRelay(
           database: database,
           projectId: projectId,
           projectFilePath: projectFilePath,
@@ -382,38 +421,17 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
           deviceId: deviceId,
         );
       }
-
-      final lanAddresses = await _lanAddressResolver();
-      final host = lanAddresses.isNotEmpty
-          ? lanAddresses.first.address
-          : InternetAddress.loopbackIPv4.address;
-      if (lanAddresses.isEmpty) {
-        _logWarning(
-          'No non-loopback network interface was found while starting to host project '
-          '$projectId: advertising the loopback address, which only this machine can reach.',
-        );
+      if (!bringUp.status.isSuccess) {
+        await _failStart(bringUp.extraInfo ?? bringUp.status, null);
+      } else {
+        await _goOnline(projectId: projectId, httpServer: httpServer, secret: secret);
       }
-      final lanBaseUri = Uri(scheme: 'http', host: host, port: httpServer.port);
-
-      _hostedProjectId = projectId;
-      _setState(OcptRelayHostOnline(lanBaseUri: lanBaseUri, enrolmentSecret: secret));
-      OcptDiagnosticsManager.log(
-        category: OcptDiagnosticsCategory.hosting,
-        message: 'online: project=$projectId base=$lanBaseUri',
-      );
     } catch (error, stackTrace) {
-      await _teardown();
-      _logWarning('Could not start hosting project: $error\n$stackTrace');
-      OcptDiagnosticsManager.log(
-        category: OcptDiagnosticsCategory.hosting,
-        level: OcptDiagnosticsLevel.error,
-        message: 'could not start hosting: $error',
-      );
-      _setState(OcptRelayHostFailed('Could not start hosting: $error'));
+      await _failStart(error, stackTrace);
     }
   }
 
-  /// Stops the currently hosted relay, if any: ends the self-seeded sync session, closes the
+  /// Stop the currently hosted relay, if any: ends the self-seeded sync session, closes the
   /// socket and the store, and reports [OcptRelayHostStopped]. Safe to call when nothing is
   /// hosting.
   ///
@@ -431,7 +449,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Reconciles the **live** hosted store — never a second, separately opened handle onto
+  /// Reconcile the **live** hosted store — never a second, separately opened handle onto
   /// `relay.sqlite` while [OcptRelayServer] already holds it — with the upstream relay named by
   /// [invite] (typically the production's prep relay, reached through an `ocpt://join` invite
   /// scanned or pasted into the hosting panel's "Réconcilier amont…" action): push what this
@@ -455,7 +473,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// pointed at, so a mismatch here means the invite was scanned for the wrong project. Any other
   /// failure — the upstream unreachable, or answering anything but `200`, which
   /// [OcptRelayUpstreamClient] surfaces as a thrown [StateError] — is caught here and reported as
-  /// [OcptReconcileFailed] instead, and also logged as a warning through [_logWarning].
+  /// [OcptReconcileFailed] instead, and also logged as a warning.
   Future<OcptReconcileOutcome> reconcileWithUpstream(OcptRelayInvite invite) async {
     final store = _store;
     final projectId = _hostedProjectId;
@@ -463,26 +481,31 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
       return const OcptReconcileFailed('Cannot reconcile: no project is being hosted right now.');
     }
     if (invite.projectId != projectId) {
-      return const OcptReconcileFailed('The upstream invite is for a different project than the one being hosted.');
+      return const OcptReconcileFailed(
+        'The upstream invite is for a different project than the one being hosted.',
+      );
     }
 
     final upstream = OcptRelayUpstreamClient(baseUri: invite.relayBaseUri, token: invite.token);
+    OcptReconcileOutcome outcome;
     try {
       final reconciler = OcptRelayReconciler(store: store, upstream: upstream);
       final result = await reconciler.reconcileProject(projectId: projectId);
 
-      return OcptReconcileSucceeded(pushed: result.pushed, pulled: result.pulled);
+      outcome = OcptReconcileSucceeded(pushed: result.pushed, pulled: result.pulled);
     } catch (error, stackTrace) {
-      _logWarning('Reconcile with ${invite.relayBaseUri} failed: $error\n$stackTrace');
+      _logger.w('Reconcile with the upstream relay failed: ${error.runtimeType}', null, stackTrace);
 
-      return OcptReconcileFailed('Reconcile failed: $error');
+      outcome = OcptReconcileFailed('Reconcile failed: $error');
     } finally {
       upstream.close();
     }
+
+    return outcome;
   }
 
-  /// The manager-layer half of "réhéberger au démarrage" (`docs/architecture/sync.md`): a
-  /// project-open caller (wired in a later step) hands this the project it just opened, and this
+  /// Run the manager-layer half of "réhéberger au démarrage" (`docs/architecture/sync.md`): a
+  /// project-open caller (`OcptWorkspaceBloc`) hands this the project it just opened, and this
   /// starts hosting it again only when both hold: the project is paired — has a relay-side id, so
   /// [OcptSyncManager.loadPairedProjectId] returns one; a never-paired project was never hosted, so
   /// there is nothing to restart — AND its per-project [OcptPropertiesManager] "host on launch"
@@ -513,7 +536,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     // back to a project that is already being hosted would call [startHosting] again, which tears
     // the relay down and rebinds it on a fresh port — stranding every peer already connected to the
     // old one (`docs/architecture/sync.md`).
-    if (_state is OcptRelayHostOnline && _hostedProjectId == projectId) {
+    if (_state.value is OcptRelayHostOnline && _hostedProjectId == projectId) {
       return;
     }
 
@@ -530,7 +553,57 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     );
   }
 
-  /// Ends the self-seeded sync session, then closes [_httpServer] and [_store] and clears every
+  /// Publish the hosted project as online once the relay is bound and [startHosting] has paired
+  /// the project to it: resolves the address other devices reach this machine on and moves to
+  /// [OcptRelayHostOnline].
+  Future<void> _goOnline({
+    required String projectId,
+    required HttpServer httpServer,
+    required String secret,
+  }) async {
+    final lanAddresses = await _lanAddressResolver();
+    final host = lanAddresses.isNotEmpty
+        ? lanAddresses.first.address
+        : InternetAddress.loopbackIPv4.address;
+    if (lanAddresses.isEmpty) {
+      _logger.w(
+        'No non-loopback network interface was found while starting to host project '
+        '$projectId: advertising the loopback address, which only this machine can reach.',
+      );
+    }
+    final lanBaseUri = Uri(scheme: 'http', host: host, port: httpServer.port);
+
+    _hostedProjectId = projectId;
+    _setState(OcptRelayHostOnline(lanBaseUri: lanBaseUri, enrolmentSecret: secret));
+    OcptDiagnosticsManager.log(
+      category: OcptDiagnosticsCategory.hosting,
+      message: 'online: project=$projectId base=$lanBaseUri',
+      // The base URI is this machine's address on its network.
+      logMessage: 'online: project=$projectId',
+    );
+  }
+
+  /// Tear down whatever [startHosting] already opened, log why it could not finish, and report
+  /// [OcptRelayHostFailed] with [error]'s own text: a bring-up failure is a state to render, not an
+  /// exception to propagate.
+  ///
+  /// [error] is either something [startHosting] caught or the detail a sync flow answered with (the
+  /// relay's `OcptSyncError`, an `OcptSyncTransportFailure`); the type logged is the underlying
+  /// one in both cases.
+  Future<void> _failStart(Object error, StackTrace? stackTrace) async {
+    final cause = error is OcptSyncTransportFailure ? error.error : error;
+    await _teardown();
+    _logger.e('Could not start hosting project: ${cause.runtimeType}', null, stackTrace);
+    OcptDiagnosticsManager.log(
+      category: OcptDiagnosticsCategory.hosting,
+      level: OcptDiagnosticsLevel.error,
+      message: 'could not start hosting: $error',
+      logMessage: 'could not start hosting: ${cause.runtimeType}',
+    );
+    _setState(OcptRelayHostFailed('Could not start hosting: $error'));
+  }
+
+  /// End the self-seeded sync session, then close [_httpServer] and [_store] and clear every
   /// field they left behind, without touching [state] — the caller decides what state follows a
   /// teardown ([stopHosting]'s [OcptRelayHostStopped], or [startHosting]'s own
   /// [OcptRelayHostFailed] on a failed bring-up).
@@ -547,23 +620,14 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     _hostedProjectId = null;
   }
 
+  /// Set the host state and emit it, unless the manager is disposed.
   void _setState(OcptRelayHostState state) {
-    _state = state;
-    if (!_controller.isClosed) {
-      _controller.add(state);
+    if (!_isDisposed) {
+      _state.value = state;
     }
   }
 
-  /// Logs [message] through `appLogger()` when a global manager instance actually exists, and does
-  /// nothing otherwise — mirrors `OcptSyncSession._logWarning`'s own doc comment: a unit test
-  /// builds this manager directly, with no app-wide `AbsGlobalManager` behind it at all.
-  void _logWarning(String message) {
-    if (AbsGlobalManager.instance != null) {
-      appLogger().w(message);
-    }
-  }
-
-  /// Every non-loopback IPv4 address of this machine's own network interfaces, deduplicated and
+  /// Get every non-loopback IPv4 address of this machine's own network interfaces, deduplicated and
   /// ranked by [rankLanAddresses] so the address most likely reachable from a phone on the same LAN
   /// comes first, ahead of a VPN or virtual adapter's own address (a `10.5.0.2` tunnel, a WSL
   /// `172.20.x` bridge) that [NetworkInterface.list] may otherwise list first —
@@ -594,8 +658,9 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   @override
   Future<void> disposeLifeCycle() async {
     await stopHosting();
-    if (!_controller.isClosed) {
-      await _controller.close();
+    if (!_isDisposed) {
+      _isDisposed = true;
+      await _state.disposeLifeCycle();
     }
 
     return super.disposeLifeCycle();

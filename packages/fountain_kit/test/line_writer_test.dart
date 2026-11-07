@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 import 'package:fountain_kit/src/serializer/fountain_line_writer.dart';
 import 'package:test/test.dart';
 
@@ -23,22 +23,16 @@ String _write(
   sectionLevel: sectionLevel,
 );
 
+/// Run the tests of the line writer.
 void main() {
   group('scene heading', () {
     test('auto-detectable in context needs no marker', () {
-      expect(
-        _write('INT. KITCHEN - DAY', FountainLineType.sceneHeading),
-        'INT. KITCHEN - DAY',
-      );
+      expect(_write('INT. KITCHEN - DAY', FountainLineType.sceneHeading), 'INT. KITCHEN - DAY');
     });
 
     test('not surrounded by blank lines gets the "." marker', () {
       expect(
-        _write(
-          'INT. KITCHEN - DAY',
-          FountainLineType.sceneHeading,
-          nextRawLine: 'Some action.',
-        ),
+        _write('INT. KITCHEN - DAY', FountainLineType.sceneHeading, nextRawLine: 'Some action.'),
         '.INT. KITCHEN - DAY',
       );
     });
@@ -46,11 +40,7 @@ void main() {
     test('an explicit marker is preserved even though the text would '
         'auto-detect on its own', () {
       expect(
-        _write(
-          'INT. KITCHEN - DAY',
-          FountainLineType.sceneHeading,
-          hadForcingMarker: true,
-        ),
+        _write('INT. KITCHEN - DAY', FountainLineType.sceneHeading, hadForcingMarker: true),
         '.INT. KITCHEN - DAY',
       );
     });
@@ -72,11 +62,7 @@ void main() {
     test('an explicit marker is preserved even though the text would '
         'auto-detect on its own', () {
       expect(
-        _write(
-          'Just a regular sentence.',
-          FountainLineType.action,
-          hadForcingMarker: true,
-        ),
+        _write('Just a regular sentence.', FountainLineType.action, hadForcingMarker: true),
         '!Just a regular sentence.',
       );
     });
@@ -84,28 +70,17 @@ void main() {
 
   group('character', () {
     test('auto-detectable in context needs no marker', () {
-      expect(
-        _write('SARAH', FountainLineType.character, nextRawLine: 'Hello.'),
-        'SARAH',
-      );
+      expect(_write('SARAH', FountainLineType.character, nextRawLine: 'Hello.'), 'SARAH');
     });
 
     test('lowercase text gets the "@" marker', () {
-      expect(
-        _write('sarah', FountainLineType.character, nextRawLine: 'Hello.'),
-        '@sarah',
-      );
+      expect(_write('sarah', FountainLineType.character, nextRawLine: 'Hello.'), '@sarah');
     });
 
     test('an explicit marker is preserved even though the text would '
         'auto-detect on its own', () {
       expect(
-        _write(
-          'SARAH',
-          FountainLineType.character,
-          nextRawLine: 'Hello.',
-          hadForcingMarker: true,
-        ),
+        _write('SARAH', FountainLineType.character, nextRawLine: 'Hello.', hadForcingMarker: true),
         '@SARAH',
       );
     });
@@ -118,30 +93,20 @@ void main() {
 
     test('not surrounded by blank lines gets the ">" marker', () {
       expect(
-        _write(
-          'CUT TO:',
-          FountainLineType.transition,
-          nextRawLine: 'Some action.',
-        ),
+        _write('CUT TO:', FountainLineType.transition, nextRawLine: 'Some action.'),
         '>CUT TO:',
       );
     });
 
     test('an explicit marker is preserved even though the text would '
         'auto-detect on its own', () {
-      expect(
-        _write('CUT TO:', FountainLineType.transition, hadForcingMarker: true),
-        '>CUT TO:',
-      );
+      expect(_write('CUT TO:', FountainLineType.transition, hadForcingMarker: true), '>CUT TO:');
     });
   });
 
   group('centered text', () {
     test('is always wrapped in ">…<", there is no plain form', () {
-      expect(
-        _write('THE END', FountainLineType.centeredText),
-        '> THE END <',
-      );
+      expect(_write('THE END', FountainLineType.centeredText), '> THE END <');
     });
   });
 
@@ -156,11 +121,7 @@ void main() {
     test('the marker is emitted the same way whether or not '
         'hadForcingMarker is set, since it is never optional', () {
       expect(
-        _write(
-          'Half a mile from the county fair',
-          FountainLineType.lyrics,
-          hadForcingMarker: true,
-        ),
+        _write('Half a mile from the county fair', FountainLineType.lyrics, hadForcingMarker: true),
         '~Half a mile from the county fair',
       );
     });
@@ -172,19 +133,13 @@ void main() {
     });
 
     test('sectionLevel controls the number of leading "#" characters', () {
-      expect(
-        _write('Act One', FountainLineType.section, sectionLevel: 3),
-        '### Act One',
-      );
+      expect(_write('Act One', FountainLineType.section, sectionLevel: 3), '### Act One');
     });
   });
 
   group('synopsis', () {
     test('always gets the "=" marker, there is no auto-detection rule', () {
-      expect(
-        _write('A short summary.', FountainLineType.synopsis),
-        '= A short summary.',
-      );
+      expect(_write('A short summary.', FountainLineType.synopsis), '= A short summary.');
     });
   });
 
@@ -198,11 +153,7 @@ void main() {
   group('dialogue', () {
     test('has no forcing marker: the text is emitted verbatim', () {
       expect(
-        _write(
-          'Hello there.',
-          FountainLineType.dialogue,
-          previousType: FountainLineType.character,
-        ),
+        _write('Hello there.', FountainLineType.dialogue, previousType: FountainLineType.character),
         'Hello there.',
       );
     });
@@ -210,11 +161,7 @@ void main() {
     test('is emitted verbatim even when the context means it will not '
         'round-trip back to dialogue (no marker exists to prevent that)', () {
       expect(
-        _write(
-          'Hello there.',
-          FountainLineType.dialogue,
-          previousType: FountainLineType.action,
-        ),
+        _write('Hello there.', FountainLineType.dialogue, previousType: FountainLineType.action),
         'Hello there.',
       );
     });
@@ -223,11 +170,7 @@ void main() {
   group('parenthetical', () {
     test('has no forcing marker: the text is emitted verbatim', () {
       expect(
-        _write(
-          '(beat)',
-          FountainLineType.parenthetical,
-          previousType: FountainLineType.character,
-        ),
+        _write('(beat)', FountainLineType.parenthetical, previousType: FountainLineType.character),
         '(beat)',
       );
     });
@@ -235,10 +178,7 @@ void main() {
 
   group('blank', () {
     test('is never written: blank lines are metadata, not written lines', () {
-      expect(
-        () => _write('', FountainLineType.blank),
-        throwsArgumentError,
-      );
+      expect(() => _write('', FountainLineType.blank), throwsArgumentError);
     });
   });
 }

@@ -4,45 +4,8 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-
-/// Which shape a sides booklet is printed in — see [OcptScriptSidesLayout] for what each one keeps
-/// and what it gives up.
-enum OcptSidesPresentation {
-  /// One output page per composed script page holding at least one selected row, laid out exactly
-  /// as the screenplay itself prints it — a reader recognises the page they already know.
-  scriptPages,
-
-  /// The selected rows alone, reflowed onto fresh pages with nothing of the screenplay's own
-  /// pagination between them — a shorter booklet, at the cost of no longer looking like a
-  /// particular page of the script.
-  packed,
-}
-
-/// One printed page of a sides booklet.
-///
-/// [lines] is already the exact row order a renderer draws: build a `FountainScriptPage` straight
-/// from it and every line lands where this layout put it, whichever presentation produced it.
-class OcptScriptSidesPage extends Equatable {
-  /// The 0-based index, into the composed script's own `FountainScriptLayout.pages`, of the
-  /// screenplay page this one reproduces — null for a [OcptSidesPresentation.packed] page, which
-  /// reproduces no single one.
-  final int? scriptPageIndex;
-
-  /// The lines drawn on this page, its first row first.
-  final List<FountainScriptLine> lines;
-
-  /// Class constructor
-  const OcptScriptSidesPage({required this.scriptPageIndex, required this.lines});
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptScriptSidesPage(scriptPageIndex: $scriptPageIndex, lines: ${lines.length})";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [scriptPageIndex, lines];
-}
+import 'package:open_cine_prod_tools/models/ocpt_script_sides_page.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 
 /// A day's scenes, extracted from an already-composed screenplay and laid out as a printable
 /// booklet — a side is only useful if it looks like the script, so it is a slice of the real
@@ -75,9 +38,9 @@ class OcptScriptSidesPage extends Equatable {
 /// in the one-line schedule.
 ///
 /// **Both presentations reproduce the composer's own lines verbatim** — the runs, the indents, the
-/// alignments, the scene numbers and the `sourceRange`s are exactly the ones `FountainScriptComposer`
-/// produced. Nothing is re-wrapped and nothing is re-paginated: a side that re-typeset its text
-/// would stop being the very page the crew is holding.
+/// alignments, the scene numbers and the `sourceRange`s are exactly the ones
+/// `FountainScriptComposer` produced. Nothing is re-wrapped and nothing is re-paginated: a side
+/// that re-typeset its text would stop being the very page the crew is holding.
 ///
 /// It follows that [OcptSidesPresentation.packed], which does move rows onto pages of its own, may
 /// cut a speech where the composer — paginating the whole screenplay — would have closed it with a
@@ -92,7 +55,8 @@ class OcptScriptSidesLayout extends Equatable {
   /// exactly as a genuine spacer line the composer emits does, so a renderer cannot tell the two
   /// apart by inspecting the row it is handed; only this class needs to, and it never does so by
   /// value (see `_PackedLine.isSeparator`), since a real blank spacer line the bridge rule pulled
-  /// into a scene is built from exactly the same fields and must never be mistaken for one of these.
+  /// into a scene is built from exactly the same fields and must never be mistaken for one of
+  /// these.
   static const FountainScriptLine _blankFiller = FountainScriptLine(
     runs: [],
     lineType: FountainLineType.blank,
@@ -107,7 +71,7 @@ class OcptScriptSidesLayout extends Equatable {
   /// Class constructor
   const OcptScriptSidesLayout({required this.pages});
 
-  /// Lays [sceneSpans] out over [script] — the screenplay composed with [metrics] — as
+  /// Lay [sceneSpans] out over [script] — the screenplay composed with [metrics] — as
   /// [presentation] says.
   ///
   /// [script] must be the layout `FountainScriptComposer` produced from the very screenplay
@@ -124,8 +88,7 @@ class OcptScriptSidesLayout extends Equatable {
     required OcptSidesPresentation presentation,
   }) {
     final lines = _printedLinesOf(script);
-    final sortedSpans = sceneSpans.toList()
-      ..sort((a, b) => a.charStart.compareTo(b.charStart));
+    final sortedSpans = sceneSpans.toList()..sort((a, b) => a.charStart.compareTo(b.charStart));
 
     final selected = List<bool>.filled(lines.length, false);
     for (final span in sortedSpans) {
@@ -140,13 +103,25 @@ class OcptScriptSidesLayout extends Equatable {
 
     return OcptScriptSidesLayout(
       pages: switch (presentation) {
-        OcptSidesPresentation.scriptPages => _scriptPagesOf(script: script, lines: lines, selected: selected),
-        OcptSidesPresentation.packed => _packedOf(lines: lines, selected: selected, metrics: metrics),
+        OcptSidesPresentation.scriptPages => _scriptPagesOf(
+          script: script,
+          lines: lines,
+          selected: selected,
+        ),
+        OcptSidesPresentation.packed => _packedOf(
+          lines: lines,
+          selected: selected,
+          metrics: metrics,
+        ),
       },
     );
   }
 
-  /// Flattens [script]'s pages into one list of printed lines, in reading order — the same first
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() => "OcptScriptSidesLayout(pages: ${pages.length})";
+
+  /// Flatten [script]'s pages into one list of printed lines, in reading order — the same first
   /// move `OcptScenarioCoverageLayout._printedRowsOf` makes, and for the same reason: resolving a
   /// span against one flat list is what lets a scene spanning a page break be found in a single
   /// pass.
@@ -160,10 +135,14 @@ class OcptScriptSidesLayout extends Equatable {
     for (final page in script.pages) ...page.lines,
   ];
 
-  /// The first and last index, into [lines], whose own `FountainScriptLine.sourceRange` overlaps
+  /// Get the first and last index, into [lines], whose own `FountainScriptLine.sourceRange`
+  /// overlaps
   /// [span] — the same overlap test `OcptScenarioCoverageLayout._segmentsOf` uses for a coverage
   /// range — or null when no line overlaps it at all.
-  static (int, int)? _rowRangeOf(({int charStart, int charEnd}) span, List<FountainScriptLine> lines) {
+  static (int, int)? _rowRangeOf(
+    ({int charStart, int charEnd}) span,
+    List<FountainScriptLine> lines,
+  ) {
     int? first;
     var last = 0;
     for (var index = 0; index < lines.length; index++) {
@@ -179,7 +158,8 @@ class OcptScriptSidesLayout extends Equatable {
     return first == null ? null : (first, last);
   }
 
-  /// The [OcptSidesPresentation.scriptPages] reading: one output page per script page holding at
+  /// Get the [OcptSidesPresentation.scriptPages] reading: one output page per script page holding
+  /// at
   /// least one selected row, an unselected row inside that span replaced by [_blankFiller] so a
   /// selected row keeps its own true row index and the page keeps the shape a reader recognises.
   ///
@@ -222,7 +202,7 @@ class OcptScriptSidesLayout extends Equatable {
     return pages;
   }
 
-  /// The [OcptSidesPresentation.packed] reading: the selected rows alone, in reading order,
+  /// Get the [OcptSidesPresentation.packed] reading: the selected rows alone, in reading order,
   /// reflowed onto fresh pages of [FountainLayoutMetrics.linesPerPage] rows each.
   ///
   /// A run — a maximal contiguous stretch of selected rows — is never immediately followed by
@@ -269,11 +249,7 @@ class OcptScriptSidesLayout extends Equatable {
     return pages;
   }
 
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptScriptSidesLayout(pages: ${pages.length})";
-
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pages];
 }

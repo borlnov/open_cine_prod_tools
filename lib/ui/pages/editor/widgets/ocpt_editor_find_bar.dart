@@ -104,6 +104,7 @@ class OcptEditorFindBar extends StatefulWidget {
     required this.onCloseRequested,
   });
 
+  /// Create the [_OcptEditorFindBarState] holding the state of the editor find bar.
   @override
   State<OcptEditorFindBar> createState() => _OcptEditorFindBarState();
 }
@@ -132,12 +133,15 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
   /// The last [OcptEditorFindBar.focusRequestId] applied, so a request is only applied once.
   int? _lastAppliedFocusRequestId;
 
+  /// Move the focus to the find field when a new focus request arrived.
   @override
   void initState() {
     super.initState();
     _applyFocusRequestIfNeeded();
   }
 
+  /// Mirror the query and replacement of the widget into their fields, then apply any focus
+  /// request.
   @override
   void didUpdateWidget(covariant OcptEditorFindBar oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -151,34 +155,7 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
     _applyFocusRequestIfNeeded();
   }
 
-  /// Focuses [_findFocusNode] and selects the find field's whole content, once, the frame after
-  /// [OcptEditorFindBar.focusRequestId] changes to a value not yet applied.
-  void _applyFocusRequestIfNeeded() {
-    if (widget.focusRequestId == _lastAppliedFocusRequestId) {
-      return;
-    }
-    _lastAppliedFocusRequestId = widget.focusRequestId;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      _findFocusNode.requestFocus();
-      _findController.selection = TextSelection(
-        baseOffset: 0,
-        extentOffset: _findController.text.length,
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _findController.dispose();
-    _replaceController.dispose();
-    _findFocusNode.dispose();
-    super.dispose();
-  }
-
+  /// Build the editor find bar as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -223,13 +200,13 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _OcptSearchOptionToggle(
-                            label: "Aa",
+                            label: tr.editorFindMatchCaseLabel,
                             tooltip: tr.editorFindMatchCaseTooltip,
                             isSelected: widget.isCaseSensitive,
                             onPressed: widget.onCaseSensitivityToggled,
                           ),
                           _OcptSearchOptionToggle(
-                            label: "ab",
+                            label: tr.editorFindWholeWordLabel,
                             tooltip: tr.editorFindWholeWordTooltip,
                             isSelected: widget.isWholeWord,
                             onPressed: widget.onWholeWordToggled,
@@ -301,6 +278,35 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
       ),
     );
   }
+
+  /// Focus [_findFocusNode] and select the find field's whole content, once, the frame after
+  /// [OcptEditorFindBar.focusRequestId] changes to a value not yet applied.
+  void _applyFocusRequestIfNeeded() {
+    if (widget.focusRequestId == _lastAppliedFocusRequestId) {
+      return;
+    }
+    _lastAppliedFocusRequestId = widget.focusRequestId;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _findFocusNode.requestFocus();
+      _findController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _findController.text.length,
+      );
+    });
+  }
+
+  /// Dispose [_findController], [_replaceController] and [_findFocusNode].
+  @override
+  void dispose() {
+    _findController.dispose();
+    _replaceController.dispose();
+    _findFocusNode.dispose();
+    super.dispose();
+  }
 }
 
 /// The find field's `Aa` (match case) and `ab` (whole word) toggles: an [IconButton] so the
@@ -329,6 +335,7 @@ class _OcptSearchOptionToggle extends StatelessWidget {
     required this.onPressed,
   });
 
+  /// Build the search option toggle as an [IconButton].
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

@@ -4,7 +4,10 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// A parsed scene heading paired with the character range of the scene it opens.
@@ -27,7 +30,7 @@ class _ParsedScene {
   const _ParsedScene({required this.heading, required this.charStart, required this.charEnd});
 }
 
-/// Reconciles the `scenes` table of a screenplay against a freshly parsed [FountainDocument].
+/// Reconcile the `scenes` table of a screenplay against a freshly parsed [FountainDocument].
 ///
 /// {@macro open_cine_prod_tools.OcptSceneIndexService.stability}
 ///
@@ -43,11 +46,11 @@ class _ParsedScene {
 /// does with it.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
-class OcptSceneIndexService {
+class OcptSceneIndexService extends AbsOcptService {
   /// Class constructor
-  const OcptSceneIndexService();
+  const OcptSceneIndexService({required super.logger});
 
-  /// Reconciles the `scenes` table of [screenplayId] in [database] against the scene headings of
+  /// Reconcile the `scenes` table of [screenplayId] in [database] against the scene headings of
   /// [document].
   ///
   /// The matching happens in three passes, each only considering rows/headings that the previous
@@ -72,15 +75,21 @@ class OcptSceneIndexService {
   ///
   /// [onScenesDeleted], when given, is awaited inside this method's own transaction, immediately
   /// before those rows are tombstoned, and only when there is at least one to tombstone: it is the
-  /// single hook a dependent (e.g. `OcptShotListService`, detaching a scene's shots) gets at the one
-  /// moment the about-to-vanish rows' data (their heading, in particular) is still available to copy
-  /// elsewhere. See the class doc comment for why this is a callback rather than a direct call.
-  Future<void> reconcile({
+  /// single hook a dependent (e.g. `OcptShotListService`, detaching a scene's shots) gets at the
+  /// one moment the about-to-vanish rows' data (their heading, in particular) is still available to
+  /// copy elsewhere. See the class doc comment for why this is a callback rather than a direct
+  /// call.
+  ///
+  /// A failure of the database, or of [onScenesDeleted], is answered as `databaseError` with the
+  /// whole call rolled back; a caller inside a transaction of its own aborts that transaction on it
+  /// (`okOrAbort`), since only an exception leaving the transaction makes it roll back.
+  @useResult
+  Future<OcptDatabaseOutcome> reconcile({
     required OcptProjectDatabase database,
     required String screenplayId,
     required FountainDocument document,
     Future<void> Function(List<OcptSceneRow> scenesAboutToBeDeleted)? onScenesDeleted,
-  }) async {
+  }) => guardOutcome("reconcile", () async {
     final existingRows =
         await (database.select(database.ocptScenesTable)
               ..where((row) => row.screenplayId.equals(screenplayId) & row.isDeleted.not())
@@ -96,11 +105,8 @@ class OcptSceneIndexService {
       }
 
       for (final row in matches.rowsToDelete) {
-        await (database.update(
-          database.ocptScenesTable,
-        )..where((table) => table.id.equals(row.id))).write(
-          const OcptScenesTableCompanion(isDeleted: Value(true)),
-        );
+        await (database.update(database.ocptScenesTable)..where((table) => table.id.equals(row.id)))
+            .write(const OcptScenesTableCompanion(isDeleted: Value(true)));
       }
 
       for (var position = 0; position < parsedScenes.length; position++) {
@@ -122,9 +128,40 @@ class OcptSceneIndexService {
             );
       }
     });
-  }
+  });
 
-  /// Builds the ordered list of [_ParsedScene] for [document], computing each scene's character
+  /// Tombstone every live scene of [screenplayId] and return the ids it tombstoned, the cascade
+  /// `OcptScreenplayService.deleteEpisode` reaches for first: everything else the episode carries
+  /// off — its shots and coverages, its breakdown — is keyed by `sceneId`, so the caller needs
+  /// these ids in hand before it can tombstone any of them.
+  ///
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
+  /// has already refused the write on a preview connection and is already inside the transaction
+  /// removing the episode, so a second guard here would only be able to disagree with the first.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  @useResult
+  Future<OcptDatabaseResult<List<String>>> tombstoneScenesOfScreenplay({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) => guardResult("tombstoneScenesOfScreenplay", () async {
+    final rows = await (database.select(
+      database.ocptScenesTable,
+    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
+    if (rows.isEmpty) {
+      return const [];
+    }
+
+    final ids = rows.map((row) => row.id).toList(growable: false);
+
+    await (database.update(database.ocptScenesTable)..where((table) => table.id.isIn(ids))).write(
+      const OcptScenesTableCompanion(isDeleted: Value(true)),
+    );
+
+    return ids;
+  });
+
+  /// Build the ordered list of [_ParsedScene] for [document], computing each scene's character
   /// range as spanning from its heading's start offset to the next scene heading's start offset
   /// (or the end of the document's source text for the last scene).
   static List<_ParsedScene> _buildParsedScenes(FountainDocument document) {
@@ -142,41 +179,7 @@ class OcptSceneIndexService {
     ];
   }
 
-  /// Tombstones every live scene of [screenplayId] and returns the ids it tombstoned, the cascade
-  /// `OcptScreenplayService.deleteEpisode` reaches for first: everything else the episode carries
-  /// off — its shots and coverages, its breakdown — is keyed by `sceneId`, so the caller needs these
-  /// ids in hand before it can tombstone any of them.
-  ///
-  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
-  /// already refused the write on a preview connection and is already inside the transaction
-  /// removing the episode, so a second guard here would only be able to disagree with the first.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  Future<List<String>> tombstoneScenesOfScreenplay({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-  }) async {
-    final rows =
-        await (database.select(database.ocptScenesTable)..where(
-              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-            ))
-            .get();
-    if (rows.isEmpty) {
-      return const [];
-    }
-
-    final ids = rows.map((row) => row.id).toList(growable: false);
-
-    await (database.update(
-      database.ocptScenesTable,
-    )..where((table) => table.id.isIn(ids))).write(
-      const OcptScenesTableCompanion(isDeleted: Value(true)),
-    );
-
-    return ids;
-  }
-
-  /// Runs the three matching passes described in [reconcile] and returns the resulting plan.
+  /// Run the three matching passes described in [reconcile] and return the resulting plan.
   static _SceneMatchPlan _matchScenes({
     required List<OcptSceneRow> existingRows,
     required List<_ParsedScene> parsedScenes,

@@ -129,7 +129,7 @@ class OcptElement extends Equatable {
     required this.roleLinks,
   });
 
-  /// Builds an [OcptElement] from its stored [row], the [sceneLinks] and [roleLinks] pointing at it
+  /// Build an [OcptElement] from its stored [row], the [sceneLinks] and [roleLinks] pointing at it
   /// and the [photo] its `photoAssetId` resolves to.
   factory OcptElement.fromRow({
     required OcptElementRow row,
@@ -161,11 +161,11 @@ class OcptElement extends Equatable {
     roleLinks: roleLinks,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptElement(id: $id, name: $name, category: $category)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

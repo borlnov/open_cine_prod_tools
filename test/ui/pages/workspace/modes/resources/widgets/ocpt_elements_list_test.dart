@@ -38,7 +38,7 @@ OcptElement _element({
   bool isReadyForShoot = false,
   bool isReturned = false,
 }) => OcptElement(
-      status: OcptElementStatus.toFind,
+  status: OcptElementStatus.toFind,
   id: id,
   category: category,
   subCategory: subCategory,
@@ -62,6 +62,7 @@ OcptElement _element({
   roleLinks: const [],
 );
 
+/// Run the tests of [OcptElementsList].
 void main() {
   /// Pumps the list over [elements].
   Future<Tr> pumpList(
@@ -127,10 +128,7 @@ void main() {
       ),
     ]);
 
-    expect(
-      find.text("Vaisselle · ×6 · ${tr.resourcesElementSourceBorrowed}"),
-      findsOneWidget,
-    );
+    expect(find.text("Vaisselle · ×6 · ${tr.resourcesElementSourceBorrowed}"), findsOneWidget);
   });
 
   testWidgets("the tracking column reads the last flag ticked, not the first", (tester) async {
@@ -138,13 +136,7 @@ void main() {
       _element(id: "e1", name: "À trouver"),
       _element(id: "e2", name: "Trouvé", isSecured: true),
       _element(id: "e3", name: "Prêt", isSecured: true, isReadyForShoot: true),
-      _element(
-        id: "e4",
-        name: "Rendu",
-        isSecured: true,
-        isReadyForShoot: true,
-        isReturned: true,
-      ),
+      _element(id: "e4", name: "Rendu", isSecured: true, isReadyForShoot: true, isReturned: true),
     ]);
 
     expect(find.text(tr.resourcesElementTrackingToSecure), findsOneWidget);
@@ -155,11 +147,9 @@ void main() {
 
   testWidgets("an element with no name yet still has a row to click", (tester) async {
     String? selectedElementId;
-    final tr = await pumpList(
-      tester,
-      [_element(id: "e1", name: "")],
-      onElementSelected: (elementId) => selectedElementId = elementId,
-    );
+    final tr = await pumpList(tester, [
+      _element(id: "e1", name: ""),
+    ], onElementSelected: (elementId) => selectedElementId = elementId);
 
     expect(find.text(tr.resourcesElementUnnamed), findsOneWidget);
 
@@ -170,14 +160,10 @@ void main() {
   });
 
   testWidgets("a query finds an element by its code", (tester) async {
-    await pumpList(
-      tester,
-      [
-        _element(id: "e1", name: "Verres", code: "PR-01"),
-        _element(id: "e2", name: "Lampe torche", code: "PR-02"),
-      ],
-      searchQuery: "pr-01",
-    );
+    await pumpList(tester, [
+      _element(id: "e1", name: "Verres", code: "PR-01"),
+      _element(id: "e2", name: "Lampe torche", code: "PR-02"),
+    ], searchQuery: "pr-01");
 
     expect(find.text("Verres"), findsOneWidget);
     expect(find.text("Lampe torche"), findsNothing);
@@ -186,14 +172,10 @@ void main() {
   testWidgets("a query finds an element by its localized category, dropping the other heading", (
     tester,
   ) async {
-    final tr = await pumpList(
-      tester,
-      [
-        _element(id: "e1", name: "Vélo de Léa", category: OcptElementCategory.vehicle),
-        _element(id: "e2", name: "Valise"),
-      ],
-      searchQuery: "vehicle",
-    );
+    final tr = await pumpList(tester, [
+      _element(id: "e1", name: "Vélo de Léa", category: OcptElementCategory.vehicle),
+      _element(id: "e2", name: "Valise"),
+    ], searchQuery: "vehicle");
 
     expect(find.text("Vélo de Léa"), findsOneWidget);
     expect(find.text("Valise"), findsNothing);
@@ -204,14 +186,10 @@ void main() {
 
   testWidgets("a query finds an element by its localized tracking status", (tester) async {
     // "Secured" (`resourcesElementTrackingSecured`) in the `en_GB` locale these tests run under.
-    await pumpList(
-      tester,
-      [
-        _element(id: "e1", name: "Verres", isSecured: true),
-        _element(id: "e2", name: "Lampe torche"),
-      ],
-      searchQuery: "secured",
-    );
+    await pumpList(tester, [
+      _element(id: "e1", name: "Verres", isSecured: true),
+      _element(id: "e2", name: "Lampe torche"),
+    ], searchQuery: "secured");
 
     expect(find.text("Verres"), findsOneWidget);
     expect(find.text("Lampe torche"), findsNothing);

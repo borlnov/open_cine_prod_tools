@@ -3,15 +3,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_scene_bars.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_category_legend.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_breakdown_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The breakdown mode's left dock: one row per scene, each showing its number — with a small ⚠
 /// beside it while the scene holds at least one tag a save could not re-anchor
@@ -25,14 +25,14 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 /// scene, which is what both `OcptBreakdownScriptView` and the scene inspector read off — this
 /// panel itself never scrolls the script view to it, since the two are siblings of the same shell
 /// rather than one driving the other. The legend's own callbacks pass straight through: this panel
-/// hosts it (the plan puts the legend in the left dock, under the scenes) without knowing anything
+/// hosts it (the legend sits in the left dock, under the scenes) without knowing anything
 /// about what a hidden key does to the script view.
 ///
 /// The ⚠ mark is its own tappable region ([onWarningTapped]), separate from the row's own click
-/// ([onSceneSelected]): the row only selects the scene, exactly as `OcptBreakdownSceneSelectedEvent`
-/// always has, while the mark is the fix's own way in — the mode answers it the way a script view
-/// heading's click already is, landing the user on the inspector's own "to check" callout (ADR 0030,
-/// decision 4, refined by the M4 step of `docs/plans/shot-characters-are-roles.md`).
+/// ([onSceneSelected]): the row only selects the scene, exactly as
+/// `OcptBreakdownSceneSelectedEvent` always has, while the mark is the fix's own way in — the mode
+/// answers it the way a script view heading's click already is, landing the user on the inspector's
+/// own "to check" callout (ADR 0030, decision 4).
 class OcptBreakdownScenePanel extends StatelessWidget {
   /// The scenes to list, in source order.
   final List<OcptBreakdownScene> scenes;
@@ -51,8 +51,7 @@ class OcptBreakdownScenePanel extends StatelessWidget {
   /// only while the scene holds a flagged tag. Unlike [onSceneSelected], which only selects the
   /// scene, this is meant to lead straight to the fix: the mode answers it the way a script view
   /// heading's click already is, opening the right dock on the `Inspector` tab so the scene's own
-  /// "to check" callout is what the user lands on (ADR 0030, decision 4, refined by the M4 step of
-  /// `docs/plans/shot-characters-are-roles.md`).
+  /// "to check" callout is what the user lands on (ADR 0030, decision 4).
   final ValueChanged<String> onWarningTapped;
 
   /// The category legend's own rows, already built by `ocptBreakdownLegendEntriesOf` from the
@@ -82,13 +81,12 @@ class OcptBreakdownScenePanel extends StatelessWidget {
     required this.onShowAllLegendKeysRequested,
   });
 
+  /// Build the breakdown scene panel as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final doneCount = scenes
-        .where((scene) => scene.status == OcptBreakdownSceneStatus.done)
-        .length;
+    final doneCount = scenes.where((scene) => scene.status == OcptBreakdownSceneStatus.done).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -171,6 +169,7 @@ class _SceneEntry extends StatelessWidget {
     required this.onWarningTap,
   });
 
+  /// Build the scene entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -180,10 +179,10 @@ class _SceneEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -207,8 +206,8 @@ class _SceneEntry extends StatelessWidget {
                     message: tr.breakdownTagNeedsCheckTooltip,
                     child: InkWell(
                       onTap: onWarningTap,
-                      mouseCursor: ocptClickableCursor,
-                      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                      mouseCursor: ocpt_theme.ocptClickableCursor,
+                      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                       child: Icon(
                         Icons.warning_amber_rounded,
                         size: 12,
@@ -293,6 +292,7 @@ class _CategoryBar extends StatelessWidget {
   /// Class constructor
   const _CategoryBar({required this.bucket});
 
+  /// Build the category bar as a [Tooltip].
   @override
   Widget build(BuildContext context) => Tooltip(
     message: ocptBreakdownSceneBarBucketLabel(Tr.of(context), bucket),
@@ -304,7 +304,7 @@ class _CategoryBar extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: Color(bucket.color),
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
     ),
   );

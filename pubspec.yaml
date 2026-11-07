@@ -22,51 +22,38 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
-
-  # Help to implement value based equality without explicit override
-  equatable: ^2.0.7
+  # Reads and writes the portable project package: the `.ocpt` plus every file it references, as
+  # one zip somebody can send. Streamed to and from disk rather than held in memory — a project
+  # carrying two hundred scouting photos is an ordinary case. Already an indirect dependency
+  # through `excel_community`, named here because the app now uses it in its own right.
+  archive: ^4.0.9
 
   # firstWhereOrNull and the other Iterable helpers the budget fiche resolves its own subject with
   collection: ^1.19.1
 
-  # Implement the BLoC (Business Logic Component) design pattern
-  flutter_bloc: ^9.1.1
+  # Computes the SHA-256 digest a shot's scenario coverage range is checked for staleness against
+  crypto: ^3.0.6
 
-  # Code to deal with internationalized/localized messages
-  intl: ^0.20.2
+  cupertino_icons: ^1.0.8
 
   # Persistent, reactive, typed access to a per-project SQLite database
   drift: ^2.24.0
 
-  # Ships the native sqlite3 library so drift can open databases on every desktop/mobile target
-  sqlite3_flutter_libs: ^0.5.28
+  # Help to implement value based equality without explicit override
+  equatable: ^2.0.7
 
-  # Used directly to narrowly catch SqliteException when a project file may be corrupted
-  sqlite3: ^2.4.6
-
-  # Builds and joins file system paths in a platform-independent way
-  path: ^1.9.1
-
-  # Resolves the per-platform application documents directory used as the default projects home
-  path_provider: ^2.1.5
-
-  # Generates the stable ids of screenplays, snapshots and scenes
-  uuid: ^4.5.1
-
-  # Computes the SHA-256 digest a shot's scenario coverage range is checked for staleness against
-  crypto: ^3.0.6
-
-  # Opens the GitHub repository link in the system browser
-  url_launcher: ^6.3.2
+  # Writes the exported shot list workbook (XLSX). The community fork of `excel` rather than
+  # `excel` itself, whose latest release is still capped at `archive ^3` and `xml <7` and can
+  # therefore not be resolved alongside the `image` version `icons_launcher` pulls in; see
+  # docs/adr/0008-excel-community-for-the-shot-list-export.md
+  excel_community: ^2.2.0
 
   # Shows the native "save as" dialog for exports; promoted from a transitive dependency of
   # act_file_transfer_manager to a direct one now that the app calls it itself
   file_selector: ^1.1.0
 
-  # Hands an export's bytes to the OS share sheet on mobile, where file_selector's getSaveLocation
-  # and getDirectoryPath have no Android or iOS implementation
-  share_plus: ^12.0.2
+  # Implement the BLoC (Business Logic Component) design pattern
+  flutter_bloc: ^9.1.1
 
   # Scales fonts (.sp) and dimensions (.w/.h) on mobile only; neutralised to identity on desktop.
   flutter_screenutil: ^5.9.3
@@ -75,27 +62,66 @@ dependencies:
   # dependency now that the app calls it itself
   http: ^1.6.0
 
+  # Code to deal with internationalized/localized messages
+  intl: ^0.20.2
+
   # Backs OcptFileExternalLogger's rotating log file (AdvancedFileOutput); promoted from a
   # transitive dependency of act_logger_manager now that the app builds its own external logger
   # with it
   logger: ^2.7.0
 
-  # Speaks the sync relay's events WebSocket from OcptRelayRemoteStorage; promoted from a
-  # transitive dependency now that the app calls it itself
-  web_socket_channel: ^3.0.3
-
-  # Serves the hosted relay's shelf handler on a real socket from OcptRelayHostManager; promoted
-  # from a transitive dependency (through ocpt_sync_relay) now that the app calls it itself
-  shelf: ^1.4.2
-
-  # Draws the sharing invite's QR code; pure-Dart, no plugin. Replaces act_qr_code, whose
-  # transitive qr_code_scanner does not build against this app's AGP 8 (namespace not specified).
-  qr_flutter: ^4.1.0
+  # Gives a service's `@useResult`, so a call whose answer is a Result cannot be dropped; promoted
+  # from a transitive dependency now that the app annotates with it
+  meta: ^1.18.0
 
   # Reads a QR code from the camera on the joining screen's mobile-only scan tab. Replaces
   # act_qr_code's QrCodeReader for the same reason as qr_flutter above; ships no Windows plugin,
   # which is fine since this widget is only ever built on mobile.
   mobile_scanner: ^7.1.2
+
+  # Builds and joins file system paths in a platform-independent way
+  path: ^1.9.1
+
+  # Resolves the per-platform application documents directory used as the default projects home
+  path_provider: ^2.1.5
+
+  # Builds the exported screenplay PDF (embedded Courier Prime, paginated body, title page)
+  pdf: ^3.12.0
+
+  # Draws the sharing invite's QR code; pure-Dart, no plugin. Replaces act_qr_code, whose
+  # transitive qr_code_scanner does not build against this app's AGP 8 (namespace not specified).
+  qr_flutter: ^4.1.0
+
+  # Hands an export's bytes to the OS share sheet on mobile, where file_selector's getSaveLocation
+  # and getDirectoryPath have no Android or iOS implementation
+  share_plus: ^12.0.2
+
+  # Serves the hosted relay's shelf handler on a real socket from OcptRelayHostManager; promoted
+  # from a transitive dependency (through ocpt_sync_relay) now that the app calls it itself
+  shelf: ^1.4.2
+
+  # Used directly to narrowly catch SqliteException when a project file may be corrupted
+  sqlite3: ^2.4.6
+
+  # Ships the native sqlite3 library so drift can open databases on every desktop/mobile target
+  sqlite3_flutter_libs: ^0.5.28
+
+  # Document editing toolkit backing the editor's styled block editing mode. Pinned to an exact
+  # version (no caret): its API is still pre-1.0 and moves between dev releases. dev.52 is the
+  # first pin that compiles against this repo's Flutter SDK: since 3.44, `TextInputConnection`
+  # declares an abstract `updateStyle(TextInputStyle)` that super_editor's `DocumentImeInputClient`
+  # only overrides from dev.51 onwards, so the earlier dev.50 no longer builds.
+  super_editor: 0.3.0-dev.52
+
+  # Opens the GitHub repository link in the system browser
+  url_launcher: ^6.3.2
+
+  # Generates the stable ids of screenplays, snapshots and scenes
+  uuid: ^4.5.1
+
+  # Speaks the sync relay's events WebSocket from OcptRelayRemoteStorage; promoted from a
+  # transitive dependency now that the app calls it itself
+  web_socket_channel: ^3.0.3
 
   act_config_manager:
     path: actlibs/act_config_manager
@@ -165,33 +191,32 @@ dependencies:
   spell_kit:
     path: packages/spell_kit
 
-  # Document editing toolkit backing the editor's styled block editing mode. Pinned to an exact
-  # version (no caret): its API is still pre-1.0 and moves between dev releases. dev.52 is the
-  # first pin that compiles against this repo's Flutter SDK: since 3.44, `TextInputConnection`
-  # declares an abstract `updateStyle(TextInputStyle)` that super_editor's `DocumentImeInputClient`
-  # only overrides from dev.51 onwards, so the earlier dev.50 no longer builds.
-  super_editor: 0.3.0-dev.52
-
-  # Builds the exported screenplay PDF (embedded Courier Prime, paginated body, title page)
-  pdf: ^3.12.0
-
-  # Writes the exported shot list workbook (XLSX). The community fork of `excel` rather than
-  # `excel` itself, whose latest release is still capped at `archive ^3` and `xml <7` and can
-  # therefore not be resolved alongside the `image` version `icons_launcher` pulls in; see
-  # docs/adr/0008-excel-community-for-the-shot-list-export.md
-  excel_community: ^2.2.0
-
-  # Reads and writes the portable project package: the `.ocpt` plus every file it references, as
-  # one zip somebody can send. Streamed to and from disk rather than held in memory — a project
-  # carrying two hundred scouting photos is an ordinary case. Already an indirect dependency
-  # through `excel_community`, named here because the app now uses it in its own right.
-  archive: ^4.0.9
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Parses Dart sources in the tests that guard the shape of the code (the try statements, the
+  # member order, the doc comments), which no text scan can read (it is already resolved for the
+  # code generators)
+  analyzer: ^10.0.1
+
+  # Runs the code generators (drift_dev, intl_utils) declared as build_runner builders
+  build_runner: ^2.4.13
+
+  # Provides withClock, used to freeze the wall clock super_editor's undo-grouping policy reads
+  # (`MergeRapidTextInputPolicy` compares transaction timestamps taken with `clock.now()`), so a
+  # typing-run test measures the grouping rule rather than the test VM's own real-time gaps
+  clock: ^1.1.2
+
+  # Generates the drift companion code (tables, DAOs) under lib/generated/ from the annotated
+  # database classes
+  drift_dev: ^2.24.0
+
   flutter_lints: ^5.0.0
+
+  # Provides tester.ime.backspace, used to simulate the IME delta channel's own Backspace path
+  # (super_editor's own supereditor_robot.dart only wraps its typeText, not its backspace)
+  flutter_test_robots: ^0.0.24
 
   # Used to generate the translation files
   intl_utils: ^2.8.10
@@ -199,31 +224,23 @@ dev_dependencies:
   # Provides InMemorySharedPreferencesAsync, used to back OcptPropertiesManager in tests
   shared_preferences_platform_interface: ^2.4.2
 
-  # Provides tester.ime.backspace, used to simulate the IME delta channel's own Backspace path
-  # (super_editor's own supereditor_robot.dart only wraps its typeText, not its backspace)
-  flutter_test_robots: ^0.0.24
-
-  # Provides withClock, used to freeze the wall clock super_editor's undo-grouping policy reads
-  # (`MergeRapidTextInputPolicy` compares transaction timestamps taken with `clock.now()`), so a
-  # typing-run test measures the grouping rule rather than the test VM's own real-time gaps
-  clock: ^1.1.2
-
-  # Generates the drift/*.g.dart companion code (tables, DAOs) from the annotated database classes
-  drift_dev: ^2.24.0
-
-  # Brings in the icons_launcher tooling used to turn the branding masters into every platform's
-  # launcher icon (`dart run icons_launcher:create`, configured by the icons_launcher block below)
-  act_launcher_icon:
-    path: actlibs/act_launcher_icon
-
-  # Runs the code generators (drift_dev, intl_utils) declared as build_runner builders
-  build_runner: ^2.4.13
+  # Owns the combining builder whose output location build.yaml redirects to lib/generated/; a
+  # package that sets another package's builder options depends on it directly
+  source_gen: ^4.2.3
 
   # Provides StreamChannelMixin, used to build a fake WebSocketChannel for
   # OcptRelayRemoteStorage's tests; promoted from a transitive dependency now that a test imports
   # it directly
   stream_channel: ^2.1.4
 
+  # Brings in the icons_launcher tooling used to turn the branding masters into every platform's
+  # launcher icon (`dart run icons_launcher:create`, configured by the icons_launcher block below)
+  act_launcher_icon:
+    path: actlibs/act_launcher_icon
+
+  # Provides SilentLogger, the logger a test hands to a service whose logs it does not assert on
+  act_test_utility:
+    path: actlibs/act_test_utility
 
 flutter:
   uses-material-design: true

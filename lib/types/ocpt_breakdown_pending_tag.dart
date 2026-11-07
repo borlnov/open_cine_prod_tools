@@ -8,11 +8,7 @@
 /// A tag belongs to one scene, whose `startOffset`/`endOffset` are relative to it — so `sceneId`
 /// is what tells a second click in another scene to replace the anchor outright rather than close
 /// a range spanning two scenes (see `OcptBreakdownBloc`'s own word-click handler).
-typedef OcptBreakdownPendingTagAnchor = ({
-  String sceneId,
-  int wordStartOffset,
-  int wordEndOffset,
-});
+typedef OcptBreakdownPendingTagAnchor = ({String sceneId, int wordStartOffset, int wordEndOffset});
 
 /// A range just closed by a second click, scene-relative, awaiting the popover's own answer:
 /// linking it to an existing target, creating an element for it, or being cancelled outright.

@@ -22,9 +22,12 @@ Widget _wrap(Widget child, {double width = 220}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, child: child),
+  ),
 );
 
+/// Build a title page entry of [key] holding [value].
 FountainTitlePageEntry _entry(String key, String value) =>
     FountainTitlePageEntry(key: key, values: [value], sourceRange: _range);
 
@@ -38,6 +41,7 @@ void _growTestSurface(WidgetTester tester, {double height = 1200}) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
+/// Run the tests of [OcptEditorMetadataPanel].
 void main() {
   testWidgets('renders every title-page field and the script statistics', (tester) async {
     final fullTitlePage = FountainTitlePage(
@@ -61,7 +65,11 @@ void main() {
 
     await tester.pumpWidget(
       _wrap(
-        OcptEditorMetadataPanel(titlePage: fullTitlePage, statistics: statistics, onEditTitlePage: () {}),
+        OcptEditorMetadataPanel(
+          titlePage: fullTitlePage,
+          statistics: statistics,
+          onEditTitlePage: () {},
+        ),
         width: 400,
       ),
     );
@@ -144,9 +152,7 @@ void main() {
 
   testWidgets('does not overflow at the dock practical minimum width', (tester) async {
     final titlePage = FountainTitlePage(
-      entries: [
-        _entry('Title', 'A Very Long Title That Might Not Fit On One Line Easily'),
-      ],
+      entries: [_entry('Title', 'A Very Long Title That Might Not Fit On One Line Easily')],
       sourceRange: _range,
     );
 

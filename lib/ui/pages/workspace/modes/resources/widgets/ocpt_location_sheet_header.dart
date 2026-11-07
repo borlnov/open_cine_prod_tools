@@ -4,14 +4,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_color_swatches.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The width of the header's colour bar.
 const double _colorBarWidth = 4;
@@ -35,8 +35,7 @@ class OcptLocationSheetHeader extends StatelessWidget {
   /// location's own stored value.
   final String Function(OcptLocationField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptLocationField field, String rawValue)? onFieldChanged;
 
   /// Called with the palette index picked, or null while the colour may not be changed: the bar
@@ -57,6 +56,7 @@ class OcptLocationSheetHeader extends StatelessWidget {
     required this.onPermitStatusChanged,
   });
 
+  /// Build the location sheet header as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -64,10 +64,7 @@ class OcptLocationSheetHeader extends StatelessWidget {
 
     return Row(
       children: [
-        _OcptLocationColorBar(
-          colorIndex: location.colorIndex,
-          onColorChanged: onColorChanged,
-        ),
+        _OcptLocationColorBar(colorIndex: location.colorIndex, onColorChanged: onColorChanged),
         const SizedBox(width: 12),
         Expanded(
           child: OcptResourcesSheetField(
@@ -85,7 +82,8 @@ class OcptLocationSheetHeader extends StatelessWidget {
     );
   }
 
-  /// The `onChanged` the name field is given: the one reporting to [onFieldChanged], or null while
+  /// Get the `onChanged` the name field is given: the one reporting to [onFieldChanged], or null
+  /// while
   /// the sheet may not be written to, which is what makes the field read its value out instead of
   /// accepting a new one.
   ValueChanged<String>? _onNameChangedOrNull() {
@@ -110,6 +108,7 @@ class _OcptLocationColorBar extends StatelessWidget {
   /// Class constructor
   const _OcptLocationColorBar({required this.colorIndex, required this.onColorChanged});
 
+  /// Build the location color bar as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -136,10 +135,13 @@ class _OcptLocationColorBar extends StatelessWidget {
         message: tr.resourcesChangeColorTooltip,
         child: InkWell(
           onTap: () => controller.isOpen ? controller.close() : controller.open(),
-          mouseCursor: ocptClickableCursor,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          mouseCursor: ocpt_theme.ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           // The bar alone is 4 px wide: the padding is what makes it a target one can actually hit.
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), child: bar),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: bar,
+          ),
         ),
       ),
     );
@@ -159,6 +161,7 @@ class _OcptPermitStatusBadge extends StatelessWidget {
   /// Class constructor
   const _OcptPermitStatusBadge({required this.status, required this.onChanged});
 
+  /// Build the permit status badge as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -169,8 +172,8 @@ class _OcptPermitStatusBadge extends StatelessWidget {
     final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

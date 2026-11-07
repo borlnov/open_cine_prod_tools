@@ -4,7 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/painting.dart' show Color;
-import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 
 /// The translucent accent wash painted behind every match, in both editing modes.
 ///
@@ -47,7 +47,7 @@ class OcptEditorSearchQuery extends Equatable {
     required this.isWholeWord,
   });
 
-  /// This query's matches in [text], through `ocptFindTextMatches` — the one thing every caller
+  /// Get this query's matches in [text], through `ocptFindTextMatches` — the one thing every caller
   /// (the raw controller's highlight, the page's replace/replace-all, the bloc test doubles) goes
   /// through, so none of them can drift from the matcher's own rules.
   List<OcptTextMatch> matchesIn(String text) => ocptFindTextMatches(
@@ -57,7 +57,7 @@ class OcptEditorSearchQuery extends Equatable {
     isWholeWord: isWholeWord,
   );
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [query, isCaseSensitive, isWholeWord];
 }

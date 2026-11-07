@@ -3,12 +3,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status_lead.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over `role_candidates`: the people seen for a part, what was thought of each of them, and
@@ -30,7 +34,7 @@ import 'package:uuid/uuid.dart';
 /// candidacy exactly as a coat outlives the character who wore it.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
-class OcptRoleCandidatesService {
+class OcptRoleCandidatesService extends AbsOcptService {
   /// The statuses that leave a candidacy in the running — the rows retaining somebody turns down.
   ///
   /// Resolved off `OcptRoleCandidateStatus.isStillALead` rather than listed here, so the one place
@@ -47,9 +51,9 @@ class OcptRoleCandidatesService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptRoleCandidatesService({required this.deviceId});
+  const OcptRoleCandidatesService({required super.logger, required this.deviceId});
 
-  /// Loads every live candidacy of the project, grouped by `roleId`, each group in its own
+  /// Load every live candidacy of the project, grouped by `roleId`, each group in its own
   /// `sortKey` order — the casting director's own ranking of the people they have seen.
   ///
   /// Each row is joined with the person it names, taken from [people] rather than read again: the
@@ -61,10 +65,11 @@ class OcptRoleCandidatesService {
   ///
   /// The retained candidate is **not** pulled to the front here: that is a reading the card does
   /// when it draws the list, and this order is the one the user actually chose.
-  Future<Map<String, List<OcptRoleCandidate>>> loadCandidatesByRoleId({
+  @useResult
+  Future<OcptDatabaseResult<Map<String, List<OcptRoleCandidate>>>> loadCandidatesByRoleId({
     required OcptProjectDatabase database,
     required List<OcptPerson> people,
-  }) async {
+  }) => guardResult("loadCandidatesByRoleId", () async {
     final rows = await _liveCandidateRows(database: database);
     final peopleById = {for (final person in people) person.id: person};
 
@@ -81,10 +86,10 @@ class OcptRoleCandidatesService {
     }
 
     return candidatesByRoleId;
-  }
+  });
 
-  /// Records that [personId] is a candidate for role [roleId], appended after that role's other
-  /// candidates, and returns the id of the candidacy — the one that already said so when there was
+  /// Record that [personId] is a candidate for role [roleId], appended after that role's other
+  /// candidates, and return the id of the candidacy — the one that already said so when there was
   /// one, a freshly generated one otherwise.
   ///
   /// A new candidacy starts at [OcptRoleCandidateStatus.spotted], the first step of the casting
@@ -98,11 +103,12 @@ class OcptRoleCandidatesService {
   /// what a casting director wants back.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addCandidate({
+  @useResult
+  Future<OcptDatabaseResult<String>> addCandidate({
     required OcptProjectDatabase database,
     required String roleId,
     required String personId,
-  }) async {
+  }) => guardResult("addCandidate", () async {
     if (database.refusesUserWrite("addCandidate")) {
       return null;
     }
@@ -150,7 +156,9 @@ class OcptRoleCandidatesService {
           personId: personId,
           status: OcptRoleCandidateStatus.spotted,
           notes: '',
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
         ),
         stamps: stamps,
@@ -159,9 +167,9 @@ class OcptRoleCandidatesService {
 
       return id;
     });
-  }
+  });
 
-  /// Updates the fields of candidacy [candidateId] that are passed as something other than
+  /// Update the fields of candidacy [candidateId] that are passed as something other than
   /// [Value.absent].
   ///
   /// Never touches `status`, `sortKey` or the tombstone: those only change through [setStatus],
@@ -169,12 +177,13 @@ class OcptRoleCandidatesService {
   /// row.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateCandidate({
+  @useResult
+  Future<OcptDatabaseOutcome> updateCandidate({
     required OcptProjectDatabase database,
     required String candidateId,
     Value<DateTime?> auditionedOn = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateCandidate", () async {
     if (database.refusesUserWrite("updateCandidate")) {
       return;
     }
@@ -182,9 +191,9 @@ class OcptRoleCandidatesService {
     final companion = OcptRoleCandidatesTableCompanion(auditionedOn: auditionedOn, notes: notes);
 
     await database.transaction(() async {
-      final current = await (database.select(database.ocptRoleCandidatesTable)
-            ..where((table) => table.id.equals(candidateId) & table.isDeleted.not()))
-          .getSingleOrNull();
+      final current = await (database.select(
+        database.ocptRoleCandidatesTable,
+      )..where((table) => table.id.equals(candidateId) & table.isDeleted.not())).getSingleOrNull();
 
       if (current == null) {
         return;
@@ -201,19 +210,20 @@ class OcptRoleCandidatesService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Moves candidacy [candidateId] to [newPosition] (0-based) within role [roleId]'s own list, by
+  /// Move candidacy [candidateId] to [newPosition] (0-based) within role [roleId]'s own list, by
   /// giving it a `sortKey` sitting between the two candidacies it lands between. Writes **exactly
   /// one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderCandidate({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderCandidate({
     required OcptProjectDatabase database,
     required String roleId,
     required String candidateId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderCandidate", () async {
     if (database.refusesUserWrite("reorderCandidate")) {
       return;
     }
@@ -247,9 +257,9 @@ class OcptRoleCandidatesService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Sets candidacy [candidateId]'s status to [status], keeping `roles.personId` in step with it.
+  /// Set candidacy [candidateId]'s status to [status], keeping `roles.personId` in step with it.
   ///
   /// **The one door every status change comes through**, [retainCandidate] and [unretainCandidate]
   /// included, so the two tables cannot end up disagreeing whichever gesture the user made:
@@ -270,7 +280,188 @@ class OcptRoleCandidatesService {
   /// Does nothing when [candidateId] names no live candidacy.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> setStatus({
+  @useResult
+  Future<OcptDatabaseOutcome> setStatus({
+    required OcptProjectDatabase database,
+    required String candidateId,
+    required OcptRoleCandidateStatus status,
+  }) => guardOutcome(
+    "setStatus",
+    () => _setStatus(database: database, candidateId: candidateId, status: status),
+  );
+
+  /// Retain candidacy [candidateId]: this person is the one cast in the part, and every other
+  /// candidate still in the running is turned down with the same gesture. [setStatus]'s retaining
+  /// half, named for the decision the card's own status list makes.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseOutcome> retainCandidate({
+    required OcptProjectDatabase database,
+    required String candidateId,
+  }) => guardOutcome(
+    "retainCandidate",
+    () => _setStatus(
+      database: database,
+      candidateId: candidateId,
+      status: OcptRoleCandidateStatus.retained,
+    ),
+  );
+
+  /// Drop candidacy [candidateId] back to [OcptRoleCandidateStatus.seen] and clear the part's
+  /// casting with it. [retainCandidate]'s mirror on the cast column, and only there.
+  ///
+  /// The candidacy itself stays exactly where it was in the list, with its date and its notes: the
+  /// person was still seen, and the record of it is the whole point of this table.
+  ///
+  /// **The other candidates are not brought back.** Retaining turned down everybody still in the
+  /// running; un-retaining leaves them turned down, because what each of them held beforehand is
+  /// recorded nowhere and guessing it is what this codebase refuses everywhere else. Changing one's
+  /// mind about a casting therefore means saying so, row by row — which is the honest cost of the
+  /// gesture, and the reason the card's status list is the only place a status ever moves.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseOutcome> unretainCandidate({
+    required OcptProjectDatabase database,
+    required String candidateId,
+  }) => guardOutcome(
+    "unretainCandidate",
+    () => _setStatus(
+      database: database,
+      candidateId: candidateId,
+      status: OcptRoleCandidateStatus.seen,
+    ),
+  );
+
+  /// Remove candidacy [candidateId]: this person is no longer among the people seen for the part.
+  ///
+  /// **The `people` row is never touched** — a person outlives a candidacy — and neither is any
+  /// other candidacy of the role. `roles.personId` is cleared when the candidacy being removed was
+  /// the retained one, for the reason [setStatus] clears it when the status is taken away: the cast
+  /// column was written by this very row, and a part cast by a candidacy that no longer exists is
+  /// exactly the disagreement between two tables this service exists to prevent.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseOutcome> removeCandidate({
+    required OcptProjectDatabase database,
+    required String candidateId,
+  }) => guardOutcome("removeCandidate", () async {
+    if (database.refusesUserWrite("removeCandidate")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final candidacy = await (database.select(
+        database.ocptRoleCandidatesTable,
+      )..where((table) => table.id.equals(candidateId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (candidacy == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: candidateId,
+        current: candidacy,
+        next: candidacy.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+
+      if (candidacy.status == OcptRoleCandidateStatus.retained) {
+        await _writeRoleCasting(
+          database: database,
+          roleId: candidacy.roleId,
+          personId: null,
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
+    });
+  });
+
+  /// Tombstone every `role_candidates` row naming role [roleId], the cascade
+  /// `OcptRoleIndexService.deleteRole` reaches for once it has decided the role goes.
+  ///
+  /// The **people** these rows named are of course untouched, exactly as the elements a role's
+  /// links pointed at are: an address book outlives a part being cut. `roles.personId` is not
+  /// cleared either — the role itself is being tombstoned in the same transaction, so there is no
+  /// disagreement left for anybody to read.
+  ///
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
+  /// has already refused the write on a preview connection and is already inside the transaction
+  /// removing the role, so a second guard here would only be able to disagree with the first.
+  /// Stamps through [stamps] — that caller's own instance — rather than resolving a device id of
+  /// its own.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<void> tombstoneCandidatesOfRole({
+    required OcptProjectDatabase database,
+    required String roleId,
+    required OcptRowStampService? stamps,
+  }) async {
+    final rows = await (database.select(
+      database.ocptRoleCandidatesTable,
+    )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not())).get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true),
+        stamps: stamps,
+      );
+    }
+  }
+
+  /// Tombstone every `role_candidates` row naming person [personId] **and blanks its notes**: the
+  /// cascade `OcptPeopleService.deletePerson` reaches for, this table being the one link table that
+  /// holds something about a person rather than only ids.
+  ///
+  /// `notes` is what somebody wrote about this person at an audition, and an erasure is about what
+  /// the project file stops holding, not about what a screen stops showing — the same reasoning
+  /// that blanks `person_skills.label` and `person_unavailabilities.reason` beside it. The status,
+  /// the date and the row itself stay, tombstoned, for the reason nothing in this schema is ever
+  /// hard-deleted; `roles.personId` is left pointing at the blanked `people` row exactly as every
+  /// other reference to an erased person is (see `OcptPeopleService.deletePerson`).
+  ///
+  /// **Unguarded**, for the reason [tombstoneCandidatesOfRole] is: its only caller has already
+  /// refused the write on a preview connection and is already inside the transaction erasing the
+  /// person. Stamps through [stamps], for the same reason.
+  ///
+  /// {@macro open_cine_prod_tools.tombstones}
+  Future<void> eraseCandidaciesOfPerson({
+    required OcptProjectDatabase database,
+    required String personId,
+    required OcptRowStampService? stamps,
+  }) async {
+    final rows = await (database.select(
+      database.ocptRoleCandidatesTable,
+    )..where((table) => table.personId.equals(personId))).get();
+
+    for (final row in rows) {
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: row.id,
+        current: row,
+        next: row.copyWith(isDeleted: true, notes: ''),
+        stamps: stamps,
+      );
+    }
+  }
+
+  /// Set candidacy [candidateId]'s status to [status], the body [setStatus], [retainCandidate] and
+  /// [unretainCandidate] each hand to the boundary of their own.
+  Future<void> _setStatus({
     required OcptProjectDatabase database,
     required String candidateId,
     required OcptRoleCandidateStatus status,
@@ -328,168 +519,7 @@ class OcptRoleCandidatesService {
     });
   }
 
-  /// Retains candidacy [candidateId]: this person is the one cast in the part, and every other
-  /// candidate still in the running is turned down with the same gesture. [setStatus]'s retaining
-  /// half, named for the decision the card's own status list makes.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> retainCandidate({
-    required OcptProjectDatabase database,
-    required String candidateId,
-  }) => setStatus(
-    database: database,
-    candidateId: candidateId,
-    status: OcptRoleCandidateStatus.retained,
-  );
-
-  /// Drops candidacy [candidateId] back to [OcptRoleCandidateStatus.seen] and clears the part's
-  /// casting with it. [retainCandidate]'s mirror on the cast column, and only there.
-  ///
-  /// The candidacy itself stays exactly where it was in the list, with its date and its notes: the
-  /// person was still seen, and the record of it is the whole point of this table.
-  ///
-  /// **The other candidates are not brought back.** Retaining turned down everybody still in the
-  /// running; un-retaining leaves them turned down, because what each of them held beforehand is
-  /// recorded nowhere and guessing it is what this codebase refuses everywhere else. Changing one's
-  /// mind about a casting therefore means saying so, row by row — which is the honest cost of the
-  /// gesture, and the reason the card's status list is the only place a status ever moves.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> unretainCandidate({
-    required OcptProjectDatabase database,
-    required String candidateId,
-  }) =>
-      setStatus(database: database, candidateId: candidateId, status: OcptRoleCandidateStatus.seen);
-
-  /// Removes candidacy [candidateId]: this person is no longer among the people seen for the part.
-  ///
-  /// **The `people` row is never touched** — a person outlives a candidacy — and neither is any
-  /// other candidacy of the role. `roles.personId` is cleared when the candidacy being removed was
-  /// the retained one, for the reason [setStatus] clears it when the status is taken away: the cast
-  /// column was written by this very row, and a part cast by a candidacy that no longer exists is
-  /// exactly the disagreement between two tables this service exists to prevent.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeCandidate({
-    required OcptProjectDatabase database,
-    required String candidateId,
-  }) async {
-    if (database.refusesUserWrite("removeCandidate")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final candidacy = await (database.select(
-        database.ocptRoleCandidatesTable,
-      )..where((table) => table.id.equals(candidateId) & table.isDeleted.not())).getSingleOrNull();
-
-      if (candidacy == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptRoleCandidatesTable,
-        rowId: candidateId,
-        current: candidacy,
-        next: candidacy.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-
-      if (candidacy.status == OcptRoleCandidateStatus.retained) {
-        await _writeRoleCasting(
-          database: database,
-          roleId: candidacy.roleId,
-          personId: null,
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-    });
-  }
-
-  /// Tombstones every `role_candidates` row naming role [roleId], the cascade
-  /// `OcptRoleIndexService.deleteRole` reaches for once it has decided the role goes.
-  ///
-  /// The **people** these rows named are of course untouched, exactly as the elements a role's
-  /// links pointed at are: an address book outlives a part being cut. `roles.personId` is not
-  /// cleared either — the role itself is being tombstoned in the same transaction, so there is no
-  /// disagreement left for anybody to read.
-  ///
-  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
-  /// has already refused the write on a preview connection and is already inside the transaction
-  /// removing the role, so a second guard here would only be able to disagree with the first.
-  /// Stamps through [stamps] — that caller's own instance — rather than resolving a device id of
-  /// its own.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  Future<void> tombstoneCandidatesOfRole({
-    required OcptProjectDatabase database,
-    required String roleId,
-    required OcptRowStampService? stamps,
-  }) async {
-    final rows =
-        await (database.select(
-              database.ocptRoleCandidatesTable,
-            )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not()))
-            .get();
-
-    for (final row in rows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptRoleCandidatesTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
-  }
-
-  /// Tombstones every `role_candidates` row naming person [personId] **and blanks its notes**: the
-  /// cascade `OcptPeopleService.deletePerson` reaches for, this table being the one link table that
-  /// holds something about a person rather than only ids.
-  ///
-  /// `notes` is what somebody wrote about this person at an audition, and an erasure is about what
-  /// the project file stops holding, not about what a screen stops showing — the same reasoning
-  /// that blanks `person_skills.label` and `person_unavailabilities.reason` beside it. The status,
-  /// the date and the row itself stay, tombstoned, for the reason nothing in this schema is ever
-  /// hard-deleted; `roles.personId` is left pointing at the blanked `people` row exactly as every
-  /// other reference to an erased person is (see `OcptPeopleService.deletePerson`).
-  ///
-  /// **Unguarded**, for the reason [tombstoneCandidatesOfRole] is: its only caller has already
-  /// refused the write on a preview connection and is already inside the transaction erasing the
-  /// person. Stamps through [stamps], for the same reason.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  Future<void> eraseCandidaciesOfPerson({
-    required OcptProjectDatabase database,
-    required String personId,
-    required OcptRowStampService? stamps,
-  }) async {
-    final rows =
-        await (database.select(
-              database.ocptRoleCandidatesTable,
-            )..where((table) => table.personId.equals(personId)))
-            .get();
-
-    for (final row in rows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptRoleCandidatesTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true, notes: ''),
-        stamps: stamps,
-      );
-    }
-  }
-
-  /// Turns down every live candidacy of role [roleId] other than [exceptCandidateId] that was still
+  /// Turn down every live candidacy of role [roleId] other than [exceptCandidateId] that was still
   /// a lead — the "the part is cast, and the others did not get it" half of [setStatus].
   ///
   /// **The closed ones are left exactly as they are.** Somebody who declined, or who was
@@ -536,7 +566,7 @@ class OcptRoleCandidatesService {
     }
   }
 
-  /// Writes [personId] — a person, or null to leave the part uncast — into role [roleId]'s own
+  /// Write [personId] — a person, or null to leave the part uncast — into role [roleId]'s own
   /// `personId` column.
   ///
   /// The one place this service touches `roles`, and it goes straight to the table rather than
@@ -567,7 +597,8 @@ class OcptRoleCandidatesService {
     );
   }
 
-  /// Every live `role_candidates` row of the project — or of role [roleId] alone when one is given
+  /// Get every live `role_candidates` row of the project — or of role [roleId] alone when one is
+  /// given
   /// — ordered by `sortKey`.
   Future<List<OcptRoleCandidateRow>> _liveCandidateRows({
     required OcptProjectDatabase database,

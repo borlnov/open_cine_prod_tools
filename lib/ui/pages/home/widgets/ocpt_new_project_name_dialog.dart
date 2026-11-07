@@ -6,7 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 
 /// A dialog asking the user for the name of the new project they want to create.
 ///
@@ -18,15 +18,13 @@ class OcptNewProjectNameDialog extends StatefulWidget {
   /// Class constructor
   const OcptNewProjectNameDialog({super.key});
 
-  /// Shows the dialog and returns the name entered by the user, or null if they cancelled it.
-  static Future<String?> show(BuildContext context) => showDialog<String>(
-    context: context,
-    builder: (context) => const OcptNewProjectNameDialog(),
-  );
-
+  /// Create the [_OcptNewProjectNameDialogState] holding the state of the new project name dialog.
   @override
-  State<OcptNewProjectNameDialog> createState() =>
-      _OcptNewProjectNameDialogState();
+  State<OcptNewProjectNameDialog> createState() => _OcptNewProjectNameDialogState();
+
+  /// Show the dialog and return the name entered by the user, or null if they cancelled it.
+  static Future<String?> show(BuildContext context) =>
+      showDialog<String>(context: context, builder: (context) => const OcptNewProjectNameDialog());
 }
 
 /// The state of [OcptNewProjectNameDialog].
@@ -37,12 +35,7 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
   /// The controller of the name text field.
   final _nameController = TextEditingController();
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
+  /// Build the new project name dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -51,9 +44,8 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
       controller: _nameController,
       autofocus: true,
       decoration: InputDecoration(labelText: tr.homeNewProjectDialogNameLabel),
-      validator: (value) => (value == null || value.trim().isEmpty)
-          ? tr.homeNewProjectDialogNameEmptyError
-          : null,
+      validator: (value) =>
+          (value == null || value.trim().isEmpty) ? tr.homeNewProjectDialogNameEmptyError : null,
       onFieldSubmitted: (_) => _submit(),
     );
 
@@ -68,10 +60,7 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
             ),
             title: Text(tr.homeNewProjectDialogTitle),
             actions: [
-              TextButton(
-                onPressed: _submit,
-                child: Text(tr.homeNewProjectDialogCreateAction),
-              ),
+              TextButton(onPressed: _submit, child: Text(tr.homeNewProjectDialogCreateAction)),
             ],
           ),
           body: Padding(
@@ -90,17 +79,14 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
           onPressed: () => globalGetIt().get<OcptRouterManager>().pop(),
           child: Text(tr.homeNewProjectDialogCancelAction),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: Text(tr.homeNewProjectDialogCreateAction),
-        ),
+        FilledButton(onPressed: _submit, child: Text(tr.homeNewProjectDialogCreateAction)),
       ],
     );
   }
 
-  /// Validates the entered name and, if it's valid, pops the dialog returning it.
+  /// Validate the entered name and, if it's valid, pop the dialog returning it.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the trimmed name back to the [OcptNewProjectNameDialog.show]
   /// caller.
   void _submit() {
@@ -108,5 +94,12 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
       final trimmedName = _nameController.text.trim();
       globalGetIt().get<OcptRouterManager>().pop<String>(trimmedName);
     }
+  }
+
+  /// Dispose [_nameController].
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 }

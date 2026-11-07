@@ -7,8 +7,8 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 
 /// A role the screenplay no longer names as a speaking character, but whose casting and notes are
 /// kept: the "orphaned" variant of `OcptRoleAlertBanner`
-/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 4), shown wherever the
-/// role is — the resources mode's role sheet and, above the shot table, the shot list.
+/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 4), shown wherever
+/// the role is — the resources mode's role sheet and, above the shot table, the shot list.
 ///
 /// A role's [OcptRole.orphanedName] is already the outcome of the comparison against the
 /// screenplay's current cast — `OcptRoleIndexService.reconcile` sets it once, at save time — so
@@ -23,7 +23,11 @@ class OcptRemovedRoleAlert extends Equatable {
   /// Class constructor
   const OcptRemovedRoleAlert({required this.roleId, required this.characterName});
 
-  /// [role]'s own alert, or null while it is still found in the screenplay.
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() => "OcptRemovedRoleAlert(roleId: $roleId, characterName: $characterName)";
+
+  /// Get [role]'s own alert, or null while it is still found in the screenplay.
   static OcptRemovedRoleAlert? of(OcptRole role) {
     final orphanedName = role.orphanedName;
     if (orphanedName == null) {
@@ -33,18 +37,14 @@ class OcptRemovedRoleAlert extends Equatable {
     return OcptRemovedRoleAlert(roleId: role.id, characterName: orphanedName);
   }
 
-  /// Every alert of [roles]: one per role whose `OcptRole.orphanedName` is set, in the order
+  /// Get every alert of [roles]: one per role whose `OcptRole.orphanedName` is set, in the order
   /// [roles] lists them.
   static List<OcptRemovedRoleAlert> buildAll(List<OcptRole> roles) => [
     for (final role in roles)
       if (OcptRemovedRoleAlert.of(role) case final alert?) alert,
   ];
 
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptRemovedRoleAlert(roleId: $roleId, characterName: $characterName)";
-
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [roleId, characterName];
 }

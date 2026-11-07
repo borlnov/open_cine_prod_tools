@@ -4,6 +4,7 @@
 
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -45,8 +46,11 @@ const _screenplay =
 /// columns, statuses or groups apart without depending on the app's own translations. Mirrors
 /// `ocpt_resources_xlsx_export_service_test.dart`'s own `_buildLabels`.
 const _scenesSheetName = "Scenes";
+
+/// The name of the entries sheet the tests look for.
 const _entriesSheetName = "Breakdown";
 
+/// Build the labels the service writes its workbook with.
 OcptBreakdownXlsxLabels _buildLabels() => OcptBreakdownXlsxLabels(
   fileNameSuffix: "breakdown",
   scenesSheetName: _scenesSheetName,
@@ -57,12 +61,8 @@ OcptBreakdownXlsxLabels _buildLabels() => OcptBreakdownXlsxLabels(
   entriesColumnHeaders: {
     for (final column in OcptBreakdownEntriesXlsxColumn.values) column: column.name,
   },
-  sceneStatusLabels: {
-    for (final status in OcptBreakdownSceneStatus.values) status: status.name,
-  },
-  elementStatusLabels: {
-    for (final status in OcptElementStatus.values) status: status.name,
-  },
+  sceneStatusLabels: {for (final status in OcptBreakdownSceneStatus.values) status: status.name},
+  elementStatusLabels: {for (final status in OcptElementStatus.values) status: status.name},
   elementCategoryLabels: {
     for (final category in OcptElementCategory.values) category: category.name,
   },
@@ -273,8 +273,9 @@ Object? _valueOf(Data? cell) {
 /// The value of column [index] in [row], or null when the row is shorter than that column.
 Object? _cellAt(List<Object?> row, int index) => index < row.length ? row[index] : null;
 
+/// Run the tests of [OcptBreakdownXlsxExportService].
 void main() {
-  const service = OcptBreakdownXlsxExportService();
+  const service = OcptBreakdownXlsxExportService(logger: SilentLogger());
   const parser = FountainParser();
   const pageSetup = OcptPageSetup.standard();
   final document = parser.parse(_screenplay);
@@ -322,12 +323,14 @@ void main() {
     people: people,
   );
 
-  Uint8List generate(OcptBreakdownSnapshot snapshot) => service.generate(
-    document: document,
-    snapshot: snapshot,
-    pageSetup: pageSetup,
-    labels: _buildLabels(),
-  );
+  Uint8List generate(OcptBreakdownSnapshot snapshot) => service
+      .generate(
+        document: document,
+        snapshot: snapshot,
+        pageSetup: pageSetup,
+        labels: _buildLabels(),
+      )
+      .value!;
 
   group("xlsxFileName", () {
     test("appends the .xlsx extension and the suffix to the project name", () {
@@ -368,9 +371,9 @@ void main() {
       ]);
 
       final excel = Excel.decodeBytes(bytes);
-      final headerCell = excel
-          .tables[_scenesSheetName]!
-          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+      final headerCell = excel.tables[_scenesSheetName]!.cell(
+        CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0),
+      );
       expect(headerCell.cellStyle?.isBold, isTrue);
     });
 
@@ -395,7 +398,9 @@ void main() {
     group("the Scenes sheet", () {
       test("writes one row per scene, whether tagged or not", () {
         final bytes = generate(
-          buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
+          buildSnapshot(
+            elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+          ),
         );
 
         // Header + 2 scenes.
@@ -420,7 +425,10 @@ void main() {
         final bytes = generate(buildSnapshot(firstSceneNotes: "The lamp is the only light."));
 
         final row = _rowsOf(bytes, _scenesSheetName)[1];
-        expect(_cellAt(row, OcptBreakdownScenesXlsxColumn.notes.index), "The lamp is the only light.");
+        expect(
+          _cellAt(row, OcptBreakdownScenesXlsxColumn.notes.index),
+          "The lamp is the only light.",
+        );
       });
 
       test("writes the scene's length in eighths", () {
@@ -434,7 +442,10 @@ void main() {
         final bytes = generate(
           OcptBreakdownSnapshot.build(
             screenplayId: "screenplay",
-            scenes: [_buildScene(id: "scene-1", position: 0), _buildScene(id: "scene-3", position: 2)],
+            scenes: [
+              _buildScene(id: "scene-1", position: 0),
+              _buildScene(id: "scene-3", position: 2),
+            ],
             tags: const [],
             elements: const [],
             roles: const [],
@@ -491,7 +502,9 @@ void main() {
     group("the Breakdown sheet", () {
       test("writes one row per distinct target tagged in a scene", () {
         final bytes = generate(
-          buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
+          buildSnapshot(
+            elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+          ),
         );
 
         // Header + 1 tagged element.
@@ -506,7 +519,9 @@ void main() {
 
       test("writes the scene number and heading beside the target", () {
         final bytes = generate(
-          buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
+          buildSnapshot(
+            elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+          ),
         );
 
         final row = _rowsOf(bytes, _entriesSheetName)[1];
@@ -548,9 +563,7 @@ void main() {
         final person = _buildPerson(id: "person-1", firstName: "Léa", lastName: "Martin");
         final bytes = generate(
           buildSnapshot(
-            elements: [
-              _buildElement(id: "element-1", name: "Desk lamp", ownerPersonId: person.id),
-            ],
+            elements: [_buildElement(id: "element-1", name: "Desk lamp", ownerPersonId: person.id)],
             people: [person],
           ),
         );
@@ -567,7 +580,12 @@ void main() {
                 id: "element-1",
                 name: "Desk lamp",
                 sceneLinks: const [
-                  OcptSceneElementLink(id: "link-1", sceneId: "scene-1", quantity: "2", notes: "Cassé"),
+                  OcptSceneElementLink(
+                    id: "link-1",
+                    sceneId: "scene-1",
+                    quantity: "2",
+                    notes: "Cassé",
+                  ),
                 ],
               ),
             ],
@@ -581,7 +599,9 @@ void main() {
 
       test("writes the tagged passage's own text", () {
         final bytes = generate(
-          buildSnapshot(elements: [_buildElement(id: "element-1", name: "Desk lamp")]),
+          buildSnapshot(
+            elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+          ),
         );
 
         final row = _rowsOf(bytes, _entriesSheetName)[1];
@@ -589,42 +609,47 @@ void main() {
       });
 
       test(
-          "a target tagged twice in one scene yields one row, its passages joined into one cell",
-          () {
-        final element = _buildElement(id: "element-1", name: "Desk lamp");
-        final snapshot = OcptBreakdownSnapshot.build(
-          screenplayId: "screenplay",
-          scenes: [_buildScene(id: "scene-1", position: 0)],
-          tags: [
-            _buildTag(id: "tag-1", sceneId: "scene-1", targetId: element.id),
-            _buildTag(
-              id: "tag-2",
-              sceneId: "scene-1",
-              targetId: element.id,
-              taggedText: "the lamp",
-            ),
-          ],
-          elements: [element],
-          roles: const [],
-          sets: const [],
-          locations: const [],
-          people: const [],
-        );
+        "a target tagged twice in one scene yields one row, its passages joined into one cell",
+        () {
+          final element = _buildElement(id: "element-1", name: "Desk lamp");
+          final snapshot = OcptBreakdownSnapshot.build(
+            screenplayId: "screenplay",
+            scenes: [_buildScene(id: "scene-1", position: 0)],
+            tags: [
+              _buildTag(id: "tag-1", sceneId: "scene-1", targetId: element.id),
+              _buildTag(
+                id: "tag-2",
+                sceneId: "scene-1",
+                targetId: element.id,
+                taggedText: "the lamp",
+              ),
+            ],
+            elements: [element],
+            roles: const [],
+            sets: const [],
+            locations: const [],
+            people: const [],
+          );
 
-        final bytes = generate(snapshot);
+          final bytes = generate(snapshot);
 
-        final rows = _rowsOf(bytes, _entriesSheetName);
-        // Header + 1 row for the one distinct target, not 2 for its two tags — matching the
-        // `Scenes` sheet's own `neededCount`, which counts the very same way.
-        expect(rows, hasLength(2));
-        expect(
-          _cellAt(rows[1], OcptBreakdownEntriesXlsxColumn.passages.index),
-          "desk lamp; the lamp",
-        );
-      });
+          final rows = _rowsOf(bytes, _entriesSheetName);
+          // Header + 1 row for the one distinct target, not 2 for its two tags — matching the
+          // `Scenes` sheet's own `neededCount`, which counts the very same way.
+          expect(rows, hasLength(2));
+          expect(
+            _cellAt(rows[1], OcptBreakdownEntriesXlsxColumn.passages.index),
+            "desk lamp; the lamp",
+          );
+        },
+      );
 
       test("a role's row carries its own number as its code, and no status or owner", () {
-        final bytes = generate(buildSnapshot(taggedRole: _buildRole(id: "role-1", name: "LÉA", number: 3)));
+        final bytes = generate(
+          buildSnapshot(
+            taggedRole: _buildRole(id: "role-1", name: "LÉA", number: 3),
+          ),
+        );
 
         final row = _rowsOf(bytes, _entriesSheetName)[1];
         expect(_cellAt(row, OcptBreakdownEntriesXlsxColumn.group.index), "Roles");
@@ -698,9 +723,7 @@ void main() {
       });
 
       test("leaves every unset field as an empty cell, never as a placeholder", () {
-        final bytes = generate(
-          buildSnapshot(elements: [_buildElement(id: "element-1")]),
-        );
+        final bytes = generate(buildSnapshot(elements: [_buildElement(id: "element-1")]));
 
         final row = _rowsOf(bytes, _entriesSheetName)[1];
         expect(_cellAt(row, OcptBreakdownEntriesXlsxColumn.name.index), isNull);

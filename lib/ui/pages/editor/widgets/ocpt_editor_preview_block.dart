@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
-/// Renders one printable screenplay block on the preview's simulated paper page, at its true
+/// Render one printable screenplay block on the preview's simulated paper page, at its true
 /// screenplay position: indented from the page's left edge, capped at its element's width, and
 /// aligned per its element's convention (left for most, centered for centered text, right for
 /// transitions).
@@ -34,14 +34,8 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   /// The pixel layout the block is typeset with.
   final OcptEditorPreviewLayout layout;
 
-  /// Class constructor
-  const OcptEditorPreviewBlock({
-    super.key,
-    required this.block,
-    required this.layout,
-  });
-
-  /// The base text style every preview run derives from: Courier Prime, black on the white page,
+  /// Get the base text style every preview run derives from: Courier Prime, black on the white
+  /// page,
   /// rendered at exactly [layout]'s [OcptEditorPreviewLayout.lineHeight] (not a fixed factor: see
   /// that getter's own doc comment for why estimate and render must always agree).
   ///
@@ -64,39 +58,66 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     color: Colors.black,
   );
 
+  /// Get the horizontal text alignment of [block]'s element.
+  TextAlign get _textAlign => switch (_elementOf(block)?.alignment) {
+    FountainLayoutAlignment.center => TextAlign.center,
+    FountainLayoutAlignment.right => TextAlign.right,
+    _ => TextAlign.left,
+  };
+
+  /// Class constructor
+  const OcptEditorPreviewBlock({super.key, required this.block, required this.layout});
+
+  /// Build the editor preview block as a [Padding].
   @override
   Widget build(BuildContext context) {
     final content = switch (block) {
-      final FountainSceneHeading heading => _element(
-        layout.metrics.sceneHeading,
-        _styledText(
-          // `FountainSceneHeading.headingText` is already uppercased unconditionally by
-          // `FountainBlockBuilder`, regardless of the raw source's casing (unlike the character
-          // cue/transition text below, kept verbatim in their models and uppercased here instead).
-          heading.sceneNumber == null
+      final FountainSceneHeading heading => _OcptPreviewElement(
+        block: this,
+        element: layout.metrics.sceneHeading,
+        child: _OcptPreviewStyledText(
+          block: this,
+          text:
+              // `FountainSceneHeading.headingText` is already uppercased unconditionally by
+              // `FountainBlockBuilder`, regardless of the raw source's casing (unlike the
+              // character cue/transition text below, kept verbatim in their models and uppercased
+              // here instead).
+              heading.sceneNumber == null
               ? heading.headingText
               : "${heading.sceneNumber}. ${heading.headingText}",
-          _baseTextStyleFor(FountainLineType.sceneHeading, _baseStyle),
+          style: _baseTextStyleFor(FountainLineType.sceneHeading, _baseStyle),
         ),
       ),
-      final FountainActionBlock action => _element(
-        layout.metrics.action,
-        _multilineText(action.lines, _baseStyle),
+      final FountainActionBlock action => _OcptPreviewElement(
+        block: this,
+        element: layout.metrics.action,
+        child: _OcptPreviewMultilineText(block: this, lines: action.lines, style: _baseStyle),
       ),
-      final FountainDialogueGroup dialogue => _dialogueGroup(dialogue),
-      final FountainTransition transition => _element(
-        layout.metrics.transition,
-        _styledText(_printed(transition.text, FountainLineType.transition), _baseStyle),
+      final FountainDialogueGroup dialogue => _OcptPreviewDialogueGroup(
+        block: this,
+        dialogue: dialogue,
       ),
-      final FountainCenteredText centered => _element(
-        layout.metrics.centeredText,
-        _styledText(centered.text, _baseStyle),
+      final FountainTransition transition => _OcptPreviewElement(
+        block: this,
+        element: layout.metrics.transition,
+        child: _OcptPreviewStyledText(
+          block: this,
+          text: _printed(transition.text, FountainLineType.transition),
+          style: _baseStyle,
+        ),
       ),
-      final FountainLyrics lyrics => _element(
-        layout.metrics.lyrics,
-        _multilineText(
-          lyrics.lines,
-          _baseTextStyleFor(FountainLineType.lyrics, _baseStyle),
+      final FountainCenteredText centered => _OcptPreviewElement(
+        block: this,
+        element: layout.metrics.centeredText,
+        child: _OcptPreviewStyledText(block: this, text: centered.text, style: _baseStyle),
+      ),
+      final FountainLyrics lyrics => _OcptPreviewElement(
+        block: this,
+        element: layout.metrics.lyrics,
+        child: _OcptPreviewMultilineText(
+          block: this,
+          lines: lyrics.lines,
+          style: _baseTextStyleFor(FountainLineType.lyrics, _baseStyle),
         ),
       ),
       FountainPageBreak() => Padding(
@@ -117,89 +138,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     );
   }
 
-  /// Positions [text] within [element]'s layout box: indented from the page's left edge and
-  /// capped at the element's width.
-  ///
-  /// The outer [Align] is load-bearing, not decorative: each block sits in the preview's
-  /// `ListView.builder`, which gives every item a *tight* cross-axis (width) constraint equal to
-  /// the page's own width. A bare `SizedBox(width: ...)` cannot narrow a tight constraint — it
-  /// gets silently clamped back up to the incoming width, so the element's `SizedBox` below would
-  /// always render as wide as the whole page, swallowing the box's right margin entirely (left
-  /// margin and top margin stay visible because they come from padding/indent, not from a width
-  /// cap). `Align` loosens the constraint it hands to its child before positioning it, letting the
-  /// `SizedBox` genuinely shrink to [FountainElementLayout.maxWidthColumns].
-  Widget _element(FountainElementLayout element, Widget text) => Align(
-    alignment: Alignment.topLeft,
-    child: Padding(
-      padding: EdgeInsets.only(left: layout.indentOf(element)),
-      child: SizedBox(width: layout.widthOf(element), child: text),
-    ),
-  );
-
-  /// Renders a full dialogue group: the character cue, then its parentheticals and dialogue
-  /// lines, each at its own element's indent.
-  Widget _dialogueGroup(FountainDialogueGroup dialogue) {
-    final character = dialogue.character;
-    final cueText = character.extension == null
-        ? character.name
-        : "${character.name} (${character.extension})";
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _element(
-          layout.metrics.character,
-          _styledText(_printed(cueText, FountainLineType.character), _baseStyle),
-        ),
-        for (final child in dialogue.children)
-          switch (child) {
-            final FountainParenthetical parenthetical => _element(
-              layout.metrics.parenthetical,
-              _styledText("(${parenthetical.text})", _baseStyle),
-            ),
-            final FountainDialogueLine line => _element(
-              layout.metrics.dialogue,
-              _styledText(line.text, _baseStyle),
-            ),
-            // A dialogue group's children are only ever parentheticals and dialogue lines.
-            _ => const SizedBox.shrink(),
-          },
-      ],
-    );
-  }
-
-  /// Renders [lines] as one text widget, one source line per rendered paragraph.
-  Widget _multilineText(List<String> lines, TextStyle style) => Text.rich(
-    TextSpan(
-      children: [
-        for (var i = 0; i < lines.length; i++) ...[
-          if (i > 0) const TextSpan(text: "\n"),
-          ..._inlineSpans(lines[i], style),
-        ],
-      ],
-    ),
-    style: style,
-    textAlign: _textAlign,
-    textScaler: _textScaler,
-  );
-
-  /// Renders [text] as one text widget, resolving its inline emphasis.
-  Widget _styledText(String text, TextStyle style) => Text.rich(
-    TextSpan(children: _inlineSpans(text, style)),
-    style: style,
-    textAlign: _textAlign,
-    textScaler: _textScaler,
-  );
-
-
-  /// The horizontal text alignment of [block]'s element.
-  TextAlign get _textAlign => switch (_elementOf(block)?.alignment) {
-    FountainLayoutAlignment.center => TextAlign.center,
-    FountainLayoutAlignment.right => TextAlign.right,
-    _ => TextAlign.left,
-  };
-
-  /// The layout box of [block]'s element, or null for blocks without one (e.g. page breaks).
+  /// Get the layout box of [block]'s element, or null for blocks without one (e.g. page breaks).
   FountainElementLayout? _elementOf(FountainBlock block) => switch (block) {
     FountainSceneHeading() => layout.metrics.sceneHeading,
     FountainActionBlock() => layout.metrics.action,
@@ -209,14 +148,14 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     _ => null,
   };
 
-  /// Applies [FountainPrintStyle.of]'s print-time letter case to [text] for a line of [lineType],
+  /// Apply [FountainPrintStyle.of]'s print-time letter case to [text] for a line of [lineType],
   /// upper-casing it when that type's print style says so: the single source of truth this
   /// preview shares with the PDF exporter and the styled editor's stylesheet for which elements
   /// print upper-cased, so the three never drift apart on the question.
   static String _printed(String text, FountainLineType lineType) =>
       FountainPrintStyle.of(lineType).isUppercase ? text.toUpperCase() : text;
 
-  /// Applies [FountainPrintStyle.of]'s base weight/slope for [lineType] to [style]: the same
+  /// Apply [FountainPrintStyle.of]'s base weight/slope for [lineType] to [style]: the same
   /// shared table [_printed] reads its casing rule from, so a switch case above never hardcodes
   /// its own bold/italic decision for a type the table already has an opinion on (a scene heading
   /// is always bold, lyrics are always italic, regardless of any inline emphasis their own text
@@ -229,7 +168,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     );
   }
 
-  /// Resolves [text]'s inline emphasis markers into styled [TextSpan]s deriving from [style].
+  /// Resolve [text]'s inline emphasis markers into styled [TextSpan]s deriving from [style].
   ///
   /// Inline notes (`[[...]]`) are editor-only: they are not part of the printed screenplay, so
   /// their spans are skipped.
@@ -239,21 +178,162 @@ class OcptEditorPreviewBlock extends StatelessWidget {
         TextSpan(
           text: span.text,
           style: switch (span.style) {
-            FountainInlineStyle.italic => style.copyWith(
-              fontStyle: FontStyle.italic,
-            ),
-            FountainInlineStyle.bold => style.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            FountainInlineStyle.italic => style.copyWith(fontStyle: FontStyle.italic),
+            FountainInlineStyle.bold => style.copyWith(fontWeight: FontWeight.bold),
             FountainInlineStyle.boldItalic => style.copyWith(
               fontWeight: FontWeight.bold,
               fontStyle: FontStyle.italic,
             ),
-            FountainInlineStyle.underline => style.copyWith(
-              decoration: TextDecoration.underline,
-            ),
+            FountainInlineStyle.underline => style.copyWith(decoration: TextDecoration.underline),
             _ => style,
           },
         ),
   ];
+}
+
+/// A text positioned within its element's layout box: indented from the page's left edge and
+/// capped at the element's width.
+///
+/// The outer [Align] is load-bearing, not decorative: each block sits in the preview's
+/// `ListView.builder`, which gives every item a *tight* cross-axis (width) constraint equal to
+/// the page's own width. A bare `SizedBox(width: ...)` cannot narrow a tight constraint — it
+/// gets silently clamped back up to the incoming width, so the element's `SizedBox` below would
+/// always render as wide as the whole page, swallowing the box's right margin entirely (left
+/// margin and top margin stay visible because they come from padding/indent, not from a width
+/// cap). `Align` loosens the constraint it hands to its child before positioning it, letting the
+/// `SizedBox` genuinely shrink to [FountainElementLayout.maxWidthColumns].
+class _OcptPreviewElement extends StatelessWidget {
+  /// The block whose layout the element is positioned with.
+  final OcptEditorPreviewBlock block;
+
+  /// The layout box of the element.
+  final FountainElementLayout element;
+
+  /// The text to position.
+  final Widget child;
+
+  /// Class constructor
+  const _OcptPreviewElement({required this.block, required this.element, required this.child});
+
+  /// Build the preview element as an [Align].
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topLeft,
+    child: Padding(
+      padding: EdgeInsets.only(left: block.layout.indentOf(element)),
+      child: SizedBox(width: block.layout.widthOf(element), child: child),
+    ),
+  );
+}
+
+/// A full dialogue group: the character cue, then its parentheticals and dialogue lines, each at
+/// its own element's indent.
+class _OcptPreviewDialogueGroup extends StatelessWidget {
+  /// The block whose layout the dialogue group is typeset with.
+  final OcptEditorPreviewBlock block;
+
+  /// The dialogue group to render.
+  final FountainDialogueGroup dialogue;
+
+  /// Class constructor
+  const _OcptPreviewDialogueGroup({required this.block, required this.dialogue});
+
+  /// Build the preview dialogue group as a [Column].
+  @override
+  Widget build(BuildContext context) {
+    final layout = block.layout;
+    final character = dialogue.character;
+    final cueText = character.extension == null
+        ? character.name
+        : "${character.name} (${character.extension})";
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _OcptPreviewElement(
+          block: block,
+          element: layout.metrics.character,
+          child: _OcptPreviewStyledText(
+            block: block,
+            text: OcptEditorPreviewBlock._printed(cueText, FountainLineType.character),
+            style: block._baseStyle,
+          ),
+        ),
+        for (final child in dialogue.children)
+          switch (child) {
+            final FountainParenthetical parenthetical => _OcptPreviewElement(
+              block: block,
+              element: layout.metrics.parenthetical,
+              child: _OcptPreviewStyledText(
+                block: block,
+                text: "(${parenthetical.text})",
+                style: block._baseStyle,
+              ),
+            ),
+            final FountainDialogueLine line => _OcptPreviewElement(
+              block: block,
+              element: layout.metrics.dialogue,
+              child: _OcptPreviewStyledText(block: block, text: line.text, style: block._baseStyle),
+            ),
+            // A dialogue group's children are only ever parentheticals and dialogue lines.
+            _ => const SizedBox.shrink(),
+          },
+      ],
+    );
+  }
+}
+
+/// Lines rendered as one text widget, one source line per rendered paragraph.
+class _OcptPreviewMultilineText extends StatelessWidget {
+  /// The block whose alignment the text follows.
+  final OcptEditorPreviewBlock block;
+
+  /// The lines to render.
+  final List<String> lines;
+
+  /// The style the lines derive from.
+  final TextStyle style;
+
+  /// Class constructor
+  const _OcptPreviewMultilineText({required this.block, required this.lines, required this.style});
+
+  /// Build the preview multiline text as a [Text].
+  @override
+  Widget build(BuildContext context) => Text.rich(
+    TextSpan(
+      children: [
+        for (var i = 0; i < lines.length; i++) ...[
+          if (i > 0) const TextSpan(text: "\n"),
+          ...OcptEditorPreviewBlock._inlineSpans(lines[i], style),
+        ],
+      ],
+    ),
+    style: style,
+    textAlign: block._textAlign,
+    textScaler: OcptEditorPreviewBlock._textScaler,
+  );
+}
+
+/// One text, with its inline emphasis resolved.
+class _OcptPreviewStyledText extends StatelessWidget {
+  /// The block whose alignment the text follows.
+  final OcptEditorPreviewBlock block;
+
+  /// The text to render.
+  final String text;
+
+  /// The style the text derives from.
+  final TextStyle style;
+
+  /// Class constructor
+  const _OcptPreviewStyledText({required this.block, required this.text, required this.style});
+
+  /// Build the preview styled text as a [Text].
+  @override
+  Widget build(BuildContext context) => Text.rich(
+    TextSpan(children: OcptEditorPreviewBlock._inlineSpans(text, style)),
+    style: style,
+    textAlign: block._textAlign,
+    textScaler: OcptEditorPreviewBlock._textScaler,
+  );
 }

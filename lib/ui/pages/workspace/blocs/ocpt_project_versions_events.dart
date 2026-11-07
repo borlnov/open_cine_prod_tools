@@ -6,25 +6,29 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 
 /// The events handled by `MixinOcptProjectVersionsBloc`, i.e. by every production mode's bloc.
 ///
-/// They extend [BlocEventForMixin] directly rather than joining a mode's own sealed event
-/// hierarchy: the very point of the mixin is that the `Versions` dock tab dispatches the same
-/// events whichever mode it is shown in.
+/// They extend [BlocEventForMixin] through their own sealed hierarchy rather than joining a mode's
+/// own: the very point of the mixin is that the `Versions` dock tab dispatches the same events
+/// whichever mode it is shown in.
+sealed class OcptProjectVersionsEvent extends BlocEventForMixin {
+  /// Class constructor
+  const OcptProjectVersionsEvent();
+}
 
-/// Requests (re)loading the current project's version list into the state.
+/// Request (re)loading the current project's version list into the state.
 ///
 /// Dispatched by the mixin itself whenever the list may have changed — on entry, after a version
 /// is created or deleted, and after entering or leaving a preview — so a mode never has to
 /// remember to refresh it.
-class OcptProjectVersionsRefreshRequestedEvent extends BlocEventForMixin {
+class OcptProjectVersionsRefreshRequestedEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionsRefreshRequestedEvent();
 }
 
-/// Requests capturing the current project as a new version, named [name] and described by [note].
+/// Request capturing the current project as a new version, named [name] and described by [note].
 ///
 /// [name] and [note] come from the create dialog, which is where they are validated: the handler
 /// takes them as given.
-class OcptProjectVersionCreationRequestedEvent extends BlocEventForMixin {
+class OcptProjectVersionCreationRequestedEvent extends OcptProjectVersionsEvent {
   /// The user-facing name of the version to create.
   final String name;
 
@@ -34,71 +38,71 @@ class OcptProjectVersionCreationRequestedEvent extends BlocEventForMixin {
   /// Class constructor
   const OcptProjectVersionCreationRequestedEvent({required this.name, required this.note});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, name, note];
 }
 
-/// Reports that the user clicked `Delete` on the card of the version [versionId], which shows that
+/// Report that the user clicked `Delete` on the card of the version [versionId], which shows that
 /// card's inline confirmation rather than deleting anything.
-class OcptProjectVersionDeletionRequestedEvent extends BlocEventForMixin {
+class OcptProjectVersionDeletionRequestedEvent extends OcptProjectVersionsEvent {
   /// The id of the version whose deletion is being confirmed.
   final String versionId;
 
   /// Class constructor
   const OcptProjectVersionDeletionRequestedEvent({required this.versionId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId];
 }
 
-/// Reports that the user cancelled the inline delete confirmation currently shown.
-class OcptProjectVersionDeletionCancelledEvent extends BlocEventForMixin {
+/// Report that the user cancelled the inline delete confirmation currently shown.
+class OcptProjectVersionDeletionCancelledEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionDeletionCancelledEvent();
 }
 
-/// Requests the permanent deletion of the version [versionId], confirmed inline in its card.
-class OcptProjectVersionDeletionConfirmedEvent extends BlocEventForMixin {
+/// Request the permanent deletion of the version [versionId], confirmed inline in its card.
+class OcptProjectVersionDeletionConfirmedEvent extends OcptProjectVersionsEvent {
   /// The id of the version to delete.
   final String versionId;
 
   /// Class constructor
   const OcptProjectVersionDeletionConfirmedEvent({required this.versionId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId];
 }
 
-/// Reports that the user clicked `Restore this version` on the card of the version [versionId],
+/// Report that the user clicked `Restore this version` on the card of the version [versionId],
 /// which shows that card's inline confirmation rather than restoring anything.
-class OcptProjectVersionRestoreRequestedEvent extends BlocEventForMixin {
+class OcptProjectVersionRestoreRequestedEvent extends OcptProjectVersionsEvent {
   /// The id of the version whose restore is being confirmed.
   final String versionId;
 
   /// Class constructor
   const OcptProjectVersionRestoreRequestedEvent({required this.versionId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId];
 }
 
-/// Reports that the user cancelled the inline restore confirmation currently shown.
-class OcptProjectVersionRestoreCancelledEvent extends BlocEventForMixin {
+/// Report that the user cancelled the inline restore confirmation currently shown.
+class OcptProjectVersionRestoreCancelledEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionRestoreCancelledEvent();
 }
 
-/// Requests putting the whole project back into the state the version [versionId] holds, confirmed
+/// Request putting the whole project back into the state the version [versionId] holds, confirmed
 /// inline in its card.
 ///
 /// [safetyVersionName] is the name the version keeping the state this one replaces is created
 /// under. It comes from the page rather than being built where it is used, for the reason every
 /// user-facing string in this app does: the blocs and managers have no `Tr` of their own.
-class OcptProjectVersionRestoreConfirmedEvent extends BlocEventForMixin {
+class OcptProjectVersionRestoreConfirmedEvent extends OcptProjectVersionsEvent {
   /// The id of the version to restore.
   final String versionId;
 
@@ -111,34 +115,34 @@ class OcptProjectVersionRestoreConfirmedEvent extends BlocEventForMixin {
     required this.safetyVersionName,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId, safetyVersionName];
 }
 
-/// Reports that the user clicked `Rename` on the card of the version [versionId], which shows
+/// Report that the user clicked `Rename` on the card of the version [versionId], which shows
 /// that card's inline rename form rather than renaming anything yet.
-class OcptProjectVersionRenameRequestedEvent extends BlocEventForMixin {
+class OcptProjectVersionRenameRequestedEvent extends OcptProjectVersionsEvent {
   /// The id of the version whose rename form is being shown.
   final String versionId;
 
   /// Class constructor
   const OcptProjectVersionRenameRequestedEvent({required this.versionId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId];
 }
 
-/// Reports that the user cancelled the inline rename form currently shown.
-class OcptProjectVersionRenameCancelledEvent extends BlocEventForMixin {
+/// Report that the user cancelled the inline rename form currently shown.
+class OcptProjectVersionRenameCancelledEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionRenameCancelledEvent();
 }
 
-/// Requests renaming the version [versionId] to [name], replacing its [note], confirmed inline in
+/// Request renaming the version [versionId] to [name], replacing its [note], confirmed inline in
 /// its card's rename form.
-class OcptProjectVersionRenameConfirmedEvent extends BlocEventForMixin {
+class OcptProjectVersionRenameConfirmedEvent extends OcptProjectVersionsEvent {
   /// The id of the version to rename.
   final String versionId;
 
@@ -155,40 +159,40 @@ class OcptProjectVersionRenameConfirmedEvent extends BlocEventForMixin {
     required this.note,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId, name, note];
 }
 
-/// Requests a fresh read of the working copy's own card, throttled by the mixin rather than run on
+/// Request a fresh read of the working copy's own card, throttled by the mixin rather than run on
 /// every dispatch: see `MixinOcptProjectVersionsBloc`'s own doc comment for where this is
 /// dispatched from and why.
-class OcptProjectWorkingCopyRefreshRequestedEvent extends BlocEventForMixin {
+class OcptProjectWorkingCopyRefreshRequestedEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectWorkingCopyRefreshRequestedEvent();
 }
 
-/// Requests entering the read-only preview of the version [versionId].
-class OcptProjectVersionPreviewRequestedEvent extends BlocEventForMixin {
+/// Request entering the read-only preview of the version [versionId].
+class OcptProjectVersionPreviewRequestedEvent extends OcptProjectVersionsEvent {
   /// The id of the version to preview.
   final String versionId;
 
   /// Class constructor
   const OcptProjectVersionPreviewRequestedEvent({required this.versionId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId];
 }
 
-/// Requests leaving the read-only preview, putting the working copy back on screen.
-class OcptProjectVersionPreviewExitRequestedEvent extends BlocEventForMixin {
+/// Request leaving the read-only preview, putting the working copy back on screen.
+class OcptProjectVersionPreviewExitRequestedEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionPreviewExitRequestedEvent();
 }
 
-/// Clears the transient version notice currently shown, once the page has displayed it.
-class OcptProjectVersionNoticeDismissedEvent extends BlocEventForMixin {
+/// Clear the transient version notice currently shown, once the page has displayed it.
+class OcptProjectVersionNoticeDismissedEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionNoticeDismissedEvent();
 }

@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of [OcptChangesetEnvelope].
 void main() {
   group('OcptChangesetEnvelope', () {
     final createdAt = DateTime.utc(2026, 8, 29, 12, 30);
@@ -73,7 +74,8 @@ void main() {
     test('accepts a protocol format at or below the current one', () {
       final atCurrent = envelope.toJson()
         ..['protocolFormat'] = OcptChangesetEnvelope.currentProtocolFormat;
-      final older = envelope.toJson()..['protocolFormat'] = OcptChangesetEnvelope.currentProtocolFormat - 1;
+      final older = envelope.toJson()
+        ..['protocolFormat'] = OcptChangesetEnvelope.currentProtocolFormat - 1;
 
       expect(() => OcptChangesetEnvelope.fromJson(atCurrent), returnsNormally);
       expect(() => OcptChangesetEnvelope.fromJson(older), returnsNormally);

@@ -5,19 +5,19 @@
 import 'dart:async';
 import 'dart:isolate';
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:spell_kit/spell_kit.dart';
 
-/// Reads the text asset at [assetKey]. The type of [OcptSpellCheckManager.useLanguage]'s
+/// Read the text asset at [assetKey]. The type of [OcptSpellCheckManager.useLanguage]'s
 /// injectable seam, defaulting to [rootBundle]'s own `loadString` — see that constructor
 /// parameter's doc comment for why a test wants to be able to replace it.
 typedef OcptSpellCheckAssetLoader = Future<String> Function(String assetKey);
 
-/// The directory, under `assets/dictionaries/`, a bundled hunspell dictionary pair for
+/// Get the directory, under `assets/dictionaries/`, a bundled hunspell dictionary pair for
 /// [language] is read from.
 String _assetDirectoryFor(OcptScreenplayLanguage language) {
   switch (language) {
@@ -28,7 +28,7 @@ String _assetDirectoryFor(OcptScreenplayLanguage language) {
   }
 }
 
-/// Builds the [OcptSpellCheckManager] instance registered by the global manager.
+/// Build the [OcptSpellCheckManager] instance registered by the global manager.
 class OcptSpellCheckManagerBuilder extends AbsLifeCycleFactory<OcptSpellCheckManager> {
   /// Class constructor
   const OcptSpellCheckManagerBuilder() : super(OcptSpellCheckManager.new);
@@ -38,9 +38,10 @@ class OcptSpellCheckManagerBuilder extends AbsLifeCycleFactory<OcptSpellCheckMan
   Iterable<Type> dependsOn() => [LoggerManager];
 }
 
-/// Owns the one long-lived worker isolate this app's spell-checking runs on
-/// (`docs/architecture/foundations.md`, and `docs/adr/0020-bundled-hunspell-dictionaries-and-our-own-checker.md`
-/// for why this app checks spelling itself at all).
+/// Own the one long-lived worker isolate this app's spell-checking runs on
+/// (`docs/architecture/foundations.md`, and
+/// `docs/adr/0020-bundled-hunspell-dictionaries-and-our-own-checker.md` for why this app checks
+/// spelling itself at all).
 ///
 /// The isolate holds a `spell_kit` `SpellChecker` built over whichever language's dictionary
 /// [useLanguage] last loaded, plus the session's ignored words and the open project's learned
@@ -61,14 +62,11 @@ class OcptSpellCheckManagerBuilder extends AbsLifeCycleFactory<OcptSpellCheckMan
 /// This manager sees no `Tr` and no project row: the bloc that calls it resolves both a
 /// language's provenance and any word it wants learned or ignored before handing them in here.
 class OcptSpellCheckManager extends AbsWithLifeCycle {
-  /// Creates an [OcptSpellCheckManager].
-  ///
-  /// [loadAsset] is the injectable seam over reading a dictionary's `.aff`/`.dic` text out of the
-  /// asset bundle, defaulting to [rootBundle]'s own `loadString`. A test that cannot reach the
-  /// asset bundle the way `rootBundle` needs to can pass one reading the very same files straight
-  /// off disk instead — the manager never cares which.
-  OcptSpellCheckManager({OcptSpellCheckAssetLoader? loadAsset})
-    : _loadAsset = loadAsset ?? rootBundle.loadString;
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "spell_check";
+
+  /// The logger this manager writes to.
+  final LogsHelper _logger;
 
   /// The seam [useLanguage] reads a dictionary's two asset files through.
   final OcptSpellCheckAssetLoader _loadAsset;
@@ -82,40 +80,58 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
   OcptScreenplayLanguage? _loadedLanguage;
 
   /// The words the bloc last pushed in through [ignoreWords].
-  Set<String> _ignoredWords = const {};
+  Set<String> _ignoredWords;
 
   /// The words the bloc last pushed in through [setLearnedWords].
-  Set<String> _learnedWords = const {};
+  Set<String> _learnedWords;
 
   /// The next request id handed out by [_nextRequestId].
-  int _requestIdCounter = 0;
+  int _requestIdCounter;
 
   /// Bumped by [useLanguage], [ignoreWords] and [setLearnedWords]; see the class doc comment for
   /// what it guards against.
-  int _generation = 0;
+  int _generation;
 
   /// Bumped by every [useLanguage] call, so one that is overtaken by a later one while awaiting
   /// can tell and stand down — see [_isSupersededLanguageRequest].
-  int _languageRequestSerial = 0;
+  int _languageRequestSerial;
 
   /// The [check] requests still awaiting a `_CheckResponse`, keyed by request id.
-  final Map<int, _PendingCheck> _pendingChecks = {};
+  final Map<int, _PendingCheck> _pendingChecks;
 
   /// The [suggestionsFor] requests still awaiting a `_SuggestResponse`, keyed by request id.
-  final Map<int, _PendingSuggestion> _pendingSuggestions = {};
+  final Map<int, _PendingSuggestion> _pendingSuggestions;
 
-  /// The language whose dictionary is currently loaded, or null if none is.
+  /// The single in-flight `_LoadRequest` awaited by [useLanguage], or null. Only one load is ever
+  /// in flight at a time (`useLanguage` is awaited to completion before it can be called again),
+  /// so a single slot is enough.
+  _PendingLoad? _pendingLoad;
+
+  /// Get the language whose dictionary is currently loaded, or null if none is.
   OcptScreenplayLanguage? get loadedLanguage => _loadedLanguage;
 
-  /// The current generation; see the class doc comment.
+  /// Get the current generation; see the class doc comment.
   int get generation => _generation;
 
-  /// The next request id, minted once per outgoing message so a response can be matched back to
-  /// the request that caused it.
-  int _nextRequestId() => _requestIdCounter++;
+  /// Create an [OcptSpellCheckManager].
+  ///
+  /// [loadAsset] is the injectable seam over reading a dictionary's `.aff`/`.dic` text out of the
+  /// asset bundle, defaulting to [rootBundle]'s own `loadString`. A test that cannot reach the
+  /// asset bundle the way `rootBundle` needs to can pass one reading the very same files straight
+  /// off disk instead — the manager never cares which.
+  OcptSpellCheckManager({OcptSpellCheckAssetLoader? loadAsset})
+    : _logger = buildOcptLogsHelper(_loggerCategory),
+      _ignoredWords = const {},
+      _learnedWords = const {},
+      _requestIdCounter = 0,
+      _generation = 0,
+      _languageRequestSerial = 0,
+      _pendingChecks = {},
+      _pendingSuggestions = {},
+      _loadAsset = loadAsset ?? rootBundle.loadString;
 
-  /// Loads [language]'s bundled dictionary into the worker isolate, spawning it lazily on first
-  /// use, or unloads it and kills the worker when [language] is null.
+  /// Load [language]'s bundled dictionary into the worker isolate, spawning it lazily on first use,
+  /// or unload it and kill the worker when [language] is null.
   ///
   /// The two asset files are read here, on the **main** isolate (`rootBundle.loadString`, ~1.8 MB,
   /// cheap), and only their text is sent to the worker, which parses them there: `rootBundle`
@@ -180,26 +196,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     _pushExtraWords(worker);
   }
 
-  /// Whether a [useLanguage] call that started at [serial] has since been overtaken by a later
-  /// one, in which case it must abandon what is left of its own work.
-  ///
-  /// [useLanguage] awaits four times — two asset reads, the isolate handshake and the worker's
-  /// own parse — and nothing stops a second call from starting inside any of those gaps (a
-  /// project opening while the settings page writes a different language, most plainly). Without
-  /// this guard the two interleave: whichever call happens to send its `_LoadRequest` last is the
-  /// dictionary the worker ends up holding, which is not necessarily the one [_loadedLanguage]
-  /// records, and the checker would then be quietly answering in the wrong language.
-  bool _isSupersededLanguageRequest(int serial) => serial != _languageRequestSerial;
-
-  /// Installs [pendingLoad] as the single in-flight load, completing whatever was there before it
-  /// rather than dropping it on the floor — an abandoned [_PendingLoad] is a [useLanguage] future
-  /// that never resolves, and its caller (a bloc event handler) would hang with it.
-  void _replacePendingLoad(_PendingLoad pendingLoad) {
-    _pendingLoad?.complete();
-    _pendingLoad = pendingLoad;
-  }
-
-  /// Checks every text of [textsByKey] for misspellings in one isolate round trip, returning the
+  /// Check every text of [textsByKey] for misspellings in one isolate round trip, returning the
   /// misspelled ranges found in each, keyed back by the very same [K] the caller handed in.
   ///
   /// Returns an empty map immediately, with no isolate round trip at all, when no dictionary is
@@ -240,7 +237,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     return completer.future;
   }
 
-  /// Suggests up to five corrections for [word], on demand — never computed ahead of a
+  /// Suggest up to five corrections for [word], on demand — never computed ahead of a
   /// right-click asking for it.
   ///
   /// Returns an empty list immediately, with no isolate round trip at all, when no dictionary is
@@ -273,7 +270,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     return completer.future;
   }
 
-  /// Replaces the session's whole ignored-word set with [words] (never persisted, dropped when the
+  /// Replace the session's whole ignored-word set with [words] (never persisted, dropped when the
   /// app closes). Bumps [generation] and clears the worker's memo.
   ///
   /// The wholesale form: a caller that already holds the complete set it wants in force (a test,
@@ -289,7 +286,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Adds [word] to the session's ignored words, on top of whatever [ignoreWords] or an earlier
+  /// Add [word] to the session's ignored words, on top of whatever [ignoreWords] or an earlier
   /// [ignoreWord] call already put there (never persisted, dropped when the app closes). Bumps
   /// [generation] and clears the worker's memo, so the very next check answers with [word] no
   /// longer flagged.
@@ -309,7 +306,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Sets the open project's learned words, replacing whatever was pushed in before. Bumps
+  /// Set the open project's learned words, replacing whatever was pushed in before. Bumps
   /// [generation] and clears the worker's memo.
   void setLearnedWords(Set<String> words) {
     _learnedWords = words;
@@ -320,15 +317,36 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Sends the union of [_ignoredWords] and [_learnedWords] to [worker]; fire-and-forget, since
-  /// nothing here needs to await the memo actually being cleared before returning.
-  void _pushExtraWords(_SpellCheckWorkerHandle worker) {
-    worker.sendPort.send(
-      _SetExtraWordsRequest(words: {..._ignoredWords, ..._learnedWords}),
-    );
+  /// Get the next request id, minted once per outgoing message so a response can be matched back to
+  /// the request that caused it.
+  int _nextRequestId() => _requestIdCounter++;
+
+  /// Tell whether a [useLanguage] call that started at [serial] has since been overtaken by a later
+  /// one, in which case it must abandon what is left of its own work.
+  ///
+  /// [useLanguage] awaits four times — two asset reads, the isolate handshake and the worker's
+  /// own parse — and nothing stops a second call from starting inside any of those gaps (a
+  /// project opening while the settings page writes a different language, most plainly). Without
+  /// this guard the two interleave: whichever call happens to send its `_LoadRequest` last is the
+  /// dictionary the worker ends up holding, which is not necessarily the one [_loadedLanguage]
+  /// records, and the checker would then be quietly answering in the wrong language.
+  bool _isSupersededLanguageRequest(int serial) => serial != _languageRequestSerial;
+
+  /// Install [pendingLoad] as the single in-flight load, completing whatever was there before it
+  /// rather than dropping it on the floor — an abandoned [_PendingLoad] is a [useLanguage] future
+  /// that never resolves, and its caller (a bloc event handler) would hang with it.
+  void _replacePendingLoad(_PendingLoad pendingLoad) {
+    _pendingLoad?.complete();
+    _pendingLoad = pendingLoad;
   }
 
-  /// Returns the already-spawned worker, or spawns one and returns it, or returns null (having
+  /// Send the union of [_ignoredWords] and [_learnedWords] to [worker]; fire-and-forget, since
+  /// nothing here needs to await the memo actually being cleared before returning.
+  void _pushExtraWords(_SpellCheckWorkerHandle worker) {
+    worker.sendPort.send(_SetExtraWordsRequest(words: {..._ignoredWords, ..._learnedWords}));
+  }
+
+  /// Return the already-spawned worker, or spawn one and return it, or return null (having
   /// already logged why) if spawning failed.
   Future<_SpellCheckWorkerHandle?> _ensureWorker() async {
     final existing = _worker;
@@ -345,17 +363,12 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     // below; it is cancelled by _killWorker/_handleWorkerDeath, not in this function.
     // ignore: cancel_subscriptions
     late final StreamSubscription<dynamic> messageSubscription;
-    Isolate isolate;
-    try {
-      isolate = await Isolate.spawn(
-        _spellCheckWorkerMain,
-        receivePort.sendPort,
-        onExit: exitPort.sendPort,
-        onError: errorPort.sendPort,
-      );
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to spawn the spell-check worker isolate: "
-          "$error");
+    final isolate = await _spawnWorkerIsolate(
+      receivePort: receivePort,
+      exitPort: exitPort,
+      errorPort: errorPort,
+    );
+    if (isolate == null) {
       receivePort.close();
       exitPort.close();
       errorPort.close();
@@ -371,11 +384,14 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     });
 
     errorPort.listen((message) {
-      appLogger().e("The spell-check worker isolate reported an error: $message");
+      // The reported error can quote the text being checked, so its text is not logged: only the
+      // stack trace is, which the isolate sends as the second element of the message.
+      final stack = message is List && message.length > 1 ? message[1] : null;
+      _logger.e("The spell-check worker isolate reported an error\n$stack");
     });
 
     exitPort.listen((_) {
-      appLogger().w("The spell-check worker isolate exited");
+      _logger.w("The spell-check worker isolate exited");
       unawaited(_handleWorkerDeath());
     });
 
@@ -388,10 +404,38 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
       errorPort: errorPort,
     );
     _worker = worker;
+    _logger.i("The spell-check worker isolate started");
     return worker;
   }
 
-  /// Handles a message received from the worker isolate: a `_LoadResponse`, a `_CheckResponse` or
+  /// Spawn the spell-check worker isolate, reporting to the given ports, or return null (having
+  /// logged why) if spawning failed.
+  Future<Isolate?> _spawnWorkerIsolate({
+    required ReceivePort receivePort,
+    required ReceivePort exitPort,
+    required ReceivePort errorPort,
+  }) async {
+    Isolate? isolate;
+    try {
+      isolate = await Isolate.spawn(
+        _spellCheckWorkerMain,
+        receivePort.sendPort,
+        onExit: exitPort.sendPort,
+        onError: errorPort.sendPort,
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to spawn the spell-check worker isolate: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
+
+    return isolate;
+  }
+
+  /// Handle a message received from the worker isolate: a `_LoadResponse`, a `_CheckResponse` or
   /// a `_SuggestResponse`.
   void _handleWorkerMessage(Object? message) {
     switch (message) {
@@ -424,12 +468,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     }
   }
 
-  /// The single in-flight `_LoadRequest` awaited by [useLanguage], or null. Only one load is ever
-  /// in flight at a time (`useLanguage` is awaited to completion before it can be called again),
-  /// so a single slot is enough.
-  _PendingLoad? _pendingLoad;
-
-  /// Kills the worker isolate (if any) and completes every pending request with a safe, empty
+  /// Kill the worker isolate (if any) and complete every pending request with a safe, empty
   /// answer rather than leaving it to hang.
   Future<void> _killWorker() async {
     final worker = _worker;
@@ -444,7 +483,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     _failAllPending();
   }
 
-  /// Handles the worker isolate having exited on its own (a crash, most likely): clears the
+  /// Handle the worker isolate having exited on its own (a crash, most likely): clears the
   /// worker reference and completes every pending request with a safe, empty answer.
   Future<void> _handleWorkerDeath() async {
     final worker = _worker;
@@ -458,7 +497,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     _failAllPending();
   }
 
-  /// Completes every pending [check]/[suggestionsFor]/load request with a safe, empty answer.
+  /// Complete every pending [check]/[suggestionsFor]/load request with a safe, empty answer.
   void _failAllPending() {
     for (final pending in _pendingChecks.values) {
       pending.resolveEmpty();
@@ -486,9 +525,6 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
 /// A pending [OcptSpellCheckManager.check] call: the generation it was issued under and the two
 /// ways it can be resolved once a `_CheckResponse` (or a worker death) settles it.
 class _PendingCheck {
-  /// Creates a [_PendingCheck].
-  _PendingCheck({required this.generation, required this.resolve, required this.resolveEmpty});
-
   /// The generation [OcptSpellCheckManager.check] was called under.
   final int generation;
 
@@ -497,13 +533,13 @@ class _PendingCheck {
 
   /// Completes the caller's future with an empty map.
   final void Function() resolveEmpty;
+
+  /// Create a [_PendingCheck].
+  _PendingCheck({required this.generation, required this.resolve, required this.resolveEmpty});
 }
 
 /// A pending [OcptSpellCheckManager.suggestionsFor] call, the mirror of [_PendingCheck].
 class _PendingSuggestion {
-  /// Creates a [_PendingSuggestion].
-  _PendingSuggestion({required this.generation, required this.resolve, required this.resolveEmpty});
-
   /// The generation [OcptSpellCheckManager.suggestionsFor] was called under.
   final int generation;
 
@@ -512,32 +548,26 @@ class _PendingSuggestion {
 
   /// Completes the caller's future with an empty list.
   final void Function() resolveEmpty;
+
+  /// Create a [_PendingSuggestion].
+  _PendingSuggestion({required this.generation, required this.resolve, required this.resolveEmpty});
 }
 
 /// A pending `_LoadRequest`, resolved either by its `_LoadResponse` or by the worker dying before
 /// one arrives.
 class _PendingLoad {
-  /// Creates a [_PendingLoad].
-  _PendingLoad({required this.requestId, required this.complete});
-
   /// The id of the `_LoadRequest` this is waiting on.
   final int requestId;
 
   /// Completes the caller's future — a load has nothing more to report than "done".
   final void Function() complete;
+
+  /// Create a [_PendingLoad].
+  _PendingLoad({required this.requestId, required this.complete});
 }
 
 /// What [OcptSpellCheckManager] holds about its spawned worker isolate.
 class _SpellCheckWorkerHandle {
-  /// Creates a [_SpellCheckWorkerHandle].
-  _SpellCheckWorkerHandle({
-    required this.isolate,
-    required this.sendPort,
-    required this.messageSubscription,
-    required this.exitPort,
-    required this.errorPort,
-  });
-
   /// The spawned isolate.
   final Isolate isolate;
 
@@ -552,6 +582,15 @@ class _SpellCheckWorkerHandle {
 
   /// The port an uncaught error in the worker is reported on.
   final ReceivePort errorPort;
+
+  /// Create a [_SpellCheckWorkerHandle].
+  _SpellCheckWorkerHandle({
+    required this.isolate,
+    required this.sendPort,
+    required this.messageSubscription,
+    required this.exitPort,
+    required this.errorPort,
+  });
 }
 
 /// The base type of every message [OcptSpellCheckManager] sends to the worker isolate.
@@ -560,12 +599,9 @@ sealed class _WorkerRequest {
   const _WorkerRequest();
 }
 
-/// Asks the worker to parse [affix]/[dictionary] into a fresh `SpellChecker`, replacing whatever
+/// Ask the worker to parse [affix]/[dictionary] into a fresh `SpellChecker`, replacing whatever
 /// it held before.
 class _LoadRequest extends _WorkerRequest {
-  /// Creates a [_LoadRequest].
-  const _LoadRequest({required this.requestId, required this.affix, required this.dictionary});
-
   /// The id the matching `_LoadResponse` carries back.
   final int requestId;
 
@@ -574,41 +610,44 @@ class _LoadRequest extends _WorkerRequest {
 
   /// The `.dic` file's contents.
   final String dictionary;
+
+  /// Create a [_LoadRequest].
+  const _LoadRequest({required this.requestId, required this.affix, required this.dictionary});
 }
 
-/// Asks the worker to check every text of [textsByIndex] for misspellings.
+/// Ask the worker to check every text of [textsByIndex] for misspellings.
 class _CheckRequest extends _WorkerRequest {
-  /// Creates a [_CheckRequest].
-  const _CheckRequest({required this.requestId, required this.textsByIndex});
-
   /// The id the matching `_CheckResponse` carries back.
   final int requestId;
 
   /// The texts to check, keyed by the index [OcptSpellCheckManager.check] assigned each of the
   /// caller's own keys.
   final Map<int, String> textsByIndex;
+
+  /// Create a [_CheckRequest].
+  const _CheckRequest({required this.requestId, required this.textsByIndex});
 }
 
-/// Asks the worker for up to five suggestions for [word].
+/// Ask the worker for up to five suggestions for [word].
 class _SuggestRequest extends _WorkerRequest {
-  /// Creates a [_SuggestRequest].
-  const _SuggestRequest({required this.requestId, required this.word});
-
   /// The id the matching `_SuggestResponse` carries back.
   final int requestId;
 
   /// The word to suggest corrections for.
   final String word;
+
+  /// Create a [_SuggestRequest].
+  const _SuggestRequest({required this.requestId, required this.word});
 }
 
-/// Tells the worker the current set of extra (ignored + learned) words to treat as known,
+/// Tell the worker the current set of extra (ignored + learned) words to treat as known,
 /// replacing whatever it held before. Fire-and-forget: nothing awaits this settling.
 class _SetExtraWordsRequest extends _WorkerRequest {
-  /// Creates a [_SetExtraWordsRequest].
-  const _SetExtraWordsRequest({required this.words});
-
   /// The words to treat as known, in addition to the loaded dictionary.
   final Set<String> words;
+
+  /// Create a [_SetExtraWordsRequest].
+  const _SetExtraWordsRequest({required this.words});
 }
 
 /// The base type of every message the worker isolate sends back to [OcptSpellCheckManager].
@@ -617,40 +656,41 @@ sealed class _WorkerResponse {
   const _WorkerResponse();
 }
 
-/// Answers a `_LoadRequest`: the dictionary has been parsed and is ready.
+/// Answer a `_LoadRequest`: the dictionary has been parsed and is ready.
 class _LoadResponse extends _WorkerResponse {
-  /// Creates a [_LoadResponse].
-  const _LoadResponse(this.requestId);
-
   /// The id of the `_LoadRequest` this answers.
   final int requestId;
+
+  /// Create a [_LoadResponse].
+  const _LoadResponse(this.requestId);
 }
 
-/// Answers a `_CheckRequest` with the misspelled ranges found in each text.
+/// Answer a `_CheckRequest` with the misspelled ranges found in each text.
 class _CheckResponse extends _WorkerResponse {
-  /// Creates a [_CheckResponse].
-  const _CheckResponse(this.requestId, this.rangesByIndex);
-
   /// The id of the `_CheckRequest` this answers.
   final int requestId;
 
   /// The misspelled ranges found, keyed by the same index the request carried.
   final Map<int, List<SpellRange>> rangesByIndex;
+
+  /// Create a [_CheckResponse].
+  const _CheckResponse(this.requestId, this.rangesByIndex);
 }
 
-/// Answers a `_SuggestRequest` with the suggestions found.
+/// Answer a `_SuggestRequest` with the suggestions found.
 class _SuggestResponse extends _WorkerResponse {
-  /// Creates a [_SuggestResponse].
-  const _SuggestResponse(this.requestId, this.suggestions);
-
   /// The id of the `_SuggestRequest` this answers.
   final int requestId;
 
   /// The suggestions found, empty if none were or no dictionary was loaded.
   final List<String> suggestions;
+
+  /// Create a [_SuggestResponse].
+  const _SuggestResponse(this.requestId, this.suggestions);
 }
 
-/// The worker isolate's entry point, given the [mainSendPort] to hand its own [SendPort] back on
+/// Run the worker isolate's entry point, given the [mainSendPort] to hand its own [SendPort] back
+/// on
 /// as its very first message (the handshake [OcptSpellCheckManager._ensureWorker] awaits).
 ///
 /// Holds a `SpellChecker`/`SpellSuggester` pair once a `_LoadRequest` has been answered, and the
@@ -677,10 +717,7 @@ void _spellCheckWorkerMain(SendPort mainSendPort) {
         if (currentChecker != null) {
           final options = SpellTokenizerOptions.fromAffixFile(currentChecker.dictionary.affixFile);
           for (final entry in textsByIndex.entries) {
-            rangesByIndex[entry.key] = currentChecker.misspellingsIn(
-              entry.value,
-              options: options,
-            );
+            rangesByIndex[entry.key] = currentChecker.misspellingsIn(entry.value, options: options);
           }
         }
         mainSendPort.send(_CheckResponse(requestId, rangesByIndex));

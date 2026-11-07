@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_avatar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_initials_avatar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_photo_slot.dart';
 
 /// The diameter of the colour avatar circle standing in for a person who references no photo.
@@ -40,12 +40,14 @@ class OcptPersonSheetAvatar extends StatelessWidget {
     required this.onColorChanged,
   });
 
+  /// Build the person sheet avatar as an [OcptResourcesPhotoSlot].
   @override
   Widget build(BuildContext context) => OcptResourcesPhotoSlot(
     photo: person.photo,
     currentColorIndex: person.colorIndex,
-    placeholderBuilder: (context) =>
-        Center(child: OcptPersonInitialsAvatar(person: person, radius: _avatarDiameter / 2)),
+    placeholderBuilder: (context) => Center(
+      child: OcptPersonInitialsAvatar(person: person, radius: _avatarDiameter / 2),
+    ),
     onPhotoPickRequested: onPhotoPickRequested,
     onPhotoCleared: onPhotoCleared,
     onColorChanged: onColorChanged,

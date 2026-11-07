@@ -23,6 +23,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -42,6 +43,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of [OcptEditorPageSetupDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 
@@ -113,12 +115,7 @@ void main() {
       tester,
       current: const OcptPageSetup(
         format: OcptPageFormat.usLetter,
-        margins: FountainPageMargins(
-          leftInches: 2,
-          rightInches: 2,
-          topInches: 2,
-          bottomInches: 2,
-        ),
+        margins: FountainPageMargins(leftInches: 2, rightInches: 2, topInches: 2, bottomInches: 2),
       ),
     );
     final context = tester.element(find.byType(OcptEditorPageSetupDialog));
@@ -130,28 +127,36 @@ void main() {
     const standard = FountainPageMargins.standard();
     expect(
       tester
-          .widget<TextFormField>(find.widgetWithText(TextFormField, tr.editorPageSetupMarginLeftLabel))
+          .widget<TextFormField>(
+            find.widgetWithText(TextFormField, tr.editorPageSetupMarginLeftLabel),
+          )
           .controller
           ?.text,
       standard.leftInches.toString(),
     );
     expect(
       tester
-          .widget<TextFormField>(find.widgetWithText(TextFormField, tr.editorPageSetupMarginRightLabel))
+          .widget<TextFormField>(
+            find.widgetWithText(TextFormField, tr.editorPageSetupMarginRightLabel),
+          )
           .controller
           ?.text,
       standard.rightInches.toString(),
     );
     expect(
       tester
-          .widget<TextFormField>(find.widgetWithText(TextFormField, tr.editorPageSetupMarginTopLabel))
+          .widget<TextFormField>(
+            find.widgetWithText(TextFormField, tr.editorPageSetupMarginTopLabel),
+          )
           .controller
           ?.text,
       standard.topInches.toString(),
     );
     expect(
       tester
-          .widget<TextFormField>(find.widgetWithText(TextFormField, tr.editorPageSetupMarginBottomLabel))
+          .widget<TextFormField>(
+            find.widgetWithText(TextFormField, tr.editorPageSetupMarginBottomLabel),
+          )
           .controller
           ?.text,
       standard.bottomInches.toString(),

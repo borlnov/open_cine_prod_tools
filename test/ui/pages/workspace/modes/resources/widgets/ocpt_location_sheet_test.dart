@@ -8,9 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location_availability.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
@@ -18,11 +20,10 @@ import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dated_window_controls.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_color_swatches.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_time_window_control.dart';
 
 /// Builds a minimal [OcptPerson] for these tests.
 OcptPerson _person({required String id, String firstName = "", String lastName = ""}) => OcptPerson(
@@ -130,18 +131,21 @@ OcptAssetRef _asset({
 );
 
 /// Builds a minimal [OcptSet] for these tests.
-OcptSet _set({
-  String id = "s1",
-  String name = "Cuisine",
-  List<String> sceneIds = const [],
-}) => OcptSet(id: id, locationId: "l1", code: "", name: name, notes: "", sceneIds: sceneIds);
+OcptSet _set({String id = "s1", String name = "Cuisine", List<String> sceneIds = const []}) =>
+    OcptSet(id: id, locationId: "l1", code: "", name: name, notes: "", sceneIds: sceneIds);
 
 /// Builds a minimal [OcptSceneRef] for these tests.
 OcptSceneRef _scene({
   String id = "sc1",
   int position = 0,
   String heading = "INT. CUISINE - JOUR",
-}) => OcptSceneRef(id: id, position: position, heading: heading, sceneNumber: null, episodeNumber: null);
+}) => OcptSceneRef(
+  id: id,
+  position: position,
+  heading: heading,
+  sceneNumber: null,
+  episodeNumber: null,
+);
 
 /// An availability window of location `l1`, whole days, free of any condition.
 OcptLocationAvailability _availability({
@@ -163,6 +167,7 @@ OcptLocationAvailability _availability({
   note: note,
 );
 
+/// Run the tests of [OcptLocationSheet].
 void main() {
   /// The values the pumped sheet answers `fieldValueOf` with, and the edits it records.
   late Map<OcptLocationField, String> fieldValues;
@@ -365,10 +370,9 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await tester.tap(
-      find.descendant(
-        of: find.byType(OcptResourcesColorSwatches),
-        matching: find.byType(InkWell),
-      ).at(2),
+      find
+          .descendant(of: find.byType(OcptResourcesColorSwatches), matching: find.byType(InkWell))
+          .at(2),
     );
     await tester.pumpAndSettle();
 
@@ -418,8 +422,15 @@ void main() {
 
     await pumpSheet(
       tester,
-      location: _location(sets: [_set(sceneIds: const ["sc1"])]),
-      scenes: [_scene(), _scene(id: "sc2", position: 1, heading: "EXT. JARDIN - NUIT")],
+      location: _location(
+        sets: [
+          _set(sceneIds: const ["sc1"]),
+        ],
+      ),
+      scenes: [
+        _scene(),
+        _scene(id: "sc2", position: 1, heading: "EXT. JARDIN - NUIT"),
+      ],
       assignedSceneIds: const {"sc1"},
       onSceneRemoved: (sceneId, setId) => removedSceneId = sceneId,
     );
@@ -440,7 +451,10 @@ void main() {
     await pumpSheet(
       tester,
       location: _location(sets: [_set()]),
-      scenes: [_scene(), _scene(id: "sc2", position: 1, heading: "EXT. JARDIN - NUIT")],
+      scenes: [
+        _scene(),
+        _scene(id: "sc2", position: 1, heading: "EXT. JARDIN - NUIT"),
+      ],
       suggestedSetIdBySceneId: const {"sc1": "s1"},
       onSceneAssigned: (sceneId, setId) => assignedSceneId = sceneId,
     );
@@ -500,7 +514,11 @@ void main() {
   testWidgets(
     "a set with a plan but no linked sequence shows the count, but withholds Open in shot list",
     (tester) async {
-      await pumpSheet(tester, location: _location(sets: [_set()]), setIdsWithPlan: const {"s1"});
+      await pumpSheet(
+        tester,
+        location: _location(sets: [_set()]),
+        setIdsWithPlan: const {"s1"},
+      );
       final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
 
       expect(find.text(tr.resourcesSetFloorPlanCountLabel(0)), findsOneWidget);
@@ -515,7 +533,11 @@ void main() {
 
       await pumpSheet(
         tester,
-        location: _location(sets: [_set(sceneIds: const ["sc1", "sc2"])]),
+        location: _location(
+          sets: [
+            _set(sceneIds: const ["sc1", "sc2"]),
+          ],
+        ),
         setIdsWithPlan: const {"s1"},
         onOpenSetInShotListRequested: (setId) => opened = setId,
       );
@@ -538,7 +560,11 @@ void main() {
   ) async {
     await pumpSheet(
       tester,
-      location: _location(sets: [_set(sceneIds: const ["sc1"])]),
+      location: _location(
+        sets: [
+          _set(sceneIds: const ["sc1"]),
+        ],
+      ),
       setIdsWithPlan: const {"s1"},
       isReadOnly: true,
     );
@@ -550,7 +576,11 @@ void main() {
   testWidgets("the sets card withholds every control when read-only", (tester) async {
     await pumpSheet(
       tester,
-      location: _location(sets: [_set(sceneIds: const ["sc1"])]),
+      location: _location(
+        sets: [
+          _set(sceneIds: const ["sc1"]),
+        ],
+      ),
       scenes: [_scene()],
       assignedSceneIds: const {"sc1"},
       isReadOnly: true,
@@ -595,11 +625,7 @@ void main() {
   testWidgets("unticking the last weekday of a window changes nothing", (tester) async {
     await pumpSheet(
       tester,
-      location: _location(
-        availabilities: [
-          _availability(weekdays: 1 << (DateTime.wednesday - 1)),
-        ],
-      ),
+      location: _location(availabilities: [_availability(weekdays: 1 << (DateTime.wednesday - 1))]),
     );
     final context = tester.element(find.byType(OcptLocationSheet));
     final wednesday = MaterialLocalizations.of(context).narrowWeekdays[DateTime.wednesday % 7];
@@ -629,7 +655,10 @@ void main() {
     await pumpSheet(
       tester,
       location: _location(
-        availabilities: [_availability(), _availability(id: "a2", slot: OcptDayPartSlot.custom)],
+        availabilities: [
+          _availability(),
+          _availability(id: "a2", slot: OcptDayPartSlot.custom),
+        ],
       ),
     );
 
@@ -657,9 +686,7 @@ void main() {
   testWidgets("the availability card withholds every control when read-only", (tester) async {
     await pumpSheet(
       tester,
-      location: _location(
-        availabilities: [_availability(note: "No noise after 22:00")],
-      ),
+      location: _location(availabilities: [_availability(note: "No noise after 22:00")]),
       isReadOnly: true,
     );
     final tr = Tr.of(tester.element(find.byType(OcptLocationSheet)));
@@ -870,8 +897,9 @@ void main() {
     expect(moved, ("s1", "l2"));
   });
 
-  testWidgets("the move control is dropped while the project has nowhere to move to",
-      (tester) async {
+  testWidgets("the move control is dropped while the project has nowhere to move to", (
+    tester,
+  ) async {
     await pumpSheet(tester, location: _location(sets: [_set()]));
 
     final tr = await Tr.delegate.load(const Locale("en", "GB"));

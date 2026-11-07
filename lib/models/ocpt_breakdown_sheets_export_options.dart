@@ -23,8 +23,10 @@ class OcptBreakdownSheetsExportOptions extends Equatable {
   /// The physical page format to typeset the exported document with.
   final OcptPageFormat format;
 
+  /// {@template open_cine_prod_tools.exportOptionsPageMargins}
   /// The page margins to typeset the exported document with, carried through unedited from the page
   /// setup the export dialog was opened with.
+  /// {@endtemplate}
   final FountainPageMargins margins;
 
   /// Whether only the scenes marked `done` are printed, rather than every scene of the screenplay.
@@ -49,14 +51,14 @@ class OcptBreakdownSheetsExportOptions extends Equatable {
     required this.includeToFindList,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBreakdownSheetsExportOptions(format: $format, margins: $margins, "
       "onlyDoneScenes: $onlyDoneScenes, includeNotes: $includeNotes, "
       "includeToFindList: $includeToFindList)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, onlyDoneScenes, includeNotes, includeToFindList];
 }

@@ -24,18 +24,18 @@ class OcptWorkspaceDockLayoutController extends ChangeNotifier {
   /// The live right dock fraction.
   double _rightFraction;
 
+  /// Get the left dock's current fraction of the editing row's width.
+  double get leftFraction => _leftFraction;
+
+  /// Get the right dock's current fraction of the editing row's width.
+  double get rightFraction => _rightFraction;
+
   /// Class constructor
   OcptWorkspaceDockLayoutController({required double leftFraction, required double rightFraction})
     : _leftFraction = leftFraction,
       _rightFraction = rightFraction;
 
-  /// The left dock's current fraction of the editing row's width.
-  double get leftFraction => _leftFraction;
-
-  /// The right dock's current fraction of the editing row's width.
-  double get rightFraction => _rightFraction;
-
-  /// Sets the live left fraction to [value], notifying listeners if it actually changed.
+  /// Set the live left fraction to [value], notifying listeners if it actually changed.
   void setLeftFraction(double value) {
     if (_leftFraction == value) {
       return;
@@ -44,7 +44,7 @@ class OcptWorkspaceDockLayoutController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Sets the live right fraction to [value], notifying listeners if it actually changed.
+  /// Set the live right fraction to [value], notifying listeners if it actually changed.
   void setRightFraction(double value) {
     if (_rightFraction == value) {
       return;
@@ -53,7 +53,7 @@ class OcptWorkspaceDockLayoutController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Pushes the bloc's persisted [leftFraction]/[rightFraction] onto this controller, e.g. once
+  /// Push the bloc's persisted [leftFraction]/[rightFraction] onto this controller, e.g. once
   /// the initial load resolves or after "Reset panel layout". A no-op for whichever value is
   /// already current, which is what a drag's own end-of-gesture bloc event relies on to not
   /// bounce the value it just committed.

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 
@@ -26,6 +26,7 @@ class OcptSettingsAppearanceSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the settings appearance section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -44,14 +45,17 @@ class OcptSettingsAppearanceSection extends StatelessWidget {
                 DropdownButton<Brightness?>(
                   value: brightness,
                   onChanged: onBrightnessChanged,
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   items: [
                     DropdownMenuItem(child: Text(tr.settingsThemeSystemOption)),
                     DropdownMenuItem(
                       value: Brightness.light,
                       child: Text(tr.settingsThemeLightOption),
                     ),
-                    DropdownMenuItem(value: Brightness.dark, child: Text(tr.settingsThemeDarkOption)),
+                    DropdownMenuItem(
+                      value: Brightness.dark,
+                      child: Text(tr.settingsThemeDarkOption),
+                    ),
                   ],
                 ),
               ],

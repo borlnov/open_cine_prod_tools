@@ -5,7 +5,7 @@
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Maps every [FountainLineType] to the `NamedAttribution` stored under the `blockType` metadata
+/// Map every [FountainLineType] to the `NamedAttribution` stored under the `blockType` metadata
 /// key of the `ParagraphNode` typesetting that line in the styled editor, and back.
 ///
 /// super_editor's `Stylesheet` selects its rules by a block's `blockType` metadata (see
@@ -14,9 +14,6 @@ import 'package:super_editor/super_editor.dart';
 /// `ComponentBuilder` is needed, since `Styles.padding`, `Styles.maxWidth`, `Styles.textAlign` and
 /// `Styles.textStyle` already apply to any text-based component through this same mechanism.
 class OcptFountainLineAttributions {
-  /// Private constructor: this class only exposes static members.
-  const OcptFountainLineAttributions._();
-
   /// The `blockType` attribution used for each [FountainLineType].
   static const Map<FountainLineType, NamedAttribution> _attributionsByType = {
     FountainLineType.blank: NamedAttribution("fountainBlank"),
@@ -39,17 +36,19 @@ class OcptFountainLineAttributions {
     for (final entry in _attributionsByType.entries) entry.value.name: entry.key,
   };
 
-  /// The `blockType` attribution to store for a line classified as [type].
+  /// Private constructor: this class only exposes static members.
+  const OcptFountainLineAttributions._();
+
+  /// Get the `blockType` attribution to store for a line classified as [type].
   static NamedAttribution attributionOf(FountainLineType type) => _attributionsByType[type]!;
 
-  /// The [FountainLineType] a node was last classified as, read back from its `blockType`
+  /// Get the [FountainLineType] a node was last classified as, read back from its `blockType`
   /// metadata [value] (as returned by `DocumentNode.getMetadataValue("blockType")`).
   ///
   /// Falls back to [FountainLineType.action] when [value] isn't one of ours (e.g. a brand new
   /// node that hasn't been classified yet), which is also the classifier's own fallback for
   /// unrecognized lines.
-  static FountainLineType typeOfAttributionValue(Object? value) =>
-      value is NamedAttribution
-          ? (_typesByAttributionName[value.name] ?? FountainLineType.action)
-          : FountainLineType.action;
+  static FountainLineType typeOfAttributionValue(Object? value) => value is NamedAttribution
+      ? (_typesByAttributionName[value.name] ?? FountainLineType.action)
+      : FountainLineType.action;
 }

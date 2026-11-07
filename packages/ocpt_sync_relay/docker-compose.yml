@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# One relay instance per person or per production (docs/plans/collaboration-and-sync.md §5.1):
-# this file runs exactly one, single-tenant by construction (ADR 0009 — there are no accounts to
-# separate two people by inside one instance). Hosting a second person on the same host is a
-# second service using the same image, with its own volume, enrolment secret and port — see the
-# commented-out example at the bottom of this file, not a second tenant inside this one.
+# One relay instance per person or per production: this file runs exactly one, single-tenant by
+# construction (ADR 0009 — there are no accounts to separate two people by inside one instance).
+# Hosting a second person on the same host is a second service using the same image, with its own
+# volume, enrolment secret and port — see the commented-out example at the bottom of this file, not
+# a second tenant inside this one.
 #
 # TLS is terminated by a reverse proxy in front of this service (Caddy, nginx, Traefik...), which
 # is deliberately NOT part of this file — see this package's own README.md. `ports` below binds to

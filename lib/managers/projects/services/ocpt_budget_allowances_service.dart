@@ -3,11 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over the budget mode's defrayals: the `budget_allowances` a production types for itself.
@@ -15,34 +18,40 @@ import 'package:uuid/uuid.dart';
 /// {@macro open_cine_prod_tools.tombstones}
 ///
 /// **Nothing here reads the schedule, and nothing seeds a row**, unlike the catering half of the
-/// régie view sitting above these rows on screen: a defrayal is not derivable from a presence — see
-/// `OcptBudgetAllowancesTable`'s own doc comment — so the only rows this service ever returns are
-/// the ones somebody wrote.
+/// logistics view sitting above these rows on screen: a defrayal is not derivable from a presence —
+/// see `OcptBudgetAllowancesTable`'s own doc comment — so the only rows this service ever returns
+/// are the ones somebody wrote.
 ///
 /// **Orders flat by `sortKey`**, like the financing plan's own two catalogues: a defrayal belongs
 /// inside no other row.
-class OcptBudgetAllowancesService {
+class OcptBudgetAllowancesService extends AbsOcptService {
+  /// {@template open_cine_prod_tools.serviceDeviceIdGetter}
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter].
+  /// {@endtemplate}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptBudgetAllowancesService({required this.deviceId});
+  const OcptBudgetAllowancesService({required super.logger, required this.deviceId});
 
-  /// Loads every live defrayal of [database], in `sortKey` order.
-  Future<List<OcptBudgetAllowance>> loadAllowances({required OcptProjectDatabase database}) async {
+  /// Load every live defrayal of [database], in `sortKey` order.
+  @useResult
+  Future<OcptDatabaseResult<List<OcptBudgetAllowance>>> loadAllowances({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadAllowances", () async {
     final rows = await _liveAllowanceRows(database);
     return [for (final row in rows) OcptBudgetAllowance.fromRow(row)];
-  }
+  });
 
-  /// Creates a new defrayal, appended at the end of the list, and returns its freshly generated id.
+  /// Create a new defrayal, appended at the end of the list, and return its freshly generated id.
   ///
   /// Every field but the ordering is taken as passed rather than left to a default: this row is
   /// only ever minted from a dialog the user has already filled in, unlike a resource, which is
   /// created empty and named afterwards.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createAllowance({
+  @useResult
+  Future<OcptDatabaseResult<String>> createAllowance({
     required OcptProjectDatabase database,
     required String? personId,
     required OcptBudgetAllowanceKind kind,
@@ -52,7 +61,7 @@ class OcptBudgetAllowancesService {
     required int quantityMilli,
     required int unitAmountMilliCents,
     required String notes,
-  }) async {
+  }) => guardResult("createAllowance", () async {
     if (database.refusesUserWrite("createAllowance")) {
       return null;
     }
@@ -69,7 +78,9 @@ class OcptBudgetAllowancesService {
         current: null,
         next: OcptBudgetAllowanceRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           personId: personId,
           kind: kind,
@@ -86,14 +97,15 @@ class OcptBudgetAllowancesService {
     });
 
     return id;
-  }
+  });
 
-  /// Updates the fields of defrayal [allowanceId] in [database] that are passed as something other
+  /// Update the fields of defrayal [allowanceId] in [database] that are passed as something other
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderAllowance] and [deleteAllowance].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateAllowance({
+  @useResult
+  Future<OcptDatabaseOutcome> updateAllowance({
     required OcptProjectDatabase database,
     required String allowanceId,
     Value<String?> personId = const Value.absent(),
@@ -104,7 +116,7 @@ class OcptBudgetAllowancesService {
     Value<int> quantityMilli = const Value.absent(),
     Value<int> unitAmountMilliCents = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateAllowance", () async {
     if (database.refusesUserWrite("updateAllowance")) {
       return;
     }
@@ -142,18 +154,19 @@ class OcptBudgetAllowancesService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Moves defrayal [allowanceId] to [newPosition] (0-based) within the list's own flat `sortKey`
+  /// Move defrayal [allowanceId] to [newPosition] (0-based) within the list's own flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two rows it lands between. Writes
   /// **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderAllowance({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderAllowance({
     required OcptProjectDatabase database,
     required String allowanceId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderAllowance", () async {
     if (database.refusesUserWrite("reorderAllowance")) {
       return;
     }
@@ -187,17 +200,18 @@ class OcptBudgetAllowancesService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Tombstones defrayal [allowanceId].
+  /// Tombstone defrayal [allowanceId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteAllowance({
+  @useResult
+  Future<OcptDatabaseOutcome> deleteAllowance({
     required OcptProjectDatabase database,
     required String allowanceId,
-  }) async {
+  }) => guardOutcome("deleteAllowance", () async {
     if (database.refusesUserWrite("deleteAllowance")) {
       return;
     }
@@ -219,20 +233,20 @@ class OcptBudgetAllowancesService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Every live defrayal row of [database], in `sortKey` order.
+  /// Get every live defrayal row of [database], in `sortKey` order.
   Future<List<OcptBudgetAllowanceRow>> _liveAllowanceRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetAllowancesTable)
             ..where((table) => table.isDeleted.equals(false))
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The live defrayal row [allowanceId], or null if it doesn't exist or has been tombstoned.
+  /// Get the live defrayal row [allowanceId], or null if it doesn't exist or has been tombstoned.
   Future<OcptBudgetAllowanceRow?> _liveAllowanceRowOrNull({
     required OcptProjectDatabase database,
     required String allowanceId,
-  }) => (database.select(database.ocptBudgetAllowancesTable)
-        ..where((table) => table.id.equals(allowanceId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetAllowancesTable,
+  )..where((table) => table.id.equals(allowanceId) & table.isDeleted.not())).getSingleOrNull();
 }

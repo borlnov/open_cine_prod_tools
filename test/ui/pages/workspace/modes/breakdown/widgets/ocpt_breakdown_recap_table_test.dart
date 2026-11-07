@@ -11,6 +11,8 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_scene_bars.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
@@ -18,13 +20,13 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_recap_table.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
 /// The width/height the table is pumped at — wide and tall enough that every column and every row
 /// of these small fixtures renders without scrolling, so a widget test never has to scroll to find
 /// what it is asserting on.
 const double _tableWidth = 1100;
+
+/// The height the table is given.
 const double _tableHeight = 700;
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a
@@ -180,49 +182,52 @@ OcptElement _buildElement({
 );
 
 /// Builds a person, every field left at a neutral value.
-OcptPerson _buildPerson({required String id, String firstName = "Léa", String lastName = "Martin"}) =>
-    OcptPerson(
-      id: id,
-      firstName: firstName,
-      lastName: lastName,
-      email: "",
-      phone: "",
-      addressLine1: "",
-      addressLine2: "",
-      postalCode: "",
-      city: "",
-      region: "",
-      country: "",
-      colorIndex: 0,
-      birthDate: null,
-      minorNotes: "",
-      maxDailyPresenceMinutes: null,
-      isTransportAutonomous: null,
-      accommodationNotes: "",
-      travelNotes: "",
-      dietaryNotes: "",
-      allergies: "",
-      measurementHeight: "",
-      measurementChest: "",
-      measurementWaist: "",
-      measurementHips: "",
-      sizeTop: "",
-      sizeBottom: "",
-      sizeShoes: "",
-      hmcNotes: "",
-      imageRightsStatus: OcptImageRightsStatus.notApplicable,
-      imageRightsDate: null,
-      imageRightsAssetId: null,
-      imageRightsDocument: null,
-      photoAssetId: null,
-      photo: null,
-      notes: "",
-      commuteKmMilli: null,
-      mileageRateId: null,
-      positions: const [],
-      skills: const [],
-      unavailabilities: const [],
-    );
+OcptPerson _buildPerson({
+  required String id,
+  String firstName = "Léa",
+  String lastName = "Martin",
+}) => OcptPerson(
+  id: id,
+  firstName: firstName,
+  lastName: lastName,
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  colorIndex: 0,
+  birthDate: null,
+  minorNotes: "",
+  maxDailyPresenceMinutes: null,
+  isTransportAutonomous: null,
+  accommodationNotes: "",
+  travelNotes: "",
+  dietaryNotes: "",
+  allergies: "",
+  measurementHeight: "",
+  measurementChest: "",
+  measurementWaist: "",
+  measurementHips: "",
+  sizeTop: "",
+  sizeBottom: "",
+  sizeShoes: "",
+  hmcNotes: "",
+  imageRightsStatus: OcptImageRightsStatus.notApplicable,
+  imageRightsDate: null,
+  imageRightsAssetId: null,
+  imageRightsDocument: null,
+  photoAssetId: null,
+  photo: null,
+  notes: "",
+  commuteKmMilli: null,
+  mileageRateId: null,
+  positions: const [],
+  skills: const [],
+  unavailabilities: const [],
+);
 
 /// The inner `Container` a scene cell's own dot renders, found through the key
 /// `OcptBreakdownRecapTable` gives every (target, scene) cell.
@@ -234,8 +239,11 @@ Container _sceneCellContainer(WidgetTester tester, OcptBreakdownTarget target, S
       ),
     );
 
+/// Run the tests of [OcptBreakdownRecapTable].
 void main() {
-  testWidgets("nothing tagged at all shows its own empty state, not the no-match one", (tester) async {
+  testWidgets("nothing tagged at all shows its own empty state, not the no-match one", (
+    tester,
+  ) async {
     await _pumpInApp(
       tester,
       const OcptBreakdownRecapTable(
@@ -301,21 +309,27 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptBreakdownRecapTable)));
     final propY = tester.getTopLeft(find.text(tr.resourcesElementCategoryProp.toUpperCase())).dy;
-    final vehicleY = tester.getTopLeft(find.text(tr.resourcesElementCategoryVehicle.toUpperCase())).dy;
+    final vehicleY = tester
+        .getTopLeft(find.text(tr.resourcesElementCategoryVehicle.toUpperCase()))
+        .dy;
     final roleY = tester.getTopLeft(find.text(tr.breakdownTargetKindRoleLabel.toUpperCase())).dy;
 
     expect(propY, lessThan(vehicleY));
     expect(vehicleY, lessThan(roleY));
   });
 
-  testWidgets("a row shows a filled dot for a tagged scene, a muted one for an untagged one",
-      (tester) async {
+  testWidgets("a row shows a filled dot for a tagged scene, a muted one for an untagged one", (
+    tester,
+  ) async {
     final target = _buildElementTarget(id: "element-1", name: "Desk lamp", sceneIds: ["scene-1"]);
 
     await _pumpInApp(
       tester,
       OcptBreakdownRecapTable(
-        scenes: [_buildScene(id: "scene-1"), _buildScene(id: "scene-2", position: 1)],
+        scenes: [
+          _buildScene(id: "scene-1"),
+          _buildScene(id: "scene-2", position: 1),
+        ],
         targets: [target],
         elements: [_buildElement(id: "element-1", name: "Desk lamp")],
         people: const [],
@@ -343,7 +357,10 @@ void main() {
     await _pumpInApp(
       tester,
       OcptBreakdownRecapTable(
-        scenes: [_buildScene(id: "scene-1"), _buildScene(id: "scene-2")],
+        scenes: [
+          _buildScene(id: "scene-1"),
+          _buildScene(id: "scene-2"),
+        ],
         targets: [target],
         elements: [_buildElement(id: "element-1", name: "Desk lamp")],
         people: const [],
@@ -381,7 +398,9 @@ void main() {
     expect(find.text("Léa Martin"), findsNothing);
   });
 
-  testWidgets("a set's row leaves the status and owner cells empty, same as a role's", (tester) async {
+  testWidgets("a set's row leaves the status and owner cells empty, same as a role's", (
+    tester,
+  ) async {
     final target = _buildSetTarget(id: "set-1", name: "La cuisine");
 
     await _pumpInApp(
@@ -446,7 +465,10 @@ void main() {
     await _pumpInApp(
       tester,
       OcptBreakdownRecapTable(
-        scenes: [_buildScene(id: "scene-1"), _buildScene(id: "scene-2")],
+        scenes: [
+          _buildScene(id: "scene-1"),
+          _buildScene(id: "scene-2"),
+        ],
         targets: [target],
         elements: [_buildElement(id: "element-1", name: "Desk lamp")],
         people: const [],
@@ -464,16 +486,15 @@ void main() {
 
   testWidgets("the search filters rows while every scene column stays", (tester) async {
     final lamp = _buildElementTarget(id: "element-1", name: "Desk lamp", sceneIds: ["scene-1"]);
-    final chair = _buildElementTarget(
-      id: "element-2",
-      name: "Chair",
-      sceneIds: ["scene-2"],
-    );
+    final chair = _buildElementTarget(id: "element-2", name: "Chair", sceneIds: ["scene-2"]);
 
     await _pumpInApp(
       tester,
       OcptBreakdownRecapTable(
-        scenes: [_buildScene(id: "scene-1", sceneNumber: "1"), _buildScene(id: "scene-2", sceneNumber: "2")],
+        scenes: [
+          _buildScene(id: "scene-1", sceneNumber: "1"),
+          _buildScene(id: "scene-2", sceneNumber: "2"),
+        ],
         targets: [lamp, chair],
         elements: [
           _buildElement(id: "element-1", name: "Desk lamp"),
@@ -512,7 +533,12 @@ void main() {
         sceneIds: ["scene-1", "scene-2"],
         occurrenceCount: 6,
       );
-      final role = _buildRoleTarget(id: "role-1", name: "LÉA", sceneIds: ["scene-2"], occurrenceCount: 7);
+      final role = _buildRoleTarget(
+        id: "role-1",
+        name: "LÉA",
+        sceneIds: ["scene-2"],
+        occurrenceCount: 7,
+      );
       final targets = [lamp, chair, role];
       // Each scene's own tags mirror the targets' `sceneIds` above exactly, the way
       // `OcptBreakdownSnapshot.build` derives one from the other in the real app: scene-1 tags
@@ -586,13 +612,15 @@ void main() {
       // muted dot's own 4 px, the widget's own two diameters (see the dedicated dot test above,
       // which pins the ordering these hard-coded values assume rather than the exact pixels) —
       // must equal `ocptBreakdownSceneTargetsOf`'s own count for that scene against the very same
-      // targets: the scene panel's own per-scene counter, and the milestone's own exit criterion.
+      // targets: the scene panel's own per-scene counter.
       final targetById = ocptBreakdownTargetsById(targets);
       for (final scene in scenes) {
         final expectedTaggedCount = ocptBreakdownSceneTargetsOf(scene, targetById).length;
 
         final filledCount = targets
-            .where((target) => _sceneCellContainer(tester, target, scene.id).constraints!.maxWidth > 4)
+            .where(
+              (target) => _sceneCellContainer(tester, target, scene.id).constraints!.maxWidth > 4,
+            )
             .length;
 
         expect(filledCount, expectedTaggedCount);
@@ -600,52 +628,50 @@ void main() {
     },
   );
 
-  testWidgets(
-    "the occurrence column clears the vertical scroll bar's own gutter",
-    (tester) async {
-      const scrollbarThickness = 10.0;
-      const scrollbarMargin = 2.0;
-      const gutter = scrollbarThickness + 2 * scrollbarMargin;
+  testWidgets("the occurrence column clears the vertical scroll bar's own gutter", (tester) async {
+    const scrollbarThickness = 10.0;
+    const scrollbarMargin = 2.0;
+    const gutter = scrollbarThickness + 2 * scrollbarMargin;
 
-      final target = _buildElementTarget(
-        id: "element-1",
-        name: "Desk lamp",
-        sceneIds: ["scene-1"],
-        occurrenceCount: 5,
-      );
+    final target = _buildElementTarget(
+      id: "element-1",
+      name: "Desk lamp",
+      sceneIds: ["scene-1"],
+      occurrenceCount: 5,
+    );
 
-      await _pumpInApp(
-        tester,
-        Theme(
-          data: ThemeData(
-            scrollbarTheme: const ScrollbarThemeData(
-              thickness: WidgetStatePropertyAll(scrollbarThickness),
-              crossAxisMargin: scrollbarMargin,
-            ),
-          ),
-          child: OcptBreakdownRecapTable(
-            scenes: [_buildScene(id: "scene-1")],
-            targets: [target],
-            elements: [_buildElement(id: "element-1", name: "Desk lamp")],
-            people: const [],
-            searchQuery: "",
-            selectedTargetRef: null,
-            onTargetSelected: _noop3,
+    await _pumpInApp(
+      tester,
+      Theme(
+        data: ThemeData(
+          scrollbarTheme: const ScrollbarThemeData(
+            thickness: WidgetStatePropertyAll(scrollbarThickness),
+            crossAxisMargin: scrollbarMargin,
           ),
         ),
-      );
+        child: OcptBreakdownRecapTable(
+          scenes: [_buildScene(id: "scene-1")],
+          targets: [target],
+          elements: [_buildElement(id: "element-1", name: "Desk lamp")],
+          people: const [],
+          searchQuery: "",
+          selectedTargetRef: null,
+          onTargetSelected: _noop3,
+        ),
+      ),
+    );
 
-      final tableRight = tester.getTopRight(find.byType(OcptBreakdownRecapTable)).dx;
-      final countRight = tester.getTopRight(find.text("5")).dx;
+    final tableRight = tester.getTopRight(find.byType(OcptBreakdownRecapTable)).dx;
+    final countRight = tester.getTopRight(find.text("5")).dx;
 
-      expect(
-        countRight,
-        lessThanOrEqualTo(tableRight - gutter),
-        reason: "the scroll bar's thumb is painted over the rows' own right edge, so the last "
-            "column has to stop short of it",
-      );
-    },
-  );
+    expect(
+      countRight,
+      lessThanOrEqualTo(tableRight - gutter),
+      reason:
+          "the scroll bar's thumb is painted over the rows' own right edge, so the last "
+          "column has to stop short of it",
+    );
+  });
 }
 
 /// A no-op `onTargetSelected` for tests that never click a row.

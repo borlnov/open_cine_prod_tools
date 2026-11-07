@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_minimum_rest.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_minimum_rest.dart';
 
 /// The project settings page's "Minimum rest between two days" section card: a single
 /// field, typed **in hours** — the unit a production says a turnaround in — and stored in minutes
@@ -34,6 +34,7 @@ class OcptProjectSettingsMinimumRestSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings minimum rest section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -45,10 +46,7 @@ class OcptProjectSettingsMinimumRestSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              tr.projectSettingsMinimumRestSectionTitle,
-              style: theme.textTheme.titleMedium,
-            ),
+            Text(tr.projectSettingsMinimumRestSectionTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -99,6 +97,8 @@ class _OcptProjectSettingsMinimumRestField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptProjectSettingsMinimumRestFieldState] holding the state of the project
+  /// settings minimum rest field.
   @override
   State<_OcptProjectSettingsMinimumRestField> createState() =>
       _OcptProjectSettingsMinimumRestFieldState();
@@ -120,16 +120,18 @@ class _OcptProjectSettingsMinimumRestFieldState
   /// loss never commits the very same edit twice (`OcptScheduleMinuteField`'s own reasoning).
   late int? _lastReportedMinutes = widget.minimumRestMinutes;
 
-  /// [_OcptProjectSettingsMinimumRestField.minimumRestMinutes] written in hours through
+  /// Get [_OcptProjectSettingsMinimumRestField.minimumRestMinutes] written in hours through
   /// [ocptMinimumRestHoursTextOf], or the empty string while it is null.
   String get _formatted => ocptMinimumRestHoursTextOf(widget.minimumRestMinutes);
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new rest time in the field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant _OcptProjectSettingsMinimumRestField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -142,23 +144,37 @@ class _OcptProjectSettingsMinimumRestFieldState
     }
   }
 
+  /// Build the project settings minimum rest field as a [SizedBox].
   @override
-  void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: 96,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onSubmitted: (_) => _commit(),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: theme.textTheme.bodySmall,
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: tr.projectSettingsMinimumRestFieldHint,
+          suffixText: tr.projectSettingsMinimumRestSuffix,
+        ),
+      ),
+    );
   }
 
-  /// Commits the field's current text once it loses focus.
+  /// Commit the field's current text once it loses focus.
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
       _commit();
     }
   }
 
-  /// Parses the field's current text as hours and reports the minutes it makes: empty clears the
+  /// Parse the field's current text as hours and report the minutes it makes: empty clears the
   /// minimum (a real gesture, reported as null), a positive figure is reported and read back in the
   /// canonical hours writing, and anything else — zero, negative, or unparseable — reverts the
   /// field to whatever was last committed.
@@ -187,25 +203,13 @@ class _OcptProjectSettingsMinimumRestFieldState
     }
   }
 
+  /// Detach [_onFocusChanged] from [_focusNode], then dispose [_focusNode] and [_controller].
   @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: 96,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: (_) => _commit(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: theme.textTheme.bodySmall,
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: tr.projectSettingsMinimumRestFieldHint,
-          suffixText: tr.projectSettingsMinimumRestSuffix,
-        ),
-      ),
-    );
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }

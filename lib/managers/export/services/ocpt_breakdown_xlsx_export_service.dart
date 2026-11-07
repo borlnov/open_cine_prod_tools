@@ -4,8 +4,10 @@
 
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
@@ -17,12 +19,13 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_scene_bars.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_entries_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scenes_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
+import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
-/// Renders a project's whole breakdown into the bytes of an XLSX workbook: a `Scenes` sheet, one
+/// Render a project's whole breakdown into the bytes of an XLSX workbook: a `Scenes` sheet, one
 /// row per scene, and a `Breakdown` sheet, one row per **distinct** target tagged in a scene — the
 /// long, filterable format the mode's own recap cross-table cannot be, since a target tagged in
 /// three scenes is three rows there rather than one row with three columns lit up. "Distinct"
@@ -33,16 +36,17 @@ import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
-/// the manager rather than through `globalGetIt()` (RFL18), exactly like `OcptResourcesXlsxExportService`
-/// and `OcptShotListXlsxExportService`. Unlike the breakdown sheets PDF, it takes no options: the
-/// export panel's card goes straight to the native save dialog.
+/// the manager rather than through `globalGetIt()`, exactly like
+/// `OcptResourcesXlsxExportService` and `OcptShotListXlsxExportService`. Unlike the breakdown
+/// sheets PDF, it takes no options: the export panel's card goes straight to the native save
+/// dialog.
 ///
 /// `document` is read for one thing only, each scene's own length in page eighths — the same figure
 /// `OcptBreakdownSheetsPdfService`'s meta band prints — exactly as that service reads it, and for
 /// the same reason: a scene whose position no longer names a scene of `document` (an index rebuilt
-/// since, or a snapshot from a version captured against another text) simply writes no length rather
-/// than a wrong one.
-class OcptBreakdownXlsxExportService {
+/// since, or a snapshot from a version captured against another text) simply writes no length
+/// rather than a wrong one.
+class OcptBreakdownXlsxExportService extends AbsOcptService {
   /// The sheet name used when the caller's own [OcptBreakdownXlsxLabels.scenesSheetName] is blank.
   static const fallbackScenesSheetName = "Scenes";
 
@@ -50,12 +54,13 @@ class OcptBreakdownXlsxExportService {
   static const fallbackEntriesSheetName = "Breakdown";
 
   /// Class constructor
-  const OcptBreakdownXlsxExportService();
+  const OcptBreakdownXlsxExportService({required super.logger});
 
-  /// The `.xlsx` file name to suggest when exporting the breakdown of the project named
-  /// [projectName], with [suffix] appended, mirroring `OcptResourcesXlsxExportService.xlsxFileName`.
-  /// [episodeTag] is the selected episode's own tag, present only while the open project holds more
-  /// than one episode — see `ocptExportFileNameOf`'s own doc comment.
+  /// Get the `.xlsx` file name to suggest when exporting the breakdown of the project named
+  /// [projectName], with [suffix] appended, mirroring
+  /// `OcptResourcesXlsxExportService.xlsxFileName`. [episodeTag] is the selected episode's own tag,
+  /// present only while the open project holds more than one episode — see `ocptExportFileNameOf`'s
+  /// own doc comment.
   String xlsxFileName({required String projectName, required String suffix, String? episodeTag}) =>
       ocptExportFileNameOf(
         projectName: projectName,
@@ -64,15 +69,16 @@ class OcptBreakdownXlsxExportService {
         extension: OcptShotListXlsxExportService.xlsxFileExtension,
       );
 
-  /// Builds the workbook holding [snapshot]'s whole breakdown, titled and headed with [labels], and
-  /// returns its bytes.
+  /// Build the workbook holding [snapshot]'s whole breakdown, titled and headed with [labels], and
+  /// return its bytes.
   ///
   /// [pageSetup] supplies the page geometry each scene's own length in eighths is measured against
   /// — see this class' own doc comment.
   ///
-  /// Throws a [StateError] if the workbook cannot be encoded, which the caller reports as a failed
-  /// export: `excel_community` returns null there rather than throwing anything of its own.
-  Uint8List generate({
+  /// Answers [OcptXlsxExportStatus.encodingFailed] if the workbook cannot be encoded, which the
+  /// caller reports as a failed export: `excel_community` returns null there rather than throwing
+  /// anything of its own.
+  ResultWithStatus<OcptXlsxExportStatus, Uint8List> generate({
     required FountainDocument document,
     required OcptBreakdownSnapshot snapshot,
     required OcptPageSetup pageSetup,
@@ -136,16 +142,16 @@ class OcptBreakdownXlsxExportService {
 
     final bytes = excel.encode();
     if (bytes == null) {
-      throw StateError("The breakdown workbook could not be encoded");
+      return const ResultWithStatus(status: OcptXlsxExportStatus.encodingFailed);
     }
 
-    return Uint8List.fromList(bytes);
+    return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
-  /// [name] if it holds anything other than whitespace, [fallback] otherwise.
+  /// Get [name] if it holds anything other than whitespace, [fallback] otherwise.
   String _sheetNameOr(String name, String fallback) => name.trim().isEmpty ? fallback : name;
 
-  /// Renames the sheet [Excel.createExcel] starts from to [sheetName], so the workbook doesn't end
+  /// Rename the sheet [Excel.createExcel] starts from to [sheetName], so the workbook doesn't end
   /// up with the named sheet plus an empty `Sheet1` next to it. A no-op when the default sheet
   /// already carries that name.
   void _renameDefaultSheet(Excel excel, String sheetName) {
@@ -157,7 +163,7 @@ class OcptBreakdownXlsxExportService {
     excel.rename(defaultSheetName, sheetName);
   }
 
-  /// Appends [sheet]'s single header row, one cell per value of [columns], and emboldens it.
+  /// Append [sheet]'s single header row, one cell per value of [columns], and embolden it.
   void _appendHeaderRow<T>(Sheet sheet, List<T> columns, String Function(T column) headerOf) {
     final headerRowIndex = sheet.maxRows;
     sheet.appendRow([for (final column in columns) TextCellValue(headerOf(column))]);
@@ -165,11 +171,13 @@ class OcptBreakdownXlsxExportService {
     for (var columnIndex = 0; columnIndex < columns.length; columnIndex++) {
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: columnIndex, rowIndex: headerRowIndex))
-          .cellStyle = CellStyle(bold: true);
+          .cellStyle = CellStyle(
+        bold: true,
+      );
     }
   }
 
-  /// The cell [column] holds for [scene]'s own row of the `Scenes` sheet, or null to leave it
+  /// Get the cell [column] holds for [scene]'s own row of the `Scenes` sheet, or null to leave it
   /// empty.
   CellValue? _sceneCellOf({
     required OcptBreakdownScenesXlsxColumn column,
@@ -198,10 +206,10 @@ class OcptBreakdownXlsxExportService {
     OcptBreakdownScenesXlsxColumn.notes => _textOrNull(scene.notes),
   };
 
-  /// The sets [sets] holding [scene]'s own id among their own `sceneIds`, named `<set> · <location>`
-  /// and joined — the scene inspector's own sets row, read here rather than through
-  /// `ocptBreakdownSetLabel` (`lib/ui/utils/`, out of reach from the manager layer this service sits
-  /// in) so the composition is inlined instead, mirroring
+  /// Get the sets [sets] holding [scene]'s own id among their own `sceneIds`, named
+  /// `<set> · <location>` and joined — the scene inspector's own sets row, read here rather than
+  /// through `ocptBreakdownSetLabel` (`lib/ui/widgets/helpers/`, out of reach from the manager
+  /// layer this service sits in) so the composition is inlined instead, mirroring
   /// `OcptResourcesXlsxExportService._isoDate`'s own doc comment for why.
   String _linkedSetsTextOf({
     required OcptBreakdownScene scene,
@@ -212,7 +220,7 @@ class OcptBreakdownXlsxExportService {
       .map((set) => _setLabelOf(set, locationNameById))
       .join(", ");
 
-  /// [set] named `<set> · <location>`, or just [OcptSet.name] when [locationNameById] holds no
+  /// Get [set] named `<set> · <location>`, or just [OcptSet.name] when [locationNameById] holds no
   /// name for it — mirroring `ocptBreakdownSetLabel`'s own doc comment.
   String _setLabelOf(OcptSet set, Map<String, String> locationNameById) {
     final locationName = locationNameById[set.locationId];
@@ -220,7 +228,8 @@ class OcptBreakdownXlsxExportService {
     return locationName == null || locationName.isEmpty ? set.name : "${set.name} · $locationName";
   }
 
-  /// The scene's length, in the eighths notation assistant directors write on a breakdown sheet:
+  /// Get the scene's length, in the eighths notation assistant directors write on a breakdown
+  /// sheet:
   /// `5/8` under a page, `2` on two whole pages, `1 4/8` in between — mirroring
   /// `OcptBreakdownSheetsPdfService._sceneLengthOf`, returning null in place of its own placeholder
   /// dash: a spreadsheet's own way of saying "nothing here" is a blank cell.
@@ -244,7 +253,8 @@ class OcptBreakdownXlsxExportService {
     return TextCellValue(whole == 0 ? "$eighths/8" : "$whole $eighths/8");
   }
 
-  /// The cell [column] holds for [target]'s own row of the `Breakdown` sheet, scoped to [scene] —
+  /// Get the cell [column] holds for [target]'s own row of the `Breakdown` sheet, scoped to [scene]
+  /// —
   /// one row per **distinct** target, see this class' own doc comment for why.
   ///
   /// [element]/[role]/[set] are the target's own row resolved by [target]'s id against whichever of
@@ -288,7 +298,7 @@ class OcptBreakdownXlsxExportService {
     ),
   };
 
-  /// The target's own short code: an element's or a set's own `code`, or a role's own number —
+  /// Get the target's own short code: an element's or a set's own `code`, or a role's own number —
   /// neither being an [OcptBreakdownTarget] field, see [_entryCellOf]'s own doc comment.
   String? _codeOf({
     required OcptBreakdownTargetKind kind,
@@ -301,17 +311,21 @@ class OcptBreakdownXlsxExportService {
     OcptBreakdownTargetKind.set => set?.code,
   };
 
-  /// Every passage of [scene] that tags [target], verbatim and joined with `"; "` — the separator
+  /// Get every passage of [scene] that tags [target], verbatim and joined with `"; "` — the
+  /// separator
   /// `OcptResourcesXlsxExportService._sceneLinksTextOf` already uses for a composite cell. A target
   /// tagged more than once in the scene therefore reads as more than one passage in this one cell,
   /// which is the whole point of writing one row per distinct target rather than one per tag.
-  String _passagesTextOf({required OcptBreakdownScene scene, required OcptBreakdownTarget target}) =>
-      scene.tags
-          .where((tag) => tag.targetKind == target.kind && tag.targetId == target.id)
-          .map((tag) => tag.taggedText)
-          .join("; ");
+  String _passagesTextOf({
+    required OcptBreakdownScene scene,
+    required OcptBreakdownTarget target,
+  }) => scene.tags
+      .where((tag) => tag.targetKind == target.kind && tag.targetId == target.id)
+      .map((tag) => tag.taggedText)
+      .join("; ");
 
-  /// The `scene_elements` link of [element] onto [sceneId], or null while [element] is null (a role
+  /// Get the `scene_elements` link of [element] onto [sceneId], or null while [element] is null (a
+  /// role
   /// or a set, neither carrying one) or holds no link for that scene.
   _SceneLink? _sceneLinkOf({required OcptElement? element, required String sceneId}) {
     if (element == null) {
@@ -327,10 +341,14 @@ class OcptBreakdownXlsxExportService {
     return null;
   }
 
-  /// The name of [element]'s owner, or null while it has none — a role or a set never has one
+  /// Get the name of [element]'s owner, or null while it has none — a role or a set never has one
   /// ([element] itself is then null), and an element's own `ownerPersonId` may be unset or may name
-  /// somebody the address book no longer holds (an erased person, whose row the erasure tombstoned).
-  String? _ownerNameOf({required OcptElement? element, required Map<String, OcptPerson> personById}) {
+  /// somebody the address book no longer holds (an erased person, whose row the erasure
+  /// tombstoned).
+  String? _ownerNameOf({
+    required OcptElement? element,
+    required Map<String, OcptPerson> personById,
+  }) {
     final ownerPersonId = element?.ownerPersonId;
     if (ownerPersonId == null) {
       return null;
@@ -339,7 +357,7 @@ class OcptBreakdownXlsxExportService {
     return personById[ownerPersonId]?.displayName;
   }
 
-  /// A text cell holding [value], or null when it is null or holds nothing but whitespace.
+  /// Get a text cell holding [value], or null when it is null or holds nothing but whitespace.
   CellValue? _textOrNull(String? value) =>
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
 }

@@ -60,9 +60,9 @@ What each line is there for:
 - `flutter pub get` (twice) — resolves the app's dependencies, then `packages/fountain_kit`'s.
 - `pub_get_all.sh` — resolves the ACT Flutter packages the app depends on by path.
 - `intl_utils:generate` — writes `lib/generated/l10n.dart` and the `intl/` messages, both gitignored.
-- `build_runner build` — writes drift's `**/*.g.dart`, also gitignored. Without it and the step above,
-  `flutter analyze` reports several hundred `uri_does_not_exist` and `undefined_identifier` errors
-  that say nothing about your changes.
+- `build_runner build` — writes drift's `lib/generated/**/*.g.dart`, also gitignored. Without it and
+  the step above, `flutter analyze` reports several hundred `uri_does_not_exist` and
+  `undefined_identifier` errors that say nothing about your changes.
 
 ## Build
 

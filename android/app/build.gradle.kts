@@ -20,7 +20,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // The application ID is unique to this project, see
+        // https://developer.android.com/studio/build/application-id.html.
         applicationId = "com.borlnov.open_cine_prod_tools"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -32,8 +33,8 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // TODO(borlnov): Replace the debug keys with a release signing config. They stand in
+            // for it so that `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

@@ -36,7 +36,7 @@ A shooting day is a **chain of blocks**, in `sortKey` order, each carrying a `du
 (nullable — a shot block with none falls back to the shot's own estimate, then to the mode's
 default) and an optional `anchorMinute`. The chain is computed by one pure function,
 `ocptComputeSlotTimeline` (`lib/utils/ocpt_shooting_day_timeline.dart`), implementing the
-rule stated once in `docs/plans/schedule-mode.md` §5:
+rule:
 
 1. The chain starts at the slot's own `startMinute`.
 2. Each block starts where the previous one ended and lasts its own duration.

@@ -33,6 +33,7 @@ OcptProjectVersion _version({String note = "Before the seq. 1 rewrite"}) => Ocpt
   isBase: false,
 );
 
+/// Run the tests of [OcptWorkspaceReadOnlyBanner].
 void main() {
   testWidgets("the headline names the version and quotes the user's note", (tester) async {
     await tester.pumpWidget(

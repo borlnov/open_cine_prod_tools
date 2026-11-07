@@ -4,9 +4,9 @@
 
 import 'package:equatable/equatable.dart';
 
-/// What `OcptSyncSession` reports of itself, at every moment it runs — the four states
-/// `docs/plans/collaboration-and-sync.md` §3.5 names for the workspace status bar's indicator: in
-/// sync, syncing, offline with a pending count, or an error.
+/// What `OcptSyncSession` reports of itself, at every moment it runs — the four states the
+/// workspace status bar's indicator shows: in sync, syncing, offline with a pending count, or an
+/// error.
 ///
 /// This is a status report only: nothing here writes anything, and a mode reads it purely to
 /// render — see `OcptSyncSession`'s own doc comment for what actually drives it from one state to
@@ -23,7 +23,11 @@ final class OcptSyncStatusInSync extends OcptSyncStatus {
   /// Class constructor
   const OcptSyncStatusInSync();
 
-  /// Object properties
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() => "OcptSyncStatusInSync()";
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => const [];
 }
@@ -35,7 +39,11 @@ final class OcptSyncStatusSyncing extends OcptSyncStatus {
   /// Class constructor
   const OcptSyncStatusSyncing();
 
-  /// Object properties
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() => "OcptSyncStatusSyncing()";
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => const [];
 }
@@ -48,14 +56,18 @@ final class OcptSyncStatusSyncing extends OcptSyncStatus {
 /// that count was cheap enough to compute alongside the failure; null when it wasn't available,
 /// which an indicator reads as "at least one, count unknown" rather than "zero".
 final class OcptSyncStatusOffline extends OcptSyncStatus {
-  /// Class constructor
-  const OcptSyncStatusOffline({this.pendingEditCount});
-
   /// How many of this replica's own edits are still waiting to be pushed, or null when that count
   /// was not available.
   final int? pendingEditCount;
 
-  /// Object properties
+  /// Class constructor
+  const OcptSyncStatusOffline({this.pendingEditCount});
+
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() => "OcptSyncStatusOffline(pendingEditCount: $pendingEditCount)";
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pendingEditCount];
 }
@@ -64,14 +76,18 @@ final class OcptSyncStatusOffline extends OcptSyncStatus {
 /// anything `ocpt_sync_relay` reports as an `OcptSyncError` — rather than simply being unreachable
 /// (that is [OcptSyncStatusOffline] instead).
 final class OcptSyncStatusError extends OcptSyncStatus {
-  /// Class constructor
-  const OcptSyncStatusError(this.message);
-
   /// A human-readable detail of what the relay rejected, meant for a log or the status
   /// indicator's panel — never parsed.
   final String message;
 
-  /// Object properties
+  /// Class constructor
+  const OcptSyncStatusError(this.message);
+
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() => "OcptSyncStatusError(message: $message)";
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [message];
 }

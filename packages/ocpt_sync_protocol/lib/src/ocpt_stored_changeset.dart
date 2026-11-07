@@ -16,21 +16,10 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 /// where to resume a "read since" call — and, per ADR 0010, never something a merge reads to
 /// decide a winner.
 class OcptStoredChangeset extends Equatable {
-  /// Creates a stored changeset pairing [sequenceNumber], the relay-assigned delivery position,
-  /// with [envelope], the changeset itself.
-  const OcptStoredChangeset({required this.sequenceNumber, required this.envelope});
-
-  /// Parses a stored changeset from the JSON object a relay's "read since" route hands back.
-  ///
-  /// Throws whatever [OcptChangesetEnvelope.fromJson] throws when the envelope it carries cannot
-  /// be read, and `OcptSyncMalformedDataError` when the sequence number is missing or of the
-  /// wrong type.
-  factory OcptStoredChangeset.fromJson(Map<String, dynamic> json) => OcptStoredChangeset(
-    sequenceNumber: OcptSequenceNumber.fromJson(OcptSyncWireJson.integer(json, _sequenceNumberKey)),
-    envelope: OcptChangesetEnvelope.fromJson(OcptSyncWireJson.object(json, _envelopeKey)),
-  );
-
+  /// The JSON key of `sequenceNumber`.
   static const _sequenceNumberKey = 'sequenceNumber';
+
+  /// The JSON key of `envelope`.
   static const _envelopeKey = 'envelope';
 
   /// The position a relay assigned this changeset in its own log.
@@ -40,16 +29,31 @@ class OcptStoredChangeset extends Equatable {
   /// describes.
   final OcptChangesetEnvelope envelope;
 
-  /// Serialises this stored changeset to the JSON object a relay's "read since" route hands back.
+  /// Create a stored changeset pairing [sequenceNumber], the relay-assigned delivery position,
+  /// with [envelope], the changeset itself.
+  const OcptStoredChangeset({required this.sequenceNumber, required this.envelope});
+
+  /// Parse a stored changeset from the JSON object a relay's "read since" route hands back.
+  ///
+  /// Throws whatever [OcptChangesetEnvelope.fromJson] throws when the envelope it carries cannot
+  /// be read, and `OcptSyncMalformedDataError` when the sequence number is missing or of the
+  /// wrong type.
+  factory OcptStoredChangeset.fromJson(Map<String, dynamic> json) => OcptStoredChangeset(
+    sequenceNumber: OcptSequenceNumber.fromJson(OcptSyncWireJson.integer(json, _sequenceNumberKey)),
+    envelope: OcptChangesetEnvelope.fromJson(OcptSyncWireJson.object(json, _envelopeKey)),
+  );
+
+  /// Serialise this stored changeset to the JSON object a relay's "read since" route hands back.
   Map<String, dynamic> toJson() => {
     _sequenceNumberKey: sequenceNumber.toJson(),
     _envelopeKey: envelope.toJson(),
   };
 
+  /// Describe this [OcptStoredChangeset] for debugging and logging.
+  @override
+  String toString() => 'OcptStoredChangeset(sequenceNumber: $sequenceNumber, envelope: $envelope)';
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [sequenceNumber, envelope];
-
-  @override
-  String toString() =>
-      'OcptStoredChangeset(sequenceNumber: $sequenceNumber, envelope: $envelope)';
 }

@@ -74,6 +74,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 260, height: 400, child: child)),
 );
 
+/// Run the tests of [OcptPeopleList].
 void main() {
   testWidgets("shows a name, initials and positions summary per person", (tester) async {
     await tester.pumpWidget(

@@ -72,7 +72,7 @@ class OcptAssetRef extends Equatable {
     required this.validUntil,
   });
 
-  /// Builds an [OcptAssetRef] from its stored [row].
+  /// Build an [OcptAssetRef] from its stored [row].
   factory OcptAssetRef.fromRow(OcptAssetRow row) => OcptAssetRef(
     id: row.id,
     kind: row.kind,
@@ -87,11 +87,11 @@ class OcptAssetRef extends Equatable {
     validUntil: row.validUntil,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptAssetRef(id: $id, kind: $kind, path: $path)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

@@ -47,7 +47,9 @@ jobs:
   checks:
     name: Checks (${{ matrix.package.name }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The app's suite alone takes over twenty minutes on a hosted runner, its real-failure tests
+    # included.
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -78,6 +80,14 @@ jobs:
         if: matrix.package.path != '.'
         working-directory: ${{ matrix.package.path }}
         run: dart pub get
+      - name: Check formatting (app)
+        if: matrix.package.path == '.'
+        working-directory: ${{ matrix.package.path }}
+        run: dart format --output=none --set-exit-if-changed $(git ls-files '*.dart' ':!packages')
+      - name: Check formatting (package)
+        if: matrix.package.path != '.'
+        working-directory: ${{ matrix.package.path }}
+        run: dart format --output=none --set-exit-if-changed .
       - name: Analyze (app)
         if: matrix.package.path == '.'
         working-directory: ${{ matrix.package.path }}

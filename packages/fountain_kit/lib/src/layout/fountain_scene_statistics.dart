@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 import 'package:fountain_kit/src/layout/fountain_printable_text.dart';
 import 'package:fountain_kit/src/layout/fountain_script_composer.dart';
+import 'package:fountain_kit/src/layout/fountain_script_line.dart';
 import 'package:fountain_kit/src/layout/fountain_speaking_characters.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
@@ -13,17 +14,8 @@ import 'package:fountain_kit/src/models/fountain_document.dart';
 /// The at-a-glance counters a scene-scoped inspector wants for a single
 /// scene of a screenplay: who speaks in it, how many words it holds, and
 /// how long it runs once paginated. The scene-scoped sibling of
-/// [FountainScriptStatistics].
+/// `FountainScriptStatistics`.
 class FountainSceneStatistics extends Equatable {
-  /// Creates a [FountainSceneStatistics] with every counter given
-  /// explicitly. Prefer [FountainSceneStatistics.of] to compute one from a
-  /// parsed document.
-  const FountainSceneStatistics({
-    required this.speakingCharacters,
-    required this.wordCount,
-    required this.pageEighths,
-  });
-
   /// The scene's speaking roles, as computed by [speakingCharactersOf] over
   /// the scene's own blocks.
   final List<String> speakingCharacters;
@@ -31,7 +23,7 @@ class FountainSceneStatistics extends Equatable {
   /// The number of words across the scene's printable content, from its
   /// heading (included) up to, but excluding, the next scene heading (or
   /// the end of the document for the last scene). Counted the same way
-  /// [FountainScriptStatistics.wordCount] counts the whole document.
+  /// `FountainScriptStatistics.wordCount` counts the whole document.
   final int wordCount;
 
   /// This scene's length in eighths of a page — the unit assistant
@@ -46,7 +38,16 @@ class FountainSceneStatistics extends Equatable {
   /// presentation, not to this layout fact.
   final int pageEighths;
 
-  /// Computes the statistics of the [sceneIndex]-th scene (0-based, in
+  /// Create a [FountainSceneStatistics] with every counter given
+  /// explicitly. Prefer [FountainSceneStatistics.of] to compute one from a
+  /// parsed document.
+  const FountainSceneStatistics({
+    required this.speakingCharacters,
+    required this.wordCount,
+    required this.pageEighths,
+  });
+
+  /// Compute the statistics of the [sceneIndex]-th scene (0-based, in
   /// [FountainDocument.scenes] order) of [document] when laid out at
   /// [metrics].
   ///
@@ -80,13 +81,16 @@ class FountainSceneStatistics extends Equatable {
     );
   }
 
-  /// The top-level blocks of [document] belonging to its [sceneIndex]-th
+  /// Describe this [FountainSceneStatistics] for debugging and logging.
+  @override
+  String toString() =>
+      'FountainSceneStatistics(${speakingCharacters.length} characters, $wordCount words, '
+      '$pageEighths/8 pages)';
+
+  /// Get the top-level blocks of [document] belonging to its [sceneIndex]-th
   /// scene: the scene heading itself, up to (but excluding) the next scene
   /// heading, or the end of [FountainDocument.blocks] for the last scene.
-  static List<FountainBlock> _blocksOfScene(
-    FountainDocument document,
-    int sceneIndex,
-  ) {
+  static List<FountainBlock> _blocksOfScene(FountainDocument document, int sceneIndex) {
     final blocks = document.blocks;
     final headingIndices = [
       for (var index = 0; index < blocks.length; index++)
@@ -94,11 +98,13 @@ class FountainSceneStatistics extends Equatable {
     ];
 
     final start = headingIndices[sceneIndex];
-    final end = sceneIndex + 1 < headingIndices.length ? headingIndices[sceneIndex + 1] : blocks.length;
+    final end = sceneIndex + 1 < headingIndices.length
+        ? headingIndices[sceneIndex + 1]
+        : blocks.length;
     return blocks.sublist(start, end);
   }
 
-  /// Composes the whole of [document] at [metrics] and returns the
+  /// Compose the whole of [document] at [metrics] and return the
   /// [sceneIndex]-th scene's line count, rounded to the nearest eighth of
   /// [FountainLayoutMetrics.linesPerPage].
   ///
@@ -115,7 +121,8 @@ class FountainSceneStatistics extends Equatable {
     int sceneIndex,
   ) {
     final lines = [
-      for (final page in const FountainScriptComposer().compose(document: document, metrics: metrics).pages)
+      for (final page
+          in const FountainScriptComposer().compose(document: document, metrics: metrics).pages)
         ...page.lines,
     ];
 
@@ -139,11 +146,7 @@ class FountainSceneStatistics extends Equatable {
     return (sceneLineCount * 8 / metrics.linesPerPage).round();
   }
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [speakingCharacters, wordCount, pageEighths];
-
-  @override
-  String toString() =>
-      'FountainSceneStatistics(${speakingCharacters.length} characters, $wordCount words, '
-      '$pageEighths/8 pages)';
 }

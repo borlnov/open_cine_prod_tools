@@ -10,18 +10,19 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timelines.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_sun_times.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_inspector.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the `OcptWorkspaceDock` right panel the inspector fills in the app.
-Widget _wrapInApp(Widget child) => MaterialApp(
+Widget _wrapInApp(Widget child, {double height = 700}) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -29,7 +30,9 @@ Widget _wrapInApp(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: 320, height: 700, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: 320, height: height, child: child),
+  ),
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
@@ -86,21 +89,24 @@ OcptShot _buildShot({
 );
 
 /// Builds a `hold` block, distinguishable from the shot read-out by carrying a label and no shot.
-OcptShootingDayBlock _buildHoldBlock({String id = "block-1", String label = "Prep", String crewNote = ""}) =>
-    OcptShootingDayBlock(
-      id: id,
-      shootingDayId: "day-1",
-      slotId: "slot-1",
-      kind: OcptShootingBlockKind.hold,
-      shotId: null,
-      sceneId: null,
-      candidates: const [],
-      label: label,
-      durationMinutes: null,
-      anchorMinute: null,
-      notes: "",
-      crewNote: crewNote,
-    );
+OcptShootingDayBlock _buildHoldBlock({
+  String id = "block-1",
+  String label = "Prep",
+  String crewNote = "",
+}) => OcptShootingDayBlock(
+  id: id,
+  shootingDayId: "day-1",
+  slotId: "slot-1",
+  kind: OcptShootingBlockKind.hold,
+  shotId: null,
+  sceneId: null,
+  candidates: const [],
+  label: label,
+  durationMinutes: null,
+  anchorMinute: null,
+  notes: "",
+  crewNote: crewNote,
+);
 
 /// Pumps [OcptScheduleInspector] with [day]/[shot]/[block] selected as given — mirrors the widget's
 /// own block-then-shot-then-day precedence, so a test only fills in whichever of the three it
@@ -124,9 +130,12 @@ Future<void> _pumpInspector(
   ValueChanged<int>? onBlockDurationChanged,
   String blockCrewNoteValue = "",
   ValueChanged<String>? onBlockCrewNoteChanged,
+  double height = 700,
 }) async {
   await tester.pumpWidget(
     _wrapInApp(
+      height: height,
+
       OcptScheduleInspector(
         day: day,
         slots: const [],
@@ -190,7 +199,31 @@ Future<void> _pumpDayInspector(
   onWeatherNoteChanged: onWeatherNoteChanged,
 );
 
+/// Run the tests of [OcptScheduleInspector].
 void main() {
+  testWidgets("the scroll position survives a switch from a day to a block to a shot", (
+    tester,
+  ) async {
+    await _pumpInspector(tester, day: _buildDay(), height: 150);
+    // The inspector's own list: the outermost scrollable, the note fields inside it have theirs.
+    final scrollable = find
+        .descendant(of: find.byType(OcptScheduleInspector), matching: find.byType(Scrollable))
+        .first;
+    await tester.drag(scrollable, const Offset(0, -40));
+    await tester.pumpAndSettle();
+    double offset() => tester.state<ScrollableState>(scrollable).position.pixels;
+    expect(offset(), 40);
+
+    await _pumpInspector(tester, day: _buildDay(), block: _buildHoldBlock(), height: 150);
+    expect(offset(), 40, reason: "a block is selected now, in the same list");
+
+    await _pumpInspector(tester, day: _buildDay(), shot: _buildShot(), height: 150);
+    expect(offset(), 40, reason: "a shot is selected now, in the same list");
+
+    await _pumpInspector(tester, day: _buildDay(), height: 150);
+    expect(offset(), 40, reason: "back to the day");
+  });
+
   testWidgets("shows the selected day's own date, status and arrival-to-end read-outs", (
     tester,
   ) async {
@@ -340,7 +373,12 @@ void main() {
     testWidgets("shows the characters line when the shot has any", (tester) async {
       final shot = _buildShot(characters: const ["LÉA", "MARC"]);
 
-      await _pumpInspector(tester, shot: shot, shotSequenceLabel: "SEQ 1", onShotStatusChanged: (_) {});
+      await _pumpInspector(
+        tester,
+        shot: shot,
+        shotSequenceLabel: "SEQ 1",
+        onShotStatusChanged: (_) {},
+      );
 
       final tr = Tr.of(tester.element(find.byType(OcptScheduleInspector)));
       expect(find.text(tr.scheduleInspectorCharactersLabel.toUpperCase()), findsOneWidget);
@@ -452,7 +490,11 @@ void main() {
     });
 
     testWidgets("reads as plain text with no field when the callback is withheld", (tester) async {
-      await _pumpInspector(tester, block: _buildHoldBlock(), blockCrewNoteValue: "Silence before 9am");
+      await _pumpInspector(
+        tester,
+        block: _buildHoldBlock(),
+        blockCrewNoteValue: "Silence before 9am",
+      );
 
       expect(find.byType(TextField), findsNothing);
       expect(find.text("Silence before 9am"), findsOneWidget);

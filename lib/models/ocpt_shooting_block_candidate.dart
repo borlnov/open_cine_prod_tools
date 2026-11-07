@@ -14,10 +14,10 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// displayed, exactly as `OcptShootingSlotCastMember` resolves an actor through `roles.personId`.
 ///
 /// **This row's arrival, PAT band and departure are computed, never typed** (ADR 0018 as ADR 0024
-/// applies it, `lib/utils/ocpt_shooting_convocations.dart`): the **block** is the convocation, and
-/// every figure about it is read off every live audition block naming this candidacy that day,
-/// joined together — which is what gives each candidate an hour of their own rather than the
-/// unit's whole day.
+/// applies it, `lib/models/rules/ocpt_shooting_convocations.dart`): the **block** is the
+/// convocation, and every figure about it is read off every live audition block naming this
+/// candidacy that day, joined together — which is what gives each candidate an hour of their own
+/// rather than the unit's whole day.
 class OcptShootingBlockCandidate extends Equatable {
   /// The stable, unique id of this convocation (a UUID).
   final String id;
@@ -39,7 +39,7 @@ class OcptShootingBlockCandidate extends Equatable {
     required this.notes,
   });
 
-  /// Builds an [OcptShootingBlockCandidate] from its stored [row].
+  /// Build an [OcptShootingBlockCandidate] from its stored [row].
   factory OcptShootingBlockCandidate.fromRow(OcptShootingBlockCandidateRow row) =>
       OcptShootingBlockCandidate(
         id: row.id,
@@ -48,12 +48,12 @@ class OcptShootingBlockCandidate extends Equatable {
         notes: row.notes,
       );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingBlockCandidate(id: $id, blockId: $blockId, roleCandidateId: $roleCandidateId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, blockId, roleCandidateId, notes];
 }

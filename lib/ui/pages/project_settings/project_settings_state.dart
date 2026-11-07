@@ -104,8 +104,8 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     required this.isShowInFolderAvailable,
     required this.isMoveAvailable,
     required this.isMoveWithheldByHosting,
-    this.isShowInFolderFailed = false,
-    this.moveError,
+    required this.isShowInFolderFailed,
+    required this.moveError,
     required this.currencyCode,
     required this.pageFormat,
     required this.minimumRestMinutes,
@@ -145,12 +145,12 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [minimumRestMinutes] legitimately goes back to null while the page is open (the field is
-  /// cleared), so it has its own [clearMinimumRestMinutes] flag rather than a bare nullable
-  /// parameter, which could never tell "leave it alone" apart from "clear it".
-  /// [screenplayLanguage] carries exactly the same problem — picking "None" in the dropdown is as
-  /// real a gesture as clearing the rest field is — so it gets the same treatment,
-  /// [clearScreenplayLanguage]. [defaultVatRateBasisPoints], [mealPriceCents] and [buffetPriceCents]
-  /// all get the identical treatment for the identical reason, one clearing flag each.
+  /// cleared), so it has its own [forceMinimumRestMinutesValue] flag rather than a bare nullable
+  /// parameter, which could never tell "leave it alone" apart from "clear it". [screenplayLanguage]
+  /// carries exactly the same problem — picking "None" in the dropdown is as real a gesture as
+  /// clearing the rest field is — so it gets the same treatment, [forceScreenplayLanguageValue].
+  /// [defaultVatRateBasisPoints], [mealPriceCents] and [buffetPriceCents] all get the identical
+  /// treatment for the identical reason, one force flag each.
   @override
   OcptProjectSettingsState copyWith({
     bool? isLoading,
@@ -160,19 +160,19 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     bool? isMoveWithheldByHosting,
     bool? isShowInFolderFailed,
     OcptProjectMoveStatus? moveError,
-    bool clearMoveError = false,
+    bool forceMoveErrorValue = false,
     String? currencyCode,
     OcptPageFormat? pageFormat,
     int? minimumRestMinutes,
-    bool clearMinimumRestMinutes = false,
+    bool forceMinimumRestMinutesValue = false,
     int? defaultVatRateBasisPoints,
-    bool clearDefaultVatRateBasisPoints = false,
+    bool forceDefaultVatRateBasisPointsValue = false,
     int? mealPriceCents,
-    bool clearMealPriceCents = false,
+    bool forceMealPriceCentsValue = false,
     int? buffetPriceCents,
-    bool clearBuffetPriceCents = false,
+    bool forceBuffetPriceCentsValue = false,
     OcptScreenplayLanguage? screenplayLanguage,
-    bool clearScreenplayLanguage = false,
+    bool forceScreenplayLanguageValue = false,
     List<OcptEpisode>? episodes,
     List<OcptBudgetMileageRate>? mileageRates,
     List<String>? dictionaryWords,
@@ -184,25 +184,162 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     isMoveAvailable: isMoveAvailable ?? this.isMoveAvailable,
     isMoveWithheldByHosting: isMoveWithheldByHosting ?? this.isMoveWithheldByHosting,
     isShowInFolderFailed: isShowInFolderFailed ?? this.isShowInFolderFailed,
-    moveError: clearMoveError ? null : (moveError ?? this.moveError),
+    moveError: moveError ?? (forceMoveErrorValue ? null : this.moveError),
     currencyCode: currencyCode ?? this.currencyCode,
     pageFormat: pageFormat ?? this.pageFormat,
-    minimumRestMinutes: clearMinimumRestMinutes
-        ? null
-        : (minimumRestMinutes ?? this.minimumRestMinutes),
-    defaultVatRateBasisPoints: clearDefaultVatRateBasisPoints
-        ? null
-        : (defaultVatRateBasisPoints ?? this.defaultVatRateBasisPoints),
-    mealPriceCents: clearMealPriceCents ? null : (mealPriceCents ?? this.mealPriceCents),
-    buffetPriceCents: clearBuffetPriceCents ? null : (buffetPriceCents ?? this.buffetPriceCents),
-    screenplayLanguage: clearScreenplayLanguage
-        ? null
-        : (screenplayLanguage ?? this.screenplayLanguage),
+    minimumRestMinutes:
+        minimumRestMinutes ?? (forceMinimumRestMinutesValue ? null : this.minimumRestMinutes),
+    defaultVatRateBasisPoints:
+        defaultVatRateBasisPoints ??
+        (forceDefaultVatRateBasisPointsValue ? null : this.defaultVatRateBasisPoints),
+    mealPriceCents: mealPriceCents ?? (forceMealPriceCentsValue ? null : this.mealPriceCents),
+    buffetPriceCents:
+        buffetPriceCents ?? (forceBuffetPriceCentsValue ? null : this.buffetPriceCents),
+    screenplayLanguage:
+        screenplayLanguage ?? (forceScreenplayLanguageValue ? null : this.screenplayLanguage),
     episodes: episodes ?? this.episodes,
     mileageRates: mileageRates ?? this.mileageRates,
     dictionaryWords: dictionaryWords ?? this.dictionaryWords,
     hasChanged: hasChanged ?? this.hasChanged,
   );
+
+  /// Copy this state as loaded with the project's file location and settings.
+  OcptProjectSettingsState copyToLoaded({
+    required String projectFilePath,
+    required bool isShowInFolderAvailable,
+    required bool isMoveAvailable,
+    required bool isMoveWithheldByHosting,
+    required String currencyCode,
+    required OcptPageFormat pageFormat,
+    required int? minimumRestMinutes,
+    required int? defaultVatRateBasisPoints,
+    required int? mealPriceCents,
+    required int? buffetPriceCents,
+    required OcptScreenplayLanguage? screenplayLanguage,
+    required List<OcptEpisode> episodes,
+    required List<OcptBudgetMileageRate> mileageRates,
+    required List<String> dictionaryWords,
+  }) => copyWith(
+    isLoading: false,
+    projectFilePath: projectFilePath,
+    isShowInFolderAvailable: isShowInFolderAvailable,
+    isMoveAvailable: isMoveAvailable,
+    isMoveWithheldByHosting: isMoveWithheldByHosting,
+    currencyCode: currencyCode,
+    pageFormat: pageFormat,
+    minimumRestMinutes: minimumRestMinutes,
+    forceMinimumRestMinutesValue: minimumRestMinutes == null,
+    defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+    forceDefaultVatRateBasisPointsValue: defaultVatRateBasisPoints == null,
+    mealPriceCents: mealPriceCents,
+    forceMealPriceCentsValue: mealPriceCents == null,
+    buffetPriceCents: buffetPriceCents,
+    forceBuffetPriceCentsValue: buffetPriceCents == null,
+    screenplayLanguage: screenplayLanguage,
+    forceScreenplayLanguageValue: screenplayLanguage == null,
+    episodes: episodes,
+    mileageRates: mileageRates,
+    dictionaryWords: dictionaryWords,
+  );
+
+  /// Copy this state with the failure to show the file in its folder flagged.
+  OcptProjectSettingsState copyWithShowInFolderFailed() => copyWith(isShowInFolderFailed: true);
+
+  /// Copy this state with the show-in-folder failure dismissed.
+  OcptProjectSettingsState copyWithShowInFolderFailureDismissed() =>
+      copyWith(isShowInFolderFailed: false);
+
+  /// Copy this state with the failed move reported through [moveError].
+  OcptProjectSettingsState copyWithMoveError({required OcptProjectMoveStatus moveError}) =>
+      copyWith(moveError: moveError);
+
+  /// Copy this state with the project file now at [projectFilePath] and any move error cleared.
+  OcptProjectSettingsState copyWithMoved({required String projectFilePath}) =>
+      copyWith(projectFilePath: projectFilePath, forceMoveErrorValue: true);
+
+  /// Copy this state with the move error dismissed.
+  OcptProjectSettingsState copyWithMoveErrorDismissed() => copyWith(forceMoveErrorValue: true);
+
+  /// Copy this state with the project's [currencyCode] edited.
+  OcptProjectSettingsState copyWithCurrencyCode({required String currencyCode}) =>
+      copyWith(currencyCode: currencyCode, hasChanged: true);
+
+  /// Copy this state with the project's [pageFormat] edited.
+  OcptProjectSettingsState copyWithPageFormat({required OcptPageFormat pageFormat}) =>
+      copyWith(pageFormat: pageFormat, hasChanged: true);
+
+  /// Copy this state with the minimum rest between two days edited, null when unset.
+  OcptProjectSettingsState copyWithMinimumRestMinutes({required int? minimumRestMinutes}) =>
+      copyWith(
+        minimumRestMinutes: minimumRestMinutes,
+        forceMinimumRestMinutesValue: minimumRestMinutes == null,
+        hasChanged: true,
+      );
+
+  /// Copy this state with the default VAT rate edited, null when unset.
+  OcptProjectSettingsState copyWithDefaultVatRate({required int? defaultVatRateBasisPoints}) =>
+      copyWith(
+        defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+        forceDefaultVatRateBasisPointsValue: defaultVatRateBasisPoints == null,
+        hasChanged: true,
+      );
+
+  /// Copy this state with the price of a meal edited, null when unset.
+  OcptProjectSettingsState copyWithMealPrice({required int? mealPriceCents}) => copyWith(
+    mealPriceCents: mealPriceCents,
+    forceMealPriceCentsValue: mealPriceCents == null,
+    hasChanged: true,
+  );
+
+  /// Copy this state with the price of a buffet edited, null when unset.
+  OcptProjectSettingsState copyWithBuffetPrice({required int? buffetPriceCents}) => copyWith(
+    buffetPriceCents: buffetPriceCents,
+    forceBuffetPriceCentsValue: buffetPriceCents == null,
+    hasChanged: true,
+  );
+
+  /// Copy this state with the screenplay language edited, null when unset.
+  OcptProjectSettingsState copyWithScreenplayLanguage({
+    required OcptScreenplayLanguage? screenplayLanguage,
+  }) => copyWith(
+    screenplayLanguage: screenplayLanguage,
+    forceScreenplayLanguageValue: screenplayLanguage == null,
+    hasChanged: true,
+  );
+
+  /// Copy this state with the project dictionary's [dictionaryWords] edited.
+  OcptProjectSettingsState copyWithDictionaryWords({required List<String> dictionaryWords}) =>
+      copyWith(dictionaryWords: dictionaryWords, hasChanged: true);
+
+  /// Copy this state with the [episodes] read again after an episode was added, which counts as
+  /// a change only when [isAdded].
+  OcptProjectSettingsState copyWithEpisodeAdded({
+    required List<OcptEpisode> episodes,
+    required bool isAdded,
+  }) => copyWith(episodes: episodes, hasChanged: isAdded ? true : null);
+
+  /// Copy this state with the [episodes] read again after an episode was deleted, which counts
+  /// as a change only when [isDeleted].
+  OcptProjectSettingsState copyWithEpisodeDeleted({
+    required List<OcptEpisode> episodes,
+    required bool isDeleted,
+  }) => copyWith(episodes: episodes, hasChanged: isDeleted ? true : null);
+
+  /// Copy this state with the [episodes] read again after one was edited or moved.
+  OcptProjectSettingsState copyWithEpisodesChanged({required List<OcptEpisode> episodes}) =>
+      copyWith(episodes: episodes, hasChanged: true);
+
+  /// Copy this state with the [mileageRates] read again after a rate was added, which counts as a
+  /// change only when [isAdded].
+  OcptProjectSettingsState copyWithMileageRateAdded({
+    required List<OcptBudgetMileageRate> mileageRates,
+    required bool isAdded,
+  }) => copyWith(mileageRates: mileageRates, hasChanged: isAdded ? true : null);
+
+  /// Copy this state with the [mileageRates] read again after one was edited or deleted.
+  OcptProjectSettingsState copyWithMileageRatesChanged({
+    required List<OcptBudgetMileageRate> mileageRates,
+  }) => copyWith(mileageRates: mileageRates, hasChanged: true);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override

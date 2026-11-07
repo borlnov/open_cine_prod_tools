@@ -6,10 +6,10 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_package_missing_files_confirm.dart';
+import 'package:open_cine_prod_tools/models/ocpt_skipped_asset.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
 
-/// States that some of the files an imported package's project references did not travel — they
+/// State that some of the files an imported package's project references did not travel — they
 /// were already missing when the package was written, and the import is only reporting that again.
 ///
 /// A dialog rather than a SnackBar, shown **before** the workspace is pushed — a transient message
@@ -30,13 +30,7 @@ class OcptProjectPackageSkippedFilesDialog extends StatelessWidget {
   /// Class constructor
   const OcptProjectPackageSkippedFilesDialog({super.key, required this.skippedAssets});
 
-  /// Shows the dialog, and completes once the user has dismissed it.
-  static Future<void> show(BuildContext context, {required List<OcptSkippedAsset> skippedAssets}) =>
-      showDialog<void>(
-        context: context,
-        builder: (context) => OcptProjectPackageSkippedFilesDialog(skippedAssets: skippedAssets),
-      );
-
+  /// Build the project package skipped files dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -57,4 +51,11 @@ class OcptProjectPackageSkippedFilesDialog extends StatelessWidget {
       ],
     );
   }
+
+  /// Show the dialog, and complete once the user has dismissed it.
+  static Future<void> show(BuildContext context, {required List<OcptSkippedAsset> skippedAssets}) =>
+      showDialog<void>(
+        context: context,
+        builder: (context) => OcptProjectPackageSkippedFilesDialog(skippedAssets: skippedAssets),
+      );
 }

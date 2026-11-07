@@ -3,17 +3,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
-import 'package:fountain_kit/src/models/fountain_title_page.dart';
+import 'package:fountain_kit/src/models/fountain_title_page_entry.dart';
 import 'package:fountain_kit/src/parser/fountain_parser.dart';
 import 'package:fountain_kit/src/serializer/fountain_title_page_writer.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of the title page writer.
 void main() {
   const writer = FountainTitlePageWriter();
   const parser = FountainParser();
 
   /// A placeholder range for entries built directly (never read by the writer).
-  const _dummyRange = FountainSourceRange(startLine: 0, endLine: 0, startOffset: 0, endOffset: 0);
+  const dummyRange = FountainSourceRange(startLine: 0, endLine: 0, startOffset: 0, endOffset: 0);
 
   group('insert (no existing title page)', () {
     test('prepends a rendered block, followed by a blank line, ahead of the source', () {
@@ -23,7 +24,7 @@ void main() {
         source: body,
         existingRange: null,
         entries: const [
-          FountainTitlePageEntry(key: 'Title', values: ['My Screenplay'], sourceRange: _dummyRange),
+          FountainTitlePageEntry(key: 'Title', values: ['My Screenplay'], sourceRange: dummyRange),
         ],
       );
 
@@ -42,7 +43,7 @@ void main() {
           FountainTitlePageEntry(
             key: 'Contact',
             values: ['Open Cine Prod Tools', '123 Reel Street'],
-            sourceRange: _dummyRange,
+            sourceRange: dummyRange,
           ),
         ],
       );
@@ -69,7 +70,7 @@ void main() {
         source: source,
         existingRange: existingRange,
         entries: const [
-          FountainTitlePageEntry(key: 'Title', values: ['New Screenplay'], sourceRange: _dummyRange),
+          FountainTitlePageEntry(key: 'Title', values: ['New Screenplay'], sourceRange: dummyRange),
         ],
       );
 
@@ -86,7 +87,7 @@ void main() {
         source: source,
         existingRange: existingRange,
         entries: const [
-          FountainTitlePageEntry(key: 'Title', values: ['Brand New'], sourceRange: _dummyRange),
+          FountainTitlePageEntry(key: 'Title', values: ['Brand New'], sourceRange: dummyRange),
         ],
       );
 

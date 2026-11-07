@@ -3,25 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_asset_kind_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_entries_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_locations_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
-
-/// Converts a [OcptAssetKind] to and from the text stored in the `assets.kind` column.
-class OcptAssetKindConverter extends TypeConverter<OcptAssetKind, String> {
-  /// Class constructor
-  const OcptAssetKindConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptAssetKind fromSql(String fromDb) => OcptAssetKind.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptAssetKind value) => value.name;
-}
 
 /// A binary file the resources mode refers to — a headshot, a scouting photo, a signed release —
 /// **by path, never by embedding it**: see `docs/adr/0013-binary-assets-referenced-by-path.md` for
@@ -64,22 +50,23 @@ class OcptAssetsTable extends Table {
   @override
   String get tableName => 'assets';
 
-  /// The stable, unique id of this asset (a UUID).
+  /// Get the stable, unique id of this asset (a UUID).
   TextColumn get id => text()();
 
-  /// What subject this asset illustrates or documents.
+  /// Get what subject this asset illustrates or documents.
   TextColumn get kind => text().map(const OcptAssetKindConverter())();
 
-  /// The absolute path of the referenced file on the machine that recorded it. See the class doc
+  /// Get the absolute path of the referenced file on the machine that recorded it. See the class
+  /// doc
   /// comment: nothing outside the service that resolves an asset may read this column directly, or
   /// the day the app stops storing bytes this way, every call site would have to change instead of
   /// just that service.
   TextColumn get path => text()();
 
-  /// A user-facing label for this asset, free text.
+  /// Get a user-facing label for this asset, free text.
   TextColumn get label => text().withDefault(const Constant(''))();
 
-  /// The date and time at which this asset reference was added.
+  /// Get the date and time at which this asset reference was added.
   DateTimeColumn get addedAt => dateTime()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -88,37 +75,37 @@ class OcptAssetsTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// The person this asset belongs to, or null.
+  /// Get the person this asset belongs to, or null.
   TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// The location this asset belongs to, or null.
+  /// Get the location this asset belongs to, or null.
   TextColumn get locationId => text().nullable().references(OcptLocationsTable, #id)();
 
-  /// The element this asset belongs to, or null.
+  /// Get the element this asset belongs to, or null.
   TextColumn get elementId => text().nullable().references(OcptElementsTable, #id)();
 
-  /// The journal entry this asset is the voucher for, or null. → [OcptBudgetEntriesTable]
+  /// Get the journal entry this asset is the voucher for, or null. → [OcptBudgetEntriesTable]
   ///
   /// Set on an `OcptAssetKind.receipt` asset, and left null on every other kind — see the class doc
   /// comment for why this is different in nature from [personId]/[locationId]/[elementId] even
   /// though it fills the same "exactly one of four" slot.
   TextColumn get budgetEntryId => text().nullable().references(OcptBudgetEntriesTable, #id)();
 
-  /// The date this asset's document becomes valid, or null. Meaningful for a document with a
+  /// Get the date this asset's document becomes valid, or null. Meaningful for a document with a
   /// validity window — a filming permit runs from a date to a date — and meaningless for a photo,
   /// which carries it as null forever.
   ///
   /// **Nullable, and deliberately so: null means "nobody has recorded one", never "valid from the
   /// start of time".** This is about the *document* the asset stands for, never about the
   /// referenced file on disk — the app never opens it (`docs/adr/0013-binary-assets-referenced-by-
-  /// path.md`) and has no way to read a date off it. The permit alert that reads this pair (a
-  /// coming milestone) fires only when both a window is recorded and the day being checked falls
-  /// outside it, and stays silent otherwise: the same reading `people.maxDailyPresenceMinutes` and
-  /// a location declaring no availability window already have — absence of data is not a claim
-  /// that nothing is required.
+  /// path.md`) and has no way to read a date off it. The permit alert that reads this pair
+  /// (`OcptSchedulePermitNotValidAlert`) fires only when both a window is recorded and the day
+  /// being checked falls outside it, and stays silent otherwise: the same reading
+  /// `people.maxDailyPresenceMinutes` and a location declaring no availability window already have
+  /// — absence of data is not a claim that nothing is required.
   DateTimeColumn get validFrom => dateTime().nullable()();
 
-  /// The date this asset's document stops being valid, or null. See [validFrom].
+  /// Get the date this asset's document stops being valid, or null. See [validFrom].
   DateTimeColumn get validUntil => dateTime().nullable()();
 
   /// {@macro drift.Table.primaryKey}

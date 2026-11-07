@@ -3,12 +3,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over the budget mode's revenue sharing: the `budget_revenues` takings and the
@@ -16,37 +19,40 @@ import 'package:uuid/uuid.dart';
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
-/// **No seeding of any kind, unlike `OcptBudgetQuoteService`'s own ten CNC postes.** This app names
-/// no taking and no participant of its own — a revenue and a sharing plan are entirely the
+/// **No seeding of any kind, unlike `OcptBudgetQuoteService`'s own ten CNC accounts.** This app
+/// names no taking and no participant of its own — a revenue and a sharing plan are entirely the
 /// production's own business — so both tables come out of [loadRevenues]/[loadShares] exactly as
 /// empty as the project that has never been read from before them.
 ///
 /// **Both tables order flat by their own `sortKey`**, like `OcptBudgetFinancingService`'s own two
 /// tables: neither a revenue nor a share belongs inside another row the way a quote line belongs
-/// inside its poste.
-class OcptBudgetSharingService {
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
+/// inside its account.
+class OcptBudgetSharingService extends AbsOcptService {
+  /// {@macro open_cine_prod_tools.serviceDeviceIdGetter}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptBudgetSharingService({required this.deviceId});
+  const OcptBudgetSharingService({required super.logger, required this.deviceId});
 
-  /// Loads every live revenue of [database], in `sortKey` order.
-  Future<List<OcptBudgetRevenue>> loadRevenues({required OcptProjectDatabase database}) async {
+  /// Load every live revenue of [database], in `sortKey` order.
+  @useResult
+  Future<OcptDatabaseResult<List<OcptBudgetRevenue>>> loadRevenues({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadRevenues", () async {
     final rows = await _liveRevenueRows(database);
     return [for (final row in rows) OcptBudgetRevenue.fromRow(row)];
-  }
+  });
 
-  /// Creates a new revenue named [label], appended at the end of the sharing view's own list, and
-  /// returns its freshly generated id.
+  /// Create a new revenue named [label], appended at the end of the sharing view's own list, and
+  /// return its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createRevenue({
+  @useResult
+  Future<OcptDatabaseResult<String>> createRevenue({
     required OcptProjectDatabase database,
     required DateTime date,
     required String label,
-  }) async {
+  }) => guardResult("createRevenue", () async {
     if (database.refusesUserWrite("createRevenue")) {
       return null;
     }
@@ -63,7 +69,9 @@ class OcptBudgetSharingService {
         current: null,
         next: OcptBudgetRevenueRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           date: date,
           label: label,
@@ -77,14 +85,15 @@ class OcptBudgetSharingService {
     });
 
     return id;
-  }
+  });
 
-  /// Updates the fields of revenue [revenueId] in [database] that are passed as something other
+  /// Update the fields of revenue [revenueId] in [database] that are passed as something other
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderRevenue] and [deleteRevenue].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateRevenue({
+  @useResult
+  Future<OcptDatabaseOutcome> updateRevenue({
     required OcptProjectDatabase database,
     required String revenueId,
     Value<DateTime> date = const Value.absent(),
@@ -92,7 +101,7 @@ class OcptBudgetSharingService {
     Value<int> amountCents = const Value.absent(),
     Value<OcptBudgetRevenueStatus> status = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateRevenue", () async {
     if (database.refusesUserWrite("updateRevenue")) {
       return;
     }
@@ -122,18 +131,19 @@ class OcptBudgetSharingService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Moves revenue [revenueId] to [newPosition] (0-based) within the sharing view's own flat
+  /// Move revenue [revenueId] to [newPosition] (0-based) within the sharing view's own flat
   /// `sortKey` order, by giving it a `sortKey` sitting between the two revenues it lands between.
   /// Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderRevenue({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderRevenue({
     required OcptProjectDatabase database,
     required String revenueId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderRevenue", () async {
     if (database.refusesUserWrite("reorderRevenue")) {
       return;
     }
@@ -166,17 +176,18 @@ class OcptBudgetSharingService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Tombstones revenue [revenueId].
+  /// Tombstone revenue [revenueId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteRevenue({
+  @useResult
+  Future<OcptDatabaseOutcome> deleteRevenue({
     required OcptProjectDatabase database,
     required String revenueId,
-  }) async {
+  }) => guardOutcome("deleteRevenue", () async {
     if (database.refusesUserWrite("deleteRevenue")) {
       return;
     }
@@ -198,22 +209,26 @@ class OcptBudgetSharingService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Loads every live share of [database], in `sortKey` order.
-  Future<List<OcptBudgetShare>> loadShares({required OcptProjectDatabase database}) async {
+  /// Load every live share of [database], in `sortKey` order.
+  @useResult
+  Future<OcptDatabaseResult<List<OcptBudgetShare>>> loadShares({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadShares", () async {
     final rows = await _liveShareRows(database);
     return [for (final row in rows) OcptBudgetShare.fromRow(row)];
-  }
+  });
 
-  /// Creates a new share named [label], appended at the end of the sharing view's own list, and
-  /// returns its freshly generated id.
+  /// Create a new share named [label], appended at the end of the sharing view's own list, and
+  /// return its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createShare({
+  @useResult
+  Future<OcptDatabaseResult<String>> createShare({
     required OcptProjectDatabase database,
     required String label,
-  }) async {
+  }) => guardResult("createShare", () async {
     if (database.refusesUserWrite("createShare")) {
       return null;
     }
@@ -230,7 +245,9 @@ class OcptBudgetSharingService {
         current: null,
         next: OcptBudgetShareRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           label: label,
           sharePermille: 0,
@@ -243,14 +260,15 @@ class OcptBudgetSharingService {
     });
 
     return id;
-  }
+  });
 
-  /// Updates the fields of share [shareId] in [database] that are passed as something other than
+  /// Update the fields of share [shareId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderShare] and [deleteShare].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateShare({
+  @useResult
+  Future<OcptDatabaseOutcome> updateShare({
     required OcptProjectDatabase database,
     required String shareId,
     Value<String?> personId = const Value.absent(),
@@ -258,7 +276,7 @@ class OcptBudgetSharingService {
     Value<int> sharePermille = const Value.absent(),
     Value<int> reinvestPermille = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateShare", () async {
     if (database.refusesUserWrite("updateShare")) {
       return;
     }
@@ -288,18 +306,19 @@ class OcptBudgetSharingService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Moves share [shareId] to [newPosition] (0-based) within the sharing view's own flat `sortKey`
+  /// Move share [shareId] to [newPosition] (0-based) within the sharing view's own flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two shares it lands between. Writes
   /// **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderShare({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderShare({
     required OcptProjectDatabase database,
     required String shareId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderShare", () async {
     if (database.refusesUserWrite("reorderShare")) {
       return;
     }
@@ -332,14 +351,18 @@ class OcptBudgetSharingService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Tombstones share [shareId].
+  /// Tombstone share [shareId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteShare({required OcptProjectDatabase database, required String shareId}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> deleteShare({
+    required OcptProjectDatabase database,
+    required String shareId,
+  }) => guardOutcome("deleteShare", () async {
     if (database.refusesUserWrite("deleteShare")) {
       return;
     }
@@ -361,35 +384,35 @@ class OcptBudgetSharingService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Every live revenue row of [database], ordered by `sortKey`.
+  /// Get every live revenue row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetRevenueRow>> _liveRevenueRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetRevenuesTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The live revenue row [revenueId], or null if it doesn't exist or has been tombstoned.
+  /// Get the live revenue row [revenueId], or null if it doesn't exist or has been tombstoned.
   Future<OcptBudgetRevenueRow?> _liveRevenueRowOrNull({
     required OcptProjectDatabase database,
     required String revenueId,
-  }) => (database.select(database.ocptBudgetRevenuesTable)
-        ..where((table) => table.id.equals(revenueId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetRevenuesTable,
+  )..where((table) => table.id.equals(revenueId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// Every live share row of [database], ordered by `sortKey`.
+  /// Get every live share row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetShareRow>> _liveShareRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetSharesTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The live share row [shareId], or null if it doesn't exist or has been tombstoned.
+  /// Get the live share row [shareId], or null if it doesn't exist or has been tombstoned.
   Future<OcptBudgetShareRow?> _liveShareRowOrNull({
     required OcptProjectDatabase database,
     required String shareId,
-  }) => (database.select(database.ocptBudgetSharesTable)
-        ..where((table) => table.id.equals(shareId) & table.isDeleted.not()))
-      .getSingleOrNull();
+  }) => (database.select(
+    database.ocptBudgetSharesTable,
+  )..where((table) => table.id.equals(shareId) & table.isDeleted.not())).getSingleOrNull();
 }

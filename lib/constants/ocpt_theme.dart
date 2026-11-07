@@ -11,13 +11,13 @@ import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 /// A pure scaling function applied to one size literal (a font size, a dimension or a radius) when
 /// [buildOcptThemeModel] builds the theme.
 ///
-/// `MainAppUi` passes `flutter_screenutil`'s `.sp`/`.w`/`.r` extensions here on mobile, under
+/// `OcptMainAppUi` passes `flutter_screenutil`'s `.sp`/`.w`/`.r` extensions here on mobile, under
 /// `ScreenUtilInit`; every other call site — including the module-level [ocptTheme] below — leaves
 /// the parameter at its default, [_identityScaler], so desktop output stays byte-identical to a
 /// theme with no scaling at all.
 typedef OcptSizeScaler = double Function(double value);
 
-/// The default [OcptSizeScaler]: returns [value] unchanged, so a theme built with no scaler
+/// Get the default [OcptSizeScaler]: returns [value] unchanged, so a theme built with no scaler
 /// argument is byte-identical to a theme with no scaling concept at all.
 double _identityScaler(double value) => value;
 
@@ -44,20 +44,18 @@ final _lightColorScheme = ColorScheme.fromSeed(seedColor: _seedColor);
 /// dark professional video/creative tools stay almost black outside of their accent color). The
 /// surface family is overridden here for that reason, while [_seedColor]'s hue is kept for every
 /// tonal surface so they still feel like part of the same coherent scheme, only darker.
-final _darkColorScheme = ColorScheme.fromSeed(
-  seedColor: _seedColor,
-  brightness: Brightness.dark,
-).copyWith(
-  surface: const Color(0xFF121114),
-  onSurface: const Color(0xFFE7E5EA),
-  surfaceContainerLowest: const Color(0xFF09090B),
-  surfaceContainerLow: const Color(0xFF17161A),
-  surfaceContainer: const Color(0xFF1C1B20),
-  surfaceContainerHigh: const Color(0xFF242329),
-  surfaceContainerHighest: const Color(0xFF2C2B32),
-  outline: const Color(0xFF3D3B45),
-  outlineVariant: const Color(0xFF29282E),
-);
+final _darkColorScheme = ColorScheme.fromSeed(seedColor: _seedColor, brightness: Brightness.dark)
+    .copyWith(
+      surface: const Color(0xFF121114),
+      onSurface: const Color(0xFFE7E5EA),
+      surfaceContainerLowest: const Color(0xFF09090B),
+      surfaceContainerLow: const Color(0xFF17161A),
+      surfaceContainer: const Color(0xFF1C1B20),
+      surfaceContainerHigh: const Color(0xFF242329),
+      surfaceContainerHighest: const Color(0xFF2C2B32),
+      outline: const Color(0xFF3D3B45),
+      outlineVariant: const Color(0xFF29282E),
+    );
 
 /// The project poster tint family for dark theme: violet, blue, pink, green and amber, vivid
 /// enough to read as distinct posters against the dark scheme's near-black card background.
@@ -104,8 +102,8 @@ const String ocptMonospaceFontFamily = "CourierPrime";
 
 /// The small corner radius: dropdowns/text fields, the scrollbar thumb and icon buttons.
 ///
-/// Single source of truth for the shell widgets built in later milestones, which read this
-/// constant instead of re-declaring their own radius.
+/// Single source of truth for the shell widgets, which read this constant instead of re-declaring
+/// their own radius.
 const double ocptRadiusSmall = 6;
 
 /// The medium corner radius: filled/outlined/text buttons and every menu surface (popup menu,
@@ -155,7 +153,7 @@ const double ocptTableRowHorizontalPadding = 12;
 /// builds itself) pass this same constant at their call site.
 const WidgetStateMouseCursor ocptClickableCursor = WidgetStateMouseCursor.clickable;
 
-/// Builds the dense UI type scale of the studio design system from [baseThemeData]'s own
+/// Build the dense UI type scale of the studio design system from [baseThemeData]'s own
 /// [ThemeData.textTheme], via [TextTheme.copyWith] so every slot keeps the brightness-correct
 /// default color Material 3 computed for it (a hand-written [TextTheme] would lose that).
 ///
@@ -204,7 +202,7 @@ TextTheme _buildTextTheme({required ThemeData baseThemeData, OcptSizeScaler sp =
   );
 }
 
-/// Builds the studio design system's component themes from [baseThemeData] (already carrying the
+/// Build the studio design system's component themes from [baseThemeData] (already carrying the
 /// dense [TextTheme] [_buildTextTheme] produced, since [ActThemeModel] applies
 /// `overrideDefaultTextTheme` before `overrideDefaultThemeData`).
 ///
@@ -383,11 +381,7 @@ ThemeData _buildThemeData({
     switchTheme: const SwitchThemeData(mouseCursor: ocptClickableCursor),
     // A thin `outlineVariant` line with no surrounding space, instead of the stock 16 px of
     // vertical breathing room.
-    dividerTheme: DividerThemeData(
-      color: colorScheme.outlineVariant,
-      thickness: w(1),
-      space: w(1),
-    ),
+    dividerTheme: DividerThemeData(color: colorScheme.outlineVariant, thickness: w(1), space: w(1)),
     // A thin, always-visible `outline` thumb over a transparent track, instead of the platform
     // default.
     scrollbarTheme: ScrollbarThemeData(
@@ -412,7 +406,7 @@ ThemeData _buildThemeData({
   );
 }
 
-/// This defines the light and dark themes of the app.
+/// Define the light and dark themes of the app.
 ///
 /// [OcptSpecificColors] carries the application-specific colors that fall outside the standard
 /// Material 3 [ColorScheme]: `previewBackdrop` (the light value matches [_lightColorScheme]'s own
@@ -431,7 +425,7 @@ ThemeData _buildThemeData({
 /// out of the box, so leaving it unset would make Windows fall back to a different system font.
 ///
 /// [sp], [w] and [r] are forwarded to [_buildTextTheme] and [_buildThemeData]; on mobile,
-/// `MainAppUi` passes `flutter_screenutil`'s `.sp`/`.w`/`.r` extensions here, under
+/// `OcptMainAppUi` passes `flutter_screenutil`'s `.sp`/`.w`/`.r` extensions here, under
 /// `ScreenUtilInit`. All three default to [_identityScaler], so [ocptTheme] below — built with no
 /// argument — stays byte-identical to a theme with no scaling concept at all.
 ActThemeModel<OcptSpecificColors> buildOcptThemeModel({

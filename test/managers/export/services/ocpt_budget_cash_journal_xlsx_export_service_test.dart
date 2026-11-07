@@ -2,12 +2,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_cash_journal_xlsx_export_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_cash_journal_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 
 /// The sheet name every test here exports under.
@@ -15,25 +16,26 @@ const _sheetName = "Cash journal";
 
 /// Builds the labels the tests export with: a header naming each column after its own role, so an
 /// assertion can tell any two columns apart without depending on the app's own translations.
-OcptBudgetCashJournalXlsxLabels _buildLabels({String sheetName = _sheetName}) => OcptBudgetCashJournalXlsxLabels(
-  sheetName: sheetName,
-  dateHeader: "Date",
-  voucherHeader: "Voucher",
-  labelHeader: "Label",
-  posteHeader: "Poste",
-  settlesHeader: "Settles",
-  debitHeader: "Debit",
-  creditHeader: "Credit",
-  balanceHeader: "Balance",
-  totalsRowLabel: "Total",
-);
+OcptBudgetCashJournalXlsxLabels _buildLabels({String sheetName = _sheetName}) =>
+    OcptBudgetCashJournalXlsxLabels(
+      sheetName: sheetName,
+      dateHeader: "Date",
+      voucherHeader: "Voucher",
+      labelHeader: "Label",
+      accountHeader: "Poste",
+      settlesHeader: "Settles",
+      debitHeader: "Debit",
+      creditHeader: "Credit",
+      balanceHeader: "Balance",
+      totalsRowLabel: "Total",
+    );
 
 /// Builds an entry, every field left at a neutral value unless the test overrides it.
 OcptBudgetEntry _buildEntry({
   required String id,
   required DateTime date,
   String label = "",
-  String? posteId,
+  String? accountId,
   int debitCents = 0,
   int creditCents = 0,
   bool isTaxInclusive = true,
@@ -44,7 +46,7 @@ OcptBudgetEntry _buildEntry({
   id: id,
   date: date,
   label: label,
-  posteId: posteId,
+  accountId: accountId,
   debitCents: debitCents,
   creditCents: creditCents,
   isTaxInclusive: isTaxInclusive,
@@ -58,9 +60,20 @@ OcptBudgetEntry _buildEntry({
   personId: null,
 );
 
-/// Builds a poste holding no line, only what this test reads: its own id and label.
-OcptBudgetPoste _buildPoste({required String id, required String code, required String label}) =>
-    OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a", lines: const []);
+/// Builds an account holding no line, only what this test reads: its own id and label.
+OcptBudgetAccount _buildAccount({
+  required String id,
+  required String code,
+  required String label,
+}) => OcptBudgetAccount(
+  id: id,
+  code: code,
+  label: label,
+  simpleLabel: null,
+  estimateToCompleteCents: null,
+  sortKey: "a",
+  lines: const [],
+);
 
 /// Decodes [bytes] and returns the rows of its [_sheetName] sheet, as plain Dart values — mirroring
 /// `ocpt_shot_list_xlsx_export_service_test.dart`'s own `_rowsOf`.
@@ -87,8 +100,9 @@ Object? _valueOf(Data? cell) => switch (cell?.value) {
   final other => other.toString(),
 };
 
+/// Run the tests of [OcptBudgetCashJournalXlsxExportService].
 void main() {
-  const service = OcptBudgetCashJournalXlsxExportService();
+  const service = OcptBudgetCashJournalXlsxExportService(logger: SilentLogger());
 
   group("xlsxFileName", () {
     test("appends the .xlsx extension to the project name", () {
@@ -99,7 +113,7 @@ void main() {
   group("generate", () {
     test("writes one row per entry, in the journal's own order, then a totals row", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1", code: "1", label: "Rights")],
+        accounts: [_buildAccount(id: "poste-1", code: "1", label: "Rights")],
         entries: [
           _buildEntry(
             id: "entry-1",
@@ -111,7 +125,7 @@ void main() {
             id: "entry-2",
             date: DateTime(2026, 1, 10),
             label: "Rights fee",
-            posteId: "poste-1",
+            accountId: "poste-1",
             debitCents: 25000,
             voucherNumber: "J-002",
           ),
@@ -122,21 +136,29 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(
-          snapshot: snapshot,
-          linkLabelByEntryId: const {},
-          labels: _buildLabels(),
-        ),
+        service
+            .generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels())
+            .value!,
       );
 
       expect(rows, hasLength(4));
-      expect(rows.first, ["Date", "Voucher", "Label", "Poste", "Settles", "Debit", "Credit", "Balance"]);
+      expect(rows.first, [
+        "Date",
+        "Voucher",
+        "Label",
+        "Poste",
+        "Settles",
+        "Debit",
+        "Credit",
+        "Balance",
+      ]);
 
       // entry-1: a credit of 1,000.00 €, no debit at all — a real zero, printed as data rather
       // than left blank, since the movement is fully readable — balance after is 1,000.00 €.
       expect(rows[1], ["2026-01-05", "J-001", "Deposit", null, null, 0.0, 1000.0, 1000.0]);
 
-      // entry-2: a debit of 250.00 € against poste-1, no credit at all, balance after is 750.00 €.
+      // entry-2: a debit of 250.00 € against account-1, no credit at all, balance after is 750.00
+      // €.
       expect(rows[2], ["2026-01-10", "J-002", "Rights fee", "Rights", null, 250.0, 0.0, 750.0]);
 
       // The totals row: the journal's own debit, credit and balance.
@@ -145,7 +167,7 @@ void main() {
 
     test("prints what an entry settles from the caller's own map, resolving nothing itself", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: [_buildEntry(id: "entry-1", date: DateTime(2026, 1, 5), creditCents: 5000)],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -153,56 +175,58 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(
-          snapshot: snapshot,
-          linkLabelByEntryId: const {"entry-1": "Regional grant"},
-          labels: _buildLabels(),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              linkLabelByEntryId: const {"entry-1": "Regional grant"},
+              labels: _buildLabels(),
+            )
+            .value!,
       );
 
       expect(rows[1][4], "Regional grant");
     });
 
-    test(
-      "a row this basis cannot read leaves its own balance an empty cell, never a repeat or a guess",
-      () {
-        final snapshot = OcptBudgetSnapshot.build(
-          postes: const [],
-          entries: [
-            _buildEntry(id: "entry-1", date: DateTime(2026), creditCents: 10000),
-            // Typed excluding tax, no rate anywhere to gross it back up with: unreadable.
-            _buildEntry(
-              id: "entry-2",
-              date: DateTime(2026, 1, 2),
-              debitCents: 5000,
-              isTaxInclusive: false,
-            ),
-            _buildEntry(id: "entry-3", date: DateTime(2026, 1, 3), debitCents: 2000),
-          ],
-          commitments: const [],
-          defaultVatRateBasisPoints: null,
-          currencyCode: "EUR",
-        );
+    test("a row this basis cannot read leaves its own balance an empty cell, never a repeat or a "
+        "guess", () {
+      final snapshot = OcptBudgetSnapshot.build(
+        accounts: const [],
+        entries: [
+          _buildEntry(id: "entry-1", date: DateTime(2026), creditCents: 10000),
+          // Typed excluding tax, no rate anywhere to gross it back up with: unreadable.
+          _buildEntry(
+            id: "entry-2",
+            date: DateTime(2026, 1, 2),
+            debitCents: 5000,
+            isTaxInclusive: false,
+          ),
+          _buildEntry(id: "entry-3", date: DateTime(2026, 1, 3), debitCents: 2000),
+        ],
+        commitments: const [],
+        defaultVatRateBasisPoints: null,
+        currencyCode: "EUR",
+      );
 
-        final rows = _rowsOf(
-          service.generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels()),
-        );
+      final rows = _rowsOf(
+        service
+            .generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels())
+            .value!,
+      );
 
-        // entry-1: balance 100.00 €.
-        expect(rows[1][7], 100.0);
-        // entry-2: unreadable — debit, credit and balance are all empty cells.
-        expect(rows[2][5], isNull);
-        expect(rows[2][6], isNull);
-        expect(rows[2][7], isNull);
-        // entry-3 resumes counting from exactly where the journal stood before the hole: 80.00 €,
-        // never poisoned by the gap above it.
-        expect(rows[3][7], 80.0);
-      },
-    );
+      // entry-1: balance 100.00 €.
+      expect(rows[1][7], 100.0);
+      // entry-2: unreadable — debit, credit and balance are all empty cells.
+      expect(rows[2][5], isNull);
+      expect(rows[2][6], isNull);
+      expect(rows[2][7], isNull);
+      // entry-3 resumes counting from exactly where the journal stood before the hole: 80.00 €,
+      // never poisoned by the gap above it.
+      expect(rows[3][7], 80.0);
+    });
 
     test("names the single sheet after the labels, with no leftover default sheet", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -210,11 +234,13 @@ void main() {
       );
 
       final excel = Excel.decodeBytes(
-        service.generate(
-          snapshot: snapshot,
-          linkLabelByEntryId: const {},
-          labels: _buildLabels(sheetName: "Trésorerie"),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              linkLabelByEntryId: const {},
+              labels: _buildLabels(sheetName: "Trésorerie"),
+            )
+            .value!,
       );
 
       expect(excel.tables.keys, ["Trésorerie"]);
@@ -222,7 +248,7 @@ void main() {
 
     test("falls back to a valid sheet name when the labels carry a blank one", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -230,7 +256,13 @@ void main() {
       );
 
       final excel = Excel.decodeBytes(
-        service.generate(snapshot: snapshot, linkLabelByEntryId: const {}, labels: _buildLabels(sheetName: "   ")),
+        service
+            .generate(
+              snapshot: snapshot,
+              linkLabelByEntryId: const {},
+              labels: _buildLabels(sheetName: "   "),
+            )
+            .value!,
       );
 
       expect(excel.tables.keys, [OcptBudgetCashJournalXlsxExportService.fallbackSheetName]);

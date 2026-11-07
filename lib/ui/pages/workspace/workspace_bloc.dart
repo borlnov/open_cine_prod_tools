@@ -6,7 +6,11 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
@@ -14,6 +18,7 @@ import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
@@ -37,26 +42,34 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 /// It is also where the open project's own sync session is started, once, the very first time the
 /// workspace opens: [_startSyncSessionIfPaired] reads the project's own `sync_pairings` row (there
 /// is at most one, exactly as `OcptSharingBloc._loadCurrentInvite` already finds it with no id in
-/// hand), and — only when both halves of the pairing are still there
-/// (`OcptPairingService`'s own doc comment) — hands [OcptSyncManager.startSyncSession] the transport
+/// hand), and — only when both halves of the pairing are still there (`OcptPairingService`'s own
+/// doc comment) — hands [OcptSyncManager.startSyncSession] the transport
 /// [OcptSyncManager.openRelayRemoteStorage] builds from it. [disposeLifeCycle] stops it: the
 /// workspace closing is the one signal this bloc has for "nobody needs this session running any
-/// more", exactly as `docs/plans/relay.md` (Phase C, commit 5) describes. An unpaired project
-/// starts nothing at all, and [OcptSyncManager.startSyncSession] itself is never called again after
-/// that first attempt — the workspace bloc lives exactly as long as one project stays open, so
-/// there is nothing later to react to.
+/// more", as `docs/architecture/sync.md` describes. An unpaired project starts nothing at all, and
+/// [OcptSyncManager.startSyncSession] itself is never called again after that first attempt — the
+/// workspace bloc lives exactly as long as one project stays open, so there is nothing later to
+/// react to.
 ///
 /// It is likewise where a project that asked to be re-hosted on launch has its own relay brought
 /// back up: [_maybeAutoStartHosting] runs [OcptRelayHostManager.maybeAutoStartHosting] on the same
-/// open, and — when that **freshly** starts hosting — its own self-seed has already started the sync
-/// session against this machine's hosted relay, so [_startSyncSessionIfPaired] is then skipped rather
-/// than starting a second one. Reopening a project whose relay was already up from before self-seeds
-/// nothing, so the paired start does seed a session against the local relay it stays paired to.
-/// Hosting itself is **not** torn down by [disposeLifeCycle] — it is owned by [OcptRelayHostManager]
-/// across every navigation and stops only through the hosting panel or app shutdown, since restarting
-/// it on a fresh port would strand connected peers; the sync session, tied to the project's database,
-/// is stopped there whether or not hosting is running (see [disposeLifeCycle]).
-class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
+/// open, and — when that **freshly** starts hosting — its own self-seed has already started the
+/// sync session against this machine's hosted relay, so [_startSyncSessionIfPaired] is then skipped
+/// rather than starting a second one. Reopening a project whose relay was already up from before
+/// self-seeds nothing, so the paired start does seed a session against the local relay it stays
+/// paired to. Hosting itself is **not** torn down by [disposeLifeCycle] — it is owned by
+/// [OcptRelayHostManager] across every navigation and stops only through the hosting panel or app
+/// shutdown, since restarting it on a fresh port would strand connected peers; the sync session,
+/// tied to the project's database, is stopped there whether or not hosting is running (see
+/// [disposeLifeCycle]).
+class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
+    with MixinAsyncInitBloc<OcptWorkspaceState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "workspace_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger;
+
   /// The manager used to read this replica's own device id (see [_startSyncSessionIfPaired]) — the
   /// active workspace mode is not persisted, so this bloc no longer reaches into it for that.
   final OcptPropertiesManager _propertiesManager;
@@ -78,21 +91,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// [disposeLifeCycle].
   StreamSubscription<OcptOpenProjectModel?>? _currentProjectSubscription;
 
-  /// Class constructor
-  OcptWorkspaceBloc({
-    OcptPropertiesManager? propertiesManager,
-    OcptProjectsManager? projectsManager,
-    OcptSyncManager? syncManager,
-    OcptRelayHostManager? hostManager,
-  }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
-       _syncManagerOverride = syncManager,
-       _hostManagerOverride = hostManager,
-       super(const OcptWorkspaceState.init()) {
-    add(const OcptWorkspaceLoadRequestedEvent());
-  }
-
-  /// [_syncManagerOverride], or the one `globalGetIt()` holds when there is an app-wide manager
+  /// Get [_syncManagerOverride], or the one `globalGetIt()` holds when there is an app-wide manager
   /// environment that actually registered one, or null otherwise.
   ///
   /// Unlike [_propertiesManager]/[_projectsManager], this is resolved lazily, on every access,
@@ -116,11 +115,12 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     return managers.isRegistered<OcptSyncManager>() ? managers.get<OcptSyncManager>() : null;
   }
 
-  /// [_hostManagerOverride], or the one `globalGetIt()` holds when an app-wide manager environment
+  /// Get [_hostManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// environment
   /// actually registered one, or null otherwise — resolved lazily on every access for exactly the
   /// reasons [_syncManager]'s own doc comment gives: every other mode's widget test builds a bare
-  /// [OcptWorkspaceBloc] with no reason to register a host manager, and [_maybeAutoStartHosting] and
-  /// [disposeLifeCycle] both simply do nothing when this is null.
+  /// [OcptWorkspaceBloc] with no reason to register a host manager, and [_maybeAutoStartHosting]
+  /// and [disposeLifeCycle] both simply do nothing when this is null.
   OcptRelayHostManager? get _hostManager {
     final override = _hostManagerOverride;
     if (override != null) {
@@ -131,14 +131,28 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     }
 
     final managers = globalGetIt();
-    return managers.isRegistered<OcptRelayHostManager>() ? managers.get<OcptRelayHostManager>() : null;
+    return managers.isRegistered<OcptRelayHostManager>()
+        ? managers.get<OcptRelayHostManager>()
+        : null;
   }
+
+  /// Class constructor
+  OcptWorkspaceBloc({
+    OcptPropertiesManager? propertiesManager,
+    OcptProjectsManager? projectsManager,
+    OcptSyncManager? syncManager,
+    OcptRelayHostManager? hostManager,
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+       _syncManagerOverride = syncManager,
+       _hostManagerOverride = hostManager,
+       super(const OcptWorkspaceState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptWorkspaceLoadRequestedEvent>(_onLoadRequested);
     on<OcptWorkspaceModeSelectedEvent>(_onModeSelected);
     on<OcptWorkspaceRevealRequestConsumedEvent>(_onRevealRequestConsumed);
     on<OcptWorkspaceEpisodeSelectedEvent>(_onEpisodeSelected);
@@ -149,6 +163,8 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     );
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
   /// Always starts the workspace on [OcptWorkspaceMode.screenplay] — a fresh [OcptWorkspaceBloc]
   /// is built every time a project opens (`workspace_page.dart`), so there is no "last mode" to
   /// resume, unlike switching between the project's own episodes, which leaves the active mode
@@ -157,27 +173,24 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// why it is never restored from anywhere instead). Once [_startSyncSessionIfPaired] has had its
   /// chance to start a presence service for a paired project, this replica's resolved mode is
   /// reported to it too, so a peer already on the project sees which mode this replica opened into.
-  Future<void> _onLoadRequested(
-    OcptWorkspaceLoadRequestedEvent event,
-    Emitter<OcptWorkspaceState> emitter,
-  ) async {
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptWorkspaceState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
     const mode = OcptWorkspaceMode.screenplay;
-    final episodes = await _loadEpisodes();
-    emitter(
-      state.copyWith(
-        isLoading: false,
-        mode: mode,
-        episodes: episodes,
-        selectedEpisodeId: episodes.isEmpty ? null : episodes.first.id,
-        clearSelectedEpisodeId: episodes.isEmpty,
-      ),
-    );
+    final episodesRead = await _loadEpisodes();
+    if (episodesRead.isError) {
+      return;
+    }
+
+    emit(state.copyToLoaded(mode: mode, episodes: episodesRead.value!));
 
     // Re-host first: a *fresh* host start's own self-seed has already started the sync session (and
-    // presence) against this machine's hosted relay, so the ordinary paired-project start is skipped
-    // rather than starting a second one over the same project. Re-opening a project that was
-    // *already* being hosted (its relay kept running across the trip to the home screen while its
-    // session was stopped with the closing database) does not self-seed again — there
+    // presence) against this machine's hosted relay, so the ordinary paired-project start is
+    // skipped rather than starting a second one over the same project. Re-opening a project that
+    // was *already* being hosted (its relay kept running across the trip to the home screen while
+    // its session was stopped with the closing database) does not self-seed again — there
     // [_maybeAutoStartHosting] reports "not freshly hosted", and the paired start below seeds a new
     // session against the local relay the project is paired to. After starting whichever session,
     // not before: `updatePresenceMode` does nothing while no presence service is running yet.
@@ -188,18 +201,19 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     _syncManager?.updatePresenceMode(mode);
   }
 
-  /// Re-hosts the open project when its own "host on launch" preference asks for it, returning
-  /// whether hosting was **freshly** started by this call — [OcptRelayHostManager.maybeAutoStartHosting]
-  /// itself no-ops on an unpaired project, an unset flag, or on mobile, and this additionally no-ops
-  /// when no host manager is registered (every mode's own widget test) or no project is open.
+  /// Re-host the open project when its own "host on launch" preference asks for it, returning
+  /// whether hosting was **freshly** started by this call —
+  /// [OcptRelayHostManager.maybeAutoStartHosting] itself no-ops on an unpaired project, an unset
+  /// flag, or on mobile, and this additionally no-ops when no host manager is registered (every
+  /// mode's own widget test) or no project is open.
   ///
   /// The return value is *fresh start*, not merely *now online*: only a fresh start's self-seed
-  /// starts the sync session against the hosted relay, which is why [_onLoadRequested] then skips
-  /// [_startSyncSessionIfPaired] for it. A project reopened while its relay was still up from before
-  /// is already online on entry and self-seeds nothing, so this returns false and lets the ordinary
-  /// paired start seed a session against the local relay. Any failure is swallowed for the very
-  /// reason [_startSyncSessionIfPaired]'s is: this bloc has nothing to report it to, and hosting
-  /// simply stays off, leaving the ordinary session start to take over.
+  /// starts the sync session against the hosted relay, which is why [initAsyncBloc] then skips
+  /// [_startSyncSessionIfPaired] for it. A project reopened while its relay was still up from
+  /// before is already online on entry and self-seeds nothing, so this returns false and lets the
+  /// ordinary paired start seed a session against the local relay. Any failure is swallowed for the
+  /// very reason [_startSyncSessionIfPaired]'s is: this bloc has nothing to report it to, and
+  /// hosting simply stays off, leaving the ordinary session start to take over.
   Future<bool> _maybeAutoStartHosting() async {
     final hostManager = _hostManager;
     final project = _projectsManager.currentProject;
@@ -208,6 +222,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     }
 
     final wasOnline = hostManager.state is OcptRelayHostOnline;
+    var isFreshStart = false;
     try {
       await hostManager.maybeAutoStartHosting(
         database: project.fileDatabase,
@@ -217,15 +232,19 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
         deviceId: await _propertiesManager.loadOrCreateDeviceId(),
       );
 
-      return !wasOnline && hostManager.state is OcptRelayHostOnline;
-    } catch (error) {
-      appLogger().w("Could not auto-start hosting for the open project: $error");
-
-      return false;
+      isFreshStart = !wasOnline && hostManager.state is OcptRelayHostOnline;
+    } catch (error, stackTrace) {
+      _logger.w(
+        "Could not auto-start hosting for the open project: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
     }
+
+    return isFreshStart;
   }
 
-  /// Starts the open project's own sync session when it is paired to a relay, and does nothing at
+  /// Start the open project's own sync session when it is paired to a relay, and do nothing at
   /// all otherwise — see this class's own doc comment for when this runs and why once is enough.
   ///
   /// A project counts as paired only when **both** halves of its pairing are still there (its own
@@ -244,87 +263,85 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     try {
       final database = project.fileDatabase;
       final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
-      if (row == null) {
-        return;
-      }
+      if (row != null) {
+        final pairing = await syncManager.pairingService.loadPairing(
+          database: database,
+          projectId: row.projectId,
+        );
 
-      final pairing = await syncManager.pairingService.loadPairing(
-        database: database,
-        projectId: row.projectId,
-      );
-      if (pairing == null) {
-        return;
+        if (pairing != null) {
+          final deviceId = await _propertiesManager.loadOrCreateDeviceId();
+          await syncManager.startSyncSession(
+            projectId: row.projectId,
+            database: database,
+            deviceId: deviceId,
+            relayId: OcptSyncManager.relayIdFor(pairing),
+            storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
+          );
+        }
       }
-
-      final deviceId = await _propertiesManager.loadOrCreateDeviceId();
-      await syncManager.startSyncSession(
-        projectId: row.projectId,
-        database: database,
-        deviceId: deviceId,
-        relayId: OcptSyncManager.relayIdFor(pairing),
-        storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
+    } catch (error, stackTrace) {
+      _logger.w(
+        "Could not start the sync session for the open project: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
-    } catch (error) {
-      appLogger().w("Could not start the sync session for the open project: $error");
     }
   }
 
-  /// Re-reads the open project's episodes after [OcptProjectsManager.currentProjectStream] emits
+  /// Re-read the open project's episodes after [OcptProjectsManager.currentProjectStream] emits
   /// (entering or leaving a project version preview swaps the database every mode reads through).
   ///
   /// The current selection is kept when it still names one of the freshly read episodes, and falls
-  /// back to the first one otherwise — the keyed remount (`WorkspacePage._buildActiveMode`) then
-  /// takes care of the mode itself, which is exactly right for a database that just changed under
-  /// it. A read failing here is swallowed rather than left to escape as an unhandled error, most
-  /// likely because the project closed while this was still queued.
+  /// back to the first one otherwise — the keyed remount (`OcptWorkspacePage._buildActiveMode`)
+  /// then takes care of the mode itself, which is exactly right for a database that just changed
+  /// under it. A read failing here is swallowed rather than left to escape as an unhandled error,
+  /// most likely because the project closed while this was still queued.
   Future<void> _onEpisodesReloadRequested(
     OcptWorkspaceEpisodesReloadRequestedEvent event,
     Emitter<OcptWorkspaceState> emitter,
   ) async {
-    try {
-      final episodes = await _loadEpisodes();
-      final currentSelection = state.selectedEpisodeId;
-      final stillLive = episodes.any((episode) => episode.id == currentSelection);
-      final selectedEpisodeId = stillLive
-          ? currentSelection
-          : (episodes.isEmpty ? null : episodes.first.id);
-
-      emitter(
-        state.copyWith(
-          episodes: episodes,
-          selectedEpisodeId: selectedEpisodeId,
-          clearSelectedEpisodeId: selectedEpisodeId == null,
-        ),
-      );
-    } catch (error) {
-      appLogger().w("A problem occurred when tried to reload the project's episodes, most likely "
-          "because the project already closed: $error");
+    final episodesRead = await _loadEpisodes();
+    if (episodesRead.isError) {
+      return;
     }
+
+    final episodes = episodesRead.value!;
+    final currentSelection = state.selectedEpisodeId;
+    final stillLive = episodes.any((episode) => episode.id == currentSelection);
+    final selectedEpisodeId = stillLive
+        ? currentSelection
+        : (episodes.isEmpty ? null : episodes.first.id);
+
+    emitter(
+      state.copyWithReloadedEpisodes(episodes: episodes, selectedEpisodeId: selectedEpisodeId),
+    );
   }
 
-  /// Applies the episode picked from the toolbar's episode selector. Nothing else about the state
+  /// Apply the episode picked from the toolbar's episode selector. Nothing else about the state
   /// changes, and nothing is persisted — see [OcptWorkspaceState.selectedEpisodeId]'s own doc
   /// comment.
   Future<void> _onEpisodeSelected(
     OcptWorkspaceEpisodeSelectedEvent event,
     Emitter<OcptWorkspaceState> emitter,
   ) async {
-    emitter(state.copyWith(selectedEpisodeId: event.episodeId));
+    emitter(state.copyWithSelectedEpisode(selectedEpisodeId: event.episodeId));
   }
 
-  /// The open project's live episodes, in `sortKey` order, or empty while no project is open.
-  Future<List<OcptEpisode>> _loadEpisodes() async {
+  /// Get the open project's live episodes, in `sortKey` order, or empty while no project is open.
+  @useResult
+  Future<OcptDatabaseResult<List<OcptEpisode>>> _loadEpisodes() async {
     final project = _projectsManager.currentProject;
     if (project == null) {
-      return const [];
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok, value: []);
     }
 
     return _projectsManager.screenplayService.loadEpisodes(database: project.database);
   }
 
-  /// Applies the mode selected from the bottom mode switcher, or by another mode sending the user
+  /// Apply the mode selected from the bottom mode switcher, or by another mode sending the user
   /// there. Not persisted: only a project switch resets the active mode, back to
-  /// [OcptWorkspaceMode.screenplay] (see [_onLoadRequested]); nothing here needs to remember what
+  /// [OcptWorkspaceMode.screenplay] (see [initAsyncBloc]); nothing here needs to remember what
   /// this switch picked.
   ///
   /// `event.revealRequest` is carried into the state untouched and never read here: what a mode
@@ -341,24 +358,23 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     Emitter<OcptWorkspaceState> emitter,
   ) async {
     emitter(
-      state.copyWith(
+      state.copyWithMode(
         mode: event.mode,
         revealRequest: event.revealRequest,
-        clearRevealRequest: event.revealRequest == null,
-        selectedEpisodeId: event.episodeId,
+        episodeId: event.episodeId,
       ),
     );
     _syncManager?.updatePresenceMode(event.mode);
   }
 
-  /// Clears the reveal request the mode that was just opened reports having taken into account.
+  /// Clear the reveal request the mode that was just opened reports having taken into account.
   ///
   /// Nothing is persisted here: a reveal is a one-shot handover between two modes of one session,
   /// not a preference. Only the mode itself is ever persisted.
   Future<void> _onRevealRequestConsumed(
     OcptWorkspaceRevealRequestConsumedEvent event,
     Emitter<OcptWorkspaceState> emitter,
-  ) async => emitter(state.copyWith(clearRevealRequest: true));
+  ) async => emitter(state.copyWithRevealRequestConsumed());
 
   /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override
@@ -368,16 +384,17 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     // whenever the workspace page is left for the home screen, so tying hosting to its dispose made
     // simply leaving and re-entering tear the relay down and rebind it on a fresh port — dropping
     // every connected peer. Hosting is owned by `OcptRelayHostManager` across the whole time a
-    // project is hosted, and stops through the hosting panel's own switch, a different project being
-    // hosted, or app shutdown (`OcptRelayHostManager.disposeLifeCycle`) — never on a navigation away.
+    // project is hosted, and stops through the hosting panel's own switch, a different project
+    // being hosted, or app shutdown (`OcptRelayHostManager.disposeLifeCycle`) — never on a
+    // navigation away.
     //
     // The sync session, though, is **always** stopped, even while hosting. This bloc is disposed
     // only when the open project itself is closed (the mode's back action runs
-    // `OcptProjectsManager.closeCurrentProject`, which closes the project's database), and a session
-    // reads and writes that database on every tick: one left running against it only throws "Can't
-    // re-open a database after closing it" every push interval. The relay keeps serving peers from
-    // its own store regardless, and re-opening the project seeds a fresh session against it
-    // ([_onLoadRequested]).
+    // `OcptProjectsManager.closeCurrentProject`, which closes the project's database), and a
+    // session reads and writes that database on every tick: one left running against it only throws
+    // "Can't re-open a database after closing it" every push interval. The relay keeps serving
+    // peers from its own store regardless, and re-opening the project seeds a fresh session against
+    // it ([initAsyncBloc]).
     await _syncManager?.stopSyncSession();
 
     return super.disposeLifeCycle();

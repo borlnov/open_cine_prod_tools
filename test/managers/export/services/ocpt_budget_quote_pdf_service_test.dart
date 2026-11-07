@@ -5,10 +5,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_quote_pdf_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
@@ -27,7 +28,7 @@ const _labels = OcptBudgetQuoteLabels(
   quantityHeader: "Qty",
   unitPriceHeader: "Unit price",
   lineTotalHeader: "Total",
-  posteSubtotalLabel: "Poste total",
+  accountSubtotalLabel: "Poste total",
   projectTotalLabel: "Grand total",
   includingTaxCaption: "Amounts include tax",
   excludingTaxCaption: "Amounts exclude tax",
@@ -40,7 +41,7 @@ const _labels = OcptBudgetQuoteLabels(
 /// Builds a quote line, every field left at a neutral value unless the test overrides it.
 OcptBudgetLine _buildLine({
   required String id,
-  required String posteId,
+  required String accountId,
   String label = "Line",
   int quantityMilli = 1000,
   String unit = "day",
@@ -51,7 +52,7 @@ OcptBudgetLine _buildLine({
   String? inKindResourceId,
 }) => OcptBudgetLine(
   id: id,
-  posteId: posteId,
+  accountId: accountId,
   label: label,
   quantityMilli: quantityMilli,
   unit: unit,
@@ -68,34 +69,48 @@ OcptBudgetLine _buildLine({
   sortKey: "a",
 );
 
-/// Builds a poste holding [lines].
-OcptBudgetPoste _buildPoste({
+/// Builds an account holding [lines].
+OcptBudgetAccount _buildAccount({
   required String id,
   String code = "1",
   String label = "Rights",
   List<OcptBudgetLine> lines = const [],
-}) => OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a", lines: lines);
+}) => OcptBudgetAccount(
+  id: id,
+  code: code,
+  label: label,
+  simpleLabel: null,
+  estimateToCompleteCents: null,
+  sortKey: "a",
+  lines: lines,
+);
 
+/// Run the tests of [OcptBudgetQuotePdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final service = OcptBudgetQuotePdfService();
+  final service = OcptBudgetQuotePdfService(logger: const SilentLogger());
   const pageSetup = OcptPageSetup.standard();
 
-  OcptBudgetSnapshot buildSnapshot({List<OcptBudgetPoste> postes = const [], int? defaultVatRateBasisPoints}) =>
-      OcptBudgetSnapshot.build(
-        postes: postes,
-        entries: const [],
-        commitments: const [],
-        defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-        currencyCode: "EUR",
-      );
+  OcptBudgetSnapshot buildSnapshot({
+    List<OcptBudgetAccount> accounts = const [],
+    int? defaultVatRateBasisPoints,
+  }) => OcptBudgetSnapshot.build(
+    accounts: accounts,
+    entries: const [],
+    commitments: const [],
+    defaultVatRateBasisPoints: defaultVatRateBasisPoints,
+    currencyCode: "EUR",
+  );
 
   group("generate", () {
     test("produces bytes starting with the %PDF magic string", () async {
       final snapshot = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
       );
 
@@ -115,8 +130,11 @@ void main() {
 
     test("the title page is one page of its own, and toggling it off drops it", () async {
       final snapshot = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
       );
 
@@ -151,12 +169,10 @@ void main() {
 
     test("reading the same quote in the two tax bases prints two different documents", () async {
       final snapshot = buildSnapshot(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [
-              _buildLine(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000),
-            ],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1", vatRateBasisPoints: 2000)],
           ),
         ],
       );
@@ -181,16 +197,19 @@ void main() {
       "a line minted from a breakdown element prints its own name differently from a plain line",
       () async {
         final withElement = buildSnapshot(
-          postes: [
-            _buildPoste(
+          accounts: [
+            _buildAccount(
               id: "poste-1",
-              lines: [_buildLine(id: "line-1", posteId: "poste-1", elementId: "element-1")],
+              lines: [_buildLine(id: "line-1", accountId: "poste-1", elementId: "element-1")],
             ),
           ],
         );
         final withoutElement = buildSnapshot(
-          postes: [
-            _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+          accounts: [
+            _buildAccount(
+              id: "poste-1",
+              lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+            ),
           ],
         );
 
@@ -211,48 +230,48 @@ void main() {
       },
     );
 
-    test(
-      "a counterpart line prints differently from an otherwise identical plain line, flagged "
-      "in kind",
-      () async {
-        // Same figures throughout — only `inKindResourceId` differs — so the very fact the two
-        // documents diverge at all is the marker doing its work: nothing here asserts on the
-        // printed text itself (see this file's own top-level doc comment on `_labels`), a
-        // counterpart line is never meant to change any amount it prints.
-        final withCounterpart = buildSnapshot(
-          postes: [
-            _buildPoste(
-              id: "poste-1",
-              lines: [_buildLine(id: "line-1", posteId: "poste-1", inKindResourceId: "resource-1")],
-            ),
-          ],
-        );
-        final plain = buildSnapshot(
-          postes: [
-            _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
-          ],
-        );
+    test("a counterpart line prints differently from an otherwise identical plain line, flagged "
+        "in kind", () async {
+      // Same figures throughout — only `inKindResourceId` differs — so the very fact the two
+      // documents diverge at all is the marker doing its work: nothing here asserts on the
+      // printed text itself (see this file's own top-level doc comment on `_labels`), a
+      // counterpart line is never meant to change any amount it prints.
+      final withCounterpart = buildSnapshot(
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1", inKindResourceId: "resource-1")],
+          ),
+        ],
+      );
+      final plain = buildSnapshot(
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
+        ],
+      );
 
-        Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
-          snapshot: snapshot,
-          elementNameById: const {},
-          pageSetup: pageSetup,
-          taxBasis: OcptBudgetTaxBasis.includingTax,
-          labels: _labels,
-          projectName: "My Movie",
-          includeTitlePage: false,
-        );
+      Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
+        snapshot: snapshot,
+        elementNameById: const {},
+        pageSetup: pageSetup,
+        taxBasis: OcptBudgetTaxBasis.includingTax,
+        labels: _labels,
+        projectName: "My Movie",
+        includeTitlePage: false,
+      );
 
-        expect(
-          _contentStreams(await generateFor(withCounterpart)),
-          isNot(_contentStreams(await generateFor(plain))),
-        );
-      },
-    );
+      expect(
+        _contentStreams(await generateFor(withCounterpart)),
+        isNot(_contentStreams(await generateFor(plain))),
+      );
+    });
 
     test("a poste holding no line at all still prints, with its own subtotal of zero", () async {
       final bytes = await service.generate(
-        snapshot: buildSnapshot(postes: [_buildPoste(id: "poste-1")]),
+        snapshot: buildSnapshot(accounts: [_buildAccount(id: "poste-1")]),
         elementNameById: const {},
         pageSetup: pageSetup,
         taxBasis: OcptBudgetTaxBasis.includingTax,
@@ -268,7 +287,10 @@ void main() {
 
   group("quoteFileName", () {
     test("joins the project name and the localized suffix", () {
-      expect(service.quoteFileName(projectName: "My Movie", suffix: "quote"), "My Movie - quote.pdf");
+      expect(
+        service.quoteFileName(projectName: "My Movie", suffix: "quote"),
+        "My Movie - quote.pdf",
+      );
     });
 
     test("a blank suffix falls back to the project name alone", () {
@@ -284,8 +306,8 @@ int _pageCount(Uint8List bytes) {
   return RegExp(r"/Type\s*/Page[^s]").allMatches(text).length;
 }
 
-/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order —
-/// mirroring `ocpt_day_out_of_days_pdf_service_test.dart`'s own `_contentStreams`.
+/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order
+/// — mirroring `ocpt_day_out_of_days_pdf_service_test.dart`'s own `_contentStreams`.
 List<String> _contentStreams(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);
   final pattern = RegExp(r"stream\r?\n(.*?)endstream", dotAll: true);

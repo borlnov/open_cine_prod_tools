@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_type_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The shot inspector's "Scenario coverage" section: a **read-only** list of the extracts the
 /// selected shot covers, one entry per range, in the order they read in the sequence.
@@ -56,6 +56,7 @@ class OcptShotCoverageSummary extends StatelessWidget {
     required this.onClearAll,
   });
 
+  /// Build the shot coverage summary as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -70,6 +71,10 @@ class OcptShotCoverageSummary extends StatelessWidget {
     }
 
     final ranges = layout.rangesInReadingOrder(ownRanges);
+    final wordsCovered = tr.shotListCoverageWordsCovered(
+      layout.countCoveredWords(ownRanges),
+      _totalWordCount(layout),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,20 +105,22 @@ class OcptShotCoverageSummary extends StatelessWidget {
             ),
         const SizedBox(height: 4),
         Text(
-          "${tr.shotListCoverageWordsCovered(layout.countCoveredWords(ownRanges), _totalWordCount(layout))}"
-          " · ${tr.shotListCoverageRangesCount(ranges.length)}",
+          "$wordsCovered · ${tr.shotListCoverageRangesCount(ranges.length)}",
           style: theme.textTheme.bodySmall,
         ),
         if (ranges.isNotEmpty && onClearAll != null)
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton(onPressed: onClearAll, child: Text(tr.shotListCoverageClearAllAction)),
+            child: TextButton(
+              onPressed: onClearAll,
+              child: Text(tr.shotListCoverageClearAllAction),
+            ),
           ),
       ],
     );
   }
 
-  /// The total number of words across every block of [layout], the denominator of the footer's
+  /// Get the total number of words across every block of [layout], the denominator of the footer's
   /// `N words covered of M` counter.
   int _totalWordCount(OcptScriptWordLayout layout) =>
       layout.blocks.fold(0, (total, block) => total + block.words.length);
@@ -144,6 +151,7 @@ class _OcptShotCoverageExtract extends StatelessWidget {
     required this.isModified,
   });
 
+  /// Build the shot coverage extract as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -169,10 +177,7 @@ class _OcptShotCoverageExtract extends StatelessWidget {
                   ),
                 ),
               ),
-              if (isModified) ...[
-                const SizedBox(width: 6),
-                const _OcptShotCoverageModifiedBadge(),
-              ],
+              if (isModified) ...[const SizedBox(width: 6), const _OcptShotCoverageModifiedBadge()],
             ],
           ),
           const SizedBox(height: 2),
@@ -184,7 +189,7 @@ class _OcptShotCoverageExtract extends StatelessWidget {
             Text(
               tr.shotListCoverageAlsoCoveredBy(otherCodes.join(" · ")),
               style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: ocptMonospaceFontFamily,
+                fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
@@ -193,7 +198,7 @@ class _OcptShotCoverageExtract extends StatelessWidget {
     );
   }
 
-  /// The label of the blocks [range] runs through, in reading order, as `ACTION → DIALOGUE`.
+  /// Get the label of the blocks [range] runs through, in reading order, as `ACTION → DIALOGUE`.
   ///
   /// Two consecutive blocks of the same type are named once: a range covering three lines of one
   /// action paragraph reads `ACTION`, not `ACTION → ACTION → ACTION`.
@@ -209,7 +214,7 @@ class _OcptShotCoverageExtract extends StatelessWidget {
     return labels.join(" → ");
   }
 
-  /// Whether [other] overlaps the quoted [range] at all: what decides whether the shot owning
+  /// Tell whether [other] overlaps the quoted [range] at all: what decides whether the shot owning
   /// [other] is named under this extract.
   bool _overlapsRange(OcptShotCoverageRange other) =>
       other.startOffset < range.endOffset && other.endOffset > range.startOffset;
@@ -221,6 +226,7 @@ class _OcptShotCoverageModifiedBadge extends StatelessWidget {
   /// Class constructor
   const _OcptShotCoverageModifiedBadge();
 
+  /// Build the shot coverage modified badge as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -230,8 +236,8 @@ class _OcptShotCoverageModifiedBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Text(
         tr.shotListCoverageModifiedBadge,

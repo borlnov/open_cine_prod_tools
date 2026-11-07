@@ -5,6 +5,7 @@
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of [OcptLamportStamp].
 void main() {
   group('OcptLamportStamp', () {
     test('a higher version wins over a lower one', () {

@@ -128,8 +128,9 @@ model, the title page, the spell-checking, the docks and the syntax guide.
 - Undo and redo: **one undo step is one gesture of the writer's, plus everything the editor derived
   from it** — a keystroke run, an Enter, a Tab, a dropdown pick, a paste or a replace, together with
   the reclassification, the uppercasing, the `#N#` renumbering and the metadata the editor computed
-  *because* of it. Never the derived half alone. `Editor` runs with `isHistoryEnabled: true` and
-  `OcptSettleMergePolicy` (`ocpt_fountain_history_policy.dart`) as its `historyGroupingPolicy`:
+  *because* of it. Never the derived half alone. `Editor` (built by `ocptStyledEditorFor`,
+  `ocpt_styled_editor_builder.dart`) runs with `isHistoryEnabled: true` and `OcptSettleMergePolicy`
+  (`ocpt_settle_merge_policy.dart`) as its `historyGroupingPolicy`:
   every derived pass goes through `runDerivedPass`, which merges the transactions it closes onto the
   gesture's own — without it, Ctrl+Z pops the derived transaction, the 120 ms debounce restarts, the
   pass re-derives exactly what was undone and pushes it back forever, which is a manual Tab that
@@ -167,16 +168,17 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   and the block type as a submenu; the clipboard entries call the very helpers the Ctrl+C/X/V
   handlers do, and the submenu the same `applyBlockType` the toolbar dropdown does, so no gesture
   can behave differently from its keyboard or toolbar twin. The list of assignable types lives once,
-  as `ocptAssignableFountainLineTypes` (`lib/ui/utils/ocpt_fountain_line_type_labels.dart`). An
-  entry with nothing to act on is **withheld, not disabled** (a null callback), which is what hides
-  Cut/Copy over a collapsed caret. The secondary tap resolves the document position under the
-  pointer and places the caret there, unless it lands inside an expanded selection, which it never
-  destroys. A left click landing back on the document closes the menu, which a `MenuAnchor` does not
-  do on its own: its anchor child — the whole editing surface here — belongs to the same `TapRegion`
-  group as the menu, so a `Listener` above the gesture detector watches for the primary button and
-  closes it, observing the click rather than competing for it. Nothing is withheld for a read-only
-  preview: the styled editor is not mounted under one
-  at all, `editor_page.dart` substituting the read-only preview for both editing modes.
+  as `ocptAssignableFountainLineTypes`
+  (`lib/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart`). An entry with nothing to act on is
+  **withheld, not disabled** (a null callback), which is what hides Cut/Copy over a collapsed caret.
+  The secondary tap resolves the document position under the pointer and places the caret there,
+  unless it lands inside an expanded selection, which it never destroys. A left click landing back
+  on the document closes the menu, which a `MenuAnchor` does not do on its own: its anchor child —
+  the whole editing surface here — belongs to the same `TapRegion` group as the menu, so a
+  `Listener` above the gesture detector watches for the primary button and closes it, observing the
+  click rather than competing for it. Nothing is withheld for a read-only preview: the styled editor
+  is not mounted under one at all, `OcptEditorCentre` substituting the read-only preview for both
+  editing modes.
 
 - Scene numbers: a heading's `#N#` is a first-class WYSIWYG field
   (`ocptSceneNumberMetadataKey`), kept in sync with the display text by
@@ -209,9 +211,9 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   **script** page number.
 
 - Page numbers: every simulated sheet carries the number the printed screenplay would show on it,
-  painted by the same `_OcptPageSheetsPainter` that paints the sheets themselves and gated on page
+  painted by the same `OcptPageSheetsPainter` that paints the sheets themselves and gated on page
   simulation (there is nothing to number on the fluid surface). The rule itself lives once, in
-  `lib/utils/ocpt_script_page_number.dart`: `N.` at the top right,
+  `lib/models/rules/ocpt_script_page_number.dart`: `N.` at the top right,
   `ocptScriptPageNumberTopInches` (0.5") below the sheet's top edge whatever the configured margin,
   the title page never counted and the first script page never numbered. `OcptScriptPagePainter`
   prints that same rule on paper — a number on screen disagreeing with the number on the PDF would
@@ -267,6 +269,48 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   count one visual line further short; the count remains only as the fallback for a field not laid
   out yet.
 
+- **The screenplay mode is one mode bloc and four function blocs** (ADR 0034;
+  `lib/ui/pages/workspace/blocs/` holds the machinery, `foundations.md` the recipe). Styled and raw
+  are two renderings of one text, not two views, so the cut is by function, and each satellite
+  extends `AbsOcptViewBloc` and is built with the mode (`OcptEditorPage`'s `MultiBlocProvider`,
+  `lazy: false`):
+  - `OcptEditorBloc`, the mode bloc, owns **the text, which is the source of truth**: the typed text
+    and its dirty flag, the parse, autosave and save (a failed save raises the transient error once,
+    keeps the text dirty, and the next save works), the parsed document, the caret line, the title
+    page, the docks, the editing mode, the page setup and the two display switches the other blocs
+    read (`isSpellCheckVisible`, `screenplayLanguage`). It mixes in `MixinOcptModeBloc`:
+    `flushAllPendingWrites` saves a dirty text tagged `manual`, answers true whatever happened (a
+    failed save is shown by the mode and the action behind the flush goes ahead on the stored text,
+    as it always did), and `flushPendingProjectWrites` is the same call. `reloadEpoch` moves on a
+    whole load, on a text replaced by an action (an import, a title page rewrite) and on a page
+    setup change, with `reloadCause` saying which; `selectionEpoch` moves on a scene jump request.
+    Typing moves neither.
+  - `OcptEditorSpellCheckBloc` owns the underlines of both surfaces, the two caches and their keys
+    (`OcptEditorSpellCheckCaches`, mutable on purpose, carried by every copy of the state and left
+    out of its `props`: a cache is filled by the very answer that emits the ranges, so comparing it
+    would make a state differ from itself), the learned words and the suggestions. It reads the
+    document, the mode, the two switches and the preview flag off the mode's state when it runs.
+    A whole load drops the caches and every underline and pushes the project's learned words; a
+    new document or raw becoming the mounted mode requests a raw pass; a switch or language change
+    drives the dictionary. Opening straight in styled mode underlines nothing until the first
+    edit, and opening the styled editor renumbers the headings and autosaves: both are pinned.
+  - `OcptEditorSearchBloc` owns `OcptEditorSearchState`, which is why a search survives a mode
+    switch. It reads nothing of the mode: each surface counts what it shows and reports the count.
+  - `OcptEditorIoBloc` owns the notice of the `.fountain` and PDF exports and of the import. An
+    export asks the mode to save a dirty text tagged `export` first (`addToModeAndWait`), then
+    reads the text the mode holds. An import has the mode save the typed text first, so the
+    snapshot of the replaced screenplay holds it, writes the imported text, and has the mode show
+    it (`OcptEditorImportedTextAppliedEvent`, which moves `reloadEpoch` with `textReplaced`).
+  - `OcptEditorStatisticsBloc` owns the counters. A new document refreshes the scene's counters
+    and restarts its own 500 ms debounce, after the parse debounce that produced it; a reload of
+    any cause recomputes both at once; the caret changing scene refreshes the scene's counters.
+  The page watches only what it shows: the find bar slot rebuilds on the search state, the status
+  bar and the two dock panels on the counters, so a keystroke rebuilds what it rebuilt before and
+  no more, and the editing surfaces' controllers and the caret are never recreated. The page's
+  controller wiring is split the same way: `OcptEditorSearchSync` (what each surface highlights
+  and replaces), `OcptEditorRawScroller` (a jump or a match in the raw field) and
+  `OcptEditorDialogFlows` (every dialog the page opens, `OcptConfirmDialog` included).
+
 - Find and replace: one search, over **the episode the workspace has selected**, in both editing
   modes. `Ctrl+F` opens the bar on find, `Ctrl+H` on replace, `Escape` closes it — page-level
   `Shortcuts` in `editor_page.dart`, beside `Ctrl+S`/`Ctrl+Shift+M`, none of the three claimed by
@@ -277,7 +321,7 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   `OcptEditorFindBar`
   (`lib/ui/pages/editor/widgets/`) is a docked band at the top of the **centre column only**, two
   stacked rows whose replace row folds behind a chevron, the match-case and whole-word toggles
-  living inside the find field itself. The search *state* is `OcptEditorSearchState`, in the bloc,
+  living inside the find field itself. The search *state* is `OcptEditorSearchState`, in `OcptEditorSearchBloc`,
   which is what makes it survive a raw ⇄ styled toggle; the bar and both surfaces only ever report
   into it.
 - **Each mode matches what it shows**, and the counter says so: raw mode searches the Fountain
@@ -287,8 +331,8 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   can therefore differ for a query holding markup, which is the rule rather than a defect. The bloc
   holds the query, the two options and the current index; the **count is reported up by whichever
   surface is mounted**, which is what keeps `Replace all` consistent with the number the bar just
-  showed. The matcher itself is `ocptFindTextMatches` (`lib/utils/ocpt_text_search.dart`), shared by
-  both: literal — a query is never compiled into a `RegExp`, since `(`, `.` and `*` are ordinary
+  showed. The matcher itself is `ocptFindTextMatches` (`lib/models/rules/ocpt_text_search.dart`),
+  shared by both: literal — a query is never compiled into a `RegExp`, since `(`, `.` and `*` are ordinary
   characters to a screenwriter — and its whole-word test counts accented letters as word characters,
   a screenplay being written in French too.
 - The highlight is painted by each surface in its own way, from the same two fixed colours
@@ -330,7 +374,7 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   unloaded, and nothing is painted; a **read-only preview** checks nothing either, there being no
   editing surface to correct.
 - What is checked is the screenplay's **prose and nothing else**, decided once in
-  `lib/utils/ocpt_spell_checked_lines.dart`: `ocptIsSpellCheckedLineType` returns true for action,
+  `lib/models/rules/ocpt_spell_checked_lines.dart`: `ocptIsSpellCheckedLineType` returns true for action,
   dialogue, parenthetical and centered text, and false for scene headings (a set name in capitals),
   character cues (a writer's invented names are exactly what a dictionary does not have),
   transitions (a fixed vocabulary that is not the language's), sections, synopses and lyrics. Title
@@ -408,7 +452,8 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   field, duration is derived at the call site on the one-page-per-minute convention).
   `OcptEditorMetadataPanel` shows the title-page fields and the script-wide statistics, read-only,
   with an "Edit…" button opening the existing title-page dialog through `OcptRouterManager`. Both
-  are recomputed on the editor's existing 150 ms parse debounce, never per keystroke.
+  are recomputed on the editor's existing 150 ms parse debounce, never per keystroke (the
+  statistics bloc, after the mode's parse).
 
 - The Fountain syntax guide (`OcptEditorSyntaxGuidePanel`) renders the `const`
   `ocptFountainSyntaxEntries` table (`lib/models/ocpt_fountain_syntax_entry.dart`, one entry per

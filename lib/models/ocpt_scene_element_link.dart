@@ -35,7 +35,7 @@ class OcptSceneElementLink extends Equatable {
     required this.notes,
   });
 
-  /// Builds an [OcptSceneElementLink] from its stored [row].
+  /// Build an [OcptSceneElementLink] from its stored [row].
   factory OcptSceneElementLink.fromRow(OcptSceneElementRow row) => OcptSceneElementLink(
     id: row.id,
     sceneId: row.sceneId,
@@ -43,11 +43,11 @@ class OcptSceneElementLink extends Equatable {
     notes: row.notes,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptSceneElementLink(id: $id, sceneId: $sceneId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, sceneId, quantity, notes];
 }

@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_character_chips.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_difficulty_rating.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_status_pill.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 
 /// The fixed width every leader card of the board takes, wide enough for a read-out value beside
 /// its label without wrapping onto a third line.
@@ -36,6 +36,7 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
   /// Class constructor
   const OcptStoryboardShotLeaderCard({super.key, required this.shot, required this.attachedRoles});
 
+  /// Build the storyboard shot leader card as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -46,7 +47,7 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
@@ -58,7 +59,7 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
               Text(
                 shot.code,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  fontFamily: ocptMonospaceFontFamily,
+                  fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -67,11 +68,14 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          _readOut(context, tr.shotListColumnShotSize, ocptShotFieldOrDash(shot.shotSize)),
-          _readOut(context, tr.shotListColumnFraming, ocptShotFieldOrDash(shot.framing)),
-          _readOut(context, tr.shotListColumnCameraMove, ocptShotFieldOrDash(shot.cameraMove)),
-          _readOut(context, tr.shotListColumnLens, ocptShotFieldOrDash(shot.lens)),
-          _readOut(context, tr.shotListColumnFormat, ocptShotFieldOrDash(shot.recordingFormat)),
+          _ReadOut(label: tr.shotListColumnShotSize, value: ocptShotFieldOrDash(shot.shotSize)),
+          _ReadOut(label: tr.shotListColumnFraming, value: ocptShotFieldOrDash(shot.framing)),
+          _ReadOut(label: tr.shotListColumnCameraMove, value: ocptShotFieldOrDash(shot.cameraMove)),
+          _ReadOut(label: tr.shotListColumnLens, value: ocptShotFieldOrDash(shot.lens)),
+          _ReadOut(
+            label: tr.shotListColumnFormat,
+            value: ocptShotFieldOrDash(shot.recordingFormat),
+          ),
           if (attachedRoles.isNotEmpty) ...[
             const SizedBox(height: 8),
             OcptShotCharacterChips(
@@ -106,9 +110,22 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// One `label — value` line of the card's découpage read-out.
-  Widget _readOut(BuildContext context, String label, String value) {
+/// One `label — value` line of the card's découpage read-out.
+class _ReadOut extends StatelessWidget {
+  /// The line's label.
+  final String label;
+
+  /// The line's value.
+  final String value;
+
+  /// Class constructor
+  const _ReadOut({required this.label, required this.value});
+
+  /// Build the read-out as a [Padding].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Padding(
@@ -120,12 +137,12 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
             width: 64,
             child: Text(
               label,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-          Expanded(
-            child: Text(value, style: theme.textTheme.bodySmall, softWrap: true),
-          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodySmall, softWrap: true)),
         ],
       ),
     );

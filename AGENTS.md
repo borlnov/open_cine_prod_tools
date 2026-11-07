@@ -85,8 +85,7 @@ floor plan per Resources set across its three scopes, and their two documents,
 
 What is still ahead, in priority order:
 
-- The M2–M6 end-user collaboration guide, in `docs-site/`
-  (`docs/plans/collaboration-user-guide.md`).
+- The end-user collaboration guide, in `docs-site/`.
 - After that: call sheets beyond what the schedule mode already prints, then
   script supervisor reports.
 
@@ -96,16 +95,18 @@ no file any more.
 ## Ways of working
 
 - The maintainer communicates in French; **all code, comments, commits, branches and GitHub
-  content are in English**.
-- Work happens on an issue-named branch (`<issue-number>-<slug>`), merged into `main` through a
-  pull request.
+  content are in English**. A plan is the one exception (see below).
+- Work happens on an issue-named branch (`<issue-number>-<slug>`, or `release-x.y.z` for a release),
+  merged into `main` through a pull request.
 - A session that needs a checkout of its own puts it under `worktrees/`
   (`git worktree add worktrees/<name> -b <branch>`), never in the `.claude/worktrees/` directory
   Claude Code's own worktree feature defaults to: create it with git first, then enter it by path.
   A fresh worktree is not usable until the bring-up in `worktrees/README.md` has run.
-- A plan in `docs/plans/` describes work not yet done. Once its step ships and its outcome is
-  folded into `docs/architecture/`, the plan is deleted — the code, that directory and the ADRs
-  are the record from then on.
+- A plan is **written in French and never committed**: `docs/plans/` is git-ignored. It describes
+  work not yet done, and once that work ships and its outcome is folded into `docs/architecture/`,
+  the plan is deleted — the code, that directory and the ADRs are the record from then on, in
+  English. An ignored plan does not follow a checkout: a fresh `worktrees/<name>` does not contain
+  it, so a delegated agent has to be given its absolute path.
 - Model tiers: the orchestrating (main) session — the one that discusses, plans, tests, debugs
   and reviews — runs on **Opus 4.8** (not Opus 5, which is weaker here; delete this parenthesis
   once a newer Opus supersedes 4.8). It is the **default planner**; implementation is delegated to
@@ -173,14 +174,14 @@ file in `docs/architecture/` says what the code does because of it.
 
 | Read this | Before touching |
 | --- | --- |
-| [`foundations.md`](docs/architecture/foundations.md) | the managers, the routing, the workspace shell, the theme, the packaging, the drift schema, the project versions, the sync-ready data model, the binary assets, the spell-check manager, the project dictionary, the read-only preview, the portable project package, opening a project file from another build |
+| [`foundations.md`](docs/architecture/foundations.md) | the managers, the routing, the BLoC pattern and the mode and view blocs (`lib/ui/pages/workspace/blocs/`), the workspace shell, the theme, the packaging, the drift schema, the project versions, the sync-ready data model, the binary assets, the spell-check manager, the project dictionary, the read-only preview, the portable project package, opening a project file from another build |
 | [`screenplay.md`](docs/architecture/screenplay.md) | `packages/fountain_kit/`, `packages/spell_kit/`, `lib/ui/pages/editor/` |
 | [`exports.md`](docs/architecture/exports.md) | `lib/managers/export/`, the export panel |
 | [`resources.md`](docs/architecture/resources.md) | `lib/ui/pages/workspace/modes/resources/` |
 | [`breakdown.md`](docs/architecture/breakdown.md) | `lib/ui/pages/workspace/modes/breakdown/` |
-| [`shot-list.md`](docs/architecture/shot-list.md) | `lib/ui/pages/workspace/modes/shot_list/`, `lib/utils/ocpt_floor_plan_*.dart`, `lib/utils/ocpt_storyboard_*.dart` |
+| [`shot-list.md`](docs/architecture/shot-list.md) | `lib/ui/pages/workspace/modes/shot_list/`, `lib/models/rules/ocpt_floor_plan_*.dart`, `lib/models/rules/ocpt_storyboard_*.dart` |
 | [`schedule.md`](docs/architecture/schedule.md) | `lib/ui/pages/workspace/modes/schedule/` |
-| [`budget.md`](docs/architecture/budget.md) | `lib/ui/pages/workspace/modes/budget/`, `lib/utils/ocpt_budget_*.dart` |
+| [`budget.md`](docs/architecture/budget.md) | `lib/ui/pages/workspace/modes/budget/`, `lib/models/rules/ocpt_budget_*.dart` |
 | [`sync.md`](docs/architecture/sync.md) | `packages/ocpt_sync_protocol/`, `packages/ocpt_sync_relay/`, `lib/managers/sync/`, `lib/ui/pages/sharing/`, `lib/ui/pages/joining/`, the sync status indicator |
 
 What follows is the short list of rules that hold **everywhere**, and that a file in
@@ -191,28 +192,43 @@ What follows is the short list of rules that hold **everywhere**, and that a fil
 - Managers are `AbsWithLifeCycle` classes owned by `OcptGlobalManager extends AbsUiGlobalManager`,
   registered with builder factories (`dependsOn` ordering) and resolved via `globalGetIt()`.
 - BLoC: the ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
-  `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files. A
-  production mode owns its own bloc; the workspace shell is a stateless slot widget and knows
-  nothing about a mode's content.
+  `registerMixinEvents()` / `on<>`), pages split UI/bloc/state/event files. A page owns one bloc; a
+  **production mode owns a mode bloc and one bloc per view** (ADR 0034; all six modes are
+  split: the shot list, the schedule, the resources, the breakdown, the budget and the screenplay
+  editor). A *view* is a
+  surface with its own selection or its own writes: a central view, a dock tab, a group of the
+  inspector, the export panel, a function that cuts across views; a rendering of the same data with
+  neither has no bloc. The mode bloc holds the mode's data, its shared selection, its chrome and
+  the two project mixins (`MixinOcptModeBloc`); a view bloc (`AbsOcptViewBloc`) takes it as a
+  constructor dependency, reads its state, reacts to its `reloadEpoch`/`selectionEpoch`, writes
+  through a service then `await modeBloc.reload(…)`, and registers a flusher for what it holds in a
+  debounce. A view bloc never references a sibling and the mode bloc never references a view bloc.
+  The workspace shell is a stateless slot widget and knows nothing about a mode's content. The
+  recipe and the rules are in `docs/architecture/foundations.md`.
 - **No service ever deletes a synchronised row** (ADR 0010): every synchronised table carries
   `isDeleted`, a "delete" is an update to it, and every read filters tombstones back out. The two
   local tables — `project_versions` and `local_erasures` — are the only exceptions.
-- Ordering is `sortKey`, a fractional index (`lib/utils/ocpt_fractional_key.dart`), so a move
-  writes exactly one row. The legacy `position` column is never renumbered and nothing reads it.
+- Ordering is `sortKey`, a fractional index (`lib/models/rules/ocpt_fractional_key.dart`), so a move
+  writes exactly one row. On a table that has a `sortKey`, the legacy `position` column is never
+  renumbered and nothing reads it. `scenes.position` is the exception: it is the scene's index in the
+  screenplay, rewritten at every index and sorted on by several services.
 - A schema number is allocated **at merge time, not at branch time** (ADR 0007), and a new
   synchronised table has to reach `OcptProjectVersionCodec`'s payload, its `contentDigest` and its
-  `_applyPayload` together.
+  `OcptProjectVersionsRestoreOps.applyPayload` together (its `hydratePreview` sits in the same
+  file).
 - **An irreversible action is always confirmed by `OcptConfirmDialog`**, opened by the page or the
   mode: a widget only ever asks, through a nullable `on…Requested` callback.
 - Under a **read-only preview**, an affordance that writes is **withheld, not disabled** — widgets
   express it as a null callback, composite panels take an `isReadOnly` flag.
 - **No manager or service ever sees a `Tr`**: a mode resolves every word and hands it in as a
   labels object or as plain strings. Every user-visible string in the UI goes through
-  `Tr.of(context)`.
+  `Tr.of(context)`. Two files under `lib/managers/` break it on purpose: `ocpt_routes_helper.dart`
+  reads the app title for the licenses page, and `ocpt_global_manager.dart` hands the locales
+  manager `Tr.delegate.supportedLocales`.
 - Every export is reached from the toolbar's own `Export` control and writes through a native save
   dialog — no export ever writes to a default location silently.
 - Layering: `packages/fountain_kit` stays free of Flutter imports, a `lib/models/` file may not
-  import the manager layer, and a pure rule both layers read belongs in `lib/utils/`.
+  import the manager layer, and a pure rule both layers read belongs in `lib/models/rules/`.
 - **Before reaching for a pub.dev package, look in `actlibs/` first.** The app is built on the ACT
   packages, and several needs are already met there — secure storage is
   `act_local_storage_manager`'s `AbstractSecretsManager`, not `flutter_secure_storage` used
@@ -225,21 +241,143 @@ What follows is the short list of rules that hold **everywhere**, and that a fil
   is not a preference to honour. Check the CI build matrix, not just `pub get`, before trusting one.
 - A photo or a signed document is **referenced by path, never embedded** (ADR 0013); a missing file
   is a normal state, not an error.
-- Generated code (`**/*.g.dart`, `lib/generated/`) is git-ignored and regenerated by CI; never edit
-  it, and never touch the `actlibs/` submodule.
+- Generated code (everything under `lib/generated/`, drift's `.g.dart` included) is git-ignored and
+  regenerated by CI; never edit it, and never edit the `actlibs/` submodule in place: moving its
+  pinned revision is the only change this repository makes to it.
 
 ## Coding standards
 
-Follow the ACT company guidelines (read them when in doubt):
+Follow the public ACT coding standards (read them when in doubt), starting from
+[how they combine](https://github.com/All-Circuits-Technologies/ACT-Contributing/blob/master/software/coding-standards.md):
 
-- `~/projects/desvac-needleless-apps/bg-dev/docs/flutter-coding-guidelines.md` (RD/RFL rules)
-- `~/projects/desvac-needleless-apps/bg-dev/docs/coding-guidelines.md` (durability rules)
-- `~/projects/desvac-needleless-apps/bg-dev/docs/flutter-project-setup.md` (project setup/l10n)
+- [Global standards](https://github.com/All-Circuits-Technologies/ACT-Contributing/blob/master/software/coding-standards-global.md)
+  (`RG` rules), for every change.
+- [Flutter standards](https://github.com/All-Circuits-Technologies/ACT-Contributing/blob/master/software/coding-standards-flutter.md)
+  (`RD` and `RFL` rules), for Dart and Flutter code.
+
+A project rule overrides these. The overrides this project has made:
+
+- **RG1, RG2, RG3:** they bind the Dart and the shell scripts. In Dart, `import`, `export` and
+  `part` lines, a URL alone in a comment, a doc `{@template}` line and the Fountain text of the demo
+  screenplay in `test/seed_demo_project_data.dart` may run past 100 characters, since none of them
+  can be broken; `test/line_length_test.dart` reads Dart only and fails on any other. Dart is
+  indented with 2 spaces, which `dart format` imposes and the Flutter standard's own examples
+  follow, and shell scripts with 4. Every other format follows its own: the CI, Docker and config
+  files (a few lines run long), YAML, JSON and TypeScript at 2 spaces, the ARB files (one key per
+  line, `intl_en_GB.arb` past 1000 lines), Markdown (`.markdownlint.yaml`), the licence texts and
+  the `flutter create` platform scaffolding.
+- **RG8:** a `release-x.y.z` branch carries no issue number.
+- **RG26:** the project has one maintainer, so a change is reviewed through an independent agent
+  review and the maintainer's own testing rather than a second human reviewer.
+- **RD1:** a package keeps its own prefix (`Fountain` for `fountain_kit`, `Spell` and `Hunspell` for
+  `spell_kit`, `Script`, `Celtx` and `Fdx` for `script_import_kit`, `Ocpt` for `ocpt_sync_*`), and a
+  test double or a guard's helper class shared between test files has none.
+- **RD2:** a test imports another test file with a relative path (its neighbour, or a helper at the
+  root of `test/` through `../`), since `test/` has no `package:` URI.
+- **RD3:** the app itself has no barrel file and no `src/` folder, since nothing imports it. The
+  packages under `packages/` do follow the rule.
+- **RD4, RD7:** the private working classes of an algorithm in `lib/models/` (the scenario coverage
+  and script sides layouts, the breakdown suggestions, the budget match, the three-way merge) are
+  neither `Equatable` nor given a `toString`: they are built, read and dropped inside one function,
+  and never compared or printed.
+- **RD8, RD11:** the project services answer an `OcptDatabaseStatus` result, and
+  `OcptProjectsManager` does for its project reads and writes, while its project, preview and move
+  operations and `restoreProjectVersion` answer a status of their own (`OcptProjectStatus`,
+  `OcptProjectPreviewStatus`, `OcptProjectMoveStatus`, `OcptProjectRestoreStatus`). A failure still
+  throws where a transaction must roll back (`OcptRowStampService` and the `stamps` participants,
+  the static `Ops` and `Rows`, the private abort exceptions), and a method keeps its own status
+  where it has one (`permanentServiceExceptions`: `restoreVersion`, the package read and write, the
+  merge). What stays outside that boundary raises, and is settled by a `try` of the caller where
+  there is one (`OcptSyncSession`, the workspace and project settings blocs, the export blocs),
+  and by nothing otherwise: the sync services (`OcptChangesetService`'s reads and cursor writes,
+  `OcptPairingService`, `OcptSyncManager`'s relay pairing and `loadPairedProjectId`,
+  `OcptSnapshotService`'s file I/O), whose callers include the sharing bloc's invite read and the
+  hosting bloc; the directory methods of `OcptProjectsManager` (`dart:io`, `path_provider`), which
+  the home and joining blocs call bare; `launchUrl` in the about section; the PDF services'
+  `generate`, which the export blocs catch; and the relay store (`sqlite3`) and upstream client.
+  `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a
+  malformed document with a typed exception, which the app converts to a `Result` at its boundary:
+  `act_dart_result` depends on Flutter, and the relay compiles without it.
+- **RD14:** `OcptPresenceService.roster` stays a getter over a hand-written controller, since it is
+  derived on every read (a heartbeat changes it without any emission) and a keeper's value would go
+  stale.
+- **RD18:** a doc block repeated fewer than five times may stay where it is in `lib/`, since a
+  short sentence reads better in place than behind a template name; a test file carries its own
+  doubles by design, so a block repeats there as often as the doubles do.
+- **RD22:** a `<feature>_test_doubles.dart` beside the test files, and the files holding a guard's
+  helpers (`test/service_result_rules.dart`, `test/service_result_answer_rules.dart`,
+  `test/ocpt_result_expectations.dart`), may hold several public types. A sealed family shares a
+  file, which Dart requires, as do a manager and its builder, and an extension may sit beside the
+  enum it extends.
+- **RD25:** a Flutter `State`, a test double and a guard's helper class may initialize their fields
+  at declaration, and so may a mixin, which has no constructor. A `late final` field computed from
+  the other fields of its object, on first read, stays `late final`.
+- **RFL2:** a test's mounting helper (`Widget _wrap(...)`) may stay a function, since it is never
+  rebuilt. So may `OcptStyledContextMenu.wrap`, a method of a handler that is no widget, and a
+  method returning `List<Widget>` (the home header's and the new-entry dialog's actions), which
+  `test/widget_function_test.dart` lets through; a file building a PDF returns the `pdf` package's
+  `Widget`, a layout object and not a Flutter one.
+- **RFL3:** a page's or a view's `OcptXxxView` may be public when its widget tests pump it directly
+  with a stubbed bloc. It lives in its own file (`<x>_view.dart`).
+- **RFL5:** `ScreenUtilInit` stays at the app root, but only the theme uses its extensions, and only
+  on a phone (`OcptMainAppUi`). Widgets do not use them and may state logical pixel sizes: the
+  density of this desktop-first UI lives in the component themes of `lib/constants/ocpt_theme.dart`.
+- **RFL6:** the label field of a person's position row is seeded once from `Tr.of(context)`: it holds
+  text the user edits, which a re-seed on a language change would overwrite.
+- **RFL18:** `OcptRowStampService`, an accumulator built for one transaction and owned by nobody, and
+  `OcptFolderRemoteStorage`, a file adapter that logs nothing, stay off the services' common base,
+  which requires a logger.
+- **RFL23:** a production mode is `Ocpt<X>Mode` in `<x>_mode.dart`, and a widget is named after its
+  role (`Card`, `Panel`, `Dialog`, `Sheet`) rather than ending in `Widget`. A service named after
+  what it is, not `Service`, stays so: `OcptProjectVersionCodec`, `OcptRelayRemoteStorage`,
+  `OcptSyncSession`.
+- **RFL24:** the repository URL of the about section, the sync push, heartbeat and peer timeout
+  intervals, the relay reconnect delay and the maps URL template of the call sheet are constants
+  of the code: the intervals and the delay are defaults a caller passes over, and none of them
+  differs between deployments.
+- **RFL26:** a model owned by no manager builds its `LogsHelper` where it logs instead of keeping one,
+  since the global logger it hangs from can be replaced. `OcptConfigManager` logs through
+  `appLogger()`: it is built first and the logger manager is built from it, so no manager logger
+  exists yet.
+- **RFL35:** `AbstractSecretsManager` is what stores the secrets, in secure storage; the rule and
+  the "look in `actlibs/` first" rule above contradict each other on this point, so the latter wins.
+- **RFL36:** a `build` may look an id up in a list, or filter or sum a list, when the list is already
+  in hand and short (the payments of a line, the columns of a table), or find the one selected row
+  of a longer list by its id, and may join text it translated itself, since a state holds no `Tr`.
+- **RFL38:** a list may stay eager when it would otherwise misbehave: the breakdown script, whose tag
+  popover lives in its scene's subtree and has no way back once scrolled away; a list shrinking to
+  its content inside an `AlertDialog`, whose intrinsic width a lazy viewport cannot answer; the two
+  budget columns walked row for row; the breakdown scene inspector, whose notes field keeps a
+  controller and a focus node that a lazy list would dispose once scrolled away; and the floor plan
+  set gallery, a `Wrap` of fixed-width cards that a sliver grid would stretch to fill each row.
+- **RFL39:** the fatal error page declares `Tr.delegate` itself and reads `Tr.of`: the generated
+  delegate needs no manager, so the page still translates when every manager failed to start.
+- **RFL41:** a bloc may keep a non-final field, or a final collection whose content changes,
+  where the value is read or written outside an event handler, so that no `emit` runs: a stream
+  listener, `close`, an overridden `add`, a widget leaving the tree. Or where it marks work in
+  flight, which a state emitted later would report too late. Or where it mirrors a value already
+  written elsewhere (the stored preference) or is a throttle clock set by a write that may emit
+  nothing. The fields are listed, with the reason
+  for each, in `test/ui/pages/workspace/bloc_final_fields_test.dart`, which fails on any other.
+- **RSHELL1:** a Bash script may start with `#!/usr/bin/env bash`.
+
+The rule asking for doc comments that start with an imperative verb is read this way here. A
+method, getter, setter, operator or function opens with the verb (`Build`, `Get the`, `Tell
+whether`), never with an article or a third-person verb (`Builds`): `test/documentation_test.dart`
+fails on it, except in `test/`, which is exempt. A constructor opens with `Class constructor`, the
+idiom `actlibs/` uses throughout, or with `Create` or `Build` for a named one. A class, mixin, enum,
+extension or typedef opens with the noun phrase saying what it is, except what is named after an
+action: an event or a request (`Request`, `Select`, `Toggle`), a service, an `Ops` class or a
+parser (`Render`, `Convert`, `Read`), a manager builder (`Build`) and a painter (`Paint`), which
+open with the verb. A field, constant or enum value opens with a noun phrase, and a callback field
+with `Called` or a verb (`Resolves`, `Asks`, `Matches`). The guard reads only the members listed
+first: the opening of a constructor, a class or a field is a convention that nothing checks.
 
 House style: `Ocpt` prefix on app classes, doc comments on every declaration, match the
 existing files' idioms exactly. Tests use inline private test doubles (no shared helpers
-directory) and set `BlinkController.indeterminateAnimationsEnabled = false` when pumping
-super_editor widgets. Do not touch `actlibs/` (submodule) or `lib/generated/`.
+directory), or a `<feature>_test_doubles.dart` right beside the test files that a long test was split
+into, and set `BlinkController.indeterminateAnimationsEnabled = false` when pumping super_editor
+widgets. Do not edit `actlibs/` (submodule) or `lib/generated/`.
 
 ## Licensing / REUSE
 
@@ -253,7 +391,7 @@ SPDX-License-Identifier: Apache-2.0
 ```
 
 `reuse lint` must stay 100% compliant. Licenses live in `LICENSES/` (Apache-2.0, CC0-1.0,
-LicenseRef-ALLCircuits-ACT-1.1, OFL-1.1 for Courier Prime).
+CC-BY-4.0, LicenseRef-ALLCircuits-ACT-1.1, LicenseRef-SCOWL, MPL-2.0, OFL-1.1 for Courier Prime).
 
 ## Commits
 
@@ -289,16 +427,17 @@ minimum before each commit):
 1. `flutter pub get`
 2. `dart run intl_utils:generate`
 3. `dart run build_runner build`
-4. `flutter analyze` → 0 issues
-5. `flutter test` → all green
-6. `flutter build linux --debug`
-7. `reuse lint` → compliant
-8. `git grep -l 'allcircuits.com' -- ':!actlibs' ':!AGENTS.md' ':!docs/plans'` → empty
-   (the two extra exclusions are the files that *describe* this gate, which would otherwise
-   always match their own search string)
-9. `dart run tool/check_markdown.dart` → no violation, whenever a `.md` file was touched. This
+4. `dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')` → 0 changed
+5. `flutter analyze` → 0 issues
+6. `flutter test` → all green
+7. `flutter build linux --debug`
+8. `reuse lint` → compliant
+9. `git grep -l 'allcircuits.com' -- ':!actlibs' ':!AGENTS.md'` → empty
+   (the extra exclusion is the file that *describes* this gate, which would otherwise always
+   match its own search string)
+10. `dart run tool/check_markdown.dart` → no violation, whenever a `.md` file was touched. This
    gate is about the documentation rather than the code, so it is the one to run before pushing
-   a docs-only change, which the other eight would say nothing about. The `markdown_lint`
+   a docs-only change, which the other nine would say nothing about. The `markdown_lint`
    workflow runs the real `markdownlint-cli2`, which needs a Node runtime the devcontainer does
    not carry; the script re-implements the rules that need no markdown parsing (line length,
    trailing spaces, hard tabs, final newline), so an over-long paragraph is caught here instead

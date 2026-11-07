@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_code_read_out.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The width of a set's code read-out: a code is `A`, `B`, `AC` — never a sentence.
 const double _codeFieldWidth = 72;
@@ -102,6 +102,7 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
     required this.onOpenInShotListRequested,
   });
 
+  /// Build the location sheet sets card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -120,28 +121,39 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
                 fontStyle: FontStyle.italic,
               ),
             ),
-          for (final set in sets) ...[
-            _buildSetRow(context, tr, set),
-            const SizedBox(height: 10),
-          ],
+          for (final set in sets) ...[_SetRow(card: this, set: set), const SizedBox(height: 10)],
           if (onSetAdded != null)
             OutlinedButton(onPressed: onSetAdded, child: Text(tr.resourcesAddSetAction)),
         ],
       ),
     );
   }
+}
 
-  /// One set: its code and its name on the first line, its notes on the second, and the scenes
-  /// shot in it on the third.
-  Widget _buildSetRow(BuildContext context, Tr tr, OcptSet set) {
+/// One set: its code and its name on the first line, its notes on the second, and the scenes
+/// shot in it on the third.
+class _SetRow extends StatelessWidget {
+  /// The card the set belongs to.
+  final OcptLocationSheetSetsCard card;
+
+  /// The set this widget shows.
+  final OcptSet set;
+
+  /// Class constructor
+  const _SetRow({required this.card, required this.set});
+
+  /// Build the set row as a [Container].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
-    final onSetRemoved = this.onSetRemoved;
+    final onSetRemoved = card.onSetRemoved;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,18 +163,22 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
             children: [
               SizedBox(
                 width: _codeFieldWidth,
-                child: OcptResourcesCodeReadOut(
-                  label: tr.resourcesSetCodeLabel,
-                  code: set.code,
-                ),
+                child: OcptResourcesCodeReadOut(label: tr.resourcesSetCodeLabel, code: set.code),
               ),
               const SizedBox(width: 10),
-              Expanded(child: _buildSetField(set, OcptSetField.name, tr.resourcesSetNameLabel)),
-              if (onSetLocationChanged != null && otherLocations.isNotEmpty) ...[
+              Expanded(
+                child: _SetField(
+                  card: card,
+                  set: set,
+                  field: OcptSetField.name,
+                  label: tr.resourcesSetNameLabel,
+                ),
+              ),
+              if (card.onSetLocationChanged != null && card.otherLocations.isNotEmpty) ...[
                 const SizedBox(width: 6),
                 Padding(
                   padding: const EdgeInsets.only(top: 14),
-                  child: _buildMoveButton(tr, set),
+                  child: _MoveButton(card: card, set: set),
                 ),
               ],
               if (onSetRemoved != null) ...[
@@ -179,23 +195,42 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          _buildSetField(set, OcptSetField.notes, tr.resourcesSetNotesLabel),
+          _SetField(
+            card: card,
+            set: set,
+            field: OcptSetField.notes,
+            label: tr.resourcesSetNotesLabel,
+          ),
           const SizedBox(height: 8),
-          _buildScenesRow(context, tr, set),
+          _ScenesRow(card: card, set: set),
           const SizedBox(height: 8),
-          _buildFloorPlanRow(context, tr, set),
+          _FloorPlanRow(card: card, set: set),
         ],
       ),
     );
   }
+}
 
-  /// The set's own floor plan indicator (`Floor plan · N sequences` or `No floor plan yet`) and,
-  /// only while it is linked to at least one live sequence, the `Open in shot list` action —
-  /// editing the plan stays in the shot list mode, so this
-  /// row only ever reads, never withheld under a read-only preview.
-  Widget _buildFloorPlanRow(BuildContext context, Tr tr, OcptSet set) {
+/// The set's own floor plan indicator (`Floor plan · N sequences` or `No floor plan yet`) and,
+/// only while it is linked to at least one live sequence, the `Open in shot list` action —
+/// editing the plan stays in the shot list mode, so this
+/// row only ever reads, never withheld under a read-only preview.
+class _FloorPlanRow extends StatelessWidget {
+  /// The card the set belongs to.
+  final OcptLocationSheetSetsCard card;
+
+  /// The set this widget shows.
+  final OcptSet set;
+
+  /// Class constructor
+  const _FloorPlanRow({required this.card, required this.set});
+
+  /// Build the floor plan row as a [Row].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
-    final hasPlan = setIdsWithPlan.contains(set.id);
+    final hasPlan = card.setIdsWithPlan.contains(set.id);
     final sequenceCount = set.sceneIds.length;
 
     return Row(
@@ -211,18 +246,32 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
         if (sequenceCount > 0) ...[
           const Spacer(),
           TextButton(
-            onPressed: () => onOpenInShotListRequested(set.id),
+            onPressed: () => card.onOpenInShotListRequested(set.id),
             child: Text(tr.resourcesOpenSetInShotListAction),
           ),
         ],
       ],
     );
   }
+}
 
-  /// The control handing [set] to another location: every other location of the project, picked
-  /// from a menu. The set leaves this sheet the moment one is picked, which is what a move is.
-  Widget _buildMoveButton(Tr tr, OcptSet set) {
-    final onSetLocationChanged = this.onSetLocationChanged!;
+/// The control handing [set] to another location: every other location of the project, picked
+/// from a menu. The set leaves this sheet the moment one is picked, which is what a move is.
+class _MoveButton extends StatelessWidget {
+  /// The card the set belongs to.
+  final OcptLocationSheetSetsCard card;
+
+  /// The set this widget shows.
+  final OcptSet set;
+
+  /// Class constructor
+  const _MoveButton({required this.card, required this.set});
+
+  /// Build the move button as a [PopupMenuButton].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final onSetLocationChanged = card.onSetLocationChanged!;
 
     return PopupMenuButton<String>(
       tooltip: tr.resourcesMoveSetTooltip,
@@ -230,31 +279,69 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
       onSelected: (locationId) => onSetLocationChanged(set.id, locationId),
       itemBuilder: (context) => [
         PopupMenuItem<String>(enabled: false, child: Text(tr.resourcesMoveSetMenuTitle)),
-        for (final (id, name) in otherLocations)
+        for (final (id, name) in card.otherLocations)
           PopupMenuItem<String>(value: id, child: Text(name)),
       ],
     );
   }
+}
 
-  /// One text field of a set row.
-  Widget _buildSetField(OcptSet set, OcptSetField field, String label) {
-    final onSetFieldChanged = this.onSetFieldChanged;
+/// One text field of a set row.
+class _SetField extends StatelessWidget {
+  /// The card the set belongs to.
+  final OcptLocationSheetSetsCard card;
+
+  /// The set this widget shows.
+  final OcptSet set;
+
+  /// The set field this one writes.
+  final OcptSetField field;
+
+  /// The field's label.
+  final String label;
+
+  /// Class constructor
+  const _SetField({
+    required this.card,
+    required this.set,
+    required this.field,
+    required this.label,
+  });
+
+  /// Build the set field as an [OcptResourcesSheetField].
+  @override
+  Widget build(BuildContext context) {
+    final onSetFieldChanged = card.onSetFieldChanged;
 
     return OcptResourcesSheetField(
       ownerId: set.id,
       label: label,
-      value: fieldValueOf(set.id, field),
+      value: card.fieldValueOf(set.id, field),
       onChanged: onSetFieldChanged == null
           ? null
           : (value) => onSetFieldChanged(set.id, field, value),
     );
   }
+}
 
-  /// The scenes shot in [set], as chips, followed by the picker adding one.
-  Widget _buildScenesRow(BuildContext context, Tr tr, OcptSet set) {
+/// The scenes shot in [set], as chips, followed by the picker adding one.
+class _ScenesRow extends StatelessWidget {
+  /// The card the set belongs to.
+  final OcptLocationSheetSetsCard card;
+
+  /// The set this widget shows.
+  final OcptSet set;
+
+  /// Class constructor
+  const _ScenesRow({required this.card, required this.set});
+
+  /// Build the scenes row as a [Column].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
-    final onSceneRemoved = this.onSceneRemoved;
-    final sceneById = {for (final scene in scenes) scene.id: scene};
+    final onSceneRemoved = card.onSceneRemoved;
+    final sceneById = {for (final scene in card.scenes) scene.id: scene};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,30 +369,44 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
                   label: Text(ocptSceneRefLabel(scene)),
                   onDeleted: onSceneRemoved == null ? null : () => onSceneRemoved(scene.id, set.id),
                 ),
-            if (onSceneAssigned != null) _buildScenePicker(context, tr, set),
+            if (card.onSceneAssigned != null) _ScenePicker(card: card, set: set),
           ],
         ),
       ],
     );
   }
+}
 
-  /// The `Scene` picker of [set]: the scenes with no set at all first, this set's suggested ones
-  /// at the top of them, then the scenes already shot elsewhere under their own heading — picking
-  /// one of those adds this set beside the ones it already has.
-  Widget _buildScenePicker(BuildContext context, Tr tr, OcptSet set) {
-    final onSceneAssigned = this.onSceneAssigned!;
+/// The `Scene` picker of [set]: the scenes with no set at all first, this set's suggested ones
+/// at the top of them, then the scenes already shot elsewhere under their own heading — picking
+/// one of those adds this set beside the ones it already has.
+class _ScenePicker extends StatelessWidget {
+  /// The card the set belongs to.
+  final OcptLocationSheetSetsCard card;
+
+  /// The set this widget shows.
+  final OcptSet set;
+
+  /// Class constructor
+  const _ScenePicker({required this.card, required this.set});
+
+  /// Build the scene picker as a [PopupMenuButton].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final onSceneAssigned = card.onSceneAssigned!;
 
     final suggested = <OcptSceneRef>[];
     final unassigned = <OcptSceneRef>[];
     final assignedElsewhere = <OcptSceneRef>[];
 
-    for (final scene in scenes) {
+    for (final scene in card.scenes) {
       if (set.sceneIds.contains(scene.id)) {
         continue;
       }
 
-      if (!assignedSceneIds.contains(scene.id)) {
-        if (suggestedSetIdBySceneId[scene.id] == set.id) {
+      if (!card.assignedSceneIds.contains(scene.id)) {
+        if (card.suggestedSetIdBySceneId[scene.id] == set.id) {
           suggested.add(scene);
         } else {
           unassigned.add(scene);
@@ -343,5 +444,4 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
       ),
     );
   }
-
 }

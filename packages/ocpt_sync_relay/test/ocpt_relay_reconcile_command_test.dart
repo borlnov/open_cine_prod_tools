@@ -10,9 +10,13 @@ import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
+/// The enrolment secret the tests pair with.
 const _enrolmentSecret = 'enrolment-secret';
+
+/// The time a test waits before it gives up.
 const _timeout = Timeout(Duration(seconds: 5));
 
+/// Build an envelope with [changesetId], from a fixed device.
 OcptChangesetEnvelope _envelope(String changesetId) => OcptChangesetEnvelope(
   changesetId: changesetId,
   originDeviceId: 'device-1',
@@ -21,10 +25,13 @@ OcptChangesetEnvelope _envelope(String changesetId) => OcptChangesetEnvelope(
   payload: Uint8List.fromList([1, 2, 3]),
 );
 
+/// Run the tests of the relay reconcile command.
 void main() {
   group('parseReconcileInvite', () {
     test('round-trips a well-formed invite', () {
-      final invite = parseReconcileInvite('ocpt://join?r=https://relay.example.org&p=project-1&t=secret-token');
+      final invite = parseReconcileInvite(
+        'ocpt://join?r=https://relay.example.org&p=project-1&t=secret-token',
+      );
 
       expect(invite.upstream, Uri.parse('https://relay.example.org'));
       expect(invite.projectId, 'project-1');
@@ -33,20 +40,27 @@ void main() {
 
     test('throws FormatException on a wrong scheme', () {
       expect(
-        () => parseReconcileInvite('https://join?r=https://relay.example.org&p=project-1&t=secret-token'),
+        () => parseReconcileInvite(
+          'https://join?r=https://relay.example.org&p=project-1&t=secret-token',
+        ),
         throwsFormatException,
       );
     });
 
     test('throws FormatException on a wrong host', () {
       expect(
-        () => parseReconcileInvite('ocpt://relay?r=https://relay.example.org&p=project-1&t=secret-token'),
+        () => parseReconcileInvite(
+          'ocpt://relay?r=https://relay.example.org&p=project-1&t=secret-token',
+        ),
         throwsFormatException,
       );
     });
 
     test('throws FormatException on an empty r query parameter', () {
-      expect(() => parseReconcileInvite('ocpt://join?r=&p=project-1&t=secret-token'), throwsFormatException);
+      expect(
+        () => parseReconcileInvite('ocpt://join?r=&p=project-1&t=secret-token'),
+        throwsFormatException,
+      );
     });
 
     test('throws FormatException on an empty p query parameter', () {
@@ -84,95 +98,85 @@ void main() {
       upstreamStore.close();
     });
 
-    test(
-      'the --invite form parses the invite, reconciles, and logs the summary',
-      () async {
-        final logged = <String>[];
-        final localStore = OcptRelayStore(':memory:');
-        localStore.append('project-1', _envelope('changeset-1'));
+    test('the --invite form parses the invite, reconciles, and logs the summary', () async {
+      final logged = <String>[];
+      final localStore = OcptRelayStore(':memory:');
+      localStore.append('project-1', _envelope('changeset-1'));
 
-        await runReconcileCommand(
-          [
-            '--invite',
-            'ocpt://join?r=$upstreamBaseUri&p=project-1&t=token-1',
-            '--db-path',
-            dbPath,
-            '--enrolment-secret',
-            _enrolmentSecret,
-          ],
-          environment: const {},
-          openStore: (_) => localStore,
-          log: logged.add,
-        );
+      await runReconcileCommand(
+        [
+          '--invite',
+          'ocpt://join?r=$upstreamBaseUri&p=project-1&t=token-1',
+          '--db-path',
+          dbPath,
+          '--enrolment-secret',
+          _enrolmentSecret,
+        ],
+        environment: const {},
+        openStore: (_) => localStore,
+        log: logged.add,
+      );
 
-        expect(logged, ['pushed 1, pulled 0']);
-        expect(
-          upstreamStore.readSince('project-1', OcptSequenceNumber.zero).map((c) => c.envelope.changesetId),
-          ['changeset-1'],
-        );
-      },
-      timeout: _timeout,
-    );
+      expect(logged, ['pushed 1, pulled 0']);
+      expect(
+        upstreamStore
+            .readSince('project-1', OcptSequenceNumber.zero)
+            .map((c) => c.envelope.changesetId),
+        ['changeset-1'],
+      );
+    }, timeout: _timeout);
 
-    test(
-      'the --upstream/--project/--token trio works the same as --invite',
-      () async {
-        final logged = <String>[];
-        final localStore = OcptRelayStore(':memory:');
-        localStore.append('project-1', _envelope('changeset-1'));
+    test('the --upstream/--project/--token trio works the same as --invite', () async {
+      final logged = <String>[];
+      final localStore = OcptRelayStore(':memory:');
+      localStore.append('project-1', _envelope('changeset-1'));
 
-        await runReconcileCommand(
-          [
-            '--upstream',
-            upstreamBaseUri.toString(),
-            '--project',
-            'project-1',
-            '--token',
-            'token-1',
-            '--db-path',
-            dbPath,
-            '--enrolment-secret',
-            _enrolmentSecret,
-          ],
-          environment: const {},
-          openStore: (_) => localStore,
-          log: logged.add,
-        );
+      await runReconcileCommand(
+        [
+          '--upstream',
+          upstreamBaseUri.toString(),
+          '--project',
+          'project-1',
+          '--token',
+          'token-1',
+          '--db-path',
+          dbPath,
+          '--enrolment-secret',
+          _enrolmentSecret,
+        ],
+        environment: const {},
+        openStore: (_) => localStore,
+        log: logged.add,
+      );
 
-        expect(logged, ['pushed 1, pulled 0']);
-      },
-      timeout: _timeout,
-    );
+      expect(logged, ['pushed 1, pulled 0']);
+    }, timeout: _timeout);
 
-    test(
-      '--db-path is passed through to the injected openStore factory',
-      () async {
-        final seenDbPaths = <String>[];
-        final localStore = OcptRelayStore(':memory:');
-        localStore.append('project-1', _envelope('changeset-1'));
+    test('--db-path is passed through to the injected openStore factory', () async {
+      final seenDbPaths = <String>[];
+      final localStore = OcptRelayStore(':memory:');
+      localStore.append('project-1', _envelope('changeset-1'));
 
-        await runReconcileCommand(
-          [
-            '--invite',
-            'ocpt://join?r=$upstreamBaseUri&p=project-1&t=token-1',
-            '--db-path',
-            '/tmp/custom.sqlite',
-            '--enrolment-secret',
-            _enrolmentSecret,
-          ],
-          environment: const {},
-          openStore: (path) {
-            seenDbPaths.add(path);
+      await runReconcileCommand(
+        [
+          '--invite',
+          'ocpt://join?r=$upstreamBaseUri&p=project-1&t=token-1',
+          '--db-path',
+          '/tmp/custom.sqlite',
+          '--enrolment-secret',
+          _enrolmentSecret,
+        ],
+        environment: const {},
+        openStore: (path) {
+          seenDbPaths.add(path);
 
-            return localStore;
-          },
-          log: (_) {},
-        );
+          return localStore;
+        },
+        log: (_) {},
+      );
 
-        expect(seenDbPaths, ['/tmp/custom.sqlite']);
-      },
-      timeout: _timeout,
-    );
+      expect(seenDbPaths, ['/tmp/custom.sqlite']);
+    }, timeout: _timeout);
 
     test('missing project identity throws FormatException', () {
       expect(
@@ -183,11 +187,7 @@ void main() {
 
     test('an unknown flag throws FormatException', () {
       expect(
-        () => runReconcileCommand(
-          ['--bogus', 'value'],
-          environment: const {},
-          log: (_) {},
-        ),
+        () => runReconcileCommand(['--bogus', 'value'], environment: const {}, log: (_) {}),
         throwsFormatException,
       );
     });

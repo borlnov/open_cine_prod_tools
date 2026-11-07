@@ -7,7 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_status_bar.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a band [width]
 /// wide.
@@ -19,9 +19,12 @@ Widget _wrapInApp(Widget child, {double width = 700}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, child: child),
+  ),
 );
 
+/// Run the tests of [OcptBreakdownStatusBar].
 void main() {
   /// Pumps the status bar for [taggedTargetCount] tagged targets, [usedCategoryCount] categories,
   /// [toFindCount] elements still to find and [needsCheckTagCount] tags still to check, in a band
@@ -87,8 +90,9 @@ void main() {
     expect(toCheckText.style?.color, isNot(warningColor));
   });
 
-  testWidgets("the to-check counter wears the warning colour once something needs checking",
-      (tester) async {
+  testWidgets("the to-check counter wears the warning colour once something needs checking", (
+    tester,
+  ) async {
     await pumpStatusBar(tester, needsCheckTagCount: 3);
 
     final warningColor = ocptWarningColor(tester.element(find.byType(OcptBreakdownStatusBar)));

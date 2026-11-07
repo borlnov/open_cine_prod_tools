@@ -25,8 +25,7 @@ class OcptShootingPlanExportOptions extends Equatable {
   /// the format every detailed day agenda, portrait, and the title page are typeset with.
   final OcptPageFormat format;
 
-  /// The page margins to typeset the exported document with, carried through unedited from the page
-  /// setup the export dialog was opened with.
+  /// {@macro open_cine_prod_tools.exportOptionsPageMargins}
   final FountainPageMargins margins;
 
   /// The ids of the `OcptShootingDay`s to print, in the order they are printed — both as the three
@@ -70,7 +69,7 @@ class OcptShootingPlanExportOptions extends Equatable {
     required this.includeElementsGrid,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingPlanExportOptions(format: $format, margins: $margins, dayIds: $dayIds, "
@@ -78,7 +77,7 @@ class OcptShootingPlanExportOptions extends Equatable {
       "includeSequencesGrid: $includeSequencesGrid, includePeopleGrid: $includePeopleGrid, "
       "includeTenMinuteGrid: $includeTenMinuteGrid, includeElementsGrid: $includeElementsGrid)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     format,

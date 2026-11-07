@@ -4,8 +4,8 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 import 'package:spell_kit/spell_kit.dart';
 
 /// The raw mode's source text controller, extended to paint the find/replace bar's highlight and
@@ -25,19 +25,19 @@ import 'package:spell_kit/spell_kit.dart';
 /// rest) and a wavy underline ([ocptEditorSpellCheckErrorColor]) at once.
 class OcptEditorSearchTextController extends TextEditingController {
   /// The matches currently painted, in source order.
-  List<OcptTextMatch> _matches = const [];
+  List<OcptTextMatch> _matches;
 
   /// The index, in [_matches], of the current match; null while there is none.
   int? _currentMatchIndex;
 
   /// The misspelled ranges currently painted, document-absolute — the very offsets [text] is
   /// addressed by.
-  List<SpellRange> _spellCheckRanges = const [];
+  List<SpellRange> _spellCheckRanges;
 
   /// Class constructor
-  OcptEditorSearchTextController({super.text});
+  OcptEditorSearchTextController({super.text}) : _matches = const [], _spellCheckRanges = const [];
 
-  /// Replaces the matches this controller paints and repaints, unless [matches] and
+  /// Replace the matches this controller paints and repaint, unless [matches] and
   /// [currentMatchIndex] are exactly the ones already held.
   void updateMatches(List<OcptTextMatch> matches, int? currentMatchIndex) {
     if (listEquals(_matches, matches) && _currentMatchIndex == currentMatchIndex) {
@@ -48,7 +48,7 @@ class OcptEditorSearchTextController extends TextEditingController {
     notifyListeners();
   }
 
-  /// Replaces the misspelled ranges this controller paints and repaints, unless [ranges] is
+  /// Replace the misspelled ranges this controller paints and repaint, unless [ranges] is
   /// exactly what is already held — the same dedup [updateMatches] already applies to its own
   /// ranges.
   void updateSpellCheckRanges(List<SpellRange> ranges) {
@@ -59,7 +59,7 @@ class OcptEditorSearchTextController extends TextEditingController {
     notifyListeners();
   }
 
-  /// [withComposing] is deliberately ignored whenever [_matches] or [_spellCheckRanges] is
+  /// Ignore [withComposing] deliberately whenever [_matches] or [_spellCheckRanges] is
   /// non-empty: honouring it would mean intersecting the IME's own composing range against every
   /// match/misspelling span (a composing segment can start or end mid-span), for a rare pairing —
   /// an IME composing session while the find/replace bar's highlight or the spell-check underline
@@ -164,16 +164,14 @@ class OcptEditorSearchTextController extends TextEditingController {
         );
       }
 
-      children.add(
-        TextSpan(text: source.substring(segmentStart, segmentEnd), style: segmentStyle),
-      );
+      children.add(TextSpan(text: source.substring(segmentStart, segmentEnd), style: segmentStyle));
     }
 
     return TextSpan(style: style, children: children);
   }
 }
 
-/// Calls [onSegment] once per segment of [sortedBoundaries] that each of [spans] covers.
+/// Call [onSegment] once per segment of [sortedBoundaries] that each of [spans] covers.
 ///
 /// Every boundary [OcptEditorSearchTextController.buildTextSpan] segments on comes from a span's
 /// own start or end, so a segment is always either fully inside or fully outside any given span,

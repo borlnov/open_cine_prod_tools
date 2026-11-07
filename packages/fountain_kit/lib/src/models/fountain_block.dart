@@ -17,24 +17,15 @@ import 'package:fountain_kit/src/models/fountain_source_range.dart';
 /// `FountainSerializer.write` (which re-flows text and so changes every
 /// offset) be checked by comparing parsed blocks with `==`.
 sealed class FountainBlock extends Equatable {
-  /// Creates a [FountainBlock].
-  const FountainBlock({required this.sourceRange});
-
   /// The location, in the original source, that this block was parsed from.
   final FountainSourceRange sourceRange;
+
+  /// Create a [FountainBlock].
+  const FountainBlock({required this.sourceRange});
 }
 
 /// A scene heading, for example `INT. KITCHEN - DAY`.
 class FountainSceneHeading extends FountainBlock {
-  /// Creates a [FountainSceneHeading].
-  const FountainSceneHeading({
-    required super.sourceRange,
-    required this.rawText,
-    required this.headingText,
-    required this.forcedMarker,
-    this.sceneNumber,
-  });
-
   /// The exact, unmodified source line this heading was parsed from,
   /// including any forcing `.` and scene number tag.
   final String rawText;
@@ -51,22 +42,26 @@ class FountainSceneHeading extends FountainBlock {
   /// line (for example `4A` in `INT. HOUSE #4A#`), or `null` if none.
   final String? sceneNumber;
 
-  @override
-  List<Object?> get props => [rawText, headingText, forcedMarker, sceneNumber];
+  /// Create a [FountainSceneHeading].
+  const FountainSceneHeading({
+    required super.sourceRange,
+    required this.rawText,
+    required this.headingText,
+    required this.forcedMarker,
+    this.sceneNumber,
+  });
 
+  /// Describe this [FountainSceneHeading] for debugging and logging.
   @override
   String toString() => 'FountainSceneHeading($headingText)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [rawText, headingText, forcedMarker, sceneNumber];
 }
 
 /// A paragraph of action/description text.
 class FountainActionBlock extends FountainBlock {
-  /// Creates a [FountainActionBlock].
-  const FountainActionBlock({
-    required super.sourceRange,
-    required this.lines,
-    required this.forced,
-  });
-
   /// The action text, one element per source line, in source order, with
   /// original whitespace/indentation preserved and any leading forcing `!`
   /// already stripped.
@@ -75,11 +70,20 @@ class FountainActionBlock extends FountainBlock {
   /// Whether this block was forced with a leading `!`.
   final bool forced;
 
-  @override
-  List<Object?> get props => [lines, forced];
+  /// Create a [FountainActionBlock].
+  const FountainActionBlock({
+    required super.sourceRange,
+    required this.lines,
+    required this.forced,
+  });
 
+  /// Describe this [FountainActionBlock] for debugging and logging.
   @override
   String toString() => 'FountainActionBlock(${lines.length} lines)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [lines, forced];
 }
 
 /// A character cue introducing a block of dialogue, for example `SARAH
@@ -89,14 +93,6 @@ class FountainActionBlock extends FountainBlock {
 /// [FountainDocument.blocks]: it is always the [FountainDialogueGroup.character]
 /// of the dialogue block it introduces.
 class FountainCharacter extends FountainBlock {
-  /// Creates a [FountainCharacter].
-  const FountainCharacter({
-    required super.sourceRange,
-    required this.name,
-    required this.isDualDialogue,
-    this.extension,
-  });
-
   /// The character's name, without its parenthetical extension, forcing `@`
   /// or dual-dialogue `^` marker.
   final String name;
@@ -110,47 +106,61 @@ class FountainCharacter extends FountainBlock {
   /// preceding it.
   final bool isDualDialogue;
 
-  @override
-  List<Object?> get props => [name, extension, isDualDialogue];
+  /// Create a [FountainCharacter].
+  const FountainCharacter({
+    required super.sourceRange,
+    required this.name,
+    required this.isDualDialogue,
+    this.extension,
+  });
 
+  /// Describe this [FountainCharacter] for debugging and logging.
   @override
   String toString() {
     final suffix = extension == null ? '' : ' ($extension)';
     return 'FountainCharacter($name$suffix)';
   }
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [name, extension, isDualDialogue];
 }
 
 /// A parenthetical direction inside a block of dialogue, for example
 /// `(beat)`.
 class FountainParenthetical extends FountainBlock {
-  /// Creates a [FountainParenthetical].
-  const FountainParenthetical({required super.sourceRange, required this.text});
-
   /// The parenthetical's text, without its enclosing parentheses.
   final String text;
 
-  @override
-  List<Object?> get props => [text];
+  /// Create a [FountainParenthetical].
+  const FountainParenthetical({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainParenthetical] for debugging and logging.
   @override
   String toString() => 'FountainParenthetical($text)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [text];
 }
 
 /// A single line of spoken dialogue inside a [FountainDialogueGroup].
 class FountainDialogueLine extends FountainBlock {
-  /// Creates a [FountainDialogueLine].
-  const FountainDialogueLine({required super.sourceRange, required this.text});
-
   /// The dialogue text. A line that was blank in the source but kept
   /// meaningful by trailing whitespace (see the Fountain spec) is
   /// represented here as an empty string.
   final String text;
 
-  @override
-  List<Object?> get props => [text];
+  /// Create a [FountainDialogueLine].
+  const FountainDialogueLine({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainDialogueLine] for debugging and logging.
   @override
   String toString() => 'FountainDialogueLine($text)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [text];
 }
 
 /// A character cue together with the parentheticals and dialogue lines it
@@ -165,14 +175,6 @@ class FountainDialogueLine extends FountainBlock {
 /// matter of adjacency in the containing block list, exactly as it is a
 /// matter of adjacency in the Fountain source itself.
 class FountainDialogueGroup extends FountainBlock {
-  /// Creates a [FountainDialogueGroup].
-  const FountainDialogueGroup({
-    required super.sourceRange,
-    required this.character,
-    required this.children,
-    required this.isDualDialogue,
-  });
-
   /// The character cue introducing this dialogue.
   final FountainCharacter character;
 
@@ -186,23 +188,25 @@ class FountainDialogueGroup extends FountainBlock {
   /// it. Mirrors [FountainCharacter.isDualDialogue].
   final bool isDualDialogue;
 
+  /// Create a [FountainDialogueGroup].
+  const FountainDialogueGroup({
+    required super.sourceRange,
+    required this.character,
+    required this.children,
+    required this.isDualDialogue,
+  });
+
+  /// Describe this [FountainDialogueGroup] for debugging and logging.
+  @override
+  String toString() => 'FountainDialogueGroup(${character.name}, ${children.length} lines)';
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [character, children, isDualDialogue];
-
-  @override
-  String toString() =>
-      'FountainDialogueGroup(${character.name}, ${children.length} lines)';
 }
 
 /// A transition, for example `CUT TO:`.
 class FountainTransition extends FountainBlock {
-  /// Creates a [FountainTransition].
-  const FountainTransition({
-    required super.sourceRange,
-    required this.text,
-    required this.forced,
-  });
-
   /// The transition text, without its forcing `>` marker.
   final String text;
 
@@ -210,82 +214,91 @@ class FountainTransition extends FountainBlock {
   /// being recognized from its all-caps `...TO:` form.
   final bool forced;
 
-  @override
-  List<Object?> get props => [text, forced];
+  /// Create a [FountainTransition].
+  const FountainTransition({required super.sourceRange, required this.text, required this.forced});
 
+  /// Describe this [FountainTransition] for debugging and logging.
   @override
   String toString() => 'FountainTransition($text)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [text, forced];
 }
 
 /// A block of song lyrics, each source line of which was prefixed with `~`.
 class FountainLyrics extends FountainBlock {
-  /// Creates a [FountainLyrics] block.
-  const FountainLyrics({required super.sourceRange, required this.lines});
-
   /// The lyrics text, one element per source line, with the leading `~`
   /// already stripped from each line.
   final List<String> lines;
 
-  @override
-  List<Object?> get props => [lines];
+  /// Create a [FountainLyrics] block.
+  const FountainLyrics({required super.sourceRange, required this.lines});
 
+  /// Describe this [FountainLyrics] for debugging and logging.
   @override
   String toString() => 'FountainLyrics(${lines.length} lines)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [lines];
 }
 
 /// A line of centered text, written as `> text <`.
 class FountainCenteredText extends FountainBlock {
-  /// Creates a [FountainCenteredText] block.
-  const FountainCenteredText({required super.sourceRange, required this.text});
-
   /// The centered text, without its enclosing `>`/`<` markers.
   final String text;
 
-  @override
-  List<Object?> get props => [text];
+  /// Create a [FountainCenteredText] block.
+  const FountainCenteredText({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainCenteredText] for debugging and logging.
   @override
   String toString() => 'FountainCenteredText($text)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [text];
 }
 
 /// An organizational section heading, written as one to six leading `#`
 /// characters (mirroring Markdown headers). Sections are structural only:
 /// they are not part of the printed screenplay.
 class FountainSection extends FountainBlock {
-  /// Creates a [FountainSection].
-  const FountainSection({
-    required super.sourceRange,
-    required this.level,
-    required this.text,
-  });
-
   /// The section's nesting level, from 1 (`#`) to 6 (`######`).
   final int level;
 
   /// The section's heading text, without its leading `#` characters.
   final String text;
 
-  @override
-  List<Object?> get props => [level, text];
+  /// Create a [FountainSection].
+  const FountainSection({required super.sourceRange, required this.level, required this.text});
 
+  /// Describe this [FountainSection] for debugging and logging.
   @override
   String toString() => 'FountainSection(level $level, $text)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [level, text];
 }
 
 /// A synopsis line, written with a single leading `=`. Synopses are
 /// organizational only: they are not part of the printed screenplay.
 class FountainSynopsis extends FountainBlock {
-  /// Creates a [FountainSynopsis].
-  const FountainSynopsis({required super.sourceRange, required this.text});
-
   /// The synopsis text, without its leading `=`.
   final String text;
 
-  @override
-  List<Object?> get props => [text];
+  /// Create a [FountainSynopsis].
+  const FountainSynopsis({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainSynopsis] for debugging and logging.
   @override
   String toString() => 'FountainSynopsis($text)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [text];
 }
 
 /// A standalone authoring note, written as a `[[note]]` that occupies one or
@@ -293,43 +306,49 @@ class FountainSynopsis extends FountainBlock {
 /// with other text is instead represented as an inline note span within
 /// that line's parent block (see `FountainInlineStyle.note`).
 class FountainNoteBlock extends FountainBlock {
-  /// Creates a [FountainNoteBlock].
-  const FountainNoteBlock({required super.sourceRange, required this.text});
-
   /// The note's text, without its enclosing `[[`/`]]` markers.
   final String text;
 
-  @override
-  List<Object?> get props => [text];
+  /// Create a [FountainNoteBlock].
+  const FountainNoteBlock({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainNoteBlock] for debugging and logging.
   @override
   String toString() => 'FountainNoteBlock($text)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [text];
 }
 
 /// A boneyard block comment, written as `/* ... */` and possibly spanning
 /// several source lines and/or several other elements.
 class FountainBoneyard extends FountainBlock {
-  /// Creates a [FountainBoneyard] block.
-  const FountainBoneyard({required super.sourceRange, required this.text});
-
   /// The comment's text, without its enclosing `/*`/`*/` markers.
   final String text;
 
-  @override
-  List<Object?> get props => [text];
+  /// Create a [FountainBoneyard] block.
+  const FountainBoneyard({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainBoneyard] for debugging and logging.
   @override
   String toString() => 'FountainBoneyard($text)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [text];
 }
 
 /// A forced page break, written as a line of three or more `=` characters.
 class FountainPageBreak extends FountainBlock {
-  /// Creates a [FountainPageBreak].
+  /// Create a [FountainPageBreak].
   const FountainPageBreak({required super.sourceRange});
 
-  @override
-  List<Object?> get props => [];
-
+  /// Describe this [FountainPageBreak] for debugging and logging.
   @override
   String toString() => 'FountainPageBreak()';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [];
 }

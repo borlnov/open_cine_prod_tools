@@ -4,12 +4,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_resources_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The width of a row's colour bar.
 const double _colorBarWidth = 3;
@@ -20,7 +20,8 @@ const double _colorBarHeight = 28;
 /// The separator between a location's city and its set count, on a row's own muted second line.
 const String _secondLineSeparator = " · ";
 
-/// The subset of [locations] matching [query], through [ocptResourcesSearchMatches] against every
+/// Get the subset of [locations] matching [query], through [ocptResourcesSearchMatches] against
+/// every
 /// field a row shows or that names the location: its name, its city, each of its sets' codes and
 /// names, and the localized permit status.
 ///
@@ -35,7 +36,7 @@ List<OcptLocation> ocptFilteredLocationsOf({
     if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(tr, location))) location,
 ];
 
-/// Every field of [location] a search query may match against, see [ocptFilteredLocationsOf].
+/// Get every field of [location] a search query may match against, see [ocptFilteredLocationsOf].
 Iterable<String> _searchFieldsOf(Tr tr, OcptLocation location) => [
   location.name,
   location.city,
@@ -73,6 +74,7 @@ class OcptLocationsList extends StatelessWidget {
     required this.onLocationSelected,
   });
 
+  /// Build the locations list as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -113,12 +115,9 @@ class _OcptLocationEntry extends StatelessWidget {
   final VoidCallback onTap;
 
   /// Class constructor
-  const _OcptLocationEntry({
-    required this.location,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _OcptLocationEntry({required this.location, required this.isSelected, required this.onTap});
 
+  /// Build the location entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -127,10 +126,10 @@ class _OcptLocationEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -182,7 +181,8 @@ class _OcptLocationEntry extends StatelessWidget {
     );
   }
 
-  /// The row's muted second line: the city and the number of sets, or the set count alone while the
+  /// Get the row's muted second line: the city and the number of sets, or the set count alone while
+  /// the
   /// city is still empty — a leading separator would read as a missing word.
   String _secondLineOf(Tr tr) {
     final setsLabel = tr.resourcesLocationSetCount(location.sets.length);

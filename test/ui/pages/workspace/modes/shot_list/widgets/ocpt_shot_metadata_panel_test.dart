@@ -56,6 +56,7 @@ OcptShot _buildShot({List<String> characters = const [], String? shootingDay, in
       averageDifficulty: 1,
     );
 
+/// Run the tests of [OcptShotMetadataPanel].
 void main() {
   testWidgets("shows the empty hint when no shot is selected", (tester) async {
     await tester.pumpWidget(
@@ -99,8 +100,9 @@ void main() {
     expect(find.text("4"), findsOneWidget);
   });
 
-  testWidgets("renders the em dash for a shot with no characters, placement or takes",
-      (tester) async {
+  testWidgets("renders the em dash for a shot with no characters, placement or takes", (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _wrapInApp(
         OcptShotMetadataPanel(

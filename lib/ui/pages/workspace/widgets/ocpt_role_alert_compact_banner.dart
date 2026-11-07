@@ -3,14 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 
-/// The compact, mode-level summary of every role needing attention — ADR 0030 decision 4, refined
-/// by the M4 step of `docs/plans/shot-characters-are-roles.md`: a role's trouble must be visible the
-/// moment a mode is entered, not only once its own record is opened.
+/// The compact, mode-level summary of every role needing attention — ADR 0030 decision 4: a role's
+/// trouble must be visible the moment a mode is entered, not only once its own record is opened.
 ///
 /// Shown at the top of the resources mode and the breakdown mode alike, above everything else those
 /// modes show: one line per role needing attention, built straight from [OcptRemovedRoleAlert] and
@@ -25,10 +24,10 @@ import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 /// widget itself knows nothing about either mode's own way of getting there — it only ever asks,
 /// through [onRoleTapped].
 ///
-/// Renders nothing at all — clears itself — the moment neither list holds anything, and [isReadOnly]
-/// withholds it outright: a project version being previewed read-only has no fix to point the way
-/// to. Does **not** change `OcptRoleAlertBanner`'s own, full-size banner, which keeps living in the
-/// resources mode's role sheet and the shot list.
+/// Renders nothing at all — clears itself — the moment neither list holds anything, and
+/// [isReadOnly] withholds it outright: a project version being previewed read-only has no fix to
+/// point the way to. Does **not** change `OcptRoleAlertBanner`'s own, full-size banner, which keeps
+/// living in the resources mode's role sheet and the shot list.
 class OcptRoleAlertCompactBanner extends StatelessWidget {
   /// Every orphaned-role alert of the whole cast, one line each.
   final List<OcptRemovedRoleAlert> orphanedAlerts;
@@ -52,6 +51,7 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
     this.isReadOnly = false,
   });
 
+  /// Build the role alert compact banner as a [Container].
   @override
   Widget build(BuildContext context) {
     if (isReadOnly || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
@@ -64,23 +64,23 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
 
     final lines = <Widget>[
       for (final alert in orphanedAlerts)
-        _buildLine(
-          theme: theme,
+        _OcptRoleAlertCompactLine(
           color: color,
           roleId: alert.roleId,
+          onRoleTapped: onRoleTapped,
           text: tr.roleAlertCompactOrphanedLine(alert.characterName),
         ),
       for (final alert in collisionAlerts) ...[
-        _buildLine(
-          theme: theme,
+        _OcptRoleAlertCompactLine(
           color: color,
           roleId: alert.screenplayRoleId,
+          onRoleTapped: onRoleTapped,
           text: tr.roleAlertCompactCollisionLine(alert.name),
         ),
-        _buildLine(
-          theme: theme,
+        _OcptRoleAlertCompactLine(
           color: color,
           roleId: alert.handAddedRoleId,
+          onRoleTapped: onRoleTapped,
           text: tr.roleAlertCompactCollisionLine(alert.name),
         ),
       ],
@@ -90,30 +90,51 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: lines),
     );
   }
+}
 
-  /// One line: [text], tappable onto [roleId].
-  Widget _buildLine({
-    required ThemeData theme,
-    required Color color,
-    required String roleId,
-    required String text,
-  }) => InkWell(
+/// One line: [text], tappable onto [roleId].
+class _OcptRoleAlertCompactLine extends StatelessWidget {
+  /// The colour of the icons and the text.
+  final Color color;
+
+  /// The role the line leads to.
+  final String roleId;
+
+  /// The line's text.
+  final String text;
+
+  /// Called with [roleId] when the line is tapped.
+  final ValueChanged<String> onRoleTapped;
+
+  /// Class constructor
+  const _OcptRoleAlertCompactLine({
+    required this.color,
+    required this.roleId,
+    required this.text,
+    required this.onRoleTapped,
+  });
+
+  /// Build the role alert compact line as an [InkWell].
+  @override
+  Widget build(BuildContext context) => InkWell(
     onTap: () => onRoleTapped(roleId),
-    mouseCursor: ocptClickableCursor,
-    borderRadius: BorderRadius.circular(ocptRadiusMedium),
+    mouseCursor: ocpt_theme.ocptClickableCursor,
+    borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Row(
         children: [
           Icon(Icons.person_off_outlined, size: 14, color: color),
           const SizedBox(width: 6),
-          Expanded(child: Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color))),
+          Expanded(
+            child: Text(text, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color)),
+          ),
           Icon(Icons.chevron_right, size: 16, color: color),
         ],
       ),

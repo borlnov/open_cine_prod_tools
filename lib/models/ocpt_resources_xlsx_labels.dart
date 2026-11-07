@@ -25,10 +25,10 @@ import 'package:open_cine_prod_tools/types/ocpt_roles_xlsx_column.dart';
 /// differently from the screen.
 ///
 /// [sceneLabels] is the one exception to "every string is a translation": `ocptSceneRefLabel`
-/// lives under `lib/ui/utils/`, which the manager layer must not import, so the UI resolves a
-/// scene's label for every scene id the catalogue might reference and hands the whole map over —
-/// exactly the same trade `OcptShotListXlsxLabels.sequenceTitles` makes for a sequence's own
-/// separator title.
+/// lives under `lib/ui/widgets/helpers/`, which the manager layer must not import, so the UI
+/// resolves a scene's label for every scene id the catalogue might reference and hands the whole
+/// map over — exactly the same trade `OcptShotListXlsxLabels.sequenceTitles` makes for a sequence's
+/// own separator title.
 ///
 /// Every accessor returns an empty string for a key it holds nothing for, exactly as
 /// `OcptShotListXlsxLabels.headerOf`/`.labelOf` do — a missing translation is written as a blank
@@ -142,61 +142,64 @@ class OcptResourcesXlsxLabels extends Equatable {
     required this.sceneLabels,
   });
 
-  /// The header of [column] in the crew & cast directory sheet, or an empty string if
+  /// Get the header of [column] in the crew & cast directory sheet, or an empty string if
   /// [peopleColumnHeaders] holds none for it.
   String peopleHeaderOf(OcptPeopleXlsxColumn column) => peopleColumnHeaders[column] ?? "";
 
-  /// The header of [column] in the roles sheet, or an empty string if [rolesColumnHeaders] holds
+  /// Get the header of [column] in the roles sheet, or an empty string if [rolesColumnHeaders]
+  /// holds
   /// none for it.
   String rolesHeaderOf(OcptRolesXlsxColumn column) => rolesColumnHeaders[column] ?? "";
 
-  /// The header of [column] in the locations & sets sheet, or an empty string if
+  /// Get the header of [column] in the locations & sets sheet, or an empty string if
   /// [locationsColumnHeaders] holds none for it.
   String locationsHeaderOf(OcptLocationsXlsxColumn column) => locationsColumnHeaders[column] ?? "";
 
-  /// The header of [column] in the elements sheet, or an empty string if [elementsColumnHeaders]
+  /// Get the header of [column] in the elements sheet, or an empty string if
+  /// [elementsColumnHeaders]
   /// holds none for it.
   String elementsHeaderOf(OcptElementsXlsxColumn column) => elementsColumnHeaders[column] ?? "";
 
-  /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
-  /// holds none for it.
+  /// {@macro open_cine_prod_tools.crewPositionLabelGetter}
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
-  /// The label of [kind], or an empty string if [roleKindLabels] holds none for it.
+  /// Get the label of [kind], or an empty string if [roleKindLabels] holds none for it.
   String roleKindLabelOf(OcptRoleKind kind) => roleKindLabels[kind] ?? "";
 
-  /// The label of [status], or an empty string if [imageRightsStatusLabels] holds none for it.
+  /// Get the label of [status], or an empty string if [imageRightsStatusLabels] holds none for it.
   String imageRightsStatusLabelOf(OcptImageRightsStatus status) =>
       imageRightsStatusLabels[status] ?? "";
 
-  /// The label of [status], or an empty string if [permitStatusLabels] holds none for it.
+  /// Get the label of [status], or an empty string if [permitStatusLabels] holds none for it.
   String permitStatusLabelOf(OcptPermitStatus status) => permitStatusLabels[status] ?? "";
 
-  /// The label of [category], or an empty string if [elementCategoryLabels] holds none for it.
+  /// Get the label of [category], or an empty string if [elementCategoryLabels] holds none for it.
   String elementCategoryLabelOf(OcptElementCategory category) =>
       elementCategoryLabels[category] ?? "";
 
-  /// The label of [sourceKind], or an empty string if [elementSourceKindLabels] holds none for it.
+  /// Get the label of [sourceKind], or an empty string if [elementSourceKindLabels] holds none for
+  /// it.
   String elementSourceKindLabelOf(OcptElementSourceKind sourceKind) =>
       elementSourceKindLabels[sourceKind] ?? "";
 
-  /// The label of [slot], or an empty string if [dayPartSlotLabels] holds none for it.
+  /// Get the label of [slot], or an empty string if [dayPartSlotLabels] holds none for it.
   String dayPartSlotLabelOf(OcptDayPartSlot slot) => dayPartSlotLabels[slot] ?? "";
 
-  /// The label of [kind], or an empty string if [availabilityKindLabels] holds none for it.
+  /// Get the label of [kind], or an empty string if [availabilityKindLabels] holds none for it.
   String availabilityKindLabelOf(OcptLocationAvailabilityKind kind) =>
       availabilityKindLabels[kind] ?? "";
 
-  /// The name of [weekday], a `DateTime.monday`…`DateTime.sunday` number, or an empty string if
+  /// Get the name of [weekday], a `DateTime.monday`…`DateTime.sunday` number, or an empty string if
   /// [weekdayLabels] holds none for it.
   String weekdayLabelOf(int weekday) => weekdayLabels[weekday] ?? "";
 
-  /// The label of the scene [sceneId] names, or an empty string if [sceneLabels] holds none for it
+  /// Get the label of the scene [sceneId] names, or an empty string if [sceneLabels] holds none for
+  /// it
   /// (a link onto a scene the screenplay no longer has, which the loading services already filter
   /// out — see `OcptElement.sceneLinks`'s own doc comment — so this is only ever a safety net).
   String sceneLabelOf(String sceneId) => sceneLabels[sceneId] ?? "";
 
-  /// How far along [element] is, read off its three tracking flags in the exact priority
+  /// Tell how far along [element] is, read off its three tracking flags in the exact priority
   /// `ocptElementTrackingLabel` uses (the last one ticked wins): [elementTrackingReturnedLabel],
   /// then [elementTrackingReadyLabel], then [elementTrackingSecuredLabel], and
   /// [elementTrackingToSecureLabel] while none is set. Kept here rather than duplicated by the
@@ -215,14 +218,14 @@ class OcptResourcesXlsxLabels extends Equatable {
     return elementTrackingToSecureLabel;
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptResourcesXlsxLabels(peopleSheetName: $peopleSheetName, rolesSheetName: "
       "$rolesSheetName, locationsSheetName: $locationsSheetName, elementsSheetName: "
       "$elementsSheetName)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

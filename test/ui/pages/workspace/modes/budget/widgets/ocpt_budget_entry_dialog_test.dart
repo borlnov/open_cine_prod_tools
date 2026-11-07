@@ -12,9 +12,9 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
@@ -35,6 +35,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -104,8 +105,8 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
-/// A minimal poste, everything but [id]/[label] neutral.
-OcptBudgetPoste _poste({required String id, required String label}) => OcptBudgetPoste(
+/// A minimal account, everything but [id]/[label] neutral.
+OcptBudgetAccount _account({required String id, required String label}) => OcptBudgetAccount(
   id: id,
   code: "1",
   label: label,
@@ -151,7 +152,7 @@ OcptBudgetShare _share({required String id, required String label}) => OcptBudge
 );
 
 /// A minimal person, everything but [id]/[firstName] neutral — mirrors
-/// `ocpt_budget_regie_test.dart`'s own `_buildPerson`.
+/// `ocpt_budget_logistics_test.dart`'s own `_buildPerson`.
 OcptPerson _person({required String id, String firstName = ""}) => OcptPerson(
   id: id,
   firstName: firstName,
@@ -196,12 +197,12 @@ OcptPerson _person({required String id, String firstName = ""}) => OcptPerson(
 );
 
 /// A minimal existing entry, its debit or credit set by whichever of [debitCents]/[creditCents] is
-/// non-zero, naming at most one of [posteId]/[resourceId]/[revenueId]/[shareId]/[personId].
+/// non-zero, naming at most one of [accountId]/[resourceId]/[revenueId]/[shareId]/[personId].
 OcptBudgetEntry _existingEntry({
   String id = "entry-1",
   DateTime? date,
   String label = "Camera rental",
-  String? posteId,
+  String? accountId,
   String? resourceId,
   String? revenueId,
   String? shareId,
@@ -215,7 +216,7 @@ OcptBudgetEntry _existingEntry({
   id: id,
   date: date ?? DateTime(2026, 1, 15),
   label: label,
-  posteId: posteId,
+  accountId: accountId,
   debitCents: debitCents,
   creditCents: creditCents,
   isTaxInclusive: isTaxInclusive,
@@ -229,6 +230,7 @@ OcptBudgetEntry _existingEntry({
   personId: personId,
 );
 
+/// Run the tests of [OcptBudgetEntryDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 
@@ -251,12 +253,12 @@ void main() {
   });
 
   /// Pumps [OcptBudgetEntryDialog] directly (no `.show`), [existing] defaulting to a plain debit
-  /// naming a poste — this dialog now only ever edits, so [existing] is never null.
+  /// naming an account — this dialog now only ever edits, so [existing] is never null.
   Future<Tr> pumpDialog(
     WidgetTester tester, {
     OcptBudgetEntry? existing,
     OcptAssetRef? existingReceipt,
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
@@ -269,7 +271,7 @@ void main() {
         OcptBudgetEntryDialog(
           existing: existing ?? _existingEntry(debitCents: 5000),
           existingReceipt: existingReceipt,
-          postes: postes,
+          accounts: accounts,
           resources: resources,
           revenues: revenues,
           shares: shares,
@@ -302,10 +304,10 @@ void main() {
         existing: _existingEntry(
           date: DateTime(2026, 4, 2),
           label: "Steadicam hire",
-          posteId: "poste-1",
+          accountId: "poste-1",
           debitCents: 45000,
         ),
-        postes: [_poste(id: "poste-1", label: "Camera")],
+        accounts: [_account(id: "poste-1", label: "Camera")],
       );
 
       expect(find.widgetWithText(TextFormField, "Steadicam hire"), findsOneWidget);
@@ -327,11 +329,11 @@ void main() {
     testWidgets("a poste alone draws Poste du devis and no other link field", (tester) async {
       final tr = await pumpDialog(
         tester,
-        existing: _existingEntry(posteId: "poste-1", debitCents: 5000),
-        postes: [_poste(id: "poste-1", label: "Camera")],
+        existing: _existingEntry(accountId: "poste-1", debitCents: 5000),
+        accounts: [_account(id: "poste-1", label: "Camera")],
       );
 
-      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogAccountFieldLabel), findsOneWidget);
       expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsNothing);
       expect(find.text(tr.budgetEntryDialogRevenueFieldLabel), findsNothing);
       expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsNothing);
@@ -348,7 +350,7 @@ void main() {
       );
 
       expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsNothing);
+      expect(find.text(tr.budgetEntryDialogAccountFieldLabel), findsNothing);
     });
 
     testWidgets("a taking alone draws Recette", (tester) async {
@@ -371,52 +373,44 @@ void main() {
       expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsOneWidget);
     });
 
-    testWidgets(
-      "a person alone draws Personne — reachable now, unlike before this milestone",
-      (tester) async {
-        final tr = await pumpDialog(
-          tester,
-          existing: _existingEntry(personId: "p1", debitCents: 5000),
-          people: [_person(id: "p1", firstName: "Alex")],
-        );
+    testWidgets("a person alone draws Personne", (tester) async {
+      final tr = await pumpDialog(
+        tester,
+        existing: _existingEntry(personId: "p1", debitCents: 5000),
+        people: [_person(id: "p1", firstName: "Alex")],
+      );
 
-        expect(find.text(tr.budgetEntryDialogPersonFieldLabel), findsOneWidget);
-        expect(find.text("Alex"), findsOneWidget);
-      },
-    );
+      expect(find.text(tr.budgetEntryDialogPersonFieldLabel), findsOneWidget);
+      expect(find.text("Alex"), findsOneWidget);
+    });
 
     testWidgets("naming nothing at all reads as other, and draws the direction choice", (
       tester,
     ) async {
       final tr = await pumpDialog(tester, existing: _existingEntry(debitCents: 5000));
 
-      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogAccountFieldLabel), findsOneWidget);
       // Drawn upper-cased, like every other bare field label of this dialog.
       expect(find.text(tr.budgetEntryDialogDirectionFieldLabel.toUpperCase()), findsOneWidget);
     });
   });
 
   group("saving", () {
-    testWidgets("pops with the fields typed, including the retyped voucher number", (
-      tester,
-    ) async {
+    testWidgets("pops with the fields typed, including the retyped voucher number", (tester) async {
       await pumpDialog(
         tester,
-        existing: _existingEntry(posteId: "poste-1", debitCents: 5000, voucherNumber: "J-001"),
-        postes: [_poste(id: "poste-1", label: "Camera")],
+        existing: _existingEntry(accountId: "poste-1", debitCents: 5000, voucherNumber: "J-001"),
+        accounts: [_account(id: "poste-1", label: "Camera")],
       );
 
-      await tester.enterText(
-        find.widgetWithText(TextFormField, "J-001"),
-        "J-002",
-      );
+      await tester.enterText(find.widgetWithText(TextFormField, "J-001"), "J-002");
       await tester.tap(find.byKey(const Key("ocptBudgetEntryWizardSaveButton")));
       await tester.pumpAndSettle();
 
       expect(routerManager.popped, isTrue);
       final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
       expect(fields.voucherNumber, "J-002");
-      expect(fields.posteId, "poste-1");
+      expect(fields.accountId, "poste-1");
       expect(fields.isDebit, isTrue);
       expect(fields.amountCents, 5000);
     });
@@ -459,10 +453,7 @@ void main() {
 
   group("the receipt", () {
     testWidgets("shows the existing voucher and offers Replace", (tester) async {
-      final tr = await pumpDialog(
-        tester,
-        existingReceipt: _receipt(path: "/tmp/invoice.pdf"),
-      );
+      final tr = await pumpDialog(tester, existingReceipt: _receipt(path: "/tmp/invoice.pdf"));
 
       expect(find.text(tr.budgetEntryDialogReceiptReplaceAction), findsOneWidget);
       expect(find.text(tr.budgetEntryDialogReceiptEmptyHint), findsNothing);
@@ -477,7 +468,10 @@ void main() {
 
     testWidgets("attaching a fresh file carries its path through Enregistrer", (tester) async {
       await _registerFileSelector("/tmp/fresh-receipt.pdf");
-      await pumpDialog(tester, postes: [_poste(id: "poste-1", label: "Camera")]);
+      await pumpDialog(
+        tester,
+        accounts: [_account(id: "poste-1", label: "Camera")],
+      );
 
       await tester.tap(find.byType(OutlinedButton));
       await tester.pumpAndSettle();
@@ -504,8 +498,7 @@ void main() {
   });
 
   group("the taking picker's own inline creation", () {
-    testWidgets("New taking… still opens the revenue dialog, unchanged from before this "
-        "milestone", (tester) async {
+    testWidgets("New taking… still opens the revenue dialog", (tester) async {
       final tr = await pumpDialog(
         tester,
         existing: _existingEntry(revenueId: "v1", creditCents: 5000),

@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_type_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart';
 
 /// The compact-width toolbar's stand-in for `OcptEditorFormatControls`: the exact same block-type
 /// choice and Bold/Italic/Underline toggles, folded behind a single `⋮` button instead of laid out
@@ -26,6 +26,7 @@ class OcptEditorFormatOverflowMenu extends StatelessWidget {
   /// Class constructor
   const OcptEditorFormatOverflowMenu({super.key, required this.controller});
 
+  /// Build the editor format overflow menu as a [ListenableBuilder].
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,
@@ -82,8 +83,7 @@ class OcptEditorFormatOverflowMenu extends StatelessWidget {
           // and no longer collides with the mode overflow's own `⋮`.
           icon: const Icon(Icons.text_format, size: 22),
           tooltip: tr.editorFormatMenuTooltip,
-          onPressed: () =>
-              menuController.isOpen ? menuController.close() : menuController.open(),
+          onPressed: () => menuController.isOpen ? menuController.close() : menuController.open(),
         ),
       );
     },

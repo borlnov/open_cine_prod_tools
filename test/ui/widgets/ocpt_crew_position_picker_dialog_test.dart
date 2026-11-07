@@ -9,10 +9,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_crew_position_ref.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_pick_result.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
 
 /// A router manager whose [pop] only records the last call and its value: the dialog is pumped
 /// directly, without a real GoRouter for it to operate on — mirrors
@@ -24,6 +25,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -34,18 +36,20 @@ class _RecordingRouterManager extends OcptRouterManager {
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests, forced to
 /// [locale] (English by default) so a test asserting on one language's own label text does not
 /// depend on the host machine's own locale.
-Widget _wrapWithLocalization(Widget child, {Locale locale = const Locale('en', 'GB')}) => MaterialApp(
-  locale: locale,
-  localizationsDelegates: const [
-    Tr.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
-  supportedLocales: Tr.delegate.supportedLocales,
-  home: child,
-);
+Widget _wrapWithLocalization(Widget child, {Locale locale = const Locale('en', 'GB')}) =>
+    MaterialApp(
+      locale: locale,
+      localizationsDelegates: const [
+        Tr.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: Tr.delegate.supportedLocales,
+      home: child,
+    );
 
+/// Run the tests of [OcptCrewPositionPickerDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 
@@ -82,7 +86,11 @@ void main() {
 
     await tester.pumpWidget(
       _wrapWithLocalization(
-        OcptCrewPositionPickerDialog(promoted: promoted, excluded: excluded, allowCustomLabel: allowCustomLabel),
+        OcptCrewPositionPickerDialog(
+          promoted: promoted,
+          excluded: excluded,
+          allowCustomLabel: allowCustomLabel,
+        ),
         locale: locale,
       ),
     );
@@ -94,7 +102,10 @@ void main() {
     final context = tester.element(find.byType(OcptCrewPositionPickerDialog));
     final tr = Tr.of(context);
 
-    expect(find.text(ocptCrewDepartmentLabel(tr, OcptCrewDepartment.direction).toUpperCase()), findsOneWidget);
+    expect(
+      find.text(ocptCrewDepartmentLabel(tr, OcptCrewDepartment.direction).toUpperCase()),
+      findsOneWidget,
+    );
     expect(find.text(ocptCrewPositionLabel(tr, "director")), findsOneWidget);
     expect(find.text(ocptCrewPositionLabel(tr, "soundEngineer")), findsOneWidget);
   });
@@ -112,7 +123,9 @@ void main() {
     expect(find.text(ocptCrewPositionLabel(tr, "soundEngineer")), findsNothing);
   });
 
-  testWidgets("the search ignores a French label's own inclusive-writing middle dot", (tester) async {
+  testWidgets("the search ignores a French label's own inclusive-writing middle dot", (
+    tester,
+  ) async {
     await pumpDialog(tester, locale: const Locale('fr'));
     final context = tester.element(find.byType(OcptCrewPositionPickerDialog));
     final tr = Tr.of(context);
@@ -138,17 +151,23 @@ void main() {
     expect(find.text(tr.resourcesCrewPositionPickerPromotedHeading), findsOneWidget);
     expect(find.text(ocptCrewPositionLabel(tr, "gaffer")), findsNWidgets(2));
 
-    final promotedHeadingY = tester.getTopLeft(find.text(tr.resourcesCrewPositionPickerPromotedHeading)).dy;
+    final promotedHeadingY = tester
+        .getTopLeft(find.text(tr.resourcesCrewPositionPickerPromotedHeading))
+        .dy;
     final firstGafferY = tester.getTopLeft(find.text(ocptCrewPositionLabel(tr, "gaffer")).first).dy;
     final directionHeadingY = tester
-        .getTopLeft(find.text(ocptCrewDepartmentLabel(tr, OcptCrewDepartment.direction).toUpperCase()))
+        .getTopLeft(
+          find.text(ocptCrewDepartmentLabel(tr, OcptCrewDepartment.direction).toUpperCase()),
+        )
         .dy;
 
     expect(promotedHeadingY, lessThan(firstGafferY));
     expect(firstGafferY, lessThan(directionHeadingY));
   });
 
-  testWidgets("an excluded ref is left out of both the promoted section and the catalogue", (tester) async {
+  testWidgets("an excluded ref is left out of both the promoted section and the catalogue", (
+    tester,
+  ) async {
     await pumpDialog(
       tester,
       promoted: const [OcptCrewPositionRef(positionId: "gaffer", customLabel: "")],
@@ -196,7 +215,9 @@ void main() {
     expect(result.position, const OcptCrewPositionRef(positionId: "director", customLabel: ""));
   });
 
-  testWidgets("tapping the custom entry pops the router manager with a custom result", (tester) async {
+  testWidgets("tapping the custom entry pops the router manager with a custom result", (
+    tester,
+  ) async {
     await pumpDialog(tester, allowCustomLabel: true);
     final context = tester.element(find.byType(OcptCrewPositionPickerDialog));
     final tr = Tr.of(context);

@@ -4,8 +4,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The side of the application logo standing next to the home page's title: big enough to read as
 /// the app's mark on the one page that has room for it, small enough to stay under the title's own
@@ -45,6 +45,7 @@ class OcptHomeHeader extends StatelessWidget {
     super.key,
   });
 
+  /// Build the home header as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -66,17 +67,14 @@ class OcptHomeHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            if (isCompact)
-              ..._buildCompactActions(tr)
-            else
-              ..._buildWideActions(tr),
+            if (isCompact) ..._buildCompactActions(tr) else ..._buildWideActions(tr),
           ],
         );
       },
     );
   }
 
-  /// The wide layout: today's five actions side by side, unchanged.
+  /// Build the wide layout: today's five actions side by side, unchanged.
   List<Widget> _buildWideActions(Tr tr) => [
     IconButton(
       onPressed: onOpenSettings,
@@ -109,7 +107,8 @@ class OcptHomeHeader extends StatelessWidget {
     ),
   ];
 
-  /// The compact layout: every action collapses into a single overflow menu, and "New project"
+  /// Build the compact layout: every action collapses into a single overflow menu, and "New
+  /// project"
   /// itself is dropped — the home page shows it as a floating action button instead, which reaches
   /// further down a phone-sized screen than a header button would.
   List<Widget> _buildCompactActions(Tr tr) => [
@@ -137,8 +136,7 @@ class OcptHomeHeader extends StatelessWidget {
         ),
       ],
       builder: (context, controller, child) => IconButton(
-        onPressed: () =>
-            controller.isOpen ? controller.close() : controller.open(),
+        onPressed: () => controller.isOpen ? controller.close() : controller.open(),
         icon: const Icon(Icons.more_vert),
         // Flutter's own generic "Show menu" string, not a bespoke ARB key: this button behaves
         // exactly like `PopupMenuButton`'s default trigger, just built from `MenuAnchor` so the

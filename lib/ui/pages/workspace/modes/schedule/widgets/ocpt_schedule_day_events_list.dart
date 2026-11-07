@@ -37,7 +37,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 /// this widget *is* how the day view shows what the day's events are. A reader looking for a
 /// marker on the day view itself will not find one; the week grid's own full-width marker
 /// (`OcptScheduleWeekGrid`) is the only agenda presentation that draws one, the strip and month
-/// agendas being out of scope for this milestone.
+/// agendas drawing none.
 class OcptScheduleDayEventsList extends StatelessWidget {
   /// The day's own live events, already ordered by hour.
   final List<OcptShootingDayEvent> events;
@@ -81,6 +81,7 @@ class OcptScheduleDayEventsList extends StatelessWidget {
     required this.onEventDeletionRequested,
   });
 
+  /// Build the schedule day events list as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -88,7 +89,16 @@ class OcptScheduleDayEventsList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final event in events) _buildEventRow(context, event),
+        for (final event in events)
+          _OcptScheduleDayEventRow(
+            event: event,
+            eventLabelValueOf: eventLabelValueOf,
+            eventNotesValueOf: eventNotesValueOf,
+            onEventMinuteChanged: onEventMinuteChanged,
+            onEventLabelChanged: onEventLabelChanged,
+            onEventNotesChanged: onEventNotesChanged,
+            onEventDeletionRequested: onEventDeletionRequested,
+          ),
         if (onEventAdded != null)
           OutlinedButton.icon(
             onPressed: onEventAdded,
@@ -98,10 +108,46 @@ class OcptScheduleDayEventsList extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// One event's own row: its hour and label on one line, its note (when it has one, or is
-  /// editable) indented under the label on the next.
-  Widget _buildEventRow(BuildContext context, OcptShootingDayEvent event) {
+/// One event's own row: its hour and label on one line, its note (when it has one, or is
+/// editable) indented under the label on the next.
+class _OcptScheduleDayEventRow extends StatelessWidget {
+  /// The event this row shows.
+  final OcptShootingDayEvent event;
+
+  /// Resolves an event's id to its label as currently held.
+  final String Function(String eventId) eventLabelValueOf;
+
+  /// Resolves an event's id to its notes as currently held.
+  final String Function(String eventId) eventNotesValueOf;
+
+  /// Called with an event's id and its new minute, or null while withheld.
+  final void Function(String eventId, int minute)? onEventMinuteChanged;
+
+  /// Called with an event's id and its raw label text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventLabelChanged;
+
+  /// Called with an event's id and its raw note text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventNotesChanged;
+
+  /// Called with an event's id when its remove control is clicked, or null while withheld.
+  final ValueChanged<String>? onEventDeletionRequested;
+
+  /// Class constructor
+  const _OcptScheduleDayEventRow({
+    required this.event,
+    required this.eventLabelValueOf,
+    required this.eventNotesValueOf,
+    required this.onEventMinuteChanged,
+    required this.onEventLabelChanged,
+    required this.onEventNotesChanged,
+    required this.onEventDeletionRequested,
+  });
+
+  /// Build the schedule day event row as a [Padding].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final labelValue = eventLabelValueOf(event.id);
@@ -190,6 +236,8 @@ class _OcptScheduleDayEventLabelField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptScheduleDayEventLabelFieldState] holding the state of the schedule day event
+  /// label field.
   @override
   State<_OcptScheduleDayEventLabelField> createState() => _OcptScheduleDayEventLabelFieldState();
 }
@@ -197,10 +245,10 @@ class _OcptScheduleDayEventLabelField extends StatefulWidget {
 /// The state of [_OcptScheduleDayEventLabelField]: owns the controller the class doc comment
 /// explains.
 class _OcptScheduleDayEventLabelFieldState extends State<_OcptScheduleDayEventLabelField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
+  /// Show the new value in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant _OcptScheduleDayEventLabelField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -209,12 +257,7 @@ class _OcptScheduleDayEventLabelFieldState extends State<_OcptScheduleDayEventLa
     }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+  /// Build the schedule day event label field as a [TextField].
   @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
@@ -222,11 +265,19 @@ class _OcptScheduleDayEventLabelFieldState extends State<_OcptScheduleDayEventLa
     style: Theme.of(context).textTheme.bodySmall,
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
+
+  /// Dispose [_controller].
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }
 
-/// An event row's own note field, below its hour and label line — [_OcptScheduleDayEventLabelField]'s
-/// own controller-sync idiom, drawn as a body-sized field that grows with what is typed into it
-/// rather than a single-line title, mirroring `_OcptScheduleSlotNoteField`.
+/// An event row's own note field, below its hour and label line —
+/// [_OcptScheduleDayEventLabelField]'s own controller-sync idiom, drawn as a body-sized field that
+/// grows with what is typed into it rather than a single-line title, mirroring
+/// `_OcptScheduleSlotNoteField`.
 class _OcptScheduleDayEventNoteField extends StatefulWidget {
   /// The field's current authoritative value.
   final String value;
@@ -245,6 +296,8 @@ class _OcptScheduleDayEventNoteField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptScheduleDayEventNoteFieldState] holding the state of the schedule day event
+  /// note field.
   @override
   State<_OcptScheduleDayEventNoteField> createState() => _OcptScheduleDayEventNoteFieldState();
 }
@@ -252,10 +305,10 @@ class _OcptScheduleDayEventNoteField extends StatefulWidget {
 /// The state of [_OcptScheduleDayEventNoteField]: owns the controller the class doc comment
 /// explains.
 class _OcptScheduleDayEventNoteFieldState extends State<_OcptScheduleDayEventNoteField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
+  /// Show the new value in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant _OcptScheduleDayEventNoteField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -264,12 +317,7 @@ class _OcptScheduleDayEventNoteFieldState extends State<_OcptScheduleDayEventNot
     }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+  /// Build the schedule day event note field as a [TextField].
   @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
@@ -278,4 +326,11 @@ class _OcptScheduleDayEventNoteFieldState extends State<_OcptScheduleDayEventNot
     style: Theme.of(context).textTheme.bodySmall,
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
+
+  /// Dispose [_controller].
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }

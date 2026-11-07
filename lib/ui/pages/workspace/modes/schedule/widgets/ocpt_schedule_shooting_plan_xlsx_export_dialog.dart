@@ -15,8 +15,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 ///
 /// A small dedicated dialog rather than a reuse of `OcptScheduleShootingPlanExportDialog`: that one
 /// also asks for a page format and four section toggles, neither of which means anything to a
-/// spreadsheet (§5 of the export panel's own design — a sheet costs nothing and is hidden in one
-/// click, and page geometry is the printer's business). [OcptScheduleDaySelectionList] ticks every
+/// spreadsheet (a sheet costs nothing and is hidden in one click, and page geometry is the
+/// printer's business). [OcptScheduleDaySelectionList] ticks every
 /// day by default here, as its PDF sibling does: the common case for a whole-shoot document is
 /// printing the whole shoot.
 ///
@@ -29,7 +29,13 @@ class OcptScheduleShootingPlanXlsxExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptScheduleShootingPlanXlsxExportDialog({required this.days, super.key});
 
-  /// Shows the dialog and returns the [OcptShootingPlanXlsxExportOptions] the user applied, or null
+  /// Create the [_OcptScheduleShootingPlanXlsxExportDialogState] holding the state of the schedule
+  /// shooting plan XLSX export dialog.
+  @override
+  State<OcptScheduleShootingPlanXlsxExportDialog> createState() =>
+      _OcptScheduleShootingPlanXlsxExportDialogState();
+
+  /// Show the dialog and return the [OcptShootingPlanXlsxExportOptions] the user applied, or null
   /// if they cancelled it.
   static Future<OcptShootingPlanXlsxExportOptions?> show(
     BuildContext context, {
@@ -38,10 +44,6 @@ class OcptScheduleShootingPlanXlsxExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptScheduleShootingPlanXlsxExportDialog(days: days),
   );
-
-  @override
-  State<OcptScheduleShootingPlanXlsxExportDialog> createState() =>
-      _OcptScheduleShootingPlanXlsxExportDialogState();
 }
 
 /// The state of [OcptScheduleShootingPlanXlsxExportDialog].
@@ -50,12 +52,14 @@ class _OcptScheduleShootingPlanXlsxExportDialogState
   /// The ids of the days currently ticked.
   late Set<String> _selectedDayIds;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedDayIds = widget.days.map((day) => day.id).toSet();
   }
 
+  /// Build the schedule shooting plan XLSX export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -79,17 +83,20 @@ class _OcptScheduleShootingPlanXlsxExportDialogState
     );
   }
 
-  /// Pops the dialog returning the resulting [OcptShootingPlanXlsxExportOptions], the selected days
+  /// Pop the dialog returning the resulting [OcptShootingPlanXlsxExportOptions], the selected days
   /// in [OcptScheduleShootingPlanXlsxExportDialog.days]' own order rather than selection order —
   /// mirrors `OcptScheduleShootingPlanExportDialog._submit`.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager). Never disables its own export button while no day is ticked: an empty selection
   /// still produces a readable workbook (every sheet left with its own header rows alone), which
   /// `OcptShootingPlanXlsxExportService` already handles.
   void _submit() {
     final options = OcptShootingPlanXlsxExportOptions(
-      dayIds: [for (final day in widget.days) if (_selectedDayIds.contains(day.id)) day.id],
+      dayIds: [
+        for (final day in widget.days)
+          if (_selectedDayIds.contains(day.id)) day.id,
+      ],
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptShootingPlanXlsxExportOptions>(options);
   }

@@ -6,13 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_scene_bars.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_search_candidate.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_pending_tag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
@@ -21,15 +25,12 @@ import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_script_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_tag_popover.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
 
 /// Wraps [child] in the app's own light theme — the sheet paints its backdrop from the
-/// `OcptSpecificColors` extension, which only a theme built from [ocptTheme] carries — plus the
-/// localization delegates so [Tr.of] lookups resolve.
+/// `OcptSpecificColors` extension, which only a theme built from [ocpt_theme.ocptTheme] carries —
+/// plus the localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -50,6 +51,8 @@ Future<void> _useLargeSurface(WidgetTester tester) async {
 /// A single-scene screenplay: heading then one action line, matching the fixture
 /// `OcptScriptWordLayout.of`'s own tests use elsewhere.
 const _sceneId = "scene-1";
+
+/// A short scene: a heading and an action line.
 const _sceneText = "INT. HOUSE - DAY\n\nA lamp sits on the desk.\n";
 
 /// The layout every test in this file reads its word offsets from — exactly what
@@ -169,6 +172,7 @@ Widget _buildView({
   onOpenInResourcesRequested: () {},
 );
 
+/// Run the tests of [OcptBreakdownScriptView].
 void main() {
   testWidgets("a tagged passage is washed with its target's own colour", (tester) async {
     await _useLargeSurface(tester);
@@ -205,7 +209,9 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         _buildView(
-          scene: _buildScene(tags: [_buildTag(word: _actionWords[5], targetId: "el-desk")]),
+          scene: _buildScene(
+            tags: [_buildTag(word: _actionWords[5], targetId: "el-desk")],
+          ),
           targets: [target],
         ),
       ),
@@ -228,8 +234,8 @@ void main() {
     await tester.pumpWidget(_wrapInApp(_buildView()));
     final desktopWidth = _blockBoxWidthOf(tester, "lamp ");
 
-    // Phone: the same block scales down by `OcptEditorPreviewLayout.compactLayoutScale`, leaving far
-    // less left margin (the user's own report).
+    // Phone: the same block scales down by `OcptEditorPreviewLayout.compactLayoutScale`, leaving
+    // far less left margin (the user's own report).
     await tester.pumpWidget(_wrapInApp(_atPhoneWidth(_buildView())));
     final phoneWidth = _blockBoxWidthOf(tester, "lamp ");
 
@@ -275,7 +281,11 @@ void main() {
   testWidgets("only the selected target's own tag gets a ring, not another one's", (tester) async {
     await _useLargeSurface(tester);
     final lamp = _buildElementTarget();
-    final desk = _buildElementTarget(id: "el-2", name: "Desk", category: OcptElementCategory.setDressing);
+    final desk = _buildElementTarget(
+      id: "el-2",
+      name: "Desk",
+      category: OcptElementCategory.setDressing,
+    );
 
     await tester.pumpWidget(
       _wrapInApp(
@@ -323,7 +333,9 @@ void main() {
     await tester.pumpWidget(
       _wrapInApp(
         _buildView(
-          scene: _buildScene(tags: [_buildTag(word: _actionWords[1], targetId: "gone")]),
+          scene: _buildScene(
+            tags: [_buildTag(word: _actionWords[1], targetId: "gone")],
+          ),
         ),
       ),
     );
@@ -396,17 +408,18 @@ void main() {
     expect(reported, (_sceneId, sitsWord.startOffset, sitsWord.endOffset));
   });
 
-  testWidgets("a plain word click is withheld while a version is previewed, its own tap doing nothing", (
-    tester,
-  ) async {
-    await _useLargeSurface(tester);
+  testWidgets(
+    "a plain word click is withheld while a version is previewed, its own tap doing nothing",
+    (tester) async {
+      await _useLargeSurface(tester);
 
-    await tester.pumpWidget(_wrapInApp(_buildView(isWordClickWithheld: true)));
+      await tester.pumpWidget(_wrapInApp(_buildView(isWordClickWithheld: true)));
 
-    // Must not throw: the word simply has no click callback at all.
-    await tester.tap(find.text("sits "));
-    await tester.pump();
-  });
+      // Must not throw: the word simply has no click callback at all.
+      await tester.tap(find.text("sits "));
+      await tester.pump();
+    },
+  );
 
   testWidgets("a tagged word still selects its target while a version is previewed", (
     tester,
@@ -451,8 +464,8 @@ void main() {
     );
 
     // The box hugs the word core — the accent fill, distinct from any category wash, and its
-    // on-accent text — while the trailing space it carries stays outside it, so "lamp " is never one
-    // box.
+    // on-accent text — while the trailing space it carries stays outside it, so "lamp " is never
+    // one box.
     final colorScheme = Theme.of(tester.element(find.text("lamp"))).colorScheme;
     final decoration = _decorationOfWord(tester, "lamp");
     expect(decoration?.color, colorScheme.primary);

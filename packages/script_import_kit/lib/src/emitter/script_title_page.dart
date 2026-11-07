@@ -15,16 +15,6 @@ import 'package:meta/meta.dart';
 /// this package knows nothing of the application that consumes it.
 @immutable
 class ScriptTitlePage {
-  /// Creates a [ScriptTitlePage].
-  const ScriptTitlePage({
-    this.title,
-    this.credit,
-    this.author,
-    this.draftDate,
-    this.contact = const [],
-    this.source,
-  });
-
   /// A placeholder source range for the entries [toEntries] builds:
   /// [FountainTitlePageWriter] only ever reads an entry's key and values,
   /// never where it came from, and these entries came from no Fountain
@@ -56,7 +46,17 @@ class ScriptTitlePage {
   /// The work the screenplay was adapted from.
   final String? source;
 
-  /// Renders the fields that carry something as Fountain title page
+  /// Create a [ScriptTitlePage].
+  const ScriptTitlePage({
+    this.title,
+    this.credit,
+    this.author,
+    this.draftDate,
+    this.contact = const [],
+    this.source,
+  });
+
+  /// Render the fields that carry something as Fountain title page
   /// entries, in the canonical order, ready for
   /// [FountainTitlePageWriter.apply].
   List<FountainTitlePageEntry> toEntries() => [
@@ -68,11 +68,11 @@ class ScriptTitlePage {
     ..._entry('Source', _lines(source)),
   ];
 
-  /// [value] as the single value line of an entry, or no line at all when
+  /// Get [value] as the single value line of an entry, or no line at all when
   /// the field was never filled in.
   List<String> _lines(String? value) => value == null ? const [] : [value];
 
-  /// One entry for [key], or nothing at all when [values] holds no line
+  /// Get one entry for [key], or nothing at all when [values] holds no line
   /// with any text on it.
   List<FountainTitlePageEntry> _entry(String key, List<String> values) {
     final kept = [
@@ -82,12 +82,6 @@ class ScriptTitlePage {
     if (kept.isEmpty) {
       return const [];
     }
-    return [
-      FountainTitlePageEntry(
-        key: key,
-        values: kept,
-        sourceRange: _placeholderRange,
-      ),
-    ];
+    return [FountainTitlePageEntry(key: key, values: kept, sourceRange: _placeholderRange)];
   }
 }

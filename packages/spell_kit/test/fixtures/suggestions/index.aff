@@ -4,7 +4,7 @@
 
 # Fixture affix file for spell_kit tests: the suggester's REP, one-edit and NOSUGGEST tiers. The
 # MAP tier is instead exercised against the real French dictionary (see spell_suggester_test.dart),
-# since the plan's own example ("sequence" -> "séquence") is about that dictionary's own table.
+# since the "sequence" -> "séquence" example is about that dictionary's own table.
 SET UTF-8
 TRY acefhlnopst
 

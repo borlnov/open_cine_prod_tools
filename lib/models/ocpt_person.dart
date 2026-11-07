@@ -6,114 +6,9 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
-import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_skill.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_unavailability.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
-
-/// A single skill of a person: a driving licence, a language, an instrument — a chip on the person
-/// sheet, and the thing an assistant director searches on.
-///
-/// Not one of the nine model files the resources mode plan enumerates by name: it exists only as a
-/// nested shape of [OcptPerson], exactly as `person_skills` only ever surfaces through a person's
-/// own sheet.
-class OcptPersonSkill extends Equatable {
-  /// The stable, unique id of this skill entry (a UUID).
-  final String id;
-
-  /// The person who has this skill.
-  final String personId;
-
-  /// The skill itself, free text (e.g. "Permis B", "Anglais courant", "Piano").
-  final String label;
-
-  /// Class constructor
-  const OcptPersonSkill({required this.id, required this.personId, required this.label});
-
-  /// Builds an [OcptPersonSkill] from its stored [row].
-  factory OcptPersonSkill.fromRow(OcptPersonSkillRow row) =>
-      OcptPersonSkill(id: row.id, personId: row.personId, label: row.label);
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptPersonSkill(id: $id, label: $label)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [id, personId, label];
-}
-
-/// A stretch of time a person is known to be unavailable, with a reason. See [OcptPersonSkill]'s
-/// doc comment for why this has no file of its own either, and
-/// `OcptPersonUnavailabilitiesTable`'s for why it is a date range crossed with a slot.
-class OcptPersonUnavailability extends Equatable {
-  /// The stable, unique id of this unavailability (a UUID).
-  final String id;
-
-  /// The person who is unavailable.
-  final String personId;
-
-  /// The first date this unavailability covers.
-  final DateTime startDate;
-
-  /// The last date this unavailability covers, inclusive; the same as [startDate] for one day.
-  final DateTime endDate;
-
-  /// Which part of each covered day this unavailability takes.
-  final OcptDayPartSlot slot;
-
-  /// The start of the window in minutes from midnight, or null unless [slot] is
-  /// [OcptDayPartSlot.custom].
-  final int? startMinute;
-
-  /// The end of the window in minutes from midnight, or null unless [slot] is
-  /// [OcptDayPartSlot.custom].
-  final int? endMinute;
-
-  /// Why this person is unavailable, free multi-line text.
-  final String reason;
-
-  /// Class constructor
-  const OcptPersonUnavailability({
-    required this.id,
-    required this.personId,
-    required this.startDate,
-    required this.endDate,
-    required this.slot,
-    required this.startMinute,
-    required this.endMinute,
-    required this.reason,
-  });
-
-  /// Builds an [OcptPersonUnavailability] from its stored [row].
-  factory OcptPersonUnavailability.fromRow(OcptPersonUnavailabilityRow row) =>
-      OcptPersonUnavailability(
-        id: row.id,
-        personId: row.personId,
-        startDate: row.startDate,
-        endDate: row.endDate,
-        slot: row.slot,
-        startMinute: row.startMinute,
-        endMinute: row.endMinute,
-        reason: row.reason,
-      );
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptPersonUnavailability(id: $id, startDate: $startDate, endDate: $endDate, slot: $slot)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [
-    id,
-    personId,
-    startDate,
-    endDate,
-    slot,
-    startMinute,
-    endMinute,
-    reason,
-  ];
-}
 
 /// The address book: one row per human involved in the production, joined with their
 /// [positions], [skills] and [unavailabilities] — a person is never shown as a bare row, since
@@ -260,6 +155,38 @@ class OcptPerson extends Equatable {
   /// The dates this person is known to be unavailable.
   final List<OcptPersonUnavailability> unavailabilities;
 
+  /// Get [firstName] and [lastName], space-joined, either side dropped when empty.
+  String get displayName => [firstName, lastName].where((part) => part.isNotEmpty).join(' ');
+
+  /// Get the upper-cased first letter of [firstName] and of [lastName], concatenated; empty when
+  /// both
+  /// are empty.
+  String get initials => [
+    firstName,
+    lastName,
+  ].where((part) => part.isNotEmpty).map((part) => part[0].toUpperCase()).join();
+
+  /// Get this person's age in whole years as of now, or null while [birthDate] is unknown.
+  int? get age {
+    final birth = birthDate;
+    if (birth == null) {
+      return null;
+    }
+
+    final now = DateTime.now();
+    var years = now.year - birth.year;
+    if (now.month < birth.month || (now.month == birth.month && now.day < birth.day)) {
+      years--;
+    }
+    return years;
+  }
+
+  /// Tell whether this person is a minor (under 18) as of now, or null while [age] is unknown.
+  bool? get isMinor {
+    final currentAge = age;
+    return currentAge == null ? null : currentAge < 18;
+  }
+
   /// Class constructor
   const OcptPerson({
     required this.id,
@@ -304,7 +231,7 @@ class OcptPerson extends Equatable {
     required this.unavailabilities,
   });
 
-  /// Builds an [OcptPerson] from its stored [row], its already-ordered [positions] and [skills],
+  /// Build an [OcptPerson] from its stored [row], its already-ordered [positions] and [skills],
   /// and its [unavailabilities].
   factory OcptPerson.fromRow({
     required OcptPersonRow row,
@@ -356,45 +283,11 @@ class OcptPerson extends Equatable {
     unavailabilities: unavailabilities,
   );
 
-  /// [firstName] and [lastName], space-joined, either side dropped when empty.
-  String get displayName => [
-    firstName,
-    lastName,
-  ].where((part) => part.isNotEmpty).join(' ');
-
-  /// The upper-cased first letter of [firstName] and of [lastName], concatenated; empty when both
-  /// are empty.
-  String get initials => [
-    firstName,
-    lastName,
-  ].where((part) => part.isNotEmpty).map((part) => part[0].toUpperCase()).join();
-
-  /// This person's age in whole years as of now, or null while [birthDate] is unknown.
-  int? get age {
-    final birth = birthDate;
-    if (birth == null) {
-      return null;
-    }
-
-    final now = DateTime.now();
-    var years = now.year - birth.year;
-    if (now.month < birth.month || (now.month == birth.month && now.day < birth.day)) {
-      years--;
-    }
-    return years;
-  }
-
-  /// Whether this person is a minor (under 18) as of now, or null while [age] is unknown.
-  bool? get isMinor {
-    final currentAge = age;
-    return currentAge == null ? null : currentAge < 18;
-  }
-
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptPerson(id: $id, displayName: $displayName)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

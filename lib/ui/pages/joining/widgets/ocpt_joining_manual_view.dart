@@ -24,6 +24,7 @@ class OcptJoiningManualView extends StatefulWidget {
   /// Class constructor
   const OcptJoiningManualView({required this.isJoining, required this.onJoinRequested, super.key});
 
+  /// Create the [_OcptJoiningManualViewState] holding the state of the joining manual view.
   @override
   State<OcptJoiningManualView> createState() => _OcptJoiningManualViewState();
 }
@@ -33,12 +34,7 @@ class _OcptJoiningManualViewState extends State<OcptJoiningManualView> {
   /// The invite link field's own controller.
   final _inviteLinkController = TextEditingController();
 
-  @override
-  void dispose() {
-    _inviteLinkController.dispose();
-    super.dispose();
-  }
-
+  /// Build the joining manual view as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -80,7 +76,14 @@ class _OcptJoiningManualViewState extends State<OcptJoiningManualView> {
     );
   }
 
-  /// Hands the invite link field's own raw text to [OcptJoiningManualView.onJoinRequested] as
+  /// Hand the invite link field's own raw text to [OcptJoiningManualView.onJoinRequested] as
   /// typed — see this class's own doc comment for why nothing is validated here.
   void _onJoinPressed() => widget.onJoinRequested(_inviteLinkController.text);
+
+  /// Dispose [_inviteLinkController].
+  @override
+  void dispose() {
+    _inviteLinkController.dispose();
+    super.dispose();
+  }
 }

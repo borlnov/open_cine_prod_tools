@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
@@ -23,7 +24,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_out_of_days_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_named_call_sheets_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shooting_plan_export_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 
 /// A router manager whose [pop] only records the last call and its value: these dialogs are pumped
 /// directly, without a real GoRouter for them to operate on — the idiom
@@ -35,6 +35,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -67,49 +68,52 @@ OcptShootingDay _buildDay({required String id, required int dayNumber, required 
     );
 
 /// Builds a person with the few fields these dialogs read, everything else neutral.
-OcptPerson _buildPerson({required String id, required String firstName, required String lastName}) =>
-    OcptPerson(
-      id: id,
-      firstName: firstName,
-      lastName: lastName,
-      email: "",
-      phone: "",
-      addressLine1: "",
-      addressLine2: "",
-      postalCode: "",
-      city: "",
-      region: "",
-      country: "",
-      colorIndex: 0,
-      birthDate: null,
-      minorNotes: "",
-      maxDailyPresenceMinutes: null,
-      isTransportAutonomous: null,
-      accommodationNotes: "",
-      travelNotes: "",
-      dietaryNotes: "",
-      allergies: "",
-      measurementHeight: "",
-      measurementChest: "",
-      measurementWaist: "",
-      measurementHips: "",
-      sizeTop: "",
-      sizeBottom: "",
-      sizeShoes: "",
-      hmcNotes: "",
-      imageRightsStatus: OcptImageRightsStatus.notApplicable,
-      imageRightsDate: null,
-      imageRightsAssetId: null,
-      photoAssetId: null,
-      photo: null,
-      imageRightsDocument: null,
-      notes: "",
-      commuteKmMilli: null,
-      mileageRateId: null,
-      positions: const [],
-      skills: const [],
-      unavailabilities: const [],
-    );
+OcptPerson _buildPerson({
+  required String id,
+  required String firstName,
+  required String lastName,
+}) => OcptPerson(
+  id: id,
+  firstName: firstName,
+  lastName: lastName,
+  email: "",
+  phone: "",
+  addressLine1: "",
+  addressLine2: "",
+  postalCode: "",
+  city: "",
+  region: "",
+  country: "",
+  colorIndex: 0,
+  birthDate: null,
+  minorNotes: "",
+  maxDailyPresenceMinutes: null,
+  isTransportAutonomous: null,
+  accommodationNotes: "",
+  travelNotes: "",
+  dietaryNotes: "",
+  allergies: "",
+  measurementHeight: "",
+  measurementChest: "",
+  measurementWaist: "",
+  measurementHips: "",
+  sizeTop: "",
+  sizeBottom: "",
+  sizeShoes: "",
+  hmcNotes: "",
+  imageRightsStatus: OcptImageRightsStatus.notApplicable,
+  imageRightsDate: null,
+  imageRightsAssetId: null,
+  photoAssetId: null,
+  photo: null,
+  imageRightsDocument: null,
+  notes: "",
+  commuteKmMilli: null,
+  mileageRateId: null,
+  positions: const [],
+  skills: const [],
+  unavailabilities: const [],
+);
 
 /// Builds a role with the few fields these dialogs read, everything else neutral.
 OcptRole _buildRole({required String id, required String name, String? personId}) => OcptRole(
@@ -146,6 +150,7 @@ OcptDayConvocation _buildConvocation({
   slotIds: const ["slot-1"],
 );
 
+/// Run the tests of the schedule export dialogs.
 void main() {
   late _RecordingRouterManager routerManager;
 
@@ -221,10 +226,11 @@ void main() {
       await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
       await tester.pumpAndSettle();
 
-      expect(
-        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.dayIds,
-        ["day-1", "day-2", "day-3"],
-      );
+      expect((routerManager.poppedValue as OcptCallSheetExportOptions?)?.dayIds, [
+        "day-1",
+        "day-2",
+        "day-3",
+      ]);
 
       await tester.tap(find.text(Tr.current.scheduleExportSelectNoneAction));
       await tester.pumpAndSettle();
@@ -301,7 +307,9 @@ void main() {
       expect(options?.selectedConvocationKeys, {"person-1", "person-2"});
     });
 
-    testWidgets("an uncast role is listed by its role and says it has no recipient", (tester) async {
+    testWidgets("an uncast role is listed by its role and says it has no recipient", (
+      tester,
+    ) async {
       await pumpDialog(
         tester,
         days: [dayOne],
@@ -318,10 +326,9 @@ void main() {
       await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
       await tester.pumpAndSettle();
 
-      expect(
-        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
-        {"role-1"},
-      );
+      expect((routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys, {
+        "role-1",
+      });
     });
 
     testWidgets("a candidate is listed by their own name, a recipient like anybody else", (
@@ -346,8 +353,8 @@ void main() {
         roleById: {"role-1": _buildRole(id: "role-1", name: "MARIE")},
       );
 
-      // Their own name and nothing else: a sheet is addressed to a person, and somebody seen for two
-      // parts has no single part this line could name.
+      // Their own name and nothing else: a sheet is addressed to a person, and somebody seen for
+      // two parts has no single part this line could name.
       expect(find.text("Camille Renard"), findsOneWidget);
       // The "nobody to send this to" hint belongs to an uncast role alone — a candidate names a
       // person as squarely as a crew member does.
@@ -358,10 +365,9 @@ void main() {
 
       // Ticked by their **person** id: a sheet is addressed to somebody, so somebody seen for two
       // parts is one line here and one PDF out of it.
-      expect(
-        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
-        {"person-camille"},
-      );
+      expect((routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys, {
+        "person-camille",
+      });
     });
 
     testWidgets("unticking everybody withholds the export button", (tester) async {
@@ -407,10 +413,9 @@ void main() {
       await tester.tap(find.text(Tr.current.editorExportPdfExportAction));
       await tester.pumpAndSettle();
 
-      expect(
-        (routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys,
-        {"person-1"},
-      );
+      expect((routerManager.poppedValue as OcptCallSheetExportOptions?)?.selectedConvocationKeys, {
+        "person-1",
+      });
     });
 
     testWidgets("unticking every day also withholds the export button", (tester) async {
@@ -493,8 +498,9 @@ void main() {
 
         final options = routerManager.poppedValue as OcptCallSheetExportOptions?;
         expect(options?.dayIds, ["day-1", "day-2"]);
-        // person-1 carries over ticked (present on both days), person-2 carries over unticked (still
-        // in the union, but the user had unticked it), person-3 is ticked as a newly appearing entry.
+        // person-1 carries over ticked (present on both days), person-2 carries over unticked
+        // (still in the union, but the user had unticked it), person-3 is ticked as a newly
+        // appearing entry.
         expect(options?.selectedConvocationKeys, {"person-1", "person-3"});
       },
     );
@@ -534,9 +540,7 @@ void main() {
     /// Pumps the dialog directly over [days].
     Future<void> pumpDialog(WidgetTester tester, {required List<OcptShootingDay> days}) async {
       await tester.pumpWidget(
-        _wrapWithLocalization(
-          OcptScheduleShootingPlanExportDialog(current: pageSetup, days: days),
-        ),
+        _wrapWithLocalization(OcptScheduleShootingPlanExportDialog(current: pageSetup, days: days)),
       );
       await tester.pumpAndSettle();
     }
@@ -619,9 +623,7 @@ void main() {
     /// Pumps the dialog directly over [days].
     Future<void> pumpDialog(WidgetTester tester, {required List<OcptShootingDay> days}) async {
       await tester.pumpWidget(
-        _wrapWithLocalization(
-          OcptScheduleDayOutOfDaysExportDialog(current: pageSetup, days: days),
-        ),
+        _wrapWithLocalization(OcptScheduleDayOutOfDaysExportDialog(current: pageSetup, days: days)),
       );
       await tester.pumpAndSettle();
     }

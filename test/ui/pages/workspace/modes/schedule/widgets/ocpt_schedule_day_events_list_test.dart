@@ -23,12 +23,10 @@ Widget _wrapInApp(Widget child) => MaterialApp(
 );
 
 /// Builds an event with the few fields these tests read, everything else neutral.
-OcptShootingDayEvent _buildEvent({
-  String id = "event-1",
-  int minute = 1020,
-  String label = "",
-}) => OcptShootingDayEvent(id: id, shootingDayId: "day-1", minute: minute, label: label, notes: "");
+OcptShootingDayEvent _buildEvent({String id = "event-1", int minute = 1020, String label = ""}) =>
+    OcptShootingDayEvent(id: id, shootingDayId: "day-1", minute: minute, label: label, notes: "");
 
+/// Run the tests of [OcptScheduleDayEventsList].
 void main() {
   testWidgets("an event's hour, label and note are drawn", (tester) async {
     final event = _buildEvent(label: "Fireworks");
@@ -49,10 +47,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final minuteField = tester.widget<OcptScheduleMinuteField>(find.byType(OcptScheduleMinuteField));
+    final minuteField = tester.widget<OcptScheduleMinuteField>(
+      find.byType(OcptScheduleMinuteField),
+    );
     expect(minuteField.minute, 1020);
     final labelField = tester.widget<TextField>(
-      find.byWidgetPredicate((widget) => widget is TextField && widget.controller?.text == "Fireworks"),
+      find.byWidgetPredicate(
+        (widget) => widget is TextField && widget.controller?.text == "Fireworks",
+      ),
     );
     expect(labelField.controller?.text, "Fireworks");
     final noteField = tester.widget<TextField>(
@@ -145,9 +147,7 @@ void main() {
     expect(find.text(tr.scheduleDayEventUnnamedLabel), findsOneWidget);
   });
 
-  testWidgets("the deletion callback only asks — the widget writes nothing itself", (
-    tester,
-  ) async {
+  testWidgets("the deletion callback only asks — the widget writes nothing itself", (tester) async {
     final event = _buildEvent(label: "Fireworks");
     final deletionRequests = <String>[];
     final minuteEdits = <(String, int)>[];

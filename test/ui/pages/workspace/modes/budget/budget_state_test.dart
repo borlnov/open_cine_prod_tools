@@ -3,12 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
@@ -20,11 +21,9 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
@@ -34,15 +33,15 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 
-/// Builds a minimal quote line, everything but [id]/[posteId]/[label]/[elementId] neutral.
+/// Builds a minimal quote line, everything but [id]/[accountId]/[label]/[elementId] neutral.
 OcptBudgetLine _buildLine({
   required String id,
-  required String posteId,
+  required String accountId,
   String label = "",
   String? elementId,
 }) => OcptBudgetLine(
   id: id,
-  posteId: posteId,
+  accountId: accountId,
   label: label,
   quantityMilli: 1000,
   unit: "u",
@@ -82,23 +81,31 @@ OcptElement _buildElement({required String id, String name = "", int? cost}) => 
   roleLinks: const [],
 );
 
-/// Builds a minimal poste, everything but [id]/[lines] neutral.
-OcptBudgetPoste _buildPoste({required String id, List<OcptBudgetLine> lines = const []}) =>
-    OcptBudgetPoste(id: id, code: "1", label: "Poste $id", simpleLabel: null, estimateToCompleteCents: null, sortKey: "a0", lines: lines);
+/// Builds a minimal account, everything but [id]/[lines] neutral.
+OcptBudgetAccount _buildAccount({required String id, List<OcptBudgetLine> lines = const []}) =>
+    OcptBudgetAccount(
+      id: id,
+      code: "1",
+      label: "Poste $id",
+      simpleLabel: null,
+      estimateToCompleteCents: null,
+      sortKey: "a0",
+      lines: lines,
+    );
 
-/// Builds a minimal journal entry naming [posteId] — null for an entry naming no poste at all,
+/// Builds a minimal journal entry naming [accountId] — null for an entry naming no account at all,
 /// off-quote spending's own reading — everything else neutral (a debit of [debitCents],
 /// tax-inclusive, no VAT rate override), except [commitmentId], the commitment this debit pays.
 OcptBudgetEntry _buildEntry({
   required String id,
-  String? posteId,
+  String? accountId,
   int debitCents = 0,
   String? commitmentId,
 }) => OcptBudgetEntry(
   id: id,
   date: DateTime(2026),
   label: "Entry $id",
-  posteId: posteId,
+  accountId: accountId,
   debitCents: debitCents,
   creditCents: 0,
   isTaxInclusive: true,
@@ -202,53 +209,51 @@ OcptRole _buildRole({
 );
 
 /// Builds a person, the few fields these tests read, everything else neutral.
-OcptPerson _buildPerson({
-  required String id,
-  int? commuteKmMilli,
-  String? mileageRateId,
-}) => OcptPerson(
-  id: id,
-  firstName: "Person $id",
-  lastName: "",
-  email: "",
-  phone: "",
-  addressLine1: "",
-  addressLine2: "",
-  postalCode: "",
-  city: "",
-  region: "",
-  country: "",
-  colorIndex: 0,
-  birthDate: null,
-  minorNotes: "",
-  maxDailyPresenceMinutes: null,
-  isTransportAutonomous: null,
-  accommodationNotes: "",
-  travelNotes: "",
-  dietaryNotes: "",
-  allergies: "",
-  measurementHeight: "",
-  measurementChest: "",
-  measurementWaist: "",
-  measurementHips: "",
-  sizeTop: "",
-  sizeBottom: "",
-  sizeShoes: "",
-  hmcNotes: "",
-  imageRightsStatus: OcptImageRightsStatus.notApplicable,
-  imageRightsDate: null,
-  imageRightsAssetId: null,
-  imageRightsDocument: null,
-  photoAssetId: null,
-  photo: null,
-  notes: "",
-  commuteKmMilli: commuteKmMilli,
-  mileageRateId: mileageRateId,
-  positions: const [],
-  skills: const [],
-  unavailabilities: const [],
-);
+OcptPerson _buildPerson({required String id, int? commuteKmMilli, String? mileageRateId}) =>
+    OcptPerson(
+      id: id,
+      firstName: "Person $id",
+      lastName: "",
+      email: "",
+      phone: "",
+      addressLine1: "",
+      addressLine2: "",
+      postalCode: "",
+      city: "",
+      region: "",
+      country: "",
+      colorIndex: 0,
+      birthDate: null,
+      minorNotes: "",
+      maxDailyPresenceMinutes: null,
+      isTransportAutonomous: null,
+      accommodationNotes: "",
+      travelNotes: "",
+      dietaryNotes: "",
+      allergies: "",
+      measurementHeight: "",
+      measurementChest: "",
+      measurementWaist: "",
+      measurementHips: "",
+      sizeTop: "",
+      sizeBottom: "",
+      sizeShoes: "",
+      hmcNotes: "",
+      imageRightsStatus: OcptImageRightsStatus.notApplicable,
+      imageRightsDate: null,
+      imageRightsAssetId: null,
+      imageRightsDocument: null,
+      photoAssetId: null,
+      photo: null,
+      notes: "",
+      commuteKmMilli: commuteKmMilli,
+      mileageRateId: mileageRateId,
+      positions: const [],
+      skills: const [],
+      unavailabilities: const [],
+    );
 
+/// Run the tests of [OcptBudgetState].
 void main() {
   group("OcptBudgetState.init", () {
     test("starts loading, with no snapshot and the default right dock tab", () {
@@ -256,76 +261,60 @@ void main() {
 
       expect(state.isLoading, isTrue);
       expect(state.snapshot, isNull);
-      expect(state.postes, isEmpty);
-      expect(state.posteCount, 0);
+      expect(state.accounts, isEmpty);
+      expect(state.accountCount, 0);
       expect(state.lineCount, 0);
       expect(state.rightDockTab, isNull);
       expect(state.lastRightDockTab, OcptBudgetRightDockTab.inspector);
-      expect(state.selectedPoste, isNull);
+      expect(state.selectedAccount, isNull);
     });
   });
 
-  group("OcptBudgetState.selectedPoste", () {
-    test("resolves the poste named by selectedPosteId out of the snapshot", () {
-      final poste = _buildPoste(id: "poste-1");
+  group("OcptBudgetState.selectedAccount", () {
+    test("resolves the account named by selectedAccountId out of the snapshot", () {
+      final account = _buildAccount(id: "poste-1");
       final state = const OcptBudgetState.init().copyWith(
         snapshot: OcptBudgetSnapshot.build(
-          postes: [poste],
+          accounts: [account],
           entries: const [],
           commitments: const [],
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
         ),
-        selection: const OcptBudgetPosteSelection("poste-1"),
+        selection: const OcptBudgetAccountSelection("poste-1"),
       );
 
-      expect(state.selectedPoste, poste);
+      expect(state.selectedAccount, account);
     });
 
-    test("is null while selectedPosteId names no live poste", () {
+    test("is null while selectedAccountId names no live account", () {
       final state = const OcptBudgetState.init().copyWith(
         snapshot: OcptBudgetSnapshot.build(
-          postes: [_buildPoste(id: "poste-1")],
+          accounts: [_buildAccount(id: "poste-1")],
           entries: const [],
           commitments: const [],
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
         ),
-        selection: const OcptBudgetPosteSelection("gone"),
+        selection: const OcptBudgetAccountSelection("gone"),
       );
 
-      expect(state.selectedPoste, isNull);
-    });
-  });
-
-  group("OcptBudgetState.fieldValueOf", () {
-    test("reads a pending edit ahead of the stored value", () {
-      final state = const OcptBudgetState.init().copyWith(
-        pendingFieldEdits: {("poste-1", OcptBudgetField.posteLabel): "Typed"},
-      );
-
-      expect(state.fieldValueOf("poste-1", OcptBudgetField.posteLabel, "Stored"), "Typed");
-    });
-
-    test("falls back to the stored value while nothing is pending for that key", () {
-      const state = OcptBudgetState.init();
-
-      expect(state.fieldValueOf("poste-1", OcptBudgetField.posteLabel, "Stored"), "Stored");
+      expect(state.selectedAccount, isNull);
     });
   });
 
   group("OcptBudgetState.copyWith", () {
     test("clears the selection only through its own clear flag", () {
       final withSelection = const OcptBudgetState.init().copyWith(
-        selection: const OcptBudgetPosteSelection("poste-1"),
+        selection: const OcptBudgetAccountSelection("poste-1"),
       );
-      expect(withSelection.selectedPosteId, "poste-1");
+      expect(withSelection.selectedAccountId, "poste-1");
 
       final stillSelected = withSelection.copyWith(view: withSelection.view);
-      expect(stillSelected.selectedPosteId, "poste-1");
+      expect(stillSelected.selectedAccountId, "poste-1");
 
-      final cleared = withSelection.copyWith(clearSelection: true);
-      expect(cleared.selectedPosteId, isNull);
+      final cleared = withSelection.copyWith(forceSelectionValue: true);
+      expect(cleared.selectedAccountId, isNull);
     });
 
     test("clears rightDockTab only through its own clear flag", () {
@@ -334,23 +323,23 @@ void main() {
       );
       expect(withTab.rightDockTab, OcptBudgetRightDockTab.inspector);
 
-      final cleared = withTab.copyWith(clearRightDockTab: true);
+      final cleared = withTab.copyWith(forceRightDockTabValue: true);
       expect(cleared.rightDockTab, isNull);
     });
   });
 
   group("OcptBudgetSnapshot counters", () {
-    test("posteCount and lineCount count every poste and every line across them", () {
+    test("accountCount and lineCount count every account and every line across them", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
             lines: [
-              _buildLine(id: "line-1", posteId: "poste-1"),
-              _buildLine(id: "line-2", posteId: "poste-1"),
+              _buildLine(id: "line-1", accountId: "poste-1"),
+              _buildLine(id: "line-2", accountId: "poste-1"),
             ],
           ),
-          _buildPoste(id: "poste-2"),
+          _buildAccount(id: "poste-2"),
         ],
         entries: const [],
         commitments: const [],
@@ -359,7 +348,7 @@ void main() {
       );
       final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
 
-      expect(state.posteCount, 2);
+      expect(state.accountCount, 2);
       expect(state.lineCount, 2);
     });
   });
@@ -367,10 +356,10 @@ void main() {
   group("OcptBudgetState.elementLinkCounts / unpricedElements", () {
     test("a live element named by a live line's own elementId counts as priced", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [_buildLine(id: "line-1", posteId: "poste-1", elementId: "element-priced")],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1", elementId: "element-priced")],
           ),
         ],
         entries: const [],
@@ -392,10 +381,10 @@ void main() {
 
     test("offers only the elements no live line prices yet, an already-priced one dropped", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [_buildLine(id: "line-1", posteId: "poste-1", elementId: "element-priced")],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1", elementId: "element-priced")],
           ),
         ],
         entries: const [],
@@ -418,8 +407,11 @@ void main() {
   group("OcptBudgetState.paidCentsOf / committedCentsOf", () {
     test("reads zero for a poste with no entry against it, rather than a hole", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1"), _buildPoste(id: "poste-2")],
-        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000)],
+        accounts: [
+          _buildAccount(id: "poste-1"),
+          _buildAccount(id: "poste-2"),
+        ],
+        entries: [_buildEntry(id: "entry-1", accountId: "poste-1", debitCents: 1000)],
         commitments: const [],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
@@ -432,8 +424,8 @@ void main() {
 
     test("reads the real amount once an entry has actually been paid against the poste", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
-        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000)],
+        accounts: [_buildAccount(id: "poste-1")],
+        entries: [_buildEntry(id: "entry-1", accountId: "poste-1", debitCents: 1000)],
         commitments: const [],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
@@ -452,14 +444,21 @@ void main() {
 
     test("excludes a settled commitment outright", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
-        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 5000, commitmentId: "commitment-1")],
+        accounts: [_buildAccount(id: "poste-1")],
+        entries: [
+          _buildEntry(
+            id: "entry-1",
+            accountId: "poste-1",
+            debitCents: 5000,
+            commitmentId: "commitment-1",
+          ),
+        ],
         commitments: const [
           OcptBudgetCommitment(
             id: "commitment-1",
             dueDate: null,
             label: "Camera deposit",
-            posteId: "poste-1",
+            accountId: "poste-1",
             amount: OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
             status: OcptBudgetCommitmentStatus.quoteAccepted,
             lineId: null,
@@ -484,14 +483,14 @@ void main() {
         id: "commitment-1",
         dueDate: DateTime(2026),
         label: "Camera deposit",
-        posteId: "poste-1",
+        accountId: "poste-1",
         amount: const OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
         status: OcptBudgetCommitmentStatus.quoteAccepted,
         lineId: null,
         sortKey: "a0",
       );
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
+        accounts: [_buildAccount(id: "poste-1")],
         entries: const [],
         commitments: [commitment],
         defaultVatRateBasisPoints: null,
@@ -509,7 +508,12 @@ void main() {
       expect(emptyState.alerts, isEmpty);
 
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")])],
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
+        ],
         entries: const [],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -517,29 +521,29 @@ void main() {
       );
       final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
 
-      // A poste quoted at zero (the neutral line's own unit price) with nothing paid or
+      // An account quoted at zero (the neutral line's own unit price) with nothing paid or
       // committed against it raises nothing.
       expect(state.alerts, isEmpty);
     });
   });
 
-  group("OcptBudgetState.paidByPosteId / committedByPosteId", () {
+  group("OcptBudgetState.paidByAccountId / committedByAccountId", () {
     test("read the snapshot's own maps, empty while nothing is loaded", () {
       const emptyState = OcptBudgetState.init();
-      expect(emptyState.paidByPosteId, isEmpty);
-      expect(emptyState.committedByPosteId, isEmpty);
+      expect(emptyState.paidByAccountId, isEmpty);
+      expect(emptyState.committedByAccountId, isEmpty);
 
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
-        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000)],
+        accounts: [_buildAccount(id: "poste-1")],
+        entries: [_buildEntry(id: "entry-1", accountId: "poste-1", debitCents: 1000)],
         commitments: const [],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
       );
       final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
 
-      expect(state.paidByPosteId["poste-1"]?.amountCents, 1000);
-      expect(state.committedByPosteId, isEmpty);
+      expect(state.paidByAccountId["poste-1"]?.amountCents, 1000);
+      expect(state.committedByAccountId, isEmpty);
     });
   });
 
@@ -553,9 +557,9 @@ void main() {
 
     test("reads the total of every debit naming no poste at all", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
+        accounts: [_buildAccount(id: "poste-1")],
         entries: [
-          _buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000),
+          _buildEntry(id: "entry-1", accountId: "poste-1", debitCents: 1000),
           _buildEntry(id: "entry-2", debitCents: 500),
         ],
         commitments: const [],
@@ -576,7 +580,7 @@ void main() {
 
       final resource = _buildResource(id: "resource-1");
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         resources: [resource],
@@ -590,41 +594,6 @@ void main() {
     });
   });
 
-  group("OcptBudgetState.selectedResource", () {
-    test("resolves the resource named by selectedResourceId out of the snapshot", () {
-      final resource = _buildResource(id: "resource-1");
-      final state = const OcptBudgetState.init().copyWith(
-        snapshot: OcptBudgetSnapshot.build(
-          postes: const [],
-          entries: const [],
-          commitments: const [],
-          resources: [resource],
-          defaultVatRateBasisPoints: null,
-          currencyCode: "EUR",
-        ),
-        selection: const OcptBudgetResourceSelection("resource-1"),
-      );
-
-      expect(state.selectedResource, resource);
-    });
-
-    test("is null while selectedResourceId names no live resource", () {
-      final state = const OcptBudgetState.init().copyWith(
-        snapshot: OcptBudgetSnapshot.build(
-          postes: const [],
-          entries: const [],
-          commitments: const [],
-          resources: [_buildResource(id: "resource-1")],
-          defaultVatRateBasisPoints: null,
-          currencyCode: "EUR",
-        ),
-        selection: const OcptBudgetResourceSelection("gone"),
-      );
-
-      expect(state.selectedResource, isNull);
-    });
-  });
-
   group("OcptBudgetState.copyWith clears selectedResourceId", () {
     test("only through its own clear flag", () {
       final withSelection = const OcptBudgetState.init().copyWith(
@@ -635,7 +604,7 @@ void main() {
       final stillSelected = withSelection.copyWith(view: withSelection.view);
       expect(stillSelected.selectedResourceId, "resource-1");
 
-      final cleared = withSelection.copyWith(clearSelection: true);
+      final cleared = withSelection.copyWith(forceSelectionValue: true);
       expect(cleared.selectedResourceId, isNull);
     });
   });
@@ -644,7 +613,7 @@ void main() {
     test("reads zero for a resource with no entry naming it, rather than a hole", () {
       final resource = _buildResource(id: "resource-1", amountCents: 5000);
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         resources: [resource],
@@ -663,7 +632,7 @@ void main() {
         id: "entry-1",
         date: DateTime(2026),
         label: "Grant instalment",
-        posteId: null,
+        accountId: null,
         debitCents: 0,
         creditCents: 2000,
         isTaxInclusive: true,
@@ -677,7 +646,7 @@ void main() {
         personId: null,
       );
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: [entry],
         commitments: const [],
         resources: [resource],
@@ -700,10 +669,13 @@ void main() {
   group("OcptBudgetSnapshot.resourceCount", () {
     test("counts every live resource", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
-        resources: [_buildResource(id: "resource-1"), _buildResource(id: "resource-2")],
+        resources: [
+          _buildResource(id: "resource-1"),
+          _buildResource(id: "resource-2"),
+        ],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
       );
@@ -718,8 +690,8 @@ void main() {
       expect(emptyState.receiptsByEntryId, isEmpty);
 
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
-        entries: [_buildEntry(id: "entry-1", posteId: "poste-1")],
+        accounts: [_buildAccount(id: "poste-1")],
+        entries: [_buildEntry(id: "entry-1", accountId: "poste-1")],
         commitments: const [],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
@@ -730,17 +702,21 @@ void main() {
     });
   });
 
-  group("OcptBudgetState.regieDays / allowances", () {
+  group("OcptBudgetState.logisticsDays / allowances", () {
     test("are empty while nothing is loaded", () {
       const state = OcptBudgetState.init();
 
-      expect(state.regieDays, isEmpty);
+      expect(state.logisticsDays, isEmpty);
       expect(state.allowances, isEmpty);
-      expect(state.regieTotals.cost.amountCents, 0);
+      expect(state.logisticsTotals.cost.amountCents, 0);
     });
 
     test("read the snapshot's own catering pass, built from the schedule it was given", () {
-      final crewPerson = _buildPerson(id: "person-crew", commuteKmMilli: 10000, mileageRateId: "rate-1");
+      final crewPerson = _buildPerson(
+        id: "person-crew",
+        commuteKmMilli: 10000,
+        mileageRateId: "rate-1",
+      );
       final castPerson = _buildPerson(id: "person-cast");
       final role = _buildRole(id: "role-1", name: "Hero", personId: "person-cast");
 
@@ -753,7 +729,7 @@ void main() {
       );
 
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -768,9 +744,9 @@ void main() {
       );
       final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
 
-      expect(state.regieDays, hasLength(1));
-      expect(state.regieDays.single.headCount, 2);
-      expect(state.regieDays.single.cost.isComplete, isTrue);
+      expect(state.logisticsDays, hasLength(1));
+      expect(state.logisticsDays.single.headCount, 2);
+      expect(state.logisticsDays.single.cost.isComplete, isTrue);
       expect(state.mealPriceCents, 1200);
       expect(state.buffetPriceCents, 400);
 
@@ -783,7 +759,7 @@ void main() {
 
     test("carry the defrayals the snapshot was built with, in the order given", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -809,24 +785,24 @@ void main() {
     });
   });
 
-  group("OcptBudgetState.roles / people / regieDecorNameByDayId", () {
+  group("OcptBudgetState.roles / people / logisticsSetNameByDayId", () {
     test("default to empty and are carried through copyWith", () {
       const emptyState = OcptBudgetState.init();
       expect(emptyState.roles, isEmpty);
       expect(emptyState.people, isEmpty);
-      expect(emptyState.regieDecorNameByDayId, isEmpty);
+      expect(emptyState.logisticsSetNameByDayId, isEmpty);
 
       final role = _buildRole(id: "role-1");
       final person = _buildPerson(id: "person-1");
       final state = emptyState.copyWith(
         roles: [role],
         people: [person],
-        regieDecorNameByDayId: const {"day-1": "Kitchen"},
+        logisticsSetNameByDayId: const {"day-1": "Kitchen"},
       );
 
       expect(state.roles, [role]);
       expect(state.people, [person]);
-      expect(state.regieDecorNameByDayId, {"day-1": "Kitchen"});
+      expect(state.logisticsSetNameByDayId, {"day-1": "Kitchen"});
     });
   });
 }

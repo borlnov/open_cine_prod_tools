@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_annotation.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
@@ -21,12 +21,12 @@ const double _thumbnailSize = 40;
 /// tool picker and its marks list).
 ///
 /// A panel's comment rides the mode's field-edit autosave debounce exactly as a shot field does
-/// ([commentValueOf] reads a pending edit over the stored value, matching `OcptShotInspectorPanel`'s
-/// own `fieldValueOf`), and a mark's own text ([annotationTextValueOf]) rides the very same
-/// debounce, keyed differently. Deleting a panel or a mark is a two-step gesture by design: this
-/// group only **asks** ([onDeleteRequested], [onAnnotationDeleteRequested]), the mode opens
-/// `OcptConfirmDialog` and dispatches the deletion itself — this widget never carries the
-/// question.
+/// ([commentValueOf] reads a pending edit over the stored value, matching
+/// `OcptShotInspectorPanel`'s own `fieldValueOf`), and a mark's own text ([annotationTextValueOf])
+/// rides the very same debounce, keyed differently. Deleting a panel or a mark is a two-step
+/// gesture by design: this group only **asks** ([onDeleteRequested],
+/// [onAnnotationDeleteRequested]), the mode opens `OcptConfirmDialog` and dispatches the deletion
+/// itself — this widget never carries the question.
 class OcptStoryboardPanelsGroup extends StatelessWidget {
   /// The selected shot's own panels, in order.
   final List<OcptStoryboardPanel> panels;
@@ -101,6 +101,7 @@ class OcptStoryboardPanelsGroup extends StatelessWidget {
     required this.onAnnotationDeleteRequested,
   });
 
+  /// Build the storyboard panels group as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -210,6 +211,7 @@ class _AnnotationsSection extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the annotations section as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -313,6 +315,7 @@ class _AnnotationRow extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the annotation row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -320,15 +323,15 @@ class _AnnotationRow extends StatelessWidget {
 
     return InkWell(
       onTap: onSelected,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
           border: isSelected ? Border.all(color: theme.colorScheme.primary) : null,
         ),
         child: Row(
@@ -336,7 +339,11 @@ class _AnnotationRow extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 4, right: 8),
-              child: Icon(_iconOf(annotation.kind), size: 16, color: _colorOf(theme, annotation.kind)),
+              child: Icon(
+                _iconOf(annotation.kind),
+                size: 16,
+                color: _colorOf(theme, annotation.kind),
+              ),
             ),
             Expanded(
               child: Column(
@@ -374,14 +381,14 @@ class _AnnotationRow extends StatelessWidget {
     );
   }
 
-  /// The icon shown for [kind].
+  /// Get the icon shown for [kind].
   IconData _iconOf(OcptStoryboardAnnotationKind kind) => switch (kind) {
     OcptStoryboardAnnotationKind.movementArrow => Icons.north_east,
     OcptStoryboardAnnotationKind.cameraMoveArrow => Icons.videocam_outlined,
     OcptStoryboardAnnotationKind.label => Icons.label_outline,
   };
 
-  /// The colour [kind] is drawn with on the frame's own overlay — matches
+  /// Get the colour [kind] is drawn with on the frame's own overlay — matches
   /// `OcptStoryboardAnnotationOverlay`'s own colour tokens, so a mark reads the same here as it
   /// does on the image.
   Color _colorOf(ThemeData theme, OcptStoryboardAnnotationKind kind) => switch (kind) {
@@ -390,7 +397,7 @@ class _AnnotationRow extends StatelessWidget {
     OcptStoryboardAnnotationKind.label => theme.colorScheme.secondary,
   };
 
-  /// The localized label of [kind].
+  /// Get the localized label of [kind].
   String _labelOf(Tr tr, OcptStoryboardAnnotationKind kind) => switch (kind) {
     OcptStoryboardAnnotationKind.movementArrow => tr.shotListBoardAnnotationKindMovementArrow,
     OcptStoryboardAnnotationKind.cameraMoveArrow => tr.shotListBoardAnnotationKindCameraMoveArrow,
@@ -443,6 +450,7 @@ class _PanelRow extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the panel row as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -452,13 +460,13 @@ class _PanelRow extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
             child: SizedBox(
               width: _thumbnailSize,
               height: _thumbnailSize,

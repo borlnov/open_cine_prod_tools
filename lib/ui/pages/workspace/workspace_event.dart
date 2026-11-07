@@ -12,15 +12,7 @@ sealed class OcptWorkspaceEvent extends BlocEventForMixin {
   const OcptWorkspaceEvent();
 }
 
-/// Requests loading the last used workspace mode.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptWorkspaceLoadRequestedEvent extends OcptWorkspaceEvent {
-  /// Class constructor
-  const OcptWorkspaceLoadRequestedEvent();
-}
-
-/// Selects a production mode from the bottom mode switcher, and persists it.
+/// Select a production mode from the bottom mode switcher, and persist it.
 class OcptWorkspaceModeSelectedEvent extends OcptWorkspaceEvent {
   /// The mode the user selected.
   final OcptWorkspaceMode mode;
@@ -49,12 +41,12 @@ class OcptWorkspaceModeSelectedEvent extends OcptWorkspaceEvent {
   /// Class constructor
   const OcptWorkspaceModeSelectedEvent({required this.mode, this.revealRequest, this.episodeId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, mode, revealRequest, episodeId];
 }
 
-/// Reports that the mode which was just opened has taken
+/// Report that the mode which was just opened has taken
 /// [OcptWorkspaceModeSelectedEvent.revealRequest] into account, so it can be cleared.
 ///
 /// Dispatched by the opened mode itself, on the one build that reads the request. Clearing it is
@@ -65,7 +57,7 @@ class OcptWorkspaceRevealRequestConsumedEvent extends OcptWorkspaceEvent {
   const OcptWorkspaceRevealRequestConsumedEvent();
 }
 
-/// Selects an episode from the toolbar's episode selector, built by `OcptWorkspaceShell` itself so
+/// Select an episode from the toolbar's episode selector, built by `OcptWorkspaceShell` itself so
 /// the gesture can't drift from one mode to the next.
 ///
 /// Deliberately not persisted: see `OcptWorkspaceState.selectedEpisodeId`'s own doc comment for
@@ -77,12 +69,12 @@ class OcptWorkspaceEpisodeSelectedEvent extends OcptWorkspaceEvent {
   /// Class constructor
   const OcptWorkspaceEpisodeSelectedEvent({required this.episodeId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, episodeId];
 }
 
-/// Reloads the project's episodes after `OcptProjectsManager.currentProjectStream` emits.
+/// Reload the project's episodes after `OcptProjectsManager.currentProjectStream` emits.
 ///
 /// Dispatched by the bloc's own stream subscription rather than sent by a widget — see
 /// `OcptWorkspaceBloc`'s own doc comment for why entering or leaving a project version preview has

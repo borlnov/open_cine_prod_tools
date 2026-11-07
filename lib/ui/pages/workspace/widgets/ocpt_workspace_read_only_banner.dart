@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_summary_line.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_summary_line.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The separator between the banner's headline and the previewed version's own note, matching the
 /// dash the mock-up joins them with.
@@ -64,6 +64,7 @@ class OcptWorkspaceReadOnlyBanner extends StatelessWidget {
     required this.onExitPreview,
   });
 
+  /// Build the workspace read only banner as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -72,7 +73,7 @@ class OcptWorkspaceReadOnlyBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: color.withValues(alpha: ocptSelectedStateAlpha),
+      color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
@@ -140,7 +141,7 @@ class OcptWorkspaceReadOnlyBanner extends StatelessWidget {
     );
   }
 
-  /// The banner's headline: `Read only — <version name>`, followed by the user's own note when
+  /// Get the banner's headline: `Read only — <version name>`, followed by the user's own note when
   /// they wrote one, exactly as the mock-up reads it (`Read only — v3 — Before the seq. 1
   /// rewrite`).
   String _headline(Tr tr) => [

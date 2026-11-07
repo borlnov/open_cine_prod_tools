@@ -18,9 +18,12 @@ Widget _wrapInApp(Widget child, {double width = 700}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, child: child),
+  ),
 );
 
+/// Run the tests of [OcptResourcesStatusBar].
 void main() {
   /// Pumps the status bar with a fixed set of counts, in a band [width] wide.
   Future<void> pumpStatusBar(WidgetTester tester, {double width = 900}) async {

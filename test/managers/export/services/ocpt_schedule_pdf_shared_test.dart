@@ -82,7 +82,11 @@ OcptShootingSlotGuest _buildGuest({
 );
 
 /// Builds a person with the few fields these tests read, everything else neutral.
-OcptPerson _buildPerson({required String id, required String firstName, required String lastName}) => OcptPerson(
+OcptPerson _buildPerson({
+  required String id,
+  required String firstName,
+  required String lastName,
+}) => OcptPerson(
   id: id,
   firstName: firstName,
   lastName: lastName,
@@ -225,6 +229,7 @@ OcptRole _buildUnnamedRole() => const OcptRole(
   episodeIds: [],
 );
 
+/// Run the tests of the schedule pdf shared.
 void main() {
   final roleById = {
     "role-a": _buildRole(id: "role-a", number: 5),
@@ -267,11 +272,14 @@ void main() {
       expect(ocptScheduleSlotRoleNumbersOf(slot: _buildSlot(), roleById: roleById), isEmpty);
     });
 
-    test("a cast row naming a role the project no longer holds is skipped, not printed as a gap", () {
-      final slot = _buildSlot(cast: [_buildCastMember("role-a"), _buildCastMember("role-gone")]);
+    test(
+      "a cast row naming a role the project no longer holds is skipped, not printed as a gap",
+      () {
+        final slot = _buildSlot(cast: [_buildCastMember("role-a"), _buildCastMember("role-gone")]);
 
-      expect(ocptScheduleSlotRoleNumbersOf(slot: slot, roleById: roleById), [5]);
-    });
+        expect(ocptScheduleSlotRoleNumbersOf(slot: slot, roleById: roleById), [5]);
+      },
+    );
   });
 
   group("ocptScheduleBlockRoleNumbersOf", () {
@@ -303,7 +311,11 @@ void main() {
           continue;
         }
         expect(
-          ocptScheduleBlockRoleNumbersOf(block: _buildBlock(kind: kind), slot: slot, roleById: roleById),
+          ocptScheduleBlockRoleNumbersOf(
+            block: _buildBlock(kind: kind),
+            slot: slot,
+            roleById: roleById,
+          ),
           isEmpty,
           reason: "a $kind block must not carry its slot's role numbers",
         );
@@ -378,7 +390,11 @@ void main() {
 
     test("a block's own free text wins over both its sequence heading and its kind label", () {
       final caption = ocptScheduleBlockCaptionOf(
-        block: _buildBlock(kind: OcptShootingBlockKind.hold, sceneId: "scene-1", label: "Reserved for the storm"),
+        block: _buildBlock(
+          kind: OcptShootingBlockKind.hold,
+          sceneId: "scene-1",
+          label: "Reserved for the storm",
+        ),
         headingBySceneId: const {"scene-1": "INT. HOUSE - DAY"},
         roleById: roleById,
         roleCandidateById: const {},
@@ -557,7 +573,9 @@ void main() {
     test("a live convocation reads its own arrival and departure", () {
       final plan = _buildSnapshot(
         slots: [
-          _buildSlot(guests: [_buildGuest(id: "guest-1", slotId: "slot-1", freeName: "Mayor Dupont")]),
+          _buildSlot(
+            guests: [_buildGuest(id: "guest-1", slotId: "slot-1", freeName: "Mayor Dupont")],
+          ),
         ],
       );
       final convocation = plan.convocationsOfDay("day-1").single;
@@ -599,7 +617,11 @@ void main() {
         ],
       );
 
-      final rows = ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed");
+      final rows = ocptScheduleGuestRowsOfDay(
+        plan: plan,
+        dayId: "day-1",
+        unnamedPersonLabel: "Unnamed",
+      );
 
       // Both slots convoke the very same free-named guest, so the join reads as one row rather than
       // two — a guest attending two slots for two different reasons has both printed, never one
@@ -612,10 +634,18 @@ void main() {
 
     test("a free-name guest reads their own name, having no address-book row to prefer", () {
       final plan = _buildSnapshot(
-        slots: [_buildSlot(guests: [_buildGuest(id: "guest-1", slotId: "slot-1", freeName: "Zoé Martin")])],
+        slots: [
+          _buildSlot(
+            guests: [_buildGuest(id: "guest-1", slotId: "slot-1", freeName: "Zoé Martin")],
+          ),
+        ],
       );
 
-      final rows = ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed");
+      final rows = ocptScheduleGuestRowsOfDay(
+        plan: plan,
+        dayId: "day-1",
+        unnamedPersonLabel: "Unnamed",
+      );
 
       expect(rows.single.name, "Zoé Martin");
     });
@@ -623,12 +653,18 @@ void main() {
     test("an address-book guest reads the address book's own display name", () {
       final plan = _buildSnapshot(
         slots: [
-          _buildSlot(guests: [_buildGuest(id: "guest-1", slotId: "slot-1", personId: "person-1")]),
+          _buildSlot(
+            guests: [_buildGuest(id: "guest-1", slotId: "slot-1", personId: "person-1")],
+          ),
         ],
         people: [_buildPerson(id: "person-1", firstName: "Camille", lastName: "Roy")],
       );
 
-      final rows = ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed");
+      final rows = ocptScheduleGuestRowsOfDay(
+        plan: plan,
+        dayId: "day-1",
+        unnamedPersonLabel: "Unnamed",
+      );
 
       expect(rows.single.name, "Camille Roy");
     });
@@ -636,11 +672,17 @@ void main() {
     test("a guest whose person resolves to nothing falls back to the given label", () {
       final plan = _buildSnapshot(
         slots: [
-          _buildSlot(guests: [_buildGuest(id: "guest-1", slotId: "slot-1", personId: "person-gone")]),
+          _buildSlot(
+            guests: [_buildGuest(id: "guest-1", slotId: "slot-1", personId: "person-gone")],
+          ),
         ],
       );
 
-      final rows = ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed");
+      final rows = ocptScheduleGuestRowsOfDay(
+        plan: plan,
+        dayId: "day-1",
+        unnamedPersonLabel: "Unnamed",
+      );
 
       expect(rows.single.name, "Unnamed");
     });
@@ -648,7 +690,10 @@ void main() {
     test("a day with no guest at all answers with no row", () {
       final plan = _buildSnapshot(slots: [_buildSlot()]);
 
-      expect(ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed"), isEmpty);
+      expect(
+        ocptScheduleGuestRowsOfDay(plan: plan, dayId: "day-1", unnamedPersonLabel: "Unnamed"),
+        isEmpty,
+      );
     });
   });
 }

@@ -5,17 +5,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog.dart';
 
 /// How long a position row waits after the last keystroke in its label field before dispatching
 /// the update — this card's own local debounce, distinct from
-/// `OcptResourcesState.pendingFieldEdits` (which only covers a person's own columns, not this
+/// `OcptResourcesPeopleState.pendingFieldEdits` (which only covers a person's own columns, not this
 /// sub-list).
 const Duration _localFieldDebounce = Duration(milliseconds: 500);
 
@@ -29,11 +29,11 @@ const double _departmentColumnWidth = 132;
 ///
 /// A row says only **that** this person holds the function — **when** is the schedule mode's own
 /// answer, on its own surfaces: the schedule's slot crew picker reads these very rows to pre-fill
-/// a convocation's position (`lib/utils/ocpt_crew_position_prefill.dart`), which is the join
+/// a convocation's position (`lib/models/rules/ocpt_crew_position_prefill.dart`), which is the join
 /// between the two tables (see `OcptPersonPositionsTable`'s own doc comment). A scope field here
 /// would only be a second copy of that one truth.
 ///
-/// Roles (the cast, reconciled from the screenplay) are a later milestone: this card only ever
+/// Roles (the cast, reconciled from the screenplay) have their own sheet: this card only ever
 /// shows crew position assignments, never a role row.
 class OcptPersonSheetPositionsCard extends StatelessWidget {
   /// The person these positions belong to.
@@ -66,6 +66,7 @@ class OcptPersonSheetPositionsCard extends StatelessWidget {
     required this.onAdded,
   });
 
+  /// Build the person sheet positions card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -101,10 +102,7 @@ class OcptPersonSheetPositionsCard extends StatelessWidget {
           if (onAdded != null)
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton(
-                onPressed: onAdded,
-                child: Text(tr.resourcesAddPositionAction),
-              ),
+              child: OutlinedButton(onPressed: onAdded, child: Text(tr.resourcesAddPositionAction)),
             ),
         ],
       ),
@@ -126,8 +124,14 @@ class _OcptPersonPositionRow extends StatefulWidget {
   final VoidCallback? onRemoved;
 
   /// Class constructor
-  const _OcptPersonPositionRow({super.key, required this.position, required this.onUpdated, required this.onRemoved});
+  const _OcptPersonPositionRow({
+    super.key,
+    required this.position,
+    required this.onUpdated,
+    required this.onRemoved,
+  });
 
+  /// Create the [_OcptPersonPositionRowState] holding the state of the person position row.
   @override
   State<_OcptPersonPositionRow> createState() => _OcptPersonPositionRowState();
 }
@@ -159,79 +163,14 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
   /// Whether a local edit is waiting to be flushed.
   bool _isDirty = false;
 
+  /// Register [_flushOnFocusLost] as a listener of [_labelFocusNode].
   @override
   void initState() {
     super.initState();
     _labelFocusNode.addListener(_flushOnFocusLost);
   }
 
-  @override
-  void dispose() {
-    _flushIfDirty();
-    _debounce?.cancel();
-    _labelFocusNode.dispose();
-    _labelController.dispose();
-    super.dispose();
-  }
-
-  /// Flushes a pending edit the moment the label field loses focus, so a click elsewhere in the
-  /// sheet never silently drops it.
-  void _flushOnFocusLost() {
-    if (!_labelFocusNode.hasFocus) {
-      _flushIfDirty();
-    }
-  }
-
-  /// Records that the label field now holds a free label (typing always leaves the catalogue,
-  /// even if a catalogue entry was picked moments ago) and (re)starts the debounce.
-  void _onLabelChanged(String text) {
-    _positionId = "";
-    _isDirty = true;
-    _restartDebounce();
-  }
-
-  /// (Re)starts the local debounce, cancelling whatever was still running.
-  void _restartDebounce() {
-    _debounce?.cancel();
-    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
-  }
-
-  /// Reports the row's two current fields, if a local edit is actually waiting; a no-op otherwise,
-  /// so a focus change with nothing typed never triggers a redundant write.
-  void _flushIfDirty() {
-    _debounce?.cancel();
-    if (!_isDirty) {
-      return;
-    }
-    _isDirty = false;
-    widget.onUpdated?.call(
-      positionId: _positionId,
-      customLabel: _positionId.isEmpty ? _labelController.text : "",
-    );
-  }
-
-  /// Picks catalogue position [positionId] from the row's menu: written immediately, since picking
-  /// an entry is a single discrete action rather than typing.
-  void _pickCatalogPosition(String positionId) {
-    _debounce?.cancel();
-    _isDirty = false;
-    setState(() {
-      _positionId = positionId;
-      _labelController.text = ocptCrewPositionLabel(Tr.of(context), positionId);
-    });
-    widget.onUpdated?.call(positionId: positionId, customLabel: "");
-  }
-
-  /// Switches this row to a free label, keeping whatever text the label field already shows:
-  /// written immediately, since picking the menu's "Custom label…" entry is itself a single
-  /// discrete action.
-  void _pickCustomLabel() {
-    _debounce?.cancel();
-    _isDirty = false;
-    setState(() => _positionId = "");
-    widget.onUpdated?.call(positionId: "", customLabel: _labelController.text);
-  }
-
+  /// Build the person position row as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -244,7 +183,7 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Row(
@@ -252,10 +191,14 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
           SizedBox(
             width: _departmentColumnWidth,
             child: Text(
-              department != null ? ocptCrewDepartmentLabel(tr, department) : ocptResourcesEmptyValue,
+              department != null
+                  ? ocptCrewDepartmentLabel(tr, department)
+                  : ocptResourcesEmptyValue,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Expanded(
@@ -268,7 +211,10 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
                     readOnly: isReadOnly,
                     onChanged: isReadOnly ? null : _onLabelChanged,
                     style: theme.textTheme.bodySmall,
-                    decoration: InputDecoration(isDense: true, hintText: tr.resourcesPositionLabelHint),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: tr.resourcesPositionLabelHint,
+                    ),
                   ),
                 ),
                 if (!isReadOnly)
@@ -291,7 +237,65 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     );
   }
 
-  /// Opens the shared [OcptCrewPositionPickerDialog] over the whole catalogue, with its "Custom
+  /// Flush a pending edit the moment the label field loses focus, so a click elsewhere in the
+  /// sheet never silently drops it.
+  void _flushOnFocusLost() {
+    if (!_labelFocusNode.hasFocus) {
+      _flushIfDirty();
+    }
+  }
+
+  /// Record that the label field now holds a free label (typing always leaves the catalogue,
+  /// even if a catalogue entry was picked moments ago) and (re)starts the debounce.
+  void _onLabelChanged(String text) {
+    _positionId = "";
+    _isDirty = true;
+    _restartDebounce();
+  }
+
+  /// (Re)start the local debounce, cancelling whatever was still running.
+  void _restartDebounce() {
+    _debounce?.cancel();
+    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
+  }
+
+  /// Report the row's two current fields, if a local edit is actually waiting; a no-op otherwise,
+  /// so a focus change with nothing typed never triggers a redundant write.
+  void _flushIfDirty() {
+    _debounce?.cancel();
+    if (!_isDirty) {
+      return;
+    }
+    _isDirty = false;
+    widget.onUpdated?.call(
+      positionId: _positionId,
+      customLabel: _positionId.isEmpty ? _labelController.text : "",
+    );
+  }
+
+  /// Pick catalogue position [positionId] from the row's menu: written immediately, since picking
+  /// an entry is a single discrete action rather than typing.
+  void _pickCatalogPosition(String positionId) {
+    _debounce?.cancel();
+    _isDirty = false;
+    setState(() {
+      _positionId = positionId;
+      _labelController.text = ocptCrewPositionLabel(Tr.of(context), positionId);
+    });
+    widget.onUpdated?.call(positionId: positionId, customLabel: "");
+  }
+
+  /// Switch this row to a free label, keeping whatever text the label field already shows:
+  /// written immediately, since picking the menu's "Custom label…" entry is itself a single
+  /// discrete action.
+  void _pickCustomLabel() {
+    _debounce?.cancel();
+    _isDirty = false;
+    setState(() => _positionId = "");
+    widget.onUpdated?.call(positionId: "", customLabel: _labelController.text);
+  }
+
+  /// Open the shared [OcptCrewPositionPickerDialog] over the whole catalogue, with its "Custom
   /// label…" entry offered: a catalogue pick calls [_pickCatalogPosition], the custom entry calls
   /// [_pickCustomLabel]. A dismissed dialog (or one closed once this state no longer `mounted`
   /// holds) leaves the row untouched.
@@ -305,5 +309,16 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     } else {
       _pickCatalogPosition(result.position!.positionId);
     }
+  }
+
+  /// Flush the pending edit, cancel [_debounce], then dispose [_labelFocusNode] and
+  /// [_labelController].
+  @override
+  void dispose() {
+    _flushIfDirty();
+    _debounce?.cancel();
+    _labelFocusNode.dispose();
+    _labelController.dispose();
+    super.dispose();
   }
 }

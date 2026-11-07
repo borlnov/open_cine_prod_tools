@@ -21,6 +21,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 320, height: 600, child: child)),
 );
 
+/// Run the tests of [OcptBreakdownRightDock].
 void main() {
   testWidgets("shows the active tab's body and the other tab's label", (tester) async {
     await tester.pumpWidget(

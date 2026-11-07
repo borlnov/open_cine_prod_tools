@@ -24,7 +24,7 @@ final RegExp _tokenSeparator = RegExp(r'\s+');
 /// with (`(PAUL)`, `PAUL,`, `"ELISA"`).
 final RegExp _tokenEdges = RegExp(r'^[^\p{L}]+|[^\p{L}]+$', unicode: true);
 
-/// The normalized names an action line introduces: every run of upper-case
+/// Get the normalized names an action line introduces: every run of upper-case
 /// words it holds, in reading order.
 ///
 /// Writing a character's name in capitals the first time they appear in the
@@ -59,8 +59,7 @@ final RegExp _tokenEdges = RegExp(r'^[^\p{L}]+|[^\p{L}]+$', unicode: true);
 /// written in capitals (`OK`, `STOP`) is named here just like a character
 /// would be. The caller decides what to do with a name it does not recognise.
 List<String> charactersIntroducedInActionLine(String line) {
-  if (_holdsNoLowerCaseLetter(line) ||
-      FountainLineClassifier.holdsSceneHeadingPrefix(line)) {
+  if (_holdsNoLowerCaseLetter(line) || FountainLineClassifier.holdsSceneHeadingPrefix(line)) {
     return const [];
   }
 
@@ -87,17 +86,17 @@ List<String> charactersIntroducedInActionLine(String line) {
   return names;
 }
 
-/// Whether [line] holds at least one letter and not a single lower-case one.
+/// Tell whether [line] holds at least one letter and not a single lower-case one.
 bool _holdsNoLowerCaseLetter(String line) =>
     line.toUpperCase() == line && line.toLowerCase() != line;
 
-/// Whether [word] (already stripped of its edge punctuation) reads as one word
+/// Tell whether [word] (already stripped of its edge punctuation) reads as one word
 /// of a character's name: at least two characters long, holding a letter, and
 /// holding no lower-case letter.
 bool _isNameWord(String word) =>
     word.length >= 2 && word.toUpperCase() == word && word.toLowerCase() != word;
 
-/// The normalized, deduplicated, first-appearance-ordered names every action
+/// Get the normalized, deduplicated, first-appearance-ordered names every action
 /// block of [blocks] introduces, as [charactersIntroducedInActionLine] reads
 /// them line by line.
 List<String> charactersIntroducedInActionOf(Iterable<FountainBlock> blocks) {
@@ -119,7 +118,7 @@ List<String> charactersIntroducedInActionOf(Iterable<FountainBlock> blocks) {
   return ordered;
 }
 
-/// Every character [blocks] name, normalized, deduplicated and in
+/// Get every character [blocks] name, normalized, deduplicated and in
 /// first-appearance order: the roles [speakingCharactersOf] finds in the
 /// dialogue cues, together with the ones
 /// [charactersIntroducedInActionOf] finds written in capitals in the action.

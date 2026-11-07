@@ -35,6 +35,7 @@ class OcptPersonSheetHmcCard extends StatelessWidget {
     required this.onFieldChanged,
   });
 
+  /// Build the person sheet hmc card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -44,21 +45,30 @@ class OcptPersonSheetHmcCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildFieldRow([
-            (tr.resourcesMeasurementHeightLabel, OcptPersonField.measurementHeight),
-            (tr.resourcesMeasurementChestLabel, OcptPersonField.measurementChest),
-          ]),
+          _FieldRow(
+            card: this,
+            fields: [
+              (tr.resourcesMeasurementHeightLabel, OcptPersonField.measurementHeight),
+              (tr.resourcesMeasurementChestLabel, OcptPersonField.measurementChest),
+            ],
+          ),
           const SizedBox(height: 10),
-          _buildFieldRow([
-            (tr.resourcesMeasurementWaistLabel, OcptPersonField.measurementWaist),
-            (tr.resourcesMeasurementHipsLabel, OcptPersonField.measurementHips),
-          ]),
+          _FieldRow(
+            card: this,
+            fields: [
+              (tr.resourcesMeasurementWaistLabel, OcptPersonField.measurementWaist),
+              (tr.resourcesMeasurementHipsLabel, OcptPersonField.measurementHips),
+            ],
+          ),
           const SizedBox(height: 10),
-          _buildFieldRow([
-            (tr.resourcesSizeTopLabel, OcptPersonField.sizeTop),
-            (tr.resourcesSizeBottomLabel, OcptPersonField.sizeBottom),
-            (tr.resourcesSizeShoesLabel, OcptPersonField.sizeShoes),
-          ]),
+          _FieldRow(
+            card: this,
+            fields: [
+              (tr.resourcesSizeTopLabel, OcptPersonField.sizeTop),
+              (tr.resourcesSizeBottomLabel, OcptPersonField.sizeBottom),
+              (tr.resourcesSizeShoesLabel, OcptPersonField.sizeShoes),
+            ],
+          ),
           const SizedBox(height: 10),
           OcptResourcesSheetField(
             ownerId: personId,
@@ -72,25 +82,8 @@ class OcptPersonSheetHmcCard extends StatelessWidget {
     );
   }
 
-  /// One row of equally wide fields, built from their `(label, field)` pairs.
-  Widget _buildFieldRow(List<(String, OcptPersonField)> fields) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      for (final (index, (label, field)) in fields.indexed) ...[
-        if (index > 0) const SizedBox(width: 8),
-        Expanded(
-          child: OcptResourcesSheetField(
-            ownerId: personId,
-            label: label,
-            value: fieldValueOf(field),
-            onChanged: _onFieldChangedOrNull(field),
-          ),
-        ),
-      ],
-    ],
-  );
-
-  /// The `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or null
+  /// Get the `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or
+  /// null
   /// while the sheet may not be written to.
   ValueChanged<String>? _onFieldChangedOrNull(OcptPersonField field) {
     final onFieldChanged = this.onFieldChanged;
@@ -99,4 +92,35 @@ class OcptPersonSheetHmcCard extends StatelessWidget {
     }
     return (value) => onFieldChanged(field, value);
   }
+}
+
+/// One row of equally wide fields, built from their `(label, field)` pairs.
+class _FieldRow extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptPersonSheetHmcCard card;
+
+  /// The `(label, field)` pairs, one per field.
+  final List<(String, OcptPersonField)> fields;
+
+  /// Class constructor
+  const _FieldRow({required this.card, required this.fields});
+
+  /// Build the field row as a [Row].
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      for (final (index, (label, field)) in fields.indexed) ...[
+        if (index > 0) const SizedBox(width: 8),
+        Expanded(
+          child: OcptResourcesSheetField(
+            ownerId: card.personId,
+            label: label,
+            value: card.fieldValueOf(field),
+            onChanged: card._onFieldChangedOrNull(field),
+          ),
+        ),
+      ],
+    ],
+  );
 }

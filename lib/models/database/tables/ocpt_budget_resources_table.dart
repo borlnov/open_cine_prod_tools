@@ -3,40 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_budget_resource_group_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_budget_resource_status_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
-
-/// Converts a [OcptBudgetResourceGroupKind] to and from the text stored in the
-/// `budget_resources.groupKind` column.
-class OcptBudgetResourceGroupKindConverter extends TypeConverter<OcptBudgetResourceGroupKind, String> {
-  /// Class constructor
-  const OcptBudgetResourceGroupKindConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptBudgetResourceGroupKind fromSql(String fromDb) =>
-      OcptBudgetResourceGroupKind.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptBudgetResourceGroupKind value) => value.name;
-}
-
-/// Converts a [OcptBudgetResourceStatus] to and from the text stored in the
-/// `budget_resources.status` column.
-class OcptBudgetResourceStatusConverter extends TypeConverter<OcptBudgetResourceStatus, String> {
-  /// Class constructor
-  const OcptBudgetResourceStatusConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptBudgetResourceStatus fromSql(String fromDb) => OcptBudgetResourceStatus.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptBudgetResourceStatus value) => value.name;
-}
 
 /// One line of the production's financing plan: a subsidy, a cash contribution or a contribution
 /// in kind ([groupKind]), what it comes to and where it stands ([status]).
@@ -44,11 +14,11 @@ class OcptBudgetResourceStatusConverter extends TypeConverter<OcptBudgetResource
 /// **No `receivedCents` column, though the shape it was first sketched with carried one.** What has
 /// actually been received against a resource is the sum of the `budget_entries` credits naming it
 /// through `budget_entries.resourceId`, computed on every read rather than stored beside it — the
-/// very same argument `docs/architecture/budget.md` already makes twice, in "A poste's quoted
+/// very same argument `docs/architecture/budget.md` already makes twice, in "An account's quoted
 /// amount is not stored" and in "A commitment settles by naming the entry that paid it": a stored
 /// second copy of one truth has to be kept in step by a write nobody can guarantee never to forget.
-/// A subsidy's own instalments are read exactly the way a poste's paid total already is — off the
-/// journal, never off a duplicate counter.
+/// A subsidy's own instalments are read exactly the way an account's paid total already is — off
+/// the journal, never off a duplicate counter.
 ///
 /// **No money triple either — no `isTaxInclusive`, no `vatRateBasisPoints`.** A financing resource
 /// is money coming *in*, and `docs/architecture/budget.md`'s own "Money that has moved is read
@@ -61,7 +31,7 @@ class OcptBudgetResourcesTable extends Table {
   @override
   String get tableName => 'budget_resources';
 
-  /// The stable, unique id of this resource (a UUID).
+  /// Get the stable, unique id of this resource (a UUID).
   TextColumn get id => text()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -70,7 +40,7 @@ class OcptBudgetResourcesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// What kind of financing this resource is.
+  /// Get what kind of financing this resource is.
   // The stored literal below must match `OcptBudgetResourceGroupKind.subsidy.name` exactly, for the
   // same reason `budget_commitments.status`'s default does: an enum's `.name` getter isn't a
   // compile-time constant expression, so it can't be written as `Constant(…)`.
@@ -78,7 +48,7 @@ class OcptBudgetResourcesTable extends Table {
       .map(const OcptBudgetResourceGroupKindConverter())
       .withDefault(const Constant('subsidy'))();
 
-  /// The person this resource comes from, or null. → [OcptPeopleTable]
+  /// Get the person this resource comes from, or null. → [OcptPeopleTable]
   ///
   /// Declared exactly as `OcptBudgetSharesTable.personId` is: nullable because a subsidy names no
   /// one person, and null is a real fact rather than "nobody has said yet". A cash contribution or
@@ -87,13 +57,14 @@ class OcptBudgetResourcesTable extends Table {
   /// revenue sharing's own repayment reading groups by this column.
   TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// This resource's free-text wording, e.g. "Région Île-de-France — aide à la production".
+  /// Get this resource's free-text wording, e.g. "Région Île-de-France — aide à la production".
   TextColumn get label => text()();
 
-  /// The amount this resource comes to, exactly as typed, in cents.
+  /// Get the amount this resource comes to, exactly as typed, in cents.
   IntColumn get amountCents => integer().withDefault(const Constant(0))();
 
-  /// How far this resource has progressed towards actually financing the production — the step it
+  /// Tell how far this resource has progressed towards actually financing the production — the step
+  /// it
   /// stands at, whose *word* is the group's rather than the step's: see
   /// [OcptBudgetResourceStatus]'s own doc comment.
   // The stored literal below must match `OcptBudgetResourceStatus.pending.name` exactly, for the
@@ -104,11 +75,11 @@ class OcptBudgetResourcesTable extends Table {
       .map(const OcptBudgetResourceStatusConverter())
       .withDefault(const Constant('pending'))();
 
-  /// Whether this resource has to be repaid before the revenue sharing splits what is left —
+  /// Tell whether this resource has to be repaid before the revenue sharing splits what is left —
   /// the revenue sharing's own "reimbursable contributions repaid before anything is split".
   BoolColumn get isReimbursable => boolean().withDefault(const Constant(false))();
 
-  /// Free-form notes about this resource.
+  /// Get free-form notes about this resource.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro drift.Table.primaryKey}

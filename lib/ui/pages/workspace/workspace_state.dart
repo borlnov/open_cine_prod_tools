@@ -42,9 +42,9 @@ class OcptWorkspaceState extends BlocStateForMixin<OcptWorkspaceState> {
   const OcptWorkspaceState({
     required this.isLoading,
     required this.mode,
-    this.revealRequest,
-    this.episodes = const [],
-    this.selectedEpisodeId,
+    required this.revealRequest,
+    required this.episodes,
+    required this.selectedEpisodeId,
   });
 
   /// Init class constructor
@@ -57,30 +57,73 @@ class OcptWorkspaceState extends BlocStateForMixin<OcptWorkspaceState> {
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
-  /// [clearRevealRequest] is how [revealRequest] goes back to null, a null [revealRequest] meaning
-  /// "leave it alone" like every other nullable field of a state in this app. [selectedEpisodeId]
-  /// follows the same idiom through [clearSelectedEpisodeId], for the case (an episode-less
-  /// project, in principle unreachable today) where it has to go back to null too.
+  /// [forceRevealRequestValue] is how [revealRequest] goes back to null, a null [revealRequest]
+  /// meaning "leave it alone" like every other nullable field of a state in this app.
+  /// [selectedEpisodeId] follows the same idiom through [forceSelectedEpisodeIdValue], for the case
+  /// (an episode-less project, in principle unreachable today) where it has to go back to null too.
   @override
   OcptWorkspaceState copyWith({
     bool? isLoading,
     OcptWorkspaceMode? mode,
     OcptWorkspaceRevealRequest? revealRequest,
-    bool clearRevealRequest = false,
+    bool forceRevealRequestValue = false,
     List<OcptEpisode>? episodes,
     String? selectedEpisodeId,
-    bool clearSelectedEpisodeId = false,
+    bool forceSelectedEpisodeIdValue = false,
   }) => OcptWorkspaceState(
     isLoading: isLoading ?? this.isLoading,
     mode: mode ?? this.mode,
-    revealRequest: clearRevealRequest ? null : revealRequest ?? this.revealRequest,
+    revealRequest: revealRequest ?? (forceRevealRequestValue ? null : this.revealRequest),
     episodes: episodes ?? this.episodes,
-    selectedEpisodeId: clearSelectedEpisodeId
-        ? null
-        : selectedEpisodeId ?? this.selectedEpisodeId,
+    selectedEpisodeId:
+        selectedEpisodeId ?? (forceSelectedEpisodeIdValue ? null : this.selectedEpisodeId),
   );
 
-  /// Object properties
+  /// Copy this state as loaded in [mode] with the project's [episodes], the first one selected
+  /// (none when there is none).
+  OcptWorkspaceState copyToLoaded({
+    required OcptWorkspaceMode mode,
+    required List<OcptEpisode> episodes,
+  }) => copyWith(
+    isLoading: false,
+    mode: mode,
+    episodes: episodes,
+    selectedEpisodeId: episodes.isEmpty ? null : episodes.first.id,
+    forceSelectedEpisodeIdValue: episodes.isEmpty,
+  );
+
+  /// Copy this state with the project's [episodes] read again and [selectedEpisodeId] kept or
+  /// moved to a live one, null when there is none.
+  OcptWorkspaceState copyWithReloadedEpisodes({
+    required List<OcptEpisode> episodes,
+    required String? selectedEpisodeId,
+  }) => copyWith(
+    episodes: episodes,
+    selectedEpisodeId: selectedEpisodeId,
+    forceSelectedEpisodeIdValue: selectedEpisodeId == null,
+  );
+
+  /// Copy this state with the episode picked from the toolbar selected.
+  OcptWorkspaceState copyWithSelectedEpisode({required String selectedEpisodeId}) =>
+      copyWith(selectedEpisodeId: selectedEpisodeId);
+
+  /// Copy this state switched to [mode], with the [revealRequest] to hand to it and, when given,
+  /// the [episodeId] it opens on.
+  OcptWorkspaceState copyWithMode({
+    required OcptWorkspaceMode mode,
+    required OcptWorkspaceRevealRequest? revealRequest,
+    required String? episodeId,
+  }) => copyWith(
+    mode: mode,
+    revealRequest: revealRequest,
+    forceRevealRequestValue: revealRequest == null,
+    selectedEpisodeId: episodeId,
+  );
+
+  /// Copy this state with the reveal request cleared.
+  OcptWorkspaceState copyWithRevealRequestConsumed() => copyWith(forceRevealRequestValue: true);
+
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

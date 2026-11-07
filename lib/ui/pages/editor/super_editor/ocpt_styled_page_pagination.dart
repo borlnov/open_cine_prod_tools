@@ -4,7 +4,7 @@
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
@@ -19,15 +19,6 @@ const String ocptStartsNewPageMetadataKey = "ocptStartsNewPage";
 /// currently spans, and how much trailing bottom padding fills the last page out to its full
 /// height.
 class OcptStyledPagination {
-  /// Creates an [OcptStyledPagination].
-  const OcptStyledPagination({
-    required this.pageStartNodeIds,
-    required this.pageStartTopPaddings,
-    required this.pageCount,
-    required this.titlePageSheetCount,
-    required this.trailingBottomPadding,
-  });
-
   /// The ids of every `ParagraphNode` that starts a page other than the very first one (the
   /// document's first node never carries the flag: there is no page boundary to show above it).
   ///
@@ -65,9 +56,18 @@ class OcptStyledPagination {
   /// content simply ends wherever the last line of text happens to fall, leaving no space to
   /// scroll into so the last sheet's own bottom margin is never shown, only cropped short.
   final double trailingBottomPadding;
+
+  /// Create an [OcptStyledPagination].
+  const OcptStyledPagination({
+    required this.pageStartNodeIds,
+    required this.pageStartTopPaddings,
+    required this.pageCount,
+    required this.titlePageSheetCount,
+    required this.trailingBottomPadding,
+  });
 }
 
-/// Buckets every `ParagraphNode` of [document] into simulated pages, the same line-estimation
+/// Bucket every `ParagraphNode` of [document] into simulated pages, the same line-estimation
 /// approach `OcptEditorPreviewLayout`'s own pagination uses for the raw preview: a running sum of
 /// [OcptEditorPreviewLayout.wrappedLineCount] (plus each node's `ocptBlankLinesBefore` metadata,
 /// capped like [ocptMaxBlankLinesBeforeSpacing]) is compared against [metrics]'
@@ -107,7 +107,9 @@ OcptStyledPagination computeOcptStyledPagination({
   final layout = OcptEditorPreviewLayout(metrics: metrics);
   final sheetExtent = layout.pageHeight + OcptEditorPreviewLayout.pageGap;
 
-  final hasTitlePage = document.any((node) => node is ParagraphNode && OcptWysiwygCodec.isTitlePageNode(node));
+  final hasTitlePage = document.any(
+    (node) => node is ParagraphNode && OcptWysiwygCodec.isTitlePageNode(node),
+  );
 
   final pageStartNodeIds = <String>{};
   final pageStartTopPaddings = <String, double>{};
@@ -140,7 +142,9 @@ OcptStyledPagination computeOcptStyledPagination({
       continue;
     }
 
-    final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+    final type = OcptFountainLineAttributions.typeOfAttributionValue(
+      node.getMetadataValue("blockType"),
+    );
     final wrappedLines = _wrappedLineCountOf(node, type, metrics);
     final blankLinesBefore = _blankLinesBeforeOf(node);
     final lines = wrappedLines + blankLinesBefore;
@@ -150,7 +154,9 @@ OcptStyledPagination computeOcptStyledPagination({
 
     if (pageCount == 0) {
       pageCount = 1;
-    } else if (forcesPageBreak || type == FountainLineType.pageBreak || currentLines + lines > metrics.linesPerPage) {
+    } else if (forcesPageBreak ||
+        type == FountainLineType.pageBreak ||
+        currentLines + lines > metrics.linesPerPage) {
       pageCount++;
       // The forced title-page-to-body break targets `pageIndex`, already 1 from initialization,
       // rather than incrementing it again: every other trigger below genuinely advances past a
@@ -179,7 +185,9 @@ OcptStyledPagination computeOcptStyledPagination({
   }
 
   final desiredBottomY = pageCount == 0 ? 0.0 : (pageCount - 1) * sheetExtent + layout.pageHeight;
-  final trailingBottomPadding = pageCount == 0 ? 0.0 : (desiredBottomY - currentY).clamp(0.0, double.infinity);
+  final trailingBottomPadding = pageCount == 0
+      ? 0.0
+      : (desiredBottomY - currentY).clamp(0.0, double.infinity);
 
   return OcptStyledPagination(
     pageStartNodeIds: pageStartNodeIds,
@@ -190,32 +198,34 @@ OcptStyledPagination computeOcptStyledPagination({
   );
 }
 
-/// The number of lines [node] (classified as [type]) is estimated to wrap its own text to, not
+/// Get the number of lines [node] (classified as [type]) is estimated to wrap its own text to, not
 /// counting its `ocptBlankLinesBefore` metadata (see [_blankLinesBeforeOf] for that half).
 int _wrappedLineCountOf(ParagraphNode node, FountainLineType type, FountainLayoutMetrics metrics) {
   final element = _elementLayoutOf(type, metrics);
   return OcptEditorPreviewLayout.wrappedLineCount(node.text.toPlainText(), element.maxWidthColumns);
 }
 
-/// The layout box [type] is set in, mirroring `OcptFountainEditorStylesheet`'s own element choice
+/// Get the layout box [type] is set in, mirroring `OcptFountainEditorStylesheet`'s own element
+/// choice
 /// per type (in particular lyrics sharing the dialogue box, and every non-printing/scaffolding
 /// type using the full-width action box).
-FountainElementLayout _elementLayoutOf(FountainLineType type, FountainLayoutMetrics metrics) => switch (type) {
-  FountainLineType.sceneHeading => metrics.sceneHeading,
-  FountainLineType.character => metrics.character,
-  FountainLineType.parenthetical => metrics.parenthetical,
-  FountainLineType.dialogue => metrics.dialogue,
-  FountainLineType.lyrics => metrics.dialogue,
-  FountainLineType.transition => metrics.transition,
-  FountainLineType.centeredText => metrics.centeredText,
-  FountainLineType.pageBreak => metrics.centeredText,
-  FountainLineType.section ||
-  FountainLineType.synopsis ||
-  FountainLineType.action ||
-  FountainLineType.blank => metrics.action,
-};
+FountainElementLayout _elementLayoutOf(FountainLineType type, FountainLayoutMetrics metrics) =>
+    switch (type) {
+      FountainLineType.sceneHeading => metrics.sceneHeading,
+      FountainLineType.character => metrics.character,
+      FountainLineType.parenthetical => metrics.parenthetical,
+      FountainLineType.dialogue => metrics.dialogue,
+      FountainLineType.lyrics => metrics.dialogue,
+      FountainLineType.transition => metrics.transition,
+      FountainLineType.centeredText => metrics.centeredText,
+      FountainLineType.pageBreak => metrics.centeredText,
+      FountainLineType.section ||
+      FountainLineType.synopsis ||
+      FountainLineType.action ||
+      FountainLineType.blank => metrics.action,
+    };
 
-/// Reads [node]'s `ocptBlankLinesBefore` metadata, capped at [ocptMaxBlankLinesBeforeSpacing] to
+/// Read [node]'s `ocptBlankLinesBefore` metadata, capped at [ocptMaxBlankLinesBeforeSpacing] to
 /// match the extra spacing `OcptFountainEditorStylesheet` actually renders for it.
 int _blankLinesBeforeOf(ParagraphNode node) {
   final value = node.getMetadataValue(ocptBlankLinesBeforeMetadataKey);

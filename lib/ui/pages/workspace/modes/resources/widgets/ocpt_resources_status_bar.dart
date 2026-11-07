@@ -39,6 +39,7 @@ class OcptResourcesStatusBar extends StatelessWidget {
     required this.elementCount,
   });
 
+  /// Build the resources status bar as an [OcptWorkspaceStatusBar].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

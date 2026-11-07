@@ -13,12 +13,13 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 /// 1). When the screenplay later gives that same character a line, `reconcile` creates the speaking
 /// role it always would — the screenplay stays the source of truth, and `reconcile` itself is
 /// unchanged, matching only its own `isFromScreenplay` roles as it always has — so the project
-/// briefly holds two live roles wearing the same name. This is a **pure read over the already-loaded
-/// cast**, computed by [buildAll] exactly the way `OcptRemovedRoleAlert.buildAll` is: nothing here
-/// changes what `reconcile` writes, and nothing here decides anything — the app never merges the two
-/// roles silently, it only ever surfaces that they might be the same person and lets the user say
-/// through `OcptRoleIndexService.mergeRole` (the hand-added role is always offered as *source*, the
-/// screenplay one as *target*, so the reconciled role keeps being the one `reconcile` owns).
+/// briefly holds two live roles wearing the same name. This is a **pure read over the
+/// already-loaded cast**, computed by [buildAll] exactly the way `OcptRemovedRoleAlert.buildAll`
+/// is: nothing here changes what `reconcile` writes, and nothing here decides anything — the app
+/// never merges the two roles silently, it only ever surfaces that they might be the same person
+/// and lets the user say through `OcptRoleIndexService.mergeRole` (the hand-added role is always
+/// offered as *source*, the screenplay one as *target*, so the reconciled role keeps being the one
+/// `reconcile` owns).
 class OcptRoleCollisionAlert extends Equatable {
   /// The normalised name (`fountain_kit`'s `normalizeCharacterName`) both roles below share.
   final String name;
@@ -36,7 +37,13 @@ class OcptRoleCollisionAlert extends Equatable {
     required this.handAddedRoleId,
   });
 
-  /// Every collision found in [roles]: one alert per normalised name worn by both a live
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptRoleCollisionAlert(name: $name, screenplayRoleId: $screenplayRoleId, "
+      "handAddedRoleId: $handAddedRoleId)";
+
+  /// Get every collision found in [roles]: one alert per normalised name worn by both a live
   /// `isFromScreenplay` role and a live hand-added one, sorted by [name] so the banners keep a
   /// stable order across reloads.
   ///
@@ -72,13 +79,7 @@ class OcptRoleCollisionAlert extends Equatable {
     return alerts;
   }
 
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptRoleCollisionAlert(name: $name, screenplayRoleId: $screenplayRoleId, "
-      "handAddedRoleId: $handAddedRoleId)";
-
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [name, screenplayRoleId, handAddedRoleId];
 }

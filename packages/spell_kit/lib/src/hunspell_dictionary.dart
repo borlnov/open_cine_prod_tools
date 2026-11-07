@@ -12,19 +12,6 @@ import 'package:spell_kit/src/hunspell_affix_file.dart';
 /// plain `String`s, which is what keeps this package free of `dart:io` and
 /// testable from a miniature pair written straight into a test.
 class SpellDictionary {
-  /// Creates a [SpellDictionary]. Prefer [SpellDictionary.parse].
-  const SpellDictionary({required this.affixFile, required this.entries});
-
-  /// Parses [affix] and [dictionary] (the verbatim contents of a `.aff`
-  /// file and its matching `.dic` file) into a [SpellDictionary].
-  factory SpellDictionary.parse({
-    required String affix,
-    required String dictionary,
-  }) => SpellDictionary(
-    affixFile: HunspellAffixFile.parse(affix),
-    entries: _parseDictionaryEntries(dictionary),
-  );
-
   /// The parsed `.aff` rules.
   final HunspellAffixFile affixFile;
 
@@ -36,9 +23,20 @@ class SpellDictionary {
   /// dictionary carries 1 903 of them) are merged by concatenating their
   /// flag strings, so no flag either copy declared is lost.
   final Map<String, String> entries;
+
+  /// Create a [SpellDictionary]. Prefer [SpellDictionary.parse].
+  const SpellDictionary({required this.affixFile, required this.entries});
+
+  /// Parse [affix] and [dictionary] (the verbatim contents of a `.aff`
+  /// file and its matching `.dic` file) into a [SpellDictionary].
+  factory SpellDictionary.parse({required String affix, required String dictionary}) =>
+      SpellDictionary(
+        affixFile: HunspellAffixFile.parse(affix),
+        entries: _parseDictionaryEntries(dictionary),
+      );
 }
 
-/// Parses the body of a `.dic` file into a word-to-flags map.
+/// Parse the body of a `.dic` file into a word-to-flags map.
 ///
 /// The first line is conventionally the entry count; it is skipped when it
 /// parses as an integer and otherwise tolerated as a missing header (in
@@ -49,8 +47,7 @@ class SpellDictionary {
 /// bundled dictionary carries any.
 Map<String, String> _parseDictionaryEntries(String source) {
   final lines = source.split('\n');
-  final startIndex =
-      lines.isNotEmpty && int.tryParse(lines.first.trim()) != null ? 1 : 0;
+  final startIndex = lines.isNotEmpty && int.tryParse(lines.first.trim()) != null ? 1 : 0;
 
   final entries = <String, String>{};
   for (var i = startIndex; i < lines.length; i++) {
@@ -61,26 +58,24 @@ Map<String, String> _parseDictionaryEntries(String source) {
     final firstToken = trimmed.split(RegExp(r'\s+')).first;
     final entry = _parseDictionaryLine(firstToken);
     final existing = entries[entry.word];
-    entries[entry.word] = existing == null
-        ? entry.flags
-        : existing + entry.flags;
+    entries[entry.word] = existing == null ? entry.flags : existing + entry.flags;
   }
   return entries;
 }
 
 /// One `.dic` entry's word and raw flag string, before duplicate merging.
 class _DictionaryEntry {
-  /// Creates a [_DictionaryEntry].
-  const _DictionaryEntry({required this.word, required this.flags});
-
   /// The dictionary word, with any `\/` escape already unescaped.
   final String word;
 
   /// The raw, concatenated flag string (empty if the entry carried none).
   final String flags;
+
+  /// Create a [_DictionaryEntry].
+  const _DictionaryEntry({required this.word, required this.flags});
 }
 
-/// Parses a single `.dic` token (morphological fields already stripped)
+/// Parse a single `.dic` token (morphological fields already stripped)
 /// into its word and flags, splitting on the first unescaped `/`.
 _DictionaryEntry _parseDictionaryLine(String token) {
   final word = StringBuffer();

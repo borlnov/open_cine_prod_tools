@@ -1,0 +1,160 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_gesture_attachment.dart';
+
+/// Step 2's own answer — every field kept even while a different gesture is in effect, so
+/// switching the gesture and switching back loses nothing.
+///
+/// The wizard's state owns one instance and mutates it inside its own `setState` calls.
+class OcptBudgetNewAttachmentAnswers {
+  /// The account answered under `account`/`optionalAccount`/`accountAndLine`, or null.
+  String? accountId;
+
+  /// Whether a `account`/`optionalAccount` answer has been given at all — `optionalAccount`'s own
+  /// `Hors devis` answers this true while leaving [accountId] null, which a bare null cannot tell
+  /// apart from "nothing chosen yet".
+  bool accountAnswered;
+
+  /// The quote line answered under `accountAndLine`, or null.
+  String? lineId;
+
+  /// Whether `accountAndLine`'s own third answer, `Aucune`, was picked.
+  bool lineNoneAnswered;
+
+  /// The financing resource answered under `financingResource`, or null.
+  String? resourceId;
+
+  /// The taking answered under `taking`, or null.
+  String? revenueId;
+
+  /// The participant answered under `participant`, or null.
+  String? shareId;
+
+  /// The person answered under `person`, or null.
+  String? personId;
+
+  /// The financing resource step 2's own trailing row just collected, waiting to be created along
+  /// with the movement, or null.
+  OcptBudgetResourceFormFields? pendingNewResource;
+
+  /// The participant step 2's own trailing row just collected, or null.
+  OcptBudgetShareFormFields? pendingNewShare;
+
+  /// Class constructor
+  OcptBudgetNewAttachmentAnswers() : accountAnswered = false, lineNoneAnswered = false;
+
+  /// Answer the account, null standing for `Hors devis`.
+  void selectAccount(String? accountId) {
+    this.accountId = accountId;
+    accountAnswered = true;
+  }
+
+  /// Take the account answer back, along with the line answered under it.
+  void clearAccount() {
+    accountAnswered = false;
+    lineId = null;
+    lineNoneAnswered = false;
+  }
+
+  /// Answer the quote line.
+  void selectLine(String lineId) {
+    this.lineId = lineId;
+    lineNoneAnswered = false;
+  }
+
+  /// Answer `Aucune` to the quote line.
+  void selectNoLine() {
+    lineId = null;
+    lineNoneAnswered = true;
+  }
+
+  /// Answer an existing financing resource, dropping the pending one.
+  void selectResource(String resourceId) {
+    this.resourceId = resourceId;
+    pendingNewResource = null;
+  }
+
+  /// Answer a financing resource still to be created, dropping the existing one.
+  void selectPendingResource(OcptBudgetResourceFormFields fields) {
+    pendingNewResource = fields;
+    resourceId = null;
+  }
+
+  /// Answer an existing participant, dropping the pending one.
+  void selectShare(String shareId) {
+    this.shareId = shareId;
+    pendingNewShare = null;
+  }
+
+  /// Answer a participant still to be created, dropping the existing one.
+  void selectPendingShare(OcptBudgetShareFormFields fields) {
+    pendingNewShare = fields;
+    shareId = null;
+  }
+
+  /// Tell whether step 2 has been answered for [gesture], which is what `Continue` waits for.
+  bool isAnsweredFor(OcptBudgetGesture? gesture) {
+    if (gesture == null) {
+      return false;
+    }
+
+    return switch (ocptBudgetGestureAttachmentOf(gesture)) {
+      OcptBudgetGestureAttachment.none => true,
+      OcptBudgetGestureAttachment.account ||
+      OcptBudgetGestureAttachment.optionalAccount => accountAnswered,
+      OcptBudgetGestureAttachment.accountAndLine =>
+        accountAnswered && (lineId != null || lineNoneAnswered),
+      OcptBudgetGestureAttachment.financingResource =>
+        resourceId != null || pendingNewResource != null,
+      OcptBudgetGestureAttachment.participant => shareId != null || pendingNewShare != null,
+      OcptBudgetGestureAttachment.person => personId != null,
+    };
+  }
+
+  /// Get the quote line [lineId] answered, searched across [accounts], or null.
+  OcptBudgetLine? lineIn(List<OcptBudgetAccount> accounts) {
+    final lineId = this.lineId;
+    if (lineId == null) {
+      return null;
+    }
+    for (final account in accounts) {
+      final line = account.lines.where((line) => line.id == lineId).firstOrNull;
+      if (line != null) {
+        return line;
+      }
+    }
+    return null;
+  }
+
+  /// Get `commitSpend`'s own prefill when reached through the ordinary three-step flow (an account,
+  /// and
+  /// optionally a line, just answered in step 2) — mirrors `budget_wizard_flows.dart`'s own
+  /// `_handleLineCommitRequested`, everything the line already states carried across.
+  OcptBudgetCommitmentFormFields? commitmentPrefillIn(List<OcptBudgetAccount> accounts) {
+    final accountId = this.accountId;
+    if (accountId == null && !accountAnswered) {
+      return null;
+    }
+
+    final line = lineNoneAnswered ? null : lineIn(accounts);
+    return OcptBudgetCommitmentFormFields(
+      dueDate: null,
+      label: line?.label ?? "",
+      accountId: accountId ?? "",
+      amountCents: line == null ? 0 : ocptBudgetLineTotalCents(line),
+      isTaxInclusive: line?.unitPrice.isTaxInclusive ?? true,
+      vatRateBasisPoints: line?.unitPrice.vatRateBasisPoints,
+      status: OcptBudgetCommitmentStatus.quoteAccepted,
+    );
+  }
+}

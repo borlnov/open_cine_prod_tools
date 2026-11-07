@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/types/ocpt_fountain_syntax_section.dart';
 import 'package:open_cine_prod_tools/types/ocpt_fountain_syntax_topic.dart';
 
 /// One row of the Fountain syntax guide: a [topic], the [section] it belongs
@@ -43,13 +44,13 @@ class OcptFountainSyntaxEntry extends Equatable {
     this.lineType,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptFountainSyntaxEntry(topic: $topic, section: $section, "
       "snippetLines: $snippetLines, lineType: $lineType)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [topic, section, snippetLines, lineType];
 }

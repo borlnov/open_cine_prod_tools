@@ -40,7 +40,7 @@ class OcptSet extends Equatable {
     required this.sceneIds,
   });
 
-  /// Builds an [OcptSet] from its stored [row] and the ids of the [sceneIds] shot in it.
+  /// Build an [OcptSet] from its stored [row] and the ids of the [sceneIds] shot in it.
   factory OcptSet.fromRow({required OcptSetRow row, required List<String> sceneIds}) => OcptSet(
     id: row.id,
     locationId: row.locationId,
@@ -50,11 +50,11 @@ class OcptSet extends Equatable {
     sceneIds: sceneIds,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptSet(id: $id, name: $name)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, locationId, code, name, notes, sceneIds];
 }

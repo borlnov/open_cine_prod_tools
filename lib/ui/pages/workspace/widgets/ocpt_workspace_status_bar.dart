@@ -48,6 +48,7 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
     required this.trailing,
   });
 
+  /// Build the workspace status bar as a [ColoredBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -65,12 +66,7 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
             return Row(
               children: [
                 Expanded(
-                  child: Text(
-                    summary,
-                    style: style,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: Text(summary, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
                 Text(" · ", style: style),
                 trailing,
@@ -83,7 +79,7 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
     );
   }
 
-  /// The joined summary of as many trailing [counters] as still fit [maxWidth] alongside
+  /// Get the joined summary of as many trailing [counters] as still fit [maxWidth] alongside
   /// [trailingText], dropping the last one repeatedly until it does (or only [nonDroppableCount]
   /// entries remain).
   String _fittingSummary(double maxWidth, TextStyle? style, TextDirection direction) {
@@ -95,12 +91,15 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
     return counters.take(visibleCount).join(" · ");
   }
 
-  /// The pixel width of [visibleCounters] joined by " · " plus [trailingText], as it would render
+  /// Get the pixel width of [visibleCounters] joined by " · " plus [trailingText], as it would
+  /// render
   /// with [style] in [direction] — used to decide how many counters still fit.
   double _joinedWidth(List<String> visibleCounters, TextStyle? style, TextDirection direction) {
     final text = "${visibleCounters.join(" · ")} · $trailingText";
-    final painter = TextPainter(text: TextSpan(text: text, style: style), textDirection: direction)
-      ..layout();
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: direction,
+    )..layout();
     return painter.width;
   }
 }

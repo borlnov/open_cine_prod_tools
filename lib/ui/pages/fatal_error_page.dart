@@ -7,17 +7,18 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
-/// Displays a full-screen error when the global manager fails to initialize.
+/// Display a full-screen error when the global manager fails to initialize.
 ///
 /// Since the normal manager infrastructure (config, logger, router, ...) may not be available at
 /// this point, this widget is self-contained: it builds its own minimal [MaterialApp].
-class FatalErrorPage extends StatelessWidget {
+class OcptFatalErrorPage extends StatelessWidget {
   /// The error that caused the initialization to fail.
   final Object error;
 
-  /// Creates a fatal error page reporting the given [error].
-  const FatalErrorPage({super.key, required this.error});
+  /// Create a fatal error page reporting the given [error].
+  const OcptFatalErrorPage({super.key, required this.error});
 
+  /// Build the fatal error page as a [MaterialApp].
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
@@ -50,10 +51,7 @@ class FatalErrorPage extends StatelessWidget {
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    tr.fatalErrorMessage,
-                    textAlign: TextAlign.center,
-                  ),
+                  Text(tr.fatalErrorMessage, textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   SelectableText(
                     error.toString(),

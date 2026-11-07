@@ -33,6 +33,7 @@ class OcptHomeEmptyState extends StatelessWidget {
     super.key,
   });
 
+  /// Build the home empty as a [Center].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -44,11 +45,7 @@ class OcptHomeEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.movie_creation_outlined,
-              size: 56,
-              color: colorScheme.onSurfaceVariant,
-            ),
+            Icon(Icons.movie_creation_outlined, size: 56, color: colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
             Text(
               tr.homeEmptyStateTitle,
@@ -58,18 +55,18 @@ class OcptHomeEmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               tr.homeEmptyStateMessage,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             if (isCompact) ...[
               const SizedBox(height: 8),
               Text(
                 tr.homeEmptyStateCompactHint,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
             ] else ...[

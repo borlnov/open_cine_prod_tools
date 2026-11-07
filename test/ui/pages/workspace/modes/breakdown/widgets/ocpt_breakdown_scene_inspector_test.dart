@@ -10,12 +10,12 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_scene_bars.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_scene_inspector.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
@@ -56,14 +56,7 @@ OcptSet _buildSet({
   required String name,
   String locationId = "location-1",
   List<String> sceneIds = const [],
-}) => OcptSet(
-  id: id,
-  locationId: locationId,
-  code: "",
-  name: name,
-  notes: "",
-  sceneIds: sceneIds,
-);
+}) => OcptSet(id: id, locationId: locationId, code: "", name: name, notes: "", sceneIds: sceneIds);
 
 /// Builds a live tag of [taggedText] pointing at [targetKind]/[targetId].
 OcptBreakdownTag _buildTag({
@@ -100,6 +93,7 @@ OcptBreakdownTarget _buildElementTarget({
   occurrenceCount: 1,
 );
 
+/// Run the tests of [OcptBreakdownSceneInspector].
 void main() {
   testWidgets("shows the mode's own empty message while nothing is selected", (tester) async {
     await tester.pumpWidget(
@@ -157,7 +151,8 @@ void main() {
     expect(find.text("Scene 4"), findsOneWidget);
     expect(
       find.text(
-        "Nothing tagged for this scene yet. Click a word or a passage in the script to break it down.",
+        "Nothing tagged for this scene yet. Click a word or a passage in the script to break it "
+        "down.",
       ),
       findsOneWidget,
     );
@@ -323,8 +318,9 @@ void main() {
     expect(reported, ["Fragile prop, handle with care"]);
   });
 
-  testWidgets("isReadOnly withholds the status chips and the notes field while the sheet reads",
-      (tester) async {
+  testWidgets("isReadOnly withholds the status chips and the notes field while the sheet reads", (
+    tester,
+  ) async {
     final statusReported = <OcptBreakdownSceneStatus>[];
     final notesReported = <String>[];
     final scene = _buildScene(id: "scene-1", status: OcptBreakdownSceneStatus.inProgress);
@@ -367,105 +363,101 @@ void main() {
     expect(notesReported, isEmpty);
   });
 
-  testWidgets(
-    "the to-check alert lists a flagged tag and reports its two actions",
-    (tester) async {
-      final clearedTagIds = <String>[];
-      final removedTagIds = <String>[];
-      final target = _buildElementTarget(id: "element-1", name: "Desk lamp");
-      final scene = _buildScene(
-        id: "scene-1",
-        tags: [
-          _buildTag(
-            id: "tag-1",
-            sceneId: "scene-1",
-            targetKind: OcptBreakdownTargetKind.element,
-            targetId: "element-1",
-            needsCheck: true,
-          ),
-        ],
-      );
-      final targetById = ocptBreakdownTargetsById([target]);
-
-      await tester.pumpWidget(
-        _wrapInApp(
-          OcptBreakdownSceneInspector(
-            scene: scene,
-            targetById: targetById,
-            sets: const [],
-            locationNameById: const {},
-            suggestedSetId: null,
-            onSetLinked: null,
-            onSetUnlinked: null,
-            locations: const [],
-            newSetName: "",
-            onSetCreationRequested: null,
-            notesValue: "",
-            onTargetSelected: _noop3,
-            onStatusChanged: (_) {},
-            onNotesChanged: (_) {},
-            onTagNeedsCheckCleared: clearedTagIds.add,
-            onFlaggedTagRemoved: removedTagIds.add,
-          ),
+  testWidgets("the to-check alert lists a flagged tag and reports its two actions", (tester) async {
+    final clearedTagIds = <String>[];
+    final removedTagIds = <String>[];
+    final target = _buildElementTarget(id: "element-1", name: "Desk lamp");
+    final scene = _buildScene(
+      id: "scene-1",
+      tags: [
+        _buildTag(
+          id: "tag-1",
+          sceneId: "scene-1",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: "element-1",
+          needsCheck: true,
         ),
-      );
+      ],
+    );
+    final targetById = ocptBreakdownTargetsById([target]);
 
-      expect(find.text("1 tag to check"), findsOneWidget);
-      expect(find.text('"a lamp" · Desk lamp'), findsOneWidget);
-
-      await tester.tap(find.text("Mark as checked"));
-      await tester.pump();
-      expect(clearedTagIds, ["tag-1"]);
-
-      await tester.tap(find.text("Remove"));
-      await tester.pump();
-      expect(removedTagIds, ["tag-1"]);
-    },
-  );
-
-  testWidgets(
-    "a flagged tag whose target is gone is still listed, by its passage alone",
-    (tester) async {
-      final scene = _buildScene(
-        id: "scene-1",
-        tags: [
-          _buildTag(
-            id: "tag-1",
-            sceneId: "scene-1",
-            targetKind: OcptBreakdownTargetKind.element,
-            targetId: "element-gone",
-            needsCheck: true,
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(
-        _wrapInApp(
-          OcptBreakdownSceneInspector(
-            scene: scene,
-            targetById: const {},
-            sets: const [],
-            locationNameById: const {},
-            suggestedSetId: null,
-            onSetLinked: null,
-            onSetUnlinked: null,
-            locations: const [],
-            newSetName: "",
-            onSetCreationRequested: null,
-            notesValue: "",
-            onTargetSelected: _noop3,
-            onStatusChanged: (_) {},
-            onNotesChanged: (_) {},
-            onTagNeedsCheckCleared: (_) {},
-            onFlaggedTagRemoved: (_) {},
-          ),
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownSceneInspector(
+          scene: scene,
+          targetById: targetById,
+          sets: const [],
+          locationNameById: const {},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
+          notesValue: "",
+          onTargetSelected: _noop3,
+          onStatusChanged: (_) {},
+          onNotesChanged: (_) {},
+          onTagNeedsCheckCleared: clearedTagIds.add,
+          onFlaggedTagRemoved: removedTagIds.add,
         ),
-      );
+      ),
+    );
 
-      expect(find.text("1 tag to check"), findsOneWidget);
-      expect(find.text('"a lamp"'), findsOneWidget);
-    },
-  );
+    expect(find.text("1 tag to check"), findsOneWidget);
+    expect(find.text('"a lamp" · Desk lamp'), findsOneWidget);
+
+    await tester.tap(find.text("Mark as checked"));
+    await tester.pump();
+    expect(clearedTagIds, ["tag-1"]);
+
+    await tester.tap(find.text("Remove"));
+    await tester.pump();
+    expect(removedTagIds, ["tag-1"]);
+  });
+
+  testWidgets("a flagged tag whose target is gone is still listed, by its passage alone", (
+    tester,
+  ) async {
+    final scene = _buildScene(
+      id: "scene-1",
+      tags: [
+        _buildTag(
+          id: "tag-1",
+          sceneId: "scene-1",
+          targetKind: OcptBreakdownTargetKind.element,
+          targetId: "element-gone",
+          needsCheck: true,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptBreakdownSceneInspector(
+          scene: scene,
+          targetById: const {},
+          sets: const [],
+          locationNameById: const {},
+          suggestedSetId: null,
+          onSetLinked: null,
+          onSetUnlinked: null,
+          locations: const [],
+          newSetName: "",
+          onSetCreationRequested: null,
+          notesValue: "",
+          onTargetSelected: _noop3,
+          onStatusChanged: (_) {},
+          onNotesChanged: (_) {},
+          onTagNeedsCheckCleared: (_) {},
+          onFlaggedTagRemoved: (_) {},
+        ),
+      ),
+    );
+
+    expect(find.text("1 tag to check"), findsOneWidget);
+    expect(find.text('"a lamp"'), findsOneWidget);
+  });
 
   testWidgets("isReadOnly withholds the to-check alert's two actions", (tester) async {
     final clearedTagIds = <String>[];
@@ -514,7 +506,9 @@ void main() {
     expect(find.text('"a lamp" · Desk lamp'), findsOneWidget);
 
     // …but neither of its actions writes.
-    final clearButton = tester.widget<TextButton>(find.widgetWithText(TextButton, "Mark as checked"));
+    final clearButton = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, "Mark as checked"),
+    );
     expect(clearButton.onPressed, isNull);
     final removeButton = tester.widget<TextButton>(find.widgetWithText(TextButton, "Remove"));
     expect(removeButton.onPressed, isNull);
@@ -572,7 +566,9 @@ void main() {
         OcptBreakdownSceneInspector(
           scene: _buildScene(id: "scene-1"),
           targetById: const {},
-          sets: [_buildSet(id: "set-kitchen", name: "Cuisine", sceneIds: const ["scene-1"])],
+          sets: [
+            _buildSet(id: "set-kitchen", name: "Cuisine", sceneIds: const ["scene-1"]),
+          ],
           locationNameById: const {"location-1": "Maison des Martin"},
           suggestedSetId: null,
           onSetLinked: null,

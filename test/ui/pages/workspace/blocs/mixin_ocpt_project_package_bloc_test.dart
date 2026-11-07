@@ -7,6 +7,7 @@ import 'dart:ui';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -26,6 +27,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../ocpt_result_expectations.dart';
 
 /// The app language every projects manager built here is given, so a created project never depends
 /// on the machine the tests run on.
@@ -34,6 +36,7 @@ String _testAppLanguageCode() => "en";
 /// A router manager whose [pop] does nothing: these tests never leave the workspace, and no real
 /// GoRouter is built for it to operate on.
 class _SilentRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }
@@ -57,8 +60,10 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   String lastSuggestedFileName = "";
 
   /// Class constructor
-  _RecordingSaveLocationService({required this.answer});
+  _RecordingSaveLocationService({required this.answer}) : super(logger: const SilentLogger());
 
+  /// Count the question, remember the extensions and the suggested name, and answer with the canned
+  /// location.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -75,13 +80,15 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
 
 /// A [PlatformManager] whose [isMobile] is stubbed, so the mixin's desktop/mobile branch can be
 /// exercised on either side without a real platform underneath it — the same idiom
-/// `ocpt_export_manager_test.dart` uses for the manager's own write funnel.
+/// `ocpt_export_manager_documents_and_write_funnel_test.dart` uses for the manager's own write
+/// funnel.
 class _StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  _StubPlatformManager({required this.isMobile});
-
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A share service answering [temporaryDirectory] with the directory given at construction and
@@ -91,12 +98,6 @@ class _StubPlatformManager extends PlatformManager {
 /// A false [answer] is the user dismissing the share sheet, which the mixin's mobile branch treats
 /// as a silent no-op, exactly as a cancelled save dialog is on desktop.
 class _RecordingShareService extends OcptShareService {
-  /// Class constructor
-  _RecordingShareService({required Directory directory, required this.answer}) : _directory = directory;
-
-  /// The directory [temporaryDirectory] resolves to.
-  final Directory _directory;
-
   /// The outcome [shareFiles] reports.
   final bool answer;
 
@@ -106,9 +107,19 @@ class _RecordingShareService extends OcptShareService {
   /// The paths of the last [shareFiles] call.
   List<String> lastPaths = const [];
 
+  /// The directory [temporaryDirectory] resolves to.
+  final Directory _directory;
+
+  /// Class constructor
+  _RecordingShareService({required Directory directory, required this.answer})
+    : _directory = directory,
+      super(logger: const SilentLogger());
+
+  /// Answer with the directory the test gave.
   @override
   Future<Directory> temporaryDirectory() async => _directory;
 
+  /// Count the share, remember the paths and answer with the canned result.
   @override
   Future<bool> shareFiles({required List<String> paths, Rect? sharePositionOrigin}) async {
     shareCount++;
@@ -117,6 +128,7 @@ class _RecordingShareService extends OcptShareService {
   }
 }
 
+/// Run the tests of `MixinOcptProjectPackageBloc`.
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -203,7 +215,6 @@ void main() {
       platformManager: platformManager,
       shareService: shareService,
     ),
-    fieldEditDebounce: const Duration(milliseconds: 20),
   );
 
   /// Builds a bloc through [buildBloc] and waits for its own initial read of the project to land,
@@ -280,78 +291,77 @@ void main() {
     expect(File(packagePath).existsSync(), isFalse);
   });
 
-  test("answering that question writes the package, and the notice counts what stayed behind", () async {
-    await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
-    await addAsset(path: p.join(tempDir.path, "gone.jpg"), label: "Town hall permit");
-
-    final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
-    final bloc = await buildLoadedBloc(saveLocationService);
-
-    bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
-    await waitForState(bloc, (state) => state.projectPackagePendingExport != null);
-
-    bloc.add(const OcptProjectPackageMissingFilesAskDismissedEvent());
-    bloc.add(const OcptProjectPackageExportConfirmedEvent(fileTypeLabel: "Project package"));
-
-    final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
-
-    expect(state.projectPackagePendingExport, isNull);
-    expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
-    expect(state.projectPackageNotice?.skippedAssetCount, 1);
-    expect(File(packagePath).existsSync(), isTrue);
-  });
-
   test(
-    "a named target is packaged even while no project is open at all",
+    "answering that question writes the package, and the notice counts what stayed behind",
     () async {
-      final movieFilePath = p.join(tempDir.path, "movie.ocpt");
       await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
-      await projectsManager.closeCurrentProject();
+      await addAsset(path: p.join(tempDir.path, "gone.jpg"), label: "Town hall permit");
 
       final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
       final bloc = await buildLoadedBloc(saveLocationService);
 
-      bloc.add(
-        OcptProjectPackageExportRequestedEvent(
-          fileTypeLabel: "Project package",
-          target: OcptProjectPackageTarget(filePath: movieFilePath, name: "My Movie"),
-        ),
-      );
+      bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
+      await waitForState(bloc, (state) => state.projectPackagePendingExport != null);
+
+      bloc.add(const OcptProjectPackageMissingFilesAskDismissedEvent());
+      bloc.add(const OcptProjectPackageExportConfirmedEvent(fileTypeLabel: "Project package"));
 
       final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
 
       expect(state.projectPackagePendingExport, isNull);
       expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
-      expect(File(packagePath).existsSync(), isTrue);
-      expect(saveLocationService.lastSuggestedFileName, "My Movie.ocptz");
-    },
-  );
-
-  test(
-    "the read-only preview refusal does not apply to a named target",
-    () async {
-      final movieFilePath = p.join(tempDir.path, "movie.ocpt");
-      await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
-      await projectsManager.previewVersion(version!.id);
-      expect(projectsManager.currentProject!.isReadOnly, isTrue);
-
-      final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
-      final bloc = await buildLoadedBloc(saveLocationService);
-
-      bloc.add(
-        OcptProjectPackageExportRequestedEvent(
-          fileTypeLabel: "Project package",
-          target: OcptProjectPackageTarget(filePath: movieFilePath, name: "My Movie"),
-        ),
-      );
-
-      final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
-
-      expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
+      expect(state.projectPackageNotice?.skippedAssetCount, 1);
       expect(File(packagePath).existsSync(), isTrue);
     },
   );
+
+  test("a named target is packaged even while no project is open at all", () async {
+    final movieFilePath = p.join(tempDir.path, "movie.ocpt");
+    await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
+    await projectsManager.closeCurrentProject().okOrFail;
+
+    final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+    final bloc = await buildLoadedBloc(saveLocationService);
+
+    bloc.add(
+      OcptProjectPackageExportRequestedEvent(
+        fileTypeLabel: "Project package",
+        target: OcptProjectPackageTarget(filePath: movieFilePath, name: "My Movie"),
+      ),
+    );
+
+    final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
+
+    expect(state.projectPackagePendingExport, isNull);
+    expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
+    expect(File(packagePath).existsSync(), isTrue);
+    expect(saveLocationService.lastSuggestedFileName, "My Movie.ocptz");
+  });
+
+  test("the read-only preview refusal does not apply to a named target", () async {
+    final movieFilePath = p.join(tempDir.path, "movie.ocpt");
+    await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
+    final version = await projectsManager
+        .createProjectVersion(name: "v1", note: "")
+        .maybeValueOrFail;
+    await projectsManager.previewVersion(version!.id).maybeValueOrFail;
+    expect(projectsManager.currentProject!.isReadOnly, isTrue);
+
+    final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+    final bloc = await buildLoadedBloc(saveLocationService);
+
+    bloc.add(
+      OcptProjectPackageExportRequestedEvent(
+        fileTypeLabel: "Project package",
+        target: OcptProjectPackageTarget(filePath: movieFilePath, name: "My Movie"),
+      ),
+    );
+
+    final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
+
+    expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
+    expect(File(packagePath).existsSync(), isTrue);
+  });
 
   test("a cancelled save dialog writes nothing and says nothing", () async {
     await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
@@ -360,7 +370,7 @@ void main() {
     final bloc = await buildLoadedBloc(saveLocationService);
 
     bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
-    await waitForState(bloc, (_) => saveLocationService.askCount > 0);
+    await waitUntil(() => saveLocationService.askCount > 0);
 
     // Nothing else is coming: the handler returned the moment the dialog answered null, so a state
     // holding a notice would have to be emitted by something that is not running any more.
@@ -372,34 +382,31 @@ void main() {
   });
 
   group("on mobile", () {
-    test(
-      "a successful export writes into the temporary directory and shares it",
-      () async {
-        await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
+    test("a successful export writes into the temporary directory and shares it", () async {
+      await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");
 
-        final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
-        final shareService = _RecordingShareService(directory: tempDir, answer: true);
-        final bloc = await buildLoadedBloc(
-          saveLocationService,
-          platformManager: _StubPlatformManager(isMobile: true),
-          shareService: shareService,
-        );
+      final saveLocationService = _RecordingSaveLocationService(answer: packagePath);
+      final shareService = _RecordingShareService(directory: tempDir, answer: true);
+      final bloc = await buildLoadedBloc(
+        saveLocationService,
+        platformManager: _StubPlatformManager(isMobile: true),
+        shareService: shareService,
+      );
 
-        bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
+      bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
 
-        final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
+      final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
 
-        // The native save dialog is never shown on mobile.
-        expect(saveLocationService.askCount, 0);
-        expect(shareService.shareCount, 1);
-        expect(shareService.lastPaths, hasLength(1));
-        expect(p.basename(shareService.lastPaths.single), "My Movie.ocptz");
-        expect(File(shareService.lastPaths.single).existsSync(), isTrue);
-        expect(state.projectPackagePendingExport, isNull);
-        expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportShared);
-        expect(state.projectPackageNotice?.path, isNull);
-      },
-    );
+      // The native save dialog is never shown on mobile.
+      expect(saveLocationService.askCount, 0);
+      expect(shareService.shareCount, 1);
+      expect(shareService.lastPaths, hasLength(1));
+      expect(p.basename(shareService.lastPaths.single), "My Movie.ocptz");
+      expect(File(shareService.lastPaths.single).existsSync(), isTrue);
+      expect(state.projectPackagePendingExport, isNull);
+      expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportShared);
+      expect(state.projectPackageNotice?.path, isNull);
+    });
 
     test("a dismissed share sheet writes nothing to report and raises no notice", () async {
       await addAsset(path: writeReferencedFile("headshot.jpg"), label: "Headshot");

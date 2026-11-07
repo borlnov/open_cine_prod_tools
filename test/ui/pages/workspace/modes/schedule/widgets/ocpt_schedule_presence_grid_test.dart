@@ -8,11 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_presence_grid.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the mode's own centre area.
@@ -83,6 +83,7 @@ OcptShootingDay _buildDay({required String id, required int dayNumber, required 
       notes: "",
     );
 
+/// Run the tests of [OcptSchedulePresenceGrid].
 void main() {
   testWidgets("shows the empty hint while the address book holds nobody", (tester) async {
     await tester.pumpWidget(
@@ -122,8 +123,9 @@ void main() {
     expect(find.byTooltip("Working"), findsOneWidget);
   });
 
-  testWidgets("a computed unavailable cell reads its own letter and full-word tooltip",
-      (tester) async {
+  testWidgets("a computed unavailable cell reads its own letter and full-word tooltip", (
+    tester,
+  ) async {
     final person = _buildPerson(id: "person-1", firstName: "Léa");
     final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
 
@@ -144,7 +146,9 @@ void main() {
     expect(find.byTooltip("Unavailable"), findsOneWidget);
   });
 
-  testWidgets("a cell named by a person-unavailable alert reads in the error colour", (tester) async {
+  testWidgets("a cell named by a person-unavailable alert reads in the error colour", (
+    tester,
+  ) async {
     final person = _buildPerson(id: "person-1", firstName: "Léa");
     final day = _buildDay(id: "day-1", dayNumber: 1, date: DateTime(2026, 8, 3));
 

@@ -25,7 +25,7 @@ const int ocptBreakdownRoleColor = 0xFF9B8AFB;
 /// The colour [OcptBreakdownTargetKind.set] is drawn with, as an ARGB integer.
 const int ocptBreakdownSetColor = 0xFF4DB6AC;
 
-/// The colour of a target of [kind], as an ARGB integer — [ocptBreakdownRoleColor] or
+/// Get the colour of a target of [kind], as an ARGB integer — [ocptBreakdownRoleColor] or
 /// [ocptBreakdownSetColor] for a role or a set, [category]'s own colour for an element.
 ///
 /// [category] is required when [kind] is [OcptBreakdownTargetKind.element] (an [ArgumentError] is
@@ -45,7 +45,7 @@ int ocptBreakdownColorOf({required OcptBreakdownTargetKind kind, OcptElementCate
   }
 }
 
-/// The colour of an element of [category], as an ARGB integer.
+/// Get the colour of an element of [category], as an ARGB integer.
 ///
 /// A `switch` with no `default`: a new [OcptElementCategory] value must be given its own colour
 /// here rather than silently falling back to one already in use.

@@ -13,6 +13,7 @@ import 'package:script_import_kit/src/emitter/script_fountain_emitter.dart';
 import 'package:script_import_kit/src/emitter/script_line.dart';
 import 'package:script_import_kit/src/emitter/script_title_page.dart';
 import 'package:script_import_kit/src/models/script_import_exception.dart';
+import 'package:script_import_kit/src/models/script_import_failure.dart';
 import 'package:script_import_kit/src/script_styled_runs.dart';
 import 'package:script_import_kit/src/script_text_decoder.dart';
 import 'package:xml/xml.dart';
@@ -23,13 +24,6 @@ import 'package:xml/xml.dart';
 /// run carries are the ones every element above it opened: this is what is
 /// carried down the walk of a paragraph's nodes.
 class _InlineStyle {
-  /// Creates an [_InlineStyle].
-  const _InlineStyle({
-    this.isBold = false,
-    this.isItalic = false,
-    this.isUnderline = false,
-  });
-
   /// Whether the text is bold.
   final bool isBold;
 
@@ -39,7 +33,10 @@ class _InlineStyle {
   /// Whether the text is underlined.
   final bool isUnderline;
 
-  /// This style with whatever the HTML element named [tagName] adds to it.
+  /// Create an [_InlineStyle].
+  const _InlineStyle({this.isBold = false, this.isItalic = false, this.isUnderline = false});
+
+  /// Get this style with whatever the HTML element named [tagName] adds to it.
   ///
   /// An element Fountain has no marker for (a `<span>`, a `<font>`, a
   /// `<a>`) adds nothing and keeps the style as it is, so its text still
@@ -51,39 +48,32 @@ class _InlineStyle {
     _ => this,
   };
 
-  /// This style with the flags given here turned on.
-  _InlineStyle _copyWith({
-    bool isBold = false,
-    bool isItalic = false,
-    bool isUnderline = false,
-  }) => _InlineStyle(
-    isBold: this.isBold || isBold,
-    isItalic: this.isItalic || isItalic,
-    isUnderline: this.isUnderline || isUnderline,
-  );
+  /// Get a run of [text] carrying this style.
+  FountainStyledRun run(String text) =>
+      FountainStyledRun(text: text, isBold: isBold, isItalic: isItalic, isUnderline: isUnderline);
 
-  /// A run of [text] carrying this style.
-  FountainStyledRun run(String text) => FountainStyledRun(
-    text: text,
-    isBold: isBold,
-    isItalic: isItalic,
-    isUnderline: isUnderline,
-  );
+  /// Get this style with the flags given here turned on.
+  _InlineStyle _copyWith({bool isBold = false, bool isItalic = false, bool isUnderline = false}) =>
+      _InlineStyle(
+        isBold: this.isBold || isBold,
+        isItalic: this.isItalic || isItalic,
+        isUnderline: this.isUnderline || isUnderline,
+      );
 }
 
 /// What a Celtx project's manifest says about the screenplay it holds.
 class _CeltxManifest {
-  /// Creates a [_CeltxManifest].
-  const _CeltxManifest({required this.scriptFileName, required this.titlePage});
-
   /// The name, inside the container, of the script document to read.
   final String scriptFileName;
 
   /// The title page the manifest's own metadata makes.
   final ScriptTitlePage titlePage;
+
+  /// Create a [_CeltxManifest].
+  const _CeltxManifest({required this.scriptFileName, required this.titlePage});
 }
 
-/// Reads a legacy Celtx project (`.celtx`) and converts its screenplay to
+/// Read a legacy Celtx project (`.celtx`) and convert its screenplay to
 /// Fountain.
 ///
 /// A `.celtx` is a zip holding a `project.rdf` manifest and one HTML file
@@ -105,9 +95,6 @@ class _CeltxManifest {
 /// - every text style Fountain has no marker for — only bold, italic and
 ///   underline survive.
 class CeltxScriptReader {
-  /// Creates a [CeltxScriptReader].
-  const CeltxScriptReader({this.emitter = const ScriptFountainEmitter()});
-
   /// The manifest entry naming the project's documents and its metadata.
   static const String _manifestFileName = 'project.rdf';
 
@@ -147,7 +134,10 @@ class CeltxScriptReader {
   /// Renders the lines this reader makes out of a document.
   final ScriptFountainEmitter emitter;
 
-  /// Reads the Celtx project held in [bytes] and returns the screenplay of
+  /// Create a [CeltxScriptReader].
+  const CeltxScriptReader({this.emitter = const ScriptFountainEmitter()});
+
+  /// Read the Celtx project held in [bytes] and return the screenplay of
   /// its first script document as Fountain source text.
   ///
   /// Throws a [ScriptImportException] when [bytes] hold no readable
@@ -171,9 +161,7 @@ class CeltxScriptReader {
       );
     }
 
-    final lines = _readBody(
-      decodeScriptText(script.readBytes() ?? Uint8List(0)),
-    );
+    final lines = _readBody(decodeScriptText(script.readBytes() ?? Uint8List(0)));
     if (lines.isEmpty) {
       throw const ScriptImportException(ScriptImportFailure.emptyScript);
     }
@@ -181,7 +169,7 @@ class CeltxScriptReader {
     return emitter.write(lines: lines, titlePage: manifest.titlePage);
   }
 
-  /// Opens [bytes] as the zip container a `.celtx` is.
+  /// Open [bytes] as the zip container a `.celtx` is.
   ///
   /// A container that opens on nothing is treated as a file that did not
   /// open at all: the decoder looks for the entry directory at the end of
@@ -211,7 +199,7 @@ class CeltxScriptReader {
     return archive;
   }
 
-  /// Reads the project's `project.rdf` manifest.
+  /// Read the project's `project.rdf` manifest.
   ///
   /// A manifest that is missing, that does not parse, or that names no
   /// script document all mean the same thing to the caller — there is no
@@ -228,9 +216,7 @@ class CeltxScriptReader {
 
     final XmlDocument manifest;
     try {
-      manifest = XmlDocument.parse(
-        decodeScriptText(entry.readBytes() ?? Uint8List(0)),
-      );
+      manifest = XmlDocument.parse(decodeScriptText(entry.readBytes() ?? Uint8List(0)));
     } on XmlException catch (exception) {
       throw ScriptImportException(
         ScriptImportFailure.noScriptDocument,
@@ -241,8 +227,7 @@ class CeltxScriptReader {
     final elements = manifest.descendantElements.toList();
 
     final script = elements.firstWhereOrNull(
-      (element) =>
-          _isScriptDocument(element) && _valueOf(element, 'localfile') != null,
+      (element) => _isScriptDocument(element) && _valueOf(element, 'localfile') != null,
     );
     if (script == null) {
       throw const ScriptImportException(
@@ -263,12 +248,11 @@ class CeltxScriptReader {
     );
   }
 
-  /// Whether [element] describes the project itself, whose metadata makes
+  /// Tell whether [element] describes the project itself, whose metadata makes
   /// the title page.
-  bool _isProject(XmlElement element) =>
-      _localNamesOf(element).contains('project');
+  bool _isProject(XmlElement element) => _localNamesOf(element).contains('project');
 
-  /// Whether [element] describes a document this reader can read as a
+  /// Tell whether [element] describes a document this reader can read as a
   /// screenplay.
   ///
   /// RDF says the same thing in more than one shape — a `<cx:Document>`
@@ -281,28 +265,24 @@ class CeltxScriptReader {
   bool _isScriptDocument(XmlElement element) =>
       _localNamesOf(element).any((name) => name.contains('script'));
 
-  /// The names [element] goes by, lower-cased: its own element name, and
+  /// Get the names [element] goes by, lower-cased: its own element name, and
   /// whatever its type says it is.
   Set<String> _localNamesOf(XmlElement element) {
-    final declaredType =
-        _valueOf(element, 'type') ?? _valueOf(element, 'documenttype');
+    final declaredType = _valueOf(element, 'type') ?? _valueOf(element, 'documenttype');
     return {
       element.name.local.toLowerCase(),
       if (declaredType != null) _localPartOf(declaredType).toLowerCase(),
     };
   }
 
-  /// The last segment of [value], which is what names the thing when an RDF
+  /// Get the last segment of [value], which is what names the thing when an RDF
   /// type is written as a full URI (`http://celtx.com/NS/v1/Script`).
   String _localPartOf(String value) {
     final segments = value.split(_uriSeparator);
-    return segments.lastWhere(
-      (segment) => segment.isNotEmpty,
-      orElse: () => '',
-    );
+    return segments.lastWhere((segment) => segment.isNotEmpty, orElse: () => '');
   }
 
-  /// What [element] says [localName] is, read from an attribute of that
+  /// Get what [element] says [localName] is, read from an attribute of that
   /// name or, failing that, from a child element of that name — RDF writes
   /// a property either way, and a manifest is free to mix the two.
   ///
@@ -326,11 +306,10 @@ class CeltxScriptReader {
     return fromChild == null || fromChild.isEmpty ? null : fromChild;
   }
 
-  /// Whether two XML local names name the same property.
-  bool _sameName(String name, String other) =>
-      name.toLowerCase() == other.toLowerCase();
+  /// Tell whether two XML local names name the same property.
+  bool _sameName(String name, String other) => name.toLowerCase() == other.toLowerCase();
 
-  /// The container entry named [fileName], or `null` when it holds none.
+  /// Get the container entry named [fileName], or `null` when it holds none.
   ///
   /// The name is matched without regard to case or to the separator the
   /// writing platform used; an entry sitting in a folder of its own answers
@@ -344,13 +323,11 @@ class CeltxScriptReader {
           (entry) => entry.isFile && _entryPathOf(entry.name) == wanted,
         ) ??
         archive.firstWhereOrNull(
-          (entry) =>
-              entry.isFile &&
-              _entryPathOf(entry.name).split('/').last == baseName,
+          (entry) => entry.isFile && _entryPathOf(entry.name).split('/').last == baseName,
         );
   }
 
-  /// [name] as a comparable container path: lower-cased, `/`-separated, and
+  /// Get [name] as a comparable container path: lower-cased, `/`-separated, and
   /// without the `./` a writer may have prefixed it with.
   String _entryPathOf(String name) => name
       .toLowerCase()
@@ -358,7 +335,7 @@ class CeltxScriptReader {
       .where((segment) => segment.isNotEmpty && segment != '.')
       .join('/');
 
-  /// Reads every line of screenplay out of a script document's [html].
+  /// Read every line of screenplay out of a script document's [html].
   ///
   /// Parsed as HTML rather than as XML on purpose: a Celtx script document
   /// is HTML 4.01 as a browser engine wrote it — unclosed `<br>`, named
@@ -369,7 +346,7 @@ class CeltxScriptReader {
       ..._readParagraph(paragraph),
   ];
 
-  /// Reads one `<p>` as the lines of screenplay it holds.
+  /// Read one `<p>` as the lines of screenplay it holds.
   ///
   /// Several lines, and not one, because a `<br>` inside the paragraph is
   /// how Celtx writes a line break *inside* one block: the lines it yields
@@ -403,7 +380,7 @@ class CeltxScriptReader {
     return lines;
   }
 
-  /// Walks [nodes] under [style], appending the runs they hold to the last
+  /// Walk [nodes] under [style], appending the runs they hold to the last
   /// of [segments] and opening a new segment on every `<br>`.
   void _collectRuns(
     List<dom.Node> nodes,
@@ -433,14 +410,14 @@ class CeltxScriptReader {
     }
   }
 
-  /// [text] as it would read on screen: every non-breaking space back to an
+  /// Get [text] as it would read on screen: every non-breaking space back to an
   /// ordinary one, and every run of whitespace — the newlines and the
   /// indentation the HTML was laid out with — collapsed to a single space,
   /// which is what an HTML renderer does with it.
   String _normalizedText(String text) =>
       text.replaceAll('\u00A0', ' ').replaceAll(_whitespaceRun, ' ');
 
-  /// What a `<p>`'s class says its line is.
+  /// Get what a `<p>`'s class says its line is.
   FountainLineType _lineTypeOf(dom.Element paragraph) {
     for (final className in paragraph.classes) {
       final type = _lineTypesByClass[className.toLowerCase()];

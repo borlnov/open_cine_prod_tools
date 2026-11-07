@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 
@@ -57,6 +57,7 @@ class OcptResourcesPersonPicker extends StatelessWidget {
     this.onPersonSheetOpenRequested,
   });
 
+  /// Build the resources person picker as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -65,7 +66,7 @@ class OcptResourcesPersonPicker extends StatelessWidget {
     final onChanged = this.onChanged;
     final onPersonSheetOpenRequested = this.onPersonSheetOpenRequested;
 
-    final badge = _buildBadge(context, tr);
+    final badge = _Badge(picker: this);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,10 +89,7 @@ class OcptResourcesPersonPicker extends StatelessWidget {
                     PopupMenuItem<String>(value: _nobodyOption, child: Text(emptyLabel)),
                     const PopupMenuDivider(),
                     for (final person in people)
-                      PopupMenuItem<String>(
-                        value: person.id,
-                        child: Text(_nameOf(tr, person)),
-                      ),
+                      PopupMenuItem<String>(value: person.id, child: Text(_nameOf(tr, person))),
                   ],
                   child: badge,
                 ),
@@ -102,8 +100,8 @@ class OcptResourcesPersonPicker extends StatelessWidget {
                 message: tr.resourcesOpenPersonSheetTooltip,
                 child: InkWell(
                   onTap: () => onPersonSheetOpenRequested(selectedPerson.id),
-                  mouseCursor: ocptClickableCursor,
-                  borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
+                  borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                   child: const Padding(
                     padding: EdgeInsets.all(4),
                     child: Icon(Icons.north_east, size: 14),
@@ -117,18 +115,35 @@ class OcptResourcesPersonPicker extends StatelessWidget {
     );
   }
 
-  /// The badge itself: the named person, or [emptyLabel] in italics, followed by the drop-down
-  /// marker only while the menu may actually be opened.
-  Widget _buildBadge(BuildContext context, Tr tr) {
+  /// Tell how [person] reads on the badge and in the menu: their display name, or the shared
+  /// placeholder
+  /// for somebody whose name has not been typed in yet.
+  String _nameOf(Tr tr, OcptPerson person) =>
+      person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName;
+}
+
+/// The badge itself: the named person, or the picker's empty label in italics, followed by the
+/// drop-down marker only while the menu may actually be opened.
+class _Badge extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptResourcesPersonPicker picker;
+
+  /// Class constructor
+  const _Badge({required this.picker});
+
+  /// Build the badge as a [Row].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
-    final selectedPerson = this.selectedPerson;
+    final selectedPerson = picker.selectedPerson;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(
           child: Text(
-            selectedPerson == null ? emptyLabel : _nameOf(tr, selectedPerson),
+            selectedPerson == null ? picker.emptyLabel : picker._nameOf(tr, selectedPerson),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -136,16 +151,11 @@ class OcptResourcesPersonPicker extends StatelessWidget {
             ),
           ),
         ),
-        if (onChanged != null) ...[
+        if (picker.onChanged != null) ...[
           const SizedBox(width: 4),
           Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
         ],
       ],
     );
   }
-
-  /// How [person] reads on the badge and in the menu: their display name, or the shared placeholder
-  /// for somebody whose name has not been typed in yet.
-  String _nameOf(Tr tr, OcptPerson person) =>
-      person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName;
 }

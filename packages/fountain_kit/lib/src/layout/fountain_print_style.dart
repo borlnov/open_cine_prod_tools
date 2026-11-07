@@ -4,7 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
-import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
 /// The base typographic treatment a printed screenplay element gets,
 /// independent of any inline emphasis (`**bold**`, `*italic*`...) its own
@@ -28,14 +28,6 @@ import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 /// `TextStyle.copyWith` for the on-screen renderers), since this package
 /// stays free of any rendering-toolkit dependency here.
 class FountainPrintStyle extends Equatable {
-  /// Creates a [FountainPrintStyle]. Prefer [FountainPrintStyle.of] unless a
-  /// bespoke combination is genuinely required.
-  const FountainPrintStyle({
-    this.isBold = false,
-    this.isItalic = false,
-    this.isUppercase = false,
-  });
-
   /// The print style shared by every [FountainLineType] with no base
   /// treatment of its own (action, dialogue, parenthetical, centered text,
   /// and the non-printing types): plain roman, sentence case.
@@ -51,6 +43,10 @@ class FountainPrintStyle extends Equatable {
   /// casing it carries in the parsed model.
   final bool isUppercase;
 
+  /// Create a [FountainPrintStyle]. Prefer [FountainPrintStyle.of] unless a
+  /// bespoke combination is genuinely required.
+  const FountainPrintStyle({this.isBold = false, this.isItalic = false, this.isUppercase = false});
+
   /// The base print style of a [FountainLineType.sceneHeading], a
   /// [FountainLineType.character] cue, a [FountainLineType.transition] or a
   /// [FountainLineType.lyrics] line; every other type prints as [plain].
@@ -59,10 +55,7 @@ class FountainPrintStyle extends Equatable {
   /// catch-all `default`), so adding a new line type forces a deliberate
   /// decision here instead of silently inheriting [plain].
   factory FountainPrintStyle.of(FountainLineType type) => switch (type) {
-    FountainLineType.sceneHeading => const FountainPrintStyle(
-      isBold: true,
-      isUppercase: true,
-    ),
+    FountainLineType.sceneHeading => const FountainPrintStyle(isBold: true, isUppercase: true),
     FountainLineType.character => const FountainPrintStyle(isUppercase: true),
     FountainLineType.transition => const FountainPrintStyle(isUppercase: true),
     FountainLineType.lyrics => const FountainPrintStyle(isItalic: true),
@@ -76,16 +69,14 @@ class FountainPrintStyle extends Equatable {
     FountainLineType.action => plain,
   };
 
-  @override
-  List<Object?> get props => [isBold, isItalic, isUppercase];
-
+  /// Describe this [FountainPrintStyle] for debugging and logging.
   @override
   String toString() {
-    final flags = [
-      if (isBold) 'bold',
-      if (isItalic) 'italic',
-      if (isUppercase) 'uppercase',
-    ];
+    final flags = [if (isBold) 'bold', if (isItalic) 'italic', if (isUppercase) 'uppercase'];
     return 'FountainPrintStyle(${flags.isEmpty ? 'plain' : flags.join('+')})';
   }
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [isBold, isItalic, isUppercase];
 }

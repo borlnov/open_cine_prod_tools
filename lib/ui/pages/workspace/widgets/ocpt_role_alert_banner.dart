@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -63,7 +63,7 @@ class OcptRoleAlertBanner extends StatelessWidget {
   /// of this banner may write through.
   final bool isReadOnly;
 
-  /// Builds the orphaned variant, reporting [alert].
+  /// Build the orphaned variant, reporting [alert].
   const OcptRoleAlertBanner.orphaned({
     super.key,
     required OcptRemovedRoleAlert alert,
@@ -75,7 +75,7 @@ class OcptRoleAlertBanner extends StatelessWidget {
   }) : orphanedAlert = alert,
        collisionAlert = null;
 
-  /// Builds the collision variant, reporting [alert].
+  /// Build the collision variant, reporting [alert].
   const OcptRoleAlertBanner.collision({
     super.key,
     required OcptRoleCollisionAlert alert,
@@ -87,6 +87,7 @@ class OcptRoleAlertBanner extends StatelessWidget {
        onDeleteRequested = null,
        onKeepRequested = null;
 
+  /// Build the role alert banner as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -99,8 +100,8 @@ class OcptRoleAlertBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,9 +121,20 @@ class OcptRoleAlertBanner extends StatelessWidget {
                 if (!isReadOnly) ...[
                   const SizedBox(height: 6),
                   if (orphanedAlert != null)
-                    _buildOrphanedActions(context, tr, color, orphanedAlert)
+                    _OcptRoleAlertOrphanedActions(
+                      alert: orphanedAlert,
+                      color: color,
+                      mergeTargets: mergeTargets,
+                      onDeleteRequested: onDeleteRequested,
+                      onKeepRequested: onKeepRequested,
+                      onMergeRequested: onMergeRequested,
+                    )
                   else
-                    _buildCollisionAction(tr, color, collisionAlert!),
+                    _OcptRoleAlertCollisionAction(
+                      alert: collisionAlert!,
+                      color: color,
+                      onMergeRequested: onMergeRequested,
+                    ),
                 ],
               ],
             ),
@@ -131,15 +143,44 @@ class OcptRoleAlertBanner extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Builds the orphaned variant's actions: `Delete the role`, `Keep as silent`, then the
-  /// `Merge with:` row of target chips (hidden while [mergeTargets] is empty).
-  Widget _buildOrphanedActions(
-    BuildContext context,
-    Tr tr,
-    Color color,
-    OcptRemovedRoleAlert alert,
-  ) {
+/// The orphaned variant's actions: `Delete the role`, `Keep as silent`, then the `Merge with:` row
+/// of target chips (hidden while [mergeTargets] is empty).
+class _OcptRoleAlertOrphanedActions extends StatelessWidget {
+  /// The alert the actions act on.
+  final OcptRemovedRoleAlert alert;
+
+  /// The colour of the labels.
+  final Color color;
+
+  /// The roles the orphaned role may be merged into.
+  final List<OcptRole> mergeTargets;
+
+  /// Called with the orphaned role's id to delete it, or null while it may not be.
+  final ValueChanged<String>? onDeleteRequested;
+
+  /// Called with the orphaned role's id to keep it as silent, or null while it may not be.
+  final ValueChanged<String>? onKeepRequested;
+
+  /// Called with the orphaned role's id and the target's to merge them, or null while it may not
+  /// be.
+  final void Function(String sourceRoleId, String targetRoleId)? onMergeRequested;
+
+  /// Class constructor
+  const _OcptRoleAlertOrphanedActions({
+    required this.alert,
+    required this.color,
+    required this.mergeTargets,
+    required this.onDeleteRequested,
+    required this.onKeepRequested,
+    required this.onMergeRequested,
+  });
+
+  /// Build the role alert orphaned actions as a [Column].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final onMergeRequested = this.onMergeRequested;
 
     return Column(
@@ -183,12 +224,32 @@ class OcptRoleAlertBanner extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// Builds the collision variant's single action: `Merge`, anchored on the screenplay role
-  /// (decision 2).
-  Widget _buildCollisionAction(Tr tr, Color color, OcptRoleCollisionAlert alert) => TextButton(
+/// The collision variant's single action: `Merge`, anchored on the screenplay role (decision 2).
+class _OcptRoleAlertCollisionAction extends StatelessWidget {
+  /// The alert the action acts on.
+  final OcptRoleCollisionAlert alert;
+
+  /// The colour of the label.
+  final Color color;
+
+  /// Called with the hand-added role's id and the screenplay role's to merge them, or null while
+  /// it may not be.
+  final void Function(String sourceRoleId, String targetRoleId)? onMergeRequested;
+
+  /// Class constructor
+  const _OcptRoleAlertCollisionAction({
+    required this.alert,
+    required this.color,
+    required this.onMergeRequested,
+  });
+
+  /// Build the role alert collision action as a [TextButton].
+  @override
+  Widget build(BuildContext context) => TextButton(
     onPressed: () => onMergeRequested?.call(alert.handAddedRoleId, alert.screenplayRoleId),
     style: TextButton.styleFrom(foregroundColor: color),
-    child: Text(tr.roleAlertMergeAction),
+    child: Text(Tr.of(context).roleAlertMergeAction),
   );
 }

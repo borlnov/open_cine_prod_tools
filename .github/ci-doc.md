@@ -72,6 +72,9 @@ three pin their third-party actions by commit SHA and run with `permissions: con
 - **markdown_lint.yml** lints `**/*.md` (excluding `actlibs/**`, `build/**`, `.dart_tool/**`,
   `**/node_modules` and `**/.git`), so it covers `docs/`, `.github/*.md` and
   `packages/fountain_kit/*.md`, not just the repository root.
+- **shell_lint.yml** (`Shell Lint`) runs the runner's preinstalled ShellCheck, configured by the
+  root `.shellcheckrc`, over every tracked `*.sh` file plus the Debian maintainer scripts and the
+  launcher template under `.github/debian-templates/`, which have no `.sh` extension.
 
 ## Structure
 

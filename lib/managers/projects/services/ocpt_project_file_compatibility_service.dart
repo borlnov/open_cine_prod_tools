@@ -4,14 +4,14 @@
 
 import 'dart:io';
 
-import 'package:act_global_manager/act_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_app_version.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_app_version.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
-/// Reads what format a project file is in **before anything opens it**, and keeps the copy a
+/// Read what format a project file is in **before anything opens it**, and keep the copy a
 /// migration is answered with.
 ///
 /// Opening a `.ocpt` written by another build is not a neutral act. A file from an *older* build is
@@ -26,7 +26,7 @@ import 'package:sqlite3/sqlite3.dart';
 /// migration and no `user_version` write can happen as a side effect of looking. It knows nothing
 /// of Flutter and holds no state — it takes a path and answers about it, which is what lets it be
 /// tested against files a test builds by hand.
-class OcptProjectFileCompatibilityService {
+class OcptProjectFileCompatibilityService extends AbsOcptService {
   /// The name a backup takes, before the counter that may follow it: the project's own file name,
   /// the format it is in, and the extension it always had.
   ///
@@ -36,9 +36,9 @@ class OcptProjectFileCompatibilityService {
   static const _backupInfix = "backup-v";
 
   /// Class constructor
-  const OcptProjectFileCompatibilityService();
+  const OcptProjectFileCompatibilityService({required super.logger});
 
-  /// Reads the format of the project file at [filePath] without opening it as a project, and says
+  /// Read the format of the project file at [filePath] without opening it as a project, and say
   /// what that means for a build writing [appSchemaVersion] as [appVersion].
   ///
   /// The verdict is decided over the **pair** of the file's own schema version and writer identity
@@ -65,6 +65,7 @@ class OcptProjectFileCompatibilityService {
   }) {
     final isRunningBuildPreRelease = OcptAppVersion.parse(appVersion).isPreRelease;
 
+    OcptProjectFileCompatibility compatibility;
     try {
       final database = sqlite3.open(filePath, mode: OpenMode.readOnly);
       try {
@@ -74,7 +75,7 @@ class OcptProjectFileCompatibilityService {
         // one that belongs to another application entirely. Neither is an older project — reading
         // it as one would offer to migrate a file that has nothing to migrate.
         if (fileSchemaVersion <= 0) {
-          return OcptProjectFileCompatibility(
+          compatibility = OcptProjectFileCompatibility(
             filePath: filePath,
             fileSchemaVersion: 0,
             appSchemaVersion: appSchemaVersion,
@@ -82,36 +83,41 @@ class OcptProjectFileCompatibilityService {
             runningAppVersion: appVersion,
             verdict: OcptProjectFileVerdict.unreadable,
           );
+        } else {
+          final migratedByAppVersion = _migratedByAppVersion(database);
+
+          final verdict = _verdictFor(
+            fileSchemaVersion: fileSchemaVersion,
+            appSchemaVersion: appSchemaVersion,
+            fileWriter: migratedByAppVersion,
+            appVersion: appVersion,
+          );
+
+          compatibility = OcptProjectFileCompatibility(
+            filePath: filePath,
+            fileSchemaVersion: fileSchemaVersion,
+            appSchemaVersion: appSchemaVersion,
+            appVersionAtCreation: _appVersionAtCreation(database),
+            migratedByAppVersion: migratedByAppVersion,
+            isRunningBuildPreRelease: isRunningBuildPreRelease,
+            runningAppVersion: appVersion,
+            suggestedBackupPath: verdict == OcptProjectFileVerdict.older
+                ? backupPathFor(filePath: filePath, fileSchemaVersion: fileSchemaVersion)
+                : null,
+            verdict: verdict,
+          );
         }
-
-        final migratedByAppVersion = _migratedByAppVersion(database);
-
-        final verdict = _verdictFor(
-          fileSchemaVersion: fileSchemaVersion,
-          appSchemaVersion: appSchemaVersion,
-          fileWriter: migratedByAppVersion,
-          appVersion: appVersion,
-        );
-
-        return OcptProjectFileCompatibility(
-          filePath: filePath,
-          fileSchemaVersion: fileSchemaVersion,
-          appSchemaVersion: appSchemaVersion,
-          appVersionAtCreation: _appVersionAtCreation(database),
-          migratedByAppVersion: migratedByAppVersion,
-          isRunningBuildPreRelease: isRunningBuildPreRelease,
-          runningAppVersion: appVersion,
-          suggestedBackupPath: verdict == OcptProjectFileVerdict.older
-              ? backupPathFor(filePath: filePath, fileSchemaVersion: fileSchemaVersion)
-              : null,
-          verdict: verdict,
-        );
       } finally {
         database.dispose();
       }
-    } catch (error) {
-      appLogger().w("The format of the project file at $filePath can't be read: $error");
-      return OcptProjectFileCompatibility(
+    } catch (error, stackTrace) {
+      logger.w(
+        "The format of a project file can't be read: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      compatibility = OcptProjectFileCompatibility(
         filePath: filePath,
         fileSchemaVersion: 0,
         appSchemaVersion: appSchemaVersion,
@@ -120,9 +126,70 @@ class OcptProjectFileCompatibilityService {
         verdict: OcptProjectFileVerdict.unreadable,
       );
     }
+
+    return compatibility;
   }
 
-  /// The decision function ADR 0029 states: compares the pair (file schema, file writer) against
+  /// Tell where the copy of the project file at [filePath], still in format [fileSchemaVersion], is
+  /// to
+  /// be kept: beside the original, named after it, and free.
+  ///
+  /// A counter is appended rather than an existing backup overwritten — a project migrated twice
+  /// (restored from an old drive, opened again) would otherwise lose the very copy the first
+  /// migration promised to keep.
+  ///
+  /// Public because [probe] is what fills [OcptProjectFileCompatibility.suggestedBackupPath] with
+  /// it, and a test asserting on the promise the dialog makes has to be able to state it too.
+  String backupPathFor({required String filePath, required int fileSchemaVersion}) {
+    final directory = p.dirname(filePath);
+    final stem = p.basenameWithoutExtension(filePath);
+    final extension = p.extension(filePath);
+
+    var candidate = p.join(directory, "$stem.$_backupInfix$fileSchemaVersion$extension");
+    var counter = 2;
+    while (File(candidate).existsSync()) {
+      candidate = p.join(directory, "$stem.$_backupInfix$fileSchemaVersion-$counter$extension");
+      counter++;
+    }
+
+    return candidate;
+  }
+
+  /// Write the copy of the project file at [filePath] to [backupPath], and say whether it is
+  /// there.
+  ///
+  /// `VACUUM INTO` rather than a file copy, for the reason `OcptProjectPackageService` gives: it
+  /// writes one consistent single file out of a database another connection may hold open, folds in
+  /// whatever the write-ahead log still carries, and preserves `PRAGMA user_version` — which is
+  /// what makes the copy a file the older build still opens. The source is opened **read-only**:
+  /// the backup is taken precisely because the original is about to be changed, and taking it must
+  /// not be what changes it.
+  bool writeBackup({required String filePath, required String backupPath}) {
+    var isWritten = false;
+    try {
+      Directory(p.dirname(backupPath)).createSync(recursive: true);
+
+      final database = sqlite3.open(filePath, mode: OpenMode.readOnly);
+      try {
+        database.execute("VACUUM INTO ?", [backupPath]);
+      } finally {
+        database.dispose();
+      }
+
+      isWritten = true;
+    } catch (error, stackTrace) {
+      logger.e(
+        "A project file can't be copied before being migrated: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
+
+    return isWritten;
+  }
+
+  /// Get the decision function ADR 0029 states: compares the pair (file schema, file writer)
+  /// against
   /// (this build's schema, this build's version) once [fileSchemaVersion] is already known to be a
   /// real one ([fileSchemaVersion] `> 0`).
   OcptProjectFileVerdict _verdictFor({
@@ -157,69 +224,15 @@ class OcptProjectFileCompatibilityService {
     return OcptProjectFileVerdict.foreignDevBuild;
   }
 
-  /// Where the copy of the project file at [filePath], still in format [fileSchemaVersion], is to
-  /// be kept: beside the original, named after it, and free.
-  ///
-  /// A counter is appended rather than an existing backup overwritten — a project migrated twice
-  /// (restored from an old drive, opened again) would otherwise lose the very copy the first
-  /// migration promised to keep.
-  ///
-  /// Public because [probe] is what fills [OcptProjectFileCompatibility.suggestedBackupPath] with
-  /// it, and a test asserting on the promise the dialog makes has to be able to state it too.
-  String backupPathFor({required String filePath, required int fileSchemaVersion}) {
-    final directory = p.dirname(filePath);
-    final stem = p.basenameWithoutExtension(filePath);
-    final extension = p.extension(filePath);
-
-    var candidate = p.join(directory, "$stem.$_backupInfix$fileSchemaVersion$extension");
-    var counter = 2;
-    while (File(candidate).existsSync()) {
-      candidate = p.join(directory, "$stem.$_backupInfix$fileSchemaVersion-$counter$extension");
-      counter++;
-    }
-
-    return candidate;
-  }
-
-  /// Writes the copy of the project file at [filePath] to [backupPath], and says whether it is
-  /// there.
-  ///
-  /// `VACUUM INTO` rather than a file copy, for the reason `OcptProjectPackageService` gives: it
-  /// writes one consistent single file out of a database another connection may hold open, folds in
-  /// whatever the write-ahead log still carries, and preserves `PRAGMA user_version` — which is
-  /// what makes the copy a file the older build still opens. The source is opened **read-only**:
-  /// the backup is taken precisely because the original is about to be changed, and taking it must
-  /// not be what changes it.
-  bool writeBackup({required String filePath, required String backupPath}) {
-    try {
-      Directory(p.dirname(backupPath)).createSync(recursive: true);
-
-      final database = sqlite3.open(filePath, mode: OpenMode.readOnly);
-      try {
-        database.execute("VACUUM INTO ?", [backupPath]);
-      } finally {
-        database.dispose();
-      }
-
-      return true;
-    } catch (error) {
-      appLogger().e(
-        "The project file at $filePath can't be copied to $backupPath before being "
-        "migrated: $error",
-      );
-      return false;
-    }
-  }
-
-  /// The app version stamped into [database]'s `project_info` when the project was created, or
+  /// Get the app version stamped into [database]'s `project_info` when the project was created, or
   /// null when there is no such row to read.
   ///
   /// The table is asked for rather than assumed: this runs against a file at *any* format,
   /// including one from before that column existed and one that is not a project at all.
   String? _appVersionAtCreation(Database database) {
-    final hasProjectInfo = database.select(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_info'",
-    ).isNotEmpty;
+    final hasProjectInfo = database
+        .select("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_info'")
+        .isNotEmpty;
     if (!hasProjectInfo) {
       return null;
     }
@@ -232,16 +245,16 @@ class OcptProjectFileCompatibilityService {
     return rows.first["app_version_at_creation"] as String?;
   }
 
-  /// The app version stamped into [database]'s `project_info.migrated_by_app_version` — the
+  /// Get the app version stamped into [database]'s `project_info.migrated_by_app_version` — the
   /// file's writer identity — or null when there is no such column or row to read.
   ///
   /// Guarded exactly like [_appVersionAtCreation]: this runs against a file at *any* format,
   /// including one from before `project_info` existed at all, and one from before that column was
   /// added to it.
   String? _migratedByAppVersion(Database database) {
-    final hasProjectInfo = database.select(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_info'",
-    ).isNotEmpty;
+    final hasProjectInfo = database
+        .select("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_info'")
+        .isNotEmpty;
     if (!hasProjectInfo) {
       return null;
     }
@@ -261,7 +274,7 @@ class OcptProjectFileCompatibilityService {
     return rows.first["migrated_by_app_version"] as String?;
   }
 
-  /// The `PRAGMA user_version` of [database]: the schema version the file states about itself.
+  /// Get the `PRAGMA user_version` of [database]: the schema version the file states about itself.
   int _userVersion(Database database) =>
       database.select("PRAGMA user_version").first.values.first! as int;
 }

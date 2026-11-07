@@ -6,18 +6,25 @@ import 'package:equatable/equatable.dart';
 
 /// One replica's own presence, at the moment it last sent a heartbeat — the opaque frame
 /// `OcptPresenceService` sends through `OcptRemoteStorage.sendPresence` and reads back off
-/// `OcptRemoteStorage.presenceStream`, per `docs/plans/presence.md` (M5, Phase B).
+/// `OcptRemoteStorage.presenceStream`.
 ///
 /// This is a pure model: no `dart:ui`/Flutter import and no `Color` — the avatar colour and the
 /// display label a presence indicator renders are derived from [deviceId]/[platform] entirely by
-/// Phase C's own UI code, never carried here. The relay this frame eventually rides through never
-/// decodes it either (`docs/architecture/sync.md`'s own "domain-blind" rule) — [toJson] and
-/// `OcptPresenceFrame.fromJson` exist purely for the two replicas on either end of that opaque
-/// string.
+/// the presence indicator's own UI code, never carried here. The relay this frame eventually rides
+/// through never decodes it either (`docs/architecture/sync.md`'s own "domain-blind" rule) —
+/// [toJson] and `OcptPresenceFrame.fromJson` exist purely for the two replicas on either end of
+/// that opaque string.
 class OcptPresenceFrame extends Equatable {
+  /// The JSON key of the device id.
   static const _deviceIdKey = 'deviceId';
+
+  /// The JSON key of the platform.
   static const _platformKey = 'platform';
+
+  /// The JSON key of the mode key.
   static const _modeKeyKey = 'modeKey';
+
+  /// The JSON key of the heartbeat counter.
   static const _heartbeatKey = 'heartbeat';
 
   /// The replica that sent this frame — the same id every changeset it pushes is stamped with.
@@ -45,7 +52,7 @@ class OcptPresenceFrame extends Equatable {
     required this.heartbeat,
   });
 
-  /// Parses a presence frame from the JSON object [toJson] writes.
+  /// Parse a presence frame from the JSON object [toJson] writes.
   ///
   /// Casts straight through, exactly as `OcptFieldStamp.fromJson` does — a malformed frame throws
   /// (a [TypeError] from a failed cast), which `OcptPresenceService` catches and drops rather than
@@ -57,7 +64,7 @@ class OcptPresenceFrame extends Equatable {
     heartbeat: json[_heartbeatKey] as int,
   );
 
-  /// Serialises this frame to the JSON object it is carried as.
+  /// Serialise this frame to the JSON object it is carried as.
   Map<String, dynamic> toJson() => {
     _deviceIdKey: deviceId,
     _platformKey: platform,
@@ -65,11 +72,13 @@ class OcptPresenceFrame extends Equatable {
     _heartbeatKey: heartbeat,
   };
 
-  @override
-  List<Object?> get props => [deviceId, platform, modeKey, heartbeat];
-
+  /// Describe this [OcptPresenceFrame] for debugging and logging.
   @override
   String toString() =>
       'OcptPresenceFrame(deviceId: $deviceId, platform: $platform, modeKey: $modeKey, '
       'heartbeat: $heartbeat)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [deviceId, platform, modeKey, heartbeat];
 }

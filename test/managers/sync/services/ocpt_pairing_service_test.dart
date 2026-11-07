@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
@@ -51,6 +52,7 @@ void _mockSecureStorage(Map<String, String> store) {
   );
 }
 
+/// Run the tests of [OcptPairingService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -84,7 +86,7 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    service = OcptPairingService(secretsManager: secretsManager);
+    service = OcptPairingService(logger: const SilentLogger(), secretsManager: secretsManager);
   });
 
   setUp(() {
@@ -148,10 +150,7 @@ void main() {
 
     expect(pairing!.relayBaseUri, replacementUri);
     expect(pairing.token, 'token-2');
-    expect(
-      await (database.select(database.ocptSyncPairingsTable)).get(),
-      hasLength(1),
-    );
+    expect(await (database.select(database.ocptSyncPairingsTable)).get(), hasLength(1));
   });
 
   test('two projects keep independent pairings', () async {
@@ -186,10 +185,7 @@ void main() {
     await service.clearPairing(database: database, projectId: projectId);
 
     expect(await service.loadPairing(database: database, projectId: projectId), isNull);
-    expect(
-      await (database.select(database.ocptSyncPairingsTable)).get(),
-      isEmpty,
-    );
+    expect(await (database.select(database.ocptSyncPairingsTable)).get(), isEmpty);
     expect(secureStore, isEmpty);
   });
 

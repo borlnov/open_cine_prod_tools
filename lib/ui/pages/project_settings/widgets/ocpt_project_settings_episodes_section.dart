@@ -50,6 +50,7 @@ class OcptProjectSettingsEpisodesSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings episodes section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -70,9 +71,7 @@ class OcptProjectSettingsEpisodesSection extends StatelessWidget {
                 episode: episodes[index],
                 onTitleChanged: (title) => onEpisodeTitleChanged(episodes[index].id, title),
                 onNumberChanged: (number) => onEpisodeNumberChanged(episodes[index].id, number),
-                onMovedUp: index == 0
-                    ? null
-                    : () => onEpisodeMoved(episodes[index].id, index - 1),
+                onMovedUp: index == 0 ? null : () => onEpisodeMoved(episodes[index].id, index - 1),
                 onMovedDown: index == episodes.length - 1
                     ? null
                     : () => onEpisodeMoved(episodes[index].id, index + 1),
@@ -130,6 +129,8 @@ class _OcptProjectSettingsEpisodeRow extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptProjectSettingsEpisodeRowState] holding the state of the project settings
+  /// episode row.
   @override
   State<_OcptProjectSettingsEpisodeRow> createState() => _OcptProjectSettingsEpisodeRowState();
 }
@@ -161,6 +162,8 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
   /// The title this row last reported, compared against the same way [_lastReportedNumber] is.
   late String _lastReportedTitle = widget.episode.title;
 
+  /// Register [_onNumberFocusChanged] as a listener of [_numberFocusNode] and
+  /// [_onTitleFocusChanged] as a listener of [_titleFocusNode].
   @override
   void initState() {
     super.initState();
@@ -168,6 +171,7 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
     _titleFocusNode.addListener(_onTitleFocusChanged);
   }
 
+  /// Show the new number or title in its field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant _OcptProjectSettingsEpisodeRow oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -186,61 +190,7 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
     }
   }
 
-  @override
-  void dispose() {
-    _numberFocusNode
-      ..removeListener(_onNumberFocusChanged)
-      ..dispose();
-    _titleFocusNode
-      ..removeListener(_onTitleFocusChanged)
-      ..dispose();
-    _numberController.dispose();
-    _titleController.dispose();
-    super.dispose();
-  }
-
-  /// Commits the number field's current text once it loses focus.
-  void _onNumberFocusChanged() {
-    if (!_numberFocusNode.hasFocus) {
-      _commitNumber();
-    }
-  }
-
-  /// Commits the title field's current text once it loses focus.
-  void _onTitleFocusChanged() {
-    if (!_titleFocusNode.hasFocus) {
-      _commitTitle();
-    }
-  }
-
-  /// Parses the number field's current text and reports it: an unparseable or non-positive figure
-  /// reverts the field to whatever was last committed, exactly as the minimum rest field's own
-  /// zero-or-negative case does.
-  void _commitNumber() {
-    final parsed = int.tryParse(_numberController.text.trim());
-    if (parsed == null || parsed <= 0) {
-      _numberController.text = _lastReportedNumber.toString();
-      return;
-    }
-
-    _numberController.text = parsed.toString();
-    if (parsed != _lastReportedNumber) {
-      _lastReportedNumber = parsed;
-      widget.onNumberChanged(parsed);
-    }
-  }
-
-  /// Reports the title field's current text: any string is legal, the empty one included — an
-  /// untitled episode is an ordinary state (`OcptEpisode.title`'s own doc comment), never a
-  /// reversion.
-  void _commitTitle() {
-    final text = _titleController.text;
-    if (text != _lastReportedTitle) {
-      _lastReportedTitle = text;
-      widget.onTitleChanged(text);
-    }
-  }
-
+  /// Build the project settings episode row as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -294,5 +244,63 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
           ),
       ],
     );
+  }
+
+  /// Commit the number field's current text once it loses focus.
+  void _onNumberFocusChanged() {
+    if (!_numberFocusNode.hasFocus) {
+      _commitNumber();
+    }
+  }
+
+  /// Commit the title field's current text once it loses focus.
+  void _onTitleFocusChanged() {
+    if (!_titleFocusNode.hasFocus) {
+      _commitTitle();
+    }
+  }
+
+  /// Parse the number field's current text and report it: an unparseable or non-positive figure
+  /// reverts the field to whatever was last committed, exactly as the minimum rest field's own
+  /// zero-or-negative case does.
+  void _commitNumber() {
+    final parsed = int.tryParse(_numberController.text.trim());
+    if (parsed == null || parsed <= 0) {
+      _numberController.text = _lastReportedNumber.toString();
+      return;
+    }
+
+    _numberController.text = parsed.toString();
+    if (parsed != _lastReportedNumber) {
+      _lastReportedNumber = parsed;
+      widget.onNumberChanged(parsed);
+    }
+  }
+
+  /// Report the title field's current text: any string is legal, the empty one included — an
+  /// untitled episode is an ordinary state (`OcptEpisode.title`'s own doc comment), never a
+  /// reversion.
+  void _commitTitle() {
+    final text = _titleController.text;
+    if (text != _lastReportedTitle) {
+      _lastReportedTitle = text;
+      widget.onTitleChanged(text);
+    }
+  }
+
+  /// Detach [_onNumberFocusChanged] from [_numberFocusNode], dispose [_numberFocusNode], detach
+  /// [_onTitleFocusChanged] from [_titleFocusNode], then dispose [_titleFocusNode],
+  /// [_numberController] and [_titleController].
+  @override
+  void dispose() {
+    _numberFocusNode
+      ..removeListener(_onNumberFocusChanged)
+      ..dispose();
+    _titleFocusNode
+      ..removeListener(_onTitleFocusChanged)
+      ..dispose();
+    _numberController.dispose();
+    _titleController.dispose();
+    super.dispose();
   }
 }

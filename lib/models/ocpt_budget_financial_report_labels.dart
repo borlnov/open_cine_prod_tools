@@ -10,12 +10,12 @@ import 'package:equatable/equatable.dart';
 /// `BuildContext` and therefore no `Tr`: the same reason `OcptDayOutOfDaysLabels` and its own
 /// siblings already exist for every export before it.
 ///
-/// This report prints the very same readings `lib/utils/ocpt_budget_totals.dart` already computes
-/// for the cost-tracking table (`Quoted`/`Paid`/`Committed`/`Remaining`/`Variance`), then the
-/// financing plan's own total and `ocptBudgetNeedsResourcesBalanceOf`'s own verdict — so
+/// This report prints the very same readings `lib/models/rules/ocpt_budget_totals.dart` already
+/// computes for the cost-tracking table (`Quoted`/`Paid`/`Committed`/`Remaining`/`Variance`), then
+/// the financing plan's own total and `ocptBudgetNeedsResourcesBalanceOf`'s own verdict — so
 /// [balanceNoQuoteMessage], [balanceBalancedMessage] and [balanceShortfallMessageTemplate] mirror
-/// the very three-way verdict `ocptBudgetExportBalanceVerdict` prints, and [coverageReadOutTemplate]
-/// mirrors `tr.budgetCostTrackingCoverageReadOut`, both read through
+/// the very three-way verdict `ocptBudgetExportBalanceVerdict` prints, and
+/// [coverageReadOutTemplate] mirrors `tr.budgetCostTrackingCoverageReadOut`, both read through
 /// `lib/managers/export/services/ocpt_budget_pdf_shared.dart`'s own helpers, which fill in the
 /// `{amount}`/`{coveredCount}`/`{totalCount}` placeholders a manager-layer service cannot ask `Tr`
 /// to interpolate itself.
@@ -32,28 +32,28 @@ class OcptBudgetFinancialReportLabels extends Equatable {
   /// The label the moment this export was produced is printed under (`Version`).
   final String versionLabel;
 
-  /// The header of the poste column.
-  final String posteHeader;
+  /// The header of the account column.
+  final String accountHeader;
 
-  /// The header of a poste's own quoted total column.
+  /// The header of an account's own quoted total column.
   final String quotedHeader;
 
-  /// The header of a poste's own paid total column.
+  /// The header of an account's own paid total column.
   final String paidHeader;
 
-  /// The header of a poste's own committed total column.
+  /// The header of an account's own committed total column.
   final String committedHeader;
 
-  /// The header of a poste's own remaining column.
+  /// The header of an account's own remaining column.
   final String remainingHeader;
 
-  /// The header of a poste's own variance column.
+  /// The header of an account's own variance column.
   final String varianceHeader;
 
   /// The label printed beside the project's own totals row, at the very end of the table.
   final String projectTotalsLabel;
 
-  /// The identity cell of the table's own off-quote row — spending that names no poste at all,
+  /// The identity cell of the table's own off-quote row — spending that names no account at all,
   /// printed only while there is some (`ocptBudgetOffQuotePaidTotalOf`). Reuses the very same word
   /// the cost-tracking table's own off-quote row already carries
   /// (`tr.budgetCostTrackingOffQuoteLabel`), so the paper and the screen never disagree about what
@@ -63,7 +63,7 @@ class OcptBudgetFinancialReportLabels extends Equatable {
   /// The label printed beside the financing plan's own grand total, under the table.
   final String financingPlanTotalLabel;
 
-  /// The note the whole document prints when the project holds no poste at all.
+  /// The note the whole document prints when the project holds no account at all.
   final String emptyDocumentNote;
 
   /// The template a total's own coverage read-out is built from — see the class doc comment.
@@ -90,7 +90,7 @@ class OcptBudgetFinancialReportLabels extends Equatable {
     required this.fileNameSuffix,
     required this.documentTitle,
     required this.versionLabel,
-    required this.posteHeader,
+    required this.accountHeader,
     required this.quotedHeader,
     required this.paidHeader,
     required this.committedHeader,
@@ -108,17 +108,17 @@ class OcptBudgetFinancialReportLabels extends Equatable {
     required this.balanceShortfallMessageTemplate,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptBudgetFinancialReportLabels(documentTitle: $documentTitle)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,
     documentTitle,
     versionLabel,
-    posteHeader,
+    accountHeader,
     quotedHeader,
     paidHeader,
     committedHeader,

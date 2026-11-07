@@ -10,9 +10,16 @@ import 'package:fountain_kit/src/serializer/fountain_inline_serializer.dart';
 import 'package:fountain_kit/src/serializer/fountain_serializer.dart';
 import 'package:test/test.dart';
 
+/// The parser turning the test sources into documents.
 const FountainParser _parser = FountainParser();
+
+/// The serializer turning documents back into source.
 const FountainSerializer _serializer = FountainSerializer();
+
+/// The parser reading the inline markup of the corpus.
 const FountainInlineParser _inlineParser = FountainInlineParser();
+
+/// The serializer writing inline markup back.
 const FountainInlineSerializer _inlineSerializer = FountainInlineSerializer();
 
 /// Lines whose `parseRuns` → `write` round trip is not byte-identical to
@@ -26,6 +33,7 @@ const FountainInlineSerializer _inlineSerializer = FountainInlineSerializer();
 /// example a canonical marker choice), not a bug.
 const Map<String, String> _acceptedInlineNormalizations = {};
 
+/// Run the tests of the corpus.
 void main() {
   final corpusDirectory = Directory('test/corpus');
   final corpusFiles =

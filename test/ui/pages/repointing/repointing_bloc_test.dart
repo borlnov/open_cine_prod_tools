@@ -4,6 +4,8 @@
 
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
@@ -14,10 +16,14 @@ import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_event.dart';
 import 'package:path/path.dart' as p;
@@ -28,6 +34,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// which this file's [OcptPairingService] needs the exact same wiring for.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -61,26 +68,42 @@ void _mockSecureStorage(Map<String, String> store) {
 /// An in-memory [OcptRemoteStorage] carrying no network at all — `sharing_bloc_test.dart`'s own
 /// `_FakeRemoteStorage`.
 class _FakeRemoteStorage implements OcptRemoteStorage {
-  @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
-
-  @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
-
-  @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {}
-
-  @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => null;
-
+  /// Emit nothing.
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
-  @override
-  void sendPresence(String opaquePayload) {}
-
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
+
+  /// Accept the envelope, answering with sequence zero.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async =>
+      const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
+
+  /// Answer with an empty log.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
+
+  /// Accept the snapshot without keeping it.
+  @override
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
+
+  /// Answer that no snapshot was ever uploaded.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
+
+  /// Drop the payload.
+  @override
+  void sendPresence(String opaquePayload) {}
 }
 
 /// An [OcptSyncManager] whose [openRelayRemoteStorage] hands back a fixed fake transport instead of
@@ -92,16 +115,30 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// no need to exercise — only that the pairing moved and a live session started is what the bloc
 /// reacts to.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  /// Whether [openRelayRemoteStorage] throws, as a relay that cannot be reached does.
+  final bool shouldFailToOpenTransport;
+
+  /// Whether [repointProjectToRelay] throws instead of answering a status.
+  final bool shouldThrowOnRepoint;
+
+  /// The pairing service the double hands to its flows.
+  final OcptPairingService _pairing;
+
+  /// Class constructor
   _FakeTransportSyncManager({
     required OcptPairingService pairingService,
     this.shouldFailToOpenTransport = false,
+    this.shouldThrowOnRepoint = false,
   }) : _pairing = pairingService,
-       super(pairingService: pairingService, changesetService: const OcptChangesetService());
+       super(
+         pairingService: pairingService,
+         changesetService: const OcptChangesetService(
+           logger: SilentLogger(),
+           mergeService: OcptMergeService(logger: SilentLogger()),
+         ),
+       );
 
-  final OcptPairingService _pairing;
-
-  final bool shouldFailToOpenTransport;
-
+  /// Open a storage that accepts everything and holds nothing, or throw when told to fail.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -115,8 +152,10 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     return _FakeRemoteStorage();
   }
 
+  /// Pair the project with a fake token and start the session, or answer that the relay is
+  /// unreachable.
   @override
-  Future<OcptRelayInvite> pairProjectToRelay({
+  Future<ResultWithStatus<OcptSyncFlowStatus, OcptRelayInvite>> pairProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -127,7 +166,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     required String deviceId,
   }) async {
     if (shouldFailToOpenTransport) {
-      throw StateError('The relay could not be reached');
+      return const ResultWithStatus(status: OcptSyncFlowStatus.unreachable);
     }
 
     const token = 'fake-project-token';
@@ -146,11 +185,16 @@ class _FakeTransportSyncManager extends OcptSyncManager {
       storage: openRelayRemoteStorage(pairing, projectId),
     );
 
-    return OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token);
+    return ResultWithStatus(
+      status: OcptSyncFlowStatus.ok,
+      value: OcptRelayInvite(relayBaseUri: relayBaseUri, projectId: projectId, token: token),
+    );
   }
 
+  /// Move the saved pairing to the new relay and start the session, failing in the ways the test
+  /// asks for.
   @override
-  Future<void> repointProjectToRelay({
+  Future<StatusWithExtraInfo<OcptSyncFlowStatus>> repointProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -160,13 +204,16 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     required String enrolmentSecret,
     required String deviceId,
   }) async {
-    if (shouldFailToOpenTransport) {
+    if (shouldThrowOnRepoint) {
       throw StateError('The relay could not be reached');
+    }
+    if (shouldFailToOpenTransport) {
+      return const StatusWithExtraInfo(status: OcptSyncFlowStatus.unreachable);
     }
 
     final existing = await _pairing.loadPairing(database: database, projectId: projectId);
     if (existing == null) {
-      throw StateError('Cannot re-point an unpaired project.');
+      return const StatusWithExtraInfo(status: OcptSyncFlowStatus.notPaired);
     }
 
     await _pairing.savePairing(
@@ -183,9 +230,12 @@ class _FakeTransportSyncManager extends OcptSyncManager {
       relayId: OcptSyncManager.relayIdFor(newPairing),
       storage: openRelayRemoteStorage(newPairing, projectId, enrolmentSecret: enrolmentSecret),
     );
+
+    return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
 }
 
+/// Run the tests of [OcptRepointingBloc].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -217,7 +267,10 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    pairingService = OcptPairingService(secretsManager: secretsManager);
+    pairingService = OcptPairingService(
+      logger: const SilentLogger(),
+      secretsManager: secretsManager,
+    );
   });
 
   setUp(() async {
@@ -265,49 +318,46 @@ void main() {
     expect(bloc.state.projectName, "My Movie");
   });
 
-  test(
-    "a successful repoint moves the project's own pairing and shows ② QR code",
-    () async {
-      final manager = _FakeTransportSyncManager(pairingService: pairingService);
-      await manager.pairProjectToRelay(
-        database: projectsManager.currentProject!.fileDatabase,
-        projectId: "project-abc",
-        projectFilePath: projectsManager.currentProject!.path,
-        projectName: "My Movie",
-        appVersion: "0.1.0",
-        relayBaseUri: initialRelayBaseUri,
-        enrolmentSecret: "prep-enrolment-secret",
-        deviceId: "device-1",
-      );
+  test("a successful repoint moves the project's own pairing and shows ② QR code", () async {
+    final manager = _FakeTransportSyncManager(pairingService: pairingService);
+    await manager.pairProjectToRelay(
+      database: projectsManager.currentProject!.fileDatabase,
+      projectId: "project-abc",
+      projectFilePath: projectsManager.currentProject!.path,
+      projectName: "My Movie",
+      appVersion: "0.1.0",
+      relayBaseUri: initialRelayBaseUri,
+      enrolmentSecret: "prep-enrolment-secret",
+      deviceId: "device-1",
+    );
 
-      final bloc = buildBloc(manager);
-      await pumpEventQueue();
+    final bloc = buildBloc(manager);
+    await pumpEventQueue();
 
-      bloc.add(
-        OcptRepointingRequestedEvent(
-          relayBaseUri: newRelayBaseUri,
-          enrolmentSecret: "onset-enrolment-secret",
-        ),
-      );
-      await pumpEventQueue();
+    bloc.add(
+      OcptRepointingRequestedEvent(
+        relayBaseUri: newRelayBaseUri,
+        enrolmentSecret: "onset-enrolment-secret",
+      ),
+    );
+    await pumpEventQueue();
 
-      expect(bloc.state.isRepointing, isFalse);
-      expect(bloc.state.repointFailed, isFalse);
-      final enrolment = bloc.state.enrolment;
-      expect(enrolment, isNotNull);
-      expect(enrolment!.relayBaseUri, newRelayBaseUri);
-      expect(enrolment.enrolmentSecret, "onset-enrolment-secret");
+    expect(bloc.state.isRepointing, isFalse);
+    expect(bloc.state.repointFailed, isFalse);
+    final enrolment = bloc.state.enrolment;
+    expect(enrolment, isNotNull);
+    expect(enrolment!.relayBaseUri, newRelayBaseUri);
+    expect(enrolment.enrolmentSecret, "onset-enrolment-secret");
 
-      // The pairing actually moved in the database and secure storage, keeping its own token.
-      final pairing = await pairingService.loadPairing(
-        database: projectsManager.currentProject!.fileDatabase,
-        projectId: "project-abc",
-      );
-      expect(pairing, isNotNull);
-      expect(pairing!.relayBaseUri, newRelayBaseUri);
-      expect(pairing.token, "fake-project-token");
-    },
-  );
+    // The pairing actually moved in the database and secure storage, keeping its own token.
+    final pairing = await pairingService.loadPairing(
+      database: projectsManager.currentProject!.fileDatabase,
+      projectId: "project-abc",
+    );
+    expect(pairing, isNotNull);
+    expect(pairing!.relayBaseUri, newRelayBaseUri);
+    expect(pairing.token, "fake-project-token");
+  });
 
   test("re-pointing an unpaired project surfaces repointFailed", () async {
     final bloc = buildBloc(_FakeTransportSyncManager(pairingService: pairingService));
@@ -345,6 +395,38 @@ void main() {
     // already saved by [workingManager] above.
     final bloc = buildBloc(
       _FakeTransportSyncManager(pairingService: pairingService, shouldFailToOpenTransport: true),
+    );
+    await pumpEventQueue();
+
+    bloc.add(
+      OcptRepointingRequestedEvent(
+        relayBaseUri: newRelayBaseUri,
+        enrolmentSecret: "onset-enrolment-secret",
+      ),
+    );
+    await pumpEventQueue();
+
+    expect(bloc.state.isRepointing, isFalse);
+    expect(bloc.state.repointFailed, isTrue);
+    expect(bloc.state.enrolment, isNull);
+  });
+
+  test("a repoint that throws surfaces repointFailed too", () async {
+    final workingManager = _FakeTransportSyncManager(pairingService: pairingService);
+    await workingManager.pairProjectToRelay(
+      database: projectsManager.currentProject!.fileDatabase,
+      projectId: "project-abc",
+      projectFilePath: projectsManager.currentProject!.path,
+      projectName: "My Movie",
+      appVersion: "0.1.0",
+      relayBaseUri: initialRelayBaseUri,
+      enrolmentSecret: "prep-enrolment-secret",
+      deviceId: "device-1",
+    );
+    await workingManager.stopSyncSession();
+
+    final bloc = buildBloc(
+      _FakeTransportSyncManager(pairingService: pairingService, shouldThrowOnRepoint: true),
     );
     await pumpEventQueue();
 

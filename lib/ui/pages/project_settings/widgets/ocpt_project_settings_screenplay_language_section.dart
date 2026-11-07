@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
@@ -29,6 +29,7 @@ class OcptProjectSettingsScreenplayLanguageSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings screenplay language section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -54,16 +55,11 @@ class OcptProjectSettingsScreenplayLanguageSection extends StatelessWidget {
                   // reported rather than dropped: picking "None" is a real gesture (turning the
                   // checker off for this screenplay), not an incomplete selection to guard against.
                   onChanged: onScreenplayLanguageChanged,
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   items: [
-                    DropdownMenuItem(
-                      child: Text(tr.projectSettingsScreenplayLanguageNoneOption),
-                    ),
+                    DropdownMenuItem(child: Text(tr.projectSettingsScreenplayLanguageNoneOption)),
                     for (final language in OcptScreenplayLanguage.values)
-                      DropdownMenuItem(
-                        value: language,
-                        child: Text(_languageLabel(tr, language)),
-                      ),
+                      DropdownMenuItem(value: language, child: Text(_languageLabel(tr, language))),
                   ],
                 ),
               ],
@@ -79,7 +75,7 @@ class OcptProjectSettingsScreenplayLanguageSection extends StatelessWidget {
     );
   }
 
-  /// The localized label of [language].
+  /// Get the localized label of [language].
   String _languageLabel(Tr tr, OcptScreenplayLanguage language) => switch (language) {
     OcptScreenplayLanguage.fr => tr.projectSettingsScreenplayLanguageFrenchOption,
     OcptScreenplayLanguage.enGb => tr.projectSettingsScreenplayLanguageEnglishOption,

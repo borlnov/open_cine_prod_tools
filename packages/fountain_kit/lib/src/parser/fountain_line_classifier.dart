@@ -1,49 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 //
 // SPDX-License-Identifier: Apache-2.0
-
-/// The structural role of a single source line, as determined by
-/// [FountainLineClassifier].
-enum FountainLineType {
-  /// A line with no content (or only whitespace that does not carry the
-  /// "preserved blank dialogue line" meaning described in the Fountain
-  /// spec).
-  blank,
-
-  /// A forced page break, `===`.
-  pageBreak,
-
-  /// An organizational section heading, `# text` through `###### text`.
-  section,
-
-  /// A synopsis line, `= text`.
-  synopsis,
-
-  /// A scene heading, for example `INT. KITCHEN - DAY`.
-  sceneHeading,
-
-  /// A transition, for example `CUT TO:`.
-  transition,
-
-  /// Centered text, `> text <`.
-  centeredText,
-
-  /// A lyrics line, `~ text`.
-  lyrics,
-
-  /// A character cue introducing dialogue.
-  character,
-
-  /// A parenthetical direction inside a dialogue block.
-  parenthetical,
-
-  /// A line of spoken dialogue.
-  dialogue,
-
-  /// A line of action/description text; the default when nothing more
-  /// specific applies.
-  action,
-}
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
 /// First parsing pass: classifies every source line of a Fountain document
 /// body (title page and boneyard/standalone-note lines already removed)
@@ -54,9 +12,6 @@ enum FountainLineType {
 /// calls to [classify], so a caller can re-classify any subset of a
 /// document's lines as long as it passes enough surrounding context.
 class FountainLineClassifier {
-  /// Creates a [FountainLineClassifier].
-  const FountainLineClassifier();
-
   /// Matches the leading token of an (auto-detected, non-forced) scene
   /// heading: `INT`, `EXT`, `EST`, `INT./EXT`, `INT/EXT`, `EXT./INT`,
   /// `EXT/INT` or `I/E`, immediately followed by a `.` or whitespace.
@@ -64,21 +19,6 @@ class FountainLineClassifier {
     r'^(INT\.?/EXT|EXT\.?/INT|I/E|INT|EXT|EST)[.\s]',
     caseSensitive: false,
   );
-
-  /// Whether [line] opens with the leading token of a scene heading (`INT`,
-  /// `EXT`, `EST`, `INT./EXT`, `I/E`…), whatever the surrounding context makes
-  /// of the line itself.
-  ///
-  /// Deliberately weaker than "[line] *is* a scene heading": auto-detection
-  /// additionally demands a blank line on either side (see [classifyLine]), so
-  /// a heading a writer forgot to leave a blank line after is classified as an
-  /// action line while still matching here. That gap is what this predicate is
-  /// for — a caller reading a screenplay's *content* rather than laying it out
-  /// (`charactersIntroducedInActionLine` is the one this exists for) can tell
-  /// such a line apart from a line of action prose, instead of reading a
-  /// location and a time of day as if they were the cast.
-  static bool holdsSceneHeadingPrefix(String line) =>
-      _sceneHeadingPrefix.hasMatch(line.trim());
 
   /// Matches a forced page break: a line made up of three or more `=`
   /// characters and nothing else.
@@ -88,13 +28,13 @@ class FountainLineClassifier {
   /// optionally followed by more text.
   static final RegExp _section = RegExp(r'^(#{1,6})\s*(.*)$');
 
-  /// Classifies every line of [lines] and returns one [FountainLineType]
+  /// Create a [FountainLineClassifier].
+  const FountainLineClassifier();
+
+  /// Classify every line of [lines] and return one [FountainLineType]
   /// per line, in the same order.
   List<FountainLineType> classify(List<String> lines) {
-    final types = List<FountainLineType>.filled(
-      lines.length,
-      FountainLineType.blank,
-    );
+    final types = List<FountainLineType>.filled(lines.length, FountainLineType.blank);
     for (var index = 0; index < lines.length; index++) {
       final previousType = index == 0 ? null : types[index - 1];
       final nextRawLine = index + 1 < lines.length ? lines[index + 1] : null;
@@ -107,7 +47,7 @@ class FountainLineClassifier {
     return types;
   }
 
-  /// Determines the [FountainLineType] of [rawLine] given just enough
+  /// Determine the [FountainLineType] of [rawLine] given just enough
   /// surrounding context to reproduce every context-sensitive rule in
   /// [classify]: the [FountainLineType] of the line immediately before it
   /// ([previousType], `null` at the start of the document) and the raw text
@@ -158,22 +98,17 @@ class FountainLineClassifier {
     }
 
     if (trimmed.startsWith('>')) {
-      return trimmed.endsWith('<')
-          ? FountainLineType.centeredText
-          : FountainLineType.transition;
+      return trimmed.endsWith('<') ? FountainLineType.centeredText : FountainLineType.transition;
     }
 
     if (rawLine.startsWith('~')) {
       return FountainLineType.lyrics;
     }
 
-    final precededByBlank =
-        previousType == null || previousType == FountainLineType.blank;
+    final precededByBlank = previousType == null || previousType == FountainLineType.blank;
     final followedByBlank = nextRawLine == null || nextRawLine.trim().isEmpty;
 
-    if (_sceneHeadingPrefix.hasMatch(trimmed) &&
-        precededByBlank &&
-        followedByBlank) {
+    if (_sceneHeadingPrefix.hasMatch(trimmed) && precededByBlank && followedByBlank) {
       return FountainLineType.sceneHeading;
     }
 
@@ -188,9 +123,7 @@ class FountainLineClassifier {
       return FountainLineType.character;
     }
 
-    if (trimmed.startsWith('(') &&
-        trimmed.endsWith(')') &&
-        _continuesDialogue(previousType)) {
+    if (trimmed.startsWith('(') && trimmed.endsWith(')') && _continuesDialogue(previousType)) {
       return FountainLineType.parenthetical;
     }
 
@@ -201,14 +134,14 @@ class FountainLineClassifier {
     return FountainLineType.action;
   }
 
-  /// Whether [type] is a dialogue-block element that keeps the dialogue
+  /// Tell whether [type] is a dialogue-block element that keeps the dialogue
   /// block open for the line immediately after it.
   bool _continuesDialogue(FountainLineType? type) =>
       type == FountainLineType.character ||
       type == FountainLineType.parenthetical ||
       type == FountainLineType.dialogue;
 
-  /// Whether [trimmed] looks like an (unforced) character cue: all-caps
+  /// Tell whether [trimmed] looks like an (unforced) character cue: all-caps
   /// text, optionally with a parenthetical extension and/or a trailing `^`
   /// dual-dialogue marker.
   bool _isCharacterCandidate(String trimmed) {
@@ -219,14 +152,26 @@ class FountainLineClassifier {
     return _isAllCaps(candidate);
   }
 
-  /// Whether [trimmed] looks like an (unforced) transition: all-caps text
+  /// Tell whether [trimmed] looks like an (unforced) transition: all-caps text
   /// ending with `TO:`.
-  bool _isTransitionCandidate(String trimmed) =>
-      trimmed.endsWith('TO:') && _isAllCaps(trimmed);
+  bool _isTransitionCandidate(String trimmed) => trimmed.endsWith('TO:') && _isAllCaps(trimmed);
 
-  /// Whether [text] contains no lowercase letters and at least one cased
+  /// Tell whether [text] contains no lowercase letters and at least one cased
   /// letter (so that, for example, a line of only digits and punctuation
   /// does not count as "all caps").
-  bool _isAllCaps(String text) =>
-      text == text.toUpperCase() && text != text.toLowerCase();
+  bool _isAllCaps(String text) => text == text.toUpperCase() && text != text.toLowerCase();
+
+  /// Tell whether [line] opens with the leading token of a scene heading (`INT`,
+  /// `EXT`, `EST`, `INT./EXT`, `I/E`…), whatever the surrounding context makes
+  /// of the line itself.
+  ///
+  /// Deliberately weaker than "[line] *is* a scene heading": auto-detection
+  /// additionally demands a blank line on either side (see [classifyLine]), so
+  /// a heading a writer forgot to leave a blank line after is classified as an
+  /// action line while still matching here. That gap is what this predicate is
+  /// for — a caller reading a screenplay's *content* rather than laying it out
+  /// (`charactersIntroducedInActionLine` is the one this exists for) can tell
+  /// such a line apart from a line of action prose, instead of reading a
+  /// location and a time of day as if they were the cast.
+  static bool holdsSceneHeadingPrefix(String line) => _sceneHeadingPrefix.hasMatch(line.trim());
 }

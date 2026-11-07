@@ -6,31 +6,42 @@ import 'dart:async';
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_level.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 
 /// This is the bloc class for the Partager screen's "Héberger sur ce poste" segment
 /// (`docs/architecture/sync.md`).
 ///
-/// It drives `OcptRelayHostManager` the way `OcptSharingBloc` drives `OcptSyncManager.
-/// pairProjectToRelay`/`unpairProject` — start/stop hosting, toggle "réhéberger au démarrage", and
-/// run an in-app reconcile against an upstream relay — while mirroring the manager's own host-state
-/// stream and, only while hosting is online, the sync manager's own presence roster stream, both of
-/// which (like every ACT manager stream, `CLAUDE.md`'s own pitfalls list) never replay their current
-/// value to a new listener.
-class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
+/// It drives `OcptRelayHostManager` the way `OcptSharingBloc` drives
+/// `OcptSyncManager. pairProjectToRelay`/`unpairProject` — start/stop hosting, toggle "réhéberger
+/// au démarrage", and run an in-app reconcile against an upstream relay — while mirroring the
+/// manager's own host-state stream and, only while hosting is online, the sync manager's own
+/// presence roster stream, both of which (like every ACT manager stream, `CLAUDE.md`'s own pitfalls
+/// list) never replay their current value to a new listener.
+class OcptHostingBloc extends BlocForMixin<OcptHostingState>
+    with MixinAsyncInitBloc<OcptHostingState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "hosting_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger;
+
   /// The manager owning the in-process relay this bloc starts, stops and reconciles.
   final OcptRelayHostManager _hostManager;
 
@@ -51,29 +62,28 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
   /// online — see [_subscribeToPresence]/[_unsubscribeFromPresence].
   StreamSubscription<OcptPresenceRoster>? _presenceSubscription;
 
+  /// Get the current project — the route reaching this bloc is guarded exactly like the sharing
+  /// bloc's
+  /// own, so a project is always open by the time this runs.
+  OcptOpenProjectModel get _project => _projectsManager.currentProject!;
+
   /// Class constructor
   OcptHostingBloc({
     OcptRelayHostManager? hostManager,
     OcptSyncManager? syncManager,
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
-  }) : _hostManager = hostManager ?? globalGetIt().get<OcptRelayHostManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _hostManager = hostManager ?? globalGetIt().get<OcptRelayHostManager>(),
        _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
-       super(const OcptHostingState.init()) {
-    add(const OcptHostingLoadRequestedEvent());
-  }
-
-  /// The current project — the route reaching this bloc is guarded exactly like the sharing bloc's
-  /// own, so a project is always open by the time this runs.
-  OcptOpenProjectModel get _project => _projectsManager.currentProject!;
+       super(const OcptHostingState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptHostingLoadRequestedEvent>(_onLoadRequested);
     on<OcptHostingHostStateChangedEvent>(_onHostStateChanged);
     on<OcptHostingPresenceChangedEvent>(_onPresenceChanged);
     on<OcptHostingStartStopRequestedEvent>(_onStartStopRequested);
@@ -90,54 +100,50 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     );
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
   /// Seeds every field of [OcptHostingState] off the managers' own getters, exactly as
-  /// `OcptSharingBloc._onLoadRequested`/`OcptWorkspaceBloc._onLoadRequested` do for the very same
+  /// `OcptSharingBloc.initAsyncBloc`/`OcptWorkspaceBloc.initAsyncBloc` do for the very same
   /// "streams don't replay" reason.
-  Future<void> _onLoadRequested(
-    OcptHostingLoadRequestedEvent event,
-    Emitter<OcptHostingState> emitter,
-  ) async {
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptHostingState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
     final hostState = _hostManager.state;
     if (hostState is OcptRelayHostOnline) {
       _subscribeToPresence();
     }
 
     final projectId = await _syncManager.loadPairedProjectId(_project.fileDatabase);
-    final hostOnLaunch =
-        projectId != null && await _propertiesManager.loadHostOnLaunch(projectId);
+    final hostOnLaunch = projectId != null && await _propertiesManager.loadHostOnLaunch(projectId);
     final presenceRoster = _syncManager.presenceRoster;
     final extras = hostState is OcptRelayHostOnline
         ? await _loadOnlineExtras(hostState, preferredAddress: state.selectedAddress)
         : null;
 
-    emitter(
-      state.copyWith(
-        isLoading: false,
+    emit(
+      state.copyToLoaded(
         hostState: hostState,
         presenceRoster: presenceRoster,
-        clearPresenceRoster: presenceRoster == null,
         canSetAutoRestart: projectId != null,
         hostOnLaunch: hostOnLaunch,
         availableAddresses: extras?.availableAddresses ?? const [],
         selectedAddress: extras?.selectedAddress,
-        clearSelectedAddress: extras == null,
         boundPort: extras?.boundPort,
-        clearBoundPort: extras == null,
         enrolment: extras?.enrolment,
-        clearEnrolment: extras == null,
         joinInvite: extras?.joinInvite,
-        clearJoinInvite: extras?.joinInvite == null,
       ),
     );
   }
 
-  /// Applies [event]'s own host state, and — since presence only ever lives while hosting is
-  /// online — subscribes to (or unsubscribes from) [_syncManager]'s own presence roster stream to
-  /// match: a transition to [OcptRelayHostOnline] means a session just started, so this both starts
-  /// the presence subscription and re-reads whether "réhéberger au démarrage" can now be set (a
-  /// never-paired project that just started hosting for the first time has a relay-side id from this
-  /// moment on, through `OcptRelayHostManager.hostedProjectId`); any other state means hosting is no
-  /// longer live, so the subscription is torn down and the roster cleared.
+  /// Apply [event]'s own host state, and — since presence only ever lives while hosting is online
+  /// — subscribes to (or unsubscribes from) [_syncManager]'s own presence roster stream to match: a
+  /// transition to [OcptRelayHostOnline] means a session just started, so this both starts the
+  /// presence subscription and re-reads whether "réhéberger au démarrage" can now be set (a
+  /// never-paired project that just started hosting for the first time has a relay-side id from
+  /// this moment on, through `OcptRelayHostManager.hostedProjectId`); any other state means hosting
+  /// is no longer live, so the subscription is torn down and the roster cleared.
   Future<void> _onHostStateChanged(
     OcptHostingHostStateChangedEvent event,
     Emitter<OcptHostingState> emitter,
@@ -155,36 +161,24 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       final extras = await _loadOnlineExtras(hostState, preferredAddress: state.selectedAddress);
 
       emitter(
-        state.copyWith(
+        state.copyWithHostOnline(
           hostState: hostState,
-          canSetAutoRestart: true,
           hostOnLaunch: hostOnLaunch,
           presenceRoster: presenceRoster,
-          clearPresenceRoster: presenceRoster == null,
           availableAddresses: extras.availableAddresses,
           selectedAddress: extras.selectedAddress,
           boundPort: extras.boundPort,
           enrolment: extras.enrolment,
           joinInvite: extras.joinInvite,
-          clearJoinInvite: extras.joinInvite == null,
         ),
       );
     } else {
       await _unsubscribeFromPresence();
-      emitter(
-        state.copyWith(
-          hostState: hostState,
-          clearPresenceRoster: true,
-          clearSelectedAddress: true,
-          clearBoundPort: true,
-          clearEnrolment: true,
-          clearJoinInvite: true,
-        ),
-      );
+      emitter(state.copyWithHostOffline(hostState: hostState));
     }
   }
 
-  /// Applies [event]'s own roster straight to [OcptHostingState.presenceRoster].
+  /// Apply [event]'s own roster straight to [OcptHostingState.presenceRoster].
   void _onPresenceChanged(
     OcptHostingPresenceChangedEvent event,
     Emitter<OcptHostingState> emitter,
@@ -198,10 +192,10 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
         message: 'peers: $previousCount -> $newCount',
       );
     }
-    emitter(state.copyWith(presenceRoster: roster, clearPresenceRoster: roster == null));
+    emitter(state.copyWithPresenceRoster(presenceRoster: roster));
   }
 
-  /// Starts or stops hosting the current project — [OcptHostingHostStateChangedEvent] is what
+  /// Start or stop hosting the current project — [OcptHostingHostStateChangedEvent] is what
   /// actually moves [OcptHostingState.hostState] on, off [_hostManager]'s own stream, so this never
   /// emits a state of its own.
   Future<void> _onStartStopRequested(
@@ -222,24 +216,27 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     }
   }
 
-  /// Persists [event]'s own value against the project's relay-side id — [_hostManager.
+  /// Persist [event]'s own value against the project's relay-side id — [_hostManager.
   /// hostedProjectId] while hosting is live, or [OcptSyncManager.loadPairedProjectId] otherwise —
-  /// and does nothing when neither is known yet: the checkbox stays disabled in that case
-  /// ([OcptHostingState.canSetAutoRestart]), so this should never actually be reached without an id.
+  /// and do nothing when neither is known yet: the checkbox stays disabled in that case
+  /// ([OcptHostingState.canSetAutoRestart]), so this should never actually be reached without an
+  /// id.
   Future<void> _onAutoRestartChanged(
     OcptHostingAutoRestartChangedEvent event,
     Emitter<OcptHostingState> emitter,
   ) async {
-    final id = _hostManager.hostedProjectId ?? await _syncManager.loadPairedProjectId(_project.fileDatabase);
+    final id =
+        _hostManager.hostedProjectId ??
+        await _syncManager.loadPairedProjectId(_project.fileDatabase);
     if (id == null) {
       return;
     }
 
     await _propertiesManager.setHostOnLaunch(projectId: id, value: event.value);
-    emitter(state.copyWith(hostOnLaunch: event.value));
+    emitter(state.copyWithHostOnLaunch(hostOnLaunch: event.value));
   }
 
-  /// Parses [event]'s own invite text and, when it is a well-formed `ocpt://join` link, runs
+  /// Parse [event]'s own invite text and, when it is a well-formed `ocpt://join` link, run
   /// `OcptRelayHostManager.reconcileWithUpstream` against it — an unparseable text never reaches
   /// the manager at all, surfacing instead as [OcptHostingState.reconcileInviteInvalid], since the
   /// bloc has no `Tr` to word a specific message with (`OcptSharingBloc`'s own reasoning for
@@ -248,34 +245,28 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     OcptHostingReconcileRequestedEvent event,
     Emitter<OcptHostingState> emitter,
   ) async {
-    final invite = OcptRelayInvite.tryParse(event.inviteText.trim());
+    final invite = OcptRelayInvite.parse(event.inviteText.trim()).value;
     if (invite == null) {
-      emitter(
-        state.copyWith(
-          reconcileInviteInvalid: true,
-          isReconciling: false,
-          clearReconcileOutcome: true,
-        ),
-      );
+      emitter(state.copyWithReconcileInviteInvalid());
       return;
     }
 
-    emitter(state.copyWith(isReconciling: true, reconcileInviteInvalid: false, clearReconcileOutcome: true));
+    emitter(state.copyWithReconciling());
     final outcome = await _hostManager.reconcileWithUpstream(invite);
-    emitter(state.copyWith(isReconciling: false, reconcileOutcome: outcome));
+    emitter(state.copyWithReconcileOutcome(reconcileOutcome: outcome));
   }
 
-  /// Clears [OcptHostingState.reconcileOutcome] and [OcptHostingState.reconcileInviteInvalid] once
+  /// Clear [OcptHostingState.reconcileOutcome] and [OcptHostingState.reconcileInviteInvalid] once
   /// the panel has shown either — the same one-shot-notice shape `OcptSharingBloc`'s own
   /// `_onPairingErrorDismissed` already follows.
   void _onReconcileDismissed(
     OcptHostingReconcileDismissedEvent event,
     Emitter<OcptHostingState> emitter,
   ) {
-    emitter(state.copyWith(clearReconcileOutcome: true, reconcileInviteInvalid: false));
+    emitter(state.copyWithReconcileDismissed());
   }
 
-  /// Applies [event]'s own address to [OcptHostingState.selectedAddress] and rebuilds
+  /// Apply [event]'s own address to [OcptHostingState.selectedAddress] and rebuild
   /// [OcptHostingState.enrolment]/[OcptHostingState.joinInvite] against it — never restarting
   /// hosting, since the socket already binds every interface
   /// (`InternetAddress.anyIPv4`, `docs/architecture/sync.md`'s own "no behavioural change to how
@@ -306,19 +297,18 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
           );
 
     emitter(
-      state.copyWith(
+      state.copyWithSelectedAddress(
         selectedAddress: event.address,
         enrolment: enrolment,
         joinInvite: joinInvite,
-        clearJoinInvite: joinInvite == null,
       ),
     );
   }
 
-  /// Re-binds the hosted relay's own socket to [event]'s own port — unlike an advertised-address
+  /// Re-bind the hosted relay's own socket to [event]'s own port — unlike an advertised-address
   /// change, this really does call `_hostManager.startHosting` again, since the socket itself has
-  /// to move off the port it is already listening on; [OcptHostingHostStateChangedEvent] then
-  /// carries the new [OcptRelayHostOnline.lanBaseUri] (and its own new port) through the very same
+  /// to move off the port it is already listening on; [OcptHostingHostStateChangedEvent] then carry
+  /// the new [OcptRelayHostOnline.lanBaseUri] (and its own new port) through the very same
   /// path [_onHostStateChanged] already follows, rebuilding every online field from there.
   Future<void> _onPortChangeRequested(
     OcptHostingPortChangeRequestedEvent event,
@@ -335,12 +325,12 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     );
   }
 
-  /// Applies [event]'s own kind straight to [OcptHostingState.qrKind].
+  /// Apply [event]'s own kind straight to [OcptHostingState.qrKind].
   void _onQrKindChanged(OcptHostingQrKindChangedEvent event, Emitter<OcptHostingState> emitter) {
-    emitter(state.copyWith(qrKind: event.kind));
+    emitter(state.copyWithQrKind(qrKind: event.kind));
   }
 
-  /// Re-reads `_hostManager.availableLanAddresses` into [OcptHostingState.availableAddresses],
+  /// Re-read `_hostManager.availableLanAddresses` into [OcptHostingState.availableAddresses],
   /// keeping [OcptHostingState.selectedAddress] when it is still offered, or falling back to the
   /// first address otherwise — covers a network switch (a Wi-Fi hop, a cable plugged in) since the
   /// screen last loaded.
@@ -351,20 +341,20 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     final addresses = await _hostManager.availableLanAddresses();
     final availableAddresses = [for (final address in addresses) address.address];
     final currentSelection = state.selectedAddress;
-    final selectedAddress = currentSelection != null && availableAddresses.contains(currentSelection)
+    final selectedAddress =
+        currentSelection != null && availableAddresses.contains(currentSelection)
         ? currentSelection
         : (availableAddresses.isNotEmpty ? availableAddresses.first : currentSelection);
 
     emitter(
-      state.copyWith(
+      state.copyWithRefreshedAddresses(
         availableAddresses: availableAddresses,
         selectedAddress: selectedAddress,
-        clearSelectedAddress: selectedAddress == null,
       ),
     );
   }
 
-  /// Builds every online-only field of [OcptHostingState] off [online]: the addresses
+  /// Build every online-only field of [OcptHostingState] off [online]: the addresses
   /// `_hostManager.availableLanAddresses` offers, the address/port `online.lanBaseUri` itself
   /// carries, and the enrolment/join credentials built against them — the enrolment straight from
   /// `online.enrolmentSecret`, the join invite additionally needing the project's own pairing
@@ -375,10 +365,10 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
   /// [preferredAddress], when it is still one of the addresses on offer, is kept as the selected
   /// address rather than falling back to `online.lanBaseUri.host` (the default) — this is what lets
   /// a port-apply restart ([_onHostStateChanged]'s online branch, which passes
-  /// [OcptHostingState.selectedAddress]) keep the address an operator had already picked, instead of
-  /// wiping it back to the default on every restart. [_onLoadRequested] passes the very same
-  /// [OcptHostingState.selectedAddress] for the same reason, harmless when it is still null (nothing
-  /// was ever picked yet).
+  /// [OcptHostingState.selectedAddress]) keep the address an operator had already picked, instead
+  /// of wiping it back to the default on every restart. [initAsyncBloc] passes the very same
+  /// [OcptHostingState.selectedAddress] for the same reason, harmless when it is still null
+  /// (nothing was ever picked yet).
   Future<
     ({
       List<String> availableAddresses,
@@ -391,7 +381,8 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
   _loadOnlineExtras(OcptRelayHostOnline online, {String? preferredAddress}) async {
     final addresses = await _hostManager.availableLanAddresses();
     final availableAddresses = [for (final address in addresses) address.address];
-    final selectedAddress = preferredAddress != null && availableAddresses.contains(preferredAddress)
+    final selectedAddress =
+        preferredAddress != null && availableAddresses.contains(preferredAddress)
         ? preferredAddress
         : online.lanBaseUri.host;
     final boundPort = online.lanBaseUri.port;
@@ -418,7 +409,12 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
             token: token,
           );
         }
-      } catch (_) {
+      } catch (error, stackTrace) {
+        _logger.w(
+          'Could not load the project token to build the join invite: ${error.runtimeType}',
+          null,
+          stackTrace,
+        );
         joinInvite = null;
       }
     }
@@ -427,13 +423,16 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.hosting,
         level: OcptDiagnosticsLevel.warning,
-        message: 'join QR unavailable: no project token to build the invite '
-            '(hostedProjectId=${hostedProjectId ?? "none"}) — the "Envoyer le projet" QR is blank',
+        message:
+            'join QR unavailable: no project token to build the invite '
+            '(hostedProjectId=${hostedProjectId ?? "none"}) — the join QR is blank',
       );
     } else {
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.hosting,
         message: 'join QR ready: project=$hostedProjectId relay=$advertisedUri',
+        // The relay's address is not logged.
+        logMessage: 'join QR ready: project=$hostedProjectId',
       );
     }
 
@@ -446,7 +445,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     );
   }
 
-  /// Subscribes to [_syncManager]'s own presence roster stream, when it is actually live (hosting
+  /// Subscribe to [_syncManager]'s own presence roster stream, when it is actually live (hosting
   /// online) and not already subscribed to — a no-op otherwise, since
   /// `OcptSyncManager.presenceRosterStream` is null whenever no session is running.
   void _subscribeToPresence() {
@@ -459,12 +458,10 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
       return;
     }
 
-    _presenceSubscription = stream.listen(
-      (roster) => add(OcptHostingPresenceChangedEvent(roster)),
-    );
+    _presenceSubscription = stream.listen((roster) => add(OcptHostingPresenceChangedEvent(roster)));
   }
 
-  /// Cancels [_presenceSubscription], if any — called both on a transition away from
+  /// Cancel [_presenceSubscription], if any — called both on a transition away from
   /// [OcptRelayHostOnline] and from [disposeLifeCycle].
   Future<void> _unsubscribeFromPresence() async {
     await _presenceSubscription?.cancel();

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
@@ -11,8 +11,8 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_asset_file_line.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// "Image rights": [OcptImageRightsStatus] as a tinted badge doubling as its own selector, and the
 /// date that status was reached.
@@ -71,6 +71,7 @@ class OcptPersonSheetImageRightsCard extends StatelessWidget {
     required this.onDocumentCleared,
   });
 
+  /// Build the person sheet image rights card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -105,7 +106,7 @@ class OcptPersonSheetImageRightsCard extends StatelessWidget {
     );
   }
 
-  /// What [status] dates, or null when it dates nothing: the label of the date field, and the
+  /// Get what [status] dates, or null when it dates nothing: the label of the date field, and the
   /// answer to whether that field is shown at all.
   String? _dateLabelOf(Tr tr, OcptImageRightsStatus status) => switch (status) {
     OcptImageRightsStatus.notApplicable || OcptImageRightsStatus.toGenerate => null,
@@ -126,6 +127,7 @@ class _OcptImageRightsStatusBadge extends StatelessWidget {
   /// Class constructor
   const _OcptImageRightsStatusBadge({required this.status, required this.onChanged});
 
+  /// Build the image rights status badge as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -136,8 +138,8 @@ class _OcptImageRightsStatusBadge extends StatelessWidget {
     final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -172,7 +174,7 @@ class _OcptImageRightsStatusBadge extends StatelessWidget {
     );
   }
 
-  /// The colour [status] is tinted with: muted for [OcptImageRightsStatus.notApplicable], the
+  /// Get the colour [status] is tinted with: muted for [OcptImageRightsStatus.notApplicable], the
   /// workspace's warning colour while a release still has to be drafted, the accent while it is
   /// drafted and awaiting a signature, and the "already shot" green once it is signed.
   Color _colorFor(BuildContext context, OcptImageRightsStatus status) {

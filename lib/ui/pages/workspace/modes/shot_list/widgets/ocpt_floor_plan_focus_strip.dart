@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 
@@ -50,6 +50,7 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
     required this.onShotChipSelected,
   });
 
+  /// Build the floor plan focus strip as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -67,7 +68,17 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
           children: [
             for (final shot in shots) ...[
               if (shot != shots.first) const SizedBox(width: 6),
-              _buildShotChip(context, shot),
+              _ShotChip(
+                shot: shot,
+                isActive: shot.id == selectedShotId,
+                hasCamera: hasCameraOnSetOf[shot.id] ?? false,
+                tag: shot.id == previousShotId
+                    ? tr.shotListFloorPlanFocusPreviousChipTag
+                    : shot.id == nextShotId
+                    ? tr.shotListFloorPlanFocusNextChipTag
+                    : null,
+                onTap: () => onShotChipSelected(shot.id),
+              ),
             ],
             if (shots.isNotEmpty) ...[
               const SizedBox(width: 12),
@@ -83,24 +94,44 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// One shot's own chip: its code, a filled/hollow dot for [hasCameraOnSetOf], and a `prev`/
-  /// `next` tag while it is [previousShotId]/[nextShotId].
-  Widget _buildShotChip(BuildContext context, OcptShot shot) {
+/// One shot's own chip: its code, a filled/hollow dot for whether it has a camera on the set
+/// shown, and a `prev`/`next` tag while it is the neighbour the onion skin ghosts.
+class _ShotChip extends StatelessWidget {
+  /// The shot this chip names.
+  final OcptShot shot;
+
+  /// Whether this is the selected (focused) shot.
+  final bool isActive;
+
+  /// Whether the shot has a live camera symbol on the set currently shown.
+  final bool hasCamera;
+
+  /// The `prev`/`next` tag, or null while the shot is neither neighbour.
+  final String? tag;
+
+  /// Called when the chip is clicked.
+  final VoidCallback onTap;
+
+  /// Class constructor
+  const _ShotChip({
+    required this.shot,
+    required this.isActive,
+    required this.hasCamera,
+    required this.tag,
+    required this.onTap,
+  });
+
+  /// Build the shot chip.
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final isActive = shot.id == selectedShotId;
-    final hasCamera = hasCameraOnSetOf[shot.id] ?? false;
-    final tag = shot.id == previousShotId
-        ? tr.shotListFloorPlanFocusPreviousChipTag
-        : shot.id == nextShotId
-        ? tr.shotListFloorPlanFocusNextChipTag
-        : null;
+    final tag = this.tag;
 
-    return _buildChip(
-      context,
+    return _Chip(
       isActive: isActive,
-      onTap: () => onShotChipSelected(shot.id),
+      onTap: onTap,
       label: shot.code,
       leading: Icon(
         hasCamera ? Icons.circle : Icons.circle_outlined,
@@ -121,29 +152,52 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
             ),
     );
   }
+}
 
-  /// One chip's own chrome, shared by the `Sequence` chip and every shot chip.
-  Widget _buildChip(
-    BuildContext context, {
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-    Widget? leading,
-    Widget? trailing,
-  }) {
+/// One chip's own chrome.
+class _Chip extends StatelessWidget {
+  /// The chip's label.
+  final String label;
+
+  /// Whether the chip is the selected one.
+  final bool isActive;
+
+  /// Called when the chip is clicked.
+  final VoidCallback onTap;
+
+  /// What is drawn before the label, if anything.
+  final Widget? leading;
+
+  /// What is drawn after the label, if anything.
+  final Widget? trailing;
+
+  /// Class constructor
+  const _Chip({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+    this.leading,
+    this.trailing,
+  });
+
+  /// Build the chip as an [InkWell].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final leading = this.leading;
+    final trailing = this.trailing;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
-      mouseCursor: ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : null,
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
           border: Border.all(
             color: isActive ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
           ),

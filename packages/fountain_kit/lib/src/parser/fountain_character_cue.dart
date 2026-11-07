@@ -13,7 +13,7 @@ typedef FountainCharacterCue = ({String name, String? extension, bool isDualDial
 /// example ` (V.O.)` in `SARAH (V.O.)`.
 final RegExp _characterExtension = RegExp(r'^(.*?)\s*\(([^()]*)\)\s*$');
 
-/// Splits the character cue source line [rawLine] into its
+/// Split the character cue source line [rawLine] into its
 /// [FountainCharacterCue] parts, dropping the forcing `@` prefix, the
 /// dual-dialogue `^` suffix and the parenthetical extension from the name
 /// itself.

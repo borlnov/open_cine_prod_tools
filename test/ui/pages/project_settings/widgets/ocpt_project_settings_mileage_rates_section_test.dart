@@ -54,6 +54,7 @@ Future<void> _pumpSection(
   await tester.pumpAndSettle();
 }
 
+/// Run the tests of [OcptProjectSettingsMileageRatesSection].
 void main() {
   testWidgets("an empty card offers to add a rate and suggests no figure of its own", (
     tester,

@@ -20,6 +20,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptProjectSettingsBudgetSection].
 void main() {
   /// The VAT rate field: the section's first [TextField] in build order.
   Finder vatRateField() => find.byType(TextField).at(0);
@@ -143,11 +144,7 @@ void main() {
   });
 
   testWidgets("a money field submitted empty reports null", (tester) async {
-    final mealCalls = await pumpSection(
-      tester,
-      mealPriceCents: 500,
-      onVatRateChanged: (_) {},
-    );
+    final mealCalls = await pumpSection(tester, mealPriceCents: 500, onVatRateChanged: (_) {});
 
     await tester.enterText(mealPriceField(), "");
     await tester.testTextInput.receiveAction(TextInputAction.done);

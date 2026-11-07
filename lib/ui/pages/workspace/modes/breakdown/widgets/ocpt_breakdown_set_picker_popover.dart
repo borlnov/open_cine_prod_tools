@@ -4,11 +4,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_resources_search.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_breakdown_labels.dart';
 
 /// The widest the popover's own panel is ever drawn, in logical pixels.
 const double _ocptBreakdownSetPickerPopoverWidth = 300;
@@ -25,10 +25,10 @@ const double _ocptBreakdownSetPickerPopoverGap = 6;
 /// replacing what used to be two separate controls side by side.
 ///
 /// The popover's own text field is both the filter the existing-sets list is matched against and
-/// the name a creation would use — pre-filled with [defaultName] (the place the scene's own
-/// heading names), editable before either action. Painted into the app's own [Overlay], through an
-/// [OverlayPortal] and a [LayerLink]/[CompositedTransformFollower] pair, so it is not clipped by the
-/// right dock's `ListView` — the same idiom `OcptBreakdownTagPopoverAnchor` uses for the script
+/// the name a creation would use — pre-filled with [defaultName] (the place the scene's own heading
+/// names), editable before either action. Painted into the app's own [Overlay], through an
+/// [OverlayPortal] and a [LayerLink]/[CompositedTransformFollower] pair, so it is not clipped by
+/// the right dock's `ListView` — the same idiom `OcptBreakdownTagPopoverAnchor` uses for the script
 /// sheet's own tag popover, simplified here since this one is toggled by a tap rather than shown
 /// automatically, and always drawn below the chip rather than flipping sides.
 ///
@@ -77,10 +77,14 @@ class OcptBreakdownSetPickerPopover extends StatefulWidget {
     required this.onSetCreationRequested,
   });
 
+  /// Create the [_OcptBreakdownSetPickerPopoverState] holding the state of the breakdown set picker
+  /// popover.
   @override
   State<OcptBreakdownSetPickerPopover> createState() => _OcptBreakdownSetPickerPopoverState();
 }
 
+/// State of [OcptBreakdownSetPickerPopover]: owns the overlay controller, the layer link and the
+/// name field's text controller.
 class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPopover> {
   /// Owns whether the overlay entry is currently inserted.
   final OverlayPortalController _controller = OverlayPortalController();
@@ -89,11 +93,14 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
   final LayerLink _link = LayerLink();
 
   /// The field's own text, both the existing-sets filter and the name a creation would use.
-  late final TextEditingController _textController = TextEditingController(text: widget.defaultName);
+  late final TextEditingController _textController = TextEditingController(
+    text: widget.defaultName,
+  );
 
   /// The field's own focus, requested as soon as the popover appears.
   final FocusNode _fieldFocusNode = FocusNode();
 
+  /// Refill the name field with the new default name while the popover is closed.
   @override
   void didUpdateWidget(OcptBreakdownSetPickerPopover oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -102,13 +109,7 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
     }
   }
 
-  @override
-  void dispose() {
-    _textController.dispose();
-    _fieldFocusNode.dispose();
-    super.dispose();
-  }
-
+  /// Build the breakdown set picker popover as a [CompositedTransformTarget].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -117,11 +118,24 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
       link: _link,
       child: OverlayPortal(
         controller: _controller,
-        overlayChildBuilder: _buildOverlayChild,
+        overlayChildBuilder: (overlayContext) => _OverlayChild(
+          link: _link,
+          textController: _textController,
+          fieldFocusNode: _fieldFocusNode,
+          sets: widget.sets,
+          locationNameById: widget.locationNameById,
+          sceneId: widget.sceneId,
+          suggestedSetId: widget.suggestedSetId,
+          locations: widget.locations,
+          onSetLinked: widget.onSetLinked,
+          onSetCreationRequested: widget.onSetCreationRequested,
+          onTextChanged: () => setState(() {}),
+          onClose: _controller.hide,
+        ),
         child: InkWell(
           onTap: _controller.show,
-          mouseCursor: ocptClickableCursor,
-          borderRadius: BorderRadius.circular(ocptRadiusLarge),
+          mouseCursor: ocpt_theme.ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
           child: Chip(
             avatar: const Icon(Icons.add, size: 14),
             label: Text(tr.breakdownSceneInspectorAddSetAction),
@@ -131,43 +145,168 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
     );
   }
 
-  /// The barrier closing the popover on an outside tap, and the panel itself, followed onto the
-  /// chip and placed under it.
-  Widget _buildOverlayChild(BuildContext overlayContext) => Stack(
+  /// Dispose [_textController] and [_fieldFocusNode].
+  @override
+  void dispose() {
+    _textController.dispose();
+    _fieldFocusNode.dispose();
+    super.dispose();
+  }
+}
+
+/// The barrier closing the popover on an outside tap, and the panel itself, followed onto the
+/// chip and placed under it.
+class _OverlayChild extends StatelessWidget {
+  /// Links the chip's own geometry to the panel's `CompositedTransformFollower`.
+  final LayerLink link;
+
+  /// The field's own text, both the existing-sets filter and the name a creation would use.
+  final TextEditingController textController;
+
+  /// The field's own focus.
+  final FocusNode fieldFocusNode;
+
+  /// The whole set catalogue, every location's sets flattened.
+  final List<OcptSet> sets;
+
+  /// The name of every live location, keyed by id.
+  final Map<String, String> locationNameById;
+
+  /// The scene the popover is offered from.
+  final String sceneId;
+
+  /// The id of the set the scene's heading suggests, or null while it suggests none.
+  final String? suggestedSetId;
+
+  /// Every live location of the project, `(id, name)`.
+  final List<(String, String)> locations;
+
+  /// Called with a set's id when an existing-sets row is clicked.
+  final ValueChanged<String> onSetLinked;
+
+  /// Called with the name and the location (null for a new one) when a create-in entry is clicked.
+  final void Function(String name, String? locationId) onSetCreationRequested;
+
+  /// Called whenever the field's text changes, so the lists are filtered again.
+  final VoidCallback onTextChanged;
+
+  /// Called to close the popover.
+  final VoidCallback onClose;
+
+  /// Class constructor
+  const _OverlayChild({
+    required this.link,
+    required this.textController,
+    required this.fieldFocusNode,
+    required this.sets,
+    required this.locationNameById,
+    required this.sceneId,
+    required this.suggestedSetId,
+    required this.locations,
+    required this.onSetLinked,
+    required this.onSetCreationRequested,
+    required this.onTextChanged,
+    required this.onClose,
+  });
+
+  /// Build the overlay child as a [Stack].
+  @override
+  Widget build(BuildContext context) => Stack(
     children: [
       Positioned.fill(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _controller.hide,
-        ),
+        child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onClose),
       ),
       CompositedTransformFollower(
-        link: _link,
+        link: link,
         targetAnchor: Alignment.bottomLeft,
         offset: const Offset(0, _ocptBreakdownSetPickerPopoverGap),
         child: Focus(
           onKeyEvent: (node, event) {
             if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-              _controller.hide();
+              onClose();
               return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
           },
-          child: _buildPanel(overlayContext),
+          child: _Panel(
+            textController: textController,
+            fieldFocusNode: fieldFocusNode,
+            sets: sets,
+            locationNameById: locationNameById,
+            sceneId: sceneId,
+            suggestedSetId: suggestedSetId,
+            locations: locations,
+            onSetLinked: onSetLinked,
+            onSetCreationRequested: onSetCreationRequested,
+            onTextChanged: onTextChanged,
+            onClose: onClose,
+          ),
         ),
       ),
     ],
   );
+}
 
-  /// The panel: the name field, the filtered existing-sets list and the create-in section.
-  Widget _buildPanel(BuildContext context) {
+/// The panel: the name field, the filtered existing-sets list and the create-in section.
+class _Panel extends StatelessWidget {
+  /// The field's own text, both the existing-sets filter and the name a creation would use.
+  final TextEditingController textController;
+
+  /// The field's own focus.
+  final FocusNode fieldFocusNode;
+
+  /// The whole set catalogue, every location's sets flattened.
+  final List<OcptSet> sets;
+
+  /// The name of every live location, keyed by id.
+  final Map<String, String> locationNameById;
+
+  /// The scene the popover is offered from.
+  final String sceneId;
+
+  /// The id of the set the scene's heading suggests, or null while it suggests none.
+  final String? suggestedSetId;
+
+  /// Every live location of the project, `(id, name)`.
+  final List<(String, String)> locations;
+
+  /// Called with a set's id when an existing-sets row is clicked.
+  final ValueChanged<String> onSetLinked;
+
+  /// Called with the name and the location (null for a new one) when a create-in entry is clicked.
+  final void Function(String name, String? locationId) onSetCreationRequested;
+
+  /// Called whenever the field's text changes.
+  final VoidCallback onTextChanged;
+
+  /// Called to close the popover.
+  final VoidCallback onClose;
+
+  /// Class constructor
+  const _Panel({
+    required this.textController,
+    required this.fieldFocusNode,
+    required this.sets,
+    required this.locationNameById,
+    required this.sceneId,
+    required this.suggestedSetId,
+    required this.locations,
+    required this.onSetLinked,
+    required this.onSetCreationRequested,
+    required this.onTextChanged,
+    required this.onClose,
+  });
+
+  /// Build the panel as a [Material].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
     return Material(
       elevation: 8,
       color: theme.colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: const BoxConstraints(
@@ -190,11 +329,11 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
               child: TextField(
-                controller: _textController,
-                focusNode: _fieldFocusNode,
+                controller: textController,
+                focusNode: fieldFocusNode,
                 autofocus: true,
                 decoration: const InputDecoration(isDense: true),
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => onTextChanged(),
               ),
             ),
             Flexible(
@@ -202,8 +341,21 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildExistingSets(context, theme, tr),
-                    _buildCreateSection(context, theme, tr),
+                    _ExistingSets(
+                      query: textController.text,
+                      sets: sets,
+                      locationNameById: locationNameById,
+                      sceneId: sceneId,
+                      suggestedSetId: suggestedSetId,
+                      onSetLinked: onSetLinked,
+                      onClose: onClose,
+                    ),
+                    _CreateSection(
+                      name: textController.text.trim(),
+                      locations: locations,
+                      onSetCreationRequested: onSetCreationRequested,
+                      onClose: onClose,
+                    ),
                   ],
                 ),
               ),
@@ -214,24 +366,63 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
       ),
     );
   }
+}
 
-  /// The existing sets not already linked to [OcptBreakdownSetPickerPopover.sceneId], filtered by
-  /// the field's own text, the suggested one first — left out entirely once nothing matches.
-  Widget _buildExistingSets(BuildContext context, ThemeData theme, Tr tr) {
+/// The existing sets not already linked to the scene, filtered by the field's own text, the
+/// suggested one first — left out entirely once nothing matches.
+class _ExistingSets extends StatelessWidget {
+  /// The field's current text, matched against each set's label.
+  final String query;
+
+  /// The whole set catalogue, every location's sets flattened.
+  final List<OcptSet> sets;
+
+  /// The name of every live location, keyed by id.
+  final Map<String, String> locationNameById;
+
+  /// The scene the popover is offered from.
+  final String sceneId;
+
+  /// The id of the set the scene's heading suggests, or null while it suggests none.
+  final String? suggestedSetId;
+
+  /// Called with a set's id when its row is clicked.
+  final ValueChanged<String> onSetLinked;
+
+  /// Called to close the popover.
+  final VoidCallback onClose;
+
+  /// Class constructor
+  const _ExistingSets({
+    required this.query,
+    required this.sets,
+    required this.locationNameById,
+    required this.sceneId,
+    required this.suggestedSetId,
+    required this.onSetLinked,
+    required this.onClose,
+  });
+
+  /// Build the existing sets as a [Column].
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
     final suggested = <OcptSet>[];
     final others = <OcptSet>[];
-    for (final set in widget.sets) {
-      if (set.sceneIds.contains(widget.sceneId)) {
+    for (final set in sets) {
+      if (set.sceneIds.contains(sceneId)) {
         continue;
       }
       if (!ocptResourcesSearchMatches(
-        query: _textController.text,
-        fields: [ocptBreakdownSetLabel(set, widget.locationNameById)],
+        query: query,
+        fields: [ocptBreakdownSetLabel(set, locationNameById)],
       )) {
         continue;
       }
 
-      (set.id == widget.suggestedSetId ? suggested : others).add(set);
+      (set.id == suggestedSetId ? suggested : others).add(set);
     }
 
     if (suggested.isEmpty && others.isEmpty) {
@@ -249,39 +440,61 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
           ),
         ),
         for (final set in suggested)
-          _buildRow(
-            context,
-            theme,
-            tr.breakdownSceneInspectorSetSuggestedOption(
-              ocptBreakdownSetLabel(set, widget.locationNameById),
+          _Row(
+            label: tr.breakdownSceneInspectorSetSuggestedOption(
+              ocptBreakdownSetLabel(set, locationNameById),
             ),
-            () {
-              widget.onSetLinked(set.id);
-              _controller.hide();
+            onTap: () {
+              onSetLinked(set.id);
+              onClose();
             },
           ),
         for (final set in others)
-          _buildRow(
-            context,
-            theme,
-            ocptBreakdownSetLabel(set, widget.locationNameById),
-            () {
-              widget.onSetLinked(set.id);
-              _controller.hide();
+          _Row(
+            label: ocptBreakdownSetLabel(set, locationNameById),
+            onTap: () {
+              onSetLinked(set.id);
+              onClose();
             },
           ),
       ],
     );
   }
+}
 
-  /// The `Create "<field text>" in…` section: one entry per location, plus "in a new location".
-  /// Left out entirely while the field's own trimmed text is empty — there is nothing to name a
-  /// creation with then.
-  Widget _buildCreateSection(BuildContext context, ThemeData theme, Tr tr) {
-    final name = _textController.text.trim();
+/// The `Create "<field text>" in…` section: one entry per location, plus "in a new location".
+/// Left out entirely while the field's own trimmed text is empty — there is nothing to name a
+/// creation with then.
+class _CreateSection extends StatelessWidget {
+  /// The field's current trimmed text, the name a creation would use.
+  final String name;
+
+  /// Every live location of the project, `(id, name)`.
+  final List<(String, String)> locations;
+
+  /// Called with the name and the location (null for a new one) when an entry is clicked.
+  final void Function(String name, String? locationId) onSetCreationRequested;
+
+  /// Called to close the popover.
+  final VoidCallback onClose;
+
+  /// Class constructor
+  const _CreateSection({
+    required this.name,
+    required this.locations,
+    required this.onSetCreationRequested,
+    required this.onClose,
+  });
+
+  /// Build the create section as a [Column].
+  @override
+  Widget build(BuildContext context) {
     if (name.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,30 +506,49 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
             style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
         ),
-        for (final (id, locationName) in widget.locations)
-          _buildRow(context, theme, tr.breakdownSceneInspectorCreateSetInOption(locationName), () {
-            widget.onSetCreationRequested(name, id);
-            _controller.hide();
-          }),
-        _buildRow(context, theme, tr.breakdownSceneInspectorCreateSetInNewLocationOption, () {
-          widget.onSetCreationRequested(name, null);
-          _controller.hide();
-        }),
+        for (final (id, locationName) in locations)
+          _Row(
+            label: tr.breakdownSceneInspectorCreateSetInOption(locationName),
+            onTap: () {
+              onSetCreationRequested(name, id);
+              onClose();
+            },
+          ),
+        _Row(
+          label: tr.breakdownSceneInspectorCreateSetInNewLocationOption,
+          onTap: () {
+            onSetCreationRequested(name, null);
+            onClose();
+          },
+        ),
       ],
     );
   }
+}
 
-  /// One tappable row, shared by the existing-sets list and the create-in section.
-  Widget _buildRow(BuildContext context, ThemeData theme, String label, VoidCallback onTap) => InkWell(
+/// One tappable row, shared by the existing-sets list and the create-in section.
+class _Row extends StatelessWidget {
+  /// The row's text.
+  final String label;
+
+  /// Called when the row is clicked.
+  final VoidCallback onTap;
+
+  /// Class constructor
+  const _Row({required this.label, required this.onTap});
+
+  /// Build the row as an [InkWell].
+  @override
+  Widget build(BuildContext context) => InkWell(
     onTap: onTap,
-    mouseCursor: ocptClickableCursor,
+    mouseCursor: ocpt_theme.ocptClickableCursor,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       child: Text(
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall,
+        style: Theme.of(context).textTheme.bodySmall,
       ),
     ),
   );

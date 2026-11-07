@@ -47,8 +47,17 @@ class OcptSettingsState extends BlocStateForMixin<OcptSettingsState>
     required this.currentTheme,
     required this.brightness,
     required this.appVersion,
-    this.firstWeekday = OcptFirstWeekday.monday,
+    required this.firstWeekday,
   });
+
+  /// Init class constructor, taking the preferences the managers hold when the bloc is created.
+  const OcptSettingsState.init({
+    required this.currentLocale,
+    required this.wantedLocale,
+    required this.currentTheme,
+    required this.brightness,
+    required this.appVersion,
+  }) : firstWeekday = OcptFirstWeekday.monday;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   @override
@@ -93,6 +102,10 @@ class OcptSettingsState extends BlocStateForMixin<OcptSettingsState>
     brightness: brightness,
     forceBrightnessValue: forceBrightnessValue,
   );
+
+  /// Copy this state with the day a week starts on set to [firstWeekday].
+  OcptSettingsState copyWithFirstWeekday({required OcptFirstWeekday firstWeekday}) =>
+      copyWith(firstWeekday: firstWeekday);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override

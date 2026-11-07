@@ -48,7 +48,13 @@ class OcptFloorPlanCharacterNamePickerDialog extends StatefulWidget {
     this.fieldHint,
   });
 
-  /// Shows the dialog and returns the name picked (trimmed), or null if the user dismissed it.
+  /// Create the [_OcptFloorPlanCharacterNamePickerDialogState] holding the state of the floor plan
+  /// character name picker dialog.
+  @override
+  State<OcptFloorPlanCharacterNamePickerDialog> createState() =>
+      _OcptFloorPlanCharacterNamePickerDialogState();
+
+  /// Show the dialog and return the name picked (trimmed), or null if the user dismissed it.
   static Future<String?> show(
     BuildContext context, {
     required String initialValue,
@@ -64,24 +70,16 @@ class OcptFloorPlanCharacterNamePickerDialog extends StatefulWidget {
       fieldHint: fieldHint,
     ),
   );
-
-  @override
-  State<OcptFloorPlanCharacterNamePickerDialog> createState() =>
-      _OcptFloorPlanCharacterNamePickerDialogState();
 }
 
+/// State of [OcptFloorPlanCharacterNamePickerDialog]: owns the controller of the free-text field.
 class _OcptFloorPlanCharacterNamePickerDialogState
     extends State<OcptFloorPlanCharacterNamePickerDialog> {
   /// The free-text field's own controller, pre-filled from [OcptFloorPlanCharacterNamePickerDialog
   /// .initialValue].
   late final TextEditingController _controller = TextEditingController(text: widget.initialValue);
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+  /// Build the floor plan character name picker dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -139,6 +137,13 @@ class _OcptFloorPlanCharacterNamePickerDialogState
     );
   }
 
-  /// Pops the dialog with [value], trimmed.
+  /// Pop the dialog with [value], trimmed.
   void _submit(String value) => globalGetIt().get<OcptRouterManager>().pop<String>(value.trim());
+
+  /// Dispose [_controller].
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }

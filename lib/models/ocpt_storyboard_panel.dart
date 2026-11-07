@@ -48,7 +48,7 @@ class OcptStoryboardPanel extends Equatable {
     required this.annotations,
   });
 
-  /// Builds an [OcptStoryboardPanel] from its stored [row], the resolved [imagePath] of its image
+  /// Build an [OcptStoryboardPanel] from its stored [row], the resolved [imagePath] of its image
   /// asset (or null), and its live [annotations] (already in draw order).
   factory OcptStoryboardPanel.fromRow({
     required OcptStoryboardPanelRow row,
@@ -64,13 +64,13 @@ class OcptStoryboardPanel extends Equatable {
     annotations: annotations,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptStoryboardPanel(id: $id, shotId: $shotId, hasImage: ${imagePath != null}, "
       "annotations: ${annotations.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, shotId, sortKey, imageAssetId, imagePath, comment, annotations];
 }

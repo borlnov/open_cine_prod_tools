@@ -10,13 +10,13 @@ import 'package:open_cine_prod_tools/managers/ocpt_routes_helper.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 
-/// Builds the [OcptRouterManager] instance registered by the global manager.
+/// Build the [OcptRouterManager] instance registered by the global manager.
 class OcptRouterManagerBuilder extends AbstractRouterBuilder<OcptRouterManager> {
-  /// Creates the router manager builder.
+  /// Create the router manager builder.
   const OcptRouterManagerBuilder() : super(factory: OcptRouterManager.new);
 }
 
-/// Drives the navigation of the application through the [OcptRoute] enum.
+/// Drive the navigation of the application through the [OcptRoute] enum.
 ///
 /// Besides building the [OcptRoutesHelper], this manager guards [OcptRoute.workspace],
 /// [OcptRoute.projectSettings], [OcptRoute.sharing] and [OcptRoute.repointing]: all four can only
@@ -40,7 +40,7 @@ class OcptRouterManager extends AbstractRouterManager<OcptRoute> {
     registerRedirect(_redirectWhenNoProjectIsOpen);
   }
 
-  /// Redirects [OcptRoute.workspace], [OcptRoute.projectSettings], [OcptRoute.sharing] and
+  /// Redirect [OcptRoute.workspace], [OcptRoute.projectSettings], [OcptRoute.sharing] and
   /// [OcptRoute.repointing] to [OcptRoute.home] whenever no project is currently open: the
   /// workspace has nothing to show then, the project settings page has no project to read or
   /// write, the sharing screen has no project to pair, and the repointing screen has no project to

@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -27,6 +27,7 @@ class OcptSettingsAboutSection extends StatelessWidget {
   /// Class constructor
   const OcptSettingsAboutSection({required this.appVersion, super.key});
 
+  /// Build the settings about section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -92,7 +93,7 @@ class OcptSettingsAboutSection extends StatelessWidget {
     );
   }
 
-  /// Opens the GitHub repository URL in the system browser.
+  /// Open the GitHub repository URL in the system browser.
   ///
   /// This is fire-and-forget, UI-only navigation to an external application: it doesn't go
   /// through the router manager (which only handles in-app navigation) or the bloc.
@@ -115,13 +116,14 @@ class _OcptAboutRow extends StatelessWidget {
   /// Class constructor
   const _OcptAboutRow({required this.icon, required this.label, required this.onTap});
 
+  /// Build the about row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(

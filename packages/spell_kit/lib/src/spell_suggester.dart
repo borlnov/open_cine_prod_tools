@@ -8,7 +8,7 @@ import 'package:spell_kit/src/spell_checker.dart';
 /// returns.
 const int _defaultSuggestionLimit = 5;
 
-/// Suggests corrections for a word a [SpellChecker] reports unknown.
+/// Suggest corrections for a word a [SpellChecker] reports unknown.
 ///
 /// Suggestions are drawn from four tiers, tried in hunspell's own order —
 /// the `REP` table (the language's own catalogue of common typos), then
@@ -20,19 +20,16 @@ const int _defaultSuggestionLimit = 5;
 /// of the whole dictionary per request, for candidates the first two tiers
 /// already cover on a typo.
 class SpellSuggester {
-  /// Creates a [SpellSuggester] using [checker] both to validate
-  /// candidates and to read the dictionary they are drawn from.
-  const SpellSuggester(this.checker);
-
   /// The checker suggestions are validated against.
   final SpellChecker checker;
 
-  /// Suggests up to [limit] corrections for [word], deduplicated, with
+  /// Create a [SpellSuggester] using [checker] both to validate
+  /// candidates and to read the dictionary they are drawn from.
+  const SpellSuggester(this.checker);
+
+  /// Suggest up to [limit] corrections for [word], deduplicated, with
   /// [word]'s own capitalisation carried onto each one.
-  List<String> suggestionsFor(
-    String word, {
-    int limit = _defaultSuggestionLimit,
-  }) {
+  List<String> suggestionsFor(String word, {int limit = _defaultSuggestionLimit}) {
     // REP/MAP/TRY tables and the dictionary itself are keyed on the
     // language's own (typically lowercase) casing, so candidates are
     // generated against a lowercased working word whenever the writer
@@ -84,7 +81,7 @@ class SpellSuggester {
     return [for (final result in results) _applyCase(result, caseShape)];
   }
 
-  /// Whether [candidate] is fit to suggest: known to [checker], and — when
+  /// Tell whether [candidate] is fit to suggest: known to [checker], and — when
   /// it is itself a bare dictionary entry — not flagged `NOSUGGEST` (a
   /// dictionary word the checker must still accept as correctly spelled,
   /// but never offer as a correction).
@@ -102,7 +99,7 @@ class SpellSuggester {
     );
   }
 
-  /// Candidates from the `REP` table: each rule tried at every position it
+  /// Get the candidates from the `REP` table: each rule tried at every position it
   /// applies to (every occurrence for an unanchored rule, only the start
   /// or the end for an anchored one).
   Iterable<String> _repCandidates(String word) sync* {
@@ -134,15 +131,13 @@ class SpellSuggester {
         if (index == -1) {
           break;
         }
-        yield word.substring(0, index) +
-            rule.to +
-            word.substring(index + rule.from.length);
+        yield word.substring(0, index) + rule.to + word.substring(index + rule.from.length);
         searchFrom = index + 1;
       }
     }
   }
 
-  /// Candidates from `MAP` groups: substituting, one position at a time,
+  /// Get the candidates from `MAP` groups: substituting, one position at a time,
   /// each character for another member of a group it belongs to.
   Iterable<String> _mapCandidates(String word) sync* {
     final codePoints = word.runes.toList();
@@ -165,14 +160,12 @@ class SpellSuggester {
     }
   }
 
-  /// Candidates one edit away from [word]: a deletion, an adjacent
+  /// Get the candidates one edit away from [word]: a deletion, an adjacent
   /// transposition, a replacement, or an insertion, the replacement and
   /// insertion characters drawn from `TRY`.
   Iterable<String> _editCandidates(String word) sync* {
     final codePoints = word.runes.toList();
-    final tryChars = checker.dictionary.affixFile.tryChars.runes
-        .map(String.fromCharCode)
-        .toList();
+    final tryChars = checker.dictionary.affixFile.tryChars.runes.map(String.fromCharCode).toList();
 
     for (var i = 0; i < codePoints.length; i++) {
       final withoutI = [...codePoints]..removeAt(i);
@@ -203,7 +196,7 @@ class SpellSuggester {
     }
   }
 
-  /// Candidates from splitting [word] into two known words, joined by a
+  /// Get the candidates from splitting [word] into two known words, joined by a
   /// space (`alot` → `a lot`).
   Iterable<String> _splitCandidates(String word) sync* {
     for (var i = 1; i < word.length; i++) {
@@ -215,7 +208,7 @@ class SpellSuggester {
     }
   }
 
-  /// Classifies [word]'s case shape, mirroring [SpellChecker]'s own
+  /// Classify [word]'s case shape, mirroring [SpellChecker]'s own
   /// classification so a suggestion drawn from the (typically lowercase)
   /// dictionary can be re-cased to match what the writer typed.
   _SuggesterWordCase _classifyCase(String word) {
@@ -228,14 +221,11 @@ class SpellSuggester {
       return _SuggesterWordCase.allCaps;
     }
     final rest = word.substring(1);
-    final isTitleCase =
-        word[0] == word[0].toUpperCase() && rest == rest.toLowerCase();
-    return isTitleCase
-        ? _SuggesterWordCase.titleCase
-        : _SuggesterWordCase.mixed;
+    final isTitleCase = word[0] == word[0].toUpperCase() && rest == rest.toLowerCase();
+    return isTitleCase ? _SuggesterWordCase.titleCase : _SuggesterWordCase.mixed;
   }
 
-  /// Applies [caseShape] to [suggestion]: an all-caps typed word gets an
+  /// Apply [caseShape] to [suggestion]: an all-caps typed word gets an
   /// all-caps suggestion, a title-case typed word gets a title-case
   /// suggestion, and anything else is left as generated.
   String _applyCase(String suggestion, _SuggesterWordCase caseShape) {

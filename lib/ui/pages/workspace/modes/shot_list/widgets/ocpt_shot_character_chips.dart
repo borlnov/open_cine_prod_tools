@@ -45,6 +45,7 @@ class OcptShotCharacterChips extends StatelessWidget {
     required this.onCharacterAdded,
   });
 
+  /// Build the shot character chips as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -89,6 +90,7 @@ class _OcptCharacterChip extends StatelessWidget {
   /// Class constructor
   const _OcptCharacterChip({required this.name, required this.isAttached, required this.onTap});
 
+  /// Build the character chip as a [FilterChip].
   @override
   Widget build(BuildContext context) => FilterChip(
     label: Text(name),
@@ -108,6 +110,7 @@ class _OcptAddCharacterChip extends StatefulWidget {
   /// Class constructor
   const _OcptAddCharacterChip({required this.onSubmitted});
 
+  /// Create the [_OcptAddCharacterChipState] holding the state of the add character chip.
   @override
   State<_OcptAddCharacterChip> createState() => _OcptAddCharacterChipState();
 }
@@ -124,25 +127,7 @@ class _OcptAddCharacterChipState extends State<_OcptAddCharacterChip> {
   /// The inline field's own text.
   final TextEditingController _controller = TextEditingController();
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  /// Submits the typed name (trimmed) if it isn't empty, then collapses back to the chip either
-  /// way, clearing the field.
-  void _submit() {
-    final value = _controller.text.trim();
-    if (value.isNotEmpty) {
-      widget.onSubmitted(value);
-    }
-    setState(() {
-      _isEditing = false;
-      _controller.clear();
-    });
-  }
-
+  /// Build the add character chip as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     if (!_isEditing) {
@@ -167,5 +152,25 @@ class _OcptAddCharacterChipState extends State<_OcptAddCharacterChip> {
         onTapOutside: (_) => _submit(),
       ),
     );
+  }
+
+  /// Submit the typed name (trimmed) if it isn't empty, then collapse back to the chip either
+  /// way, clearing the field.
+  void _submit() {
+    final value = _controller.text.trim();
+    if (value.isNotEmpty) {
+      widget.onSubmitted(value);
+    }
+    setState(() {
+      _isEditing = false;
+      _controller.clear();
+    });
+  }
+
+  /// Dispose [_controller].
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }

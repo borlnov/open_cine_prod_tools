@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
-/// Paints a dashed rounded-rectangle outline: the mock-up's own "drop a file here" styling, worn by
+/// Paint a dashed rounded-rectangle outline: the mock-up's own "drop a file here" styling, worn by
 /// the person sheet's photo slot and by the location sheet's own "add a photo" tile.
 ///
 /// Neither [BoxDecoration] nor any existing dependency draws one — Flutter has no stock dashed
@@ -21,11 +21,12 @@ class OcptDashedRoundedRectPainter extends CustomPainter {
   /// Class constructor
   const OcptDashedRoundedRectPainter({required this.color});
 
+  /// Stroke the dashed rounded outline of the whole canvas.
   @override
   void paint(Canvas canvas, Size size) {
     final rrect = RRect.fromRectAndRadius(
       Offset.zero & size,
-      const Radius.circular(ocptRadiusLarge),
+      const Radius.circular(ocpt_theme.ocptRadiusLarge),
     );
     final path = Path()..addRRect(rrect);
     final paint = Paint()
@@ -43,6 +44,7 @@ class OcptDashedRoundedRectPainter extends CustomPainter {
     }
   }
 
+  /// Repaint when [oldDelegate] has another colour.
   @override
   bool shouldRepaint(covariant OcptDashedRoundedRectPainter oldDelegate) =>
       oldDelegate.color != color;

@@ -3,15 +3,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo_glyph.dart';
 
 /// The size of the accent-filled square carrying the back action, small enough to sit inside the
-/// [ocptToolbarHeight] band with room to breathe, and deliberately smaller than the chrome buttons
-/// around it so the accent fill reads as a compact badge rather than a button.
+/// [ocpt_theme.ocptToolbarHeight] band with room to breathe, and deliberately smaller than the
+/// chrome buttons around it so the accent fill reads as a compact badge rather than a button.
 const double _backActionSize = 26;
 
 /// The width of the logo glyph inside the back action's [_backActionSize] square.
@@ -36,6 +36,17 @@ const double _dirtyMarkerSize = 6;
 /// Below [ocptCompactWidthBreakpoint] ([isCompact]), [title] and [modeLabel] are withheld outright
 /// — see [isCompact]'s own doc comment.
 class OcptWorkspaceToolbar extends StatelessWidget {
+  /// The style every chrome button of the toolbar wears: [ocpt_theme.ocptToolbarChromeButtonSize]
+  /// square, with no padding of its own around the glyph.
+  ///
+  /// The shell builds the [dockToggles] and the [saveAction] itself and hands them in already
+  /// built, so this is exposed for it to dress them exactly like the `⋮` button below. Everything
+  /// else (shape, the selected wash, colors) is left to the `iconButtonTheme`.
+  static final ButtonStyle chromeButtonStyle = IconButton.styleFrom(
+    minimumSize: const Size.square(ocpt_theme.ocptToolbarChromeButtonSize),
+    padding: EdgeInsets.zero,
+  );
+
   /// The title shown at the left of the toolbar (the open project's name).
   final String title;
 
@@ -91,10 +102,10 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   final Widget? presenceIndicator;
 
   /// The `Export` control, shown after [presenceIndicator] and before [dockToggles], or null when
-  /// the mode prints nothing — no control is rendered at all then, rather than a disabled one. Every
-  /// implemented mode wires it today, the budget mode included: even at M1, before it prints a
-  /// document of its own, the panel it opens still offers the project package export every mode's
-  /// panel carries as its own standing card (`OcptWorkspaceExportDialog`'s own doc comment).
+  /// the mode prints nothing — no control is rendered at all then, rather than a disabled one.
+  /// Every implemented mode wires it today, the budget mode included: the panel it opens always
+  /// offers the project package export every mode's panel carries as its own standing card
+  /// (`OcptWorkspaceExportDialog`'s own doc comment).
   final Widget? exportAction;
 
   /// The dock toggles, shown after [exportAction]. An empty list renders none of them (a mode with
@@ -124,17 +135,6 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   /// The `⋮` overflow menu's entries. An empty list renders no `⋮` button at all.
   final List<PopupMenuEntry<void>> overflowEntries;
 
-  /// The style every chrome button of the toolbar wears: [ocptToolbarChromeButtonSize] square,
-  /// with no padding of its own around the glyph.
-  ///
-  /// The shell builds the [dockToggles] and the [saveAction] itself and hands them in already
-  /// built, so this is exposed for it to dress them exactly like the `⋮` button below. Everything
-  /// else (shape, the selected wash, colors) is left to the `iconButtonTheme`.
-  static final ButtonStyle chromeButtonStyle = IconButton.styleFrom(
-    minimumSize: const Size.square(ocptToolbarChromeButtonSize),
-    padding: EdgeInsets.zero,
-  );
-
   /// Class constructor
   const OcptWorkspaceToolbar({
     super.key,
@@ -155,13 +155,13 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     this.overflowEntries = const [],
   });
 
+  /// Build the workspace toolbar as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final tr = Tr.of(context);
 
     return SizedBox(
-      height: ocptToolbarHeight,
+      height: ocpt_theme.ocptToolbarHeight,
       child: ColoredBox(
         color: theme.colorScheme.surfaceContainerLow,
         child: Column(
@@ -172,7 +172,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                 child: Row(
                   spacing: 10,
                   children: [
-                    _buildBackAction(theme: theme, tr: tr),
+                    _OcptWorkspaceBackAction(onBack: onBack),
                     if (!isCompact)
                       Flexible(
                         child: Text(
@@ -183,9 +183,9 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                         ),
                       ),
                     if (isReadOnly)
-                      _buildReadOnlyPill(context: context, theme: theme, tr: tr)
+                      const _OcptWorkspaceReadOnlyPill()
                     else if (isDirty)
-                      _buildDirtyMarker(theme: theme, tr: tr),
+                      const _OcptWorkspaceDirtyMarker(),
                     if (episodeControl != null) episodeControl!,
                     const Spacer(),
                     ...actions,
@@ -221,48 +221,64 @@ class OcptWorkspaceToolbar extends StatelessWidget {
               ),
             ),
             // The divider theme already gives this its `outlineVariant` color, 1 px thickness and
-            // no surrounding space, so the band as a whole still measures [ocptToolbarHeight].
+            // no surrounding space, so the band as a whole still measures
+            // [ocpt_theme.ocptToolbarHeight].
             const Divider(),
           ],
         ),
       ),
     );
   }
+}
 
-  /// Builds the back action: an accent-filled square badge carrying the application logo rather
-  /// than a plain icon button, so the one control leading out of the workspace reads as distinct
-  /// from every mode and chrome control around it. Its "back to projects" meaning is carried by
-  /// the tooltip alone.
-  Widget _buildBackAction({required ThemeData theme, required Tr tr}) => Tooltip(
-    message: tr.editorBackToProjectsTooltip,
-    child: Material(
-      color: theme.colorScheme.primary,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onBack,
-        mouseCursor: ocptClickableCursor,
-        child: SizedBox.square(
-          dimension: _backActionSize,
-          child: Center(
-            child: OcptLogoGlyph(
-              width: _backActionIconSize,
-              color: theme.colorScheme.onPrimary,
+/// The back action: an accent-filled square badge carrying the application logo rather than a plain
+/// icon button, so the one control leading out of the workspace reads as distinct from every mode
+/// and chrome control around it. Its "back to projects" meaning is carried by the tooltip alone.
+class _OcptWorkspaceBackAction extends StatelessWidget {
+  /// Called when the badge is tapped.
+  final VoidCallback onBack;
+
+  /// Class constructor
+  const _OcptWorkspaceBackAction({required this.onBack});
+
+  /// Build the workspace back action as a [Tooltip].
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Tooltip(
+      message: Tr.of(context).editorBackToProjectsTooltip,
+      child: Material(
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onBack,
+          mouseCursor: ocpt_theme.ocptClickableCursor,
+          child: SizedBox.square(
+            dimension: _backActionSize,
+            child: Center(
+              child: OcptLogoGlyph(width: _backActionIconSize, color: theme.colorScheme.onPrimary),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
+}
 
-  /// Builds the pill telling that what is on screen may not be edited, in place of the
-  /// unsaved-changes dot, tinted with the same warning colour the read-only banner under the
-  /// toolbar wears so the two read as one state.
-  Widget _buildReadOnlyPill({
-    required BuildContext context,
-    required ThemeData theme,
-    required Tr tr,
-  }) {
+/// The pill telling that what is on screen may not be edited, in place of the unsaved-changes dot,
+/// tinted with the same warning colour the read-only banner under the toolbar wears so the two read
+/// as one state.
+class _OcptWorkspaceReadOnlyPill extends StatelessWidget {
+  /// Class constructor
+  const _OcptWorkspaceReadOnlyPill();
+
+  /// Build the workspace read only pill as a [Tooltip].
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final color = ocptWarningColor(context);
 
     return Tooltip(
@@ -270,8 +286,8 @@ class OcptWorkspaceToolbar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: ocptSelectedStateAlpha),
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Text(
           tr.workspaceReadOnlyPill,
@@ -280,14 +296,24 @@ class OcptWorkspaceToolbar extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Builds the dot marking unsaved changes, next to the title.
-  Widget _buildDirtyMarker({required ThemeData theme, required Tr tr}) => Tooltip(
-    message: tr.editorUnsavedChangesTooltip,
+/// The dot marking unsaved changes, next to the title.
+class _OcptWorkspaceDirtyMarker extends StatelessWidget {
+  /// Class constructor
+  const _OcptWorkspaceDirtyMarker();
+
+  /// Build the workspace dirty marker as a [Tooltip].
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: Tr.of(context).editorUnsavedChangesTooltip,
     child: Container(
       width: _dirtyMarkerSize,
       height: _dirtyMarkerSize,
-      decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        shape: BoxShape.circle,
+      ),
     ),
   );
 }

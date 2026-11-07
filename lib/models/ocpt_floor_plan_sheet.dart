@@ -3,16 +3,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow_shape.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol_glyph_kind.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol_shape.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_underlay_shape.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_camera_label.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_character_colour.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_camera_label.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_character_colour.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_geometry.dart';
 
-/// The ARGB colour (`0xAARRGGBB`) a symbol of [layer] is drawn with — the one palette the canvas,
+/// Get the ARGB colour (`0xAARRGGBB`) a symbol of [layer] is drawn with — the one palette the
+/// canvas,
 /// the metrics overlay and the floor-plans PDF all read, so a colour is never picked twice.
 int ocptFloorPlanLayerColorArgb(OcptFloorPlanLayer layer) => switch (layer) {
   OcptFloorPlanLayer.set => 0xFF6B7280,
@@ -27,362 +33,6 @@ const int ocptFloorPlanMovementArrowColorArgb = 0xFF37474F;
 
 /// The ARGB colour a camera-move arrow is drawn with.
 const int ocptFloorPlanCameraMoveArrowColorArgb = 0xFF1565C0;
-
-/// Which level a symbol's own override marking ([OcptFloorPlanSymbolShape.isOverride],
-/// [OcptFloorPlanSymbolShape.isOverriddenOriginalGhost], [OcptFloorPlanSymbolShape
-/// .isHiddenOverrideGhost]) belongs to — a scene-scope
-/// override replaces a **set-scope** original for one sequence; a shot-scope override replaces a
-/// **scene-scope** symbol (a plain prop/furniture, or itself already a sequence-level override)
-/// for one shot alone. Only ever set alongside one of those three flags — null otherwise. Purely
-/// what a UI reads to word the inspector's own "Changed for this sequence"/"Changed for this
-/// shot" and `Restore` labels differently; `OcptFloorPlanSheet.of` never treats the two levels
-/// differently beyond which original each replaces.
-enum OcptFloorPlanOverrideLevel {
-  /// A scene-scope override of a set-scope original.
-  sequence,
-
-  /// A shot-scope override of a scene-scope symbol.
-  shot,
-}
-
-/// Which glyph a symbol shape draws as, derived from its own [OcptFloorPlanSymbolShape.layer] —
-/// the one switch [OcptFloorPlanSheet] resolves so neither renderer has to re-derive it from the
-/// layer itself: [OcptFloorPlanLayer.characters] → [character], [OcptFloorPlanLayer.cameras] →
-/// [camera], [OcptFloorPlanLayer.lights] → [light], and [OcptFloorPlanLayer.set]/`.props` →
-/// [setElement].
-enum OcptFloorPlanSymbolGlyphKind {
-  /// A character's own facing disc, drawn in [OcptFloorPlanSymbolShape.colorArgb] — the colour
-  /// [ocptFloorPlanCharacterColourOf] derives from the symbol's own [OcptFloorPlanSymbolShape.label].
-  character,
-
-  /// A camera's own body, lens and, while [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] is set, its
-  /// field-of-view wedge.
-  camera,
-
-  /// A light/projector's own body and beam.
-  light,
-
-  /// A décor primitive — see [OcptFloorPlanSymbolShape.setElementShape] and
-  /// [OcptFloorPlanSetElementShape].
-  setElement,
-}
-
-/// One symbol shape a floor plan sheet draws: a frozen, ready-to-paint copy of a
-/// `floor_plan_symbols` row, carrying the colour it draws with and, for a camera, the label
-/// [ocptFloorPlanCameraLabelOf] derives.
-class OcptFloorPlanSymbolShape extends Equatable {
-  /// The id of the `floor_plan_symbols` row this shape was built from.
-  final String symbolId;
-
-  /// The shot this symbol belongs to, or null on a sequence layer.
-  final String? shotId;
-
-  /// Which layer this symbol is drawn on.
-  final OcptFloorPlanLayer layer;
-
-  /// The symbol's centre X, in metres.
-  final double xM;
-
-  /// The symbol's centre Y, in metres.
-  final double yM;
-
-  /// The symbol's rotation, in degrees.
-  final double rotationDeg;
-
-  /// The symbol's footprint width, in metres — its own `widthM`, or the layer's default footprint
-  /// when it has none of its own.
-  final double widthM;
-
-  /// The symbol's footprint height, in metres. See [widthM].
-  final double heightM;
-
-  /// A camera's field-of-view wedge, in degrees, or null for every other layer (or a camera left at
-  /// the drawing default). The symbol's own raw stored value — see [cameraFovWedgeDeg] for the
-  /// resolved angle a painter actually draws the wedge at.
-  final double? fovDeg;
-
-  /// A camera's field-of-view wedge reach, in metres — its own axial height/depth, from the lens to
-  /// the wedge's own far chord, never the length of either angled edge — or null for every other
-  /// layer (or a camera left at the drawing default). The symbol's own raw stored value — see
-  /// [cameraFovWedgeReachM] for the resolved reach a painter actually draws the wedge at.
-  final double? fovReachM;
-
-  /// The symbol's own free-text label.
-  final String label;
-
-  /// The colour this shape draws with: [ocptFloorPlanLayerColorArgb] for every layer but
-  /// [OcptFloorPlanLayer.characters], whose own colour [ocptFloorPlanCharacterColourOf] derives
-  /// from [label] instead — the one colour both renderers read rather than re-deriving.
-  final int colorArgb;
-
-  /// A camera symbol's derived letter/number label (`3`, `3A`, `3B`), or null for every other
-  /// layer, or for a camera whose shot has no known rank yet.
-  final String? cameraLabel;
-
-  /// Whether this shape belongs to the previous or next shot under a shot focus — drawn as an onion
-  /// skin the renderer draws at reduced opacity, never as a claim about the current shot.
-  final bool isGhost;
-
-  /// Which glyph this shape draws as — see [OcptFloorPlanSymbolGlyphKind].
-  final OcptFloorPlanSymbolGlyphKind glyphKind;
-
-  /// A camera symbol's own field-of-view wedge angle, in degrees, already resolved to
-  /// [ocptFloorPlanDefaultCameraFovDeg] when the symbol carries no [fovDeg] of its own — null
-  /// whenever no wedge should be drawn at all: every non-camera symbol, and a camera symbol while
-  /// the sheet was built with `showFieldOfView: false` (`OcptFloorPlanSheet.of`'s own parameter). A
-  /// painter draws the wedge exactly when this is non-null, with no default of its own to apply.
-  final double? cameraFovWedgeDeg;
-
-  /// A camera symbol's own field-of-view wedge reach, in metres — its own axial height/depth,
-  /// already resolved to [ocptFloorPlanCameraFovWedgeLengthM] when the symbol carries no
-  /// [fovReachM] of its own — null under the very same condition as [cameraFovWedgeDeg], which it
-  /// always accompanies.
-  final double? cameraFovWedgeReachM;
-
-  /// A set-element symbol's own drawn primitive, resolved to [OcptFloorPlanSetElementShape.freeform]
-  /// when the symbol carries none of its own — null for every symbol whose [glyphKind] isn't
-  /// [OcptFloorPlanSymbolGlyphKind.setElement].
-  final OcptFloorPlanSetElementShape? setElementShape;
-
-  /// Whether this shape is a **live, visible** override of an original one level up (a scene-scope
-  /// override of a set-scope original, or a shot-scope override of a scene-scope symbol) —
-  /// drawn with a dashed outline and a small pin badge, still fully editable within its own
-  /// sequence or shot. Mutually exclusive with [isOverriddenOriginalGhost] and
-  /// [isHiddenOverrideGhost]. See [overrideLevel] for which of the two levels this is.
-  final bool isOverride;
-
-  /// Whether this shape is the **faint, non-interactive** ghost of an original replaced, for this
-  /// sequence or shot, by a live *visible* override — drawn at the original's own geometry,
-  /// [symbolId] naming the **original** (never selectable: `OcptFloorPlanCanvas` excludes it from
-  /// hit-testing entirely). See [isOverride].
-  final bool isOverriddenOriginalGhost;
-
-  /// Whether this shape is the **faint, selectable** ghost of an original masked, for this
-  /// sequence or shot, by a **hidden** override — drawn at the original's own geometry, but
-  /// [symbolId] naming the **override** itself (not the original), so selecting it lets the
-  /// inspector offer `Restore`. See [isOverride].
-  final bool isHiddenOverrideGhost;
-
-  /// Which level [isOverride]/[isOverriddenOriginalGhost]/[isHiddenOverrideGhost] belongs to, or
-  /// null while none of the three is set — see [OcptFloorPlanOverrideLevel]'s own doc comment.
-  final OcptFloorPlanOverrideLevel? overrideLevel;
-
-  /// Class constructor
-  const OcptFloorPlanSymbolShape({
-    required this.symbolId,
-    required this.shotId,
-    required this.layer,
-    required this.xM,
-    required this.yM,
-    required this.rotationDeg,
-    required this.widthM,
-    required this.heightM,
-    required this.fovDeg,
-    required this.fovReachM,
-    required this.label,
-    required this.colorArgb,
-    required this.cameraLabel,
-    required this.isGhost,
-    required this.glyphKind,
-    required this.cameraFovWedgeDeg,
-    required this.cameraFovWedgeReachM,
-    required this.setElementShape,
-    this.isOverride = false,
-    this.isOverriddenOriginalGhost = false,
-    this.isHiddenOverrideGhost = false,
-    this.overrideLevel,
-  });
-
-  /// Returns a copy of this shape with [symbolId], the three override-marking flags and
-  /// [overrideLevel] overridden — the only fields `OcptFloorPlanSheet.of` ever needs to adjust
-  /// after the fact, since every other field is already resolved by [OcptFloorPlanSheet._shapeOf].
-  OcptFloorPlanSymbolShape copyWith({
-    String? symbolId,
-    bool? isOverride,
-    bool? isOverriddenOriginalGhost,
-    bool? isHiddenOverrideGhost,
-    OcptFloorPlanOverrideLevel? overrideLevel,
-  }) => OcptFloorPlanSymbolShape(
-    symbolId: symbolId ?? this.symbolId,
-    shotId: shotId,
-    layer: layer,
-    xM: xM,
-    yM: yM,
-    rotationDeg: rotationDeg,
-    widthM: widthM,
-    heightM: heightM,
-    fovDeg: fovDeg,
-    fovReachM: fovReachM,
-    label: label,
-    colorArgb: colorArgb,
-    cameraLabel: cameraLabel,
-    isGhost: isGhost,
-    glyphKind: glyphKind,
-    cameraFovWedgeDeg: cameraFovWedgeDeg,
-    cameraFovWedgeReachM: cameraFovWedgeReachM,
-    setElementShape: setElementShape,
-    isOverride: isOverride ?? this.isOverride,
-    isOverriddenOriginalGhost: isOverriddenOriginalGhost ?? this.isOverriddenOriginalGhost,
-    isHiddenOverrideGhost: isHiddenOverrideGhost ?? this.isHiddenOverrideGhost,
-    overrideLevel: overrideLevel ?? this.overrideLevel,
-  );
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptFloorPlanSymbolShape(symbolId: $symbolId, layer: $layer, isGhost: $isGhost)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [
-    symbolId,
-    shotId,
-    layer,
-    xM,
-    yM,
-    rotationDeg,
-    widthM,
-    heightM,
-    fovDeg,
-    fovReachM,
-    label,
-    colorArgb,
-    cameraLabel,
-    isGhost,
-    glyphKind,
-    cameraFovWedgeDeg,
-    cameraFovWedgeReachM,
-    setElementShape,
-    isOverride,
-    isOverriddenOriginalGhost,
-    isHiddenOverrideGhost,
-    overrideLevel,
-  ];
-}
-
-/// One arrow shape a floor plan sheet draws: a `floor_plan_arrows` row resolved down to the metre
-/// coordinates of the two symbols it connects.
-class OcptFloorPlanArrowShape extends Equatable {
-  /// The id of the `floor_plan_arrows` row this shape was built from.
-  final String arrowId;
-
-  /// The shot this movement belongs to.
-  final String shotId;
-
-  /// Whether this is a movement or a camera-move arrow.
-  final OcptFloorPlanArrowKind kind;
-
-  /// The starting symbol's centre X, in metres.
-  final double fromXM;
-
-  /// The starting symbol's centre Y, in metres.
-  final double fromYM;
-
-  /// The ending symbol's centre X, in metres.
-  final double toXM;
-
-  /// The ending symbol's centre Y, in metres.
-  final double toYM;
-
-  /// The arrow's own free-text label.
-  final String label;
-
-  /// The colour this shape draws with.
-  final int colorArgb;
-
-  /// Whether this shape belongs to the previous or next shot under a shot focus. See
-  /// [OcptFloorPlanSymbolShape.isGhost].
-  final bool isGhost;
-
-  /// A curved arrow's bezier control point X, in metres — null meaning a straight arrow. See
-  /// `OcptFloorPlanArrow.ctrlXM`'s own doc comment; a painter draws a quadratic bezier through
-  /// `(ctrlXM, ctrlYM)` when set, a straight line from `(fromXM, fromYM)` to `(toXM, toYM)`
-  /// otherwise.
-  final double? ctrlXM;
-
-  /// A curved arrow's bezier control point Y, in metres. See [ctrlXM].
-  final double? ctrlYM;
-
-  /// Class constructor
-  const OcptFloorPlanArrowShape({
-    required this.arrowId,
-    required this.shotId,
-    required this.kind,
-    required this.fromXM,
-    required this.fromYM,
-    required this.toXM,
-    required this.toYM,
-    required this.label,
-    required this.colorArgb,
-    required this.isGhost,
-    required this.ctrlXM,
-    required this.ctrlYM,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptFloorPlanArrowShape(arrowId: $arrowId, kind: $kind, isGhost: $isGhost)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [
-    arrowId,
-    shotId,
-    kind,
-    fromXM,
-    fromYM,
-    toXM,
-    toYM,
-    label,
-    colorArgb,
-    isGhost,
-    ctrlXM,
-    ctrlYM,
-  ];
-}
-
-/// The underlay shape a floor plan sheet draws, or null while the set has none placed.
-class OcptFloorPlanUnderlayShape extends Equatable {
-  /// The underlay's `assets` row id.
-  final String assetId;
-
-  /// The underlay's resolved absolute path, or null — a normal state, drawn as a placeholder.
-  final String? path;
-
-  /// The underlay's centre X, in metres.
-  final double xM;
-
-  /// The underlay's centre Y, in metres.
-  final double yM;
-
-  /// The underlay's width, in metres.
-  final double widthM;
-
-  /// The underlay's height, in metres.
-  final double heightM;
-
-  /// The underlay's rotation, in degrees.
-  final double rotationDeg;
-
-  /// Class constructor
-  const OcptFloorPlanUnderlayShape({
-    required this.assetId,
-    required this.path,
-    required this.xM,
-    required this.yM,
-    required this.widthM,
-    required this.heightM,
-    required this.rotationDeg,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptFloorPlanUnderlayShape(assetId: $assetId)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [assetId, path, xM, yM, widthM, heightM, rotationDeg];
-}
 
 /// Everything a Resources set's floor plan draws, for one focus — the **drawing as data** the
 /// canvas, the metrics overlay and the floor-plans PDF all paint from and nothing else, the
@@ -418,7 +68,7 @@ class OcptFloorPlanSheet extends Equatable {
     required this.arrows,
   });
 
-  /// Builds the sheet [floorPlanSet] draws for sequence [focusSceneId], under one focus.
+  /// Build the sheet [floorPlanSet] draws for sequence [focusSceneId], under one focus.
   ///
   /// [focusShotId] is null for the **sequence** focus (every set-scope symbol not overridden for
   /// [focusSceneId], plus [focusSceneId]'s own scene-scope symbols, plus every live camera of every
@@ -428,16 +78,16 @@ class OcptFloorPlanSheet extends Equatable {
   /// No arrow is drawn under the sequence focus: an arrow is always a shot's own movement, and the
   /// sequence focus shows no single shot's blocking.
   ///
-  /// **The override rule**, applied at two levels: a live scene-scope
-  /// symbol of [focusSceneId] whose own `overridesSymbolId` names a live set-scope symbol
-  /// **replaces** it here — the set-scope original itself is left out of the *editable* shapes,
-  /// and a **visible** override ([OcptFloorPlanSymbolShape.isOverride],
-  /// [OcptFloorPlanOverrideLevel.sequence]) draws in its place, the original still drawn as a
-  /// faint, non-interactive ghost ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]) at its own
-  /// stored geometry. A **hidden** override draws nothing of its own at all: only the original's
-  /// own faint ghost shows, this time *selectable* and naming the override
-  /// ([OcptFloorPlanSymbolShape.isHiddenOverrideGhost]) so the inspector can restore it. A symbol of
-  /// a *different* scene's own `overridesSymbolId` never hides anything from this sheet.
+  /// **The override rule**, applied at two levels: a live scene-scope symbol of [focusSceneId]
+  /// whose own `overridesSymbolId` names a live set-scope symbol **replaces** it here — the
+  /// set-scope original itself is left out of the *editable* shapes, and a **visible** override
+  /// ([OcptFloorPlanSymbolShape.isOverride], [OcptFloorPlanOverrideLevel.sequence]) draws in its
+  /// place, the original still drawn as a faint, non-interactive ghost
+  /// ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]) at its own stored geometry. A
+  /// **hidden** override draws nothing of its own at all: only the original's own faint ghost
+  /// shows, this time *selectable* and naming the override
+  /// ([OcptFloorPlanSymbolShape.isHiddenOverrideGhost]) so the inspector can restore it. A symbol
+  /// of a *different* scene's own `overridesSymbolId` never hides anything from this sheet.
   ///
   /// **The very same rule runs a second time, scene → shot, under a shot focus only**: a live
   /// shot-scope symbol of [focusShotId] whose own `overridesSymbolId` names one of the
@@ -454,8 +104,8 @@ class OcptFloorPlanSheet extends Equatable {
   /// built before every shot of a freshly reconciled sequence has been assigned one.
   ///
   /// [showFieldOfView] gates every camera's own [OcptFloorPlanSymbolShape.cameraFovWedgeDeg]:
-  /// defaults to `true` (the wedge shows by default) so a caller that never touches the flag — every
-  /// existing one, ahead of the tray toggle a later piece of work adds — still gets it.
+  /// defaults to `true` (the wedge shows by default) so a caller that never touches the flag —
+  /// every existing one, ahead of the tray toggle a later piece of work adds — still gets it.
   ///
   factory OcptFloorPlanSheet.of({
     required OcptFloorPlanSet floorPlanSet,
@@ -488,7 +138,8 @@ class OcptFloorPlanSheet extends Equatable {
         if (symbol.overridesSymbolId != null && symbol.isHidden) symbol,
     ];
     final plainSceneSymbols = [
-      for (final symbol in sceneScopeSymbols) if (symbol.overridesSymbolId == null) symbol,
+      for (final symbol in sceneScopeSymbols)
+        if (symbol.overridesSymbolId == null) symbol,
     ];
     final overriddenSetSymbolIds = {
       for (final symbol in [...visibleSequenceOverrides, ...hiddenSequenceOverrides])
@@ -522,10 +173,12 @@ class OcptFloorPlanSheet extends Equatable {
             symbol,
       ];
       visibleShotOverrides = [
-        for (final symbol in shotOverrideCandidates) if (!symbol.isHidden) symbol,
+        for (final symbol in shotOverrideCandidates)
+          if (!symbol.isHidden) symbol,
       ];
       hiddenShotOverrides = [
-        for (final symbol in shotOverrideCandidates) if (symbol.isHidden) symbol,
+        for (final symbol in shotOverrideCandidates)
+          if (symbol.isHidden) symbol,
       ];
       final overriddenSequenceSymbolIds = {
         for (final symbol in [...visibleShotOverrides, ...hiddenShotOverrides])
@@ -537,9 +190,7 @@ class OcptFloorPlanSheet extends Equatable {
       ];
     }
 
-    final sequenceOverrideSymbolIds = {
-      for (final symbol in visibleSequenceOverrides) symbol.id,
-    };
+    final sequenceOverrideSymbolIds = {for (final symbol in visibleSequenceOverrides) symbol.id};
     final shotOverrideSymbolIds = {for (final symbol in visibleShotOverrides) symbol.id};
     final symbolShapes = <OcptFloorPlanSymbolShape>[
       for (final shape in _shapesOf(
@@ -559,12 +210,7 @@ class OcptFloorPlanSheet extends Equatable {
       // overlay for one of these.
       for (final override in visibleSequenceOverrides)
         if (setScopeSymbolById[override.overridesSymbolId] case final original?)
-          _shapeOf(
-            original,
-            isGhost: false,
-            showFieldOfView: false,
-            cameraLabel: null,
-          ).copyWith(
+          _shapeOf(original, isGhost: false, showFieldOfView: false, cameraLabel: null).copyWith(
             isOverriddenOriginalGhost: true,
             overrideLevel: OcptFloorPlanOverrideLevel.sequence,
           ),
@@ -573,12 +219,7 @@ class OcptFloorPlanSheet extends Equatable {
       // inspector reaches `Restore` for an override the sequence currently masks entirely.
       for (final override in hiddenSequenceOverrides)
         if (setScopeSymbolById[override.overridesSymbolId] case final original?)
-          _shapeOf(
-            original,
-            isGhost: false,
-            showFieldOfView: false,
-            cameraLabel: null,
-          ).copyWith(
+          _shapeOf(original, isGhost: false, showFieldOfView: false, cameraLabel: null).copyWith(
             symbolId: override.id,
             isHiddenOverrideGhost: true,
             overrideLevel: OcptFloorPlanOverrideLevel.sequence,
@@ -587,23 +228,13 @@ class OcptFloorPlanSheet extends Equatable {
       // original here is already scene-effective (a plain symbol, or itself a sequence override).
       for (final override in visibleShotOverrides)
         if (sequenceEffectiveById[override.overridesSymbolId] case final original?)
-          _shapeOf(
-            original,
-            isGhost: false,
-            showFieldOfView: false,
-            cameraLabel: null,
-          ).copyWith(
+          _shapeOf(original, isGhost: false, showFieldOfView: false, cameraLabel: null).copyWith(
             isOverriddenOriginalGhost: true,
             overrideLevel: OcptFloorPlanOverrideLevel.shot,
           ),
       for (final override in hiddenShotOverrides)
         if (sequenceEffectiveById[override.overridesSymbolId] case final original?)
-          _shapeOf(
-            original,
-            isGhost: false,
-            showFieldOfView: false,
-            cameraLabel: null,
-          ).copyWith(
+          _shapeOf(original, isGhost: false, showFieldOfView: false, cameraLabel: null).copyWith(
             symbolId: override.id,
             isHiddenOverrideGhost: true,
             overrideLevel: OcptFloorPlanOverrideLevel.shot,
@@ -706,7 +337,12 @@ class OcptFloorPlanSheet extends Equatable {
     );
   }
 
-  /// The underlay shape of [floorPlanSet], or null while it has none placed — a set that has an
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptFloorPlanSheet(setId: $setId, symbols: ${symbols.length}, arrows: ${arrows.length})";
+
+  /// Get the underlay shape of [floorPlanSet], or null while it has none placed — a set that has an
   /// `underlayAssetId` but no frame yet (mid-import) is treated the same as having none, since
   /// there is nothing yet to draw it at.
   static OcptFloorPlanUnderlayShape? _underlayOf(OcptFloorPlanSet floorPlanSet) {
@@ -730,7 +366,7 @@ class OcptFloorPlanSheet extends Equatable {
     );
   }
 
-  /// Freezes [symbols] into their drawn shapes, in `sortKey` order, deriving each camera symbol's
+  /// Freeze [symbols] into their drawn shapes, in `sortKey` order, deriving each camera symbol's
   /// [OcptFloorPlanSymbolShape.cameraLabel] from its 0-based rank among, and the total count of,
   /// the *same shot's* camera symbols within this very list — which is always exactly the group a
   /// caller of this factory means by "the same shot's live cameras on the same set"
@@ -765,7 +401,8 @@ class OcptFloorPlanSheet extends Equatable {
     ];
   }
 
-  /// The live camera symbol count of every shot found in [symbols], keyed by shot id — the first
+  /// Get the live camera symbol count of every shot found in [symbols], keyed by shot id — the
+  /// first
   /// pass [_shapesOf] needs before it can tell whether a shot's cameras are lettered at all.
   static Map<String, int> _cameraCountByShotIdOf(List<OcptFloorPlanSymbol> symbols) {
     final counts = <String, int>{};
@@ -779,7 +416,7 @@ class OcptFloorPlanSheet extends Equatable {
     return counts;
   }
 
-  /// The camera label [symbol] draws, or null when it isn't a camera symbol on a shot, or that
+  /// Get the camera label [symbol] draws, or null when it isn't a camera symbol on a shot, or that
   /// shot's rank isn't known. Advances [cameraRankByShotId] for [symbol]'s shot as a side effect,
   /// which is what gives the *next* camera symbol of that same shot the following rank.
   static String? _cameraLabelOf(
@@ -808,7 +445,7 @@ class OcptFloorPlanSheet extends Equatable {
     );
   }
 
-  /// Freezes [symbol] into its drawn shape, its footprint resolved to
+  /// Freeze [symbol] into its drawn shape, its footprint resolved to
   /// [ocptFloorPlanSetElementDefaultFootprintM] for a set-element symbol (own typed shape) or
   /// [ocptFloorPlanDefaultFootprintM] for every other layer when it carries no `widthM`/`heightM`
   /// of its own, its [OcptFloorPlanSymbolShape.glyphKind] derived from [OcptFloorPlanSymbol.layer]
@@ -835,9 +472,14 @@ class OcptFloorPlanSheet extends Equatable {
       xM: symbol.xM,
       yM: symbol.yM,
       rotationDeg: symbol.rotationDeg,
-      widthM: symbol.widthM ?? setElementDefault?.widthM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
+      widthM:
+          symbol.widthM ??
+          setElementDefault?.widthM ??
+          ocptFloorPlanDefaultFootprintM(symbol.layer),
       heightM:
-          symbol.heightM ?? setElementDefault?.heightM ?? ocptFloorPlanDefaultFootprintM(symbol.layer),
+          symbol.heightM ??
+          setElementDefault?.heightM ??
+          ocptFloorPlanDefaultFootprintM(symbol.layer),
       fovDeg: symbol.fovDeg,
       fovReachM: symbol.fovReachM,
       label: symbol.label,
@@ -859,7 +501,7 @@ class OcptFloorPlanSheet extends Equatable {
     );
   }
 
-  /// The glyph [layer] draws as — see [OcptFloorPlanSymbolGlyphKind]'s own doc comment for the
+  /// Get the glyph [layer] draws as — see [OcptFloorPlanSymbolGlyphKind]'s own doc comment for the
   /// mapping. A `switch` with no `default`: an eighth layer must be placed on one glyph or another
   /// here rather than silently falling back to whichever branch happens to be listed last.
   static OcptFloorPlanSymbolGlyphKind _glyphKindOf(OcptFloorPlanLayer layer) => switch (layer) {
@@ -869,12 +511,7 @@ class OcptFloorPlanSheet extends Equatable {
     OcptFloorPlanLayer.set || OcptFloorPlanLayer.props => OcptFloorPlanSymbolGlyphKind.setElement,
   };
 
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptFloorPlanSheet(setId: $setId, symbols: ${symbols.length}, arrows: ${arrows.length})";
-
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [setId, setName, underlay, symbols, arrows];
 }

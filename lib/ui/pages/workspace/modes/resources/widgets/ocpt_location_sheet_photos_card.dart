@@ -5,7 +5,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dashed_rounded_rect_painter.dart';
@@ -48,6 +48,7 @@ class OcptLocationSheetPhotosCard extends StatelessWidget {
     required this.onPhotoRemoved,
   });
 
+  /// Build the location sheet photos card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -67,6 +68,9 @@ class OcptLocationSheetPhotosCard extends StatelessWidget {
             children: [
               for (final photo in photos)
                 SizedBox(
+                  // Keyed by the asset: the list changes as photos are removed, and a tile's state
+                  // (whether its file was found) must stay with its own photo, not its position.
+                  key: ValueKey(photo.id),
                   width: tileWidth,
                   height: _tileHeight,
                   child: _OcptPhotoTile(
@@ -91,7 +95,7 @@ class OcptLocationSheetPhotosCard extends StatelessWidget {
 /// One referenced photo: its thumbnail, or the "file not found" state when the path resolves to
 /// nothing, with the control dropping the reference on top of it.
 ///
-/// A [StatefulWidget] (the documented RFL1 exception) for the reason `OcptAssetFileLine` is one:
+/// A [StatefulWidget] (the documented exception) for the reason `OcptAssetFileLine` is one:
 /// whether the file is there is asked once, with a single `stat`, when the tile is built or given
 /// another path — never from `build`. The tile could have left the question to [Image.file]'s own
 /// `errorBuilder`, but that answer only arrives once the image pipeline has tried and failed, which
@@ -107,6 +111,7 @@ class _OcptPhotoTile extends StatefulWidget {
   /// Class constructor
   const _OcptPhotoTile({required this.photo, required this.onRemoved});
 
+  /// Create the [_OcptPhotoTileState] holding the state of the photo tile.
   @override
   State<_OcptPhotoTile> createState() => _OcptPhotoTileState();
 }
@@ -116,6 +121,7 @@ class _OcptPhotoTileState extends State<_OcptPhotoTile> {
   /// Whether the referenced file was there when it was last asked about.
   late bool _exists = File(widget.photo.path).existsSync();
 
+  /// Check again that the file exists when its path changes.
   @override
   void didUpdateWidget(covariant _OcptPhotoTile oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -124,6 +130,7 @@ class _OcptPhotoTileState extends State<_OcptPhotoTile> {
     }
   }
 
+  /// Build the photo tile as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -133,7 +140,7 @@ class _OcptPhotoTileState extends State<_OcptPhotoTile> {
     return Tooltip(
       message: photo.path,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -145,9 +152,9 @@ class _OcptPhotoTileState extends State<_OcptPhotoTile> {
                   ? Image.file(
                       File(photo.path),
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _buildMissingFile(context),
+                      errorBuilder: (context, error, stackTrace) => const _MissingFile(),
                     )
-                  : _buildMissingFile(context),
+                  : const _MissingFile(),
             ),
             if (onRemoved != null)
               Align(
@@ -168,11 +175,17 @@ class _OcptPhotoTileState extends State<_OcptPhotoTile> {
       ),
     );
   }
+}
 
-  /// What a tile shows in place of a thumbnail when its path resolves to nothing.
-  Widget _buildMissingFile(BuildContext context) {
+/// What a tile shows in place of a thumbnail when its path resolves to nothing.
+class _MissingFile extends StatelessWidget {
+  /// Class constructor
+  const _MissingFile();
+
+  /// Build the missing file as a [Center].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -203,6 +216,7 @@ class _OcptAddPhotoTile extends StatelessWidget {
   /// Class constructor
   const _OcptAddPhotoTile({required this.onPressed});
 
+  /// Build the add photo tile as a [CustomPaint].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -212,8 +226,8 @@ class _OcptAddPhotoTile extends StatelessWidget {
       painter: OcptDashedRoundedRectPainter(color: theme.colorScheme.outline),
       child: InkWell(
         onTap: onPressed,
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
         child: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),

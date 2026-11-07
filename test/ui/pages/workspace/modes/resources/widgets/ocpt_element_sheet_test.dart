@@ -92,7 +92,7 @@ OcptElement _element({
   List<OcptSceneElementLink> sceneLinks = const [],
   List<OcptRoleElementLink> roleLinks = const [],
 }) => OcptElement(
-      status: OcptElementStatus.toFind,
+  status: OcptElementStatus.toFind,
   id: "e1",
   category: OcptElementCategory.prop,
   subCategory: "",
@@ -130,14 +130,16 @@ OcptRole _role({required String id, required String name}) => OcptRole(
 );
 
 /// A scene the links and the picker name.
-OcptSceneRef _scene({required String id, required int position, required String heading}) => OcptSceneRef(
-  id: id,
-  position: position,
-  heading: heading,
-  sceneNumber: null,
-  episodeNumber: null,
-);
+OcptSceneRef _scene({required String id, required int position, required String heading}) =>
+    OcptSceneRef(
+      id: id,
+      position: position,
+      heading: heading,
+      sceneNumber: null,
+      episodeNumber: null,
+    );
 
+/// Run the tests of [OcptElementSheet].
 void main() {
   /// Pumps the sheet over [element], returning the [Tr] its own context resolves.
   Future<Tr> pumpSheet(
@@ -270,7 +272,8 @@ void main() {
       );
 
       final costField = find.byWidgetPredicate(
-        (widget) => widget is OcptResourcesSheetField && widget.label == tr.resourcesElementCostLabel,
+        (widget) =>
+            widget is OcptResourcesSheetField && widget.label == tr.resourcesElementCostLabel,
       );
       final textField = tester.widget<TextField>(
         find.descendant(of: costField, matching: find.byType(TextField)),
@@ -391,7 +394,10 @@ void main() {
           OcptRoleElementLink(id: "l2", roleId: "r2", notes: ""),
         ],
       ),
-      roles: [_role(id: "r1", name: "CLARA"), _role(id: "r2", name: "LE CLIENT")],
+      roles: [
+        _role(id: "r1", name: "CLARA"),
+        _role(id: "r2", name: "LE CLIENT"),
+      ],
       onRoleSheetOpenRequested: opened.add,
     );
 

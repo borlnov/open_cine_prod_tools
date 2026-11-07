@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_card_choice_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_card_choice_section.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
@@ -57,24 +58,7 @@ class OcptWorkspaceExportDialog<T> extends StatelessWidget {
     super.key,
   });
 
-  /// Shows the dialog and returns what the user picked — one of [entries]' own values, or the
-  /// project package — or null if they cancelled it or picked no card at all.
-  static Future<OcptWorkspaceExportPick<T>?> show<T>(
-    BuildContext context, {
-    required String title,
-    required String message,
-    required List<OcptWorkspaceExportEntry<T>> entries,
-    required bool isPreviewingVersion,
-  }) => showDialog<OcptWorkspaceExportPick<T>>(
-    context: context,
-    builder: (context) => OcptWorkspaceExportDialog<T>(
-      title: title,
-      message: message,
-      entries: entries,
-      isPreviewingVersion: isPreviewingVersion,
-    ),
-  );
-
+  /// Build the workspace export dialog as an [OcptCardChoiceDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -112,4 +96,22 @@ class OcptWorkspaceExportDialog<T> extends StatelessWidget {
       ],
     );
   }
+
+  /// Show the dialog and return what the user picked — one of [entries]' own values, or the
+  /// project package — or null if they cancelled it or picked no card at all.
+  static Future<OcptWorkspaceExportPick<T>?> show<T>(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required List<OcptWorkspaceExportEntry<T>> entries,
+    required bool isPreviewingVersion,
+  }) => showDialog<OcptWorkspaceExportPick<T>>(
+    context: context,
+    builder: (context) => OcptWorkspaceExportDialog<T>(
+      title: title,
+      message: message,
+      entries: entries,
+      isPreviewingVersion: isPreviewingVersion,
+    ),
+  );
 }

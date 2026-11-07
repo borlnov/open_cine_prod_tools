@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// A minimal host exercising [OcptBudgetLineFormBody] the way the capture wizard eventually will:
 /// it owns the [GlobalKey<FormState>], keeps the last draft the body reported, and its own `Save`
 /// validates the form before handing the draft to [onSaved] — mirroring every one of the five
-/// dialog shells this milestone split `OcptBudgetLineFormBody` alongside.
+/// dialog shells `OcptBudgetLineFormBody` is shared with.
 class _TestHost extends StatefulWidget {
   /// Called with the draft [_TestHostState._submit] popped, once validation passed and a draft was
   /// available.
@@ -21,6 +21,7 @@ class _TestHost extends StatefulWidget {
   /// Class constructor
   const _TestHost({required this.onSaved});
 
+  /// Create the [_TestHostState] holding the draft.
   @override
   State<_TestHost> createState() => _TestHostState();
 }
@@ -34,6 +35,7 @@ class _TestHostState extends State<_TestHost> {
   /// at all.
   OcptBudgetLineFormFields? _draft;
 
+  /// Build the line form body in a column, with the draft it reports.
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Column(
@@ -50,7 +52,7 @@ class _TestHostState extends State<_TestHost> {
   );
 
   /// Validates the form and, if it passes, reports the last draft the body reported — exactly what
-  /// every one of the five dialog shells this milestone split does on their own `Save`.
+  /// every one of the five dialog shells does on their own `Save`.
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -77,9 +79,13 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of [OcptBudgetLineFormBody].
 void main() {
   /// Pumps [OcptBudgetLineFormBody] inside [_TestHost], [onSaved] recording every reported save.
-  Future<Tr> pumpBody(WidgetTester tester, {required ValueChanged<OcptBudgetLineFormFields> onSaved}) async {
+  Future<Tr> pumpBody(
+    WidgetTester tester, {
+    required ValueChanged<OcptBudgetLineFormFields> onSaved,
+  }) async {
     tester.view.physicalSize = const Size(900, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -91,7 +97,9 @@ void main() {
     return Tr.of(tester.element(find.byType(OcptBudgetLineFormBody)));
   }
 
-  testWidgets("Save is refused until the label, quantity and unit price are filled", (tester) async {
+  testWidgets("Save is refused until the label, quantity and unit price are filled", (
+    tester,
+  ) async {
     OcptBudgetLineFormFields? saved;
     final tr = await pumpBody(tester, onSaved: (fields) => saved = fields);
 
@@ -111,7 +119,10 @@ void main() {
       find.widgetWithText(TextFormField, tr.budgetLineLabelFieldLabel),
       "Camera hire",
     );
-    await tester.enterText(find.widgetWithText(TextFormField, tr.budgetLineQuantityFieldLabel), "5");
+    await tester.enterText(
+      find.widgetWithText(TextFormField, tr.budgetLineQuantityFieldLabel),
+      "5",
+    );
     await tester.enterText(find.widgetWithText(TextFormField, tr.budgetLineUnitFieldLabel), "day");
     await tester.enterText(
       find.widgetWithText(TextFormField, tr.budgetLineUnitPriceFieldLabel),
@@ -160,7 +171,10 @@ void main() {
       find.widgetWithText(TextFormField, tr.budgetLineLabelFieldLabel),
       "Camera hire",
     );
-    await tester.enterText(find.widgetWithText(TextFormField, tr.budgetLineQuantityFieldLabel), "1");
+    await tester.enterText(
+      find.widgetWithText(TextFormField, tr.budgetLineQuantityFieldLabel),
+      "1",
+    );
     await tester.enterText(
       find.widgetWithText(TextFormField, tr.budgetLineUnitPriceFieldLabel),
       "120",

@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over `assets`, the rows referencing a binary file by path — a person's headshot, a
@@ -24,7 +27,7 @@ import 'package:uuid/uuid.dart';
 /// own those subjects (`OcptPeopleService`, `OcptLocationsService`, `OcptElementsService`) take one
 /// of these and write their own `…AssetId` column beside the row it mints, since which asset is
 /// *the* headshot is a fact about the person rather than about the file.
-class OcptAssetsService {
+class OcptAssetsService extends AbsOcptService {
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter]. [insertAsset], [tombstoneAsset] and [erasePersonAssets] never call it:
   /// they write inside a caller's own transaction, and take that caller's own
@@ -32,9 +35,9 @@ class OcptAssetsService {
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptAssetsService({required this.deviceId});
+  const OcptAssetsService({required super.logger, required this.deviceId});
 
-  /// Inserts one `assets` row of [kind] pointing at [path] and returns its freshly generated id.
+  /// Insert one `assets` row of [kind] pointing at [path] and return its freshly generated id.
   ///
   /// Exactly one of [personId], [locationId], [elementId] and [budgetEntryId] names the subject for
   /// every kind but `OcptAssetKind.storyboardPanelImage` and `OcptAssetKind.floorPlanUnderlay`,
@@ -94,7 +97,7 @@ class OcptAssetsService {
     return id;
   }
 
-  /// Tombstones the `assets` row [assetId], if there is one.
+  /// Tombstone the `assets` row [assetId], if there is one.
   ///
   /// **Unguarded, for the reason [insertAsset] is**: this is the half of a replacement that runs
   /// inside a caller's transaction — a column pointing at one file has no history worth keeping,
@@ -124,15 +127,16 @@ class OcptAssetsService {
     );
   }
 
-  /// Drops the reference [assetId] holds, on a user's own gesture.
+  /// Drop the reference [assetId] holds, on a user's own gesture.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeAsset({
+  @useResult
+  Future<OcptDatabaseOutcome> removeAsset({
     required OcptProjectDatabase database,
     required String assetId,
-  }) async {
+  }) => guardOutcome("removeAsset", () async {
     if (database.refusesUserWrite("removeAsset")) {
       return;
     }
@@ -142,20 +146,21 @@ class OcptAssetsService {
       await tombstoneAsset(database: database, assetId: assetId, stamps: stamps);
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Updates the validity window of `assets` row [assetId] — a user typing, or clearing, the dates
+  /// Update the validity window of `assets` row [assetId] — a user typing, or clearing, the dates
   /// on a document such as a filming permit — to the fields passed as something other than
   /// [Value.absent]. Passing `Value(null)` clears a date already recorded: a production deciding it
   /// no longer wants to track one is as real a gesture as setting it.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateAssetValidity({
+  @useResult
+  Future<OcptDatabaseOutcome> updateAssetValidity({
     required OcptProjectDatabase database,
     required String assetId,
     Value<DateTime?> validFrom = const Value.absent(),
     Value<DateTime?> validUntil = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateAssetValidity", () async {
     if (database.refusesUserWrite("updateAssetValidity")) {
       return;
     }
@@ -182,9 +187,9 @@ class OcptAssetsService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Tombstones every `assets` row belonging to person [personId] **and blanks its path and its
+  /// Tombstone every `assets` row belonging to person [personId] **and blanks its path and its
   /// label**, the erasure half of `OcptPeopleService.deletePerson`.
   ///
   /// A tombstone alone would not do here. An asset's `path` is personal data in its own right — an
@@ -196,18 +201,17 @@ class OcptAssetsService {
   /// not what removing a person from a production means.
   ///
   /// **Unguarded, for the reason [insertAsset] is**: it runs inside `deletePerson`'s transaction.
-  /// Its mirror on the version side is `OcptProjectVersionsService._scrubErasedPeople`, and the two
-  /// must be kept in step by hand. Stamps through [stamps], for the same reason [insertAsset] does.
+  /// Its mirror on the version side is `OcptProjectVersionsPayloadOps.scrubErasedPeople`, and the
+  /// two must be kept in step by hand. Stamps through [stamps], for the same reason [insertAsset]
+  /// does.
   Future<void> erasePersonAssets({
     required OcptProjectDatabase database,
     required String personId,
     required OcptRowStampService? stamps,
   }) async {
-    final rows =
-        await (database.select(
-              database.ocptAssetsTable,
-            )..where((table) => table.personId.equals(personId)))
-            .get();
+    final rows = await (database.select(
+      database.ocptAssetsTable,
+    )..where((table) => table.personId.equals(personId))).get();
 
     for (final row in rows) {
       await OcptRowStampService.writeAndStamp(

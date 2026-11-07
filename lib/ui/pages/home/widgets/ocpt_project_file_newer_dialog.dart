@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
-/// States that a project file has been refused rather than opened, because nothing this build can
+/// State that a project file has been refused rather than opened, because nothing this build can
 /// do brings it in: it was written by a **newer** build ([OcptProjectFileVerdict.newer]), or it
 /// sits at this build's own schema but was last written by a different **development** build
 /// ([OcptProjectFileVerdict.foreignDevBuild]).
@@ -34,15 +34,7 @@ class OcptProjectFileNewerDialog extends StatelessWidget {
   /// Class constructor
   const OcptProjectFileNewerDialog({super.key, required this.compatibility});
 
-  /// Shows the dialog, and completes once the user has dismissed it.
-  static Future<void> show(
-    BuildContext context, {
-    required OcptProjectFileCompatibility compatibility,
-  }) => showDialog<void>(
-    context: context,
-    builder: (context) => OcptProjectFileNewerDialog(compatibility: compatibility),
-  );
-
+  /// Build the project file newer dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -59,7 +51,7 @@ class OcptProjectFileNewerDialog extends StatelessWidget {
     );
   }
 
-  /// The title stating which of the two refusals this is.
+  /// Get the title stating which of the two refusals this is.
   String _title(Tr tr) => switch (compatibility.verdict) {
     OcptProjectFileVerdict.foreignDevBuild => tr.homeProjectFileForeignDevBuildTitle,
     OcptProjectFileVerdict.newer ||
@@ -68,7 +60,7 @@ class OcptProjectFileNewerDialog extends StatelessWidget {
     OcptProjectFileVerdict.unreadable => tr.homeProjectFileNewerTitle,
   };
 
-  /// The message naming the facts that let the user find the build that opens the file: for
+  /// Get the message naming the facts that let the user find the build that opens the file: for
   /// [OcptProjectFileVerdict.foreignDevBuild], the exact development build that wrote it
   /// ([OcptProjectFileCompatibility.migratedByAppVersion], never null for this verdict — see
   /// `OcptProjectFileCompatibilityService`'s decision function); for
@@ -93,4 +85,13 @@ class OcptProjectFileNewerDialog extends StatelessWidget {
             appVersionAtCreation,
           );
   }
+
+  /// Show the dialog, and complete once the user has dismissed it.
+  static Future<void> show(
+    BuildContext context, {
+    required OcptProjectFileCompatibility compatibility,
+  }) => showDialog<void>(
+    context: context,
+    builder: (context) => OcptProjectFileNewerDialog(compatibility: compatibility),
+  );
 }

@@ -21,7 +21,13 @@ class OcptImportedFountainModel extends Equatable {
   /// Class constructor
   const OcptImportedFountainModel({required this.fountainText, required this.sourceFileName});
 
-  /// Object properties
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptImportedFountainModel(sourceFileName: $sourceFileName, "
+      "fountainTextLength: ${fountainText.length})";
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [fountainText, sourceFileName];
 }

@@ -15,10 +15,8 @@ import 'package:super_editor/super_editor.dart';
 /// "first handler that recognises the request wins" rule) while the request itself is dropped: no
 /// node is merged, deleted or otherwise touched, no changes are logged.
 class OcptNoOpCommand extends EditCommand {
-  /// Creates an [OcptNoOpCommand].
-  const OcptNoOpCommand();
-
-  /// Not `HistoryBehavior.undoable`, on purpose: `Editor.endTransaction` decides whether a
+  /// Get a behavior other than `HistoryBehavior.undoable`, on purpose: `Editor.endTransaction`
+  /// decides whether a
   /// transaction joins history by checking `_transaction!.commands.isNotEmpty`, never by whether
   /// any of those commands actually changed anything. A refused title-page edit — Backspace at the
   /// start of `Credit`, for example — still runs exactly one command, this one, so an `undoable`
@@ -28,22 +26,29 @@ class OcptNoOpCommand extends EditCommand {
   @override
   HistoryBehavior get historyBehavior => HistoryBehavior.nonHistorical;
 
-  /// Does nothing: the request is deliberately dropped.
+  /// Create an [OcptNoOpCommand].
+  const OcptNoOpCommand();
+
+  /// Do nothing: the request is deliberately dropped.
   @override
   void execute(EditContext context, CommandExecutor executor) {}
 }
 
-/// Whether [node] is one of [OcptWysiwygCodec.decodeWithTitlePage]'s synthesized title-page field
+/// Tell whether [node] is one of [OcptWysiwygCodec.decodeWithTitlePage]'s synthesized title-page
+/// field
 /// nodes, guarded against a non-[ParagraphNode] since [OcptWysiwygCodec.isTitlePageNode] only
 /// accepts one (every node in this app's document is one by construction, but a request guard must
 /// never assume that about an arbitrary [DocumentNode]).
-bool _isTitlePageNode(DocumentNode? node) => node is ParagraphNode && OcptWysiwygCodec.isTitlePageNode(node);
+bool _isTitlePageNode(DocumentNode? node) =>
+    node is ParagraphNode && OcptWysiwygCodec.isTitlePageNode(node);
 
-/// The title-page field key [node] carries ([ocptTitlePageKeyMetadataKey]), or `null` for a node
+/// Get the title-page field key [node] carries ([ocptTitlePageKeyMetadataKey]), or `null` for a
+/// node
 /// that isn't one (an ordinary body line, or no node at all).
 Object? _titlePageKeyOf(DocumentNode? node) => node?.getMetadataValue(ocptTitlePageKeyMetadataKey);
 
-/// The [EditRequestHandler] protecting the title-page sheet against every request shape that could
+/// Get the [EditRequestHandler] protecting the title-page sheet against every request shape that
+/// could
 /// remove one of its fields, merge one away, or bleed body content into it, prepended to the styled
 /// editor's `Editor.requestHandlers` list wherever its `Editor` is constructed
 /// (`OcptStyledScreenplayEditor._rebuildEditorFrom` and `_flushPendingSync`), so it runs before —
@@ -56,8 +61,8 @@ Object? _titlePageKeyOf(DocumentNode? node) => node?.getMetadataValue(ocptTitleP
 /// contained in one node is let through untouched below, which is the actual F6 fix. Every
 /// title-page node used to additionally carry `NodeMetadata.isDeletable: false`
 /// (`OcptWysiwygCodec._titlePageNodesFrom`), which also blocked that ordinary in-field editing —
-/// `DeleteSelectionCommand`/`DeleteContentCommand` abort *any* deletion, however small, contained in
-/// a single non-deletable node (`multi_node_editing.dart:1428-1449, 798-822` of the pinned
+/// `DeleteSelectionCommand`/`DeleteContentCommand` abort *any* deletion, however small, contained
+/// in a single non-deletable node (`multi_node_editing.dart:1428-1449, 798-822` of the pinned
 /// super_editor release). Removing the flag and moving every rule below into this handler is what
 /// tells those two paths apart: "delete text inside a field" (allowed) from "delete the field"
 /// (blocked).
@@ -80,7 +85,8 @@ EditCommand? ocptTitlePageGuardRequestHandler(Editor editor, EditRequest request
   return null;
 }
 
-/// A `CombineParagraphsRequest` merges its `secondNodeId` node into its `firstNodeId` node,
+/// Guard against a `CombineParagraphsRequest`, which merges its `secondNodeId` node into its
+/// `firstNodeId` node,
 /// deleting the second (`CombineParagraphsCommand`,
 /// `package:super_editor/src/default_editor/paragraph.dart:721-813`). This handler drops the
 /// request (see [OcptNoOpCommand]) whenever the two nodes are not two nodes of the *same*
@@ -102,7 +108,8 @@ EditCommand? _guardCombineParagraphs(Editor editor, CombineParagraphsRequest req
   return firstKey == secondKey ? null : const OcptNoOpCommand();
 }
 
-/// The request the IME delta channel actually sends when Backspace is pressed at offset 0 of a node
+/// Get the request the IME delta channel actually sends when Backspace is pressed at offset 0 of a
+/// node
 /// (`document_ime/document_delta_editing.dart`'s `delete()`): its default command
 /// (`DeleteUpstreamAtBeginningOfParagraphCommand`, `paragraph.dart`) calls
 /// `mergeTextNodeWithUpstreamTextNode`, which executes `CombineParagraphsCommand` **directly on the
@@ -114,7 +121,10 @@ EditCommand? _guardCombineParagraphs(Editor editor, CombineParagraphsRequest req
 /// (or a different field) above it, *and* an ordinary body node with a title-page node above it
 /// (the "first body line merged into `Source`" case) — and lets two lines of the same field through
 /// untouched, exactly like the hardware path.
-EditCommand? _guardDeleteUpstreamAtBeginningOfNode(Editor editor, DeleteUpstreamAtBeginningOfNodeRequest request) {
+EditCommand? _guardDeleteUpstreamAtBeginningOfNode(
+  Editor editor,
+  DeleteUpstreamAtBeginningOfNodeRequest request,
+) {
   final node = request.node;
   if (node is! ParagraphNode) {
     return null;
@@ -126,14 +136,15 @@ EditCommand? _guardDeleteUpstreamAtBeginningOfNode(Editor editor, DeleteUpstream
   return nodeKey == aboveKey ? null : const OcptNoOpCommand();
 }
 
-/// `DeleteNodeRequest` deletes exactly the node it names, unconditionally
+/// Guard against a `DeleteNodeRequest`, which deletes exactly the node it names, unconditionally
 /// (`DeleteNodeCommand`, `multi_node_editing.dart`), independent of `NodeMetadata.isDeletable` —
 /// the programmatic path that flag used to cover on its own. Dropped outright for a title-page
 /// node; every other node is untouched.
 EditCommand? _guardDeleteNode(Editor editor, DeleteNodeRequest request) =>
     _isTitlePageNode(editor.document.getNodeById(request.nodeId)) ? const OcptNoOpCommand() : null;
 
-/// `DeleteSelectionRequest`'s default command (`DeleteSelectionCommand`) deletes whatever the
+/// Guard against `DeleteSelectionRequest`'s default command (`DeleteSelectionCommand`), which
+/// deletes whatever the
 /// composer's current selection spans — there is no explicit range on the request itself, unlike
 /// [DeleteContentRequest].
 EditCommand? _guardDeleteSelection(Editor editor) {
@@ -142,14 +153,24 @@ EditCommand? _guardDeleteSelection(Editor editor) {
     return null;
   }
 
-  return _guardRangeDeletion(editor.document, selection.normalize(editor.document), updateSelection: true);
+  return _guardRangeDeletion(
+    editor.document,
+    selection.normalize(editor.document),
+    updateSelection: true,
+  );
 }
 
-/// `DeleteContentRequest` carries its own [DeleteContentRequest.documentRange] explicitly.
+/// Guard against a `DeleteContentRequest`, which carries its own
+/// [DeleteContentRequest.documentRange] explicitly.
 EditCommand? _guardDeleteContent(Editor editor, DeleteContentRequest request) =>
-    _guardRangeDeletion(editor.document, request.documentRange.normalize(editor.document), updateSelection: false);
+    _guardRangeDeletion(
+      editor.document,
+      request.documentRange.normalize(editor.document),
+      updateSelection: false,
+    );
 
-/// The shared rule behind [_guardDeleteSelection] and [_guardDeleteContent]: a deletion contained
+/// Apply the shared rule behind [_guardDeleteSelection] and [_guardDeleteContent]: a deletion
+/// contained
 /// within a single node — title-page or not — is ordinary editing (typing, Backspace, Delete,
 /// replacing a selection) and is let through completely untouched; this is the actual F6 fix, and
 /// the reason every other rule in this file only ever needs to consider a *multi*-node range.
@@ -162,7 +183,11 @@ EditCommand? _guardDeleteContent(Editor editor, DeleteContentRequest request) =>
 /// the screenplay body while leaving the six fields standing; a range with no body part left at all
 /// (every node it spans is a title-page field, for example a selection dragged across only the
 /// sheet) is dropped entirely instead ([OcptNoOpCommand]).
-EditCommand? _guardRangeDeletion(Document document, DocumentRange normalizedRange, {required bool updateSelection}) {
+EditCommand? _guardRangeDeletion(
+  Document document,
+  DocumentRange normalizedRange, {
+  required bool updateSelection,
+}) {
   if (normalizedRange.start.nodeId == normalizedRange.end.nodeId) {
     return null;
   }
@@ -180,7 +205,10 @@ EditCommand? _guardRangeDeletion(Document document, DocumentRange normalizedRang
   }
 
   final firstBodyNode = bodyNodesInRange.first;
-  final clampedStart = DocumentPosition(nodeId: firstBodyNode.id, nodePosition: firstBodyNode.beginningPosition);
+  final clampedStart = DocumentPosition(
+    nodeId: firstBodyNode.id,
+    nodePosition: firstBodyNode.beginningPosition,
+  );
 
   return DeleteContentCommand(
     documentRange: DocumentRange(start: clampedStart, end: normalizedRange.end),

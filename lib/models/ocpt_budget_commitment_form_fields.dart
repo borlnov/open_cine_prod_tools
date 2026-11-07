@@ -9,10 +9,10 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 /// for both creating and editing a `budget_commitments` row, shaped after
 /// `OcptBudgetEntryFormFields`'s own reading for the journal's own entries.
 ///
-/// **[posteId] is read by both handlers, creating and updating alike** — unlike
+/// **[accountId] is read by both handlers, creating and updating alike** — unlike
 /// `OcptBudgetLine`'s own, which a quote line can never change: see
-/// `OcptBudgetJournalService.updateCommitment`'s own doc comment for why a commitment's poste is an
-/// attribution somebody retypes rather than the parent that gives the row its place.
+/// `OcptBudgetJournalService.updateCommitment`'s own doc comment for why a commitment's account is
+/// an attribution somebody retypes rather than the parent that gives the row its place.
 ///
 /// [vatRateBasisPoints] carries the very same "null means inherit the project's rate" reading
 /// `OcptBudgetEntryFormFields.vatRateBasisPoints`'s own doc comment argues for, and for the same
@@ -26,9 +26,9 @@ class OcptBudgetCommitmentFormFields extends Equatable {
   /// This commitment's free-text wording, trimmed — the dialog's own first required field.
   final String label;
 
-  /// The poste this commitment prices — the dialog's own second required field. See the class doc
+  /// The account this commitment prices — the dialog's own second required field. See the class doc
   /// comment for why this is only ever read on creation.
-  final String posteId;
+  final String accountId;
 
   /// The amount committed, in cents, exactly as typed.
   final int amountCents;
@@ -47,25 +47,25 @@ class OcptBudgetCommitmentFormFields extends Equatable {
   const OcptBudgetCommitmentFormFields({
     required this.dueDate,
     required this.label,
-    required this.posteId,
+    required this.accountId,
     required this.amountCents,
     required this.isTaxInclusive,
     required this.vatRateBasisPoints,
     required this.status,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptBudgetCommitmentFormFields(dueDate: $dueDate, label: $label, posteId: $posteId, "
+      "OcptBudgetCommitmentFormFields(dueDate: $dueDate, label: $label, accountId: $accountId, "
       "status: $status)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     dueDate,
     label,
-    posteId,
+    accountId,
     amountCents,
     isTaxInclusive,
     vatRateBasisPoints,

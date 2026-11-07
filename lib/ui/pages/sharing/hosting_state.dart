@@ -8,18 +8,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
-
-/// Which of the hosting panel's own two QR codes is currently shown — the panel's own
-/// `SegmentedButton<OcptHostingQrKind>` selects between them, see
-/// `lib/ui/pages/sharing/widgets/ocpt_hosting_panel.dart`.
-enum OcptHostingQrKind {
-  /// The `ocpt://join` invite a device with no local copy of the project scans to get one.
-  join,
-
-  /// The `ocpt://relay` enrolment a device that already has the project scans to point itself at
-  /// this hosted relay instead of wherever it was pointed before.
-  enrolment,
-}
+import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_qr_kind.dart';
 
 /// The state of `OcptHostingBloc` — the Partager screen's "Héberger sur ce poste" segment
 /// (`docs/architecture/sync.md`).
@@ -45,8 +34,8 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
 
   /// Whether [hostOnLaunch] can be changed right now — true once the project has a relay-side id of
   /// its own, either because it is already paired to some relay or because it is hosting right now
-  /// (`OcptRelayHostManager.hostedProjectId`): a project that has never been paired or hosted has no
-  /// id yet for the flag to be stored against, so the checkbox stays disabled until then.
+  /// (`OcptRelayHostManager.hostedProjectId`): a project that has never been paired or hosted has
+  /// no id yet for the flag to be stored against, so the checkbox stays disabled until then.
   final bool canSetAutoRestart;
 
   /// Every replica currently connected to the hosted relay, or null while none is hosting (or the
@@ -104,12 +93,12 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     required this.isReconciling,
     required this.reconcileOutcome,
     required this.reconcileInviteInvalid,
-    this.availableAddresses = const [],
-    this.selectedAddress,
-    this.boundPort,
-    this.enrolment,
-    this.joinInvite,
-    this.qrKind = OcptHostingQrKind.join,
+    required this.availableAddresses,
+    required this.selectedAddress,
+    required this.boundPort,
+    required this.enrolment,
+    required this.joinInvite,
+    required this.qrKind,
   });
 
   /// The initial state, shown for the brief moment before the load completes.
@@ -134,8 +123,9 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
   /// [presenceRoster] and [reconcileOutcome] legitimately go back to null (hosting stopped, or the
   /// panel dismissed the last reconcile result), so each has its own `clear…` flag rather than a
   /// bare nullable parameter, which could never tell "leave it alone" apart from "clear it" —
-  /// exactly `OcptSharingState.clearInvite`'s own reasoning. [selectedAddress], [boundPort],
-  /// [enrolment] and [joinInvite] follow the very same shape, going back to null once hosting stops.
+  /// exactly `OcptSharingState.forceInviteValue`'s own reasoning. [selectedAddress], [boundPort],
+  /// [enrolment] and [joinInvite] follow the very same shape, going back to null once hosting
+  /// stops.
   @override
   OcptHostingState copyWith({
     bool? isLoading,
@@ -143,36 +133,160 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     bool? hostOnLaunch,
     bool? canSetAutoRestart,
     OcptPresenceRoster? presenceRoster,
-    bool clearPresenceRoster = false,
+    bool forcePresenceRosterValue = false,
     bool? isReconciling,
     OcptReconcileOutcome? reconcileOutcome,
-    bool clearReconcileOutcome = false,
+    bool forceReconcileOutcomeValue = false,
     bool? reconcileInviteInvalid,
     List<String>? availableAddresses,
     String? selectedAddress,
-    bool clearSelectedAddress = false,
+    bool forceSelectedAddressValue = false,
     int? boundPort,
-    bool clearBoundPort = false,
+    bool forceBoundPortValue = false,
     OcptRelayEnrolment? enrolment,
-    bool clearEnrolment = false,
+    bool forceEnrolmentValue = false,
     OcptRelayInvite? joinInvite,
-    bool clearJoinInvite = false,
+    bool forceJoinInviteValue = false,
     OcptHostingQrKind? qrKind,
   }) => OcptHostingState(
     isLoading: isLoading ?? this.isLoading,
     hostState: hostState ?? this.hostState,
     hostOnLaunch: hostOnLaunch ?? this.hostOnLaunch,
     canSetAutoRestart: canSetAutoRestart ?? this.canSetAutoRestart,
-    presenceRoster: clearPresenceRoster ? null : (presenceRoster ?? this.presenceRoster),
+    presenceRoster: presenceRoster ?? (forcePresenceRosterValue ? null : this.presenceRoster),
     isReconciling: isReconciling ?? this.isReconciling,
-    reconcileOutcome: clearReconcileOutcome ? null : (reconcileOutcome ?? this.reconcileOutcome),
+    reconcileOutcome:
+        reconcileOutcome ?? (forceReconcileOutcomeValue ? null : this.reconcileOutcome),
     reconcileInviteInvalid: reconcileInviteInvalid ?? this.reconcileInviteInvalid,
     availableAddresses: availableAddresses ?? this.availableAddresses,
-    selectedAddress: clearSelectedAddress ? null : (selectedAddress ?? this.selectedAddress),
-    boundPort: clearBoundPort ? null : (boundPort ?? this.boundPort),
-    enrolment: clearEnrolment ? null : (enrolment ?? this.enrolment),
-    joinInvite: clearJoinInvite ? null : (joinInvite ?? this.joinInvite),
+    selectedAddress: selectedAddress ?? (forceSelectedAddressValue ? null : this.selectedAddress),
+    boundPort: boundPort ?? (forceBoundPortValue ? null : this.boundPort),
+    enrolment: enrolment ?? (forceEnrolmentValue ? null : this.enrolment),
+    joinInvite: joinInvite ?? (forceJoinInviteValue ? null : this.joinInvite),
     qrKind: qrKind ?? this.qrKind,
+  );
+
+  /// Copy this state as loaded in [hostState], with the hosting preferences and, when the relay is
+  /// online, its addresses, port, enrolment and join invite.
+  OcptHostingState copyToLoaded({
+    required OcptRelayHostState hostState,
+    required OcptPresenceRoster? presenceRoster,
+    required bool canSetAutoRestart,
+    required bool hostOnLaunch,
+    required List<String> availableAddresses,
+    required String? selectedAddress,
+    required int? boundPort,
+    required OcptRelayEnrolment? enrolment,
+    required OcptRelayInvite? joinInvite,
+  }) => copyWith(
+    isLoading: false,
+    hostState: hostState,
+    presenceRoster: presenceRoster,
+    forcePresenceRosterValue: presenceRoster == null,
+    canSetAutoRestart: canSetAutoRestart,
+    hostOnLaunch: hostOnLaunch,
+    availableAddresses: availableAddresses,
+    selectedAddress: selectedAddress,
+    forceSelectedAddressValue: selectedAddress == null,
+    boundPort: boundPort,
+    forceBoundPortValue: boundPort == null,
+    enrolment: enrolment,
+    forceEnrolmentValue: enrolment == null,
+    joinInvite: joinInvite,
+    forceJoinInviteValue: joinInvite == null,
+  );
+
+  /// Copy this state with the relay online in [hostState], and the addresses, port, enrolment and
+  /// join invite it advertises.
+  OcptHostingState copyWithHostOnline({
+    required OcptRelayHostState hostState,
+    required bool hostOnLaunch,
+    required OcptPresenceRoster? presenceRoster,
+    required List<String> availableAddresses,
+    required String selectedAddress,
+    required int boundPort,
+    required OcptRelayEnrolment enrolment,
+    required OcptRelayInvite? joinInvite,
+  }) => copyWith(
+    hostState: hostState,
+    canSetAutoRestart: true,
+    hostOnLaunch: hostOnLaunch,
+    presenceRoster: presenceRoster,
+    forcePresenceRosterValue: presenceRoster == null,
+    availableAddresses: availableAddresses,
+    selectedAddress: selectedAddress,
+    boundPort: boundPort,
+    enrolment: enrolment,
+    joinInvite: joinInvite,
+    forceJoinInviteValue: joinInvite == null,
+  );
+
+  /// Copy this state with the relay no longer online in [hostState], and everything it advertised
+  /// forgotten.
+  OcptHostingState copyWithHostOffline({required OcptRelayHostState hostState}) => copyWith(
+    hostState: hostState,
+    forcePresenceRosterValue: true,
+    forceSelectedAddressValue: true,
+    forceBoundPortValue: true,
+    forceEnrolmentValue: true,
+    forceJoinInviteValue: true,
+  );
+
+  /// Copy this state with the peers' [presenceRoster], null when there is none.
+  OcptHostingState copyWithPresenceRoster({required OcptPresenceRoster? presenceRoster}) =>
+      copyWith(presenceRoster: presenceRoster, forcePresenceRosterValue: presenceRoster == null);
+
+  /// Copy this state with the choice of hosting on launch set to [hostOnLaunch].
+  OcptHostingState copyWithHostOnLaunch({required bool hostOnLaunch}) =>
+      copyWith(hostOnLaunch: hostOnLaunch);
+
+  /// Copy this state with the invite typed for a reconciliation flagged as invalid.
+  OcptHostingState copyWithReconcileInviteInvalid() => copyWith(
+    reconcileInviteInvalid: true,
+    isReconciling: false,
+    forceReconcileOutcomeValue: true,
+  );
+
+  /// Copy this state with a reconciliation under way and the previous outcome forgotten.
+  OcptHostingState copyWithReconciling() => copyWith(
+    isReconciling: true,
+    reconcileInviteInvalid: false,
+    forceReconcileOutcomeValue: true,
+  );
+
+  /// Copy this state with the reconciliation ended on [reconcileOutcome].
+  OcptHostingState copyWithReconcileOutcome({required OcptReconcileOutcome reconcileOutcome}) =>
+      copyWith(isReconciling: false, reconcileOutcome: reconcileOutcome);
+
+  /// Copy this state with the reconciliation outcome and the invalid-invite flag dismissed.
+  OcptHostingState copyWithReconcileDismissed() =>
+      copyWith(forceReconcileOutcomeValue: true, reconcileInviteInvalid: false);
+
+  /// Copy this state with [selectedAddress] picked, and the [enrolment] and [joinInvite] rebuilt
+  /// against it.
+  OcptHostingState copyWithSelectedAddress({
+    required String selectedAddress,
+    required OcptRelayEnrolment enrolment,
+    required OcptRelayInvite? joinInvite,
+  }) => copyWith(
+    selectedAddress: selectedAddress,
+    enrolment: enrolment,
+    joinInvite: joinInvite,
+    forceJoinInviteValue: joinInvite == null,
+  );
+
+  /// Copy this state with the QR code of the given [qrKind] shown.
+  OcptHostingState copyWithQrKind({required OcptHostingQrKind qrKind}) => copyWith(qrKind: qrKind);
+
+  /// Copy this state with the [availableAddresses] read again and [selectedAddress] kept or moved
+  /// to one of them.
+  OcptHostingState copyWithRefreshedAddresses({
+    required List<String> availableAddresses,
+    required String? selectedAddress,
+  }) => copyWith(
+    availableAddresses: availableAddresses,
+    selectedAddress: selectedAddress,
+    forceSelectedAddressValue: selectedAddress == null,
   );
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

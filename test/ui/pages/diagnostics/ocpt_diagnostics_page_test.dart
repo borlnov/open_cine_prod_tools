@@ -7,13 +7,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_logging_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
 import 'package:open_cine_prod_tools/ui/pages/diagnostics/ocpt_diagnostics_page.dart';
 
 /// A router manager whose [pop] only records the call — this page test pumps
@@ -23,6 +23,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// Whether [pop] was called.
   bool popped = false;
 
+  /// Record that a pop happened, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -32,19 +33,20 @@ class _RecordingRouterManager extends OcptRouterManager {
 /// A file logging manager reporting a fixed [logFilePath], overridden directly since nothing here
 /// wants to run the real per-platform file setup `initLifeCycle` would otherwise attempt.
 class _FakeFileLoggingManager extends OcptFileLoggingManager {
-  /// Class constructor
-  _FakeFileLoggingManager(this._path);
-
   /// The path [logFilePath] reports.
   final String? _path;
 
+  /// Read the log file path the double was given.
   @override
   String? get logFilePath => _path;
+
+  /// Class constructor
+  _FakeFileLoggingManager(this._path);
 }
 
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve.
 Widget _wrap(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -55,6 +57,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of [OcptDiagnosticsPage].
 void main() {
   late _RecordingRouterManager routerManager;
   late OcptDiagnosticsManager diagnosticsManager;
@@ -119,7 +122,10 @@ void main() {
   });
 
   testWidgets("shows every recorded entry, with the title and the back button", (tester) async {
-    diagnosticsManager.record(category: OcptDiagnosticsCategory.hosting, message: 'starting hosting');
+    diagnosticsManager.record(
+      category: OcptDiagnosticsCategory.hosting,
+      message: 'starting hosting',
+    );
     diagnosticsManager.record(category: OcptDiagnosticsCategory.sync, message: 'in sync');
 
     await tester.pumpWidget(_wrap(const OcptDiagnosticsPage()));
@@ -143,7 +149,10 @@ void main() {
   testWidgets("the copy and clear actions still wire up to the diagnostics manager", (
     tester,
   ) async {
-    diagnosticsManager.record(category: OcptDiagnosticsCategory.hosting, message: 'starting hosting');
+    diagnosticsManager.record(
+      category: OcptDiagnosticsCategory.hosting,
+      message: 'starting hosting',
+    );
 
     await tester.pumpWidget(_wrap(const OcptDiagnosticsPage()));
 
@@ -170,10 +179,7 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsPage)));
     expect(find.text(tr.diagnosticsLogFileLabel), findsOneWidget);
-    expect(
-      find.text('/home/user/.local/share/open_cine_prod_tools/logs/app.log'),
-      findsOneWidget,
-    );
+    expect(find.text('/home/user/.local/share/open_cine_prod_tools/logs/app.log'), findsOneWidget);
     expect(find.text(tr.diagnosticsLogFileDisabled), findsNothing);
 
     await tester.tap(find.byTooltip(tr.diagnosticsLogFileCopyPath));
@@ -189,18 +195,15 @@ void main() {
     expect(find.byTooltip(tr.diagnosticsLogFileCopyPath), findsNothing);
   });
 
-  testWidgets(
-    "tolerates a completely bare manager environment, with no error",
-    (tester) async {
-      final managers = globalGetIt();
-      await managers.unregister<OcptDiagnosticsManager>();
+  testWidgets("tolerates a completely bare manager environment, with no error", (tester) async {
+    final managers = globalGetIt();
+    await managers.unregister<OcptDiagnosticsManager>();
 
-      await tester.pumpWidget(_wrap(const OcptDiagnosticsPage()));
+    await tester.pumpWidget(_wrap(const OcptDiagnosticsPage()));
 
-      final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsPage)));
-      expect(find.text(tr.diagnosticsEmpty), findsOneWidget);
-      expect(find.text(tr.diagnosticsLogFileDisabled), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsPage)));
+    expect(find.text(tr.diagnosticsEmpty), findsOneWidget);
+    expect(find.text(tr.diagnosticsLogFileDisabled), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

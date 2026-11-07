@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 
+/// Run the tests of [OcptRecentProjectModel].
 void main() {
   // OcptRecentProjectModel.fromJson logs through appLogger(), which requires a global manager
   // instance to be set; merely accessing it creates the (otherwise unused) singleton.
@@ -53,10 +54,7 @@ void main() {
     });
 
     test('fromJson returns null when a required key is missing', () {
-      final json = {
-        "path": "/home/user/projects/my_script.ocpt",
-        "name": "My Script",
-      };
+      final json = {"path": "/home/user/projects/my_script.ocpt", "name": "My Script"};
 
       expect(OcptRecentProjectModel.fromJson(json), isNull);
     });

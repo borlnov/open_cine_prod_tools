@@ -26,7 +26,13 @@ class OcptProjectPackageNotice extends Equatable {
   /// Class constructor
   const OcptProjectPackageNotice({required this.kind, this.path, this.skippedAssetCount = 0});
 
-  /// Object properties
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptProjectPackageNotice(kind: $kind, path: $path, "
+      "skippedAssetCount: $skippedAssetCount)";
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [kind, path, skippedAssetCount];
 }

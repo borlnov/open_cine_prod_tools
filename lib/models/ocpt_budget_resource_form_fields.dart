@@ -12,8 +12,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 ///
 /// **Carries no tax basis or rate at all**, unlike every other form of this mode: a financing
 /// resource is money coming *in*, and `ocptBudgetResourcesTotalCents`'s own doc comment
-/// (`lib/utils/ocpt_budget_financing.dart`) already settles that there is no second basis to read
-/// it in, so this dialog asks for none.
+/// (`lib/models/rules/ocpt_budget_financing.dart`) already settles that there is no second basis to
+/// read it in, so this dialog asks for none.
 class OcptBudgetResourceFormFields extends Equatable {
   /// What kind of financing this resource is.
   final OcptBudgetResourceGroupKind groupKind;
@@ -37,15 +37,15 @@ class OcptBudgetResourceFormFields extends Equatable {
   /// Free-form notes about this resource, trimmed.
   final String notes;
 
-  /// The CNC poste this in-kind contribution offsets, or null.
+  /// The CNC account this in-kind contribution offsets, or null.
   ///
   /// Non-null only for [OcptBudgetResourceGroupKind.inKind] — a subsidy or a cash contribution
-  /// offsets no poste and mints no counterpart line, so there is nothing to name here for them.
-  /// **It lives here, and, through the counterpart line it seeds, on `budget_lines.posteId` —
+  /// offsets no account and mints no counterpart line, so there is nothing to name here for them.
+  /// **It lives here, and, through the counterpart line it seeds, on `budget_lines.accountId` —
   /// never as a `budget_resources` column of its own**: the counterpart line is the single source
-  /// of truth for the poste an in-kind contribution offsets (`docs/architecture/budget.md`, "The
+  /// of truth for the account an in-kind contribution offsets (`docs/architecture/budget.md`, "The
   /// link, and where the single truth lives").
-  final String? posteId;
+  final String? accountId;
 
   /// Class constructor
   const OcptBudgetResourceFormFields({
@@ -56,16 +56,16 @@ class OcptBudgetResourceFormFields extends Equatable {
     required this.status,
     required this.isReimbursable,
     required this.notes,
-    required this.posteId,
+    required this.accountId,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetResourceFormFields(groupKind: $groupKind, personId: $personId, label: $label, "
-      "amountCents: $amountCents, status: $status, posteId: $posteId)";
+      "amountCents: $amountCents, status: $status, accountId: $accountId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     groupKind,
@@ -75,6 +75,6 @@ class OcptBudgetResourceFormFields extends Equatable {
     status,
     isReimbursable,
     notes,
-    posteId,
+    accountId,
   ];
 }

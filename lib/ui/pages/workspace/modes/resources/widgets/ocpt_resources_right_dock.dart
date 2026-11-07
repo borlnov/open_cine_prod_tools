@@ -20,6 +20,7 @@ class OcptResourcesRightDock extends StatelessWidget {
   /// Class constructor
   const OcptResourcesRightDock({super.key, required this.versionsChild, required this.onClose});
 
+  /// Build the resources right dock as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

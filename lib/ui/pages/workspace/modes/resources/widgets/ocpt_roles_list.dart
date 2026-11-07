@@ -3,17 +3,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_resources_search.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_role_casting_progress.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_role_casting_stage.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_avatar.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_role_casting_progress.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The separator joining the names of the other roles a cast member holds, in
 /// [_OcptRoleEntry]'s own muted line.
@@ -26,7 +27,7 @@ const _episodeNumbersSeparator = ", ";
 /// The radius of a row's avatar.
 const double _avatarRadius = 13;
 
-/// The subset of [roles] matching [query], through [ocptResourcesSearchMatches] against every
+/// Get the subset of [roles] matching [query], through [ocptResourcesSearchMatches] against every
 /// field a row shows or that names the role: its own name, the name it had before it was orphaned
 /// (still worth finding by), the cast member's display name and the localized role kind.
 ///
@@ -46,7 +47,7 @@ List<OcptRole> ocptFilteredRolesOf({
       role,
 ];
 
-/// The person [personId] names, or null when it is null or names nobody in [people] (a stale
+/// Get the person [personId] names, or null when it is null or names nobody in [people] (a stale
 /// reference from a snapshot rebuilt underneath). Shared by [ocptFilteredRolesOf] and
 /// [OcptRolesList]'s own build method.
 OcptPerson? _personOf(List<OcptPerson> people, String? personId) {
@@ -63,7 +64,7 @@ OcptPerson? _personOf(List<OcptPerson> people, String? personId) {
   return null;
 }
 
-/// Every field of [role] a search query may match against, see [ocptFilteredRolesOf].
+/// Get every field of [role] a search query may match against, see [ocptFilteredRolesOf].
 Iterable<String> _searchFieldsOf(Tr tr, OcptRole role, OcptPerson? castMember) => [
   role.name,
   role.orphanedName ?? "",
@@ -129,6 +130,7 @@ class OcptRolesList extends StatelessWidget {
     required this.onRoleSelected,
   });
 
+  /// Build the roles list as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -171,7 +173,7 @@ class OcptRolesList extends StatelessWidget {
   }
 }
 
-/// The printed numbers of the episodes [role] is named in, in the episodes' own order (see
+/// Get the printed numbers of the episodes [role] is named in, in the episodes' own order (see
 /// [OcptRole.episodeIds]'s own doc comment), or empty while [episodes] holds one episode or none
 /// (a single-episode project names no episode anywhere) or [role] names none of [episodes] — a
 /// stale id from a snapshot rebuilt underneath is silently dropped rather than shown as a number
@@ -225,6 +227,7 @@ class _OcptRoleEntry extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the role entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -237,10 +240,10 @@ class _OcptRoleEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -350,6 +353,7 @@ class _OcptRoleCastingPill extends StatelessWidget {
   /// Class constructor
   const _OcptRoleCastingPill({required this.progress});
 
+  /// Build the role casting pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -375,8 +379,8 @@ class _OcptRoleCastingPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Text(
         label,

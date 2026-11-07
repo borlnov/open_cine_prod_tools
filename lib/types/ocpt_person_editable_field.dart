@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /// One of the person sheet's typed, free-text fields, whose edits go through the resources bloc's
-/// 2 s autosave debounce (`OcptResourcesState.pendingFieldEdits`) rather than being written
+/// 2 s autosave debounce (`OcptResourcesPeopleState.pendingFieldEdits`) rather than being written
 /// immediately like a colour swatch or a difficulty dot would be — mirroring
 /// `OcptShotListEditableField`'s own split between typed and discrete fields.
 ///
@@ -64,9 +64,9 @@ enum OcptPersonField {
   ///
   /// Typed but not stored as text, mirroring [maxDailyPresenceMinutes]: the bloc reads what was
   /// typed as a distance in thousandths of a kilometre (`ocptBudgetQuantityMilliOf`,
-  /// `lib/ui/utils/ocpt_budget_labels.dart` — the very parser the quote lines' own quantity field
-  /// already uses) and writes null for anything it cannot, so a half-typed figure never blocks the
-  /// field and never lands as a distance either.
+  /// `lib/ui/widgets/helpers/ocpt_budget_labels.dart` — the very parser the quote lines' own
+  /// quantity field already uses) and writes null for anything it cannot, so a half-typed figure
+  /// never blocks the field and never lands as a distance either.
   commuteKmMilli,
 
   /// Maps to `updatePerson`'s `accommodationNotes`.

@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
+/// Run the tests of [OcptWorkspaceDock].
 void main() {
   group("OcptWorkspaceDock.resolveDockWidths", () {
     test("resolves both docks at their fraction when the row comfortably fits them", () {

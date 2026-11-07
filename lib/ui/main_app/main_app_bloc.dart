@@ -18,7 +18,7 @@ class OcptMainAppBloc extends BlocForMixin<OcptMainAppState>
     with
         MixinGetWantedLocaleBloc<OcptMainAppState>,
         MixinActThemesBloc<ActThemesManager, OcptMainAppState> {
-  /// Creates the main app bloc, with an initial state carrying the preferences the
+  /// Create the main app bloc, with an initial state carrying the preferences the
   /// [LocalesManager] and the [ActThemesManager] currently hold.
   ///
   /// [ActThemesManager]'s streams emit on change and never replay their current value to a new
@@ -28,7 +28,7 @@ class OcptMainAppBloc extends BlocForMixin<OcptMainAppState>
     final themesManager = globalGetIt().get<ActThemesManager>();
 
     return OcptMainAppBloc._(
-      OcptMainAppState(
+      OcptMainAppState.init(
         wantedLocale: globalGetIt().get<LocalesManager>().wantedLocale,
         currentTheme: themesManager.currentTheme,
         brightness: themesManager.brightness,

@@ -10,11 +10,12 @@ import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timelines.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_slot_timeline.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_positions_matrix.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the mode's own centre area — wide enough for a handful of slot columns beside
@@ -126,25 +127,26 @@ OcptShootingSlotCrewMember _buildCrewMember({
 /// given resolved start and end (a null end standing for a slot carrying no block at all), and
 /// nothing else — enough for a column header to print real hours instead of falling back to the
 /// very em dash the empty-cell test means to count on its own.
-OcptShootingDayTimelines _buildTimelines(Map<String, (int, int?)> hoursBySlotId) => OcptShootingDayTimelines(
-  bySlotId: {
-    for (final entry in hoursBySlotId.entries)
-      entry.key: OcptShootingSlotTimeline(
-        entries: const [],
-        overruns: const [],
-        startMinute: entry.value.$1,
-        endMinute: entry.value.$2,
-      ),
-  },
-  entries: const [],
-  overruns: const [],
-  fixedEndMisses: const [],
-  anchorCycles: const [],
-  dayStartMinute: hoursBySlotId.values.isEmpty
-      ? null
-      : hoursBySlotId.values.map((hours) => hours.$1).reduce((a, b) => a < b ? a : b),
-  dayEndMinute: null,
-);
+OcptShootingDayTimelines _buildTimelines(Map<String, (int, int?)> hoursBySlotId) =>
+    OcptShootingDayTimelines(
+      bySlotId: {
+        for (final entry in hoursBySlotId.entries)
+          entry.key: OcptShootingSlotTimeline(
+            entries: const [],
+            overruns: const [],
+            startMinute: entry.value.$1,
+            endMinute: entry.value.$2,
+          ),
+      },
+      entries: const [],
+      overruns: const [],
+      fixedEndMisses: const [],
+      anchorCycles: const [],
+      dayStartMinute: hoursBySlotId.values.isEmpty
+          ? null
+          : hoursBySlotId.values.map((hours) => hours.$1).reduce((a, b) => a < b ? a : b),
+      dayEndMinute: null,
+    );
 
 /// Pumps [OcptSchedulePositionsMatrix] with the given schedule, everything else defaulting to
 /// empty or to a widget that resolves no timeline at all.
@@ -169,6 +171,7 @@ Future<void> _pumpMatrix(
 /// [_pumpMatrix]'s own default `timelinesOfDay`: no day has ever computed one.
 OcptShootingDayTimelines? _noTimelines(String dayId) => null;
 
+/// Run the tests of [OcptSchedulePositionsMatrix].
 void main() {
   testWidgets("shows the empty hint while no position has been held on a slot yet", (tester) async {
     await _pumpMatrix(tester, days: const [], slotsByDayId: const {});

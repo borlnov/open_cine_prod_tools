@@ -167,6 +167,7 @@ class OcptPersonSheet extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the person sheet as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -220,7 +221,7 @@ class OcptPersonSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _buildCardGrid(context),
+          _CardGrid(sheet: this),
           const SizedBox(height: 12),
           OcptPersonSheetUnavailabilitiesCard(
             unavailabilities: person.unavailabilities,
@@ -246,10 +247,20 @@ class OcptPersonSheet extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The two-column grid of cards: meals/health/skills beside logistics, then image rights beside
-  /// hair, make-up and costume.
-  Widget _buildCardGrid(BuildContext context) => Column(
+/// The two-column grid of cards: meals/health/skills beside logistics, then image rights beside
+/// hair, make-up and costume.
+class _CardGrid extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptPersonSheet sheet;
+
+  /// Class constructor
+  const _CardGrid({required this.sheet});
+
+  /// Build the card grid as a [Column].
+  @override
+  Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Row(
@@ -257,25 +268,27 @@ class OcptPersonSheet extends StatelessWidget {
         children: [
           Expanded(
             child: OcptPersonSheetMealsHealthCard(
-              personId: person.id,
-              skills: person.skills,
-              fieldValueOf: fieldValueOf,
-              onFieldChanged: isReadOnly ? null : onFieldChanged,
-              onSkillAdded: isReadOnly ? null : onSkillAdded,
-              onSkillRemoved: isReadOnly ? null : onSkillRemoved,
+              personId: sheet.person.id,
+              skills: sheet.person.skills,
+              fieldValueOf: sheet.fieldValueOf,
+              onFieldChanged: sheet.isReadOnly ? null : sheet.onFieldChanged,
+              onSkillAdded: sheet.isReadOnly ? null : sheet.onSkillAdded,
+              onSkillRemoved: sheet.isReadOnly ? null : sheet.onSkillRemoved,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: OcptPersonSheetLogisticsCard(
-              personId: person.id,
-              isTransportAutonomous: person.isTransportAutonomous,
-              fieldValueOf: fieldValueOf,
-              onFieldChanged: isReadOnly ? null : onFieldChanged,
-              onTransportAutonomyChanged: isReadOnly ? null : onTransportAutonomyChanged,
-              mileageRates: mileageRates,
-              mileageRateId: person.mileageRateId,
-              onMileageRateChanged: isReadOnly ? null : onMileageRateChanged,
+              personId: sheet.person.id,
+              isTransportAutonomous: sheet.person.isTransportAutonomous,
+              fieldValueOf: sheet.fieldValueOf,
+              onFieldChanged: sheet.isReadOnly ? null : sheet.onFieldChanged,
+              onTransportAutonomyChanged: sheet.isReadOnly
+                  ? null
+                  : sheet.onTransportAutonomyChanged,
+              mileageRates: sheet.mileageRates,
+              mileageRateId: sheet.person.mileageRateId,
+              onMileageRateChanged: sheet.isReadOnly ? null : sheet.onMileageRateChanged,
             ),
           ),
         ],
@@ -286,21 +299,23 @@ class OcptPersonSheet extends StatelessWidget {
         children: [
           Expanded(
             child: OcptPersonSheetImageRightsCard(
-              status: person.imageRightsStatus,
-              date: person.imageRightsDate,
-              onStatusChanged: isReadOnly ? null : onImageRightsStatusChanged,
-              onDateChanged: isReadOnly ? null : onImageRightsDateChanged,
-              document: person.imageRightsDocument,
-              onDocumentPickRequested: isReadOnly ? null : onImageRightsDocumentPickRequested,
-              onDocumentCleared: isReadOnly ? null : onImageRightsDocumentCleared,
+              status: sheet.person.imageRightsStatus,
+              date: sheet.person.imageRightsDate,
+              onStatusChanged: sheet.isReadOnly ? null : sheet.onImageRightsStatusChanged,
+              onDateChanged: sheet.isReadOnly ? null : sheet.onImageRightsDateChanged,
+              document: sheet.person.imageRightsDocument,
+              onDocumentPickRequested: sheet.isReadOnly
+                  ? null
+                  : sheet.onImageRightsDocumentPickRequested,
+              onDocumentCleared: sheet.isReadOnly ? null : sheet.onImageRightsDocumentCleared,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: OcptPersonSheetHmcCard(
-              personId: person.id,
-              fieldValueOf: fieldValueOf,
-              onFieldChanged: isReadOnly ? null : onFieldChanged,
+              personId: sheet.person.id,
+              fieldValueOf: sheet.fieldValueOf,
+              onFieldChanged: sheet.isReadOnly ? null : sheet.onFieldChanged,
             ),
           ),
         ],

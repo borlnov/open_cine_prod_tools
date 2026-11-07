@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,8 +12,10 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_sync_status_indicator.dart';
 
 /// An [OcptSyncManager] whose [syncStatus]/[syncStatusChanges] are fully under this file's own
@@ -21,21 +24,31 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_sync_status
 /// frames through [emit], mirroring `syncStatusChanges` (the lifecycle-spanning stream the
 /// indicator listens to).
 class _FakeSyncManager extends OcptSyncManager {
-  _FakeSyncManager(this.status) : super(changesetService: const OcptChangesetService());
-
   /// What [syncStatus] returns — the seed a fresh listener reads before the stream ever emits.
   OcptSyncStatus? status;
-
-  final _controller = StreamController<OcptSyncStatus?>.broadcast();
 
   /// Every call `syncNow()` recorded, oldest first.
   int syncNowCallCount = 0;
 
+  /// The controller behind [syncStatusChanges].
+  final _controller = StreamController<OcptSyncStatus?>.broadcast();
+
+  /// Read the status the double was given.
   @override
   OcptSyncStatus? get syncStatus => status;
 
+  /// Emit the statuses the test adds to the controller.
   @override
   Stream<OcptSyncStatus?> get syncStatusChanges => _controller.stream;
+
+  /// Class constructor
+  _FakeSyncManager(this.status)
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
   /// Pushes [next] onto [syncStatusChanges], as a session starting or a run would; a null is a
   /// session stopping.
@@ -44,19 +57,25 @@ class _FakeSyncManager extends OcptSyncManager {
     _controller.add(next);
   }
 
+  /// Count the call and answer that the sync went well.
   @override
-  Future<void> syncNow() async {
+  Future<OcptSyncSessionStatus> syncNow() async {
     syncNowCallCount++;
+
+    return OcptSyncSessionStatus.ok;
   }
 
+  /// Close the controller behind the stream.
   Future<void> disposeStream() => _controller.close();
 }
 
 /// An [OcptRouterManager] recording the last route [push] was asked to navigate to, instead of
 /// driving a real `GoRouter` — mirrors `resources_mode_test.dart`'s own `_RecordingRouterManager`.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// The last route pushed, or null before any.
   OcptRoute? pushedRoute;
 
+  /// Record the route pushed, and answer with nothing.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -69,6 +88,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
+/// Wrap [child] in a localized app, so the widget under test finds its theme and its words.
 Widget _wrap(Widget child) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
@@ -77,9 +97,12 @@ Widget _wrap(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+  home: Scaffold(
+    body: Align(alignment: Alignment.topLeft, child: child),
+  ),
 );
 
+/// Run the tests of [OcptSyncStatusIndicator].
 void main() {
   /// Widens the test surface well past the default 800px (`compact-breakpoint-vs-default-test
   /// -surface.md`'s own pitfall) and pumps [indicator].
@@ -152,7 +175,7 @@ void main() {
     expect(find.text(tr.workspaceSyncStatusError), findsOneWidget);
   });
 
-  testWidgets("a syncStatusStream emission moves the badge to the new state", (tester) async {
+  testWidgets("a syncStatusChanges emission moves the badge to the new state", (tester) async {
     final syncManager = _FakeSyncManager(const OcptSyncStatusInSync());
     addTearDown(syncManager.disposeStream);
 
@@ -214,35 +237,34 @@ void main() {
     expect(syncManager.syncNowCallCount, 1);
   });
 
-  testWidgets(
-    "Afficher le QR d'invitation and Ré-appairer… both navigate to the Partager route",
-    (tester) async {
-      final syncManager = _FakeSyncManager(const OcptSyncStatusInSync());
-      addTearDown(syncManager.disposeStream);
-      final router = _RecordingRouterManager();
+  testWidgets("Afficher le QR d'invitation and Ré-appairer… both navigate to the Partager route", (
+    tester,
+  ) async {
+    final syncManager = _FakeSyncManager(const OcptSyncStatusInSync());
+    addTearDown(syncManager.disposeStream);
+    final router = _RecordingRouterManager();
 
-      await pumpIndicator(
-        tester,
-        OcptSyncStatusIndicator(syncManager: syncManager, routerManager: router),
-      );
-      final tr = Tr.of(tester.element(find.byType(OcptSyncStatusIndicator)));
+    await pumpIndicator(
+      tester,
+      OcptSyncStatusIndicator(syncManager: syncManager, routerManager: router),
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptSyncStatusIndicator)));
 
-      await tester.tap(find.byType(OcptSyncStatusIndicator));
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.tap(find.text(tr.workspaceSyncActionShowQr));
-      await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.byType(OcptSyncStatusIndicator));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text(tr.workspaceSyncActionShowQr));
+    await tester.pump(const Duration(milliseconds: 50));
 
-      expect(router.pushedRoute, OcptRoute.sharing);
+    expect(router.pushedRoute, OcptRoute.sharing);
 
-      router.pushedRoute = null;
-      await tester.tap(find.byType(OcptSyncStatusIndicator));
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.tap(find.text(tr.workspaceSyncActionRepair));
-      await tester.pump(const Duration(milliseconds: 50));
+    router.pushedRoute = null;
+    await tester.tap(find.byType(OcptSyncStatusIndicator));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text(tr.workspaceSyncActionRepair));
+    await tester.pump(const Duration(milliseconds: 50));
 
-      expect(router.pushedRoute, OcptRoute.sharing);
-    },
-  );
+    expect(router.pushedRoute, OcptRoute.sharing);
+  });
 
   testWidgets("Changer de relais… navigates to the repointing route", (tester) async {
     final syncManager = _FakeSyncManager(const OcptSyncStatusInSync());

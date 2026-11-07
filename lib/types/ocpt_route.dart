@@ -16,18 +16,18 @@ enum OcptRoute with MixinRoute {
   projectSettings,
 
   /// The current project's sharing screen: pairing it to a relay and inviting a team to it
-  /// (`docs/plans/relay.md`, Phase C, commit 3)
+  /// (`docs/architecture/sync.md`)
   sharing,
 
   /// The "Rejoindre un projet partagé" screen: pairing this replica to a project already shared
-  /// on a relay (`docs/plans/relay.md`, Phase C, commit 4). Reachable with **no project open** —
+  /// on a relay (`docs/architecture/sync.md`). Reachable with **no project open** —
   /// joining is how one comes to exist on this replica in the first place, so this route carries
   /// none of [sharing]'s own open-project guard.
   joining,
 
   /// The current project's "Changer de relais" screen: moving its ongoing sync from the relay it
   /// is paired to (an on-set server, say) to another one, reusing the token it already holds
-  /// (`docs/plans/on-set-server.md`, Phase E). Acts on the currently open project, so it carries
+  /// (`docs/architecture/sync.md`). Acts on the currently open project, so it carries
   /// the same open-project guard as [sharing].
   repointing,
 

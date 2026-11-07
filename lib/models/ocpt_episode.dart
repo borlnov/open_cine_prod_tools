@@ -33,15 +33,15 @@ class OcptEpisode extends Equatable {
   /// Class constructor
   const OcptEpisode({required this.id, required this.number, required this.title});
 
-  /// Builds an [OcptEpisode] from its stored [row].
+  /// Build an [OcptEpisode] from its stored [row].
   factory OcptEpisode.fromRow(OcptScreenplayRow row) =>
       OcptEpisode(id: row.id, number: row.number, title: row.title);
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptEpisode(id: $id, number: $number, title: $title)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, number, title];
 }

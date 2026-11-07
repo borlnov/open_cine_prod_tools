@@ -4,29 +4,29 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_episode_band.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_label.dart';
 
 /// The schedule mode's left dock: the list of shooting days over the list of shots still to
 /// place, grouped by sequence — mirroring
 /// the mock's `bandeDays`/`unplacedGroups` (`design.html` lines 192-243) — and, on a project
 /// holding more than one episode, further banded by episode above its own sequence sections (see
-/// [_buildUnplacedSections]).
+/// `build`'s own unplaced-shots list).
 ///
 /// Every writing affordance is a nullable callback, withheld while a project version is being
 /// previewed: [onDayCreated] (the `+ New day` control above the list), [onDayDateChangeRequested],
-/// [onDayDuplicationRequested] and [onDayDeletionRequested] (a day card's own `⋮` menu). Selecting a
-/// day ([onDaySelected]) or an unplaced shot ([onShotSelected], which only brings that shot's own
+/// [onDayDuplicationRequested] and [onDayDeletionRequested] (a day card's own `⋮` menu). Selecting
+/// a day ([onDaySelected]) or an unplaced shot ([onShotSelected], which only brings that shot's own
 /// read-out up in the inspector) only ever reads, so neither is ever withheld.
 class OcptScheduleLeftDock extends StatelessWidget {
   /// The live days to list, in `dayNumber` order.
@@ -82,6 +82,9 @@ class OcptScheduleLeftDock extends StatelessWidget {
   /// in the inspector. Never withheld — see the class doc comment.
   final ValueChanged<String> onShotSelected;
 
+  /// Get the total number of shots across every [unplacedGroups] entry.
+  int get _totalUnplacedCount => unplacedGroups.fold(0, (sum, group) => sum + group.shots.length);
+
   /// Class constructor
   const OcptScheduleLeftDock({
     super.key,
@@ -101,10 +104,12 @@ class OcptScheduleLeftDock extends StatelessWidget {
     required this.onShotSelected,
   });
 
+  /// Build the schedule left dock as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
+    final unplacedRows = _unplacedRowsOf();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -113,9 +118,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Row(
             children: [
-              Expanded(
-                child: Text(tr.scheduleDaysPanelTitle, style: theme.textTheme.titleSmall),
-              ),
+              Expanded(child: Text(tr.scheduleDaysPanelTitle, style: theme.textTheme.titleSmall)),
               if (onDayCreated != null)
                 IconButton(
                   icon: const Icon(Icons.add, size: 18),
@@ -127,12 +130,11 @@ class OcptScheduleLeftDock extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (days.isEmpty)
-                  Padding(
+          child: CustomScrollView(
+            slivers: [
+              if (days.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Text(
                       tr.scheduleDaysEmptyHint,
@@ -140,10 +142,14 @@ class OcptScheduleLeftDock extends StatelessWidget {
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  )
-                else
-                  for (final day in days)
-                    _OcptScheduleDayCard(
+                  ),
+                )
+              else
+                SliverList.builder(
+                  itemCount: days.length,
+                  itemBuilder: (context, index) {
+                    final day = days[index];
+                    return _OcptScheduleDayCard(
                       day: day,
                       isSelected: day.id == selectedDayId,
                       blockCount: blockCountByDayId[day.id] ?? 0,
@@ -166,91 +172,100 @@ class OcptScheduleLeftDock extends StatelessWidget {
                       onDeletionRequested: onDayDeletionRequested == null
                           ? null
                           : () => onDayDeletionRequested!(day.id),
-                    ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          tr.scheduleUnplacedPanelTitle,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            letterSpacing: 0.4,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        unplacedGroups.isEmpty
-                            ? tr.scheduleUnplacedAllPlaced
-                            : tr.scheduleUnplacedCount(_totalUnplacedCount),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-                ..._buildUnplacedSections(tr),
-                const SizedBox(height: 12),
-              ],
-            ),
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              tr.scheduleUnplacedPanelTitle,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            unplacedGroups.isEmpty
+                                ? tr.scheduleUnplacedAllPlaced
+                                : tr.scheduleUnplacedCount(_totalUnplacedCount),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // One [_OcptScheduleUnplacedGroupSection] per group of [unplacedGroups], banded by
+              // episode ([OcptScheduleEpisodeBand]) while [episodes] holds more than one. A
+              // single-episode project names no episode anywhere (ADR 0019), so with one episode
+              // or none this reads flat, and an episode left with nothing to place draws no band
+              // at all — a band over nothing would read as a heading that lies, the same argument
+              // the elements grid's own category band makes (`docs/architecture/schedule.md`).
+              SliverList.builder(
+                itemCount: unplacedRows.length,
+                itemBuilder: (context, index) {
+                  final row = unplacedRows[index];
+                  if (row.group case final group?) {
+                    return _OcptScheduleUnplacedGroupSection(
+                      group: group,
+                      selectedShotId: selectedShotId,
+                      onShotSelected: onShotSelected,
+                    );
+                  }
+                  // The band insets itself horizontally by nothing, so this list frames it in
+                  // the very padding its own sequence sections carry — see
+                  // [OcptScheduleEpisodeBand]'s doc comment.
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: OcptScheduleEpisodeBand(
+                      label: ocptWorkspaceEpisodeLabelOf(tr, row.episode!),
+                    ),
+                  );
+                },
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+            ],
           ),
         ),
       ],
     );
   }
 
-  /// The total number of shots across every [unplacedGroups] entry.
-  int get _totalUnplacedCount =>
-      unplacedGroups.fold(0, (sum, group) => sum + group.shots.length);
-
-  /// The unplaced-shots section's own body: one [_OcptScheduleUnplacedGroupSection] per group of
-  /// [unplacedGroups], banded by episode ([OcptScheduleEpisodeBand]) while [episodes] holds more
-  /// than one. A single-episode project names no episode anywhere (ADR 0019), so with one episode
-  /// or none this reads exactly as it always has, flat, and an episode left with nothing to place
-  /// draws no band at all — a band over nothing would read as a heading that lies, the same
-  /// argument the elements grid's own category band makes (`docs/architecture/schedule.md`).
-  List<Widget> _buildUnplacedSections(Tr tr) {
+  /// Get the unplaced rows in display order: every group, preceded by its episode's band while
+  /// [episodes] holds more than one.
+  List<({OcptScheduleUnplacedGroup? group, OcptEpisode? episode})> _unplacedRowsOf() {
     if (episodes.length <= 1) {
-      return [
-        for (final group in unplacedGroups)
-          _OcptScheduleUnplacedGroupSection(
-            group: group,
-            selectedShotId: selectedShotId,
-            onShotSelected: onShotSelected,
-          ),
-      ];
+      return [for (final group in unplacedGroups) (group: group, episode: null)];
     }
-
     return [
       for (final episode in episodes)
         if (_groupsOf(episode.id) case final episodeGroups when episodeGroups.isNotEmpty) ...[
-          // The band insets itself horizontally by nothing, so this list frames it in the very
-          // padding its own sequence sections carry — see [OcptScheduleEpisodeBand]'s doc comment.
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OcptScheduleEpisodeBand(label: ocptWorkspaceEpisodeLabelOf(tr, episode)),
-          ),
-          for (final group in episodeGroups)
-            _OcptScheduleUnplacedGroupSection(
-              group: group,
-              selectedShotId: selectedShotId,
-              onShotSelected: onShotSelected,
-            ),
+          (group: null, episode: episode),
+          for (final group in episodeGroups) (group: group, episode: null),
         ],
     ];
   }
 
-  /// [unplacedGroups] narrowed to the ones belonging to episode [screenplayId], in their own
+  /// Get [unplacedGroups] narrowed to the ones belonging to episode [screenplayId], in their own
   /// order.
   List<OcptScheduleUnplacedGroup> _groupsOf(String screenplayId) => [
     for (final group in unplacedGroups)
       if (group.screenplayId == screenplayId) group,
   ];
 
-  /// Opens the platform date picker seeded on [initialDate] (today when omitted), reporting the
+  /// Open the platform date picker seeded on [initialDate] (today when omitted), reporting the
   /// pick to [onPicked]. Does nothing when the picker is dismissed with no pick — mirrors
   /// `OcptPersonSheetDateField._pickDate`, the app's own convention for [showDatePicker]. The
   /// `firstDate`/`lastDate` bounds are anchored on today but widen to include [initialDate]
@@ -321,28 +336,31 @@ class _OcptScheduleDayCard extends StatelessWidget {
     required this.onDeletionRequested,
   });
 
+  /// Build the schedule day card as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final tint = ocptScheduleDayLocationTint(context, location);
-    final dateLabel = DateFormat.yMMMEd(Localizations.localeOf(context).toString()).format(day.date);
+    final dateLabel = DateFormat.yMMMEd(
+      Localizations.localeOf(context).toString(),
+    ).format(day.date);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 3, 12, 3),
       child: InkWell(
         onTap: onSelected,
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(
               color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
             ),
             color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(ocptRadiusMedium),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
           child: Row(
@@ -413,7 +431,9 @@ class _OcptScheduleDayCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onDateChangeRequested != null || onDuplicationRequested != null || onDeletionRequested != null)
+              if (onDateChangeRequested != null ||
+                  onDuplicationRequested != null ||
+                  onDeletionRequested != null)
                 PopupMenuButton<VoidCallback>(
                   icon: const Icon(Icons.more_vert, size: 16),
                   tooltip: "",
@@ -466,6 +486,7 @@ class _OcptScheduleUnplacedGroupSection extends StatelessWidget {
     required this.onShotSelected,
   });
 
+  /// Build the schedule unplaced group section as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -545,6 +566,7 @@ class _OcptScheduleUnplacedShotRow extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the schedule unplaced shot row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -553,25 +575,22 @@ class _OcptScheduleUnplacedShotRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: InkWell(
         onTap: onTap,
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         child: Container(
           decoration: BoxDecoration(
             color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                 : theme.colorScheme.surfaceContainerHigh,
             border: Border.all(
               color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
             ),
-            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             children: [
-              Text(
-                code,
-                style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
+              Text(code, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(width: 7),
               Expanded(
                 child: Text(

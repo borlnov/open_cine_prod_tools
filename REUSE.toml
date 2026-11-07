@@ -20,18 +20,10 @@ SPDX-FileCopyrightText = "2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>"
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-# lib/generated/ is produced by `dart run intl_utils:generate` and is git-ignored (see
-# lib/generated/.gitignore); it's annotated here so that a local build of this directory doesn't
-# fail the reuse check before the ignore rule is picked up.
+# lib/generated/ is produced by `dart run intl_utils:generate` and `dart run build_runner build` and
+# is git-ignored (see lib/generated/.gitignore); it's annotated here so that a local build of this
+# directory doesn't fail the reuse check before the ignore rule is picked up.
 path = ["lib/generated/**"]
-SPDX-FileCopyrightText = "2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>"
-SPDX-License-Identifier = "Apache-2.0"
-
-[[annotations]]
-# *.g.dart files are produced by `dart run build_runner build` (drift's DriftDatabase codegen) and
-# are git-ignored (see .gitignore); annotated here so a local build of these files doesn't fail the
-# reuse check before the ignore rule is picked up.
-path = ["**/*.g.dart"]
 SPDX-FileCopyrightText = "2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>"
 SPDX-License-Identifier = "Apache-2.0"
 

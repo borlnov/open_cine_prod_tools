@@ -11,11 +11,11 @@
 /// project, on any platform.
 library;
 
-export 'src/hunspell_affix_file.dart' show HunspellAffixFile;
-export 'src/hunspell_affix_rule_index.dart' show HunspellAffixRuleIndex;
-export 'src/hunspell_dictionary.dart' show SpellDictionary;
-export 'src/spell_checker.dart' show SpellChecker;
-export 'src/spell_range.dart' show SpellRange;
-export 'src/spell_suggester.dart' show SpellSuggester;
-export 'src/spell_tokenizer.dart'
-    show SpellToken, SpellTokenizerOptions, spellTokensIn;
+export 'package:spell_kit/src/hunspell_affix_file.dart' show HunspellAffixFile;
+export 'package:spell_kit/src/hunspell_affix_rule_index.dart' show HunspellAffixRuleIndex;
+export 'package:spell_kit/src/hunspell_dictionary.dart' show SpellDictionary;
+export 'package:spell_kit/src/spell_checker.dart' show SpellChecker;
+export 'package:spell_kit/src/spell_range.dart' show SpellRange;
+export 'package:spell_kit/src/spell_suggester.dart' show SpellSuggester;
+export 'package:spell_kit/src/spell_token.dart';
+export 'package:spell_kit/src/spell_tokenizer.dart' show SpellTokenizerOptions, spellTokensIn;

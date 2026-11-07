@@ -18,13 +18,15 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart
 mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
     on BlocStateForMixin<S> {
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
-  /// The project's versions, newest first, as last read from the project file. Empty while nothing
+  /// Get the project's versions, newest first, as last read from the project file. Empty while
+  /// nothing
   /// has been loaded yet, and in a project the user never created a version of.
   /// {@endtemplate}
   List<OcptProjectVersion> get projectVersions;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.previewedVersionId}
-  /// The id of the version currently being previewed read-only, or null while the working copy is
+  /// Get the id of the version currently being previewed read-only, or null while the working copy
+  /// is
   /// on screen.
   ///
   /// Mirrors `OcptOpenProjectModel.previewedVersion`, which stays the source of truth: this is the
@@ -33,7 +35,7 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
   String? get previewedVersionId;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.workingCopy}
-  /// A live snapshot of the working copy — the counters it would show right now, and whether it
+  /// Get a live snapshot of the working copy — the counters it would show right now, and whether it
   /// still matches the version it descends from — or null while a version is being previewed (the
   /// working-copy card is exactly what a preview replaces) or before the first capture has landed.
   ///
@@ -44,38 +46,41 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
   OcptProjectWorkingCopyState? get workingCopy;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingDeletionId}
-  /// The id of the version whose card currently shows its inline delete confirmation, or null
+  /// Get the id of the version whose card currently shows its inline delete confirmation, or null
   /// while none does. At most one card confirms at a time.
   /// {@endtemplate}
   String? get versionPendingDeletionId;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRestoreId}
-  /// The id of the version whose card currently shows its inline restore confirmation, or null
+  /// Get the id of the version whose card currently shows its inline restore confirmation, or null
   /// while none does. At most one card confirms at a time, and never for two different answers at
   /// once: a card asking whether to restore isn't also asking whether to delete or to rename it.
   /// {@endtemplate}
   String? get versionPendingRestoreId;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.versionPendingRenameId}
-  /// The id of the version whose card currently shows its inline rename form, or null while none
+  /// Get the id of the version whose card currently shows its inline rename form, or null while
+  /// none
   /// does. The third of the three mutually exclusive inline modes a card can be in, alongside
   /// [versionPendingDeletionId] and [versionPendingRestoreId].
   /// {@endtemplate}
   String? get versionPendingRenameId;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersionNotice}
-  /// The outcome of the last version operation the user has to be told about, or null while there
+  /// Get the outcome of the last version operation the user has to be told about, or null while
+  /// there
   /// is nothing to report; shown as a transient SnackBar then dismissed.
   /// {@endtemplate}
   OcptProjectVersionNoticeKind? get projectVersionNotice;
 
-  /// Whether a version is currently being previewed read-only.
+  /// Tell whether a version is currently being previewed read-only.
   ///
   /// This is what every mode gates its editing affordances on: `OcptOpenProjectModel.isReadOnly` is
   /// the source of truth, and this is the copy of it the widgets are built from.
   bool get isPreviewingVersion => previewedVersionId != null;
 
-  /// The version [previewedVersionId] names, or null while the working copy is on screen (or while
+  /// Get the version [previewedVersionId] names, or null while the working copy is on screen (or
+  /// while
   /// the list hasn't caught up with a version that has just gone).
   ///
   /// Resolved from [projectVersions] rather than stored beside the id: the list already carries
@@ -96,28 +101,101 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
   }
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
-  /// This is the copyWith method for the mixin.
+  /// Implement the copyWith method for the mixin.
   ///
   /// The nullable fields legitimately go back to null while the mode is alive (a preview left, a
   /// confirmation cancelled or answered, a notice dismissed, a working-copy capture withheld
-  /// because a preview is up), so each carries its own clear flag rather than relying on "a null
+  /// because a preview is up), so each carries its own force flag rather than relying on "a null
   /// argument means unchanged".
   /// {@endtemplate}
   S copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
   });
+
+  /// Copy the state with the inline delete confirmation shown on the card of [versionId].
+  ///
+  /// The restore and rename modes are cleared: a card is in at most one of the three.
+  S copyWithDeletionPending({required String versionId}) => copyProjectVersionsState(
+    versionPendingDeletionId: versionId,
+    forceVersionPendingRestoreIdValue: true,
+    forceVersionPendingRenameIdValue: true,
+  );
+
+  /// Copy the state with the inline delete confirmation hidden.
+  S copyWithDeletionDismissed() =>
+      copyProjectVersionsState(forceVersionPendingDeletionIdValue: true);
+
+  /// Copy the state with the inline restore confirmation shown on the card of [versionId].
+  ///
+  /// The delete and rename modes are cleared: a card is in at most one of the three.
+  S copyWithRestorePending({required String versionId}) => copyProjectVersionsState(
+    versionPendingRestoreId: versionId,
+    forceVersionPendingDeletionIdValue: true,
+    forceVersionPendingRenameIdValue: true,
+  );
+
+  /// Copy the state with the inline restore confirmation hidden.
+  S copyWithRestoreDismissed() => copyProjectVersionsState(forceVersionPendingRestoreIdValue: true);
+
+  /// Copy the state with the inline rename form shown on the card of [versionId].
+  ///
+  /// The delete and restore modes are cleared: a card is in at most one of the three.
+  S copyWithRenamePending({required String versionId}) => copyProjectVersionsState(
+    versionPendingRenameId: versionId,
+    forceVersionPendingDeletionIdValue: true,
+    forceVersionPendingRestoreIdValue: true,
+  );
+
+  /// Copy the state with the inline rename form hidden.
+  S copyWithRenameDismissed() => copyProjectVersionsState(forceVersionPendingRenameIdValue: true);
+
+  /// Copy the state with the working-copy snapshot dropped.
+  S copyWithWorkingCopyCleared() => copyProjectVersionsState(forceWorkingCopyValue: true);
+
+  /// Copy the state with [workingCopy] as the working-copy snapshot, dropping it when null.
+  S copyWithCapturedWorkingCopy({required OcptProjectWorkingCopyState? workingCopy}) =>
+      copyProjectVersionsState(
+        workingCopy: workingCopy,
+        forceWorkingCopyValue: workingCopy == null,
+      );
+
+  /// Copy the state with the version notice dismissed.
+  S copyWithVersionNoticeDismissed() =>
+      copyProjectVersionsState(forceProjectVersionNoticeValue: true);
+
+  /// Copy the state with the versions the project now holds.
+  ///
+  /// Every inline confirmation is cleared, and [notice] replaces the previous notice (none when
+  /// null).
+  S copyWithReloadedVersions({
+    required List<OcptProjectVersion> versions,
+    required String? previewedVersionId,
+    required OcptProjectWorkingCopyState? workingCopy,
+    required OcptProjectVersionNoticeKind? notice,
+  }) => copyProjectVersionsState(
+    projectVersions: versions,
+    previewedVersionId: previewedVersionId,
+    forcePreviewedVersionIdValue: previewedVersionId == null,
+    workingCopy: workingCopy,
+    forceWorkingCopyValue: workingCopy == null,
+    forceVersionPendingDeletionIdValue: true,
+    forceVersionPendingRestoreIdValue: true,
+    forceVersionPendingRenameIdValue: true,
+    projectVersionNotice: notice,
+    forceProjectVersionNoticeValue: notice == null,
+  );
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override

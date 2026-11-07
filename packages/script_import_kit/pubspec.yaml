@@ -19,11 +19,6 @@ dependencies:
   collection: ^1.19.1
   equatable: ^2.0.7
 
-  # The Fountain the conversion targets: this package writes nothing by hand, it drives
-  # fountain_kit's own line writer, inline serializer and title page writer.
-  fountain_kit:
-    path: ../fountain_kit
-
   # Parses a Celtx script document, which is the HTML 4.01 a browser engine wrote rather than
   # anything well-formed enough for an XML parser.
   html: ^0.15.6
@@ -33,6 +28,11 @@ dependencies:
   # Parses a Final Draft document and a Celtx project's RDF manifest, both of which are
   # well-formed XML.
   xml: ^7.0.1
+
+  # The Fountain the conversion targets: this package writes nothing by hand, it drives
+  # fountain_kit's own line writer, inline serializer and title page writer.
+  fountain_kit:
+    path: ../fountain_kit
 
 dev_dependencies:
   lints: ^5.1.1

@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
-/// Writes a single display line of Fountain text back out as a raw source
+/// Write a single display line of Fountain text back out as a raw source
 /// line, deciding on the fly whether the line needs a forcing marker to
 /// (re-)classify as its intended [FountainLineType].
 ///
@@ -35,16 +36,14 @@ import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 /// (see the dialogue/parenthetical fallback documented on the app-side
 /// codec that calls this class).
 class FountainLineWriter {
-  /// Creates a [FountainLineWriter].
-  const FountainLineWriter({
-    this.classifier = const FountainLineClassifier(),
-  });
-
   /// The classifier used to decide whether a candidate line needs a forcing
   /// marker to (re-)classify as its intended type.
   final FountainLineClassifier classifier;
 
-  /// Renders [text] as a raw Fountain source line of type [type].
+  /// Create a [FountainLineWriter].
+  const FountainLineWriter({this.classifier = const FountainLineClassifier()});
+
+  /// Render [text] as a raw Fountain source line of type [type].
   ///
   /// [hadForcingMarker] should reflect whether the line this was decoded
   /// from originally carried an explicit forcing marker; when set, the
@@ -77,8 +76,7 @@ class FountainLineWriter {
             'are represented as ocptBlankLinesBefore metadata, not as a '
             'written line',
       ),
-      FountainLineType.dialogue ||
-      FountainLineType.parenthetical => text,
+      FountainLineType.dialogue || FountainLineType.parenthetical => text,
       FountainLineType.pageBreak => '===',
       FountainLineType.centeredText => '> $text <',
       FountainLineType.sceneHeading => _writeWithPrefixMarker(
@@ -140,7 +138,7 @@ class FountainLineWriter {
     };
   }
 
-  /// Prepends [marker] to [text] unless [text] would already classify as
+  /// Prepend [marker] to [text] unless [text] would already classify as
   /// [type] on its own, in the given [previousType]/[nextRawLine] context,
   /// and [hadForcingMarker] is not set.
   String _writeWithPrefixMarker({
@@ -152,12 +150,7 @@ class FountainLineWriter {
     required String? nextRawLine,
   }) {
     final autoDetects =
-        classifier.classifyLine(
-          text,
-          previousType: previousType,
-          nextRawLine: nextRawLine,
-        ) ==
-        type;
+        classifier.classifyLine(text, previousType: previousType, nextRawLine: nextRawLine) == type;
     if (autoDetects && !hadForcingMarker) {
       return text;
     }

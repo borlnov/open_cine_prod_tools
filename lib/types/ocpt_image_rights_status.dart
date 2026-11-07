@@ -4,7 +4,7 @@
 
 /// Where a person's image rights release stands.
 ///
-/// The document itself is out of scope for this step (no generator ships): this status and the
+/// The document itself is out of scope (no generator ships): this status and the
 /// reference to a signed PDF are what a production tracks by hand until one exists.
 enum OcptImageRightsStatus {
   /// No release is needed for this person (e.g. crew never on screen).

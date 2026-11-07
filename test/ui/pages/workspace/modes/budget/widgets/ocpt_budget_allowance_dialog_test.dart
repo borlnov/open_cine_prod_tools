@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_allowance_form_fields.da
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_allowance_dialog.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// A router manager whose [pop] only records the last call and its value — mirrors
 /// `ocpt_budget_revenue_dialog_test.dart`'s own instance of this pattern.
@@ -22,6 +22,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record the value the dialog popped with.
   @override
   void pop<Y extends Object?>([Y? result]) {
     poppedValue = result;
@@ -70,6 +71,7 @@ OcptBudgetAllowance _buildAllowance({
   sortKey: "a0",
 );
 
+/// Run the tests of [OcptBudgetAllowanceDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 
@@ -172,9 +174,7 @@ void main() {
     final tr = await pumpDialog(tester, rates: rates);
 
     await tester.tap(
-      find.text(
-        ocptBudgetAllowanceKindLabel(tr, OcptBudgetAllowanceKind.accommodation),
-      ),
+      find.text(ocptBudgetAllowanceKindLabel(tr, OcptBudgetAllowanceKind.accommodation)),
     );
     await tester.pumpAndSettle();
 

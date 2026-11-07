@@ -54,7 +54,7 @@ class OcptFloorPlanArrow extends Equatable {
     required this.ctrlYM,
   });
 
-  /// Builds an [OcptFloorPlanArrow] from its stored [row].
+  /// Build an [OcptFloorPlanArrow] from its stored [row].
   factory OcptFloorPlanArrow.fromRow(OcptFloorPlanArrowRow row) => OcptFloorPlanArrow(
     id: row.id,
     setId: row.setId,
@@ -67,11 +67,11 @@ class OcptFloorPlanArrow extends Equatable {
     ctrlYM: row.ctrlYM,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptFloorPlanArrow(id: $id, setId: $setId, shotId: $shotId, kind: $kind)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

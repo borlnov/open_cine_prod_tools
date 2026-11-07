@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_resources_search.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_resources_search.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The minimum width of a row's code badge, so a column of them lines up whatever they hold.
 const double _codeBadgeMinWidth = 40;
@@ -17,7 +17,8 @@ const double _codeBadgeMinWidth = 40;
 /// The separator between the two halves of a row's own muted second line.
 const String _secondLineSeparator = " · ";
 
-/// The subset of [elements] matching [query], through [ocptResourcesSearchMatches] against every
+/// Get the subset of [elements] matching [query], through [ocptResourcesSearchMatches] against
+/// every
 /// field a row shows or that names the element: its name, its code, its sub-category, and the
 /// localized category and tracking status.
 ///
@@ -32,7 +33,7 @@ List<OcptElement> ocptFilteredElementsOf({
     if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(tr, element))) element,
 ];
 
-/// Every field of [element] a search query may match against, see [ocptFilteredElementsOf].
+/// Get every field of [element] a search query may match against, see [ocptFilteredElementsOf].
 Iterable<String> _searchFieldsOf(Tr tr, OcptElement element) => [
   element.name,
   element.code,
@@ -77,6 +78,7 @@ class OcptElementsList extends StatelessWidget {
     required this.onElementSelected,
   });
 
+  /// Build the elements list as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -92,34 +94,42 @@ class OcptElementsList extends StatelessWidget {
 
     final theme = Theme.of(context);
 
-    return ListView(
-      children: [
-        for (final category in OcptElementCategory.values)
-          if (_elementsOf(filtered, category) case final categoryElements
-              when categoryElements.isNotEmpty)
-            ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Text(
-                  ocptElementCategoryLabel(tr, category).toUpperCase(),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    letterSpacing: 0.6,
-                  ),
-                ),
-              ),
-              for (final element in categoryElements)
-                _OcptElementEntry(
-                  element: element,
-                  isSelected: element.id == selectedElementId,
-                  onTap: () => onElementSelected(element.id),
-                ),
-            ],
-      ],
+    // The headings and the elements flattened into one list, each item a category (its heading) or
+    // an element (its row), so the list builds only the rows in view.
+    final items = <Object>[
+      for (final category in OcptElementCategory.values)
+        if (_elementsOf(filtered, category) case final categoryElements
+            when categoryElements.isNotEmpty) ...[
+          category,
+          ...categoryElements,
+        ],
+    ];
+
+    return ListView.builder(
+      itemCount: items.length,
+      itemBuilder: (context, index) => switch (items[index]) {
+        final OcptElementCategory category => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Text(
+            ocptElementCategoryLabel(tr, category).toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ),
+        final OcptElement element => _OcptElementEntry(
+          element: element,
+          isSelected: element.id == selectedElementId,
+          onTap: () => onElementSelected(element.id),
+        ),
+        _ => const SizedBox.shrink(),
+      },
     );
   }
 
-  /// The elements of [category] among [elements] (the already-filtered list), in the catalogue's
+  /// Get the elements of [category] among [elements] (the already-filtered list), in the
+  /// catalogue's
   /// own order. A category holding none of them — every one of its elements filtered out, or
   /// simply having none to begin with — drops its heading too, since [elements] is what decides
   /// which headings are worth drawing at all.
@@ -141,12 +151,9 @@ class _OcptElementEntry extends StatelessWidget {
   final VoidCallback onTap;
 
   /// Class constructor
-  const _OcptElementEntry({
-    required this.element,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _OcptElementEntry({required this.element, required this.isSelected, required this.onTap});
 
+  /// Build the element entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -154,10 +161,10 @@ class _OcptElementEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -169,7 +176,7 @@ class _OcptElementEntry extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                    borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                   ),
                   child: Text(
                     element.code,
@@ -220,7 +227,8 @@ class _OcptElementEntry extends StatelessWidget {
     );
   }
 
-  /// The row's muted second line: the production's own sub-category when it gave one, then how many
+  /// Get the row's muted second line: the production's own sub-category when it gave one, then how
+  /// many
   /// of the element are needed and where it comes from.
   ///
   /// The empty halves are dropped rather than shown as a placeholder — a leading separator would

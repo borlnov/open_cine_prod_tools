@@ -37,7 +37,7 @@ class OcptBudgetAllowance extends Equatable {
   /// Free-form notes about this defrayal.
   final String notes;
 
-  /// This defrayal's position within the régie view's own flat `sortKey` order.
+  /// This defrayal's position within the logistics view's own flat `sortKey` order.
   final String sortKey;
 
   /// Class constructor
@@ -54,7 +54,7 @@ class OcptBudgetAllowance extends Equatable {
     required this.sortKey,
   });
 
-  /// Builds an [OcptBudgetAllowance] from its stored [row].
+  /// Build an [OcptBudgetAllowance] from its stored [row].
   factory OcptBudgetAllowance.fromRow(OcptBudgetAllowanceRow row) => OcptBudgetAllowance(
     id: row.id,
     personId: row.personId,
@@ -68,13 +68,13 @@ class OcptBudgetAllowance extends Equatable {
     sortKey: row.sortKey,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetAllowance(id: $id, personId: $personId, kind: $kind, label: $label, "
       "quantityMilli: $quantityMilli, unitAmountMilliCents: $unitAmountMilliCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

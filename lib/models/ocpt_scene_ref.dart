@@ -4,7 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_scene_display_number.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 
 /// A screenplay scene as another production mode refers to it: enough to name it in a picker and
 /// to match its heading, never enough to render it.
@@ -34,27 +34,7 @@ class OcptSceneRef extends Equatable {
   /// its own, and the caller (a bloc) is the one that already knows the project's episode count.
   final int? episodeNumber;
 
-  /// Class constructor
-  const OcptSceneRef({
-    required this.id,
-    required this.position,
-    required this.heading,
-    required this.sceneNumber,
-    required this.episodeNumber,
-  });
-
-  /// Builds an [OcptSceneRef] from its stored [row], carrying [episodeNumber] straight through —
-  /// see the field's own doc comment for why this factory cannot derive it itself.
-  factory OcptSceneRef.fromRow({required OcptSceneRow row, required int? episodeNumber}) =>
-      OcptSceneRef(
-        id: row.id,
-        position: row.position,
-        heading: row.heading,
-        sceneNumber: row.sceneNumber,
-        episodeNumber: episodeNumber,
-      );
-
-  /// The number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
+  /// Get the number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
   /// 1-based index among the screenplay's scenes — exactly what the styled screenplay editor
   /// displays for a heading with no explicit number, and what `OcptSceneShotSequence` derives its
   /// own `displaySceneNumber` as — prefixed with [episodeNumber] once the project holds more than
@@ -65,11 +45,31 @@ class OcptSceneRef extends Equatable {
     episodeNumber: episodeNumber,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Class constructor
+  const OcptSceneRef({
+    required this.id,
+    required this.position,
+    required this.heading,
+    required this.sceneNumber,
+    required this.episodeNumber,
+  });
+
+  /// Build an [OcptSceneRef] from its stored [row], carrying [episodeNumber] straight through —
+  /// see the field's own doc comment for why this factory cannot derive it itself.
+  factory OcptSceneRef.fromRow({required OcptSceneRow row, required int? episodeNumber}) =>
+      OcptSceneRef(
+        id: row.id,
+        position: row.position,
+        heading: row.heading,
+        sceneNumber: row.sceneNumber,
+        episodeNumber: episodeNumber,
+      );
+
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptSceneRef(id: $id, heading: $heading)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, position, heading, sceneNumber, episodeNumber];
 }

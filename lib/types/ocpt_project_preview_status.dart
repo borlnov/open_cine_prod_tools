@@ -33,7 +33,11 @@ enum OcptProjectPreviewStatus with MixinResultStatus {
   malformedPayload(isSuccess: false, canBeRetried: false),
 
   /// The version was read but its state couldn't be hydrated into an in-memory database.
-  hydrationFailed(isSuccess: false, canBeRetried: true);
+  hydrationFailed(isSuccess: false, canBeRetried: true),
+
+  /// The project file could not be read for the version: the caller stops there, with nothing to
+  /// tell the user about the version itself. The `extraInfo` is the type of what failed.
+  databaseError(isSuccess: false, canBeRetried: true);
 
   /// {@macro act_dart_result.MixinResultStatus.isSuccess}
   @override

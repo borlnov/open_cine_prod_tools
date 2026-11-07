@@ -10,13 +10,13 @@ import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 /// `OcptContactListPdfService` runs in the manager layer, where there is no `BuildContext` and
 /// therefore no `Tr`: the same reason `OcptBreakdownSheetsLabels` and `OcptResourcesXlsxLabels`
 /// already exist for the two exports before it. The UI builds this once through
-/// `ocptContactListLabelsOf`, which reuses the very `ocptCrewDepartmentLabel`/`ocptCrewPositionLabel`
-/// helpers the resources mode's own person sheet calls, so a printed department or position can
-/// never read differently from the screen.
+/// `ocptContactListLabelsOf`, which reuses the very
+/// `ocptCrewDepartmentLabel`/`ocptCrewPositionLabel` helpers the resources mode's own person sheet
+/// calls, so a printed department or position can never read differently from the screen.
 ///
 /// Every accessor returns an empty string for a key it holds nothing for, exactly as
-/// `OcptResourcesXlsxLabels`'s own accessors do: a missing translation prints as a blank rather than
-/// as a crash on a document a whole crew is waiting for.
+/// `OcptResourcesXlsxLabels`'s own accessors do: a missing translation prints as a blank rather
+/// than as a crash on a document a whole crew is waiting for.
 class OcptContactListLabels extends Equatable {
   /// The suffix the suggested file name is built with (`<project> - <suffix>.pdf`).
   final String fileNameSuffix;
@@ -83,18 +83,18 @@ class OcptContactListLabels extends Equatable {
     required this.emptyDocumentNote,
   });
 
-  /// The label of [department], or an empty string if [crewDepartmentLabels] holds none for it.
-  String crewDepartmentLabelOf(OcptCrewDepartment department) => crewDepartmentLabels[department] ?? "";
+  /// Get the label of [department], or an empty string if [crewDepartmentLabels] holds none for it.
+  String crewDepartmentLabelOf(OcptCrewDepartment department) =>
+      crewDepartmentLabels[department] ?? "";
 
-  /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
-  /// holds none for it.
+  /// {@macro open_cine_prod_tools.crewPositionLabelGetter}
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptContactListLabels(documentTitle: $documentTitle)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

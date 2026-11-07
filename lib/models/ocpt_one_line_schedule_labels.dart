@@ -38,8 +38,8 @@ class OcptOneLineScheduleLabels extends Equatable {
   /// own `ocptScheduleGeneratedAtStamp` behind.
   final String versionLabel;
 
-  /// The day tag's own letter (`D`/`J`), printed on each day band beside that day's rank, exactly as
-  /// `OcptShootingPlanLabels.dayTagPrefix` already is.
+  /// The day tag's own letter (`D`/`J`), printed on each day band beside that day's rank, exactly
+  /// as `OcptShootingPlanLabels.dayTagPrefix` already is.
   final String dayTagPrefix;
 
   /// Each printed day's own full title, keyed by `OcptShootingDay.id` — the day band's own second
@@ -54,7 +54,7 @@ class OcptOneLineScheduleLabels extends Equatable {
   final String effectHeader;
 
   /// The main table's own `DÉCOR` column header.
-  final String decorHeader;
+  final String setHeader;
 
   /// The main table's own `RÔLES` column header.
   final String rolesHeader;
@@ -83,7 +83,7 @@ class OcptOneLineScheduleLabels extends Equatable {
     required this.dayTitles,
     required this.seqHeader,
     required this.effectHeader,
-    required this.decorHeader,
+    required this.setHeader,
     required this.rolesHeader,
     required this.durationHeader,
     required this.noLocationLabel,
@@ -91,14 +91,15 @@ class OcptOneLineScheduleLabels extends Equatable {
     required this.emptyDocumentNote,
   });
 
-  /// The title of the day [dayId], or an empty string if [dayTitles] holds none for it.
+  /// Get the title of the day [dayId], or an empty string if [dayTitles] holds none for it.
   String titleOfDay(String dayId) => dayTitles[dayId] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
-  String toString() => "OcptOneLineScheduleLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
+  String toString() =>
+      "OcptOneLineScheduleLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,
@@ -109,7 +110,7 @@ class OcptOneLineScheduleLabels extends Equatable {
     dayTitles,
     seqHeader,
     effectHeader,
-    decorHeader,
+    setHeader,
     rolesHeader,
     durationHeader,
     noLocationLabel,

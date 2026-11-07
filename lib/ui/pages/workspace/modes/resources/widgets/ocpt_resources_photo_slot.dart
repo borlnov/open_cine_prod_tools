@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dashed_rounded_rect_painter.dart';
@@ -69,6 +69,7 @@ class OcptResourcesPhotoSlot extends StatelessWidget {
     required this.onColorChanged,
   });
 
+  /// Build the resources photo slot.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -77,7 +78,7 @@ class OcptResourcesPhotoSlot extends StatelessWidget {
     final onColorChanged = this.onColorChanged;
 
     final content = ClipRRect(
-      borderRadius: BorderRadius.circular(ocptRadiusLarge),
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       child: SizedBox(
         width: ocptPhotoSlotSize.width,
         height: ocptPhotoSlotSize.height,
@@ -115,7 +116,8 @@ class OcptResourcesPhotoSlot extends StatelessWidget {
   }
 }
 
-/// The [MenuAnchor] popover [OcptResourcesPhotoSlot] opens: the two photo entries, then the palette.
+/// The [MenuAnchor] popover [OcptResourcesPhotoSlot] opens: the two photo entries, then the
+/// palette.
 class _OcptPhotoSlotMenu extends StatelessWidget {
   /// Whether a photo is referenced, which is what decides the wording of the first entry and
   /// whether the second one exists at all.
@@ -150,6 +152,7 @@ class _OcptPhotoSlotMenu extends StatelessWidget {
     required this.slot,
   });
 
+  /// Build the photo slot menu as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -184,8 +187,8 @@ class _OcptPhotoSlotMenu extends StatelessWidget {
         message: showsColors ? tr.resourcesPhotoSlotTooltip : tr.resourcesPhotoSlotPhotoOnlyTooltip,
         child: InkWell(
           onTap: () => controller.isOpen ? controller.close() : controller.open(),
-          mouseCursor: ocptClickableCursor,
-          borderRadius: BorderRadius.circular(ocptRadiusLarge),
+          mouseCursor: ocpt_theme.ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
           child: slot,
         ),
       ),

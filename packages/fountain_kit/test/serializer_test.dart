@@ -7,7 +7,10 @@ import 'package:fountain_kit/src/parser/fountain_parser.dart';
 import 'package:fountain_kit/src/serializer/fountain_serializer.dart';
 import 'package:test/test.dart';
 
+/// The parser turning the test sources into documents.
 const FountainParser _parser = FountainParser();
+
+/// The serializer turning documents back into source.
 const FountainSerializer _serializer = FountainSerializer();
 
 /// Asserts that parsing [source], writing it back out, and parsing that
@@ -21,6 +24,7 @@ void _expectRoundTrips(String source) {
   expect(reparsed.titlePage, original.titlePage);
 }
 
+/// Run the tests of the serializer.
 void main() {
   group('individual elements round-trip', () {
     test('scene heading', () {
@@ -92,9 +96,7 @@ void main() {
     });
 
     test('boneyard comment', () {
-      _expectRoundTrips(
-        'Action before.\n\n/* cut for pacing */\n\nAction after.\n',
-      );
+      _expectRoundTrips('Action before.\n\n/* cut for pacing */\n\nAction after.\n');
     });
 
     test('page break', () {
@@ -104,9 +106,7 @@ void main() {
 
   group('title page round-trips', () {
     test('single-line values', () {
-      _expectRoundTrips(
-        'Title: My Screenplay\nCredit: written by\n\nINT. HOUSE - DAY\n',
-      );
+      _expectRoundTrips('Title: My Screenplay\nCredit: written by\n\nINT. HOUSE - DAY\n');
     });
 
     test('multi-line values', () {
@@ -117,17 +117,14 @@ void main() {
   });
 
   group('writer output shape', () {
-    test(
-      'produces text a scene heading is recognizable from without forcing',
-      () {
-        final document = _parser.parse('INT. KITCHEN - DAY\n\nAction.\n');
-        final written = _serializer.write(document);
-        final heading = document.blocks.first as FountainSceneHeading;
-        expect(heading.forcedMarker, isFalse);
-        expect(written, contains('INT. KITCHEN - DAY'));
-        expect(written, isNot(contains('.INT. KITCHEN - DAY')));
-      },
-    );
+    test('produces text a scene heading is recognizable from without forcing', () {
+      final document = _parser.parse('INT. KITCHEN - DAY\n\nAction.\n');
+      final written = _serializer.write(document);
+      final heading = document.blocks.first as FountainSceneHeading;
+      expect(heading.forcedMarker, isFalse);
+      expect(written, contains('INT. KITCHEN - DAY'));
+      expect(written, isNot(contains('.INT. KITCHEN - DAY')));
+    });
 
     test('re-forces a character cue whose name is not all uppercase', () {
       final document = _parser.parse('@McCLANE\nYippee-ki-yay.\n');

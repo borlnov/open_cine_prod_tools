@@ -6,7 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 
@@ -38,6 +38,8 @@ class OcptRepointingConfigureView extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptRepointingConfigureViewState] holding the state of the repointing configure
+  /// view.
   @override
   State<OcptRepointingConfigureView> createState() => _OcptRepointingConfigureViewState();
 }
@@ -53,9 +55,8 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
   /// Whether the enrolment secret is currently shown in the clear.
   bool _isSecretVisible = false;
 
-  /// The relay address's own validation message, or null while it hasn't been submitted invalid
-  /// yet.
-  String? _relayAddressError;
+  /// Whether the relay address was last submitted invalid, and has not been edited since.
+  bool _isRelayAddressInvalid = false;
 
   /// Whether the camera scanner is currently shown in place of the manual form — mobile only, the
   /// first operator on a desktop always types the two fields.
@@ -66,13 +67,7 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
   /// reports its very first detection back (see [_OcptRepointingScannerCard]'s own doc comment).
   int _scannerGeneration = 0;
 
-  @override
-  void dispose() {
-    _relayAddressController.dispose();
-    _enrolmentSecretController.dispose();
-    super.dispose();
-  }
-
+  /// Build the repointing configure view as a [Center].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -118,13 +113,15 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
                           decoration: InputDecoration(
                             labelText: tr.repointingRelayAddressLabel,
                             hintText: tr.repointingRelayAddressHint,
-                            errorText: _relayAddressError,
+                            errorText: _isRelayAddressInvalid
+                                ? tr.repointingRelayAddressInvalidMessage
+                                : null,
                           ),
                           keyboardType: TextInputType.url,
                           enabled: !widget.isRepointing,
                           onChanged: (_) {
-                            if (_relayAddressError != null) {
-                              setState(() => _relayAddressError = null);
+                            if (_isRelayAddressInvalid) {
+                              setState(() => _isRelayAddressInvalid = false);
                             }
                           },
                         ),
@@ -139,9 +136,8 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
                               icon: Icon(
                                 _isSecretVisible ? Icons.visibility_off : Icons.visibility,
                               ),
-                              mouseCursor: ocptClickableCursor,
-                              onPressed: () =>
-                                  setState(() => _isSecretVisible = !_isSecretVisible),
+                              mouseCursor: ocpt_theme.ocptClickableCursor,
+                              onPressed: () => setState(() => _isSecretVisible = !_isSecretVisible),
                             ),
                           ),
                         ),
@@ -178,28 +174,28 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
     );
   }
 
-  /// Validates the relay address, showing [_relayAddressError] and dispatching nothing when it
-  /// isn't a well-formed absolute URI, otherwise calling
+  /// Validate the relay address, showing the invalid-address message and dispatching nothing when
+  /// it isn't a well-formed absolute URI, otherwise calling
   /// [OcptRepointingConfigureView.onRepointRequested].
   void _onSubmitPressed() {
     final text = _relayAddressController.text.trim();
     final uri = Uri.tryParse(text);
     if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-      setState(() => _relayAddressError = Tr.of(context).repointingRelayAddressInvalidMessage);
+      setState(() => _isRelayAddressInvalid = true);
       return;
     }
 
-    setState(() => _relayAddressError = null);
+    setState(() => _isRelayAddressInvalid = false);
     widget.onRepointRequested(uri, _enrolmentSecretController.text);
   }
 
-  /// Handles a QR code scanned by [_OcptRepointingScannerCard]: a code that isn't a relay
+  /// Handle a QR code scanned by [_OcptRepointingScannerCard]: a code that isn't a relay
   /// enrolment is ignored and the scanner re-armed for another attempt
   /// ([_scannerGeneration]) — never a crash — while a valid one fills the two fields and submits
   /// straight away, exactly as scanning the Partager screen's own invite QR joins straight away
   /// with no extra confirmation step.
   void _onScanned(String scannedText) {
-    final enrolment = OcptRelayEnrolment.tryParse(scannedText);
+    final enrolment = OcptRelayEnrolment.parse(scannedText).value;
     if (enrolment == null) {
       setState(() => _scannerGeneration++);
       return;
@@ -209,6 +205,14 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
     _enrolmentSecretController.text = enrolment.enrolmentSecret;
     setState(() => _isScanning = false);
     widget.onRepointRequested(enrolment.relayBaseUri, enrolment.enrolmentSecret);
+  }
+
+  /// Dispose [_relayAddressController] and [_enrolmentSecretController].
+  @override
+  void dispose() {
+    _relayAddressController.dispose();
+    _enrolmentSecretController.dispose();
+    super.dispose();
   }
 }
 
@@ -227,6 +231,7 @@ class _OcptRepointingScannerCard extends StatefulWidget {
   /// Class constructor
   const _OcptRepointingScannerCard({required this.onScanned, super.key});
 
+  /// Create the [_OcptRepointingScannerCardState] holding the state of the repointing scanner card.
   @override
   State<_OcptRepointingScannerCard> createState() => _OcptRepointingScannerCardState();
 }
@@ -239,6 +244,7 @@ class _OcptRepointingScannerCardState extends State<_OcptRepointingScannerCard> 
   /// parent's own generation counter, re-arms it).
   bool _hasScanned = false;
 
+  /// Build the repointing scanner card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -262,8 +268,8 @@ class _OcptRepointingScannerCardState extends State<_OcptRepointingScannerCard> 
     );
   }
 
-  /// Reports the first detected barcode's raw value to [_OcptRepointingScannerCard.onScanned], then
-  /// ignores every further detection — `OcptJoiningScannerView._onDetect`'s own reasoning.
+  /// Report the first detected barcode's raw value to [_OcptRepointingScannerCard.onScanned], then
+  /// ignore every further detection — `OcptJoiningScannerView._onDetect`'s own reasoning.
   void _onDetect(BarcodeCapture capture) {
     if (_hasScanned) {
       return;

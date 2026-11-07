@@ -17,8 +17,8 @@ const String _dash = '—';
 /// page-eighths (the unit assistant directors use). Shows an empty state instead when the caret
 /// precedes every scene (or nothing is parsed yet).
 ///
-/// Purely presentational: `EditorPage` is the only caller, and it already recomputes [statistics]
-/// on `OcptEditorBloc`'s parse debounce, never on every keystroke (see
+/// Purely presentational: `OcptEditorPage` is the only caller, and it already recomputes
+/// [statistics] on `OcptEditorBloc`'s parse debounce, never on every keystroke (see
 /// `OcptEditorState.sceneStatistics`).
 class OcptEditorInspectorPanel extends StatelessWidget {
   /// The scene under the caret, or null while there is none (the empty state).
@@ -39,6 +39,7 @@ class OcptEditorInspectorPanel extends StatelessWidget {
     required this.statistics,
   });
 
+  /// Build the editor inspector panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -64,14 +65,19 @@ class OcptEditorInspectorPanel extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: Text(tr.editorInspectorSceneTitle(sceneOrdinal), style: theme.textTheme.titleSmall),
+          child: Text(
+            tr.editorInspectorSceneTitle(sceneOrdinal),
+            style: theme.textTheme.titleSmall,
+          ),
         ),
         if (sceneNumber != null)
           OcptEditorDockField(label: tr.editorInspectorNumberLabel, value: sceneNumber),
         OcptEditorDockField(label: tr.editorInspectorHeadingLabel, value: scene.headingText),
         OcptEditorDockField(
           label: tr.editorInspectorCharactersLabel,
-          value: statistics.speakingCharacters.isEmpty ? _dash : statistics.speakingCharacters.join(', '),
+          value: statistics.speakingCharacters.isEmpty
+              ? _dash
+              : statistics.speakingCharacters.join(', '),
         ),
         OcptEditorDockField(
           label: tr.editorInspectorDurationLabel,
@@ -85,7 +91,8 @@ class OcptEditorInspectorPanel extends StatelessWidget {
     );
   }
 
-  /// The estimated duration of [pageEighths] worth of screenplay, on the industry rule of one page
+  /// Get the estimated duration of [pageEighths] worth of screenplay, on the industry rule of one
+  /// page
   /// ≈ one minute, rounded to the nearest minute (never displayed as zero for a non-empty scene).
   static String _durationText(Tr tr, int pageEighths) {
     if (pageEighths <= 0) {
@@ -95,7 +102,7 @@ class OcptEditorInspectorPanel extends StatelessWidget {
     return tr.editorInspectorDurationEstimate(minutes < 1 ? 1 : minutes);
   }
 
-  /// The mixed-number page-eighths display assistant directors use: a whole page count, its
+  /// Get the mixed-number page-eighths display assistant directors use: a whole page count, its
   /// eighths remainder, or both, whichever [pageEighths] actually has.
   static String _pageLengthText(Tr tr, int pageEighths) {
     final whole = pageEighths ~/ 8;

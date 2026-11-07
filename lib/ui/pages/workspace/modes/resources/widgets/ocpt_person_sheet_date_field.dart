@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// One editable date field of the person sheet (a date of birth, an image rights date): a label
@@ -39,6 +39,7 @@ class OcptPersonSheetDateField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the person sheet date field as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -59,8 +60,8 @@ class OcptPersonSheetDateField extends StatelessWidget {
         const SizedBox(height: 4),
         InkWell(
           onTap: onChanged == null ? null : () => _pickDate(context, onChanged),
-          mouseCursor: ocptClickableCursor,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          mouseCursor: ocpt_theme.ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           child: InputDecorator(
             decoration: InputDecoration(
               isDense: true,
@@ -81,7 +82,7 @@ class OcptPersonSheetDateField extends StatelessWidget {
     );
   }
 
-  /// Opens the platform date picker seeded with [value] (or today, while unset), reporting the
+  /// Open the platform date picker seeded with [value] (or today, while unset), reporting the
   /// pick to [onChanged]. Does nothing when the picker is dismissed with no pick.
   Future<void> _pickDate(BuildContext context, ValueChanged<DateTime?> onChanged) async {
     final now = DateTime.now();

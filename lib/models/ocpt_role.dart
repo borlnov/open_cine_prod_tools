@@ -59,7 +59,7 @@ class OcptRole extends Equatable {
     required this.episodeIds,
   });
 
-  /// Builds an [OcptRole] from its stored [row], its 1-based [number] in `sortKey` order, and its
+  /// Build an [OcptRole] from its stored [row], its 1-based [number] in `sortKey` order, and its
   /// [episodeIds]: neither is a column on the row itself, exactly as [number] is not.
   factory OcptRole.fromRow({
     required OcptRoleRow row,
@@ -77,11 +77,11 @@ class OcptRole extends Equatable {
     episodeIds: episodeIds,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptRole(id: $id, number: $number, name: $name)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

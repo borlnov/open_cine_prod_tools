@@ -7,16 +7,13 @@ import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:script_import_kit/src/models/script_import_exception.dart';
+import 'package:script_import_kit/src/models/script_import_failure.dart';
 import 'package:script_import_kit/src/readers/fdx_script_reader.dart';
 import 'package:test/test.dart';
 
 /// Wraps [content] (and, when given, [titlePage]) in a Final Draft document
 /// envelope declaring [documentType].
-String _fdx(
-  String content, {
-  String titlePage = '',
-  String documentType = 'Script',
-}) {
+String _fdx(String content, {String titlePage = '', String documentType = 'Script'}) {
   final titlePageBlock = titlePage.isEmpty
       ? ''
       : '<TitlePage><Content>\n$titlePage\n</Content></TitlePage>\n';
@@ -31,8 +28,7 @@ $titlePageBlock</FinalDraft>
 }
 
 /// Reads [xml] with a fresh [FdxScriptReader].
-String _read(String xml) =>
-    const FdxScriptReader().read(Uint8List.fromList(utf8.encode(xml)));
+String _read(String xml) => const FdxScriptReader().read(Uint8List.fromList(utf8.encode(xml)));
 
 /// Reads [content], wrapped in a document envelope, as Fountain body text.
 String _readBody(String content) => _read(_fdx(content));
@@ -47,7 +43,8 @@ String _styledAction(String style, String text) =>
     '<Paragraph Type="Action"><Text Style="$style">$text</Text></Paragraph>';
 
 /// A `<DualDialogue>` group of two characters saying the same thing.
-String _dualDialogueGroup() => '''
+String _dualDialogueGroup() =>
+    '''
 <Paragraph><DualDialogue>
 ${_paragraph('Character', 'BRICK')}
 ${_paragraph('Dialogue', 'Screw retirement.')}
@@ -57,36 +54,32 @@ ${_paragraph('Dialogue', 'Screw retirement.')}
 
 /// The [ScriptImportFailure] the [FdxScriptReader] throws on [xml].
 ScriptImportFailure _failureOf(String xml) {
+  ScriptImportFailure? failure;
   try {
     _read(xml);
   } on ScriptImportException catch (exception) {
-    return exception.failure;
+    failure = exception.failure;
   }
-  fail('reading the document was expected to throw');
+  if (failure == null) {
+    fail('reading the document was expected to throw');
+  }
+  return failure;
 }
 
+/// Run the tests of [FdxScriptReader].
 void main() {
   group('paragraph types', () {
     test('a scene heading keeps its INT./EXT. form', () {
-      expect(
-        _readBody(_paragraph('Scene Heading', 'INT. KITCHEN - DAY')),
-        'INT. KITCHEN - DAY\n',
-      );
+      expect(_readBody(_paragraph('Scene Heading', 'INT. KITCHEN - DAY')), 'INT. KITCHEN - DAY\n');
     });
 
     test('a scene heading carries its Number attribute as a "#N#" tag', () {
       final text = _readBody(
-        _paragraph(
-          'Scene Heading',
-          'INT. KITCHEN - DAY',
-          attributes: ' Number="4A"',
-        ),
+        _paragraph('Scene Heading', 'INT. KITCHEN - DAY', attributes: ' Number="4A"'),
       );
 
       expect(text, 'INT. KITCHEN - DAY #4A#\n');
-      final heading =
-          const FountainParser().parse(text).blocks.single
-              as FountainSceneHeading;
+      final heading = const FountainParser().parse(text).blocks.single as FountainSceneHeading;
       expect(heading.sceneNumber, '4A');
       expect(heading.headingText, 'INT. KITCHEN - DAY');
     });
@@ -149,10 +142,7 @@ CUT TO:
     test('an act break becomes centered text', () {
       expect(
         _readBody(
-          [
-            _paragraph('New Act', 'ACT ONE'),
-            _paragraph('End of Act', 'END OF ACT ONE'),
-          ].join('\n'),
+          [_paragraph('New Act', 'ACT ONE'), _paragraph('End of Act', 'END OF ACT ONE')].join('\n'),
         ),
         '''
 > ACT ONE <
@@ -203,10 +193,7 @@ She leaves.
     });
 
     test('a style Fountain has no marker for is dropped, its text kept', () {
-      expect(
-        _readBody(_styledAction('Strikeout+AllCaps', 'She waits.')),
-        'She waits.\n',
-      );
+      expect(_readBody(_styledAction('Strikeout+AllCaps', 'She waits.')), 'She waits.\n');
     });
 
     test('the outer whitespace of a paragraph is trimmed, the inner kept', () {
@@ -233,10 +220,7 @@ Screw retirement.
 STEEL ^
 Screw retirement.
 ''');
-      final groups = const FountainParser()
-          .parse(text)
-          .blocks
-          .cast<FountainDialogueGroup>();
+      final groups = const FountainParser().parse(text).blocks.cast<FountainDialogueGroup>();
       expect(groups.map((group) => group.isDualDialogue), [false, true]);
     });
   });
@@ -319,10 +303,7 @@ She waits.
       expect(titlePage.entry('Credit')?.joinedValue, 'Scénario de');
       expect(titlePage.entry('Author')?.joinedValue, 'Jeanne Dupont');
       expect(titlePage.entry('Draft date')?.joinedValue, 'Version 3');
-      expect(
-        titlePage.entry('Source')?.joinedValue,
-        "D'après le roman de Jean Roux",
-      );
+      expect(titlePage.entry('Source')?.joinedValue, "D'après le roman de Jean Roux");
       expect(titlePage.entry('Contact'), isNull);
     });
 
@@ -350,12 +331,7 @@ She waits.
   group('refused documents', () {
     test('a document type other than a script is unsupported', () {
       expect(
-        _failureOf(
-          _fdx(
-            _paragraph('Action', 'She waits.'),
-            documentType: 'ScriptNotes',
-          ),
-        ),
+        _failureOf(_fdx(_paragraph('Action', 'She waits.'), documentType: 'ScriptNotes')),
         ScriptImportFailure.unsupportedFormat,
       );
     });
@@ -391,11 +367,7 @@ She waits.
       final text = _read(
         _fdx(
           [
-            _paragraph(
-              'Scene Heading',
-              'INT. KITCHEN - DAY',
-              attributes: ' Number="1"',
-            ),
+            _paragraph('Scene Heading', 'INT. KITCHEN - DAY', attributes: ' Number="1"'),
             _paragraph('Action', 'Sarah stares at the kettle.'),
             _paragraph('Character', 'SARAH (V.O.)'),
             _paragraph('Parenthetical', '(to herself)'),
@@ -440,10 +412,7 @@ She waits.
       // and the action line opening on `INT.` stayed prose rather than
       // turning into a scene heading: the two things a forcing marker,
       // or the lack of one, is there to decide.
-      expect(
-        (document.blocks[3] as FountainActionBlock).lines.single,
-        'ANGLE ON THE DOOR',
-      );
+      expect((document.blocks[3] as FountainActionBlock).lines.single, 'ANGLE ON THE DOOR');
       expect(
         (document.blocks[4] as FountainActionBlock).lines.single,
         'INT. is how this one starts.',
@@ -451,26 +420,18 @@ She waits.
 
       final lowerCaseCue = document.blocks[5] as FountainDialogueGroup;
       expect(lowerCaseCue.character.name, 'Sarah');
-      expect(
-        (lowerCaseCue.children.single as FountainDialogueLine).text,
-        'GET OUT.',
-      );
+      expect((lowerCaseCue.children.single as FountainDialogueLine).text, 'GET OUT.');
 
       expect((document.blocks[6] as FountainCenteredText).text, 'ACT TWO');
       expect((document.blocks[7] as FountainTransition).text, 'FADE OUT.');
-      expect(
-        (document.blocks[9] as FountainDialogueGroup).isDualDialogue,
-        isTrue,
-      );
+      expect((document.blocks[9] as FountainDialogueGroup).isDualDialogue, isTrue);
     });
   });
 
   group('bytes', () {
     test('a byte order mark and CRLF endings are absorbed', () {
       final xml = _fdx(_paragraph('Action', 'She waits.'));
-      final bytes = Uint8List.fromList(
-        utf8.encode('\u{FEFF}${xml.replaceAll('\n', '\r\n')}'),
-      );
+      final bytes = Uint8List.fromList(utf8.encode('\u{FEFF}${xml.replaceAll('\n', '\r\n')}'));
 
       expect(const FdxScriptReader().read(bytes), 'She waits.\n');
     });

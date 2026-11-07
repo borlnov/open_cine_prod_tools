@@ -34,9 +34,10 @@ class OcptShotListXlsxLabels extends Equatable {
   /// resolved sequence by sequence by the caller rather than formatted here.
   final Map<String, String> sequenceTitles;
 
-  /// The single letter printed before a shooting day's rank (`D3`/`J3`) — `Tr.scheduleDayTagPrefix`,
-  /// resolved by the caller since there is no `Tr` here, and reused rather than reimplemented so a
-  /// placement cell never disagrees with the shot list's own `ocptScheduleDayTagLabel` read-out.
+  /// The single letter printed before a shooting day's rank (`D3`/`J3`) —
+  /// `Tr.scheduleDayTagPrefix`, resolved by the caller since there is no `Tr` here, and reused
+  /// rather than reimplemented so a placement cell never disagrees with the shot list's own
+  /// `ocptScheduleDayTagLabel` read-out.
   final String dayTagPrefix;
 
   /// Class constructor
@@ -48,21 +49,21 @@ class OcptShotListXlsxLabels extends Equatable {
     required this.dayTagPrefix,
   });
 
-  /// The header of [column], or an empty string if [columnHeaders] holds none for it.
+  /// Get the header of [column], or an empty string if [columnHeaders] holds none for it.
   String headerOf(OcptShotListXlsxColumn column) => columnHeaders[column] ?? "";
 
-  /// The label of [status], or an empty string if [statusLabels] holds none for it.
+  /// Get the label of [status], or an empty string if [statusLabels] holds none for it.
   String labelOf(OcptShotStatus status) => statusLabels[status] ?? "";
 
-  /// The separator row title of the sequence [sequenceId], or an empty string if
+  /// Get the separator row title of the sequence [sequenceId], or an empty string if
   /// [sequenceTitles] holds none for it.
   String titleOfSequence(String sequenceId) => sequenceTitles[sequenceId] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptShotListXlsxLabels(sheetName: $sheetName)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [sheetName, columnHeaders, statusLabels, sequenceTitles, dayTagPrefix];
 }

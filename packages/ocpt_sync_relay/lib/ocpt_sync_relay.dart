@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// The domain-blind sync relay (`docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md`):
-/// a self-hostable server speaking `package:ocpt_sync_protocol` over storage that only ever holds
-/// opaque payloads.
+/// The domain-blind sync relay
+/// (`docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md`): a self-hostable server
+/// speaking `package:ocpt_sync_protocol` over storage that only ever holds opaque payloads.
 ///
 /// This library contains no table name and no domain type — see each file's own doc comment for
 /// what that means for it. It has no Flutter dependency; storage is a plain `sqlite3` database
@@ -12,9 +12,9 @@
 /// entrypoint that serves it over a real socket, built on `buildRelayServerFromEnvironment`.
 library;
 
-export 'src/ocpt_relay_environment.dart';
-export 'src/ocpt_relay_reconcile_command.dart';
-export 'src/ocpt_relay_reconciler.dart';
-export 'src/ocpt_relay_server.dart';
-export 'src/ocpt_relay_store.dart';
-export 'src/ocpt_relay_upstream_client.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_environment.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_reconcile_command.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_reconciler.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_server.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_store.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_upstream_client.dart';

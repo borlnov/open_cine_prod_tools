@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_contact_list_export_options.dart';
@@ -32,7 +32,12 @@ class OcptContactListExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptContactListExportDialog({required this.current, super.key});
 
-  /// Shows the dialog and returns the [OcptContactListExportOptions] the user applied, or null if
+  /// Create the [_OcptContactListExportDialogState] holding the state of the contact list export
+  /// dialog.
+  @override
+  State<OcptContactListExportDialog> createState() => _OcptContactListExportDialogState();
+
+  /// Show the dialog and return the [OcptContactListExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptContactListExportOptions?> show(
     BuildContext context, {
@@ -41,9 +46,6 @@ class OcptContactListExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptContactListExportDialog(current: current),
   );
-
-  @override
-  State<OcptContactListExportDialog> createState() => _OcptContactListExportDialogState();
 }
 
 /// The state of [OcptContactListExportDialog].
@@ -51,12 +53,14 @@ class _OcptContactListExportDialogState extends State<OcptContactListExportDialo
   /// The page format currently selected in the dropdown.
   late OcptPageFormat _selectedFormat;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedFormat = widget.current.format;
   }
 
+  /// Build the contact list export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -71,7 +75,7 @@ class _OcptContactListExportDialogState extends State<OcptContactListExportDialo
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -96,15 +100,15 @@ class _OcptContactListExportDialogState extends State<OcptContactListExportDialo
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptContactListExportOptions].
+  /// Pop the dialog returning the resulting [OcptContactListExportOptions].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptContactListExportDialog.show] caller.
   void _submit() {

@@ -4,16 +4,19 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_frame.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_status.dart';
 
 /// Wraps [child] with the app theme, exactly `ocpt_hosting_panel_test.dart`'s own `_wrap` —
 /// `OcptJoiningScanFrame` is pumped directly here, never `OcptJoiningScannerView`: `MobileScanner`
 /// cannot be instantiated under `flutter test` at all, which is the whole reason the coloured
 /// border was pulled out into its own, camera-free widget.
-Widget _wrap(Widget child) =>
-    MaterialApp(theme: ocptTheme.lightThemeData, home: Scaffold(body: child));
+Widget _wrap(Widget child) => MaterialApp(
+  theme: ocpt_theme.ocptTheme.lightThemeData,
+  home: Scaffold(body: child),
+);
 
 /// Reads [OcptJoiningScanFrame]'s own border colour off the `AnimatedContainer` it builds.
 Color _borderColor(WidgetTester tester) {
@@ -22,6 +25,7 @@ Color _borderColor(WidgetTester tester) {
   return decoration.border!.top.color;
 }
 
+/// Run the tests of [OcptJoiningScanFrame].
 void main() {
   testWidgets("idle status paints the theme's own outline colour", (tester) async {
     await tester.pumpWidget(

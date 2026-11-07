@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
@@ -27,6 +27,7 @@ class OcptProjectSettingsPageFormatSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings page format section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -52,7 +53,7 @@ class OcptProjectSettingsPageFormatSection extends StatelessWidget {
                       onPageFormatChanged(value);
                     }
                   },
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   items: [
                     for (final format in OcptPageFormat.values)
                       DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -66,7 +67,7 @@ class OcptProjectSettingsPageFormatSection extends StatelessWidget {
     );
   }
 
-  /// The localized label of [format], the same wording `OcptEditorPageSetupDialog` uses.
+  /// Get the localized label of [format], the same wording `OcptEditorPageSetupDialog` uses.
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,

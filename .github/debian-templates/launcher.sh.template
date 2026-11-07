@@ -1,4 +1,8 @@
 #!/bin/bash
 # Launcher script for {{APP_NAME}}
 
+set -euo pipefail
+
+# The {{...}} placeholders are filled in when the package is built.
+# shellcheck disable=SC1083
 exec /usr/lib/{{PACKAGE_NAME}}/{{EXECUTABLE_NAME}} "$@"

@@ -30,7 +30,7 @@ class OcptBudgetMileageRate extends Equatable {
     required this.sortKey,
   });
 
-  /// Builds an [OcptBudgetMileageRate] from its stored [row].
+  /// Build an [OcptBudgetMileageRate] from its stored [row].
   factory OcptBudgetMileageRate.fromRow(OcptBudgetMileageRateRow row) => OcptBudgetMileageRate(
     id: row.id,
     label: row.label,
@@ -38,13 +38,13 @@ class OcptBudgetMileageRate extends Equatable {
     sortKey: row.sortKey,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetMileageRate(id: $id, label: $label, "
       "ratePerKmMilliCents: $ratePerKmMilliCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, label, ratePerKmMilliCents, sortKey];
 }

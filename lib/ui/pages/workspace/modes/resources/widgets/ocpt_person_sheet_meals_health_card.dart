@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_skill.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
@@ -50,6 +51,7 @@ class OcptPersonSheetMealsHealthCard extends StatelessWidget {
     required this.onSkillRemoved,
   });
 
+  /// Build the person sheet meals health card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -86,7 +88,8 @@ class OcptPersonSheetMealsHealthCard extends StatelessWidget {
     );
   }
 
-  /// The `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or null
+  /// Get the `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or
+  /// null
   /// while the sheet may not be written to.
   ValueChanged<String>? _onFieldChangedOrNull(OcptPersonField field) {
     final onFieldChanged = this.onFieldChanged;
@@ -112,8 +115,13 @@ class _OcptPersonSkillChips extends StatefulWidget {
   final ValueChanged<String>? onRemoved;
 
   /// Class constructor
-  const _OcptPersonSkillChips({required this.skills, required this.onAdded, required this.onRemoved});
+  const _OcptPersonSkillChips({
+    required this.skills,
+    required this.onAdded,
+    required this.onRemoved,
+  });
 
+  /// Create the [_OcptPersonSkillChipsState] holding the state of the person skill chips.
   @override
   State<_OcptPersonSkillChips> createState() => _OcptPersonSkillChipsState();
 }
@@ -129,29 +137,7 @@ class _OcptPersonSkillChipsState extends State<_OcptPersonSkillChips> {
   /// Whether the inline add field is currently shown in place of the `+` affordance.
   bool _isAdding = false;
 
-  @override
-  void dispose() {
-    _addController.dispose();
-    _addFocusNode.dispose();
-    super.dispose();
-  }
-
-  /// Shows the inline add field and gives it the focus.
-  void _startAdding() {
-    setState(() => _isAdding = true);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _addFocusNode.requestFocus());
-  }
-
-  /// Submits whatever the add field currently holds, if not blank, then hides it again.
-  void _submit() {
-    final label = _addController.text.trim();
-    if (label.isNotEmpty) {
-      widget.onAdded?.call(label);
-    }
-    _addController.clear();
-    setState(() => _isAdding = false);
-  }
-
+  /// Build the person skill chips as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -185,6 +171,30 @@ class _OcptPersonSkillChipsState extends State<_OcptPersonSkillChips> {
       ],
     );
   }
+
+  /// Show the inline add field and give it the focus.
+  void _startAdding() {
+    setState(() => _isAdding = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _addFocusNode.requestFocus());
+  }
+
+  /// Submit whatever the add field currently holds, if not blank, then hide it again.
+  void _submit() {
+    final label = _addController.text.trim();
+    if (label.isNotEmpty) {
+      widget.onAdded?.call(label);
+    }
+    _addController.clear();
+    setState(() => _isAdding = false);
+  }
+
+  /// Dispose [_addController] and [_addFocusNode].
+  @override
+  void dispose() {
+    _addController.dispose();
+    _addFocusNode.dispose();
+    super.dispose();
+  }
 }
 
 /// One removable skill chip.
@@ -199,6 +209,7 @@ class _OcptSkillChip extends StatelessWidget {
   /// Class constructor
   const _OcptSkillChip({required this.label, required this.onRemoved});
 
+  /// Build the skill chip as an [InputChip].
   @override
   Widget build(BuildContext context) {
     final onRemoved = this.onRemoved;

@@ -22,9 +22,9 @@ class OcptBudgetCashJournalXlsxLabels extends Equatable {
   /// The header of the entry's own label column.
   final String labelHeader;
 
-  /// The header of the entry's own poste column — an entry naming no poste (money coming in prices
-  /// no poste) writes an empty cell there, never a placeholder word.
-  final String posteHeader;
+  /// The header of the entry's own account column — an entry naming no account (money coming in
+  /// prices no account) writes an empty cell there, never a placeholder word.
+  final String accountHeader;
 
   /// The header of what the entry settles — a resource or a share, once the tables that name them
   /// exist; an entry naming neither writes an empty cell there too.
@@ -48,7 +48,7 @@ class OcptBudgetCashJournalXlsxLabels extends Equatable {
     required this.dateHeader,
     required this.voucherHeader,
     required this.labelHeader,
-    required this.posteHeader,
+    required this.accountHeader,
     required this.settlesHeader,
     required this.debitHeader,
     required this.creditHeader,
@@ -56,18 +56,18 @@ class OcptBudgetCashJournalXlsxLabels extends Equatable {
     required this.totalsRowLabel,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptBudgetCashJournalXlsxLabels(sheetName: $sheetName)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     sheetName,
     dateHeader,
     voucherHeader,
     labelHeader,
-    posteHeader,
+    accountHeader,
     settlesHeader,
     debitHeader,
     creditHeader,

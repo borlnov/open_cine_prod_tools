@@ -4,15 +4,17 @@
 
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -22,11 +24,15 @@ import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/widgets/ocpt_repointing_configure_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/widgets/ocpt_repointing_qr_view.dart';
 import 'package:path/path.dart' as p;
@@ -36,6 +42,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// The method channel `flutter_secure_storage` talks over — `sharing_page_test.dart`'s own mock.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -69,26 +76,42 @@ void _mockSecureStorage(Map<String, String> store) {
 /// An in-memory [OcptRemoteStorage] carrying no network at all — `sharing_page_test.dart`'s own
 /// `_FakeRemoteStorage`.
 class _FakeRemoteStorage implements OcptRemoteStorage {
-  @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
-
-  @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
-
-  @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {}
-
-  @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => null;
-
+  /// Emit nothing.
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
-  @override
-  void sendPresence(String opaquePayload) {}
-
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
+
+  /// Accept the envelope, answering with sequence zero.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async =>
+      const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
+
+  /// Answer with an empty log.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
+
+  /// Accept the snapshot without keeping it.
+  @override
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
+
+  /// Answer that no snapshot was ever uploaded.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
+
+  /// Drop the payload.
+  @override
+  void sendPresence(String opaquePayload) {}
 }
 
 /// An [OcptSyncManager] whose [openRelayRemoteStorage] hands back a fixed fake transport and whose
@@ -99,12 +122,21 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// assert anything about the live sync status the repointing page doesn't even show — have no
 /// reason to start one at all, and every reason not to.
 class _FakeTransportSyncManager extends OcptSyncManager {
-  _FakeTransportSyncManager({required OcptPairingService pairingService})
-    : _pairing = pairingService,
-      super(pairingService: pairingService, changesetService: const OcptChangesetService());
-
+  /// The pairing service the double hands to its flows.
   final OcptPairingService _pairing;
 
+  /// Class constructor
+  _FakeTransportSyncManager({required OcptPairingService pairingService})
+    : _pairing = pairingService,
+      super(
+        pairingService: pairingService,
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
+
+  /// Open a storage that accepts everything and holds nothing.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -112,8 +144,9 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     String? enrolmentSecret,
   }) => _FakeRemoteStorage();
 
+  /// Save the pairing to the new relay, keeping the token it had when there was one.
   @override
-  Future<void> repointProjectToRelay({
+  Future<StatusWithExtraInfo<OcptSyncFlowStatus>> repointProjectToRelay({
     required OcptProjectDatabase database,
     required String projectId,
     required String projectFilePath,
@@ -132,13 +165,15 @@ class _FakeTransportSyncManager extends OcptSyncManager {
       relayBaseUri: relayBaseUri,
       token: token,
     );
+
+    return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
 }
 
 /// Wraps [child] with the app theme and the localization delegates — `sharing_page_test.dart`'s own
 /// `_wrapWithLocalization`.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -149,6 +184,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of the repointing page.
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptPairingService pairingService;
@@ -175,7 +211,10 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    pairingService = OcptPairingService(secretsManager: secretsManager);
+    pairingService = OcptPairingService(
+      logger: const SilentLogger(),
+      secretsManager: secretsManager,
+    );
   });
 
   setUp(() async {
@@ -267,10 +306,7 @@ void main() {
 
       await pumpView(tester, manager);
 
-      await tester.enterText(
-        find.byType(TextField).first,
-        "https://relay-onset.example.org/",
-      );
+      await tester.enterText(find.byType(TextField).first, "https://relay-onset.example.org/");
       await tester.enterText(find.byType(TextField).last, "onset-enrolment-secret");
 
       final tr = Tr.of(tester.element(find.byType(OcptRepointingView)));

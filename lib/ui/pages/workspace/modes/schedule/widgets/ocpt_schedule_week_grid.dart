@@ -4,21 +4,23 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timelines.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_sun_times.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_overrun.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
 /// How many pixels one minute of the grid is drawn as — the same figure the row hour lines, the
 /// sun bands and the blocks are all positioned with, so the three never drift out of alignment.
@@ -61,8 +63,9 @@ const double _ocptWeekGridBlockHorizontalMargin = 2;
 /// **The grid's own vertical range covers whatever the timelines it draws actually return**, never
 /// a bare 24 hours: a night shoot's blocks may end past minute 1440, and the grid's own bottom
 /// bound stretches to meet them (`ocptComputeShootingDayTimelines`'s own convention — see
-/// `lib/utils/ocpt_day_minute.dart`). A day with no sun-time figures at all (no coordinates pinned
-/// on its first slot's location) draws no shading band for that column rather than a wrong one.
+/// `lib/models/rules/ocpt_day_minute.dart`). A day with no sun-time figures at all (no coordinates
+/// pinned on its first slot's location) draws no shading band for that column rather than a wrong
+/// one.
 ///
 /// **A day's own slots draw as parallel lanes within its own column**, in the day's own
 /// [OcptShootingSlot] `sortKey` order, rather than as one band spanning the full width: two slots
@@ -77,8 +80,7 @@ const double _ocptWeekGridBlockHorizontalMargin = 2;
 /// is typing another hour in the day view's own events band, never a gesture on this grid. Its
 /// `[startMinute, endMinute)` range stretches to cover an event exactly as it stretches to cover a
 /// night block (see [_ocptWeekGridRange]), so an event pinned outside every block's own span still
-/// draws rather than being clipped. The strip and month agendas draw no such marker — out of scope
-/// for this milestone.
+/// draws rather than being clipped. The strip and month agendas draw no such marker.
 ///
 /// Purely presentational: selecting a day only ever reads, so it needs no `isReadOnly` flag.
 class OcptScheduleWeekGrid extends StatelessWidget {
@@ -93,8 +95,8 @@ class OcptScheduleWeekGrid extends StatelessWidget {
   final List<OcptShootingDay> days;
 
   /// A day's own resolved tint, under whichever `OcptScheduleAgendaColorMode` is currently active —
-  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this widget
-  /// stays ignorant of which fact a day is coloured by.
+  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this
+  /// widget stays ignorant of which fact a day is coloured by.
   final Color Function(String dayId) dayTintOf;
 
   /// Each day's own live slots, keyed by day id, in `sortKey` order — the lanes a day's own column
@@ -148,6 +150,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the schedule week grid as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -182,7 +185,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -202,7 +205,9 @@ class OcptScheduleWeekGrid extends StatelessWidget {
                         date: date,
                         day: dayByDate[date],
                         isSelected: dayByDate[date] != null && dayByDate[date]!.id == selectedDayId,
-                        alerts: dayByDate[date] == null ? const [] : alertsOfDay(dayByDate[date]!.id),
+                        alerts: dayByDate[date] == null
+                            ? const []
+                            : alertsOfDay(dayByDate[date]!.id),
                         onOpenRequested: dayByDate[date] == null
                             ? null
                             : () => onDayOpenRequested(dayByDate[date]!.id),
@@ -226,9 +231,15 @@ class OcptScheduleWeekGrid extends StatelessWidget {
                         tint: dayByDate[date] == null
                             ? theme.colorScheme.outlineVariant
                             : dayTintOf(dayByDate[date]!.id),
-                        slots: dayByDate[date] == null ? const [] : slotsByDayId[dayByDate[date]!.id] ?? const [],
-                        blocks: dayByDate[date] == null ? const [] : blocksByDayId[dayByDate[date]!.id] ?? const [],
-                        events: dayByDate[date] == null ? const [] : eventsByDayId[dayByDate[date]!.id] ?? const [],
+                        slots: dayByDate[date] == null
+                            ? const []
+                            : slotsByDayId[dayByDate[date]!.id] ?? const [],
+                        blocks: dayByDate[date] == null
+                            ? const []
+                            : blocksByDayId[dayByDate[date]!.id] ?? const [],
+                        events: dayByDate[date] == null
+                            ? const []
+                            : eventsByDayId[dayByDate[date]!.id] ?? const [],
                         shotOf: shotOf,
                         timeline: dayByDate[date] == null ? null : timelineOf(dayByDate[date]!.id),
                         sunTimes: dayByDate[date] == null ? null : sunTimesOf(dayByDate[date]!.id),
@@ -247,10 +258,11 @@ class OcptScheduleWeekGrid extends StatelessWidget {
   }
 }
 
-/// [date] with its time component dropped, so it can key a `Map` alongside `OcptShootingDay.date`.
+/// Get [date] with its time component dropped, so it can key a `Map` alongside
+/// `OcptShootingDay.date`.
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
-/// The `[startMinute, endMinute)` the grid draws, covering the default 06:00-24:00 span **and**
+/// Get the `[startMinute, endMinute)` the grid draws, covering the default 06:00-24:00 span **and**
 /// whatever every one of [weekDays]' own computed timeline or own events actually returns — the
 /// rule that lets a night shoot's blocks (ending past minute 1440) draw correctly rather than being
 /// clipped to a bare 24 hours, and that lets an event pinned outside every block's own span still
@@ -316,6 +328,7 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
     required this.onOpenRequested,
   });
 
+  /// Build the schedule week column header as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -329,13 +342,13 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onOpenRequested,
-        mouseCursor: onOpenRequested == null ? MouseCursor.defer : ocptClickableCursor,
+        mouseCursor: onOpenRequested == null ? MouseCursor.defer : ocpt_theme.ocptClickableCursor,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
           decoration: BoxDecoration(
             color: day == null
                 ? Colors.transparent
-                : theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha),
+                : theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
             border: Border(
               bottom: BorderSide(
                 color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
@@ -432,6 +445,7 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
     required this.gridHeight,
   });
 
+  /// Build the schedule week column body as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -446,137 +460,78 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
         // this column's own pixel width, which only its own parent (the `Expanded` in the header
         // row above) knows, and that width can differ from one week's grid to the next screen size.
         child: LayoutBuilder(
-          builder: (context, constraints) => Stack(
-            children: [
-              ..._buildHourLines(context),
-              ..._buildSunBands(context),
-              ..._buildLaneDividers(context, constraints.maxWidth),
-              ..._buildBlocks(context, constraints.maxWidth),
-              ..._buildEvents(context),
-            ],
+          builder: (context, constraints) => _OcptScheduleWeekColumnLayers(
+            columnWidth: constraints.maxWidth,
+            tint: tint,
+            slots: slots,
+            blocks: blocks,
+            events: events,
+            shotOf: shotOf,
+            timeline: timeline,
+            sunTimes: sunTimes,
+            startMinute: startMinute,
+            endMinute: endMinute,
           ),
         ),
       ),
     );
   }
+}
 
-  /// The vertical hairline(s) marking where one slot's lane ends and the next begins — nothing at
-  /// all for a single-slot day, since there is then only one lane and nothing to divide.
-  List<Widget> _buildLaneDividers(BuildContext context, double columnWidth) {
-    if (slots.length <= 1) {
-      return const [];
-    }
+/// The stack of layers one day column draws, bottom to top: the hour lines, the sun bands, the
+/// lane dividers, the placed blocks and the events, all positioned against the grid's own
+/// `[startMinute, endMinute)` range.
+class _OcptScheduleWeekColumnLayers extends StatelessWidget {
+  /// This column's own pixel width, what the lanes are split from.
+  final double columnWidth;
 
-    final color = Theme.of(
-      context,
-    ).colorScheme.outlineVariant.withValues(alpha: _ocptWeekGridLaneDividerAlpha);
-    final laneWidth = columnWidth / slots.length;
+  /// This column's own resolved tint.
+  final Color tint;
 
-    return [
-      for (var lane = 1; lane < slots.length; lane++)
-        Positioned(
-          top: 0,
-          bottom: 0,
-          left: laneWidth * lane,
-          width: 1,
-          child: ColoredBox(color: color),
-        ),
-    ];
-  }
+  /// This column's own live slots, in `sortKey` order — the lanes the column is split into.
+  final List<OcptShootingSlot> slots;
 
-  /// The lane index [slots] places [slotId] at, or `0` when [slotId] names none of them — a block
-  /// whose slot has since been deleted from under it (the timeline reads a snapshot that is always
-  /// at least as fresh, so this is defensive rather than expected) still has to land somewhere
-  /// rather than vanish from the grid.
-  int _laneIndexOf(String slotId) {
-    final index = slots.indexWhere((slot) => slot.id == slotId);
-    return index < 0 ? 0 : index;
-  }
+  /// This column's own live blocks.
+  final List<OcptShootingDayBlock> blocks;
 
-  /// One hair line per hour of the grid's own range, drawn first so the sun bands and the blocks
-  /// both sit over it.
-  ///
-  /// Every column draws its own rather than one overlay spanning the week: the columns are
-  /// [Expanded] siblings with no shared coordinate space, and a line drawn per column can never
-  /// land a pixel off the gutter label it belongs to. The grid's own first minute carries none —
-  /// the header row's bottom border already rules that edge.
-  List<Widget> _buildHourLines(BuildContext context) {
-    final color = Theme.of(
-      context,
-    ).colorScheme.outlineVariant.withValues(alpha: _ocptWeekGridHourLineAlpha);
+  /// This column's own live events, already ordered by hour.
+  final List<OcptShootingDayEvent> events;
 
-    return [
-      for (var minute = startMinute + 60; minute < endMinute; minute += 60)
-        Positioned(
-          top: (minute - startMinute) * _ocptWeekGridPixelsPerMinute,
-          left: 0,
-          right: 0,
-          height: 1,
-          child: ColoredBox(color: color),
-        ),
-    ];
-  }
+  /// Resolves a shot id to the shot it names.
+  final OcptShot? Function(String shotId) shotOf;
 
-  /// The sun-shading bands for this column: pre-sunrise and post-civil-dusk are tinted as night,
-  /// the sunset-to-civil-dusk stretch as dusk — nothing at all when [sunTimes] is null (no
-  /// coordinates pinned yet), which is deliberate: a plausible wrong band is worse than none.
-  List<Widget> _buildSunBands(BuildContext context) {
-    final sunTimes = this.sunTimes;
-    if (sunTimes == null) {
-      return const [];
-    }
+  /// This column's own computed timetable, or null while it has nothing placed.
+  final OcptShootingDayTimelines? timeline;
 
-    final theme = Theme.of(context);
-    final nightColor = theme.colorScheme.primary.withValues(alpha: 0.05);
-    final duskColor = theme.colorScheme.tertiary.withValues(alpha: 0.08);
-    final bands = <Widget>[];
+  /// This column's own computed sun times, or null while there are none.
+  final OcptSunTimes? sunTimes;
 
-    final sunrise = sunTimes.sunriseMinute;
-    if (sunrise != null && sunrise > startMinute) {
-      bands.add(_buildBand(top: startMinute, bottom: sunrise, color: nightColor));
-    }
+  /// The grid's own first minute shown.
+  final int startMinute;
 
-    final sunset = sunTimes.sunsetMinute;
-    final civilDusk = sunTimes.civilDuskMinute;
-    if (sunset != null && civilDusk != null && civilDusk > sunset) {
-      bands.add(_buildBand(top: sunset, bottom: civilDusk, color: duskColor));
-    }
-    if (civilDusk != null) {
-      bands.add(_buildBand(top: civilDusk, bottom: endMinute, color: nightColor));
-    }
+  /// The grid's own last minute shown (exclusive).
+  final int endMinute;
 
-    return bands;
-  }
+  /// Class constructor
+  const _OcptScheduleWeekColumnLayers({
+    required this.columnWidth,
+    required this.tint,
+    required this.slots,
+    required this.blocks,
+    required this.events,
+    required this.shotOf,
+    required this.timeline,
+    required this.sunTimes,
+    required this.startMinute,
+    required this.endMinute,
+  });
 
-  /// One shading band from [top] to [bottom] (in grid minutes), clamped to the column's own drawn
-  /// range.
-  Widget _buildBand({required int top, required int bottom, required Color color}) {
-    final clampedTop = top < startMinute ? startMinute : top;
-    final clampedBottom = bottom > endMinute ? endMinute : bottom;
-    final topPx = (clampedTop - startMinute) * _ocptWeekGridPixelsPerMinute;
-    final height = (clampedBottom - clampedTop) * _ocptWeekGridPixelsPerMinute;
-    if (height <= 0) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned(top: topPx, left: 0, right: 0, height: height, child: ColoredBox(color: color));
-  }
-
-  /// This column's own placed blocks, positioned by their computed start/duration, and by their
-  /// own slot's lane — [columnWidth] split evenly across [slots], one lane per slot, in the order
-  /// [slots] itself already carries ([OcptShootingSlot] `sortKey` order). A single-slot day (the
-  /// common case) has exactly one lane spanning the whole width, so this draws identically to
-  /// before lanes existed.
-  ///
-  /// Each band carries a [Tooltip] naming the slot's own label — a lane a few dozen pixels wide has
-  /// no room to print it, but hovering (or long-pressing, on a touch surface) still answers "whose
-  /// lane is this". A single-lane day skips the tooltip: with one lane there is nothing to tell
-  /// apart.
-  List<Widget> _buildBlocks(BuildContext context, double columnWidth) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
+  /// Build the schedule week column layers as a [Stack].
+  @override
+  Widget build(BuildContext context) {
     final entryByBlockId = {
-      for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[]) entry.blockId: entry,
+      for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[])
+        entry.blockId: entry,
     };
     final overrunBlockIds = {
       for (final overrun in timeline?.overruns ?? const <OcptTimelineOverrun>[]) overrun.blockId,
@@ -584,83 +539,320 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
     final laneCount = slots.isEmpty ? 1 : slots.length;
     final laneWidth = columnWidth / laneCount;
 
-    final widgets = <Widget>[];
-    for (final block in blocks) {
-      final entry = entryByBlockId[block.id];
-      if (entry == null) {
-        continue;
-      }
-
-      final isShot = block.kind == OcptShootingBlockKind.shot;
-      final shot = isShot && block.shotId != null ? shotOf(block.shotId!) : null;
-      final label = isShot
-          ? "${shot?.code ?? ""} · ${shot?.shotSize ?? ""}"
-          : (block.label.isEmpty ? ocptShootingBlockKindLabel(tr, block.kind) : block.label);
-      final color = isShot ? tint : theme.colorScheme.onSurfaceVariant;
-      final isOverrun = overrunBlockIds.contains(block.id);
-      final lane = _laneIndexOf(block.slotId);
-
-      final band = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 3),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.18),
-          border: Border(left: BorderSide(color: isOverrun ? theme.colorScheme.error : color, width: 2)),
-          borderRadius: BorderRadius.circular(3),
-        ),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
-        ),
-      );
-
-      widgets.add(
-        Positioned(
-          top: (entry.startMinute - startMinute) * _ocptWeekGridPixelsPerMinute,
-          height: (entry.durationMinutes * _ocptWeekGridPixelsPerMinute).clamp(12, double.infinity).toDouble(),
-          left: lane * laneWidth + _ocptWeekGridBlockHorizontalMargin,
-          width: laneWidth - 2 * _ocptWeekGridBlockHorizontalMargin,
-          child: slots.length <= 1
-              ? band
-              : Tooltip(
-                  message: lane < slots.length && slots[lane].label.isNotEmpty
-                      ? slots[lane].label
-                      : tr.scheduleInspectorUnnamedSlot,
-                  child: band,
-                ),
-        ),
-      );
-    }
-
-    return widgets;
+    return Stack(
+      children: [
+        for (var minute = startMinute + 60; minute < endMinute; minute += 60)
+          _OcptScheduleWeekHourLine(top: (minute - startMinute) * _ocptWeekGridPixelsPerMinute),
+        for (final band in _sunBandsOf())
+          _OcptScheduleWeekSunBand(
+            topMinute: band.top,
+            bottomMinute: band.bottom,
+            isDusk: band.isDusk,
+            startMinute: startMinute,
+            endMinute: endMinute,
+          ),
+        if (slots.length > 1)
+          for (var lane = 1; lane < slots.length; lane++)
+            _OcptScheduleWeekLaneDivider(left: columnWidth / slots.length * lane),
+        for (final block in blocks)
+          if (entryByBlockId[block.id] case final entry?)
+            _OcptScheduleWeekBlock(
+              block: block,
+              entry: entry,
+              shot: block.kind == OcptShootingBlockKind.shot && block.shotId != null
+                  ? shotOf(block.shotId!)
+                  : null,
+              tint: tint,
+              isOverrun: overrunBlockIds.contains(block.id),
+              lane: _laneIndexOf(block.slotId),
+              laneWidth: laneWidth,
+              slots: slots,
+              startMinute: startMinute,
+            ),
+        for (final event in events)
+          _OcptScheduleWeekEventMarker(event: event, startMinute: startMinute),
+      ],
+    );
   }
 
-  /// This column's own events, one full-width marker per event, positioned at its own
-  /// `OcptShootingDayEvent.minute` — across every lane rather than inside one of them, an event
-  /// belonging to the day rather than to a unit (see the class doc comment). Drawn discreetly, off
-  /// the ambient theme's own `outline` rather than a bespoke colour, so the blocks stay the thing
-  /// being looked at; a [Tooltip] names the hour and the label (falling back to `Untitled event`
-  /// when it has none).
-  List<Widget> _buildEvents(BuildContext context) {
+  /// Get the sun-shading bands for this column: pre-sunrise and post-civil-dusk are tinted as
+  /// night,
+  /// the sunset-to-civil-dusk stretch as dusk — nothing at all when [sunTimes] is null (no
+  /// coordinates pinned yet), which is deliberate: a plausible wrong band is worse than none.
+  List<({int top, int bottom, bool isDusk})> _sunBandsOf() {
+    final sunTimes = this.sunTimes;
+    if (sunTimes == null) {
+      return const [];
+    }
+
+    final bands = <({int top, int bottom, bool isDusk})>[];
+
+    final sunrise = sunTimes.sunriseMinute;
+    if (sunrise != null && sunrise > startMinute) {
+      bands.add((top: startMinute, bottom: sunrise, isDusk: false));
+    }
+
+    final sunset = sunTimes.sunsetMinute;
+    final civilDusk = sunTimes.civilDuskMinute;
+    if (sunset != null && civilDusk != null && civilDusk > sunset) {
+      bands.add((top: sunset, bottom: civilDusk, isDusk: true));
+    }
+    if (civilDusk != null) {
+      bands.add((top: civilDusk, bottom: endMinute, isDusk: false));
+    }
+
+    return bands;
+  }
+
+  /// Get the lane index [slots] places [slotId] at, or `0` when [slotId] names none of them — a
+  /// block
+  /// whose slot has since been deleted from under it (the timeline reads a snapshot that is always
+  /// at least as fresh, so this is defensive rather than expected) still has to land somewhere
+  /// rather than vanish from the grid.
+  int _laneIndexOf(String slotId) {
+    final index = slots.indexWhere((slot) => slot.id == slotId);
+    return index < 0 ? 0 : index;
+  }
+}
+
+/// One hair line marking an hour of the grid's own range, drawn first so the sun bands and the
+/// blocks both sit over it.
+///
+/// Every column draws its own rather than one overlay spanning the week: the columns are
+/// [Expanded] siblings with no shared coordinate space, and a line drawn per column can never
+/// land a pixel off the gutter label it belongs to. The grid's own first minute carries none —
+/// the header row's bottom border already rules that edge.
+class _OcptScheduleWeekHourLine extends StatelessWidget {
+  /// The line's own offset from the top of the column, in pixels.
+  final double top;
+
+  /// Class constructor
+  const _OcptScheduleWeekHourLine({required this.top});
+
+  /// Build the schedule week hour line as a [Positioned].
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(
+      context,
+    ).colorScheme.outlineVariant.withValues(alpha: _ocptWeekGridHourLineAlpha);
+
+    return Positioned(
+      top: top,
+      left: 0,
+      right: 0,
+      height: 1,
+      child: ColoredBox(color: color),
+    );
+  }
+}
+
+/// One sun-shading band from [topMinute] to [bottomMinute] (in grid minutes), clamped to the
+/// column's own drawn range.
+class _OcptScheduleWeekSunBand extends StatelessWidget {
+  /// The band's first minute.
+  final int topMinute;
+
+  /// The band's last minute.
+  final int bottomMinute;
+
+  /// Whether the band is dusk (tinted `tertiary`) rather than night (tinted `primary`).
+  final bool isDusk;
+
+  /// The grid's own first minute shown.
+  final int startMinute;
+
+  /// The grid's own last minute shown (exclusive).
+  final int endMinute;
+
+  /// Class constructor
+  const _OcptScheduleWeekSunBand({
+    required this.topMinute,
+    required this.bottomMinute,
+    required this.isDusk,
+    required this.startMinute,
+    required this.endMinute,
+  });
+
+  /// Build the schedule week sun band as a [Positioned].
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = isDusk
+        ? theme.colorScheme.tertiary.withValues(alpha: 0.08)
+        : theme.colorScheme.primary.withValues(alpha: 0.05);
+    final clampedTop = topMinute < startMinute ? startMinute : topMinute;
+    final clampedBottom = bottomMinute > endMinute ? endMinute : bottomMinute;
+    final topPx = (clampedTop - startMinute) * _ocptWeekGridPixelsPerMinute;
+    final height = (clampedBottom - clampedTop) * _ocptWeekGridPixelsPerMinute;
+    if (height <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      top: topPx,
+      left: 0,
+      right: 0,
+      height: height,
+      child: ColoredBox(color: color),
+    );
+  }
+}
+
+/// The vertical hairline marking where one slot's lane ends and the next begins.
+class _OcptScheduleWeekLaneDivider extends StatelessWidget {
+  /// The hairline's own offset from the column's left edge, in pixels.
+  final double left;
+
+  /// Class constructor
+  const _OcptScheduleWeekLaneDivider({required this.left});
+
+  /// Build the schedule week lane divider as a [Positioned].
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(
+      context,
+    ).colorScheme.outlineVariant.withValues(alpha: _ocptWeekGridLaneDividerAlpha);
+
+    return Positioned(
+      top: 0,
+      bottom: 0,
+      left: left,
+      width: 1,
+      child: ColoredBox(color: color),
+    );
+  }
+}
+
+/// One placed block, positioned by its computed start/duration and by its own slot's lane — the
+/// column's width split evenly across the slots, one lane per slot, in the order the slots
+/// themselves already carry. A single-slot day (the common case) has exactly one lane spanning the
+/// whole width.
+///
+/// The band carries a [Tooltip] naming the slot's own label — a lane a few dozen pixels wide has
+/// no room to print it, but hovering (or long-pressing, on a touch surface) still answers "whose
+/// lane is this". A single-lane day skips the tooltip: with one lane there is nothing to tell
+/// apart.
+class _OcptScheduleWeekBlock extends StatelessWidget {
+  /// The block to draw.
+  final OcptShootingDayBlock block;
+
+  /// [block]'s own computed timeline entry.
+  final OcptShootingTimelineEntry entry;
+
+  /// The shot [block] names, or null for a non-shot block (or an unresolved shot).
+  final OcptShot? shot;
+
+  /// The column's own resolved tint, what a shot block is drawn in.
+  final Color tint;
+
+  /// Whether [block] overruns its slot, which paints its edge in the error colour.
+  final bool isOverrun;
+
+  /// The index of the lane [block] belongs to.
+  final int lane;
+
+  /// The pixel width of one lane.
+  final double laneWidth;
+
+  /// The column's own live slots, what the tooltip names the lane from.
+  final List<OcptShootingSlot> slots;
+
+  /// The grid's own first minute shown.
+  final int startMinute;
+
+  /// Class constructor
+  const _OcptScheduleWeekBlock({
+    required this.block,
+    required this.entry,
+    required this.shot,
+    required this.tint,
+    required this.isOverrun,
+    required this.lane,
+    required this.laneWidth,
+    required this.slots,
+    required this.startMinute,
+  });
+
+  /// Build the schedule week block as a [Positioned].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final color = theme.colorScheme.outline;
 
-    return [
-      for (final event in events)
-        Positioned(
-          top: (event.minute - startMinute) * _ocptWeekGridPixelsPerMinute - 3,
-          left: 0,
-          right: 0,
-          height: 6,
-          child: Tooltip(
-            message:
-                "${ocptFormatDayMinute(event.minute)} · "
-                "${event.label.isEmpty ? tr.scheduleDayEventUnnamedLabel : event.label}",
-            child: Center(child: Container(height: 2, color: color)),
-          ),
+    final isShot = block.kind == OcptShootingBlockKind.shot;
+    final label = isShot
+        ? "${shot?.code ?? ""} · ${shot?.shotSize ?? ""}"
+        : (block.label.isEmpty ? ocptShootingBlockKindLabel(tr, block.kind) : block.label);
+    final color = isShot ? tint : theme.colorScheme.onSurfaceVariant;
+
+    final band = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        border: Border(
+          left: BorderSide(color: isOverrun ? theme.colorScheme.error : color, width: 2),
         ),
-    ];
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.labelSmall?.copyWith(fontSize: 9),
+      ),
+    );
+
+    return Positioned(
+      top: (entry.startMinute - startMinute) * _ocptWeekGridPixelsPerMinute,
+      height: (entry.durationMinutes * _ocptWeekGridPixelsPerMinute)
+          .clamp(12, double.infinity)
+          .toDouble(),
+      left: lane * laneWidth + _ocptWeekGridBlockHorizontalMargin,
+      width: laneWidth - 2 * _ocptWeekGridBlockHorizontalMargin,
+      child: slots.length <= 1
+          ? band
+          : Tooltip(
+              message: lane < slots.length && slots[lane].label.isNotEmpty
+                  ? slots[lane].label
+                  : tr.scheduleInspectorUnnamedSlot,
+              child: band,
+            ),
+    );
+  }
+}
+
+/// One event marker: a full-width line positioned at the event's own `OcptShootingDayEvent.minute`
+/// — across every lane rather than inside one of them, an event belonging to the day rather than
+/// to a unit. Drawn discreetly, off the ambient theme's own `outline` rather than a bespoke colour,
+/// so the blocks stay the thing being looked at; a [Tooltip] names the hour and the label (falling
+/// back to `Untitled event` when it has none).
+class _OcptScheduleWeekEventMarker extends StatelessWidget {
+  /// The event to mark.
+  final OcptShootingDayEvent event;
+
+  /// The grid's own first minute shown.
+  final int startMinute;
+
+  /// Class constructor
+  const _OcptScheduleWeekEventMarker({required this.event, required this.startMinute});
+
+  /// Build the schedule week event marker as a [Positioned].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final color = Theme.of(context).colorScheme.outline;
+
+    return Positioned(
+      top: (event.minute - startMinute) * _ocptWeekGridPixelsPerMinute - 3,
+      left: 0,
+      right: 0,
+      height: 6,
+      child: Tooltip(
+        message:
+            "${ocptFormatDayMinute(event.minute)} · "
+            "${event.label.isEmpty ? tr.scheduleDayEventUnnamedLabel : event.label}",
+        child: Center(child: Container(height: 2, color: color)),
+      ),
+    );
   }
 }

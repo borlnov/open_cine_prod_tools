@@ -67,9 +67,9 @@ class OcptShootingPlanXlsxLabels extends Equatable {
   final String presenceMark;
 
   /// The word `Perso.`, reused both as the locations sheet's own nested row and, were it ever
-  /// needed, a shot table's own characters column — the same word `OcptShootingPlanLabels.persoLabel`
-  /// already carries.
-  final String persoLabel;
+  /// needed, a shot table's own characters column — the same word
+  /// `OcptShootingPlanLabels.peopleLabel` already carries.
+  final String peopleLabel;
 
   /// The prefix a sequences sheet's own row label is built with (`Séq. 2`) — the same word
   /// `OcptShootingPlanLabels.sequenceRowPrefix` already carries.
@@ -102,34 +102,35 @@ class OcptShootingPlanXlsxLabels extends Equatable {
     required this.chronologyColumnHeaders,
     required this.dayTagPrefix,
     required this.presenceMark,
-    required this.persoLabel,
+    required this.peopleLabel,
     required this.sequenceRowPrefix,
     required this.crewPositionLabels,
     required this.elementCategoryLabels,
     required this.blockKindLabels,
   });
 
-  /// The header of [column] in the `Chronology` sheet, or an empty string if
+  /// Get the header of [column] in the `Chronology` sheet, or an empty string if
   /// [chronologyColumnHeaders] holds none for it.
-  String chronologyHeaderOf(OcptShootingPlanXlsxColumn column) => chronologyColumnHeaders[column] ?? "";
+  String chronologyHeaderOf(OcptShootingPlanXlsxColumn column) =>
+      chronologyColumnHeaders[column] ?? "";
 
-  /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
-  /// holds none for it.
+  /// {@macro open_cine_prod_tools.crewPositionLabelGetter}
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
-  /// The label of [category], or an empty string if [elementCategoryLabels] holds none for it.
-  String elementCategoryLabelOf(OcptElementCategory category) => elementCategoryLabels[category] ?? "";
+  /// Get the label of [category], or an empty string if [elementCategoryLabels] holds none for it.
+  String elementCategoryLabelOf(OcptElementCategory category) =>
+      elementCategoryLabels[category] ?? "";
 
-  /// The label of [kind], or an empty string if [blockKindLabels] holds none for it.
+  /// Get the label of [kind], or an empty string if [blockKindLabels] holds none for it.
   String blockKindLabelOf(OcptShootingBlockKind kind) => blockKindLabels[kind] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingPlanXlsxLabels(locationsSheetName: $locationsSheetName, chronologySheetName: "
       "$chronologySheetName)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,
@@ -145,7 +146,7 @@ class OcptShootingPlanXlsxLabels extends Equatable {
     chronologyColumnHeaders,
     dayTagPrefix,
     presenceMark,
-    persoLabel,
+    peopleLabel,
     sequenceRowPrefix,
     crewPositionLabels,
     elementCategoryLabels,

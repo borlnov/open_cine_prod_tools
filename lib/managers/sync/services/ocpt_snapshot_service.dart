@@ -5,19 +5,20 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:crypto/crypto.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_package_service.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_snapshot_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
-/// Turns an open project into snapshot bytes and back, the one piece
-/// `docs/plans/relay.md` (Phase C, commit 1) needed of `OcptRemoteStorage.uploadSnapshot`/
-/// `fetchLatestSnapshot` before either could actually be called: the join flow, the first append
-/// to an empty relay (`docs/plans/collaboration-and-sync.md` §5.3) and a restore's publish (§3.4)
-/// all need a project turned into bytes and back.
+/// Turn an open project into snapshot bytes and back, the one piece
+/// `OcptRemoteStorage.uploadSnapshot`/`fetchLatestSnapshot` need before either can actually be
+/// called: the join flow, the first append to an empty relay and a restore's publish all need a
+/// project turned into bytes and back.
 ///
 /// **The snapshot payload is the portable project package, unchanged.** [OcptProjectPackageService]
 /// already zips a project's `.ocpt` and every file it references into one archive somebody can
@@ -28,26 +29,31 @@ import 'package:uuid/uuid.dart';
 /// itself never does, for the reasons its own doc comment gives, and a snapshot is exactly as free
 /// to be built from, or applied onto, a project at any schema version this build would otherwise
 /// migrate.
-class OcptSnapshotService {
-  /// Creates a service using [packageService] to read and write the portable package a snapshot's
+class OcptSnapshotService extends AbsOcptService {
+  /// The service reading and writing the portable package a snapshot's bytes actually are.
+  final OcptProjectPackageService packageService;
+
+  /// Get the directory the working directories of a build or an apply are created in.
+  final Directory Function() _temporaryDirectory;
+
+  /// Create a service using [packageService] to read and write the portable package a snapshot's
   /// bytes actually are.
   ///
   /// [temporaryDirectory] is injectable so a test can point the scratch files this service writes
   /// at a directory of its own choosing rather than the system's; it defaults to
   /// [Directory.systemTemp], which is what every caller outside a test wants.
-  const OcptSnapshotService({
-    this.packageService = const OcptProjectPackageService(),
+  OcptSnapshotService({
+    required super.logger,
+    OcptProjectPackageService? packageService,
     Directory Function()? temporaryDirectory,
-  }) : _temporaryDirectory = temporaryDirectory ?? _systemTempDirectory;
+  }) : packageService =
+           packageService ??
+           OcptProjectPackageService(
+             logger: logger.createAbsSubLogger(subCategory: 'project_package'),
+           ),
+       _temporaryDirectory = temporaryDirectory ?? _systemTempDirectory;
 
-  static Directory _systemTempDirectory() => Directory.systemTemp;
-
-  /// The service reading and writing the portable package a snapshot's bytes actually are.
-  final OcptProjectPackageService packageService;
-
-  final Directory Function() _temporaryDirectory;
-
-  /// Packages the project at [projectFilePath] and returns it as snapshot bytes, paired with the
+  /// Package the project at [projectFilePath] and return it as snapshot bytes, paired with the
   /// descriptor an `OcptRemoteStorage.uploadSnapshot` call carries alongside them.
   ///
   /// [projectName] and [appVersion] are handed in by the caller, exactly as
@@ -62,11 +68,11 @@ class OcptSnapshotService {
   /// [OcptSnapshotDescriptor.contentDigest] is their SHA-256 hex digest — the same digest
   /// [applySnapshot] verifies a downloaded snapshot against when handed a descriptor to check.
   ///
-  /// Throws [StateError] when the underlying package write fails (see
+  /// Answers [OcptSnapshotStatus.packageFailed] when the underlying package write fails (see
   /// [OcptProjectPackageService.writePackage]'s own possible statuses) — there is no partial
-  /// snapshot to hand back in that case, only a reason it could not be built. Every scratch file
+  /// snapshot to hand back in that case, so the result then carries no value. Every scratch file
   /// this writes along the way is deleted before returning, success or failure alike.
-  Future<(OcptSnapshotDescriptor, Uint8List)> buildSnapshot({
+  Future<ResultWithStatus<OcptSnapshotStatus, (OcptSnapshotDescriptor, Uint8List)>> buildSnapshot({
     required String projectFilePath,
     required String projectName,
     required String appVersion,
@@ -85,10 +91,8 @@ class OcptSnapshotService {
         exportedAt: exportedAt ?? DateTime.now(),
       );
       if (written.status != OcptProjectPackageStatus.ok) {
-        throw StateError(
-          'The project at $projectFilePath could not be packaged into a snapshot: '
-          '${written.status}',
-        );
+        logger.e("A project could not be packaged into a snapshot: ${written.status.name}");
+        return const ResultWithStatus(status: OcptSnapshotStatus.packageFailed);
       }
 
       final bytes = await File(packageFilePath).readAsBytes();
@@ -99,13 +103,13 @@ class OcptSnapshotService {
         contentDigest: sha256.convert(bytes).toString(),
       );
 
-      return (descriptor, bytes);
+      return ResultWithStatus(status: OcptSnapshotStatus.ok, value: (descriptor, bytes));
     } finally {
       await _deleteQuietly(workingDirectory);
     }
   }
 
-  /// Materialises [bytes] as a new project under [parentDirectoryPath], and returns the `.ocpt`
+  /// Materialise [bytes] as a new project under [parentDirectoryPath], and return the `.ocpt`
   /// path it landed at.
   ///
   /// [bytes] is written to a scratch package file and unpacked exactly as a colleague's `.ocptz`
@@ -114,14 +118,15 @@ class OcptSnapshotService {
   /// existing one.
   ///
   /// When [descriptor] is given, [bytes] is verified against its [OcptSnapshotDescriptor.
-  /// contentDigest] before anything is unpacked — a mismatch throws [StateError] rather than
-  /// materialising a project nobody can trust was actually what the relay described. Passing no
+  /// contentDigest] before anything is unpacked — a mismatch answers
+  /// [OcptSnapshotStatus.digestMismatch] rather than materialising a project nobody can trust was
+  /// actually what the relay described. Passing no
   /// descriptor skips that check, for a caller that never had one to compare against.
   ///
-  /// Throws [StateError] when the underlying package read fails (see
+  /// Answers [OcptSnapshotStatus.packageFailed] when the underlying package read fails (see
   /// [OcptProjectPackageService.readPackage]'s own possible statuses). Every scratch file this
   /// writes along the way is deleted before returning, success or failure alike.
-  Future<String> applySnapshot({
+  Future<ResultWithStatus<OcptSnapshotStatus, String>> applySnapshot({
     required Uint8List bytes,
     required String parentDirectoryPath,
     OcptSnapshotDescriptor? descriptor,
@@ -129,10 +134,8 @@ class OcptSnapshotService {
     if (descriptor != null) {
       final actualDigest = sha256.convert(bytes).toString();
       if (actualDigest != descriptor.contentDigest) {
-        throw StateError(
-          'The snapshot ${descriptor.snapshotId} does not match its own content digest: '
-          'expected ${descriptor.contentDigest}, got $actualDigest',
-        );
+        logger.e("A snapshot does not match its own content digest");
+        return const ResultWithStatus(status: OcptSnapshotStatus.digestMismatch);
       }
     }
 
@@ -146,18 +149,17 @@ class OcptSnapshotService {
         parentDirectoryPath: parentDirectoryPath,
       );
       if (read.status != OcptProjectPackageStatus.ok) {
-        throw StateError(
-          'The snapshot could not be materialised into $parentDirectoryPath: ${read.status}',
-        );
+        logger.e("A snapshot could not be materialised: ${read.status.name}");
+        return const ResultWithStatus(status: OcptSnapshotStatus.packageFailed);
       }
 
-      return read.value!.projectFilePath;
+      return ResultWithStatus(status: OcptSnapshotStatus.ok, value: read.value!.projectFilePath);
     } finally {
       await _deleteQuietly(workingDirectory);
     }
   }
 
-  /// Deletes [directory] and everything under it, reporting a failure without raising it.
+  /// Delete [directory] and everything under it, reporting a failure without raising it.
   ///
   /// This runs in a `finally`, where throwing would replace whatever actually went wrong with a
   /// complaint about a temporary folder — [OcptProjectPackageService]'s own equivalent does the
@@ -169,8 +171,16 @@ class OcptSnapshotService {
 
     try {
       await directory.delete(recursive: true);
-    } catch (error) {
-      appLogger().w("The temporary snapshot folder ${directory.path} can't be deleted: $error");
+    } catch (error, stackTrace) {
+      logger.w(
+        "A temporary snapshot folder can't be deleted: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
     }
   }
+
+  /// Get the system temporary directory, used when no other is given.
+  static Directory _systemTempDirectory() => Directory.systemTemp;
 }

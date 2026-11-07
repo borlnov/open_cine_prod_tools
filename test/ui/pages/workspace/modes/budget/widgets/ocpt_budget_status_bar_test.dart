@@ -7,7 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a box wide
 /// enough that nothing degrades.
@@ -22,11 +22,17 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 900, child: child)),
 );
 
+/// Run the tests of [OcptBudgetStatusBar].
 void main() {
   testWidgets("names the trailing figure as the quote, whatever it is", (tester) async {
     await tester.pumpWidget(
       _wrap(
-        const OcptBudgetStatusBar(posteCount: 10, lineCount: 24, quotedTotalCents: 1996000, currencyCode: "EUR"),
+        const OcptBudgetStatusBar(
+          accountCount: 10,
+          lineCount: 24,
+          quotedTotalCents: 1996000,
+          currencyCode: "EUR",
+        ),
       ),
     );
 
@@ -41,7 +47,14 @@ void main() {
 
   testWidgets("still names the figure on a project whose quote is empty", (tester) async {
     await tester.pumpWidget(
-      _wrap(const OcptBudgetStatusBar(posteCount: 0, lineCount: 0, quotedTotalCents: 0, currencyCode: "EUR")),
+      _wrap(
+        const OcptBudgetStatusBar(
+          accountCount: 0,
+          lineCount: 0,
+          quotedTotalCents: 0,
+          currencyCode: "EUR",
+        ),
+      ),
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetStatusBar)));

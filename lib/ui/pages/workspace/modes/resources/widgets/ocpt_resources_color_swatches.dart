@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// The side of a swatch's tap target: the circle itself is small, and a colour is picked with a
 /// pointer, so the target is what has to be comfortable.
@@ -53,6 +53,7 @@ class OcptResourcesColorSwatches extends StatelessWidget {
     required this.onSelected,
   });
 
+  /// Build the resources color swatches as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.all(_gridPadding),
@@ -90,6 +91,7 @@ class _OcptColorSwatch extends StatelessWidget {
     required this.onSelected,
   });
 
+  /// Build the color swatch as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -101,7 +103,7 @@ class _OcptColorSwatch extends StatelessWidget {
         MenuController.maybeOf(context)?.close();
         onSelected(colorIndex);
       },
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       customBorder: const CircleBorder(),
       child: SizedBox.square(
         dimension: _swatchTargetSide,

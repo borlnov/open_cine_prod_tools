@@ -34,7 +34,7 @@ cannot have.
 
 Quantities carry the same problem in a smaller key: `1,484 km`, `5 days` and `1.5 day` all have to
 be stated exactly, and a floating-point quantity multiplied by a unit price accumulates a drift
-across a ten-poste nomenclature.
+across a ten-account nomenclature.
 
 ## Decision
 
@@ -61,7 +61,7 @@ individually and only then summed. Money that has already moved — `budget_entr
 honest basis. Quantities are integers in thousandths (`quantityMilli`), and a mileage rate in
 thousandths of a cent per kilometre (`ratePerKmMilliCents`), for the same reason cents are cents.
 
-A poste's quoted amount is **not stored**: it is the sum of its lines, computed on every read.
+An account's quoted amount is **not stored**: it is the sum of its lines, computed on every read.
 
 ## Consequences
 
@@ -89,5 +89,5 @@ received amount — each is summed from the `budget_entries` rows naming it.
   moment the project's rate changed, which is the opposite of what a default is for.
 - **Floating-point amounts and quantities** — the classic answer, and the classic source of the
   one-cent disagreement a budget is read to catch.
-- **A stored `quotedAmount` per poste** — a second copy of one truth, and the "frozen quote v4" it
+- **A stored `quotedAmount` per account** — a second copy of one truth, and the "frozen quote v4" it
   would exist for is already what sealing a project version does.

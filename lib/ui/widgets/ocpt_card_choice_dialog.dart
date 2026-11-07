@@ -4,11 +4,12 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_card_choice_entry.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
+import 'package:open_cine_prod_tools/models/ocpt_card_choice_section.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 
 /// The width the grid lays its two columns out at, at an expanded width. Below
 /// [ocptCompactWidthBreakpoint] the dialog drops to a single column and takes the width the screen
@@ -57,8 +58,8 @@ const double _ocptCardChoiceUnavailableOpacity = 0.5;
 /// app knows how to produce, and a card that disappeared would make it lie about what exists.
 ///
 /// A **section** holding no entries at all is a different case, and is dropped rather than drawn:
-/// the budget mode at M1 opens this panel with its own documents section empty (it prints nothing
-/// yet) and only the project package section to show, and a section with nothing in it draws
+/// a mode that prints nothing opens this panel with its own documents section empty and only
+/// the project package section to show, and a section with nothing in it draws
 /// neither cards nor a heading — only the divider [_OcptCardChoiceSectionView] puts above every
 /// section but the first, which a naive `sections.indexed` reading would still draw over the empty
 /// section's own nothing, floating with no card above it. [build] filters the list down to the
@@ -85,28 +86,19 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
     super.key,
   });
 
-  /// Shows the dialog and returns the [OcptCardChoiceEntry.value] of the card the user picked, or
-  /// null if they cancelled it or picked no card at all.
-  static Future<T?> show<T>(
-    BuildContext context, {
-    required String title,
-    required String message,
-    required List<OcptCardChoiceSection<T>> sections,
-  }) => showDialog<T>(
-    context: context,
-    builder: (context) =>
-        OcptCardChoiceDialog<T>(title: title, message: message, sections: sections),
-  );
-
+  /// Build the card choice dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final visibleSections = [for (final section in sections) if (section.entries.isNotEmpty) section];
+    final visibleSections = [
+      for (final section in sections)
+        if (section.entries.isNotEmpty) section,
+    ];
 
     // On a phone-width screen the fixed 600px grid would overflow, and two columns leave each card
-    // too narrow to read: below the breakpoint the dialog takes the width it is given and stacks its
-    // cards in a single column instead.
+    // too narrow to read: below the breakpoint the dialog takes the width it is given and stacks
+    // its cards in a single column instead.
     final isCompact = ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
     final crossAxisCount = isCompact ? 1 : 2;
 
@@ -120,10 +112,10 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
           children: [
             Text(message, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
-            // [_ocptCardChoiceMaxHeight] is a ceiling for a roomy dialog; wrapping it in a [Flexible]
-            // lets the scroll area shrink below that when the dialog itself is shorter than the
-            // ceiling — a single-column list on a phone, say — so the cards scroll within the space
-            // there is rather than overflowing the dialog.
+            // [_ocptCardChoiceMaxHeight] is a ceiling for a roomy dialog; wrapping it in a
+            // [Flexible] lets the scroll area shrink below that when the dialog itself is shorter
+            // than the ceiling — a single-column list on a phone, say — so the cards scroll within
+            // the space there is rather than overflowing the dialog.
             Flexible(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: _ocptCardChoiceMaxHeight),
@@ -154,6 +146,19 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
       ],
     );
   }
+
+  /// Show the dialog and return the [OcptCardChoiceEntry.value] of the card the user picked, or
+  /// null if they cancelled it or picked no card at all.
+  static Future<T?> show<T>(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required List<OcptCardChoiceSection<T>> sections,
+  }) => showDialog<T>(
+    context: context,
+    builder: (context) =>
+        OcptCardChoiceDialog<T>(title: title, message: message, sections: sections),
+  );
 }
 
 /// One group of [OcptCardChoiceDialog], its cards laid out as a grid of [crossAxisCount] columns
@@ -177,6 +182,7 @@ class _OcptCardChoiceSectionView<T> extends StatelessWidget {
     super.key,
   });
 
+  /// Build the card choice section view as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -219,6 +225,7 @@ class _OcptCardChoiceCard<T> extends StatelessWidget {
   /// Class constructor
   const _OcptCardChoiceCard({required this.entry, super.key});
 
+  /// Build the card choice card as an [Opacity].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -229,7 +236,7 @@ class _OcptCardChoiceCard<T> extends StatelessWidget {
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          mouseCursor: ocptClickableCursor,
+          mouseCursor: ocpt_theme.ocptClickableCursor,
           onTap: isAvailable
               ? () => globalGetIt().get<OcptRouterManager>().pop<T>(entry.value)
               : null,

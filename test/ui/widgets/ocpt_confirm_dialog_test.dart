@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog_result.dart';
 
 /// A router manager whose [pop] only records the last call and its value — mirrors
 /// `ocpt_crew_position_picker_dialog_test.dart`'s own double.
@@ -18,6 +19,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -25,6 +27,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
+/// Run the tests of [OcptConfirmDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 

@@ -1,0 +1,216 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_base_event.dart';
+
+/// The events of `OcptShotListFloorPlanPlacementsBloc`, about the placements of the selected shot
+/// on the floor plans: deleting, hiding, restoring, the symbol label typed in place, and the field
+/// of view of a camera.
+sealed class OcptShotListFloorPlanPlacementsEvent extends OcptShotListEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanPlacementsEvent();
+}
+
+/// Request deleting symbol `event.symbolId` for good, dispatched once the canvas's own delete
+/// action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListFloorPlanSymbolDeletionRequestedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
+  /// The id of the symbol to delete.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolDeletionRequestedEvent({required this.symbolId});
+
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Request deleting set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names
+/// a scene-scope override instead, the set-scope original it overrides) and every live override of
+/// it, in every sequence (`OcptFloorPlanService.deleteSymbolEverywhere`) — the destructive branch
+/// of the extended delete confirmation for an element used by two or more sequences,
+/// dispatched once it has already been confirmed through
+/// `OcptConfirmDialog.showWithAlternative`, by the mode.
+class OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
+  /// The id of the symbol (the original, or one of its overrides) to delete everywhere.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent({required this.symbolId});
+
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Mask set-scope symbol `event.symbolId` for sequence `event.targetSceneId` alone — a **hidden**
+/// override, setting `isHidden` on one that already exists or creating one, copied from the
+/// original's own geometry — the alternative branch ("Remove from sequence n") of the extended
+/// delete confirmation, dispatched once it has already been confirmed through
+/// `OcptConfirmDialog.showWithAlternative`, by the mode. Reversible: the inspector's own `Restore`
+/// undoes it.
+class OcptShotListFloorPlanSymbolHideRequestedEvent extends OcptShotListFloorPlanPlacementsEvent {
+  /// The id of the symbol (the original, or one of its overrides) to mask.
+  final String symbolId;
+
+  /// The sequence to mask it for — the override's own `sceneId`, whichever sequence [symbolId]
+  /// itself already belongs to when it already is one, or the focused sequence's own scene id when
+  /// it is the set-scope original instead.
+  final String targetSceneId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolHideRequestedEvent({
+    required this.symbolId,
+    required this.targetSceneId,
+  });
+
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
+  @override
+  List<Object?> get props => [...super.props, symbolId, targetSceneId];
+}
+
+/// Mask scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a **hidden**
+/// shot-scope override, setting `isHidden` on one that already exists or creating one, copied from
+/// the scene symbol's own geometry — the alternative
+/// branch ("Remove from shot n") of the shot-level extended delete confirmation, dispatched once it
+/// has already been confirmed through `OcptConfirmDialog.showWithAlternative`, by the mode.
+/// Reversible: the inspector's own `Restore` undoes it. See
+/// [OcptShotListFloorPlanSymbolHideRequestedEvent]'s own doc comment for the sequence-level
+/// equivalent this mirrors one level down.
+class OcptShotListFloorPlanSymbolHideForShotRequestedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
+  /// The id of the symbol (the scene-scope symbol, or one of its own shot overrides) to mask.
+  final String symbolId;
+
+  /// The shot to mask it for — the override's own `shotId`, whichever shot [symbolId] itself
+  /// already belongs to when it already is one, or the focused shot's own id when it is the
+  /// scene-scope symbol instead.
+  final String targetShotId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolHideForShotRequestedEvent({
+    required this.symbolId,
+    required this.targetShotId,
+  });
+
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
+  @override
+  List<Object?> get props => [...super.props, symbolId, targetShotId];
+}
+
+/// Restore override `event.symbolId` as in the level above it — tombstones it
+/// (`OcptFloorPlanService.deleteSymbol`), so the original it names reappears there: a set-scope
+/// original for a scene-scope override, or a scene-scope symbol for a shot-scope one — the
+/// canvas's own `Restore` handle and the inspector's own `Restore as in the set`/`Restore as in
+/// the sequence` action. Reversible (the user can redo the change), so this never asks —
+/// dispatched straight away.
+class OcptShotListFloorPlanSymbolRestoreRequestedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
+  /// The id of the override to restore.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolRestoreRequestedEvent({required this.symbolId});
+
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
+  @override
+  List<Object?> get props => [...super.props, symbolId];
+}
+
+/// Request deleting arrow `event.arrowId` for good, dispatched once the Placements group's own
+/// remove action has already been confirmed through `OcptConfirmDialog`, by the mode.
+class OcptShotListFloorPlanArrowDeletionRequestedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
+  /// The id of the arrow to delete.
+  final String arrowId;
+
+  /// Class constructor
+  const OcptShotListFloorPlanArrowDeletionRequestedEvent({required this.arrowId});
+
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
+  @override
+  List<Object?> get props => [...super.props, arrowId];
+}
+
+/// Record the raw text just typed into symbol `event.symbolId`'s own label, dispatched by the
+/// canvas's own `label` tool inline text field on every keystroke. Rides the placements bloc's
+/// field-edit autosave debounce, keyed by `OcptShotListSymbolLabelEditKey`.
+class OcptShotListFloorPlanSymbolLabelChangedEvent extends OcptShotListFloorPlanPlacementsEvent {
+  /// The id of the symbol whose label was edited.
+  final String symbolId;
+
+  /// The label's raw text, exactly as typed.
+  final String rawValue;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolLabelChangedEvent({
+    required this.symbolId,
+    required this.rawValue,
+  });
+
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
+  @override
+  List<Object?> get props => [...super.props, symbolId, rawValue];
+}
+
+/// Set camera symbol `event.symbolId`'s own field-of-view wedge angle to `event.fovDeg`,
+/// dispatched by a drag on one of its own edge handles ending, or by the inspector's Placements
+/// group `−`/`+` stepper. Written immediately (`OcptFloorPlanService.updateSymbol(fovDeg:)`); a
+/// drag reports once on end, never per frame — the live wedge shown while dragging is a purely
+/// local canvas concern, exactly as a symbol's own move/resize/rotate is.
+class OcptShotListFloorPlanSymbolFovChangedEvent extends OcptShotListFloorPlanPlacementsEvent {
+  /// The id of the camera symbol whose field of view is changed.
+  final String symbolId;
+
+  /// The camera's new field-of-view angle, in degrees.
+  final double fovDeg;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolFovChangedEvent({required this.symbolId, required this.fovDeg});
+
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
+  @override
+  List<Object?> get props => [...super.props, symbolId, fovDeg];
+}
+
+/// Set camera symbol `event.symbolId`'s own field-of-view wedge reach to `event.fovReachM`,
+/// dispatched by a drag on its own tip handle ending. Written immediately
+/// (`OcptFloorPlanService.updateSymbol(fovReachM:)`); a drag reports once on end, never per frame
+/// — the live wedge shown while dragging is a purely local canvas concern, exactly as
+/// [OcptShotListFloorPlanSymbolFovChangedEvent] is for the angle.
+class OcptShotListFloorPlanSymbolFovReachChangedEvent extends OcptShotListFloorPlanPlacementsEvent {
+  /// The id of the camera symbol whose field-of-view reach is changed.
+  final String symbolId;
+
+  /// The camera's new field-of-view wedge reach, in metres.
+  final double fovReachM;
+
+  /// Class constructor
+  const OcptShotListFloorPlanSymbolFovReachChangedEvent({
+    required this.symbolId,
+    required this.fovReachM,
+  });
+
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
+  @override
+  List<Object?> get props => [...super.props, symbolId, fovReachM];
+}
+
+/// Fired by the field-edit debounce timer the placements bloc (re)starts when a symbol label is
+/// typed, once it elapses with no further edit, and by the mode after the character name prompt.
+/// Not meant to be dispatched by a widget otherwise.
+class OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent();
+}
+
+/// Dismiss the transient write error the placements bloc raised.
+class OcptShotListFloorPlanPlacementsWriteErrorDismissedEvent
+    extends OcptShotListFloorPlanPlacementsEvent {
+  /// Class constructor
+  const OcptShotListFloorPlanPlacementsWriteErrorDismissedEvent();
+}

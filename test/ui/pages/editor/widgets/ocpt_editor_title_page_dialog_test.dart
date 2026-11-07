@@ -21,6 +21,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -43,6 +44,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 /// A placeholder range for entries built directly (never read by the dialog).
 const _dummyRange = FountainSourceRange(startLine: 0, endLine: 0, startOffset: 0, endOffset: 0);
 
+/// Run the tests of [OcptEditorTitlePageDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 
@@ -68,12 +70,12 @@ void main() {
   }
 
   /// The current text of the [TextFormField] labelled [label].
-  String? fieldText(WidgetTester tester, String label) => tester
-      .widget<TextFormField>(find.widgetWithText(TextFormField, label))
-      .controller
-      ?.text;
+  String? fieldText(WidgetTester tester, String label) =>
+      tester.widget<TextFormField>(find.widgetWithText(TextFormField, label)).controller?.text;
 
-  testWidgets("prefills every field from the parsed title page's raw joined values", (tester) async {
+  testWidgets("prefills every field from the parsed title page's raw joined values", (
+    tester,
+  ) async {
     const titlePage = FountainTitlePage(
       entries: [
         FountainTitlePageEntry(key: 'Title', values: ['My Screenplay'], sourceRange: _dummyRange),

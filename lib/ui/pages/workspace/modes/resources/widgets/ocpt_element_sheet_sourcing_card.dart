@@ -7,13 +7,13 @@ import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_person_picker.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// "Where it comes from": how the production got the element, who owns it, who brings it to set,
 /// and what it costs.
@@ -44,8 +44,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
   /// The element's current value for `field`.
   final String Function(OcptElementField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptElementField field, String rawValue)? onFieldChanged;
 
   /// Called with the newly picked provenance, or null while it may not be changed.
@@ -79,6 +78,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
     required this.onPersonSheetOpenRequested,
   });
 
+  /// Build the element sheet sourcing card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -88,7 +88,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSourceKindPicker(context, tr),
+          _SourceKindPicker(element: element, onSourceKindChanged: onSourceKindChanged),
           const SizedBox(height: 10),
           OcptResourcesPersonPicker(
             people: people,
@@ -99,7 +99,11 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
             onPersonSheetOpenRequested: onPersonSheetOpenRequested,
           ),
           const SizedBox(height: 8),
-          _field(OcptElementField.ownerNotes, tr.resourcesElementOwnerNotesLabel),
+          _ElementTextField(
+            card: this,
+            field: OcptElementField.ownerNotes,
+            label: tr.resourcesElementOwnerNotesLabel,
+          ),
           const SizedBox(height: 10),
           OcptResourcesPersonPicker(
             people: people,
@@ -110,9 +114,10 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
             onPersonSheetOpenRequested: onPersonSheetOpenRequested,
           ),
           const SizedBox(height: 10),
-          _field(
-            OcptElementField.cost,
-            tr.resourcesElementCostLabel,
+          _ElementTextField(
+            card: this,
+            field: OcptElementField.cost,
+            label: tr.resourcesElementCostLabel,
             suffixText: NumberFormat.simpleCurrency(name: currencyCode).currencySymbol,
             errorTextOf: (value) => _costErrorOf(tr, value),
           ),
@@ -121,12 +126,82 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
     );
   }
 
-  /// The provenance picker: a label over a badge doubling as a [PopupMenuButton] over every
-  /// [OcptElementSourceKind], withheld (a plain badge, no menu) while the sheet may not be written
-  /// to.
-  Widget _buildSourceKindPicker(BuildContext context, Tr tr) {
+  /// Describe what is wrong with the cost [value], or null when there is nothing to say about it.
+  ///
+  /// A **remark, never a gate** (the rule the email field already follows and the coordinates
+  /// repeat): the value is written either way — as no cost at
+  /// all, since an item whose price nobody typed is not a free one — and the field says so once it
+  /// loses the focus. An empty field is not an error: most props are never priced.
+  String? _costErrorOf(Tr tr, String value) {
+    if (value.trim().isEmpty || ocptCostCentsOf(value) != null) {
+      return null;
+    }
+
+    return tr.resourcesElementCostFormatError;
+  }
+}
+
+/// One text field of [OcptElementSheetSourcingCard], labelled [label] and writing [field].
+class _ElementTextField extends StatelessWidget {
+  /// The card the field belongs to, which holds the element and the way its fields are read and
+  /// written.
+  final OcptElementSheetSourcingCard card;
+
+  /// The element field this text field writes.
+  final OcptElementField field;
+
+  /// The label shown over the field.
+  final String label;
+
+  /// The text shown after the value, or null for none.
+  final String? suffixText;
+
+  /// Describe what is wrong with a value, or null for a field that never complains.
+  final String? Function(String value)? errorTextOf;
+
+  /// Class constructor
+  const _ElementTextField({
+    required this.card,
+    required this.field,
+    required this.label,
+    this.suffixText,
+    this.errorTextOf,
+  });
+
+  /// Build the element text field as an [OcptResourcesSheetField].
+  @override
+  Widget build(BuildContext context) {
+    final onFieldChanged = card.onFieldChanged;
+
+    return OcptResourcesSheetField(
+      ownerId: card.element.id,
+      label: label,
+      value: card.fieldValueOf(field),
+      suffixText: suffixText,
+      errorTextOf: errorTextOf,
+      onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(field, value),
+    );
+  }
+}
+
+/// The provenance picker: a label over a badge doubling as a [PopupMenuButton] over every
+/// [OcptElementSourceKind], withheld (a plain badge, no menu) while the sheet may not be written
+/// to.
+class _SourceKindPicker extends StatelessWidget {
+  /// The element whose provenance is shown.
+  final OcptElement element;
+
+  /// Called with the newly picked provenance, or null while it may not be changed.
+  final ValueChanged<OcptElementSourceKind>? onSourceKindChanged;
+
+  /// Class constructor
+  const _SourceKindPicker({required this.element, required this.onSourceKindChanged});
+
+  /// Build the source kind picker as a [Column].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final onSourceKindChanged = this.onSourceKindChanged;
+    final tr = Tr.of(context);
 
     final badge = Row(
       mainAxisSize: MainAxisSize.min,
@@ -171,38 +246,5 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
           ),
       ],
     );
-  }
-
-  /// One text field of the card, labelled [label] and writing [field].
-  Widget _field(
-    OcptElementField field,
-    String label, {
-    String? suffixText,
-    String? Function(String value)? errorTextOf,
-  }) {
-    final onFieldChanged = this.onFieldChanged;
-
-    return OcptResourcesSheetField(
-      ownerId: element.id,
-      label: label,
-      value: fieldValueOf(field),
-      suffixText: suffixText,
-      errorTextOf: errorTextOf,
-      onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(field, value),
-    );
-  }
-
-  /// What is wrong with the cost [value], or null when there is nothing to say about it.
-  ///
-  /// A **remark, never a gate** (decision 11 of the plan this ships under, the rule the email field
-  /// already follows and the coordinates repeat): the value is written either way — as no cost at
-  /// all, since an item whose price nobody typed is not a free one — and the field says so once it
-  /// loses the focus. An empty field is not an error: most props are never priced.
-  String? _costErrorOf(Tr tr, String value) {
-    if (value.trim().isEmpty || ocptCostCentsOf(value) != null) {
-      return null;
-    }
-
-    return tr.resourcesElementCostFormatError;
   }
 }

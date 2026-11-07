@@ -1,0 +1,341 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'dart:async';
+
+import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_pending_writes_flusher.dart';
+
+/// The parts of the double mode's data a reload can name.
+enum _Scope {
+  /// The first part.
+  first,
+
+  /// The second part.
+  second,
+}
+
+/// The state of the double mode: its epochs and the log of what its hooks did.
+class _State extends BlocStateForMixin<_State> with MixinOcptModeState<_State> {
+  /// The reload epoch of the state.
+  @override
+  final int reloadEpoch;
+
+  /// The selection epoch of the state.
+  @override
+  final int selectionEpoch;
+
+  /// The scopes each reload that ran so far read, in order.
+  final List<Set<_Scope>> reads;
+
+  /// Class constructor
+  const _State({this.reloadEpoch = 0, this.selectionEpoch = 0, this.reads = const []});
+
+  /// Copy the state with the given fields replaced.
+  @override
+  _State copyWith({int? reloadEpoch, int? selectionEpoch, List<Set<_Scope>>? reads}) => _State(
+    reloadEpoch: reloadEpoch ?? this.reloadEpoch,
+    selectionEpoch: selectionEpoch ?? this.selectionEpoch,
+    reads: reads ?? this.reads,
+  );
+
+  /// List the fields that decide equality: those of the base plus the epochs and the reads.
+  @override
+  List<Object?> get props => [...super.props, reloadEpoch, selectionEpoch, reads];
+}
+
+/// A flusher that records how it was asked, answering that it wrote when it has something.
+class _Flusher implements OcptPendingWritesFlusher {
+  /// Whether this has something to write.
+  bool hasPending;
+
+  /// Whether asking it to write throws, as a flusher whose write failed does.
+  bool fails = false;
+
+  /// How many times it was asked to write with state.
+  int flushCount = 0;
+
+  /// How many times it was asked to write without state.
+  int flushWithoutStateCount = 0;
+
+  /// Class constructor
+  _Flusher({this.hasPending = true});
+
+  /// Count the flush, fail when told to, and report whether anything was pending.
+  @override
+  Future<OcptPendingWritesStatus> flushPendingWrites() async {
+    flushCount++;
+    if (fails) {
+      return OcptPendingWritesStatus.failed;
+    }
+    return hasPending ? OcptPendingWritesStatus.ok : OcptPendingWritesStatus.nothingToWrite;
+  }
+
+  /// Count the flush.
+  @override
+  Future<void> flushPendingWritesWithoutState() async {
+    flushWithoutStateCount++;
+  }
+}
+
+/// A mode bloc whose reads wait on [readGates] in order, so a test decides when each one ends.
+class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State, _Scope> {
+  /// One gate per read, in the order the reads start; a read with no gate left runs at once.
+  final List<Completer<void>> readGates = [];
+
+  /// The order in which reads started and finished, as "start N" and "end N".
+  final List<String> trace = [];
+
+  /// Whether the first read fails instead of emitting.
+  bool failsFirstRead = false;
+
+  /// Whether a read that emitted answers that it did not read, like a mode that handled its own
+  /// failure.
+  bool returnsFalse = false;
+
+  /// What the mode's own flush hook did last: whether any flusher had written.
+  bool? lastFlushHadWritten;
+
+  /// How many reads started so far.
+  int _readCount = 0;
+
+  /// Class constructor
+  _ModeBloc() : super(const _State());
+
+  /// Exposes the protected runner of the flushers that write without state.
+  Future<void> runPendingWritesFlushersWithoutStateForTest() =>
+      runPendingWritesFlushersWithoutState();
+
+  /// Run the flushers, then reload the first scope when one wrote; report whether none failed.
+  @override
+  Future<bool> flushAllPendingWritesIn(Emitter<_State> emitter) async {
+    final run = await runPendingWritesFlushers();
+    lastFlushHadWritten = run.hasWritten;
+    if (run.hasWritten) {
+      await reloadSerially({_Scope.first}, emitter);
+    }
+    return !run.hasFailed;
+  }
+
+  /// Wait for the gate of this read, fail when told to, then move the reload epoch on and record
+  /// the scopes.
+  @override
+  Future<bool> reloadScopesIn(Set<_Scope> scopes, Emitter<_State> emitter) async {
+    final index = _readCount++;
+    trace.add("start $index");
+    if (index < readGates.length) {
+      await readGates[index].future;
+    }
+    if (index == 0 && failsFirstRead) {
+      throw StateError("boom");
+    }
+    emitter(state.copyWith(reloadEpoch: state.reloadEpoch + 1, reads: [...state.reads, scopes]));
+    trace.add("end $index");
+    return !returnsFalse;
+  }
+}
+
+/// Run the tests of [MixinOcptModeBloc].
+void main() {
+  test('a registered flusher is asked to write, an unregistered one no longer is', () async {
+    final mode = _ModeBloc();
+    final flusher = _Flusher();
+    final unregister = mode.registerPendingWritesFlusher(flusher);
+
+    await mode.flushAllPendingWrites();
+    expect(flusher.flushCount, 1);
+    expect(mode.lastFlushHadWritten, isTrue);
+
+    unregister();
+    await mode.flushAllPendingWrites();
+    expect(flusher.flushCount, 1);
+    expect(mode.lastFlushHadWritten, isFalse);
+
+    await mode.close();
+  });
+
+  test('the flush reads the data again only if a flusher wrote', () async {
+    final mode = _ModeBloc();
+    final flusher = _Flusher(hasPending: false);
+    mode.registerPendingWritesFlusher(flusher);
+
+    await mode.flushAllPendingWrites();
+    expect(mode.state.reloadEpoch, 0);
+
+    flusher.hasPending = true;
+    await mode.flushAllPendingWrites();
+    expect(mode.state.reloadEpoch, 1);
+    expect(mode.state.reads.single, {_Scope.first});
+
+    await mode.close();
+  });
+
+  test(
+    'a flusher that fails makes the flush answer false, and the others are still asked',
+    () async {
+      final mode = _ModeBloc();
+      final failing = _Flusher()..fails = true;
+      final other = _Flusher();
+      mode.registerPendingWritesFlusher(failing);
+      mode.registerPendingWritesFlusher(other);
+
+      expect(await mode.flushAllPendingWrites(), isFalse);
+      expect([failing.flushCount, other.flushCount], [1, 1]);
+      expect(mode.lastFlushHadWritten, isTrue, reason: 'the other one wrote');
+
+      failing.fails = false;
+      expect(await mode.flushAllPendingWrites(), isTrue);
+
+      await mode.close();
+    },
+  );
+
+  test('a flush asked of a mode that is closing answers false', () async {
+    final mode = _ModeBloc();
+    unawaited(mode.close());
+
+    expect(await mode.flushAllPendingWrites(), isFalse);
+  });
+
+  test('every flusher is asked, one after the other, and the without-state variant too', () async {
+    final mode = _ModeBloc();
+    final first = _Flusher(hasPending: false);
+    final second = _Flusher();
+    mode.registerPendingWritesFlusher(first);
+    mode.registerPendingWritesFlusher(second);
+
+    await mode.flushAllPendingWrites();
+    expect([first.flushCount, second.flushCount], [1, 1]);
+
+    await mode.runPendingWritesFlushersWithoutStateForTest();
+    expect([first.flushWithoutStateCount, second.flushWithoutStateCount], [1, 1]);
+
+    await mode.close();
+  });
+
+  test('reload completes once the state holds what was read, and names its scopes', () async {
+    final mode = _ModeBloc();
+    final gate = Completer<void>();
+    mode.readGates.add(gate);
+
+    var isDone = false;
+    final future = mode.reload({_Scope.second}).then((_) => isDone = true);
+    await pumpEventQueue();
+    expect(isDone, isFalse);
+    expect(mode.state.reloadEpoch, 0);
+
+    gate.complete();
+    await future;
+    expect(mode.state.reloadEpoch, 1);
+    expect(mode.state.reads.single, {_Scope.second});
+
+    await mode.close();
+  });
+
+  test('reloads run one at a time, in the order they were asked', () async {
+    final mode = _ModeBloc();
+    final firstGate = Completer<void>();
+    mode.readGates.add(firstGate);
+
+    final first = mode.reload({_Scope.first});
+    final second = mode.reload({_Scope.second});
+    await pumpEventQueue();
+    expect(mode.trace, ['start 0'], reason: 'the second read waits for the first');
+
+    firstGate.complete();
+    await Future.wait([first, second]);
+
+    expect(mode.trace, ['start 0', 'end 0', 'start 1', 'end 1']);
+    expect(mode.state.reads, [
+      {_Scope.first},
+      {_Scope.second},
+    ]);
+
+    await mode.close();
+  });
+
+  test('a flush that arrives while a reload is in flight waits for it, then reads again', () async {
+    final mode = _ModeBloc();
+    final gate = Completer<void>();
+    mode.readGates.add(gate);
+    mode.registerPendingWritesFlusher(_Flusher());
+
+    final reload = mode.reload({_Scope.second});
+    await pumpEventQueue();
+    final flush = mode.flushAllPendingWrites();
+    await pumpEventQueue();
+    expect(mode.trace, ['start 0']);
+
+    gate.complete();
+    await Future.wait([reload, flush]);
+
+    expect(mode.trace, ['start 0', 'end 0', 'start 1', 'end 1']);
+    expect(mode.state.reloadEpoch, 2);
+
+    await mode.close();
+  });
+
+  test('a failed reload does not stop the next one', () async {
+    final errors = <Object>[];
+
+    // The failure is the first read's own: it reaches the bloc's error handling, which a test
+    // would otherwise report as uncaught, and the second read still runs.
+    await runZonedGuarded(() async {
+      final mode = _ModeBloc()..failsFirstRead = true;
+
+      await Future.wait([
+        mode.reload({_Scope.first}),
+        mode.reload({_Scope.second}),
+      ]);
+
+      expect(mode.state.reads, [
+        {_Scope.second},
+      ]);
+
+      await mode.close();
+    }, (error, _) => errors.add(error));
+
+    expect(errors, hasLength(1));
+  });
+
+  test('reload answers whether the data was read', () async {
+    final errors = <Object>[];
+
+    await runZonedGuarded(() async {
+      final mode = _ModeBloc();
+      expect(await mode.reload({_Scope.first}), isTrue);
+
+      mode.returnsFalse = true;
+      expect(await mode.reload({_Scope.second}), isFalse);
+
+      // A read that throws is not a read either.
+      final failing = _ModeBloc()..failsFirstRead = true;
+      expect(await failing.reload({_Scope.first}), isFalse);
+
+      await mode.close();
+      await failing.close();
+    }, (error, _) => errors.add(error));
+
+    expect(errors, hasLength(1));
+  });
+
+  test('flush and reload answer at once on a bloc that is closing', () async {
+    final mode = _ModeBloc();
+    final flusher = _Flusher();
+    mode.registerPendingWritesFlusher(flusher);
+
+    final closing = mode.close();
+    await mode.flushAllPendingWrites().timeout(const Duration(seconds: 5));
+    await mode.reload({_Scope.first}).timeout(const Duration(seconds: 5));
+    await closing;
+
+    expect(flusher.flushCount, 0);
+    expect(mode.state.reloadEpoch, 0);
+  });
+}

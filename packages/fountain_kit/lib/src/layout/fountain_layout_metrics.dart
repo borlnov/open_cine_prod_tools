@@ -3,84 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-
-import 'fountain_page_margins.dart';
-
-/// The horizontal alignment of a printed screenplay element within its
-/// layout box.
-enum FountainLayoutAlignment {
-  /// Text starts at the box's left indent.
-  left,
-
-  /// Text is centered within the box's width.
-  center,
-
-  /// Text ends at the box's right edge (used for transitions).
-  right,
-}
-
-/// The layout box a single kind of printed screenplay element is set in:
-/// how far it is indented from the page's left edge, how wide it is
-/// allowed to grow, and how its text is aligned within that width.
-///
-/// Every measurement is given both in inches (the authoritative unit, since
-/// screenplay layout conventions are defined in inches) and in character
-/// columns of 12-point Courier, which is the monospaced font every
-/// screenplay is traditionally set in. An indent is
-/// `round(inches * charsPerInch)`; a width is *truncated* rather than
-/// rounded, see [maxWidthColumns].
-class FountainElementLayout extends Equatable {
-  /// Creates a [FountainElementLayout].
-  const FountainElementLayout({
-    required this.leftIndentInches,
-    required this.leftIndentColumns,
-    required this.maxWidthInches,
-    required this.maxWidthColumns,
-    required this.alignment,
-  });
-
-  /// The distance from the page's physical left edge to where this
-  /// element's text starts, in inches.
-  final double leftIndentInches;
-
-  /// [leftIndentInches] expressed in character columns.
-  final int leftIndentColumns;
-
-  /// The maximum width available to this element's text before it must
-  /// wrap, in inches.
-  final double maxWidthInches;
-
-  /// [maxWidthInches] expressed in character columns, always **truncated**
-  /// (never rounded up), so a line wrapped at this many columns is
-  /// guaranteed to physically fit within [maxWidthInches].
-  ///
-  /// Rounding up would let the width of a full line exceed its own box:
-  /// on A4, an action's 5.7677in width rounds to 58 columns, which measure
-  /// 5.796in of 12-point Courier — 0.03in too wide. A renderer sizing the
-  /// line's box from [maxWidthInches] then re-wraps the overflowing word
-  /// onto a second line of its own, which lands on top of the next line of
-  /// the page. Truncating cannot overshoot, since the font's real pitch is
-  /// never wider than the nominal [FountainLayoutMetrics.charsPerInch].
-  final int maxWidthColumns;
-
-  /// How this element's text is aligned within its box.
-  final FountainLayoutAlignment alignment;
-
-  @override
-  List<Object?> get props => [
-    leftIndentInches,
-    leftIndentColumns,
-    maxWidthInches,
-    maxWidthColumns,
-    alignment,
-  ];
-
-  @override
-  String toString() =>
-      'FountainElementLayout(indent: ${leftIndentInches}in/'
-      '$leftIndentColumns cols, width: ${maxWidthInches}in/'
-      '$maxWidthColumns cols, $alignment)';
-}
+import 'package:fountain_kit/src/layout/fountain_element_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
+import 'package:fountain_kit/src/layout/fountain_page_margins.dart';
 
 /// Page and element layout metrics for typesetting a Fountain screenplay in
 /// 12-point Courier, the traditional screenplay font.
@@ -106,30 +31,6 @@ class FountainElementLayout extends Equatable {
 ///   they end flush with the right margin.
 /// * Lyrics are set like dialogue, since they are sung/spoken text.
 class FountainLayoutMetrics extends Equatable {
-  /// Creates a [FountainLayoutMetrics] with every measurement given
-  /// explicitly. Prefer the [FountainLayoutMetrics.usLetter] and
-  /// [FountainLayoutMetrics.a4] presets unless a non-standard page size is
-  /// genuinely required.
-  const FountainLayoutMetrics({
-    required this.pageWidthInches,
-    required this.pageHeightInches,
-    required this.marginLeftInches,
-    required this.marginRightInches,
-    required this.marginTopInches,
-    required this.marginBottomInches,
-    required this.charsPerInch,
-    required this.linesPerInch,
-    required this.linesPerPage,
-    required this.sceneHeading,
-    required this.action,
-    required this.character,
-    required this.parenthetical,
-    required this.dialogue,
-    required this.transition,
-    required this.centeredText,
-    required this.lyrics,
-  });
-
   /// Millimeters per inch, used to derive [FountainLayoutMetrics.a4]'s page
   /// size from the ISO 216 A4 dimensions (210 mm by 297 mm).
   static const double _millimetersPerInch = 25.4;
@@ -218,27 +119,38 @@ class FountainLayoutMetrics extends Equatable {
   /// The layout box for lyrics.
   final FountainElementLayout lyrics;
 
-  /// The printable width of the page: `pageWidthInches - marginLeftInches -
-  /// marginRightInches`.
-  double get printableWidthInches =>
-      pageWidthInches - marginLeftInches - marginRightInches;
+  /// Create a [FountainLayoutMetrics] with every measurement given
+  /// explicitly. Prefer the [FountainLayoutMetrics.usLetter] and
+  /// [FountainLayoutMetrics.a4] presets unless a non-standard page size is
+  /// genuinely required.
+  const FountainLayoutMetrics({
+    required this.pageWidthInches,
+    required this.pageHeightInches,
+    required this.marginLeftInches,
+    required this.marginRightInches,
+    required this.marginTopInches,
+    required this.marginBottomInches,
+    required this.charsPerInch,
+    required this.linesPerInch,
+    required this.linesPerPage,
+    required this.sceneHeading,
+    required this.action,
+    required this.character,
+    required this.parenthetical,
+    required this.dialogue,
+    required this.transition,
+    required this.centeredText,
+    required this.lyrics,
+  });
 
-  /// The printable height of the page: `pageHeightInches -
-  /// marginTopInches - marginBottomInches`.
-  double get printableHeightInches =>
-      pageHeightInches - marginTopInches - marginBottomInches;
-
-  /// Builds the standard US Letter (8.5 by 11 inch) preset, with [margins]
+  /// Build the standard US Letter (8.5 by 11 inch) preset, with [margins]
   /// defaulting to [FountainPageMargins.standard].
   factory FountainLayoutMetrics.usLetter({
     FountainPageMargins margins = const FountainPageMargins.standard(),
-  }) => FountainLayoutMetrics._standard(
-    pageWidthInches: 8.5,
-    pageHeightInches: 11,
-    margins: margins,
-  );
+  }) =>
+      FountainLayoutMetrics._standard(pageWidthInches: 8.5, pageHeightInches: 11, margins: margins);
 
-  /// Builds the standard ISO A4 (210 by 297 mm) preset, with [margins]
+  /// Build the standard ISO A4 (210 by 297 mm) preset, with [margins]
   /// defaulting to [FountainPageMargins.standard].
   ///
   /// The page margins and element indents are kept identical, in inches, to
@@ -255,7 +167,7 @@ class FountainLayoutMetrics extends Equatable {
     margins: margins,
   );
 
-  /// Builds a [FountainLayoutMetrics] for a page of [pageWidthInches] by
+  /// Build a [FountainLayoutMetrics] for a page of [pageWidthInches] by
   /// [pageHeightInches], typeset with [margins] and the standard element
   /// indents and Courier 12 pitch documented on this class.
   factory FountainLayoutMetrics._standard({
@@ -278,12 +190,11 @@ class FountainLayoutMetrics extends Equatable {
       '${pageWidthInches}in by ${pageHeightInches}in page with $margins.',
     );
 
-    FountainElementLayout fullWidthLeftAligned(double leftIndent) =>
-        _elementLayout(
-          leftIndentInches: leftIndent,
-          maxWidthInches: rightEdge - leftIndent,
-          alignment: FountainLayoutAlignment.left,
-        );
+    FountainElementLayout fullWidthLeftAligned(double leftIndent) => _elementLayout(
+      leftIndentInches: leftIndent,
+      maxWidthInches: rightEdge - leftIndent,
+      alignment: FountainLayoutAlignment.left,
+    );
 
     return FountainLayoutMetrics(
       pageWidthInches: pageWidthInches,
@@ -322,7 +233,13 @@ class FountainLayoutMetrics extends Equatable {
     );
   }
 
-  /// Builds a [FountainElementLayout], deriving its character-column
+  /// Describe this [FountainLayoutMetrics] for debugging and logging.
+  @override
+  String toString() =>
+      'FountainLayoutMetrics(${pageWidthInches}in x '
+      '${pageHeightInches}in, $linesPerPage lines/page)';
+
+  /// Build a [FountainElementLayout], deriving its character-column
   /// measurements from its inch measurements at [_courierCharsPerInch].
   ///
   /// The indent is rounded (it names a column the text starts at, and the
@@ -337,12 +254,11 @@ class FountainLayoutMetrics extends Equatable {
     leftIndentInches: leftIndentInches,
     leftIndentColumns: (leftIndentInches * _courierCharsPerInch).round(),
     maxWidthInches: maxWidthInches,
-    maxWidthColumns:
-        (maxWidthInches * _courierCharsPerInch + _columnRoundingEpsilon)
-            .floor(),
+    maxWidthColumns: (maxWidthInches * _courierCharsPerInch + _columnRoundingEpsilon).floor(),
     alignment: alignment,
   );
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     pageWidthInches,
@@ -363,9 +279,4 @@ class FountainLayoutMetrics extends Equatable {
     centeredText,
     lyrics,
   ];
-
-  @override
-  String toString() =>
-      'FountainLayoutMetrics(${pageWidthInches}in x '
-      '${pageHeightInches}in, $linesPerPage lines/page)';
 }

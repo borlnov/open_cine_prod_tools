@@ -7,11 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_diagnostics_log_list.dart';
 
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve,
@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_diagnostics_log_list.dart';
 /// (an `Expanded` inside its own body), so a test needs a bounded ancestor rather than the
 /// unbounded height a bare `MaterialApp`/`Scaffold` body would otherwise give it.
 Widget _wrap(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -30,6 +30,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(height: 600, child: child)),
 );
 
+/// Run the tests of [OcptDiagnosticsLogList].
 void main() {
   setUpAll(() {
     // OcptGlobalManager and OcptDiagnosticsEntry both log through appLogger(), which requires a
@@ -51,7 +52,8 @@ void main() {
       managers.registerSingleton<OcptDiagnosticsManager>(manager);
 
       // `Clipboard.setData` has no built-in mock handler on this SDK: without one it never
-      // completes, exactly `ocpt_styled_screenplay_editor_test.dart`'s own reasoning.
+      // completes, exactly `ocpt_styled_screenplay_editor_typing_and_shortcuts_test.dart`'s own
+      // reasoning.
       clipboardText = null;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.platform,
@@ -158,10 +160,16 @@ void main() {
 
       final tr = Tr.of(tester.element(find.byType(OcptDiagnosticsLogList)));
       final copyButton = tester.widget<IconButton>(
-        find.ancestor(of: find.byTooltip(tr.diagnosticsCopyTooltip), matching: find.byType(IconButton)),
+        find.ancestor(
+          of: find.byTooltip(tr.diagnosticsCopyTooltip),
+          matching: find.byType(IconButton),
+        ),
       );
       final clearButton = tester.widget<IconButton>(
-        find.ancestor(of: find.byTooltip(tr.diagnosticsClearTooltip), matching: find.byType(IconButton)),
+        find.ancestor(
+          of: find.byTooltip(tr.diagnosticsClearTooltip),
+          matching: find.byType(IconButton),
+        ),
       );
 
       expect(copyButton.onPressed, isNull);

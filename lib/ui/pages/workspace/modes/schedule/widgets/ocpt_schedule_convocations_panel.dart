@@ -7,8 +7,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
 /// The right dock's own `Convocations` tab: the selected day's whole call, one card per **person**
 /// (crew and cast folded together — an actor is read through `roles.personId`, so the question this
@@ -22,8 +22,8 @@ import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 ///
 /// A guest's own card is drawn by the very same [_OcptScheduleConvocationCard] — its band always
 /// reading as an em dash, [OcptDayConvocation.isGuest] never carrying a PAT band at all — kept in
-/// its own group rather than interleaved with the crew and cast by arrival, so a reader can tell "who
-/// is here to work" from "who is here to watch" at a glance.
+/// its own group rather than interleaved with the crew and cast by arrival, so a reader can tell
+/// "who is here to work" from "who is here to watch" at a glance.
 ///
 /// A **candidate**'s card is that same card again, and unlike a guest's it reads a **real band**:
 /// somebody seen for a part is working, and their band is read off the day's auditions like anybody
@@ -67,20 +67,19 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
     required this.slotById,
   });
 
+  /// Build the schedule convocations panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final convocations = this.convocations;
     final tr = Tr.of(context);
 
     if (convocations == null) {
-      return _buildHint(context, tr.scheduleConvocationsEmptyHint);
+      return _OcptScheduleConvocationsHint(message: tr.scheduleConvocationsEmptyHint);
     }
 
     final mainRows = _sortedRows(
       tr,
-      convocations.where(
-        (convocation) => !convocation.isGuest && !convocation.isOnlySeenForAPart,
-      ),
+      convocations.where((convocation) => !convocation.isGuest && !convocation.isOnlySeenForAPart),
     );
     final candidateRows = _sortedRows(
       tr,
@@ -88,50 +87,51 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
     );
     final guestRows = _sortedRows(tr, convocations.where((convocation) => convocation.isGuest));
     if (mainRows.isEmpty && candidateRows.isEmpty && guestRows.isEmpty) {
-      return _buildHint(context, tr.scheduleConvocationsNoConvocationHint);
+      return _OcptScheduleConvocationsHint(message: tr.scheduleConvocationsNoConvocationHint);
     }
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        for (final (convocation, title) in mainRows) _buildCard(context, convocation, title),
-        if (candidateRows.isNotEmpty) ...[
-          if (mainRows.isNotEmpty) const SizedBox(height: 8),
-          _buildSectionHeading(context, tr.scheduleConvocationsCandidatesSectionTitle),
-          const SizedBox(height: 8),
-          for (final (convocation, title) in candidateRows) _buildCard(context, convocation, title),
-        ],
-        if (guestRows.isNotEmpty) ...[
-          if (mainRows.isNotEmpty || candidateRows.isNotEmpty) const SizedBox(height: 8),
-          _buildSectionHeading(context, tr.scheduleConvocationsGuestsSectionTitle),
-          const SizedBox(height: 8),
-          for (final (convocation, title) in guestRows) _buildCard(context, convocation, title),
-        ],
+    // One builder per item, so the list constructs only the cards in view.
+    final items = <Widget Function()>[
+      for (final (convocation, title) in mainRows)
+        () => _OcptScheduleConvocationCard(
+          title: title,
+          convocation: convocation,
+          slotById: slotById,
+        ),
+      if (candidateRows.isNotEmpty) ...[
+        if (mainRows.isNotEmpty) () => const SizedBox(height: 8),
+        () =>
+            _OcptScheduleConvocationsHeading(title: tr.scheduleConvocationsCandidatesSectionTitle),
+        () => const SizedBox(height: 8),
+        for (final (convocation, title) in candidateRows)
+          () => _OcptScheduleConvocationCard(
+            title: title,
+            convocation: convocation,
+            slotById: slotById,
+          ),
       ],
+      if (guestRows.isNotEmpty) ...[
+        if (mainRows.isNotEmpty || candidateRows.isNotEmpty) () => const SizedBox(height: 8),
+        () => _OcptScheduleConvocationsHeading(title: tr.scheduleConvocationsGuestsSectionTitle),
+        () => const SizedBox(height: 8),
+        for (final (convocation, title) in guestRows)
+          () => _OcptScheduleConvocationCard(
+            title: title,
+            convocation: convocation,
+            slotById: slotById,
+          ),
+      ],
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      itemBuilder: (context, index) => items[index](),
     );
   }
 
-  /// One card of either group, its band always reading as an em dash for a guest ([OcptDayConvocation
-  /// .isGuest] never carrying a PAT band) — see [ocptScheduleConvocationBandLabel]'s own doc comment.
-  Widget _buildCard(BuildContext context, OcptDayConvocation convocation, String title) =>
-      _OcptScheduleConvocationCard(
-        title: title,
-        bandLabel: ocptScheduleConvocationBandLabel(convocation),
-        slotsLabel: ocptScheduleConvocationSlotsLabel(Tr.of(context), convocation, slotById),
-      );
-
-  /// A trailing group's own heading — muted, uppercased, the same idiom the slot card's own people
-  /// section titles use, drawn identically for the candidates and for the guests.
-  Widget _buildSectionHeading(BuildContext context, String title) {
-    final theme = Theme.of(context);
-
-    return Text(
-      title.toUpperCase(),
-      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-    );
-  }
-
-  /// [source] paired with its resolved display title, sorted by arrival then by that title — the
+  /// Get [source] paired with its resolved display title, sorted by arrival then by that title —
+  /// the
   /// order people actually walk in, which `ocptComputeDayConvocations` itself cannot produce: it
   /// ties on id for want of a name, and resolving one is this state's own job, not that pure
   /// function's (see [OcptDayConvocation]'s own doc comment). Used once per group ([build]), so a
@@ -140,15 +140,7 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
   List<(OcptDayConvocation, String)> _sortedRows(Tr tr, Iterable<OcptDayConvocation> source) {
     final rows = [
       for (final convocation in source)
-        (
-          convocation,
-          ocptScheduleConvocationTitle(
-            tr,
-            convocation,
-            personById,
-            roleById,
-          ),
-        ),
+        (convocation, ocptScheduleConvocationTitle(tr, convocation, personById, roleById)),
     ];
 
     rows.sort((left, right) {
@@ -161,22 +153,6 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
 
     return rows;
   }
-
-  /// The panel's own empty-state read-out — a centred, muted, small hint — the exact idiom
-  /// `OcptScheduleInspector` already shows with nothing selected, reused rather than a second one
-  /// invented for this panel.
-  Widget _buildHint(BuildContext context, String message) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Text(
-        message,
-        textAlign: TextAlign.center,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-      ),
-    ),
-  );
 }
 
 /// One card of [OcptScheduleConvocationsPanel]: the resolved [title] on its own line, then the
@@ -188,22 +164,21 @@ class _OcptScheduleConvocationCard extends StatelessWidget {
   /// with the "not cast" marker (see [ocptScheduleConvocationTitle]'s own doc comment).
   final String title;
 
-  /// The arrival → PAT band → departure line (see [ocptScheduleConvocationBandLabel]'s own doc
-  /// comment).
-  final String bandLabel;
+  /// The convocation the card draws: its arrival → PAT band → departure line (see
+  /// [ocptScheduleConvocationBandLabel]'s own doc comment) and its slots line.
+  final OcptDayConvocation convocation;
 
-  /// The slots this convocation is linked to, by label, joined with " · " (see
-  /// [ocptScheduleConvocationSlotsLabel]'s own doc comment) — never empty, since a convocation
-  /// always names at least the one slot it was built from.
-  final String slotsLabel;
+  /// The day's slots, keyed by id, that the slots line is resolved against.
+  final Map<String, OcptShootingSlot> slotById;
 
   /// Class constructor
   const _OcptScheduleConvocationCard({
     required this.title,
-    required this.bandLabel,
-    required this.slotsLabel,
+    required this.convocation,
+    required this.slotById,
   });
 
+  /// Build the schedule convocation card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -217,10 +192,10 @@ class _OcptScheduleConvocationCard extends StatelessWidget {
           children: [
             Text(title, style: theme.textTheme.titleSmall),
             const SizedBox(height: 4),
-            Text(bandLabel, style: theme.textTheme.bodySmall),
+            Text(ocptScheduleConvocationBandLabel(convocation), style: theme.textTheme.bodySmall),
             const SizedBox(height: 2),
             Text(
-              slotsLabel,
+              ocptScheduleConvocationSlotsLabel(Tr.of(context), convocation, slotById),
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
@@ -228,4 +203,51 @@ class _OcptScheduleConvocationCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A trailing group's own heading — muted, uppercased, the same idiom the slot card's own people
+/// section titles use, drawn identically for the candidates and for the guests.
+class _OcptScheduleConvocationsHeading extends StatelessWidget {
+  /// The heading's text, drawn in capitals.
+  final String title;
+
+  /// Class constructor
+  const _OcptScheduleConvocationsHeading({required this.title});
+
+  /// Build the schedule convocations heading as a [Text].
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Text(
+      title.toUpperCase(),
+      style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+    );
+  }
+}
+
+/// The panel's own empty-state read-out — a centred, muted, small hint — the exact idiom
+/// `OcptScheduleInspector` already shows with nothing selected, reused rather than a second one
+/// invented for this panel.
+class _OcptScheduleConvocationsHint extends StatelessWidget {
+  /// The hint's text.
+  final String message;
+
+  /// Class constructor
+  const _OcptScheduleConvocationsHint({required this.message});
+
+  /// Build the schedule convocations hint as a [Center].
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+      ),
+    ),
+  );
 }

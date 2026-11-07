@@ -10,22 +10,14 @@ sealed class OcptRepointingEvent extends BlocEventForMixin {
   const OcptRepointingEvent();
 }
 
-/// Requests loading the current project's own display name.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptRepointingLoadRequestedEvent extends OcptRepointingEvent {
-  /// Class constructor
-  const OcptRepointingLoadRequestedEvent();
-}
-
-/// Reports that the "Switch relay" action was pressed, or a scanned relay enrolment QR was
+/// Report that the "Switch relay" action was pressed, or a scanned relay enrolment QR was
 /// resolved, with the relay address and the enrolment secret either typed into the ① Configure
 /// form or read off the QR.
 class OcptRepointingRequestedEvent extends OcptRepointingEvent {
   /// The relay address, already parsed — the page validates it is a well-formed URI before
   /// dispatching this event when it comes from the typed form, since the bloc has no `Tr` to word
   /// a validation error with. A scanned QR is always well-formed by construction
-  /// (`OcptRelayEnrolment.tryParse`).
+  /// (`OcptRelayEnrolment.parse`).
   final Uri relayBaseUri;
 
   /// The instance-wide enrolment secret, typed or scanned.
@@ -34,12 +26,12 @@ class OcptRepointingRequestedEvent extends OcptRepointingEvent {
   /// Class constructor
   const OcptRepointingRequestedEvent({required this.relayBaseUri, required this.enrolmentSecret});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, relayBaseUri, enrolmentSecret];
 }
 
-/// Reports that the page has shown `OcptRepointingState.repointFailed`'s own snack bar, so the
+/// Report that the page has shown `OcptRepointingState.repointFailed`'s own snack bar, so the
 /// bloc clears the flag and a later rebuild doesn't show it again — the same one-shot-notice shape
 /// `OcptSharingBloc`'s own `OcptSharingPairingErrorDismissedEvent` already follows.
 class OcptRepointingErrorDismissedEvent extends OcptRepointingEvent {

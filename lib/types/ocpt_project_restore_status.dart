@@ -7,10 +7,10 @@ import 'package:act_dart_result/act_dart_result.dart';
 /// The outcome of restoring a project version over the working copy, or of forking from one.
 ///
 /// Restoring is the one operation of the app that rewrites most of a project at once, so every
-/// failure here is an all-or-nothing one: the whole restore happens inside a single transaction, and
-/// the page margins it also restores are written only once that transaction has committed. A status
-/// other than [ok] therefore means the project and the app's preferences are both exactly as they
-/// were.
+/// failure here is an all-or-nothing one: the whole restore happens inside a single transaction,
+/// and the page margins it also restores are written only once that transaction has committed. A
+/// status other than [ok] therefore means the project and the app's preferences are both exactly as
+/// they were.
 enum OcptProjectRestoreStatus with MixinResultStatus {
   /// The project now holds the version's state, and descends from it.
   ok(isSuccess: true, canBeRetried: false),
@@ -30,7 +30,12 @@ enum OcptProjectRestoreStatus with MixinResultStatus {
 
   /// The payload was read but writing it back failed; the transaction rolled back and the project
   /// is untouched.
-  writeFailed(isSuccess: false, canBeRetried: true);
+  writeFailed(isSuccess: false, canBeRetried: true),
+
+  /// The database failed a step around the restore itself — leaving the preview before it, or
+  /// recording the project's episode count after it —: the caller stops there, with no notice to
+  /// show for it. The `extraInfo` is the type of what failed.
+  databaseError(isSuccess: false, canBeRetried: true);
 
   /// {@macro act_dart_result.MixinResultStatus.isSuccess}
   @override

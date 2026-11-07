@@ -90,7 +90,7 @@ class OcptShootingPlanLabels extends Equatable {
   /// The word `Perso.`, reused both as a shot table's own characters column header and as the
   /// locations grid's own nested row naming who is present — the reference document uses the same
   /// word for both, and so does this one.
-  final String persoLabel;
+  final String peopleLabel;
 
   /// The prefix a sequences grid's own row label is built with (`Séq. 2`).
   final String sequenceRowPrefix;
@@ -221,7 +221,7 @@ class OcptShootingPlanLabels extends Equatable {
     required this.peopleGridRowHeader,
     required this.elementsGridRowHeader,
     required this.elementCategoryLabels,
-    required this.persoLabel,
+    required this.peopleLabel,
     required this.sequenceRowPrefix,
     required this.presenceMark,
     required this.crewPositionLabels,
@@ -251,24 +251,25 @@ class OcptShootingPlanLabels extends Equatable {
     required this.unnamedPersonLabel,
   });
 
-  /// The title of the day [dayId], or an empty string if [dayTitles] holds none for it.
+  /// Get the title of the day [dayId], or an empty string if [dayTitles] holds none for it.
   String titleOfDay(String dayId) => dayTitles[dayId] ?? "";
 
-  /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
-  /// holds none for it.
+  /// {@macro open_cine_prod_tools.crewPositionLabelGetter}
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
-  /// The default caption of [kind], or an empty string if [blockKindLabels] holds none for it.
+  /// Get the default caption of [kind], or an empty string if [blockKindLabels] holds none for it.
   String blockKindLabelOf(OcptShootingBlockKind kind) => blockKindLabels[kind] ?? "";
 
-  /// The label of [category], or an empty string if [elementCategoryLabels] holds none for it.
-  String elementCategoryLabelOf(OcptElementCategory category) => elementCategoryLabels[category] ?? "";
+  /// Get the label of [category], or an empty string if [elementCategoryLabels] holds none for it.
+  String elementCategoryLabelOf(OcptElementCategory category) =>
+      elementCategoryLabels[category] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
-  String toString() => "OcptShootingPlanLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
+  String toString() =>
+      "OcptShootingPlanLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,
@@ -287,7 +288,7 @@ class OcptShootingPlanLabels extends Equatable {
     peopleGridRowHeader,
     elementsGridRowHeader,
     elementCategoryLabels,
-    persoLabel,
+    peopleLabel,
     sequenceRowPrefix,
     presenceMark,
     crewPositionLabels,

@@ -1,0 +1,96 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
+
+/// The key of one entry of a view bloc's pending edits (`OcptShotListInspectorState`'s, the
+/// storyboard bloc's, `OcptShotListState`'s own): what a typed value still sitting in a 2 s
+/// autosave debounce is destined to write onto once it flushes.
+///
+/// A sealed class rather than the `(String, OcptShotListEditableField)` record the shot list mode
+/// used before the board existed: the debounce is shared by every free-text field the mode owns,
+/// and the board's panel comment ([OcptShotListPanelCommentEditKey]) and a mark's own text
+/// ([OcptShotListAnnotationTextEditKey]) are not shot fields at all. The floor plans view's
+/// sequence half adds [OcptShotListSetNameEditKey], typed in place into a set's own tab; its shot
+/// half adds [OcptShotListSymbolLabelEditKey], typed in place through the canvas's own `label`
+/// tool.
+///
+/// [Equatable]'s structural `==`/`hashCode` (over [props]) is what lets a value of this type key a
+/// `Map` the same way the record it replaces already did.
+sealed class OcptShotListPendingEditKey extends Equatable {
+  /// Class constructor
+  const OcptShotListPendingEditKey();
+}
+
+/// A pending edit of set [setId]'s own name, typed in place into its floor plans tab.
+class OcptShotListSetNameEditKey extends OcptShotListPendingEditKey {
+  /// The id of the set whose name is being edited.
+  final String setId;
+
+  /// Class constructor
+  const OcptShotListSetNameEditKey({required this.setId});
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [setId];
+}
+
+/// A pending edit of shot [shotId]'s [field] — the mode's original, and still only, kind of pending
+/// shot list edit.
+class OcptShotListShotFieldEditKey extends OcptShotListPendingEditKey {
+  /// The id of the shot whose field is being edited.
+  final String shotId;
+
+  /// The field being edited.
+  final OcptShotListEditableField field;
+
+  /// Class constructor
+  const OcptShotListShotFieldEditKey({required this.shotId, required this.field});
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [shotId, field];
+}
+
+/// A pending edit of panel [panelId]'s free comment, typed into the board's inspector Panels group.
+class OcptShotListPanelCommentEditKey extends OcptShotListPendingEditKey {
+  /// The id of the panel whose comment is being edited.
+  final String panelId;
+
+  /// Class constructor
+  const OcptShotListPanelCommentEditKey({required this.panelId});
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [panelId];
+}
+
+/// A pending edit of mark [annotationId]'s own text — a label's text, or an arrow's optional
+/// caption — typed into the board's inspector Panels group's own annotation section.
+class OcptShotListAnnotationTextEditKey extends OcptShotListPendingEditKey {
+  /// The id of the mark whose text is being edited.
+  final String annotationId;
+
+  /// Class constructor
+  const OcptShotListAnnotationTextEditKey({required this.annotationId});
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [annotationId];
+}
+
+/// A pending edit of floor plan symbol [symbolId]'s own free-text label, typed in place through
+/// the canvas's own `label` tool.
+class OcptShotListSymbolLabelEditKey extends OcptShotListPendingEditKey {
+  /// The id of the symbol whose label is being edited.
+  final String symbolId;
+
+  /// Class constructor
+  const OcptShotListSymbolLabelEditKey({required this.symbolId});
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [symbolId];
+}

@@ -7,11 +7,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_search_candidate.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_tag_popover.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_breakdown_labels.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a `Stack` large
 /// enough that a tap "outside" the popover has somewhere to land.
@@ -24,7 +24,12 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   ],
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(
-    body: Stack(children: [const SizedBox.expand(), Align(alignment: Alignment.topLeft, child: child)]),
+    body: Stack(
+      children: [
+        const SizedBox.expand(),
+        Align(alignment: Alignment.topLeft, child: child),
+      ],
+    ),
   ),
 );
 
@@ -61,6 +66,7 @@ OcptBreakdownSearchCandidate _candidate({
   taggedSceneCount: taggedSceneCount,
 );
 
+/// Run the tests of [OcptBreakdownTagPopover].
 void main() {
   /// Pumps a scrolling column with [topInset] of empty space above the anchored word, inside a
   /// window [windowHeight] tall, and reports the word's own rect and the popover's.
@@ -126,11 +132,7 @@ void main() {
   });
 
   testWidgets("the popover is capped to the room the window leaves it", (tester) async {
-    final (word, popover) = await pumpAnchoredPopover(
-      tester,
-      topInset: 300,
-      windowHeight: 400,
-    );
+    final (word, popover) = await pumpAnchoredPopover(tester, topInset: 300, windowHeight: 400);
 
     // Neither side is tall enough for the whole panel, so it is squeezed into the better one and
     // scrolls the rest rather than hanging off the window.

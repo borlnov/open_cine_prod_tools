@@ -6,27 +6,21 @@ import 'package:fountain_kit/src/layout/fountain_screenplay_characters.dart';
 import 'package:fountain_kit/src/parser/fountain_parser.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of the screenplay characters.
 void main() {
   group('charactersIntroducedInActionLine', () {
     test('names a character introduced at the start of the line', () {
-      expect(
-        charactersIntroducedInActionLine('ELISA entre dans le derrière de scène.'),
-        ['ELISA'],
-      );
+      expect(charactersIntroducedInActionLine('ELISA entre dans le derrière de scène.'), ['ELISA']);
     });
 
     test('names a character introduced mid-sentence', () {
-      expect(
-        charactersIntroducedInActionLine("Derrière lui, plus loin, PASCAL s'échauffe."),
-        ['PASCAL'],
-      );
+      expect(charactersIntroducedInActionLine("Derrière lui, plus loin, PASCAL s'échauffe."), [
+        'PASCAL',
+      ]);
     });
 
     test('names nobody in a line written in ordinary case', () {
-      expect(
-        charactersIntroducedInActionLine('Paul se libère doucement de Juliette.'),
-        isEmpty,
-      );
+      expect(charactersIntroducedInActionLine('Paul se libère doucement de Juliette.'), isEmpty);
     });
 
     test('keeps the words of a two-word name together', () {

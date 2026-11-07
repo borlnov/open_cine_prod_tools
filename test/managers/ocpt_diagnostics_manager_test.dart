@@ -5,7 +5,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_level.dart';
 
+/// Run the tests of [OcptDiagnosticsManager].
 void main() {
   late OcptDiagnosticsManager manager;
 

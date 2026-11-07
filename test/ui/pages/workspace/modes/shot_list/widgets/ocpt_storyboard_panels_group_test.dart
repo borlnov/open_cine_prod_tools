@@ -13,8 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart'
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_panels_group.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, and sets the test
-/// surface past the 800 px compact breakpoint, matching every other shot list widget/bloc test of
-/// this milestone.
+/// surface past the 800 px compact breakpoint, matching every other shot list widget/bloc test.
 Future<void> _pumpGroup(WidgetTester tester, Widget child) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
@@ -64,12 +63,16 @@ OcptStoryboardAnnotation _annotation(
   text: text,
 );
 
+/// Run the tests of [OcptStoryboardPanelsGroup].
 void main() {
   testWidgets("lists every panel with its rank and its comment field", (tester) async {
     await _pumpGroup(
       tester,
       OcptStoryboardPanelsGroup(
-        panels: [_panel("p1", comment: "Wide"), _panel("p2", comment: "Push in")],
+        panels: [
+          _panel("p1", comment: "Wide"),
+          _panel("p2", comment: "Push in"),
+        ],
         commentValueOf: (id) => id == "p1" ? "Wide" : "Push in",
         isReadOnly: false,
         onCommentChanged: (_, __) {},
@@ -125,9 +128,7 @@ void main() {
     expect(changed, [("p1", "Dolly in")]);
   });
 
-  testWidgets("Delete panel only asks: it reports the panel's id and nothing else", (
-    tester,
-  ) async {
+  testWidgets("Delete panel only asks: it reports the panel's id and nothing else", (tester) async {
     final deleteRequested = <String>[];
 
     await _pumpGroup(
@@ -197,42 +198,39 @@ void main() {
     },
   );
 
-  testWidgets(
-    "read-only withholds the comment field, the reorder affordance and Delete panel",
-    (tester) async {
-      await _pumpGroup(
-        tester,
-        OcptStoryboardPanelsGroup(
-          panels: [_panel("p1")],
-          commentValueOf: (_) => "Wide",
-          isReadOnly: true,
-          onCommentChanged: null,
-          onReordered: null,
-          onDeleteRequested: null,
-          selectedPanelId: null,
-          annotations: const [],
-          selectedAnnotationId: null,
-          activeAnnotationTool: null,
-          onToolChanged: null,
-          annotationTextValueOf: (_) => "",
-          onAnnotationSelected: (_) {},
-          onAnnotationTextChanged: null,
-          onAnnotationDeleteRequested: null,
-        ),
-      );
+  testWidgets("read-only withholds the comment field, the reorder affordance and Delete panel", (
+    tester,
+  ) async {
+    await _pumpGroup(
+      tester,
+      OcptStoryboardPanelsGroup(
+        panels: [_panel("p1")],
+        commentValueOf: (_) => "Wide",
+        isReadOnly: true,
+        onCommentChanged: null,
+        onReordered: null,
+        onDeleteRequested: null,
+        selectedPanelId: null,
+        annotations: const [],
+        selectedAnnotationId: null,
+        activeAnnotationTool: null,
+        onToolChanged: null,
+        annotationTextValueOf: (_) => "",
+        onAnnotationSelected: (_) {},
+        onAnnotationTextChanged: null,
+        onAnnotationDeleteRequested: null,
+      ),
+    );
 
-      expect(tester.widget<TextField>(find.byType(TextField)).onChanged, isNull);
-      expect(find.byIcon(Icons.delete_outline), findsNothing);
-      final upButton = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.arrow_upward),
-      );
-      expect(upButton.onPressed, isNull);
-      final downButton = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.arrow_downward),
-      );
-      expect(downButton.onPressed, isNull);
-    },
-  );
+    expect(tester.widget<TextField>(find.byType(TextField)).onChanged, isNull);
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
+    final upButton = tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.arrow_upward));
+    expect(upButton.onPressed, isNull);
+    final downButton = tester.widget<IconButton>(
+      find.widgetWithIcon(IconButton, Icons.arrow_downward),
+    );
+    expect(downButton.onPressed, isNull);
+  });
 
   testWidgets("no panel at all shows the 'no panel yet' hint", (tester) async {
     await _pumpGroup(
@@ -361,40 +359,35 @@ void main() {
       expect(picked, [OcptStoryboardAnnotationTool.movementArrow, null]);
     });
 
-    testWidgets(
-      "the currently active tool shows selected in the control",
-      (tester) async {
-        await _pumpGroup(
-          tester,
-          OcptStoryboardPanelsGroup(
-            panels: [_panel("p1")],
-            commentValueOf: (_) => "",
-            isReadOnly: false,
-            onCommentChanged: (_, __) {},
-            onReordered: (_, __) {},
-            onDeleteRequested: (_) {},
-            selectedPanelId: "p1",
-            annotations: const [],
-            selectedAnnotationId: null,
-            activeAnnotationTool: OcptStoryboardAnnotationTool.label,
-            onToolChanged: (_) {},
-            annotationTextValueOf: (_) => "",
-            onAnnotationSelected: (_) {},
-            onAnnotationTextChanged: (_, __) {},
-            onAnnotationDeleteRequested: (_) {},
-          ),
-        );
+    testWidgets("the currently active tool shows selected in the control", (tester) async {
+      await _pumpGroup(
+        tester,
+        OcptStoryboardPanelsGroup(
+          panels: [_panel("p1")],
+          commentValueOf: (_) => "",
+          isReadOnly: false,
+          onCommentChanged: (_, __) {},
+          onReordered: (_, __) {},
+          onDeleteRequested: (_) {},
+          selectedPanelId: "p1",
+          annotations: const [],
+          selectedAnnotationId: null,
+          activeAnnotationTool: OcptStoryboardAnnotationTool.label,
+          onToolChanged: (_) {},
+          annotationTextValueOf: (_) => "",
+          onAnnotationSelected: (_) {},
+          onAnnotationTextChanged: (_, __) {},
+          onAnnotationDeleteRequested: (_) {},
+        ),
+      );
 
-        final segmentedButton = tester.widget<SegmentedButton<OcptStoryboardAnnotationTool>>(
-          find.byType(SegmentedButton<OcptStoryboardAnnotationTool>),
-        );
-        expect(segmentedButton.selected, {OcptStoryboardAnnotationTool.label});
-      },
-    );
+      final segmentedButton = tester.widget<SegmentedButton<OcptStoryboardAnnotationTool>>(
+        find.byType(SegmentedButton<OcptStoryboardAnnotationTool>),
+      );
+      expect(segmentedButton.selected, {OcptStoryboardAnnotationTool.label});
+    });
 
-    testWidgets("typing into a mark's text field reports its id and the raw text", (
-      tester,
-    ) async {
+    testWidgets("typing into a mark's text field reports its id and the raw text", (tester) async {
       final changed = <(String, String)>[];
 
       await _pumpGroup(
@@ -459,9 +452,7 @@ void main() {
       expect(selected, ["a1"]);
     });
 
-    testWidgets("Remove mark only asks: it reports the mark's id and nothing else", (
-      tester,
-    ) async {
+    testWidgets("Remove mark only asks: it reports the mark's id and nothing else", (tester) async {
       final deleteRequested = <String>[];
 
       await _pumpGroup(

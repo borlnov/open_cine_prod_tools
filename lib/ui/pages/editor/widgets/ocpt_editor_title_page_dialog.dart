@@ -25,17 +25,30 @@ class OcptEditorTitlePageDialog extends StatefulWidget {
   /// Class constructor
   const OcptEditorTitlePageDialog({required this.current, super.key});
 
-  /// Shows the dialog and returns the six field values the user applied, or null if they
+  /// Create the [_OcptEditorTitlePageDialogState] holding the state of the editor title page
+  /// dialog.
+  @override
+  State<OcptEditorTitlePageDialog> createState() => _OcptEditorTitlePageDialogState();
+
+  /// Show the dialog and return the six field values the user applied, or null if they
   /// cancelled it.
   static Future<
     ({String title, String credit, String author, String draftDate, String contact, String source})?
   >
-  show(BuildContext context, {required FountainTitlePage? current}) => showDialog<
-    ({String title, String credit, String author, String draftDate, String contact, String source})
-  >(context: context, builder: (context) => OcptEditorTitlePageDialog(current: current));
-
-  @override
-  State<OcptEditorTitlePageDialog> createState() => _OcptEditorTitlePageDialogState();
+  show(BuildContext context, {required FountainTitlePage? current}) =>
+      showDialog<
+        ({
+          String title,
+          String credit,
+          String author,
+          String draftDate,
+          String contact,
+          String source,
+        })
+      >(
+        context: context,
+        builder: (context) => OcptEditorTitlePageDialog(current: current),
+      );
 }
 
 /// The state of [OcptEditorTitlePageDialog].
@@ -58,29 +71,21 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
   /// The controller of the Source field.
   final _sourceController = TextEditingController();
 
+  /// Fill the title page fields from the entries of the title page the dialog opened with.
   @override
   void initState() {
     super.initState();
     final current = widget.current;
     _titleController.text = current?.entry('Title')?.joinedValue ?? '';
     _creditController.text = current?.entry('Credit')?.joinedValue ?? '';
-    _authorController.text = (current?.entry('Author') ?? current?.entry('Authors'))?.joinedValue ?? '';
+    _authorController.text =
+        (current?.entry('Author') ?? current?.entry('Authors'))?.joinedValue ?? '';
     _draftDateController.text = current?.entry('Draft date')?.joinedValue ?? '';
     _contactController.text = current?.entry('Contact')?.joinedValue ?? '';
     _sourceController.text = current?.entry('Source')?.joinedValue ?? '';
   }
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _creditController.dispose();
-    _authorController.dispose();
-    _draftDateController.dispose();
-    _contactController.dispose();
-    _sourceController.dispose();
-    super.dispose();
-  }
-
+  /// Build the editor title page dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -134,7 +139,7 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
     );
   }
 
-  /// Pops the dialog through the router manager (RFL31), returning the six fields' current text,
+  /// Pop the dialog through the router manager, returning the six fields' current text,
   /// each trimmed.
   void _submit() {
     globalGetIt().get<OcptRouterManager>().pop((
@@ -145,5 +150,18 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
       contact: _contactController.text.trim(),
       source: _sourceController.text.trim(),
     ));
+  }
+
+  /// Dispose [_titleController], [_creditController], [_authorController], [_draftDateController],
+  /// [_contactController] and [_sourceController].
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _creditController.dispose();
+    _authorController.dispose();
+    _draftDateController.dispose();
+    _contactController.dispose();
+    _sourceController.dispose();
+    super.dispose();
   }
 }

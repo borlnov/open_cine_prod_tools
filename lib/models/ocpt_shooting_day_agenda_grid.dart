@@ -3,197 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
-
-/// One slot's own column, as fed to [OcptShootingDayAgendaGrid.of]: its id, its already-resolved
-/// [OcptShootingSlotTimeline] and the caption every one of its own blocks prints on its tile.
-///
-/// The timeline is read straight from `ocpt_shooting_day_timeline.dart` rather than re-derived —
-/// this file adds no chaining rule of its own, only a reading of one already computed. A caption
-/// is handed in **already localized** (through `ocptScheduleBlockCaptionOf`, or a shot's own code)
-/// because it may need a `Tr` this pure-Dart file must never import, exactly the trade
-/// `OcptScenarioCoverageLayout` makes for a bar's own label.
-class OcptShootingDayAgendaColumnInput {
-  /// Class constructor
-  const OcptShootingDayAgendaColumnInput({
-    required this.slotId,
-    required this.label,
-    required this.timeline,
-    required this.captionByBlockId,
-  });
-
-  /// The slot's own id (`shooting_slots.id`).
-  final String slotId;
-
-  /// The slot's own free-text label, exactly as typed — never substituted with a placeholder here,
-  /// which is a drawing-time decision.
-  final String label;
-
-  /// The slot's own resolved timeline — every block already chained onto the day's clock.
-  final OcptShootingSlotTimeline timeline;
-
-  /// Every one of this slot's own blocks' printable caption, keyed by [OcptShootingTimelineEntry
-  /// .blockId]. A block whose id has no entry here is skipped rather than drawn blank: a caller
-  /// that forgot one is a bug to surface as a missing tile, not as an empty one.
-  final Map<String, String> captionByBlockId;
-}
-
-/// One event, as fed to [OcptShootingDayAgendaGrid.of]: its id, its absolute minute and its
-/// already-localized label — the same trade [OcptShootingDayAgendaColumnInput.captionByBlockId]
-/// makes, for the same reason.
-class OcptShootingDayAgendaEventInput {
-  /// Class constructor
-  const OcptShootingDayAgendaEventInput({required this.id, required this.minute, required this.label});
-
-  /// The event's own id (`shooting_day_events.id`).
-  final String id;
-
-  /// The minute, from the day's own midnight, this event happens at. May exceed 1440, exactly as
-  /// every other minute in this file may.
-  final int minute;
-
-  /// The event's own printable label.
-  final String label;
-}
-
-/// One slot column of the grid: its id and its own label, carried through from
-/// [OcptShootingDayAgendaColumnInput] unchanged — everything else that input held (the timeline,
-/// the captions) has already been turned into [OcptShootingDayAgendaGrid.tiles] by the time the
-/// grid is built.
-class OcptShootingDayAgendaColumn extends Equatable {
-  /// Class constructor
-  const OcptShootingDayAgendaColumn({required this.slotId, required this.label});
-
-  /// The slot's own id.
-  final String slotId;
-
-  /// The slot's own free-text label.
-  final String label;
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptShootingDayAgendaColumn(slotId: $slotId, label: $label)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [slotId, label];
-}
-
-/// One block drawn as a tile: which column it sits in, which rows it spans, and its own exact
-/// clock — carried alongside the row span rather than instead of it, since the row span is a
-/// **reading aid**, not a claim that the block actually starts and ends on a ten-minute mark. A
-/// renderer prints [caption] and the exact `[startMinute, endMinute)` inside the tile
-/// [startRow]..[startRow] + [rowSpan] - 1 spans.
-class OcptShootingDayAgendaTile extends Equatable {
-  /// Class constructor
-  const OcptShootingDayAgendaTile({
-    required this.blockId,
-    required this.slotId,
-    required this.caption,
-    required this.startMinute,
-    required this.endMinute,
-    required this.startRow,
-    required this.rowSpan,
-  });
-
-  /// The block's own id (`shooting_day_blocks.id`).
-  final String blockId;
-
-  /// The id of the [OcptShootingDayAgendaColumn] this tile is drawn in.
-  final String slotId;
-
-  /// The tile's own already-localized caption.
-  final String caption;
-
-  /// The block's own **exact** resolved start, unsnapped — what the tile prints inside itself, a
-  /// 12-minute block on a 10-minute grid still reading `09:12` rather than `09:10`.
-  final int startMinute;
-
-  /// The block's own exact resolved end, unsnapped, mirroring [startMinute]. Always strictly
-  /// greater than [startMinute] once [OcptShootingDayAgendaGrid.stepMinutes] rounding is undone by
-  /// the caller — the grid geometry itself never claims a zero-length span, see [rowSpan].
-  final int endMinute;
-
-  /// The 0-based row, within [OcptShootingDayAgendaGrid.rowCount], this tile's own band starts on.
-  final int startRow;
-
-  /// How many rows this tile spans, always at least 1: a block resolving to zero minutes (a
-  /// milestone marker) or to a duration shorter than [OcptShootingDayAgendaGrid.stepMinutes] (the
-  /// 12-minute case) still occupies one whole row rather than a sliver of one — a grid can only
-  /// draw whole rows, and a tile with no row of its own would be invisible.
-  final int rowSpan;
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptShootingDayAgendaTile(blockId: $blockId, slotId: $slotId, rows: $startRow+$rowSpan)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [blockId, slotId, caption, startMinute, endMinute, startRow, rowSpan];
-}
-
-/// Where an event's own marker sits relative to the grid's own `[startMinute, endMinute)` band —
-/// see [OcptShootingDayAgendaGrid]'s own doc comment for why the grid's bounds no longer stretch to
-/// reach one, unlike the schedule mode's own on-screen week grid.
-enum OcptShootingDayAgendaEventPlacement {
-  /// The event's own minute falls strictly before [OcptShootingDayAgendaGrid.startMinute]: drawn as
-  /// a leading marker above the grid, adjacent to its first row, with no blank row in between.
-  /// [OcptShootingDayAgendaEventMarker.row] is null.
-  beforeGrid,
-
-  /// The event's own minute falls inside `[startMinute, endMinute)`: drawn as a full-width marker on
-  /// its own [OcptShootingDayAgendaEventMarker.row], exactly as before this placement existed.
-  inGrid,
-
-  /// The event's own minute falls at or after [OcptShootingDayAgendaGrid.endMinute]: drawn as a
-  /// trailing marker below the grid, adjacent to its last row, with no blank row in between.
-  /// [OcptShootingDayAgendaEventMarker.row] is null.
-  ///
-  /// The boundary is deliberately inclusive of [OcptShootingDayAgendaGrid.endMinute] itself: a row
-  /// covers `[start, start + stepMinutes)`, so `endMinute` is one past the last row's own last
-  /// minute rather than a minute any row contains — an event landing exactly there has nothing to
-  /// sit on and reads as just after the band, not as part of it.
-  afterGrid,
-}
-
-/// One event drawn either as a full-width marker inside the grid's own rows, or as a leading or
-/// trailing one just outside them — see [OcptShootingDayAgendaEventPlacement].
-class OcptShootingDayAgendaEventMarker extends Equatable {
-  /// Class constructor
-  const OcptShootingDayAgendaEventMarker({
-    required this.eventId,
-    required this.label,
-    required this.minute,
-    required this.placement,
-    required this.row,
-  });
-
-  /// The event's own id.
-  final String eventId;
-
-  /// The event's own already-localized label.
-  final String label;
-
-  /// The event's own exact minute, unsnapped — mirrors [OcptShootingDayAgendaTile.startMinute].
-  final int minute;
-
-  /// Where this marker is drawn relative to the grid's own rows.
-  final OcptShootingDayAgendaEventPlacement placement;
-
-  /// The 0-based row this marker is drawn across, the whole width of the grid — meaningful only
-  /// when [placement] is [OcptShootingDayAgendaEventPlacement.inGrid], null otherwise: there is no
-  /// row to name for a marker drawn outside the grid entirely.
-  final int? row;
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptShootingDayAgendaEventMarker(eventId: $eventId, placement: $placement, row: $row)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [eventId, label, minute, placement, row];
-}
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_column.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_column_input.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_event_input.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_event_marker.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_event_placement.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_tile.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_slot_timeline.dart';
 
 /// A day's own timetable, read as a grid: rows every [stepMinutes] from the day's earliest
 /// resolved start to its latest resolved end, one column per slot, a block drawn as a tile
@@ -249,26 +65,6 @@ class OcptShootingDayAgendaGrid extends Equatable {
   /// grid is a different document.
   static const int stepMinutes = 10;
 
-  /// Class constructor
-  const OcptShootingDayAgendaGrid({
-    required this.isEmpty,
-    required this.startMinute,
-    required this.endMinute,
-    required this.columns,
-    required this.tiles,
-    required this.events,
-  });
-
-  /// The empty grid: no column, no tile, no event — see the class doc comment's own "day with
-  /// nothing on it" paragraph.
-  const OcptShootingDayAgendaGrid.empty()
-    : isEmpty = true,
-      startMinute = 0,
-      endMinute = 0,
-      columns = const [],
-      tiles = const [],
-      events = const [];
-
   /// Whether this grid has nothing to draw at all — [columns] came in empty, so no bound could be
   /// computed. A caller must check this before reading [rowCount] or drawing anything.
   final bool isEmpty;
@@ -292,10 +88,30 @@ class OcptShootingDayAgendaGrid extends Equatable {
   /// own rows, or leading/trailing just outside them.
   final List<OcptShootingDayAgendaEventMarker> events;
 
-  /// How many [stepMinutes]-wide rows the grid holds, 0 while [isEmpty].
+  /// Count how many [stepMinutes]-wide rows the grid holds, 0 while [isEmpty].
   int get rowCount => isEmpty ? 0 : (endMinute - startMinute) ~/ stepMinutes;
 
-  /// Builds the grid from [columns]' own resolved timelines and [events], both pure inputs — see
+  /// Class constructor
+  const OcptShootingDayAgendaGrid({
+    required this.isEmpty,
+    required this.startMinute,
+    required this.endMinute,
+    required this.columns,
+    required this.tiles,
+    required this.events,
+  });
+
+  /// The empty grid: no column, no tile, no event — see the class doc comment's own "day with
+  /// nothing on it" paragraph.
+  const OcptShootingDayAgendaGrid.empty()
+    : isEmpty = true,
+      startMinute = 0,
+      endMinute = 0,
+      columns = const [],
+      tiles = const [],
+      events = const [];
+
+  /// Build the grid from [columns]' own resolved timelines and [events], both pure inputs — see
   /// this class's own doc comment for the rules this applies.
   ///
   /// [columns] carries one entry per slot the caller wants a column for, in the order the columns
@@ -355,28 +171,40 @@ class OcptShootingDayAgendaGrid extends Equatable {
     }
 
     final eventMarkers = [
-      for (final event in events) _eventMarkerOf(event, snappedStart: snappedStart, snappedEnd: snappedEnd),
+      for (final event in events)
+        _eventMarkerOf(event, snappedStart: snappedStart, snappedEnd: snappedEnd),
     ];
 
     return OcptShootingDayAgendaGrid(
       isEmpty: false,
       startMinute: snappedStart,
       endMinute: snappedEnd,
-      columns: [for (final column in columns) OcptShootingDayAgendaColumn(slotId: column.slotId, label: column.label)],
+      columns: [
+        for (final column in columns)
+          OcptShootingDayAgendaColumn(slotId: column.slotId, label: column.label),
+      ],
       tiles: tiles,
       events: eventMarkers,
     );
   }
 
-  /// [event] placed against the grid's already-snapped `[snappedStart, snappedEnd)` band: outside
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptShootingDayAgendaGrid(isEmpty: $isEmpty, rowCount: $rowCount, columns: "
+      "${columns.length}, "
+      "tiles: ${tiles.length}, events: ${events.length})";
+
+  /// Get [event] placed against the grid's already-snapped `[snappedStart, snappedEnd)` band:
+  /// outside
   /// it on either side reads as [OcptShootingDayAgendaEventPlacement.beforeGrid]/`.afterGrid` with
   /// no [OcptShootingDayAgendaEventMarker.row], inside it as `.inGrid` with one.
   ///
   /// No `.clamp` is needed here, unlike a first version of this method that folded an event's own
   /// minute into the bounds themselves: an event can no longer be the source of either bound, so an
-  /// `.inGrid` marker's own `event.minute - snappedStart` is always in `[0, snappedEnd -
-  /// snappedStart)` by the two comparisons just above it, and [_floorDiv] of a value already in that
-  /// range can never land outside `[0, rowCount)`.
+  /// `.inGrid` marker's own `event.minute - snappedStart` is always in
+  /// `[0, snappedEnd - snappedStart)` by the two comparisons just above it, and [_floorDiv] of a
+  /// value already in that range can never land outside `[0, rowCount)`.
   static OcptShootingDayAgendaEventMarker _eventMarkerOf(
     OcptShootingDayAgendaEventInput event, {
     required int snappedStart,
@@ -409,15 +237,16 @@ class OcptShootingDayAgendaGrid extends Equatable {
     );
   }
 
-  /// [minute] rounded down to the nearest [stepMinutes] — including below the day's own midnight,
+  /// Get [minute] rounded down to the nearest [stepMinutes] — including below the day's own
+  /// midnight,
   /// see [_floorDiv]'s own doc comment for why this cannot be `(minute ~/ stepMinutes) *
   /// stepMinutes`.
   static int _floorToStep(int minute) => _floorDiv(minute, stepMinutes) * stepMinutes;
 
-  /// [minute] rounded up to the nearest [stepMinutes], mirroring [_floorToStep].
+  /// Get [minute] rounded up to the nearest [stepMinutes], mirroring [_floorToStep].
   static int _ceilToStep(int minute) => _ceilDiv(minute, stepMinutes) * stepMinutes;
 
-  /// Integer division of [value] by [divisor] (always [stepMinutes], always positive), rounded
+  /// Divide [value] by [divisor] as integers (always [stepMinutes], always positive), rounded
   /// **down** — floor, not truncation. Dart's `~/` truncates toward zero, which already is the
   /// floor for a non-negative [value] but rounds the *wrong* way for a negative one (`-5 ~/ 10`
   /// gives `0`, one row too late, where the floor is `-1`). An end-anchored slot resolves its own
@@ -426,28 +255,23 @@ class OcptShootingDayAgendaGrid extends Equatable {
   /// day's own midnight — reachable, not a defensive corner case. Deliberately integer-only (no
   /// `double`/`.floor()`, which would need a precision argument this file has no business making):
   /// Dart's `%` is Euclidean (non-negative whenever [divisor] is positive, unlike `.remainder()`),
-  /// so a negative, inexact [value] truncates *up* one step too many and is walked back down by one.
+  /// so a negative, inexact [value] truncates *up* one step too many and is walked back down by
+  /// one.
   static int _floorDiv(int value, int divisor) {
     final quotient = value ~/ divisor;
     return (value < 0 && value % divisor != 0) ? quotient - 1 : quotient;
   }
 
-  /// Integer division of [value] by [divisor], rounded **up** — what turns an end minute into the
+  /// Divide [value] by [divisor] as integers, rounded **up** — what turns an end minute into the
   /// row index one past the last row it touches. The mirror of [_floorDiv]: Dart's truncation
-  /// already rounds a negative, inexact [value] up (toward zero), so only a **positive** inexact one
-  /// needs the extra step — `_floorDiv`'s minus becomes this function's plus.
+  /// already rounds a negative, inexact [value] up (toward zero), so only a **positive** inexact
+  /// one needs the extra step — `_floorDiv`'s minus becomes this function's plus.
   static int _ceilDiv(int value, int divisor) {
     final quotient = value ~/ divisor;
     return (value > 0 && value % divisor != 0) ? quotient + 1 : quotient;
   }
 
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptShootingDayAgendaGrid(isEmpty: $isEmpty, rowCount: $rowCount, columns: ${columns.length}, "
-      "tiles: ${tiles.length}, events: ${events.length})";
-
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [isEmpty, startMinute, endMinute, columns, tiles, events];
 }

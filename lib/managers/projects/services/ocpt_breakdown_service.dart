@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_database_result_abort.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -11,20 +13,25 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:uuid/uuid.dart';
 
-/// Thrown inside [OcptBreakdownService.createElementAndTag]'s transaction to unwind the element
-/// it just minted when the tag half of that call is refused, and caught right outside the
-/// transaction so the method still returns null rather than letting the exception escape.
+/// Thrown inside [OcptBreakdownService.createElementAndTag]'s and `createSetAndTag`'s transaction
+/// to unwind what it just minted when the tag half of that call is refused, and caught right
+/// outside the transaction so the method still returns null rather than letting the exception
+/// escape.
+///
+/// It stays an exception on purpose: an exception leaving the transaction body is the only way
+/// drift rolls the writes back, and returning a value there would commit the half-done call.
 class _OcptBreakdownTagRefused implements Exception {
   /// Class constructor
   const _OcptBreakdownTagRefused();
 }
 
-/// Anchors a passage of the screenplay, tagged during the breakdown pass, to the catalogue row it
-/// calls for — an element, a role or a set — and tracks how far the pass has got, scene by scene.
+/// Anchor a passage of the screenplay, tagged during the breakdown pass, to the catalogue row it
+/// calls for — an element, a role or a set — and track how far the pass has got, scene by scene.
 ///
 /// Takes [OcptElementsService] and [OcptLocationsService] through its constructor, exactly as
 /// `OcptScreenplayService` takes its own collaborators, so a caller cannot mint an element or a
@@ -47,7 +54,13 @@ class _OcptBreakdownTagRefused implements Exception {
 /// for why.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
-class OcptBreakdownService {
+class OcptBreakdownService extends AbsOcptService {
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter]. [reconcileTags] and [tombstoneBreakdownOfScenes] never call it: both
+  /// write inside a caller's own transaction, and take that caller's own [OcptRowStampService]
+  /// instead.
+  final OcptDeviceIdGetter deviceId;
+
   /// The service used to mint the element a category chip creates, exactly as the resources mode's
   /// own element sheet would.
   final OcptElementsService _elementsService;
@@ -55,31 +68,37 @@ class OcptBreakdownService {
   /// The service used to ensure the `scene_sets` link a set tag implies.
   final OcptLocationsService _locationsService;
 
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter]. [reconcileTags] and [tombstoneBreakdownOfScenes] never call it: both
-  /// write inside a caller's own transaction, and take that caller's own [OcptRowStampService]
-  /// instead.
-  final OcptDeviceIdGetter deviceId;
-
   /// Class constructor
   const OcptBreakdownService({
+    required super.logger,
     required OcptElementsService elementsService,
     required OcptLocationsService locationsService,
     required this.deviceId,
   }) : _elementsService = elementsService,
        _locationsService = locationsService;
 
-  /// Loads every live breakdown tag of [database], restricted to [screenplayId]'s scenes when
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await _elementsService.initLifeCycle();
+    await _locationsService.initLifeCycle();
+  }
+
+  /// Load every live breakdown tag of [database], restricted to [screenplayId]'s scenes when
   /// given, ordered by the owning scene's own `position` and then by
   /// [OcptBreakdownTagRow.startOffset] — the order the tagged passages are read in.
   ///
   /// A tag whose scene is tombstoned is left out, for the reason `OcptElementsService.loadElements`
   /// gives about a link onto a vanished scene: the scene may well come back under the same id on a
   /// later reconciliation, and the tag comes back with it.
-  Future<List<OcptBreakdownTagRow>> loadTags({
+  @useResult
+  Future<OcptDatabaseResult<List<OcptBreakdownTagRow>>> loadTags({
     required OcptProjectDatabase database,
     String? screenplayId,
-  }) async {
+  }) => guardResult("loadTags", () async {
     final positionBySceneId = await _liveScenePositions(
       database: database,
       screenplayId: screenplayId,
@@ -88,52 +107,37 @@ class OcptBreakdownService {
       return const [];
     }
 
-    final rows =
-        await (database.select(database.ocptBreakdownTagsTable)..where(
-              (table) => table.sceneId.isIn(positionBySceneId.keys) & table.isDeleted.not(),
-            ))
-            .get();
+    final rows = await (database.select(
+      database.ocptBreakdownTagsTable,
+    )..where((table) => table.sceneId.isIn(positionBySceneId.keys) & table.isDeleted.not())).get();
 
     rows.sort((a, b) {
-      final positionCompare = positionBySceneId[a.sceneId]!.compareTo(positionBySceneId[b.sceneId]!);
+      final positionCompare = positionBySceneId[a.sceneId]!.compareTo(
+        positionBySceneId[b.sceneId]!,
+      );
       return positionCompare != 0 ? positionCompare : a.startOffset.compareTo(b.startOffset);
     });
 
     return rows;
-  }
+  });
 
-  /// Loads every live `scene_breakdowns` row of [database], restricted to [screenplayId]'s scenes
+  /// Load every live `scene_breakdowns` row of [database], restricted to [screenplayId]'s scenes
   /// when given, ordered by the owning scene's own `position`.
   ///
   /// A scene with no row simply has none: the caller reads a missing row as
   /// [OcptBreakdownSceneStatus.toDo] rather than this method synthesizing one, exactly as a scene's
-  /// tagged-element count cannot stand in for its breakdown status (§3.5 of the plan this ships
-  /// under). A row whose scene is tombstoned is left out, for the same reason [loadTags] leaves out
-  /// a tag whose scene is gone.
-  Future<List<OcptSceneBreakdownRow>> loadSceneBreakdowns({
+  /// tagged-element count cannot stand in for its breakdown status. A row whose scene is tombstoned
+  /// is left out, for the same reason [loadTags] leaves out a tag whose scene is gone.
+  @useResult
+  Future<OcptDatabaseResult<List<OcptSceneBreakdownRow>>> loadSceneBreakdowns({
     required OcptProjectDatabase database,
     String? screenplayId,
-  }) async {
-    final positionBySceneId = await _liveScenePositions(
-      database: database,
-      screenplayId: screenplayId,
-    );
-    if (positionBySceneId.isEmpty) {
-      return const [];
-    }
+  }) => guardResult(
+    "loadSceneBreakdowns",
+    () => _readSceneBreakdowns(database: database, screenplayId: screenplayId),
+  );
 
-    final rows =
-        await (database.select(database.ocptSceneBreakdownsTable)..where(
-              (table) => table.sceneId.isIn(positionBySceneId.keys) & table.isDeleted.not(),
-            ))
-            .get();
-
-    rows.sort((a, b) => positionBySceneId[a.sceneId]!.compareTo(positionBySceneId[b.sceneId]!));
-
-    return rows;
-  }
-
-  /// Loads every live scene of [screenplayId] in [database], in `position` order, each joined with
+  /// Load every live scene of [screenplayId] in [database], in `position` order, each joined with
   /// its live `scene_breakdowns` row through [loadSceneBreakdowns] — never re-queried here — and
   /// carrying an empty [OcptBreakdownScene.tags] list.
   ///
@@ -146,11 +150,12 @@ class OcptBreakdownService {
   /// single episode; it is only carried onto each [OcptBreakdownScene] for `displayNumber` to read,
   /// never resolved here — this service has no reason to depend on `OcptScreenplayService`, which
   /// already depends on it (dependencies never reference their dependents).
-  Future<List<OcptBreakdownScene>> loadScenes({
+  @useResult
+  Future<OcptDatabaseResult<List<OcptBreakdownScene>>> loadScenes({
     required OcptProjectDatabase database,
     required String screenplayId,
     required int? episodeNumber,
-  }) async {
+  }) => guardResult("loadScenes", () async {
     final sceneRows =
         await (database.select(database.ocptScenesTable)
               ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
@@ -158,7 +163,7 @@ class OcptBreakdownService {
             .get();
 
     final breakdownRowsBySceneId = {
-      for (final row in await loadSceneBreakdowns(database: database, screenplayId: screenplayId))
+      for (final row in await _readSceneBreakdowns(database: database, screenplayId: screenplayId))
         row.sceneId: row,
     };
 
@@ -170,28 +175,29 @@ class OcptBreakdownService {
           breakdownRow: breakdownRowsBySceneId[sceneRow.id],
         ),
     ];
-  }
+  });
 
-  /// Tags the scene-relative `[startOffset, endOffset)` passage [taggedText] of scene [sceneId],
+  /// Tag the scene-relative `[startOffset, endOffset)` passage [taggedText] of scene [sceneId],
   /// pointing it at [targetId] — read as an `elements`, `roles` or `sets` id according to
-  /// [targetKind] — and returns the new tag's id.
+  /// [targetKind] — and return the new tag's id.
   ///
-  /// In one transaction: refuses (returns null, logged) when the range overlaps a live tag of the
-  /// same scene — two ranges overlap when `a.start < b.end && b.start < a.end`, so touching end to
-  /// end is not an overlap (§3.9 of the plan this ships under) — otherwise writes [targetId] into
-  /// whichever of `elementId`/`roleId`/`setId` [targetKind] names, leaving the other two null, and
+  /// In one transaction: refuses (answers `ok` with no id, logged) when the range overlaps a live
+  /// tag of the same scene — two ranges overlap when `a.start < b.end && b.start < a.end`, so
+  /// touching end to end is not an overlap — otherwise writes [targetId] into whichever of
+  /// `elementId`/`roleId`/`setId` [targetKind] names, leaving the other two null, and
   /// **ensures the link the tag implies**: `OcptElementsService.addSceneElement` for
   /// [OcptBreakdownTargetKind.element], `OcptLocationsService.assignSceneToSet` for
   /// [OcptBreakdownTargetKind.set]. A [OcptBreakdownTargetKind.role] tag creates no link row: there
   /// is no `scene_roles` table, and the tag itself is that link.
   ///
-  /// Throws [ArgumentError] for a malformed range (`startOffset < 0` or `endOffset <= startOffset`),
-  /// exactly as `OcptShotCoverageService.addRange` does: a malformed range is a caller bug, while an
-  /// overlap is a refusal a real user action can reach, and the two must not be reported the same
-  /// way.
+  /// Answers `databaseError`, writing nothing, for a malformed range (`startOffset < 0` or
+  /// `endOffset <= startOffset`), exactly as `OcptShotCoverageService.addRange` does: a malformed
+  /// range is a caller bug, while an overlap is a refusal a real user action can reach, and the two
+  /// must not be reported the same way: an overlap answers `ok` with no id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createTag({
+  @useResult
+  Future<OcptDatabaseResult<String>> createTag({
     required OcptProjectDatabase database,
     required String sceneId,
     required int startOffset,
@@ -199,7 +205,7 @@ class OcptBreakdownService {
     required String taggedText,
     required OcptBreakdownTargetKind targetKind,
     required String targetId,
-  }) async {
+  }) => guardResult("createTag", () async {
     if (database.refusesUserWrite("createTag")) {
       return null;
     }
@@ -218,7 +224,7 @@ class OcptBreakdownService {
         startOffset: startOffset,
         endOffset: endOffset,
       )) {
-        appLogger().w(
+        logger.w(
           "createTag refused: range [$startOffset, $endOffset) of scene $sceneId overlaps a "
           "live tag already there",
         );
@@ -240,9 +246,9 @@ class OcptBreakdownService {
 
       return tagId;
     });
-  }
+  });
 
-  /// Tombstones tag [tagId] — the range stops being highlighted and its target stops being
+  /// Tombstone tag [tagId] — the range stops being highlighted and its target stops being
   /// selectable through it.
   ///
   /// **Never removes the `scene_elements`/`scene_sets` row it once ensured** — see this class's own
@@ -251,7 +257,11 @@ class OcptBreakdownService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteTag({required OcptProjectDatabase database, required String tagId}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> deleteTag({
+    required OcptProjectDatabase database,
+    required String tagId,
+  }) => guardOutcome("deleteTag", () async {
     if (database.refusesUserWrite("deleteTag")) {
       return;
     }
@@ -276,9 +286,9 @@ class OcptBreakdownService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Clears `needsCheck` on tag [tagId] alone, leaving its `startOffset`/`endOffset` exactly where
+  /// Clear `needsCheck` on tag [tagId] alone, leaving its `startOffset`/`endOffset` exactly where
   /// they are.
   ///
   /// The honest answer to the common flagged case: [reconcileTags] could not find the tagged text
@@ -288,10 +298,11 @@ class OcptBreakdownService {
   /// re-anchor: only [reconcileTags], on the next save, ever moves a tag's offsets.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearTagNeedsCheck({
+  @useResult
+  Future<OcptDatabaseOutcome> clearTagNeedsCheck({
     required OcptProjectDatabase database,
     required String tagId,
-  }) async {
+  }) => guardOutcome("clearTagNeedsCheck", () async {
     if (database.refusesUserWrite("clearTagNeedsCheck")) {
       return;
     }
@@ -316,26 +327,27 @@ class OcptBreakdownService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Creates a new [category]/[sourceKind] element named [name] and tags the scene-relative
+  /// Create a new [category]/[sourceKind] element named [name] and tag the scene-relative
   /// `[startOffset, endOffset)` passage [taggedText] of scene [sceneId] with it, in one
-  /// transaction — the one write the popover's category chips perform (§2.1/§3.8 of the plan this
-  /// ships under).
+  /// transaction — the one write the popover's category chips perform.
   ///
   /// The element is minted through `OcptElementsService.createElement` rather than by reaching into
   /// `elements` directly, so the resources mode and this one mint an element exactly the same way,
   /// generated code included, and then tagged through [createTag] itself, so the two ways of
-  /// creating a tag never drift apart. New elements get `OcptElementStatus.toFind`, the column's own
-  /// default.
+  /// creating a tag never drift apart. New elements get `OcptElementStatus.toFind`, the column's
+  /// own default.
   ///
-  /// Returns null, and rolls **both** writes back, when either half refuses: a preview database (the
-  /// element is never even minted, since the preview guard trips before either write), or a range
-  /// that overlaps a live tag of the scene — an element minted for a tag that was refused would be
-  /// an orphan nobody asked for.
+  /// Answers `ok` with no value, and rolls **both** writes back, when either half refuses: a
+  /// preview database (the element is never even minted, since the preview guard trips before
+  /// either write), or a range that overlaps a live tag of the scene — an element minted for a tag
+  /// that was refused would be an orphan nobody asked for. Answers `databaseError`, with neither
+  /// half kept, when the database fails either of them.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<({String elementId, String tagId})?> createElementAndTag({
+  @useResult
+  Future<OcptDatabaseResult<({String elementId, String tagId})>> createElementAndTag({
     required OcptProjectDatabase database,
     required String sceneId,
     required int startOffset,
@@ -344,19 +356,22 @@ class OcptBreakdownService {
     required String name,
     required OcptElementCategory category,
     required OcptElementSourceKind sourceKind,
-  }) async {
+  }) => guardResult("createElementAndTag", () async {
     if (database.refusesUserWrite("createElementAndTag")) {
       return null;
     }
 
+    ({String elementId, String tagId})? created;
     try {
-      return await database.transaction(() async {
-        final elementId = await _elementsService.createElement(
-          database: database,
-          name: name,
-          category: category,
-          sourceKind: sourceKind,
-        );
+      created = await database.transaction(() async {
+        final elementId = await _elementsService
+            .createElement(
+              database: database,
+              name: name,
+              category: category,
+              sourceKind: sourceKind,
+            )
+            .valueOrAbort();
         if (elementId == null) {
           // The preview guard tripped inside createElement: nothing was written, so there is
           // nothing to unwind.
@@ -371,7 +386,7 @@ class OcptBreakdownService {
           taggedText: taggedText,
           targetKind: OcptBreakdownTargetKind.element,
           targetId: elementId,
-        );
+        ).valueOrAbort();
         if (tagId == null) {
           // The range overlaps a live tag: the element just minted must not survive without the
           // tag that was the whole point of creating it, so the transaction it was written in is
@@ -382,11 +397,13 @@ class OcptBreakdownService {
         return (elementId: elementId, tagId: tagId);
       });
     } on _OcptBreakdownTagRefused {
-      return null;
+      created = null;
     }
-  }
 
-  /// Creates a new set named [name] and tags the scene-relative `[startOffset, endOffset)` passage
+    return created;
+  });
+
+  /// Create a new set named [name] and tag the scene-relative `[startOffset, endOffset)` passage
   /// [taggedText] of scene [sceneId] with it, in one transaction — the sibling of
   /// [createElementAndTag], for the one catalogue row the breakdown pass may also mint.
   ///
@@ -400,11 +417,13 @@ class OcptBreakdownService {
   /// element through `OcptElementsService`, and the tag itself through [createTag] — so the
   /// `scene_sets` link the tag implies is ensured by the one code path that ensures it everywhere.
   ///
-  /// Returns null, and rolls **every** write back, when any of them refuses: a preview database, or
-  /// a range overlapping a live tag of the scene.
+  /// Answers `ok` with no value, and rolls **every** write back, when any of them refuses: a
+  /// preview database, or a range overlapping a live tag of the scene. Answers `databaseError`,
+  /// with none of them kept, when the database fails one.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<({String setId, String tagId})?> createSetAndTag({
+  @useResult
+  Future<OcptDatabaseResult<({String setId, String tagId})>> createSetAndTag({
     required OcptProjectDatabase database,
     required String sceneId,
     required int startOffset,
@@ -412,25 +431,25 @@ class OcptBreakdownService {
     required String taggedText,
     required String name,
     String? locationId,
-  }) async {
+  }) => guardResult("createSetAndTag", () async {
     if (database.refusesUserWrite("createSetAndTag")) {
       return null;
     }
 
+    ({String setId, String tagId})? created;
     try {
-      return await database.transaction(() async {
+      created = await database.transaction(() async {
         final holdingLocationId =
-            locationId ?? await _locationsService.createLocation(database: database, name: name);
+            locationId ??
+            await _locationsService.createLocation(database: database, name: name).valueOrAbort();
         if (holdingLocationId == null) {
           // The preview guard tripped inside createLocation: nothing was written yet.
           return null;
         }
 
-        final setId = await _locationsService.createSet(
-          database: database,
-          locationId: holdingLocationId,
-          name: name,
-        );
+        final setId = await _locationsService
+            .createSet(database: database, locationId: holdingLocationId, name: name)
+            .valueOrAbort();
         if (setId == null) {
           return null;
         }
@@ -443,7 +462,7 @@ class OcptBreakdownService {
           taggedText: taggedText,
           targetKind: OcptBreakdownTargetKind.set,
           targetId: setId,
-        );
+        ).valueOrAbort();
         if (tagId == null) {
           // The range overlaps a live tag: the set — and the location minted to hold it, if one
           // was — must not survive the tag that was the whole point of creating them.
@@ -453,11 +472,13 @@ class OcptBreakdownService {
         return (setId: setId, tagId: tagId);
       });
     } on _OcptBreakdownTagRefused {
-      return null;
+      created = null;
     }
-  }
 
-  /// Creates, or updates, the `scene_breakdowns` row of scene [sceneId], writing whichever of
+    return created;
+  });
+
+  /// Create, or update, the `scene_breakdowns` row of scene [sceneId], writing whichever of
   /// [status]/[notes] are passed as something other than [Value.absent].
   ///
   /// The row is created on the first write for a scene, never eagerly for every scene the
@@ -468,21 +489,21 @@ class OcptBreakdownService {
   /// a warning logged, rather than crashing the write.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateSceneBreakdown({
+  @useResult
+  Future<OcptDatabaseOutcome> updateSceneBreakdown({
     required OcptProjectDatabase database,
     required String sceneId,
     Value<OcptBreakdownSceneStatus> status = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateSceneBreakdown", () async {
     if (database.refusesUserWrite("updateSceneBreakdown")) {
       return;
     }
 
     await database.transaction(() async {
-      final existingRows =
-          await (database.select(
-            database.ocptSceneBreakdownsTable,
-          )..where((table) => table.sceneId.equals(sceneId))).get();
+      final existingRows = await (database.select(
+        database.ocptSceneBreakdownsTable,
+      )..where((table) => table.sceneId.equals(sceneId))).get();
 
       OcptSceneBreakdownRow? liveRow;
       OcptSceneBreakdownRow? droppedRow;
@@ -500,7 +521,7 @@ class OcptBreakdownService {
       }
 
       if (extraLiveRowCount > 0) {
-        appLogger().w(
+        logger.w(
           "Scene $sceneId has ${extraLiveRowCount + 1} live scene_breakdowns rows; writing only "
           "the first and leaving the rest alone",
         );
@@ -514,7 +535,9 @@ class OcptBreakdownService {
           table: database.ocptSceneBreakdownsTable,
           rowId: liveRow.id,
           current: liveRow,
-          next: liveRow.copyWithCompanion(OcptSceneBreakdownsTableCompanion(status: status, notes: notes)),
+          next: liveRow.copyWithCompanion(
+            OcptSceneBreakdownsTableCompanion(status: status, notes: notes),
+          ),
           stamps: stamps,
         );
         await stamps.flush(database);
@@ -528,7 +551,11 @@ class OcptBreakdownService {
           rowId: droppedRow.id,
           current: droppedRow,
           next: droppedRow.copyWithCompanion(
-            OcptSceneBreakdownsTableCompanion(isDeleted: const Value(false), status: status, notes: notes),
+            OcptSceneBreakdownsTableCompanion(
+              isDeleted: const Value(false),
+              status: status,
+              notes: notes,
+            ),
           ),
           stamps: stamps,
         );
@@ -553,9 +580,9 @@ class OcptBreakdownService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Re-anchors, or flags, every live breakdown tag of screenplay [screenplayId] against
+  /// Re-anchor, or flags, every live breakdown tag of screenplay [screenplayId] against
   /// [currentFountainText], the text just saved.
   ///
   /// Must run right after `OcptSceneIndexService.reconcile` has refreshed the scenes'
@@ -577,9 +604,9 @@ class OcptBreakdownService {
   /// 4. a tag whose scene is gone (tombstoned, or no longer in the index) is tombstoned along with
   ///    it.
   ///
-  /// The slice in step 1 is guarded against offsets that no longer fit inside the scene at all: such
-  /// a tag is treated as though it did not match (skipping straight to step 2) rather than risking a
-  /// `RangeError` that would crash the save.
+  /// The slice in step 1 is guarded against offsets that no longer fit inside the scene at all:
+  /// such a tag is treated as though it did not match (skipping straight to step 2) rather than
+  /// risking a `RangeError` that would crash the save.
   ///
   /// Writes nothing when nothing changed: this runs on every save.
   ///
@@ -594,20 +621,17 @@ class OcptBreakdownService {
       return;
     }
 
-    final sceneRows =
-        await (database.select(
-          database.ocptScenesTable,
-        )..where((table) => table.screenplayId.equals(screenplayId))).get();
+    final sceneRows = await (database.select(
+      database.ocptScenesTable,
+    )..where((table) => table.screenplayId.equals(screenplayId))).get();
     if (sceneRows.isEmpty) {
       return;
     }
     final sceneById = {for (final scene in sceneRows) scene.id: scene};
 
-    final tagRows =
-        await (database.select(database.ocptBreakdownTagsTable)..where(
-              (table) => table.sceneId.isIn(sceneById.keys) & table.isDeleted.not(),
-            ))
-            .get();
+    final tagRows = await (database.select(
+      database.ocptBreakdownTagsTable,
+    )..where((table) => table.sceneId.isIn(sceneById.keys) & table.isDeleted.not())).get();
     if (tagRows.isEmpty) {
       return;
     }
@@ -679,11 +703,12 @@ class OcptBreakdownService {
     });
   }
 
-  /// Tombstones every live `breakdown_tags` row and every live `scene_breakdowns` row of any of
+  /// Tombstone every live `breakdown_tags` row and every live `scene_breakdowns` row of any of
   /// [sceneIds], and — through [_elementsService] and [_locationsService] — every live
-  /// `scene_elements` and `scene_sets` row of those same scenes: `OcptScreenplayService.deleteEpisode`'s
-  /// cascade, once `OcptSceneIndexService.tombstoneScenesOfScreenplay` has handed it the ids of the
-  /// scenes going with the episode.
+  /// `scene_elements` and `scene_sets` row of those same scenes:
+  /// `OcptScreenplayService.deleteEpisode`'s cascade, once
+  /// `OcptSceneIndexService.tombstoneScenesOfScreenplay` has handed it the ids of the scenes going
+  /// with the episode.
   ///
   /// **This is not [deleteTag]'s question.** [deleteTag] deliberately leaves the `scene_elements`/
   /// `scene_sets` link a tag once ensured, because the user may have made the same link by hand and
@@ -691,8 +716,8 @@ class OcptBreakdownService {
   /// point at is **itself** going away with the episode, for good — a different fact, and the one
   /// this method exists to act on rather than defer.
   ///
-  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
-  /// already refused the write on a preview connection and is already inside the transaction
+  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
+  /// has already refused the write on a preview connection and is already inside the transaction
   /// removing the episode, so a second guard here would only be able to disagree with the first.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -705,11 +730,9 @@ class OcptBreakdownService {
       return;
     }
 
-    final tagRows =
-        await (database.select(database.ocptBreakdownTagsTable)..where(
-              (table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final tagRows = await (database.select(
+      database.ocptBreakdownTagsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not())).get();
     for (final row in tagRows) {
       await OcptRowStampService.writeAndStamp(
         database: database,
@@ -721,11 +744,9 @@ class OcptBreakdownService {
       );
     }
 
-    final sceneBreakdownRows =
-        await (database.select(database.ocptSceneBreakdownsTable)..where(
-              (table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final sceneBreakdownRows = await (database.select(
+      database.ocptSceneBreakdownsTable,
+    )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not())).get();
     for (final row in sceneBreakdownRows) {
       await OcptRowStampService.writeAndStamp(
         database: database,
@@ -749,7 +770,7 @@ class OcptBreakdownService {
     );
   }
 
-  /// Inserts the tag row itself and ensures the link it implies, without checking for an overlap:
+  /// Insert the tag row itself and ensures the link it implies, without checking for an overlap:
   /// the caller ([createTag]) has already done that. Stamps the tag insert through [stamps] —
   /// [createTag]'s own instance — while the link ensured below is stamped by whichever of
   /// [_elementsService]/[_locationsService] writes it, through its own nested transaction.
@@ -788,13 +809,15 @@ class OcptBreakdownService {
 
     switch (targetKind) {
       case OcptBreakdownTargetKind.element:
-        await _elementsService.addSceneElement(
-          database: database,
-          sceneId: sceneId,
-          elementId: targetId,
-        );
+        // A failure of the link ends the call and unwinds the tag just written with it, through the
+        // transaction of the caller that holds [stamps].
+        await _elementsService
+            .addSceneElement(database: database, sceneId: sceneId, elementId: targetId)
+            .valueOrAbort();
       case OcptBreakdownTargetKind.set:
-        await _locationsService.assignSceneToSet(database: database, sceneId: sceneId, setId: targetId);
+        await _locationsService
+            .assignSceneToSet(database: database, sceneId: sceneId, setId: targetId)
+            .valueOrAbort();
       case OcptBreakdownTargetKind.role:
       // There is no `scene_roles` table: the tag itself is the link.
     }
@@ -802,7 +825,8 @@ class OcptBreakdownService {
     return id;
   }
 
-  /// Whether the scene-relative `[startOffset, endOffset)` range overlaps any live tag of scene
+  /// Tell whether the scene-relative `[startOffset, endOffset)` range overlaps any live tag of
+  /// scene
   /// [sceneId] already in [database]. Two ranges overlap when `a.start < b.end && b.start < a.end`;
   /// touching end to end is not an overlap.
   Future<bool> _overlapsLiveTag({
@@ -811,16 +835,39 @@ class OcptBreakdownService {
     required int startOffset,
     required int endOffset,
   }) async {
-    final liveTags =
-        await (database.select(database.ocptBreakdownTagsTable)..where(
-              (table) => table.sceneId.equals(sceneId) & table.isDeleted.not(),
-            ))
-            .get();
+    final liveTags = await (database.select(
+      database.ocptBreakdownTagsTable,
+    )..where((table) => table.sceneId.equals(sceneId) & table.isDeleted.not())).get();
 
     return liveTags.any((tag) => startOffset < tag.endOffset && tag.startOffset < endOffset);
   }
 
-  /// The 0-based `position` of every live scene of [database], restricted to [screenplayId] when
+  /// Read every live `scene_breakdowns` row of [database], restricted to [screenplayId]'s scenes
+  /// when given: what [loadSceneBreakdowns] hands to its boundary, and what [loadScenes] reads
+  /// through here instead of answering twice.
+  Future<List<OcptSceneBreakdownRow>> _readSceneBreakdowns({
+    required OcptProjectDatabase database,
+    String? screenplayId,
+  }) async {
+    final positionBySceneId = await _liveScenePositions(
+      database: database,
+      screenplayId: screenplayId,
+    );
+    if (positionBySceneId.isEmpty) {
+      return const [];
+    }
+
+    final rows = await (database.select(
+      database.ocptSceneBreakdownsTable,
+    )..where((table) => table.sceneId.isIn(positionBySceneId.keys) & table.isDeleted.not())).get();
+
+    rows.sort((a, b) => positionBySceneId[a.sceneId]!.compareTo(positionBySceneId[b.sceneId]!));
+
+    return rows;
+  }
+
+  /// Get the 0-based `position` of every live scene of [database], restricted to [screenplayId]
+  /// when
   /// given, keyed by scene id.
   Future<Map<String, int>> _liveScenePositions({
     required OcptProjectDatabase database,
@@ -828,19 +875,19 @@ class OcptBreakdownService {
   }) async {
     final query = database.select(database.ocptScenesTable)
       ..where(
-        (table) =>
-            screenplayId == null
-                ? table.isDeleted.not()
-                : table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
+        (table) => screenplayId == null
+            ? table.isDeleted.not()
+            : table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
       );
     final rows = await query.get();
 
     return {for (final row in rows) row.id: row.position};
   }
 
-  /// Every start offset in [haystack] at which [needle] occurs, allowing overlapping matches — the
-  /// occurrence count [OcptBreakdownService.reconcileTags] re-anchors on when it is exactly one, and
-  /// flags when it is zero or more than one.
+  /// Get every start offset in [haystack] at which [needle] occurs, allowing overlapping matches —
+  /// the
+  /// occurrence count [OcptBreakdownService.reconcileTags] re-anchors on when it is exactly one,
+  /// and flags when it is zero or more than one.
   static List<int> _occurrencesOf({required String needle, required String haystack}) {
     if (needle.isEmpty) {
       return const [];
@@ -858,5 +905,16 @@ class OcptBreakdownService {
     }
 
     return offsets;
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _locationsService.disposeLifeCycle();
+    await _elementsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }

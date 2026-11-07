@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -34,22 +35,25 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
-/// M3's acceptance test for `docs/plans/collaboration-and-sync.md` §3.4: a project-version
-/// **restore** on one replica converges, through the changeset engine, against a replica that was
-/// offline throughout — with the rows the restore tombstoned staying gone on the other side, and
-/// the whole catch-up landing in one [OcptChangesetService.pullAndApply] call.
+import '../../../ocpt_result_expectations.dart';
+
+/// Acceptance test for restore convergence: a project-version **restore** on one replica converges,
+/// through the changeset engine, against a replica that was offline throughout — with the rows the
+/// restore tombstoned staying gone on the other side, and the whole catch-up landing in one
+/// [OcptChangesetService.pullAndApply] call.
 ///
 /// [OcptProjectVersionsService.restoreVersion] already tombstones-and-stamps through the very same
 /// `OcptRowStampService` any ordinary edit uses (see its own `restoreIsAnEdit` doc), so this file
 /// only has to prove that a restore's stamps actually reach `OcptChangesetService.pushLocalEdits`
-/// the way any other local edit's would — it does, because `OcptProjectsManager.restoreProjectVersion`
-/// already calls it against `OcptOpenProjectModel.fileDatabase`, the very handle the outbound side
-/// reads from, exactly like every other write in the app.
+/// the way any other local edit's would — it does, because
+/// `OcptProjectsManager.restoreProjectVersion` already calls it against
+/// `OcptOpenProjectModel.fileDatabase`, the very handle the outbound side reads from, exactly like
+/// every other write in the app.
 ///
-/// The preview-safety property M3's own test list also names — an incoming changeset applying to
-/// `fileDatabase` normally while a version preview is up — is already covered by
-/// `ocpt_merge_service_test.dart`'s "an incoming changeset applies to fileDatabase normally even
-/// while a version preview is up" test and is not duplicated here.
+/// The preview-safety property — an incoming changeset applying to `fileDatabase` normally while a
+/// version preview is up — is already covered by `ocpt_merge_service_test.dart`'s "an incoming
+/// changeset applies to fileDatabase normally even while a version preview is up" test and is not
+/// duplicated here.
 void main() {
   // Restoring a version, and a screenplay merge with no common base, both log through
   // appLogger(), which requires a global manager instance to be set; merely accessing it creates
@@ -87,45 +91,72 @@ void main() {
   buildDevice(String deviceId) {
     Future<String> thisDeviceId() async => deviceId;
 
-    final assetsService = OcptAssetsService(deviceId: thisDeviceId);
-    final roleCandidatesService = OcptRoleCandidatesService(deviceId: thisDeviceId);
-    final elementsService = OcptElementsService(assetsService: assetsService, deviceId: thisDeviceId);
-    final locationsService = OcptLocationsService(
+    final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: thisDeviceId);
+    final roleCandidatesService = OcptRoleCandidatesService(
+      logger: const SilentLogger(),
+      deviceId: thisDeviceId,
+    );
+    final elementsService = OcptElementsService(
+      logger: const SilentLogger(),
       assetsService: assetsService,
-      floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: thisDeviceId),
+      deviceId: thisDeviceId,
+    );
+    final locationsService = OcptLocationsService(
+      logger: const SilentLogger(),
+      assetsService: assetsService,
+      floorPlanService: OcptFloorPlanService(
+        logger: const SilentLogger(),
+        assetsService: assetsService,
+        deviceId: thisDeviceId,
+      ),
       deviceId: thisDeviceId,
     );
     final roleIndexService = OcptRoleIndexService(
+      logger: const SilentLogger(),
       elementsService: elementsService,
       roleCandidatesService: roleCandidatesService,
       deviceId: thisDeviceId,
     );
     final breakdownService = OcptBreakdownService(
+      logger: const SilentLogger(),
       elementsService: elementsService,
       locationsService: locationsService,
       deviceId: thisDeviceId,
     );
     final screenplayService = OcptScreenplayService(
-      sceneIndexService: const OcptSceneIndexService(),
+      logger: const SilentLogger(),
+      sceneIndexService: const OcptSceneIndexService(logger: SilentLogger()),
       shotListService: OcptShotListService(
+        logger: const SilentLogger(),
         roleIndexService: roleIndexService,
         storyboardService: OcptStoryboardService(
+          logger: const SilentLogger(),
           assetsService: assetsService,
           deviceId: thisDeviceId,
         ),
-        floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: thisDeviceId),
+        floorPlanService: OcptFloorPlanService(
+          logger: const SilentLogger(),
+          assetsService: assetsService,
+          deviceId: thisDeviceId,
+        ),
         deviceId: thisDeviceId,
       ),
-      shotCoverageService: OcptShotCoverageService(deviceId: thisDeviceId),
+      shotCoverageService: OcptShotCoverageService(
+        logger: const SilentLogger(),
+        deviceId: thisDeviceId,
+      ),
       roleIndexService: roleIndexService,
       breakdownService: breakdownService,
-      scheduleService: OcptScheduleService(deviceId: thisDeviceId),
+      scheduleService: OcptScheduleService(logger: const SilentLogger(), deviceId: thisDeviceId),
       deviceId: thisDeviceId,
     );
 
     final changesetService = OcptChangesetService(
+      logger: const SilentLogger(),
       mergeService: OcptMergeService(
+        logger: const SilentLogger(),
         screenplayMergeService: OcptScreenplayMergeService(
+          logger: const SilentLogger(),
           screenplayService: screenplayService,
           deviceId: thisDeviceId,
         ),
@@ -136,7 +167,8 @@ void main() {
       screenplayService: screenplayService,
       locationsService: locationsService,
       projectVersionsService: OcptProjectVersionsService(
-        codec: const OcptProjectVersionCodec(),
+        logger: const SilentLogger(),
+        codec: const OcptProjectVersionCodec(logger: SilentLogger()),
         screenplayService: screenplayService,
       ),
       changesetService: changesetService,
@@ -200,31 +232,35 @@ void main() {
 
   /// Every live (non-tombstoned) location's name in [database], in `sortKey` order.
   Future<List<String>> liveLocationNames(OcptProjectDatabase database) async {
-    final rows = await (database.select(database.ocptLocationsTable)
-          ..where((table) => table.isDeleted.equals(false))
-          ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-        .get();
+    final rows =
+        await (database.select(database.ocptLocationsTable)
+              ..where((table) => table.isDeleted.equals(false))
+              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
+            .get();
     return rows.map((row) => row.name).toList();
   }
 
   /// The location [id] as [database] currently holds it, tombstone included.
-  Future<OcptLocationRow> locationRow(OcptProjectDatabase database, String id) =>
-      (database.select(database.ocptLocationsTable)..where((table) => table.id.equals(id))).getSingle();
+  Future<OcptLocationRow> locationRow(OcptProjectDatabase database, String id) => (database.select(
+    database.ocptLocationsTable,
+  )..where((table) => table.id.equals(id))).getSingle();
 
   /// Every live scene's heading of [screenplayId] in [database], in source order — `scenes` is
   /// derived and recomputed independently on each replica (never synchronised, ADR 0010), so this
   /// compares structure rather than row identity, exactly as
   /// `ocpt_screenplay_merge_convergence_test.dart`'s own `sceneHeadingsOf` does.
   Future<List<String>> sceneHeadingsOf(OcptProjectDatabase database) async {
-    final scenes = await (database.select(database.ocptScenesTable)
-          ..where((table) => table.isDeleted.equals(false))
-          ..orderBy([(table) => OrderingTerm.asc(table.position)]))
-        .get();
+    final scenes =
+        await (database.select(database.ocptScenesTable)
+              ..where((table) => table.isDeleted.equals(false))
+              ..orderBy([(table) => OrderingTerm.asc(table.position)]))
+            .get();
     return scenes.map((scene) => scene.heading).toList();
   }
 
   test(
-    'a restore on one replica converges against a replica that was offline throughout, tombstones included',
+    'a restore on one replica converges against a replica that was offline throughout, tombstones '
+    'included',
     () async {
       final deviceA = buildDevice('device-a');
       final deviceB = buildDevice('device-b');
@@ -233,19 +269,27 @@ void main() {
       // of the shared starting text (`OcptScreenplayService.snapshotOnProjectOpen`, exactly what
       // the real app calls on every project open) — the common ancestor its own later merge, made
       // with no edit of its own, needs to diff against.
-      await deviceB.screenplayService.snapshotOnProjectOpen(database: replicaB, screenplayId: screenplayId);
+      await deviceB.screenplayService
+          .snapshotOnProjectOpen(database: replicaB, screenplayId: screenplayId)
+          .okOrFail;
 
       // Seed one ordinary row on A only, then let it reach B through the real folder transport —
       // proving the two replicas start identical through the engine, not by construction.
-      final office = (await deviceA.locationsService.createLocation(database: replicaA, name: 'Office'))!;
+      final office = (await deviceA.locationsService
+          .createLocation(database: replicaA, name: 'Office')
+          .valueOrFail);
 
-      await deviceA.changesetService.pushLocalEdits(
-        database: replicaA,
-        storage: storage,
-        relayId: relayId,
-        deviceId: 'device-a',
-      );
-      await deviceB.changesetService.pullAndApply(database: replicaB, storage: storage, relayId: relayId);
+      await deviceA.changesetService
+          .pushLocalEdits(
+            database: replicaA,
+            storage: storage,
+            relayId: relayId,
+            deviceId: 'device-a',
+          )
+          .okOrFail;
+      await deviceB.changesetService
+          .pullAndApply(database: replicaB, storage: storage, relayId: relayId)
+          .okOrFail;
 
       expect(await liveLocationNames(replicaA), ['Office']);
       expect(await liveLocationNames(replicaB), ['Office']);
@@ -254,38 +298,48 @@ void main() {
 
       // On A: edit the screenplay, add a location, and capture that as version V1 — "the earlier
       // version" this test restores back to.
-      await deviceA.screenplayService.saveScreenplayText(
-        database: replicaA,
-        screenplayId: screenplayId,
-        fountainText: textAtV1,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      final studio = (await deviceA.locationsService.createLocation(database: replicaA, name: 'Studio'))!;
+      await deviceA.screenplayService
+          .saveScreenplayText(
+            database: replicaA,
+            screenplayId: screenplayId,
+            fountainText: textAtV1,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
+      final studio = (await deviceA.locationsService
+          .createLocation(database: replicaA, name: 'Studio')
+          .valueOrFail);
 
-      final v1 = await deviceA.projectVersionsService.createVersion(
-        database: replicaA,
-        name: 'v1',
-        note: '',
-        appVersion: appVersion,
-        deviceId: 'device-a',
-        pageMargins: margins,
-      );
+      final v1 = await deviceA.projectVersionsService
+          .createVersion(
+            database: replicaA,
+            name: 'v1',
+            note: '',
+            appVersion: appVersion,
+            deviceId: 'device-a',
+            pageMargins: margins,
+          )
+          .valueOrFail;
 
       // Diverge from V1 in every way a restore has to undo: change the screenplay text again,
       // rename a row V1 held, delete a row V1 held, and add a row V1 never held.
-      await deviceA.screenplayService.saveScreenplayText(
-        database: replicaA,
-        screenplayId: screenplayId,
-        fountainText: textAfterV1,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-      await deviceA.locationsService.updateLocation(
-        database: replicaA,
-        locationId: office,
-        name: const Value('Office HQ'),
-      );
-      await deviceA.locationsService.deleteLocation(database: replicaA, locationId: studio);
-      final backlot = (await deviceA.locationsService.createLocation(database: replicaA, name: 'Backlot'))!;
+      await deviceA.screenplayService
+          .saveScreenplayText(
+            database: replicaA,
+            screenplayId: screenplayId,
+            fountainText: textAfterV1,
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
+      await deviceA.locationsService
+          .updateLocation(database: replicaA, locationId: office, name: const Value('Office HQ'))
+          .okOrFail;
+      await deviceA.locationsService
+          .deleteLocation(database: replicaA, locationId: studio)
+          .okOrFail;
+      final backlot = (await deviceA.locationsService
+          .createLocation(database: replicaA, name: 'Backlot')
+          .valueOrFail);
 
       final restoreResult = await deviceA.projectVersionsService.restoreVersion(
         database: replicaA,
@@ -300,7 +354,9 @@ void main() {
       // Sanity, on A itself, before anything is even pushed: the restore reverted the rename,
       // resurrected the deletion, tombstoned the addition, and put the screenplay text back.
       expect(
-        await deviceA.screenplayService.loadScreenplayText(database: replicaA, screenplayId: screenplayId),
+        await deviceA.screenplayService
+            .loadScreenplayText(database: replicaA, screenplayId: screenplayId)
+            .valueOrFail,
         textAtV1,
       );
       expect((await locationRow(replicaA, office)).name, 'Office');
@@ -310,26 +366,30 @@ void main() {
       expect(await liveLocationNames(replicaA), ['Office', 'Studio']);
 
       // One push carries every stamp the restore (and everything since the baseline sync) wrote.
-      await deviceA.changesetService.pushLocalEdits(
-        database: replicaA,
-        storage: storage,
-        relayId: relayId,
-        deviceId: 'device-a',
-      );
+      await deviceA.changesetService
+          .pushLocalEdits(
+            database: replicaA,
+            storage: storage,
+            relayId: relayId,
+            deviceId: 'device-a',
+          )
+          .okOrFail;
 
       // Bring B online: a single pullAndApply catches up on everything appended since the
       // baseline, in one call.
-      final conflicts = await deviceB.changesetService.pullAndApply(
+      final conflicts = (await deviceB.changesetService.pullAndApply(
         database: replicaB,
         storage: storage,
         relayId: relayId,
-      );
+      )).value!;
       expect(conflicts, isEmpty, reason: "B made no edit of its own, so this merges cleanly");
 
       // The screenplay text converges to A's restored text through the three-way merge — B's own
       // side of that merge is unchanged since the baseline, so this is the clean case.
       expect(
-        await deviceB.screenplayService.loadScreenplayText(database: replicaB, screenplayId: screenplayId),
+        await deviceB.screenplayService
+            .loadScreenplayText(database: replicaB, screenplayId: screenplayId)
+            .valueOrFail,
         textAtV1,
       );
 
@@ -351,8 +411,12 @@ void main() {
       // And `scenes` is never named by any changeset this whole scenario appended — the restore's
       // own bulk rewrite of that table included (`OcptProjectVersionsService._applyPayload` stamps
       // every table it restores except `scenes`).
-      final everyAppendedChangeset = await storage.readSince(OcptSequenceNumber.zero);
-      expect(everyAppendedChangeset, hasLength(2), reason: "the baseline push, and the restore's own");
+      final everyAppendedChangeset = (await storage.readSince(OcptSequenceNumber.zero)).value!;
+      expect(
+        everyAppendedChangeset,
+        hasLength(2),
+        reason: "the baseline push, and the restore's own",
+      );
       for (final entry in everyAppendedChangeset) {
         final changeset = OcptChangeset.decode(entry.envelope.payload);
         for (final stamp in changeset.fieldStamps) {

@@ -3,202 +3,27 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
-import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_jump_request.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
-import 'package:spell_kit/spell_kit.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index.dart';
 
-/// A request, produced by `OcptEditorBloc`, for the page to move the editor caret to
-/// [charOffset].
-///
-/// [id] increases with every request, so the page's bloc listener can tell a fresh request apart
-/// from the one it already applied even when two consecutive requests target the same offset
-/// (e.g. clicking the same scene twice).
-class OcptEditorJumpRequest extends Equatable {
-  /// The character offset, in the source text, to move the caret to.
-  final int charOffset;
-
-  /// The monotonically increasing identifier of this request.
-  final int id;
-
-  /// Class constructor
-  const OcptEditorJumpRequest({required this.charOffset, required this.id});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [charOffset, id];
-}
-
-/// The editor's live find/replace state — one search, kept in the bloc rather than in either
-/// editing surface, which is what lets it survive a raw ⇄ styled mode toggle (the plan's own
-/// M4 decision).
-class OcptEditorSearchState extends Equatable {
-  /// Whether the find/replace bar is open at all.
-  final bool isOpen;
-
-  /// Whether the replace row is unfolded under the find row.
-  final bool isReplaceRowOpen;
-
-  /// The text currently searched for.
-  final String query;
-
-  /// The text a match is replaced by.
-  final String replacement;
-
-  /// Whether the search is case-sensitive.
-  final bool isCaseSensitive;
-
-  /// Whether the search only matches whole words.
-  final bool isWholeWord;
-
-  /// The number of matches the mounted editing surface last reported.
-  ///
-  /// Computed over what that surface actually shows — the raw source text, or a styled node's
-  /// display text — so the count can legitimately differ between the two modes for a query
-  /// holding markup (a forcing marker, a `#N#` tag, `*`/`_` emphasis): a search shows what the
-  /// user can see, not the underlying Fountain source the styled mode never displays.
-  final int matchCount;
-
-  /// The 0-based index, among [matchCount] matches, of the current one; null while there is none.
-  final int? currentMatchIndex;
-
-  /// The id of the last request to (re)focus and select the find field, bumped on every "open".
-  ///
-  /// The same idiom as [OcptEditorJumpRequest.id]: the bar remembers the last one it applied, so
-  /// re-opening an already-open bar (or unfolding its replace row through Ctrl+H) still refocuses
-  /// the find field even though [isOpen] itself doesn't change value.
-  final int focusRequestId;
-
-  /// Class constructor
-  const OcptEditorSearchState({
-    required this.isOpen,
-    required this.isReplaceRowOpen,
-    required this.query,
-    required this.replacement,
-    required this.isCaseSensitive,
-    required this.isWholeWord,
-    required this.matchCount,
-    required this.currentMatchIndex,
-    required this.focusRequestId,
-  });
-
-  /// Init class constructor
-  const OcptEditorSearchState.init()
-    : isOpen = false,
-      isReplaceRowOpen = false,
-      query = "",
-      replacement = "",
-      isCaseSensitive = false,
-      isWholeWord = false,
-      matchCount = 0,
-      currentMatchIndex = null,
-      focusRequestId = 0;
-
-  /// Returns a copy of this state with the given fields replaced.
-  ///
-  /// [currentMatchIndex] only goes back to null through [clearCurrentMatchIndex] — the "there is
-  /// no match" state a plain `int?` field can't tell apart from "leave it as it is" on its own.
-  OcptEditorSearchState copyWith({
-    bool? isOpen,
-    bool? isReplaceRowOpen,
-    String? query,
-    String? replacement,
-    bool? isCaseSensitive,
-    bool? isWholeWord,
-    int? matchCount,
-    int? currentMatchIndex,
-    bool clearCurrentMatchIndex = false,
-    int? focusRequestId,
-  }) => OcptEditorSearchState(
-    isOpen: isOpen ?? this.isOpen,
-    isReplaceRowOpen: isReplaceRowOpen ?? this.isReplaceRowOpen,
-    query: query ?? this.query,
-    replacement: replacement ?? this.replacement,
-    isCaseSensitive: isCaseSensitive ?? this.isCaseSensitive,
-    isWholeWord: isWholeWord ?? this.isWholeWord,
-    matchCount: matchCount ?? this.matchCount,
-    currentMatchIndex: clearCurrentMatchIndex ? null : (currentMatchIndex ?? this.currentMatchIndex),
-    focusRequestId: focusRequestId ?? this.focusRequestId,
-  );
-
-  /// Object properties
-  @override
-  List<Object?> get props => [
-    isOpen,
-    isReplaceRowOpen,
-    query,
-    replacement,
-    isCaseSensitive,
-    isWholeWord,
-    matchCount,
-    currentMatchIndex,
-    focusRequestId,
-  ];
-}
-
-/// The kind of transient notice `OcptEditorIoNotice` carries, one per export/import outcome.
-enum OcptEditorIoNoticeKind {
-  /// The screenplay was successfully exported to a `.fountain` file.
-  exportSucceeded,
-
-  /// Exporting the screenplay to a `.fountain` file failed.
-  exportFailed,
-
-  /// The screenplay text was successfully replaced by an imported screenplay file.
-  importSucceeded,
-
-  /// Importing a screenplay file to replace the screenplay text failed while it was being written
-  /// to the project: the file itself was read, so the screenplay on screen is the old one still.
-  importFailed,
-
-  /// The picked file could not be read as a screenplay at all, so nothing was replaced.
-  ///
-  /// Told apart from [importFailed] on purpose: this one names the file the user picked, which
-  /// picking another one fixes, where the other names the project's own write failing.
-  importUnreadable,
-
-  /// The screenplay was successfully exported to a PDF file.
-  pdfExportSucceeded,
-
-  /// Exporting the screenplay to a PDF file failed.
-  pdfExportFailed,
-}
-
-/// A transient notice, produced by `OcptEditorBloc`, reporting the outcome of an export or an
-/// import-and-replace, shown as a SnackBar then dismissed.
-class OcptEditorIoNotice extends Equatable {
-  /// The outcome this notice reports.
-  final OcptEditorIoNoticeKind kind;
-
-  /// The path the screenplay was exported to, only set when [kind] is
-  /// [OcptEditorIoNoticeKind.exportSucceeded] or [OcptEditorIoNoticeKind.pdfExportSucceeded] and
-  /// [wasShared] is false — a mobile export hands the file to the OS share sheet instead of
-  /// writing it to a path the user picked, so there is none to show.
-  final String? path;
-
-  /// Whether the export was handed to the OS share sheet rather than written to [path] — mobile's
-  /// own outcome, `file_selector`'s `getSaveLocation` having no Android or iOS implementation.
-  final bool wasShared;
-
-  /// Class constructor
-  const OcptEditorIoNotice({required this.kind, this.path, this.wasShared = false});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [kind, path, wasShared];
-}
+export 'package:open_cine_prod_tools/ui/pages/editor/editor_jump_request.dart';
 
 /// The state of `OcptEditorBloc`.
 ///
@@ -207,6 +32,7 @@ class OcptEditorIoNotice extends Equatable {
 /// reads come from there rather than being declared here.
 class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     with
+        MixinOcptModeState<OcptEditorState>,
         MixinOcptProjectVersionsState<OcptEditorState>,
         MixinOcptProjectPackageState<OcptEditorState> {
   /// Whether the screenplay is still being loaded from the project database.
@@ -322,56 +148,28 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// on/off switches (see [isSpellCheckVisible]'s own doc comment).
   final OcptScreenplayLanguage? screenplayLanguage;
 
-  /// The misspelled ranges found in the raw mode's Fountain source text, document-absolute (the
-  /// very offsets its `OcptEditorSearchTextController` paints in), reported by
-  /// `OcptEditorBloc`'s debounced spell-check pass.
-  ///
-  /// Empty while spell-checking is off (either switch), while a project version is being
-  /// previewed, or before the first pass has answered, or while the raw editing surface isn't the
-  /// one mounted (`OcptEditorBloc._requestSpellCheck` only runs in raw mode, so nothing here would
-  /// paint anyway — see that method's own doc comment).
-  final List<SpellRange> rawSpellCheckRanges;
-
-  /// The misspelled ranges found in the styled mode's checkable node texts, keyed by node id, each
-  /// relative to that node's own display text — the exact addressing `SpellingAndGrammarStyler`
-  /// wants, reported by `OcptEditorBloc`'s own debounced pass over whatever
-  /// `OcptStyledEditorController.reportSpellCheckTexts` last handed it.
-  ///
-  /// Empty under the same three conditions [rawSpellCheckRanges] is, mirrored: spell-checking off
-  /// (either switch), a project version being previewed, or before the first pass has answered. A
-  /// node id this holds that no longer exists in the live document (a full rebuild since the ranges
-  /// were computed) is simply ignored by the styled editor rather than reaching the styler.
-  final Map<String, List<SpellRange>> styledSpellCheckRanges;
-
   /// The pending caret jump request, or null if none was ever made.
   ///
   /// The page keeps track of the last [OcptEditorJumpRequest.id] it applied, so this doesn't
   /// need to be cleared once handled.
   final OcptEditorJumpRequest? jumpRequest;
 
-  /// The transient export/import outcome currently shown as a SnackBar, or null if none is.
-  final OcptEditorIoNotice? ioNotice;
-
-  /// The editor's find/replace state — see `OcptEditorSearchState`'s own doc comment for why it
-  /// lives here rather than in either editing surface.
-  final OcptEditorSearchState search;
-
-  /// The at-a-glance counters (page/scene/character/word/sign counts) shown in the editor's
-  /// status bar, computed from [document] at [pageSetup]'s metrics.
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
   ///
-  /// Lags [document] slightly further behind [text] than the parse debounce alone: recomputing it
-  /// paginates the whole screenplay, which is too heavy to run on every parse tick while typing
-  /// continuously (see `OcptEditorBloc`'s own statistics debounce).
-  final FountainScriptStatistics statistics;
+  /// In this mode: a whole load, a screenplay text replaced by an action (an import, a title page
+  /// rewrite) and a page setup change. Typing moves nothing, it is what the parse debounce is for.
+  @override
+  final int reloadEpoch;
 
-  /// The [FountainSceneStatistics] of the scene at [currentSceneIndex], or null while nothing is
-  /// parsed yet or the caret precedes every scene.
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.selectionEpoch}
   ///
-  /// Unlike [currentSceneIndex] itself, this doesn't recompute on every caret move: composing the
-  /// whole document to derive [FountainSceneStatistics.pageEighths] is the same "too heavy for
-  /// every frame" cost [statistics] already documents, so `OcptEditorBloc` only recomputes this on
-  /// its own 150 ms parse debounce, or when a caret move actually lands on a different scene.
-  final FountainSceneStatistics? sceneStatistics;
+  /// In this mode the only selection a command moves is the scene a jump request names; the caret
+  /// itself is [currentLine], read straight off the state.
+  @override
+  final int selectionEpoch;
+
+  /// What moved [reloadEpoch] the last time it advanced.
+  final OcptEditorReloadCause reloadCause;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -409,7 +207,11 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
 
-  /// Whether the right dock's formatted-preview tab exists at all right now.
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExportTarget}
+  @override
+  final OcptProjectPackageTarget? projectPackagePendingExportTarget;
+
+  /// Tell whether the right dock's formatted-preview tab exists at all right now.
   ///
   /// Two states have no use for it, for the same reason: what the centre already shows *is* the
   /// formatted screenplay — the styled block editor, and the read-only preview a project version is
@@ -419,19 +221,12 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   bool get isPreviewTabAvailable =>
       isPreviewTabAvailableFor(mode: mode, isReadOnly: isPreviewingVersion);
 
-  /// The prospective form of [isPreviewTabAvailable]: whether the preview tab would exist in
-  /// [mode], with [isReadOnly] telling whether a project version is being previewed.
-  static bool isPreviewTabAvailableFor({
-    required OcptEditorMode mode,
-    required bool isReadOnly,
-  }) => mode == OcptEditorMode.raw && !isReadOnly;
-
-  /// The scene headings of [document], in source order (empty while nothing is parsed).
+  /// Get the scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
 
-  /// The index, in [scenes], of the scene containing [currentLine], or null while nothing is
+  /// Get the index, in [scenes], of the scene containing [currentLine], or null while nothing is
   /// parsed yet or the caret precedes every scene. Cheap to derive live from state already
-  /// tracked, unlike [sceneStatistics].
+  /// tracked, unlike the scene statistics `OcptEditorStatisticsBloc` computes.
   int? get currentSceneIndex => currentSceneIndexFor(scenes, currentLine);
 
   /// Class constructor
@@ -457,13 +252,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.areStyledSceneNumbersVisible,
     required this.isSpellCheckVisible,
     required this.screenplayLanguage,
-    required this.rawSpellCheckRanges,
-    required this.styledSpellCheckRanges,
     required this.jumpRequest,
-    required this.ioNotice,
-    required this.search,
-    required this.statistics,
-    required this.sceneStatistics,
+    required this.reloadEpoch,
+    required this.selectionEpoch,
+    required this.reloadCause,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -473,6 +265,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.projectVersionNotice,
     required this.projectPackagePendingExport,
     required this.projectPackageNotice,
+    required this.projectPackagePendingExportTarget,
   });
 
   /// Init class constructor
@@ -498,13 +291,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       areStyledSceneNumbersVisible = true,
       isSpellCheckVisible = true,
       screenplayLanguage = null,
-      rawSpellCheckRanges = const [],
-      styledSpellCheckRanges = const {},
       jumpRequest = null,
-      ioNotice = null,
-      search = const OcptEditorSearchState.init(),
-      statistics = FountainScriptStatistics.empty,
-      sceneStatistics = null,
+      reloadEpoch = 0,
+      selectionEpoch = 0,
+      reloadCause = OcptEditorReloadCause.none,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -513,43 +303,37 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       versionPendingRenameId = null,
       projectVersionNotice = null,
       projectPackagePendingExport = null,
-      projectPackageNotice = null;
+      projectPackageNotice = null,
+      projectPackagePendingExportTarget = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
-  /// [document], [lastSavedAt], [jumpRequest] and [statistics] are only replaced when a new value
-  /// is given: they never go back to null (or, for [statistics], to
-  /// [FountainScriptStatistics.empty]) once set, so no clear flag is needed for them. [ioNotice]
-  /// is only replaced when a new one is given or [clearIoNotice] is true, exactly like
-  /// `OcptHomeState`'s own `error` field. [rightDockTab], [autoClosedRightDockTab],
-  /// [sceneStatistics] and [screenplayLanguage] follow the same idiom as [ioNotice], each with its
-  /// own clear flag ([clearRightDockTab], [clearAutoClosedRightDockTab], [clearSceneStatistics],
-  /// [clearScreenplayLanguage]): all four legitimately go back to null during the editor's
-  /// lifetime (closing the dock, restoring it on a mode switch, the caret moving back before every
-  /// scene, a project's language being unset), so the "never goes back to null" shortcut used
-  /// above doesn't apply to them. [search] is replaced wholesale (through its own
-  /// `OcptEditorSearchState.copyWith`), not flattened into this method's own parameter list.
-  /// [rawSpellCheckRanges] and [styledSpellCheckRanges] need no clear flag despite legitimately
-  /// going back to empty (spell-check turning off, a version preview starting): `const []`/`const
-  /// {}` are themselves values, passed explicitly by the caller wanting that, rather than a state a
-  /// plain `?? this.rawSpellCheckRanges` couldn't already distinguish from "leave it as it is".
+  /// [document], [lastSavedAt] and [jumpRequest] are only replaced when a new value is given: they
+  /// never go back to null once set, so no force flag is needed for them. [rightDockTab],
+  /// [autoClosedRightDockTab] and [screenplayLanguage] are only replaced when a new value is given
+  /// or their force flag is true ([forceRightDockTabValue], [forceAutoClosedRightDockTabValue],
+  /// [forceScreenplayLanguageValue]): all three legitimately go back to null during the editor's
+  /// lifetime (closing the dock, restoring it on a mode switch, a project's language being unset),
+  /// so the "never goes back to null" shortcut used above doesn't apply to them.
   @override
   OcptEditorState copyWith({
     bool? isLoading,
     String? title,
     String? text,
     FountainDocument? document,
+    bool forceDocumentValue = false,
     bool? isDirty,
     bool? isSaving,
     DateTime? lastSavedAt,
+    bool forceLastSavedAtValue = false,
     bool? hasSaveError,
     int? currentLine,
     bool? isScenePanelVisible,
     OcptEditorRightDockTab? rightDockTab,
-    bool clearRightDockTab = false,
+    bool forceRightDockTabValue = false,
     OcptEditorRightDockTab? lastRightDockTab,
     OcptEditorRightDockTab? autoClosedRightDockTab,
-    bool clearAutoClosedRightDockTab = false,
+    bool forceAutoClosedRightDockTabValue = false,
     double? leftDockFraction,
     double? rightDockFraction,
     OcptEditorMode? mode,
@@ -558,49 +342,47 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     bool? areStyledSceneNumbersVisible,
     bool? isSpellCheckVisible,
     OcptScreenplayLanguage? screenplayLanguage,
-    bool clearScreenplayLanguage = false,
-    List<SpellRange>? rawSpellCheckRanges,
-    Map<String, List<SpellRange>>? styledSpellCheckRanges,
+    bool forceScreenplayLanguageValue = false,
     OcptEditorJumpRequest? jumpRequest,
-    OcptEditorIoNotice? ioNotice,
-    bool clearIoNotice = false,
-    OcptEditorSearchState? search,
-    FountainScriptStatistics? statistics,
-    FountainSceneStatistics? sceneStatistics,
-    bool clearSceneStatistics = false,
+    bool forceJumpRequestValue = false,
+    int? reloadEpoch,
+    int? selectionEpoch,
+    OcptEditorReloadCause? reloadCause,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => OcptEditorState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
     text: text ?? this.text,
-    document: document ?? this.document,
+    document: document ?? (forceDocumentValue ? null : this.document),
     isDirty: isDirty ?? this.isDirty,
     isSaving: isSaving ?? this.isSaving,
-    lastSavedAt: lastSavedAt ?? this.lastSavedAt,
+    lastSavedAt: lastSavedAt ?? (forceLastSavedAtValue ? null : this.lastSavedAt),
     hasSaveError: hasSaveError ?? this.hasSaveError,
     currentLine: currentLine ?? this.currentLine,
     isScenePanelVisible: isScenePanelVisible ?? this.isScenePanelVisible,
-    rightDockTab: clearRightDockTab ? null : (rightDockTab ?? this.rightDockTab),
+    rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
-    autoClosedRightDockTab: clearAutoClosedRightDockTab
-        ? null
-        : (autoClosedRightDockTab ?? this.autoClosedRightDockTab),
+    autoClosedRightDockTab:
+        autoClosedRightDockTab ??
+        (forceAutoClosedRightDockTabValue ? null : this.autoClosedRightDockTab),
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     mode: mode ?? this.mode,
@@ -608,37 +390,37 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     isPageSimulationEnabled: isPageSimulationEnabled ?? this.isPageSimulationEnabled,
     areStyledSceneNumbersVisible: areStyledSceneNumbersVisible ?? this.areStyledSceneNumbersVisible,
     isSpellCheckVisible: isSpellCheckVisible ?? this.isSpellCheckVisible,
-    screenplayLanguage: clearScreenplayLanguage ? null : (screenplayLanguage ?? this.screenplayLanguage),
-    rawSpellCheckRanges: rawSpellCheckRanges ?? this.rawSpellCheckRanges,
-    styledSpellCheckRanges: styledSpellCheckRanges ?? this.styledSpellCheckRanges,
-    jumpRequest: jumpRequest ?? this.jumpRequest,
-    ioNotice: clearIoNotice ? null : (ioNotice ?? this.ioNotice),
-    search: search ?? this.search,
-    statistics: statistics ?? this.statistics,
-    sceneStatistics: clearSceneStatistics ? null : (sceneStatistics ?? this.sceneStatistics),
+    screenplayLanguage:
+        screenplayLanguage ?? (forceScreenplayLanguageValue ? null : this.screenplayLanguage),
+    jumpRequest: jumpRequest ?? (forceJumpRequestValue ? null : this.jumpRequest),
+    reloadEpoch: reloadEpoch ?? this.reloadEpoch,
+    selectionEpoch: selectionEpoch ?? this.selectionEpoch,
+    reloadCause: reloadCause ?? this.reloadCause,
     projectVersions: projectVersions ?? this.projectVersions,
-    previewedVersionId: clearPreviewedVersionId
-        ? null
-        : (previewedVersionId ?? this.previewedVersionId),
-    workingCopy: clearWorkingCopy ? null : (workingCopy ?? this.workingCopy),
-    versionPendingDeletionId: clearVersionPendingDeletionId
-        ? null
-        : (versionPendingDeletionId ?? this.versionPendingDeletionId),
-    versionPendingRestoreId: clearVersionPendingRestoreId
-        ? null
-        : (versionPendingRestoreId ?? this.versionPendingRestoreId),
-    versionPendingRenameId: clearVersionPendingRenameId
-        ? null
-        : (versionPendingRenameId ?? this.versionPendingRenameId),
-    projectVersionNotice: clearProjectVersionNotice
-        ? null
-        : (projectVersionNotice ?? this.projectVersionNotice),
-    projectPackagePendingExport: clearProjectPackagePendingExport
-        ? null
-        : (projectPackagePendingExport ?? this.projectPackagePendingExport),
-    projectPackageNotice: clearProjectPackageNotice
-        ? null
-        : (projectPackageNotice ?? this.projectPackageNotice),
+    previewedVersionId:
+        previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
+    workingCopy: workingCopy ?? (forceWorkingCopyValue ? null : this.workingCopy),
+    versionPendingDeletionId:
+        versionPendingDeletionId ??
+        (forceVersionPendingDeletionIdValue ? null : this.versionPendingDeletionId),
+    versionPendingRestoreId:
+        versionPendingRestoreId ??
+        (forceVersionPendingRestoreIdValue ? null : this.versionPendingRestoreId),
+    versionPendingRenameId:
+        versionPendingRenameId ??
+        (forceVersionPendingRenameIdValue ? null : this.versionPendingRenameId),
+    projectVersionNotice:
+        projectVersionNotice ?? (forceProjectVersionNoticeValue ? null : this.projectVersionNotice),
+    projectPackagePendingExport:
+        projectPackagePendingExport ??
+        (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
+    projectPackageNotice:
+        projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
+    projectPackagePendingExportTarget:
+        projectPackagePendingExportTarget ??
+        (forceProjectPackagePendingExportTargetValue
+            ? null
+            : this.projectPackagePendingExportTarget),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -646,48 +428,268 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   OcptEditorState copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
-    bool clearPreviewedVersionId = false,
+    bool forcePreviewedVersionIdValue = false,
     OcptProjectWorkingCopyState? workingCopy,
-    bool clearWorkingCopy = false,
+    bool forceWorkingCopyValue = false,
     String? versionPendingDeletionId,
-    bool clearVersionPendingDeletionId = false,
+    bool forceVersionPendingDeletionIdValue = false,
     String? versionPendingRestoreId,
-    bool clearVersionPendingRestoreId = false,
+    bool forceVersionPendingRestoreIdValue = false,
     String? versionPendingRenameId,
-    bool clearVersionPendingRenameId = false,
+    bool forceVersionPendingRenameIdValue = false,
     OcptProjectVersionNoticeKind? projectVersionNotice,
-    bool clearProjectVersionNotice = false,
+    bool forceProjectVersionNoticeValue = false,
   }) => copyWith(
     projectVersions: projectVersions,
     previewedVersionId: previewedVersionId,
-    clearPreviewedVersionId: clearPreviewedVersionId,
+    forcePreviewedVersionIdValue: forcePreviewedVersionIdValue,
     workingCopy: workingCopy,
-    clearWorkingCopy: clearWorkingCopy,
+    forceWorkingCopyValue: forceWorkingCopyValue,
     versionPendingDeletionId: versionPendingDeletionId,
-    clearVersionPendingDeletionId: clearVersionPendingDeletionId,
+    forceVersionPendingDeletionIdValue: forceVersionPendingDeletionIdValue,
     versionPendingRestoreId: versionPendingRestoreId,
-    clearVersionPendingRestoreId: clearVersionPendingRestoreId,
+    forceVersionPendingRestoreIdValue: forceVersionPendingRestoreIdValue,
     versionPendingRenameId: versionPendingRenameId,
-    clearVersionPendingRenameId: clearVersionPendingRenameId,
+    forceVersionPendingRenameIdValue: forceVersionPendingRenameIdValue,
     projectVersionNotice: projectVersionNotice,
-    clearProjectVersionNotice: clearProjectVersionNotice,
+    forceProjectVersionNoticeValue: forceProjectVersionNoticeValue,
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
   @override
   OcptEditorState copyProjectPackageState({
     OcptProjectPackagePreflight? projectPackagePendingExport,
-    bool clearProjectPackagePendingExport = false,
+    bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
-    bool clearProjectPackageNotice = false,
+    bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
-    clearProjectPackagePendingExport: clearProjectPackagePendingExport,
+    forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
-    clearProjectPackageNotice: clearProjectPackageNotice,
+    forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
+    projectPackagePendingExportTarget: projectPackagePendingExportTarget,
+    forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
-  /// Object properties
+  /// Copy this state as loaded when no project is open: the document and the display preferences
+  /// read, no version previewed, and the reload epoch moved with the cause
+  /// [OcptEditorReloadCause.load].
+  OcptEditorState copyToLoadedWithoutProject({
+    required FountainDocument document,
+    required OcptEditorMode mode,
+    required bool isPageSimulationEnabled,
+    required bool areStyledSceneNumbersVisible,
+    required bool isSpellCheckVisible,
+    required OcptScreenplayLanguage? screenplayLanguage,
+    required double leftDockFraction,
+    required double rightDockFraction,
+    required OcptEditorRightDockTab? rightDockTab,
+    required bool forceRightDockTabValue,
+    required OcptEditorRightDockTab? autoClosedRightDockTab,
+    required bool forceAutoClosedRightDockTabValue,
+  }) => copyWith(
+    isLoading: false,
+    document: document,
+    mode: mode,
+    forcePreviewedVersionIdValue: true,
+    isPageSimulationEnabled: isPageSimulationEnabled,
+    areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
+    isSpellCheckVisible: isSpellCheckVisible,
+    screenplayLanguage: screenplayLanguage,
+    forceScreenplayLanguageValue: screenplayLanguage == null,
+    leftDockFraction: leftDockFraction,
+    rightDockFraction: rightDockFraction,
+    rightDockTab: rightDockTab,
+    forceRightDockTabValue: forceRightDockTabValue,
+    autoClosedRightDockTab: autoClosedRightDockTab,
+    forceAutoClosedRightDockTabValue: forceAutoClosedRightDockTabValue,
+    reloadEpoch: reloadEpoch + 1,
+    reloadCause: OcptEditorReloadCause.load,
+  );
+
+  /// Copy this state as loaded from the open project: its [title], [text] and [document], the
+  /// version being previewed if any ([previewedVersionId] null when none is), and the display
+  /// preferences read, with the reload epoch moved and the cause [OcptEditorReloadCause.load].
+  OcptEditorState copyToLoaded({
+    required String title,
+    required OcptEditorMode mode,
+    required String? previewedVersionId,
+    required String text,
+    required FountainDocument document,
+    required OcptPageSetup pageSetup,
+    required bool isPageSimulationEnabled,
+    required bool areStyledSceneNumbersVisible,
+    required bool isSpellCheckVisible,
+    required OcptScreenplayLanguage? screenplayLanguage,
+    required double leftDockFraction,
+    required double rightDockFraction,
+    required OcptEditorRightDockTab? rightDockTab,
+    required bool forceRightDockTabValue,
+    required OcptEditorRightDockTab? autoClosedRightDockTab,
+    required bool forceAutoClosedRightDockTabValue,
+  }) => copyWith(
+    isLoading: false,
+    title: title,
+    mode: mode,
+    previewedVersionId: previewedVersionId,
+    forcePreviewedVersionIdValue: previewedVersionId == null,
+    text: text,
+    document: document,
+    pageSetup: pageSetup,
+    isPageSimulationEnabled: isPageSimulationEnabled,
+    areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
+    isSpellCheckVisible: isSpellCheckVisible,
+    screenplayLanguage: screenplayLanguage,
+    forceScreenplayLanguageValue: screenplayLanguage == null,
+    leftDockFraction: leftDockFraction,
+    rightDockFraction: rightDockFraction,
+    rightDockTab: rightDockTab,
+    forceRightDockTabValue: forceRightDockTabValue,
+    autoClosedRightDockTab: autoClosedRightDockTab,
+    forceAutoClosedRightDockTabValue: forceAutoClosedRightDockTabValue,
+    reloadEpoch: reloadEpoch + 1,
+    reloadCause: OcptEditorReloadCause.load,
+  );
+
+  /// Copy this state with the [text] the user just typed, which makes it dirty.
+  OcptEditorState copyWithTypedText({required String text}) => copyWith(text: text, isDirty: true);
+
+  /// Copy this state with the [document] parsed from the current text.
+  OcptEditorState copyWithParsedDocument({required FountainDocument document}) =>
+      copyWith(document: document);
+
+  /// Copy this state with a save under way.
+  OcptEditorState copyWithSaving() => copyWith(isSaving: true);
+
+  /// Copy this state with the save done at [lastSavedAt], [isDirty] telling whether the text moved
+  /// on meanwhile.
+  OcptEditorState copyWithSaved({required bool isDirty, required DateTime lastSavedAt}) =>
+      copyWith(isSaving: false, isDirty: isDirty, lastSavedAt: lastSavedAt);
+
+  /// Copy this state with the save ended on an error.
+  OcptEditorState copyWithSaveFailed() => copyWith(isSaving: false, hasSaveError: true);
+
+  /// Copy this state with the save error dismissed.
+  OcptEditorState copyWithSaveErrorDismissed() => copyWith(hasSaveError: false);
+
+  /// Copy this state with the caret on [currentLine].
+  OcptEditorState copyWithCurrentLine({required int currentLine}) =>
+      copyWith(currentLine: currentLine);
+
+  /// Copy this state with a jump request for the editing surface to move the caret to
+  /// [charOffset], which moves the selection epoch.
+  ///
+  /// The request is given the id after the last one made, so two requests for the same offset still
+  /// differ and the page applies both: [jumpRequest] is never cleared once set, so the state itself
+  /// is the counter.
+  OcptEditorState copyWithSceneJumpRequested({required int charOffset}) => copyWith(
+    jumpRequest: OcptEditorJumpRequest(charOffset: charOffset, id: (jumpRequest?.id ?? -1) + 1),
+    selectionEpoch: selectionEpoch + 1,
+  );
+
+  /// Copy this state with the scene panel shown or hidden.
+  OcptEditorState copyWithScenePanelVisibility({required bool isScenePanelVisible}) =>
+      copyWith(isScenePanelVisible: isScenePanelVisible);
+
+  /// Copy this state with the right dock showing [tab], or closed when it [isAlreadyActive]; the
+  /// tab is remembered and the tab the dock was auto-closed from is forgotten.
+  OcptEditorState copyWithRightDockTabSelected({
+    required OcptEditorRightDockTab tab,
+    required bool isAlreadyActive,
+  }) => copyWith(
+    rightDockTab: isAlreadyActive ? null : tab,
+    forceRightDockTabValue: isAlreadyActive,
+    lastRightDockTab: tab,
+    forceAutoClosedRightDockTabValue: true,
+  );
+
+  /// Copy this state with the right dock closed, and the tab it was auto-closed from forgotten.
+  OcptEditorState copyWithRightDockClosed() =>
+      copyWith(forceRightDockTabValue: true, forceAutoClosedRightDockTabValue: true);
+
+  /// Copy this state with the right dock reopened on [rightDockTab], and the tab it was
+  /// auto-closed from forgotten.
+  OcptEditorState copyWithRightDockReopened({required OcptEditorRightDockTab? rightDockTab}) =>
+      copyWith(rightDockTab: rightDockTab, forceAutoClosedRightDockTabValue: true);
+
+  /// Copy this state with the docks' widths set to [leftDockFraction] and [rightDockFraction].
+  OcptEditorState copyWithDockFractions({
+    required double? leftDockFraction,
+    required double? rightDockFraction,
+  }) => copyWith(leftDockFraction: leftDockFraction, rightDockFraction: rightDockFraction);
+
+  /// Copy this state switched to [mode], with the right dock moved as that switch requires.
+  OcptEditorState copyWithMode({
+    required OcptEditorMode mode,
+    required OcptEditorRightDockTab? rightDockTab,
+    required bool forceRightDockTabValue,
+    required OcptEditorRightDockTab? autoClosedRightDockTab,
+    required bool forceAutoClosedRightDockTabValue,
+  }) => copyWith(
+    mode: mode,
+    rightDockTab: rightDockTab,
+    forceRightDockTabValue: forceRightDockTabValue,
+    autoClosedRightDockTab: autoClosedRightDockTab,
+    forceAutoClosedRightDockTabValue: forceAutoClosedRightDockTabValue,
+  );
+
+  /// Copy this state with the page simulation switched on or off.
+  OcptEditorState copyWithPageSimulation({required bool isPageSimulationEnabled}) =>
+      copyWith(isPageSimulationEnabled: isPageSimulationEnabled);
+
+  /// Copy this state with the styled scene numbers shown or hidden.
+  OcptEditorState copyWithStyledSceneNumbers({required bool areStyledSceneNumbersVisible}) =>
+      copyWith(areStyledSceneNumbersVisible: areStyledSceneNumbersVisible);
+
+  /// Copy this state with the spell-check underlines shown or hidden.
+  OcptEditorState copyWithSpellCheckVisibility({required bool isSpellCheckVisible}) =>
+      copyWith(isSpellCheckVisible: isSpellCheckVisible);
+
+  /// Copy this state with the [pageSetup] replaced, which moves the reload epoch with the cause
+  /// [OcptEditorReloadCause.pageSetup].
+  OcptEditorState copyWithPageSetup({required OcptPageSetup pageSetup}) => copyWith(
+    pageSetup: pageSetup,
+    reloadEpoch: reloadEpoch + 1,
+    reloadCause: OcptEditorReloadCause.pageSetup,
+  );
+
+  /// Copy this state with the page setup moved to [pageFormat], which moves the reload epoch with
+  /// the cause [OcptEditorReloadCause.pageSetup].
+  OcptEditorState copyWithPageFormat({required OcptPageFormat pageFormat}) => copyWith(
+    pageSetup: pageSetup.copyWith(format: pageFormat),
+    reloadEpoch: reloadEpoch + 1,
+    reloadCause: OcptEditorReloadCause.pageSetup,
+  );
+
+  /// Copy this state with the project's [screenplayLanguage], null when it is unset.
+  OcptEditorState copyWithScreenplayLanguage({
+    required OcptScreenplayLanguage? screenplayLanguage,
+  }) => copyWith(
+    screenplayLanguage: screenplayLanguage,
+    forceScreenplayLanguageValue: screenplayLanguage == null,
+  );
+
+  /// Copy this state with the [text] an import just wrote: clean, with the caret back on the first
+  /// line.
+  OcptEditorState copyWithImportedText({required String text}) =>
+      copyWith(text: text, isDirty: false, currentLine: 0);
+
+  /// Copy this state with the [text] a title-page change just wrote.
+  OcptEditorState copyWithTitlePageText({required String text}) => copyWith(text: text);
+
+  /// Copy this state with the surfaces told to reload the text, through the reload epoch and the
+  /// cause [OcptEditorReloadCause.textReplaced].
+  OcptEditorState copyWithTextReplaced() =>
+      copyWith(reloadEpoch: reloadEpoch + 1, reloadCause: OcptEditorReloadCause.textReplaced);
+
+  /// Get the prospective form of [isPreviewTabAvailable]: whether the preview tab would exist in
+  /// [mode], with [isReadOnly] telling whether a project version is being previewed.
+  static bool isPreviewTabAvailableFor({required OcptEditorMode mode, required bool isReadOnly}) =>
+      mode == OcptEditorMode.raw && !isReadOnly;
+
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -712,12 +714,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     areStyledSceneNumbersVisible,
     isSpellCheckVisible,
     screenplayLanguage,
-    rawSpellCheckRanges,
-    styledSpellCheckRanges,
     jumpRequest,
-    ioNotice,
-    search,
-    statistics,
-    sceneStatistics,
+    reloadEpoch,
+    selectionEpoch,
+    reloadCause,
   ];
 }

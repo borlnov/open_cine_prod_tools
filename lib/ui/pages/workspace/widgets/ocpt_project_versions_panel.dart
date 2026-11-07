@@ -107,43 +107,67 @@ class OcptProjectVersionsPanel extends StatelessWidget {
     required this.onRenameConfirmed,
   });
 
+  /// Build the project versions panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final workingCopy = this.workingCopy;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(
-          tr.projectVersionsPanelTitle,
-          style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+    final leading = <Widget>[
+      Text(
+        tr.projectVersionsPanelTitle,
+        style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        tr.projectVersionsPanelSubtitle,
+        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ),
+      const SizedBox(height: 12),
+      if (workingCopy != null)
+        OcptProjectWorkingCopyCard(
+          workingCopy: workingCopy,
+          baseVersionName: _baseVersionName(workingCopy.baseVersionId),
+          onCreateRequested: onCreateRequested,
         ),
-        const SizedBox(height: 4),
+      if (versions.isEmpty)
         Text(
-          tr.projectVersionsPanelSubtitle,
+          tr.projectVersionsEmptyHint,
           style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
-        const SizedBox(height: 12),
-        if (workingCopy != null)
-          OcptProjectWorkingCopyCard(
-            workingCopy: workingCopy,
-            baseVersionName: _baseVersionName(workingCopy.baseVersionId),
-            onCreateRequested: onCreateRequested,
-          ),
-        if (versions.isEmpty)
-          Text(
-            tr.projectVersionsEmptyHint,
-            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          )
-        else
-          for (final version in versions) _buildCard(version),
-      ],
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: leading.length + versions.length,
+      // A card keeps its own state (a rename in progress) across a version being added or removed
+      // above it, which only works when the list can find a keyed card's new index.
+      findChildIndexCallback: (key) {
+        if (key is! ValueKey<String>) {
+          return null;
+        }
+
+        final versionIndex = versions.indexWhere((version) => version.id == key.value);
+        return versionIndex < 0 ? null : leading.length + versionIndex;
+      },
+      itemBuilder: (context, index) {
+        if (index < leading.length) {
+          return leading[index];
+        }
+
+        final version = versions[index - leading.length];
+        return _OcptProjectVersionPanelEntry(
+          key: ValueKey(version.id),
+          panel: this,
+          version: version,
+        );
+      },
     );
   }
 
-  /// The name of the version [baseVersionId] names, resolved out of [versions] — the list already
+  /// Get the name of the version [baseVersionId] names, resolved out of [versions] — the list
+  /// already
   /// carries every version, the base included, so a second lookup path could only ever disagree
   /// with it. Null when [baseVersionId] is null, or names a version no longer in the list.
   String? _baseVersionName(String? baseVersionId) {
@@ -159,32 +183,46 @@ class OcptProjectVersionsPanel extends StatelessWidget {
 
     return null;
   }
+}
 
-  /// Builds [version]'s card, wiring the actions that depend on which of its states it is in (see
-  /// [OcptProjectVersionCard]'s own doc comment).
-  Widget _buildCard(OcptProjectVersion version) {
-    final isPreviewed = version.id == previewedVersionId;
+/// [version]'s card, wiring the actions that depend on which of its states it is in (see
+/// [OcptProjectVersionCard]'s own doc comment) to the callbacks [panel] was given.
+class _OcptProjectVersionPanelEntry extends StatelessWidget {
+  /// The panel whose callbacks and selection state the card is wired to.
+  final OcptProjectVersionsPanel panel;
+
+  /// The version the card shows.
+  final OcptProjectVersion version;
+
+  /// Class constructor
+  const _OcptProjectVersionPanelEntry({super.key, required this.panel, required this.version});
+
+  /// Build the project version panel entry as an [OcptProjectVersionCard].
+  @override
+  Widget build(BuildContext context) {
+    final isPreviewed = version.id == panel.previewedVersionId;
 
     return OcptProjectVersionCard(
-      key: ValueKey(version.id),
       version: version,
       isPreviewed: isPreviewed,
-      isConfirmingDeletion: version.id == versionPendingDeletionId,
-      isConfirmingRestore: version.id == versionPendingRestoreId,
-      isConfirmingRename: version.id == versionPendingRenameId,
-      onTap: isPreviewed ? onPreviewExitRequested : () => onPreviewRequested(version.id),
-      onRestoreRequested: () => onRestoreRequested(version.id),
-      onRestoreConfirmed: () => onRestoreConfirmed(version),
-      onRestoreCancelled: onRestoreCancelled,
+      isConfirmingDeletion: version.id == panel.versionPendingDeletionId,
+      isConfirmingRestore: version.id == panel.versionPendingRestoreId,
+      isConfirmingRename: version.id == panel.versionPendingRenameId,
+      onTap: isPreviewed
+          ? panel.onPreviewExitRequested
+          : () => panel.onPreviewRequested(version.id),
+      onRestoreRequested: () => panel.onRestoreRequested(version.id),
+      onRestoreConfirmed: () => panel.onRestoreConfirmed(version),
+      onRestoreCancelled: panel.onRestoreCancelled,
       // Restoring the version being previewed is legitimate — it is the obvious next move once the
       // user has read it — where deleting it is not: the preview reads from a database hydrated out
       // of that very row.
-      onDeleteRequested: isPreviewed ? null : () => onDeleteRequested(version.id),
-      onDeleteConfirmed: () => onDeleteConfirmed(version.id),
-      onDeleteCancelled: onDeleteCancelled,
-      onRenameRequested: () => onRenameRequested(version.id),
-      onRenameConfirmed: (name, note) => onRenameConfirmed(version.id, name, note),
-      onRenameCancelled: onRenameCancelled,
+      onDeleteRequested: isPreviewed ? null : () => panel.onDeleteRequested(version.id),
+      onDeleteConfirmed: () => panel.onDeleteConfirmed(version.id),
+      onDeleteCancelled: panel.onDeleteCancelled,
+      onRenameRequested: () => panel.onRenameRequested(version.id),
+      onRenameConfirmed: (name, note) => panel.onRenameConfirmed(version.id, name, note),
+      onRenameCancelled: panel.onRenameCancelled,
     );
   }
 }

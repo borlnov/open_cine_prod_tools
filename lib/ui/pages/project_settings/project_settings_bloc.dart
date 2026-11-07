@@ -4,9 +4,12 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
@@ -15,12 +18,13 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
-/// Opens [folder] in the platform's own file manager, answering whether it did.
+/// Open [folder] in the platform's own file manager, answering whether it did.
 typedef OcptFolderLauncher = Future<bool> Function(Uri folder);
 
 /// This is the bloc class for the project settings page.
@@ -56,7 +60,14 @@ typedef OcptFolderLauncher = Future<bool> Function(Uri folder);
 /// (`AGENTS.md`, "Dependencies never reference their dependents"). This bloc also stops and
 /// restarts the sync session around the move for the very same reason
 /// (`OcptProjectsManager.moveCurrentProject`'s own doc comment).
-class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
+class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
+    with MixinAsyncInitBloc<OcptProjectSettingsState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "project_settings_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger;
+
   /// The manager used to read and write the current project's settings.
   final OcptProjectsManager _projectsManager;
 
@@ -66,9 +77,9 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   final OcptExportManager? _exportManagerOverride;
 
   /// The manager owning the sync session [_onMoveRequested] stops before the swap and
-  /// [_restartSyncSessionIfPaired] restarts afterwards, and that [_isHostingOnlineForCurrentProject]
-  /// reads the currently open project's own relay-side id through — resolved lazily and tolerant of
-  /// its absence, see [_syncManager]'s own doc comment.
+  /// [_restartSyncSessionIfPaired] restarts afterwards, and that
+  /// [_isHostingOnlineForCurrentProject] reads the currently open project's own relay-side id
+  /// through — resolved lazily and tolerant of its absence, see [_syncManager]'s own doc comment.
   final OcptSyncManager? _syncManagerOverride;
 
   /// The manager [_isHostingOnlineForCurrentProject] reads to decide whether `Move…` is withheld —
@@ -79,37 +90,20 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// resolved lazily and tolerant of its absence, see [_propertiesManager]'s own doc comment.
   final OcptPropertiesManager? _propertiesManagerOverride;
 
-  /// What `Show in folder` opens the project's folder through: `url_launcher`'s [launchUrl] unless a
-  /// test hands in its own, since no url_launcher implementation answers under `flutter test`.
+  /// What `Show in folder` opens the project's folder through: `url_launcher`'s [launchUrl] unless
+  /// a test hands in its own, since no url_launcher implementation answers under `flutter test`.
   final OcptFolderLauncher _launchFolder;
 
-  /// Class constructor
-  OcptProjectSettingsBloc({
-    OcptProjectsManager? projectsManager,
-    OcptExportManager? exportManager,
-    OcptSyncManager? syncManager,
-    OcptRelayHostManager? hostManager,
-    OcptPropertiesManager? propertiesManager,
-    OcptFolderLauncher? launchFolder,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
-       _exportManagerOverride = exportManager,
-       _syncManagerOverride = syncManager,
-       _hostManagerOverride = hostManager,
-       _propertiesManagerOverride = propertiesManager,
-       _launchFolder = launchFolder ?? launchUrl,
-       super(const OcptProjectSettingsState.init()) {
-    add(const OcptProjectSettingsLoadRequestedEvent());
-  }
-
-  /// The current project's database. The route that reaches this page is guarded exactly like the
+  /// Get the current project's database. The route that reaches this page is guarded exactly like
+  /// the
   /// workspace's own, so a project is always open by the time an episode mutation runs.
   OcptProjectDatabase get _database => _projectsManager.currentProject!.database;
 
-  /// [_exportManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// Get [_exportManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
   /// environment actually registered one, or null otherwise — resolved lazily on every access
   /// rather than eagerly in the constructor, exactly as `OcptWorkspaceBloc._syncManager` is and for
   /// the same reason: this page's own widget tests build a bare `OcptProjectSettingsBloc()` with no
-  /// reason to ever register an export manager, and [_onLoadRequested]/[_onMoveRequested] simply
+  /// reason to ever register an export manager, and [initAsyncBloc]/[_onMoveRequested] simply
   /// treat its absence as "desktop, nothing hosted" rather than crash.
   OcptExportManager? get _exportManager {
     final override = _exportManagerOverride;
@@ -124,7 +118,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     return managers.isRegistered<OcptExportManager>() ? managers.get<OcptExportManager>() : null;
   }
 
-  /// [_syncManagerOverride], or the one `globalGetIt()` holds when an app-wide manager environment
+  /// Get [_syncManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// environment
   /// actually registered one, or null otherwise — resolved lazily for the very same reason
   /// [_exportManager] is.
   OcptSyncManager? get _syncManager {
@@ -140,7 +135,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     return managers.isRegistered<OcptSyncManager>() ? managers.get<OcptSyncManager>() : null;
   }
 
-  /// [_hostManagerOverride], or the one `globalGetIt()` holds when an app-wide manager environment
+  /// Get [_hostManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// environment
   /// actually registered one, or null otherwise — resolved lazily for the very same reason
   /// [_exportManager] is.
   OcptRelayHostManager? get _hostManager {
@@ -158,7 +154,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         : null;
   }
 
-  /// [_propertiesManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// Get [_propertiesManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
   /// environment actually registered one, or null otherwise — resolved lazily for the very same
   /// reason [_exportManager] is.
   OcptPropertiesManager? get _propertiesManager {
@@ -176,11 +172,27 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         : null;
   }
 
+  /// Class constructor
+  OcptProjectSettingsBloc({
+    OcptProjectsManager? projectsManager,
+    OcptExportManager? exportManager,
+    OcptSyncManager? syncManager,
+    OcptRelayHostManager? hostManager,
+    OcptPropertiesManager? propertiesManager,
+    OcptFolderLauncher? launchFolder,
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+       _exportManagerOverride = exportManager,
+       _syncManagerOverride = syncManager,
+       _hostManagerOverride = hostManager,
+       _propertiesManagerOverride = propertiesManager,
+       _launchFolder = launchFolder ?? launchUrl,
+       super(const OcptProjectSettingsState.init());
+
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptProjectSettingsLoadRequestedEvent>(_onLoadRequested);
     on<OcptProjectSettingsShowInFolderRequestedEvent>(_onShowInFolderRequested);
     on<OcptProjectSettingsShowInFolderFailureDismissedEvent>(_onShowInFolderFailureDismissed);
     on<OcptProjectSettingsMoveRequestedEvent>(_onMoveRequested);
@@ -206,41 +218,88 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsMileageRateDeletionConfirmedEvent>(_onMileageRateDeletionConfirmed);
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
   /// Loads the current project's currency, page format, minimum rest, screenplay language,
   /// episodes and learned dictionary words.
   ///
   /// The route that reaches this page is guarded exactly like the workspace's own: a project is
   /// always open by the time this runs. The fallbacks below only ever matter if that guard were
   /// ever bypassed, and mirror the ones every other reader of these two properties already uses.
-  Future<void> _onLoadRequested(
-    OcptProjectSettingsLoadRequestedEvent event,
-    Emitter<OcptProjectSettingsState> emitter,
-  ) async {
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptProjectSettingsState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
     final projectFilePath = _projectsManager.currentProject!.path;
     final isMobile = _exportManager?.isMobile ?? false;
     final isMoveWithheldByHosting = await _isHostingOnlineForCurrentProject();
 
-    final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
-    final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
-    final minimumRestMinutes = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
-    final defaultVatRateBasisPoints = await _projectsManager
-        .loadCurrentProjectDefaultVatRateBasisPoints();
-    final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
+    final currencyRead = await _projectsManager.loadCurrentProjectCurrencyCode();
+    if (currencyRead.isError) {
+      return;
+    }
+
+    final currencyCode = currencyRead.value;
+    final pageFormatRead = await _projectsManager.loadCurrentProjectPageFormat();
+    if (pageFormatRead.isError) {
+      return;
+    }
+
+    final pageFormat = pageFormatRead.value;
+    final minimumRestRead = await _projectsManager.loadCurrentProjectMinimumRestMinutes();
+    if (minimumRestRead.isError) {
+      return;
+    }
+
+    final minimumRestMinutes = minimumRestRead.value;
+    final defaultVatRateRead = await _projectsManager.loadCurrentProjectDefaultVatRateBasisPoints();
+    if (defaultVatRateRead.isError) {
+      return;
+    }
+
+    final defaultVatRateBasisPoints = defaultVatRateRead.value;
+    final mealPriceRead = await _projectsManager.loadCurrentProjectMealPriceCents();
+    if (mealPriceRead.isError) {
+      return;
+    }
+
+    final mealPriceCents = mealPriceRead.value;
     // `project_info.snackPriceCents` under its user-facing name — the column keeps the schema's
     // own name, but what it prices is the buffet, never a snack in the trade's own words.
-    final buffetPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
-    final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
-    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+    final buffetPriceRead = await _projectsManager.loadCurrentProjectSnackPriceCents();
+    if (buffetPriceRead.isError) {
+      return;
+    }
+
+    final buffetPriceCents = buffetPriceRead.value;
+    final screenplayLanguageRead = await _projectsManager.loadCurrentProjectScreenplayLanguage();
+    if (screenplayLanguageRead.isError) {
+      return;
+    }
+
+    final screenplayLanguage = screenplayLanguageRead.value;
+    final episodesRead = await _projectsManager.screenplayService.loadEpisodes(database: _database);
+    if (episodesRead.isError) {
+      return;
+    }
+
+    final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
+    if (mileageRatesRead.isError) {
+      return;
+    }
+
     final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
       database: _database,
     );
+    if (dictionaryWords.isError) {
+      return;
+    }
 
-    emitter(
-      state.copyWith(
-        isLoading: false,
+    emit(
+      state.copyToLoaded(
         projectFilePath: projectFilePath,
         isShowInFolderAvailable: !isMobile,
         isMoveAvailable: !isMobile && !isMoveWithheldByHosting,
@@ -248,24 +307,20 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
         currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
         pageFormat: pageFormat ?? OcptPageFormat.usLetter,
         minimumRestMinutes: minimumRestMinutes,
-        clearMinimumRestMinutes: minimumRestMinutes == null,
         defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-        clearDefaultVatRateBasisPoints: defaultVatRateBasisPoints == null,
         mealPriceCents: mealPriceCents,
-        clearMealPriceCents: mealPriceCents == null,
         buffetPriceCents: buffetPriceCents,
-        clearBuffetPriceCents: buffetPriceCents == null,
         screenplayLanguage: screenplayLanguage,
-        clearScreenplayLanguage: screenplayLanguage == null,
-        episodes: episodes,
-        mileageRates: mileageRates,
-        dictionaryWords: dictionaryWords,
+        episodes: episodesRead.value!,
+        mileageRates: mileageRatesRead.value!,
+        dictionaryWords: dictionaryWords.value!,
       ),
     );
   }
 
-  /// Whether an in-app-hosted relay is currently online for the very project this page is open on
-  /// — what [_onLoadRequested] withholds `Move…` for, since a hosted relay keeps this project's
+  /// Tell whether an in-app-hosted relay is currently online for the very project this page is open
+  /// on
+  /// — what [initAsyncBloc] withholds `Move…` for, since a hosted relay keeps this project's
   /// `.relay.sqlite` sidecar open (`OcptProjectsManager.moveCurrentProject`'s own doc comment
   /// explains why the manager itself cannot check this).
   ///
@@ -290,7 +345,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     return projectId != null && projectId == hostManager.hostedProjectId;
   }
 
-  /// Opens the current project's folder in the platform's own file manager — the `Project file`
+  /// Open the current project's folder in the platform's own file manager — the `Project file`
   /// card's own `Show in folder` action.
   ///
   /// A failure — most likely no application registered to open a folder, which is what a desktop
@@ -309,24 +364,24 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     var isOpened = false;
     try {
       isOpened = await _launchFolder(Uri.directory(p.dirname(projectFilePath)));
-    } catch (error) {
-      appLogger().w("Could not open the project's own folder: $error");
+    } catch (error, stackTrace) {
+      _logger.w("Could not open the project's own folder: ${error.runtimeType}", null, stackTrace);
     }
 
     if (!isOpened) {
-      emitter(state.copyWith(isShowInFolderFailed: true));
+      emitter(state.copyWithShowInFolderFailed());
     }
   }
 
-  /// Clears [OcptProjectSettingsState.isShowInFolderFailed] once the page has shown it.
+  /// Clear [OcptProjectSettingsState.isShowInFolderFailed] once the page has shown it.
   Future<void> _onShowInFolderFailureDismissed(
     OcptProjectSettingsShowInFolderFailureDismissedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    emitter(state.copyWith(isShowInFolderFailed: false));
+    emitter(state.copyWithShowInFolderFailureDismissed());
   }
 
-  /// Shows the native save-file dialog, suggesting the project's current file name inside its
+  /// Show the native save-file dialog, suggesting the project's current file name inside its
   /// current folder, and moves the project's file there once the user picks a destination — the
   /// `Project file` card's own `Move…` action. A cancelled dialog is a silent no-op.
   ///
@@ -365,27 +420,32 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     }
 
     final result = await _projectsManager.moveCurrentProject(newFilePath: newFilePath);
+    if (result.status == OcptProjectMoveStatus.oldFileNotClosed) {
+      return;
+    }
 
     if (hadSyncSession) {
       await _restartSyncSessionIfPaired();
     }
 
     if (!result.status.isSuccess) {
-      emitter(state.copyWith(moveError: result.status));
+      emitter(state.copyWithMoveError(moveError: result.status));
       return;
     }
 
-    emitter(state.copyWith(projectFilePath: result.value!.path, clearMoveError: true));
+    emitter(state.copyWithMoved(projectFilePath: result.value!.path));
   }
 
-  /// Restarts the sync session [_onMoveRequested] stopped before the move, now against the moved
-  /// project's own (freshly opened) database — mirrors `OcptWorkspaceBloc._startSyncSessionIfPaired`
-  /// step for step, reading the very same `sync_pairings` row and starting the very same way, since
-  /// the move touched nothing about the pairing itself, only which file and connection it lives on.
+  /// Restart the sync session [_onMoveRequested] stopped before the move, now against the moved
+  /// project's own (freshly opened) database — mirrors
+  /// `OcptWorkspaceBloc._startSyncSessionIfPaired` step for step, reading the very same
+  /// `sync_pairings` row and starting the very same way, since the move touched nothing about the
+  /// pairing itself, only which file and connection it lives on.
   ///
   /// A project counts as paired only when both halves of its pairing are still there, exactly as
-  /// `OcptWorkspaceBloc._startSyncSessionIfPaired`'s own doc comment explains; any failure along the
-  /// way is swallowed rather than left to escape as an unhandled error, for the very same reason.
+  /// `OcptWorkspaceBloc._startSyncSessionIfPaired`'s own doc comment explains; any failure along
+  /// the way is swallowed rather than left to escape as an unhandled error, for the very same
+  /// reason.
   Future<void> _restartSyncSessionIfPaired() async {
     final syncManager = _syncManager;
     final propertiesManager = _propertiesManager;
@@ -397,58 +457,67 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     try {
       final database = project.fileDatabase;
       final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
-      if (row == null) {
-        return;
-      }
+      if (row != null) {
+        final pairing = await syncManager.pairingService.loadPairing(
+          database: database,
+          projectId: row.projectId,
+        );
 
-      final pairing = await syncManager.pairingService.loadPairing(
-        database: database,
-        projectId: row.projectId,
-      );
-      if (pairing == null) {
-        return;
+        if (pairing != null) {
+          final deviceId = await propertiesManager.loadOrCreateDeviceId();
+          await syncManager.startSyncSession(
+            projectId: row.projectId,
+            database: database,
+            deviceId: deviceId,
+            relayId: OcptSyncManager.relayIdFor(pairing),
+            storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
+          );
+        }
       }
-
-      final deviceId = await propertiesManager.loadOrCreateDeviceId();
-      await syncManager.startSyncSession(
-        projectId: row.projectId,
-        database: database,
-        deviceId: deviceId,
-        relayId: OcptSyncManager.relayIdFor(pairing),
-        storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
+    } catch (error, stackTrace) {
+      _logger.w(
+        "Could not restart the sync session after moving the project: ${error.runtimeType}",
+        null,
+        stackTrace,
       );
-    } catch (error) {
-      appLogger().w("Could not restart the sync session after moving the project: $error");
     }
   }
 
-  /// Clears the transient move error currently shown, if any.
+  /// Clear the transient move error currently shown, if any.
   Future<void> _onMoveErrorDismissed(
     OcptProjectSettingsMoveErrorDismissedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    emitter(state.copyWith(clearMoveError: true));
+    emitter(state.copyWithMoveErrorDismissed());
   }
 
-  /// Writes the newly picked currency to the project, then reflects it in the state.
+  /// Write the newly picked currency to the project, then reflects it in the state.
   Future<void> _onCurrencyChanged(
     OcptProjectSettingsCurrencyChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectCurrencyCode(event.currencyCode);
-    emitter(state.copyWith(currencyCode: event.currencyCode, hasChanged: true));
+    final saved = await _projectsManager.saveCurrentProjectCurrencyCode(event.currencyCode);
+    if (saved.isError) {
+      return;
+    }
+
+    emitter(state.copyWithCurrencyCode(currencyCode: event.currencyCode));
   }
 
-  /// Writes the newly picked page format to the project, then reflects it in the state.
+  /// Write the newly picked page format to the project, then reflects it in the state.
   Future<void> _onPageFormatChanged(
     OcptProjectSettingsPageFormatChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectPageFormat(event.pageFormat);
-    emitter(state.copyWith(pageFormat: event.pageFormat, hasChanged: true));
+    final saved = await _projectsManager.saveCurrentProjectPageFormat(event.pageFormat);
+    if (saved.isError) {
+      return;
+    }
+
+    emitter(state.copyWithPageFormat(pageFormat: event.pageFormat));
   }
 
-  /// Writes the newly committed minimum rest to the project, then reflects it in the state.
+  /// Write the newly committed minimum rest to the project, then reflects it in the state.
   ///
   /// `hasChanged` is set here exactly as every other field of this page sets it: the schedule
   /// mode's own re-read of this figure (`OcptScheduleProjectSettingsChangedEvent`, fired when this
@@ -457,68 +526,62 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     OcptProjectSettingsMinimumRestMinutesChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectMinimumRestMinutes(event.minutes);
-    emitter(
-      state.copyWith(
-        minimumRestMinutes: event.minutes,
-        clearMinimumRestMinutes: event.minutes == null,
-        hasChanged: true,
-      ),
-    );
+    final saved = await _projectsManager.saveCurrentProjectMinimumRestMinutes(event.minutes);
+    if (saved.isError) {
+      return;
+    }
+
+    emitter(state.copyWithMinimumRestMinutes(minimumRestMinutes: event.minutes));
   }
 
-  /// Writes the newly committed default VAT rate to the project, then reflects it in the state.
+  /// Write the newly committed default VAT rate to the project, then reflects it in the state.
   ///
   /// `event.basisPoints` is written whichever it is, including null and including `0` — the same
-  /// reasoning [_onMinimumRestMinutesChanged] already follows for its own field, `0` being as real a
-  /// figure here as any other (`OcptProjectSettingsBudgetSection`'s own doc comment).
+  /// reasoning [_onMinimumRestMinutesChanged] already follows for its own field, `0` being as real
+  /// a figure here as any other (`OcptProjectSettingsBudgetSection`'s own doc comment).
   Future<void> _onDefaultVatRateBasisPointsChanged(
     OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(event.basisPoints);
-    emitter(
-      state.copyWith(
-        defaultVatRateBasisPoints: event.basisPoints,
-        clearDefaultVatRateBasisPoints: event.basisPoints == null,
-        hasChanged: true,
-      ),
+    final saved = await _projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(
+      event.basisPoints,
     );
+    if (saved.isError) {
+      return;
+    }
+
+    emitter(state.copyWithDefaultVatRate(defaultVatRateBasisPoints: event.basisPoints));
   }
 
-  /// Writes the newly committed meal price to the project, then reflects it in the state.
+  /// Write the newly committed meal price to the project, then reflects it in the state.
   Future<void> _onMealPriceCentsChanged(
     OcptProjectSettingsMealPriceCentsChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectMealPriceCents(event.cents);
-    emitter(
-      state.copyWith(
-        mealPriceCents: event.cents,
-        clearMealPriceCents: event.cents == null,
-        hasChanged: true,
-      ),
-    );
+    final saved = await _projectsManager.saveCurrentProjectMealPriceCents(event.cents);
+    if (saved.isError) {
+      return;
+    }
+
+    emitter(state.copyWithMealPrice(mealPriceCents: event.cents));
   }
 
-  /// Writes the newly committed buffet price to the project, then reflects it in the state —
+  /// Write the newly committed buffet price to the project, then reflects it in the state —
   /// [_onMealPriceCentsChanged]'s sibling. Still written through
   /// `saveCurrentProjectSnackPriceCents`, the schema column's own name.
   Future<void> _onBuffetPriceCentsChanged(
     OcptProjectSettingsBuffetPriceCentsChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectSnackPriceCents(event.cents);
-    emitter(
-      state.copyWith(
-        buffetPriceCents: event.cents,
-        clearBuffetPriceCents: event.cents == null,
-        hasChanged: true,
-      ),
-    );
+    final saved = await _projectsManager.saveCurrentProjectSnackPriceCents(event.cents);
+    if (saved.isError) {
+      return;
+    }
+
+    emitter(state.copyWithBuffetPrice(buffetPriceCents: event.cents));
   }
 
-  /// Writes the newly picked screenplay language to the project, then reflects it in the state.
+  /// Write the newly picked screenplay language to the project, then reflects it in the state.
   ///
   /// `event.screenplayLanguage` is written whichever it is, "None" (null) included: it is what
   /// makes the checker's off switch for this screenplay actually reach the project file, the same
@@ -527,18 +590,18 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     OcptProjectSettingsScreenplayLanguageChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.saveCurrentProjectScreenplayLanguage(event.screenplayLanguage);
-    emitter(
-      state.copyWith(
-        screenplayLanguage: event.screenplayLanguage,
-        clearScreenplayLanguage: event.screenplayLanguage == null,
-        hasChanged: true,
-      ),
+    final saved = await _projectsManager.saveCurrentProjectScreenplayLanguage(
+      event.screenplayLanguage,
     );
+    if (saved.isError) {
+      return;
+    }
+
+    emitter(state.copyWithScreenplayLanguage(screenplayLanguage: event.screenplayLanguage));
   }
 
-  /// Applies `OcptProjectDictionaryDialog`'s reported diff to the project's dictionary, then
-  /// re-reads the live word list so the section's count reflects what the database now holds.
+  /// Apply `OcptProjectDictionaryDialog`'s reported diff to the project's dictionary, then re-read
+  /// the live word list so the section's count reflects what the database now holds.
   ///
   /// Every removed word is unlearned **before** any added word is learned — the ordering
   /// `OcptProjectDictionaryDialog._close`'s own doc comment relies on: it is what turns a
@@ -557,20 +620,36 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     }
 
     for (final word in event.removedWords) {
-      await _projectsManager.projectDictionaryService.unlearnWord(database: _database, word: word);
+      final unlearned = await _projectsManager.projectDictionaryService.unlearnWord(
+        database: _database,
+        word: word,
+      );
+      if (unlearned.isError) {
+        return;
+      }
     }
     for (final word in event.addedWords) {
-      await _projectsManager.projectDictionaryService.learnWord(database: _database, word: word);
+      final learned = await _projectsManager.projectDictionaryService.learnWord(
+        database: _database,
+        word: word,
+      );
+      if (learned.isError) {
+        return;
+      }
     }
 
     final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
       database: _database,
     );
-    emitter(state.copyWith(dictionaryWords: dictionaryWords, hasChanged: true));
+    if (dictionaryWords.isError) {
+      return;
+    }
+
+    emitter(state.copyWithDictionaryWords(dictionaryWords: dictionaryWords.value!));
   }
 
-  /// Appends a new episode, numbered "last + 1" by `OcptScreenplayService.createEpisode` itself,
-  /// then re-reads the project's episodes so the card shows what the database now holds.
+  /// Append a new episode, numbered "last + 1" by `OcptScreenplayService.createEpisode` itself,
+  /// then re-read the project's episodes so the card shows what the database now holds.
   ///
   /// The home card's episode badge is told about it right away
   /// ([OcptProjectsManager.recordCurrentProjectEpisodeCount]) rather than left to the project's
@@ -580,59 +659,95 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     OcptProjectSettingsEpisodeAddedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    final id = await _projectsManager.screenplayService.createEpisode(database: _database);
+    final created = await _projectsManager.screenplayService.createEpisode(database: _database);
+    if (created.isError) {
+      return;
+    }
+
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    await _projectsManager.recordCurrentProjectEpisodeCount();
-    emitter(state.copyWith(episodes: episodes, hasChanged: id != null ? true : null));
+    if (episodes.isError) {
+      return;
+    }
+
+    final recorded = await _projectsManager.recordCurrentProjectEpisodeCount();
+    if (recorded.isError) {
+      return;
+    }
+
+    emitter(state.copyWithEpisodeAdded(episodes: episodes.value!, isAdded: created.value != null));
   }
 
-  /// Writes the newly committed title of `event.screenplayId`, then re-reads the project's
+  /// Write the newly committed title of `event.screenplayId`, then re-read the project's
   /// episodes.
   Future<void> _onEpisodeTitleChanged(
     OcptProjectSettingsEpisodeTitleChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.screenplayService.updateEpisode(
+    final updated = await _projectsManager.screenplayService.updateEpisode(
       database: _database,
       screenplayId: event.screenplayId,
       title: Value(event.title),
     );
+    if (updated.isError) {
+      return;
+    }
+
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    emitter(state.copyWith(episodes: episodes, hasChanged: true));
+    if (episodes.isError) {
+      return;
+    }
+
+    emitter(state.copyWithEpisodesChanged(episodes: episodes.value!));
   }
 
-  /// Writes the newly committed printed number of `event.screenplayId`, then re-reads the
+  /// Write the newly committed printed number of `event.screenplayId`, then re-read the
   /// project's episodes.
   Future<void> _onEpisodeNumberChanged(
     OcptProjectSettingsEpisodeNumberChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.screenplayService.updateEpisode(
+    final updated = await _projectsManager.screenplayService.updateEpisode(
       database: _database,
       screenplayId: event.screenplayId,
       number: Value(event.number),
     );
+    if (updated.isError) {
+      return;
+    }
+
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    emitter(state.copyWith(episodes: episodes, hasChanged: true));
+    if (episodes.isError) {
+      return;
+    }
+
+    emitter(state.copyWithEpisodesChanged(episodes: episodes.value!));
   }
 
-  /// Moves `event.screenplayId` to [OcptProjectSettingsEpisodeMovedEvent.newPosition], then
-  /// re-reads the project's episodes in their freshly ordered `sortKey` order.
+  /// Move `event.screenplayId` to [OcptProjectSettingsEpisodeMovedEvent.newPosition], then re-read
+  /// the project's episodes in their freshly ordered `sortKey` order.
   Future<void> _onEpisodeMoved(
     OcptProjectSettingsEpisodeMovedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.screenplayService.reorderEpisode(
+    final moved = await _projectsManager.screenplayService.reorderEpisode(
       database: _database,
       screenplayId: event.screenplayId,
       newPosition: event.newPosition,
     );
+    if (moved.isError) {
+      return;
+    }
+
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    emitter(state.copyWith(episodes: episodes, hasChanged: true));
+    if (episodes.isError) {
+      return;
+    }
+
+    emitter(state.copyWithEpisodesChanged(episodes: episodes.value!));
   }
 
-  /// Deletes `event.screenplayId` and its cascade, once the page's own `OcptConfirmDialog`
-  /// confirmed it, then re-reads the project's remaining episodes.
+  /// Delete `event.screenplayId` and its cascade, once the page's own `OcptConfirmDialog` confirmed
+  /// it, then re-read the project's remaining episodes.
   ///
   /// `hasChanged` is only set when the deletion actually happened: the card already withholds the
   /// delete affordance on a project's last live episode, but `OcptScreenplayService.deleteEpisode`
@@ -648,62 +763,103 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
       database: _database,
       screenplayId: event.screenplayId,
     );
+    if (deleted.isError) {
+      return;
+    }
+
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    await _projectsManager.recordCurrentProjectEpisodeCount();
-    emitter(state.copyWith(episodes: episodes, hasChanged: deleted ? true : null));
+    if (episodes.isError) {
+      return;
+    }
+
+    final recorded = await _projectsManager.recordCurrentProjectEpisodeCount();
+    if (recorded.isError) {
+      return;
+    }
+
+    emitter(state.copyWithEpisodeDeleted(episodes: episodes.value!, isDeleted: deleted.value!));
   }
 
-  /// Appends a new, blank mileage rate, then re-reads the project's rates so the card shows what
+  /// Append a new, blank mileage rate, then re-read the project's rates so the card shows what
   /// the database now holds.
   Future<void> _onMileageRateAdded(
     OcptProjectSettingsMileageRateAddedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    final id = await _projectsManager.budgetFinancingService.createMileageRate(
+    final created = await _projectsManager.budgetFinancingService.createMileageRate(
       database: _database,
       label: "",
     );
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+    if (created.isError) {
+      return;
+    }
+
+    final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: id != null ? true : null));
+    if (mileageRatesRead.isError) {
+      return;
+    }
+
+    emitter(
+      state.copyWithMileageRateAdded(
+        mileageRates: mileageRatesRead.value!,
+        isAdded: created.value != null,
+      ),
+    );
   }
 
-  /// Writes the newly committed label of mileage rate `event.rateId`, then re-reads the project's
+  /// Write the newly committed label of mileage rate `event.rateId`, then re-read the project's
   /// rates.
   Future<void> _onMileageRateLabelChanged(
     OcptProjectSettingsMileageRateLabelChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.budgetFinancingService.updateMileageRate(
+    final updated = await _projectsManager.budgetFinancingService.updateMileageRate(
       database: _database,
       rateId: event.rateId,
       label: Value(event.label),
     );
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+    if (updated.isError) {
+      return;
+    }
+
+    final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
+    if (mileageRatesRead.isError) {
+      return;
+    }
+
+    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRatesRead.value!));
   }
 
-  /// Writes the newly committed per-kilometre rate of mileage rate `event.rateId`, then re-reads
+  /// Write the newly committed per-kilometre rate of mileage rate `event.rateId`, then re-read
   /// the project's rates.
   Future<void> _onMileageRateAmountChanged(
     OcptProjectSettingsMileageRateAmountChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.budgetFinancingService.updateMileageRate(
+    final updated = await _projectsManager.budgetFinancingService.updateMileageRate(
       database: _database,
       rateId: event.rateId,
       ratePerKmMilliCents: Value(event.ratePerKmMilliCents),
     );
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+    if (updated.isError) {
+      return;
+    }
+
+    final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
+    if (mileageRatesRead.isError) {
+      return;
+    }
+
+    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRatesRead.value!));
   }
 
-  /// Deletes `event.rateId`, once the page's own `OcptConfirmDialog` confirmed it, then re-reads
+  /// Delete `event.rateId`, once the page's own `OcptConfirmDialog` confirmed it, then re-read
   /// the project's remaining rates.
   ///
   /// `OcptBudgetFinancingService.deleteMileageRate` tombstones the row rather than erasing it
@@ -713,13 +869,21 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     OcptProjectSettingsMileageRateDeletionConfirmedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.budgetFinancingService.deleteMileageRate(
+    final deleted = await _projectsManager.budgetFinancingService.deleteMileageRate(
       database: _database,
       rateId: event.rateId,
     );
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+    if (deleted.isError) {
+      return;
+    }
+
+    final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
+    if (mileageRatesRead.isError) {
+      return;
+    }
+
+    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRatesRead.value!));
   }
 }

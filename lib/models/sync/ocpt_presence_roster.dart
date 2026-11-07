@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 
 /// Every replica `OcptPresenceService` currently knows to have the project open — this replica
 /// itself, first, then every peer whose last heartbeat has not yet aged past the service's own
-/// TTL — what a presence indicator (Phase C) renders as its avatar cluster.
+/// TTL — what the presence indicator renders as its avatar cluster.
 ///
 /// This is a report only, exactly as `OcptSyncStatus` is for the sync session: nothing here
 /// writes anything, and `OcptPresenceService` is what actually decides when a peer joins or ages
@@ -23,12 +23,15 @@ class OcptPresenceRoster extends Equatable {
   /// Class constructor
   const OcptPresenceRoster({required this.participants, required this.selfDeviceId});
 
-  /// Whether [frame] is this replica's own, rather than a peer's.
+  /// Tell whether [frame] is this replica's own, rather than a peer's.
   bool isSelf(OcptPresenceFrame frame) => frame.deviceId == selfDeviceId;
 
+  /// Describe this [OcptPresenceRoster] for debugging and logging.
+  @override
+  String toString() =>
+      'OcptPresenceRoster(participants: $participants, selfDeviceId: $selfDeviceId)';
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [participants, selfDeviceId];
-
-  @override
-  String toString() => 'OcptPresenceRoster(participants: $participants, selfDeviceId: $selfDeviceId)';
 }

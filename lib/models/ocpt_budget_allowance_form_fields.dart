@@ -48,13 +48,13 @@ class OcptBudgetAllowanceFormFields extends Equatable {
     required this.notes,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetAllowanceFormFields(personId: $personId, kind: $kind, label: $label, "
       "quantityMilli: $quantityMilli, unitAmountMilliCents: $unitAmountMilliCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     personId,

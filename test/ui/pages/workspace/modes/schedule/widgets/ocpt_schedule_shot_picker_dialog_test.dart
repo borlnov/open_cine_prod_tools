@@ -26,6 +26,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -93,6 +94,7 @@ OcptSceneShotSequence _buildSequence({
   shots: shots,
 );
 
+/// Run the tests of [OcptScheduleShotPickerDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 
@@ -145,7 +147,11 @@ void main() {
           OcptShotListSnapshot.build(
             screenplayId: "screenplay-1",
             sequences: [
-              _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shotOne, shotTwo]),
+              _buildSequence(
+                sceneId: "scene-1",
+                displaySceneNumber: "4A",
+                shots: [shotOne, shotTwo],
+              ),
               OcptOrphanShotSequence(shots: [orphanShot]),
             ],
           ),
@@ -216,7 +222,9 @@ void main() {
       shotListSnapshots: [
         OcptShotListSnapshot.build(
           screenplayId: "screenplay-1",
-          sequences: [_buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot])],
+          sequences: [
+            _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot]),
+          ],
         ),
       ],
     );
@@ -266,7 +274,9 @@ void main() {
       shotListSnapshots: [
         OcptShotListSnapshot.build(
           screenplayId: "screenplay-1",
-          sequences: [_buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot])],
+          sequences: [
+            _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot]),
+          ],
         ),
       ],
     );
@@ -288,7 +298,9 @@ void main() {
       shotListSnapshots: [
         OcptShotListSnapshot.build(
           screenplayId: "screenplay-1",
-          sequences: [_buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot])],
+          sequences: [
+            _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shot]),
+          ],
         ),
       ],
       episodes: const [OcptEpisode(id: "screenplay-1", number: 1, title: "")],

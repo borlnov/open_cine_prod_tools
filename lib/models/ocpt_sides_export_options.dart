@@ -4,8 +4,8 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 
 /// The options a one-off sides export runs with: the physical page [format], its [margins], the one
 /// day printed, whether scene numbers are printed, and which [presentation] the booklet is laid out
@@ -54,13 +54,13 @@ class OcptSidesExportOptions extends Equatable {
     required this.presentation,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptSidesExportOptions(format: $format, margins: $margins, dayId: $dayId, "
       "includeSceneNumbers: $includeSceneNumbers, presentation: $presentation)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, dayId, includeSceneNumbers, presentation];
 }

@@ -7,7 +7,7 @@ import 'dart:async';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_logging_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -21,6 +21,7 @@ class OcptDiagnosticsPage extends StatelessWidget {
   /// Class constructor
   const OcptDiagnosticsPage({super.key});
 
+  /// Build the diagnostics page as a [Scaffold].
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -48,20 +49,7 @@ class _OcptDiagnosticsLogFileRow extends StatelessWidget {
   /// Class constructor
   const _OcptDiagnosticsLogFileRow();
 
-  /// The file logger's own current log-file path, or null when file logging is disabled, its setup
-  /// failed, or no `OcptFileLoggingManager` can be resolved at all.
-  String? _resolveLogFilePath() {
-    if (AbsGlobalManager.instance == null) {
-      return null;
-    }
-
-    final managers = globalGetIt();
-
-    return managers.isRegistered<OcptFileLoggingManager>()
-        ? managers.get<OcptFileLoggingManager>().logFilePath
-        : null;
-  }
-
+  /// Build the diagnostics log file row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -95,7 +83,7 @@ class _OcptDiagnosticsLogFileRow extends StatelessWidget {
                   SelectableText(
                     logFilePath,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      fontFamily: ocptMonospaceFontFamily,
+                      fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                     ),
                   ),
               ],
@@ -105,11 +93,25 @@ class _OcptDiagnosticsLogFileRow extends StatelessWidget {
             IconButton(
               tooltip: tr.diagnosticsLogFileCopyPath,
               icon: const Icon(Icons.copy_outlined),
-              onPressed: () =>
-                  unawaited(Clipboard.setData(ClipboardData(text: logFilePath))),
+              onPressed: () => unawaited(Clipboard.setData(ClipboardData(text: logFilePath))),
             ),
         ],
       ),
     );
+  }
+
+  /// Get the file logger's own current log-file path, or null when file logging is disabled, its
+  /// setup
+  /// failed, or no `OcptFileLoggingManager` can be resolved at all.
+  String? _resolveLogFilePath() {
+    if (AbsGlobalManager.instance == null) {
+      return null;
+    }
+
+    final managers = globalGetIt();
+
+    return managers.isRegistered<OcptFileLoggingManager>()
+        ? managers.get<OcptFileLoggingManager>().logFilePath
+        : null;
   }
 }

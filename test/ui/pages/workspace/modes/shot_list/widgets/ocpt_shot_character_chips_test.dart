@@ -19,7 +19,9 @@ Widget _wrapInApp(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+  home: Scaffold(
+    body: Align(alignment: Alignment.topLeft, child: child),
+  ),
 );
 
 /// A minimal live role of [id] and [name], for a test that only cares about the chips.
@@ -35,6 +37,7 @@ OcptRole _role(String id, String name) => OcptRole(
   episodeIds: const [],
 );
 
+/// Run the tests of [OcptShotCharacterChips].
 void main() {
   testWidgets("lists every role of the cast, selected exactly when attached", (tester) async {
     await tester.pumpWidget(
@@ -164,9 +167,7 @@ void main() {
     expect(find.byType(TextField), findsNothing);
   });
 
-  testWidgets("submitting an empty name reports nothing and simply collapses back", (
-    tester,
-  ) async {
+  testWidgets("submitting an empty name reports nothing and simply collapses back", (tester) async {
     final added = <String>[];
 
     await tester.pumpWidget(

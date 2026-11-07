@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The maximum width of the ① Configure form, matching the mock-up's own ~560px column.
@@ -32,6 +32,7 @@ class OcptSharingConfigureView extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptSharingConfigureViewState] holding the state of the sharing configure view.
   @override
   State<OcptSharingConfigureView> createState() => _OcptSharingConfigureViewState();
 }
@@ -47,17 +48,10 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
   /// Whether the enrolment secret is currently shown in the clear.
   bool _isSecretVisible = false;
 
-  /// The relay address's own validation message, or null while it hasn't been submitted invalid
-  /// yet.
-  String? _relayAddressError;
+  /// Whether the relay address was last submitted invalid, and has not been edited since.
+  bool _isRelayAddressInvalid = false;
 
-  @override
-  void dispose() {
-    _relayAddressController.dispose();
-    _enrolmentSecretController.dispose();
-    super.dispose();
-  }
-
+  /// Build the sharing configure view as a [Center].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -86,13 +80,15 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
                         decoration: InputDecoration(
                           labelText: tr.sharingRelayAddressLabel,
                           hintText: tr.sharingRelayAddressHint,
-                          errorText: _relayAddressError,
+                          errorText: _isRelayAddressInvalid
+                              ? tr.sharingRelayAddressInvalidMessage
+                              : null,
                         ),
                         keyboardType: TextInputType.url,
                         enabled: !widget.isPairing,
                         onChanged: (_) {
-                          if (_relayAddressError != null) {
-                            setState(() => _relayAddressError = null);
+                          if (_isRelayAddressInvalid) {
+                            setState(() => _isRelayAddressInvalid = false);
                           }
                         },
                       ),
@@ -105,7 +101,7 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
                           labelText: tr.sharingEnrolmentSecretLabel,
                           suffixIcon: IconButton(
                             icon: Icon(_isSecretVisible ? Icons.visibility_off : Icons.visibility),
-                            mouseCursor: ocptClickableCursor,
+                            mouseCursor: ocpt_theme.ocptClickableCursor,
                             onPressed: () => setState(() => _isSecretVisible = !_isSecretVisible),
                           ),
                         ),
@@ -118,8 +114,10 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha),
-                  borderRadius: BorderRadius.circular(ocptRadiusMedium),
+                  color: theme.colorScheme.primary.withValues(
+                    alpha: ocpt_theme.ocptSelectedStateAlpha,
+                  ),
+                  borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,17 +153,26 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
     );
   }
 
-  /// Validates the relay address, showing [_relayAddressError] and dispatching nothing when it
-  /// isn't a well-formed absolute URI, otherwise calling [OcptSharingConfigureView.onPairRequested].
+  /// Validate the relay address, showing the invalid-address message and dispatching nothing when
+  /// it isn't a well-formed absolute URI, otherwise calling
+  /// [OcptSharingConfigureView.onPairRequested].
   void _onPairPressed() {
     final text = _relayAddressController.text.trim();
     final uri = Uri.tryParse(text);
     if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-      setState(() => _relayAddressError = Tr.of(context).sharingRelayAddressInvalidMessage);
+      setState(() => _isRelayAddressInvalid = true);
       return;
     }
 
-    setState(() => _relayAddressError = null);
+    setState(() => _isRelayAddressInvalid = false);
     widget.onPairRequested(uri, _enrolmentSecretController.text);
+  }
+
+  /// Dispose [_relayAddressController] and [_enrolmentSecretController].
+  @override
+  void dispose() {
+    _relayAddressController.dispose();
+    _enrolmentSecretController.dispose();
+    super.dispose();
   }
 }

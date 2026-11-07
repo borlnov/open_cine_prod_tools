@@ -9,7 +9,9 @@ enum OcptBreakdownRightDockTab {
   /// the current scene's own breakdown sheet (`OcptBreakdownSceneInspector`).
   inspector,
 
+  /// {@template open_cine_prod_tools.versionsDockTab}
   /// The project's named versions: the production history the user creates, browses read-only and
   /// deletes.
+  /// {@endtemplate}
   versions,
 }

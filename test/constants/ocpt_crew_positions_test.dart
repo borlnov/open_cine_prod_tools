@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The twenty ids the catalogue shipped with before it grew to cover the *Convention collective
 /// nationale de la production cinématographique* — every one of them must still resolve, since an
@@ -48,6 +48,7 @@ Widget _wrapInApp(WidgetBuilder builder) => MaterialApp(
   home: Scaffold(body: Builder(builder: builder)),
 );
 
+/// Run the tests of the crew positions.
 void main() {
   test("every id is unique", () {
     final ids = ocptCrewPositions.map((position) => position.id).toList();
@@ -77,7 +78,10 @@ void main() {
       }
     }
 
-    final departmentOrder = ocptCrewPositions.map((position) => position.department).toSet().toList();
+    final departmentOrder = ocptCrewPositions
+        .map((position) => position.department)
+        .toSet()
+        .toList();
     final expectedOrder = [
       for (final department in OcptCrewDepartment.values)
         if (departmentOrder.contains(department)) department,
@@ -85,13 +89,19 @@ void main() {
     expect(departmentOrder, expectedOrder);
   });
 
-  testWidgets("every id resolves through ocptCrewPositionLabel to something other than itself", (tester) async {
+  testWidgets("every id resolves through ocptCrewPositionLabel to something other than itself", (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _wrapInApp((context) {
         final tr = Tr.of(context);
         for (final position in ocptCrewPositions) {
           final label = ocptCrewPositionLabel(tr, position.id);
-          expect(label, isNot(position.id), reason: "${position.id} falls through the switch unresolved");
+          expect(
+            label,
+            isNot(position.id),
+            reason: "${position.id} falls through the switch unresolved",
+          );
           expect(label, isNotEmpty);
         }
         return const SizedBox();
@@ -99,7 +109,9 @@ void main() {
     );
   });
 
-  testWidgets("every OcptCrewDepartment value resolves through ocptCrewDepartmentLabel", (tester) async {
+  testWidgets("every OcptCrewDepartment value resolves through ocptCrewDepartmentLabel", (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _wrapInApp((context) {
         final tr = Tr.of(context);

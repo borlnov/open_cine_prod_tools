@@ -4,13 +4,17 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -27,50 +31,70 @@ OcptChangesetEnvelope _envelope(String suffix) => OcptChangesetEnvelope(
 /// observe whether [sink] was closed through [closed] — everything else this transport never
 /// touches (protocol negotiation, close codes) is stubbed to a fixed value.
 class _FakeWebSocketChannel with StreamChannelMixin<dynamic> implements WebSocketChannel {
-  _FakeWebSocketChannel(this.incoming);
-
+  /// The controller the test pushes incoming frames into.
   final StreamController<dynamic> incoming;
+
+  /// The frames sent through the sink so far.
   final List<dynamic> sent = [];
+
+  /// Whether the sink was closed.
   bool closed = false;
 
+  /// Emit the frames the test pushes.
   @override
   Stream<dynamic> get stream => incoming.stream;
 
+  /// Get a sink that records into this channel.
   @override
   WebSocketSink get sink => _FakeWebSocketSink(this);
 
+  /// Answer that no sub-protocol was negotiated.
   @override
   String? get protocol => null;
 
+  /// Answer that the channel has no close code.
   @override
   int? get closeCode => null;
 
+  /// Answer that the channel has no close reason.
   @override
   String? get closeReason => null;
 
+  /// Answer that the channel is ready at once.
   @override
   Future<void> get ready => Future<void>.value();
+
+  /// Class constructor
+  _FakeWebSocketChannel(this.incoming);
 }
 
+/// A sink that records what is sent into its channel.
 class _FakeWebSocketSink implements WebSocketSink {
-  _FakeWebSocketSink(this._channel);
-
+  /// The channel the sink records into.
   final _FakeWebSocketChannel _channel;
 
+  /// Answer that the sink is done at once.
+  @override
+  Future get done => Future<void>.value();
+
+  /// Class constructor
+  _FakeWebSocketSink(this._channel);
+
+  /// Record the event as sent.
   @override
   // Matches StreamSink's own untyped signature, which this fake overrides.
   // ignore: avoid_annotating_with_dynamic
   void add(dynamic event) => _channel.sent.add(event);
 
+  /// Ignore the error.
   @override
   void addError(Object error, [StackTrace? stackTrace]) {}
 
+  /// Ignore the stream.
   @override
   Future addStream(Stream stream) async {}
 
-  @override
-  Future get done => Future<void>.value();
-
+  /// Mark the channel as closed and close the incoming stream.
   @override
   Future close([int? closeCode, String? closeReason]) async {
     _channel.closed = true;
@@ -78,6 +102,7 @@ class _FakeWebSocketSink implements WebSocketSink {
   }
 }
 
+/// Run the tests of [OcptRelayRemoteStorage].
 void main() {
   final relayBaseUri = Uri.parse('https://relay.example.org');
   const projectId = 'project-1';
@@ -88,6 +113,7 @@ void main() {
       final envelope = _envelope('a');
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -98,9 +124,10 @@ void main() {
         }),
       );
 
-      final sequence = await storage.append(envelope);
+      final result = await storage.append(envelope);
 
-      expect(sequence, const OcptSequenceNumber(7));
+      expect(result.status, OcptRemoteStorageStatus.ok);
+      expect(result.value, const OcptSequenceNumber(7));
       expect(captured.method, 'POST');
       expect(captured.url.path, '/projects/$projectId/changesets');
       expect(captured.headers['Authorization'], 'Bearer $token');
@@ -111,6 +138,7 @@ void main() {
     test('includes the enrolment header when the transport has a secret', () async {
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -130,6 +158,7 @@ void main() {
     test('omits the enrolment header when the transport has none', () async {
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -148,10 +177,17 @@ void main() {
 
   group('readSince', () {
     test('sends since and parses the list oldest-first', () async {
-      final first = OcptStoredChangeset(sequenceNumber: const OcptSequenceNumber(4), envelope: _envelope('a'));
-      final second = OcptStoredChangeset(sequenceNumber: const OcptSequenceNumber(5), envelope: _envelope('b'));
+      final first = OcptStoredChangeset(
+        sequenceNumber: const OcptSequenceNumber(4),
+        envelope: _envelope('a'),
+      );
+      final second = OcptStoredChangeset(
+        sequenceNumber: const OcptSequenceNumber(5),
+        envelope: _envelope('b'),
+      );
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -162,7 +198,7 @@ void main() {
         }),
       );
 
-      final stored = await storage.readSince(const OcptSequenceNumber(3));
+      final stored = (await storage.readSince(const OcptSequenceNumber(3))).value!;
 
       expect(captured.method, 'GET');
       expect(captured.url.path, '/projects/$projectId/changesets');
@@ -183,6 +219,7 @@ void main() {
       final bytes = Uint8List.fromList([1, 2, 3, 4]);
       late http.Request captured;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -213,6 +250,7 @@ void main() {
       );
       final bytes = Uint8List.fromList([1, 2, 3, 4]);
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -227,51 +265,111 @@ void main() {
         }),
       );
 
-      final result = await storage.fetchLatestSnapshot();
+      final result = (await storage.fetchLatestSnapshot()).value;
 
       expect(result, isNotNull);
       expect(result!.$1, descriptor);
       expect(result.$2, bytes);
     });
 
-    test('maps a 404 to null', () async {
+    test('maps a 404 to a successful answer with no snapshot', () async {
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
         httpClient: MockClient(
           (request) async => http.Response(
-            jsonEncode(const OcptSyncError(code: OcptSyncErrorCode.unknownProject, message: 'none yet').toJson()),
+            jsonEncode(
+              const OcptSyncError(
+                code: OcptSyncErrorCode.unknownProject,
+                message: 'none yet',
+              ).toJson(),
+            ),
             404,
           ),
         ),
       );
 
-      expect(await storage.fetchLatestSnapshot(), isNull);
+      final result = await storage.fetchLatestSnapshot();
+      expect(result.status, OcptRemoteStorageStatus.ok);
+      expect(result.value, isNull);
     });
   });
 
   group('error surfacing', () {
-    test('a non-2xx response throws the decoded OcptSyncError', () async {
+    test('a non-2xx response is rejected with the decoded OcptSyncError', () async {
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
         httpClient: MockClient(
           (request) async => http.Response(
-            jsonEncode(const OcptSyncError(code: OcptSyncErrorCode.badToken, message: 'bad token').toJson()),
+            jsonEncode(
+              const OcptSyncError(code: OcptSyncErrorCode.badToken, message: 'bad token').toJson(),
+            ),
             401,
           ),
         ),
       );
 
-      await expectLater(
-        storage.append(_envelope('a')),
-        throwsA(
-          isA<OcptSyncError>()
-              .having((error) => error.code, 'code', OcptSyncErrorCode.badToken)
-              .having((error) => error.message, 'message', 'bad token'),
+      final result = await storage.append(_envelope('a'));
+
+      expect(result.status, OcptRemoteStorageStatus.rejected);
+      expect(result.value, isNull);
+      expect(
+        result.extraInfo,
+        isA<OcptSyncError>()
+            .having((error) => error.code, 'code', OcptSyncErrorCode.badToken)
+            .having((error) => error.message, 'message', 'bad token'),
+      );
+    });
+
+    test('a request that cannot be made is unreachable, carrying the caught error', () async {
+      final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        httpClient: MockClient((request) async => throw http.ClientException('connection refused')),
+      );
+
+      final result = await storage.readSince(OcptSequenceNumber.zero);
+
+      expect(result.status, OcptRemoteStorageStatus.unreachable);
+      expect(result.value, isNull);
+      expect(
+        result.extraInfo,
+        isA<OcptSyncTransportFailure>().having(
+          (failure) => failure.error,
+          'error',
+          isA<http.ClientException>(),
         ),
+      );
+    });
+
+    test('an answer that is not the expected JSON is unreachable', () async {
+      final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        httpClient: MockClient((request) async => http.Response('<html>oops</html>', 500)),
+      );
+
+      expect((await storage.append(_envelope('a'))).status, OcptRemoteStorageStatus.unreachable);
+      expect(
+        (await storage.uploadSnapshot(
+          const OcptSnapshotDescriptor(
+            snapshotId: 'snapshot-1',
+            sequenceUpTo: OcptSequenceNumber(1),
+            byteLength: 1,
+            contentDigest: 'digest',
+          ),
+          Uint8List.fromList([1]),
+        )).status,
+        OcptRemoteStorageStatus.unreachable,
       );
     });
   });
@@ -280,6 +378,7 @@ void main() {
     test('emits once per incoming socket message', () async {
       final incoming = StreamController<dynamic>.broadcast();
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -300,56 +399,62 @@ void main() {
       expect(events, hasLength(1));
     });
 
-    test('reconnects after a socket drop instead of ending the stream', () async {
-      final firstIncoming = StreamController<dynamic>.broadcast();
-      final secondIncoming = StreamController<dynamic>.broadcast();
-      var connectCount = 0;
-      final storage = OcptRelayRemoteStorage(
-        relayBaseUri: relayBaseUri,
-        projectId: projectId,
-        token: token,
-        reconnectDelay: const Duration(milliseconds: 10),
-        httpClient: MockClient((request) async => http.Response('', 500)),
-        webSocketConnector: (uri) {
-          connectCount += 1;
+    test(
+      'reconnects after a socket drop instead of ending the stream',
+      () async {
+        final firstIncoming = StreamController<dynamic>.broadcast();
+        final secondIncoming = StreamController<dynamic>.broadcast();
+        var connectCount = 0;
+        final storage = OcptRelayRemoteStorage(
+          logger: const SilentLogger(),
+          relayBaseUri: relayBaseUri,
+          projectId: projectId,
+          token: token,
+          reconnectDelay: const Duration(milliseconds: 10),
+          httpClient: MockClient((request) async => http.Response('', 500)),
+          webSocketConnector: (uri) {
+            connectCount += 1;
 
-          return _FakeWebSocketChannel(connectCount == 1 ? firstIncoming : secondIncoming);
-        },
-      );
-      addTearDown(() {
-        if (!firstIncoming.isClosed) {
-          unawaited(firstIncoming.close());
-        }
-        if (!secondIncoming.isClosed) {
-          unawaited(secondIncoming.close());
-        }
-      });
+            return _FakeWebSocketChannel(connectCount == 1 ? firstIncoming : secondIncoming);
+          },
+        );
+        addTearDown(() {
+          if (!firstIncoming.isClosed) {
+            unawaited(firstIncoming.close());
+          }
+          if (!secondIncoming.isClosed) {
+            unawaited(secondIncoming.close());
+          }
+        });
 
-      final events = <void>[];
-      final subscription = storage.newWorkStream.listen(events.add);
-      addTearDown(subscription.cancel);
-      await Future<void>.delayed(Duration.zero);
+        final events = <void>[];
+        final subscription = storage.newWorkStream.listen(events.add);
+        addTearDown(subscription.cancel);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(connectCount, 1);
+        expect(connectCount, 1);
 
-      // Simulate the first socket dropping.
-      await firstIncoming.close();
-      // Wait past the reconnect backoff for the second connect attempt to happen.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+        // Simulate the first socket dropping.
+        await firstIncoming.close();
+        // Wait past the reconnect backoff for the second connect attempt to happen.
+        await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(connectCount, 2);
+        expect(connectCount, 2);
 
-      secondIncoming.add('new-work');
-      await Future<void>.delayed(Duration.zero);
+        secondIncoming.add('new-work');
+        await Future<void>.delayed(Duration.zero);
 
-      expect(events, hasLength(1));
-    }, timeout: const Timeout(Duration(seconds: 5)));
+        expect(events, hasLength(1));
+      },
+      timeout: const Timeout(Duration(seconds: 5)),
+    );
   });
 
   group('presenceStream', () {
     test('a literal new-work frame goes to newWorkStream, not presenceStream', () async {
       final incoming = StreamController<dynamic>.broadcast();
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -376,6 +481,7 @@ void main() {
     test('any other frame goes to presenceStream, not newWorkStream', () async {
       final incoming = StreamController<dynamic>.broadcast();
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -399,30 +505,62 @@ void main() {
       expect(newWorkEvents, isEmpty);
     });
 
-    test('connecting starts once, shared between newWorkStream and presenceStream listeners', () async {
+    test('retries after the socket could not be opened', () async {
       final incoming = StreamController<dynamic>.broadcast();
       var connectCount = 0;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
+        reconnectDelay: const Duration(milliseconds: 10),
         httpClient: MockClient((request) async => http.Response('', 500)),
         webSocketConnector: (uri) {
           connectCount += 1;
+          if (connectCount == 1) {
+            throw const SocketException('unreachable');
+          }
 
           return _FakeWebSocketChannel(incoming);
         },
       );
       addTearDown(incoming.close);
 
-      final newWorkSubscription = storage.newWorkStream.listen((_) {});
-      final presenceSubscription = storage.presenceStream.listen((_) {});
-      addTearDown(newWorkSubscription.cancel);
-      addTearDown(presenceSubscription.cancel);
-      await Future<void>.delayed(Duration.zero);
+      final subscription = storage.newWorkStream.listen((_) {});
+      addTearDown(subscription.cancel);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(connectCount, 1);
+      expect(connectCount, 2);
     });
+
+    test(
+      'connecting starts once, shared between newWorkStream and presenceStream listeners',
+      () async {
+        final incoming = StreamController<dynamic>.broadcast();
+        var connectCount = 0;
+        final storage = OcptRelayRemoteStorage(
+          logger: const SilentLogger(),
+          relayBaseUri: relayBaseUri,
+          projectId: projectId,
+          token: token,
+          httpClient: MockClient((request) async => http.Response('', 500)),
+          webSocketConnector: (uri) {
+            connectCount += 1;
+
+            return _FakeWebSocketChannel(incoming);
+          },
+        );
+        addTearDown(incoming.close);
+
+        final newWorkSubscription = storage.newWorkStream.listen((_) {});
+        final presenceSubscription = storage.presenceStream.listen((_) {});
+        addTearDown(newWorkSubscription.cancel);
+        addTearDown(presenceSubscription.cancel);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(connectCount, 1);
+      },
+    );
   });
 
   group('sendPresence', () {
@@ -430,6 +568,7 @@ void main() {
       final incoming = StreamController<dynamic>.broadcast();
       late _FakeWebSocketChannel channel;
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,
@@ -449,6 +588,7 @@ void main() {
 
     test('is a silent no-op while the socket is not connected', () async {
       final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
         relayBaseUri: relayBaseUri,
         projectId: projectId,
         token: token,

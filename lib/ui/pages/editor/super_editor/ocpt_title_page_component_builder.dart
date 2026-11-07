@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -47,13 +47,13 @@ import 'package:super_editor/super_editor.dart';
 /// lower. `computeOcptStyledTitlePageMetrics`'s flow height is therefore unchanged by this
 /// transform (see its own doc comment); only the paint position moves.
 ///
-/// The row shift is deliberately computed in [createViewModel], not read from a value resolved
-/// once by the widget that constructs this builder: the outer `OcptStyledScreenplayEditor` widget does
+/// The row shift is deliberately computed in [createViewModel], not read from a value resolved once
+/// by the widget that constructs this builder: the outer `OcptStyledScreenplayEditor` widget does
 /// not rebuild on every keystroke (super_editor's own document-driven layout re-renders without
 /// it), but this builder's own `createViewModel` *is* re-invoked, with the live [Document], for
 /// every title-page node on every document change — including a brand new node an Enter split
-/// inside Contact just created. A value threaded in through the constructor instead would freeze
-/// at whatever the document looked like the last time the outer widget happened to rebuild, and a
+/// inside Contact just created. A value threaded in through the constructor instead would freeze at
+/// whatever the document looked like the last time the outer widget happened to rebuild, and a
 /// freshly split node born after that point would never receive its shift at all.
 ///
 /// Claims every title-page field node (not only the empty ones, so a value typed into a field
@@ -72,9 +72,6 @@ import 'package:super_editor/super_editor.dart';
 /// too (see `OcptSceneNumberGutterComponentBuilder`'s own doc comment for the same fact, and the
 /// bug it and this builder both had before `blockType` was checked here).
 class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
-  /// Creates an [OcptTitlePageComponentBuilder].
-  OcptTitlePageComponentBuilder({required this.placeholders, required this.hintStyleBuilder, required this.metrics});
-
   /// The placeholder text to show for an empty field, keyed by [ocptTitlePageFieldKeys] (a key
   /// missing an entry, which should not normally happen, simply never gets a hint shown for it):
   /// this builder resolves which node, if any, gets a given field's hint itself (see
@@ -86,8 +83,8 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// `componentViewModel.textStyleBuilder(const {})`, i.e. exactly the style the stylesheet
   /// resolved for that node — into the style its placeholder hint is painted with. Must only
   /// `copyWith` on top of the style it's handed (normally the italic slope and a dimmed color),
-  /// never build a fresh [TextStyle]: inheriting is what guarantees the placeholder's size and weight
-  /// match the value that will replace it.
+  /// never build a fresh [TextStyle]: inheriting is what guarantees the placeholder's size and
+  /// weight match the value that will replace it.
   final TextStyle Function(TextStyle resolvedStyle) hintStyleBuilder;
 
   /// The layout metrics [computeOcptStyledTitlePageMetrics] needs to compute `rowShift` — the same
@@ -98,7 +95,7 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// time [createViewModel] runs for a Contact or Source node, and read back by [createComponent]
   /// (which never sees the document, only this node's view model) for that same node moments
   /// later, in the same layout pass. Absent for every other title-page node.
-  final Map<String, double> _rowShiftByNodeId = {};
+  final Map<String, double> _rowShiftByNodeId;
 
   /// The [ocptTitlePageFieldKeys] key of the field [createComponent] should paint a placeholder
   /// hint for, keyed by node id — present only for a field's **first** node (a field spanning
@@ -107,8 +104,18 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// title-page node, and read back by [createComponent] for that same node moments later, in the
   /// same layout pass (mirrors [_rowShiftByNodeId]'s own lifetime, see the class-level doc comment
   /// for why that pattern is safe here). Absent for every node that isn't a field's first.
-  final Map<String, String> _placeholderFieldKeyByNodeId = {};
+  final Map<String, String> _placeholderFieldKeyByNodeId;
 
+  /// Create an [OcptTitlePageComponentBuilder].
+  OcptTitlePageComponentBuilder({
+    required this.placeholders,
+    required this.hintStyleBuilder,
+    required this.metrics,
+  }) : _rowShiftByNodeId = {},
+       _placeholderFieldKeyByNodeId = {};
+
+  /// Create the view model of a title-page paragraph, and remember the row shift of the fields that
+  /// need one and the nodes that start a field, whose placeholder is shown.
   @override
   SingleColumnLayoutComponentViewModel? createViewModel(Document document, DocumentNode node) {
     if (node is! ParagraphNode || !OcptWysiwygCodec.isTitlePageNode(node)) {
@@ -117,7 +124,10 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
 
     final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey) as String;
     if (key == "Contact" || key == "Source") {
-      _rowShiftByNodeId[node.id] = computeOcptStyledTitlePageMetrics(document: document, metrics: metrics).rowShift;
+      _rowShiftByNodeId[node.id] = computeOcptStyledTitlePageMetrics(
+        document: document,
+        metrics: metrics,
+      ).rowShift;
     } else {
       _rowShiftByNodeId.remove(node.id);
     }
@@ -136,6 +146,9 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
     return super.createViewModel(document, node);
   }
 
+  /// Create the paragraph component of a title-page field, showing the placeholder behind it while
+  /// it
+  /// is empty and shifting it up by its remembered row shift.
   @override
   Widget? createComponent(
     SingleColumnDocumentComponentContext componentContext,

@@ -6,7 +6,7 @@ import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -14,10 +14,10 @@ import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
-/// The workspace status bar's sync indicator, straight from the mock-up (`docs/plans/relay.md`,
-/// Phase C, commit 5): the one on-screen entry point into a project's own sync session.
+/// The workspace status bar's sync indicator, straight from the mock-up: the one on-screen entry
+/// point into a project's own sync session.
 ///
 /// Renders nothing at all while [OcptSyncManager.syncStatus] is null — no session is running,
 /// either because the project isn't paired or because the workspace hasn't started one yet — the
@@ -25,8 +25,8 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 /// card's own menu (a later wiring commit), never this indicator.
 ///
 /// Seeds its very first frame from [OcptSyncManager.syncStatus] (the getter) and then listens to
-/// [OcptSyncManager.syncStatusChanges], **not** the per-session [OcptSyncManager.syncStatusStream]:
-/// a project's session starts only *after* the workspace has already built this indicator, so a
+/// [OcptSyncManager.syncStatusChanges], **not** the running session's own status stream: a
+/// project's session starts only *after* the workspace has already built this indicator, so a
 /// per-session stream would be null at build time and this badge would never learn the session
 /// arrived. [OcptSyncManager.syncStatusChanges] is the one stream that outlives every session — it
 /// carries the status when a session starts and a null when it stops — so the badge appears the
@@ -38,31 +38,20 @@ import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
 /// ([OcptSyncManager.syncNow]); `Afficher le QR d'invitation` / `Ré-appairer…`, which both simply
 /// open the Partager screen ([OcptRoute.sharing]) already showing the invite QR and the way to
 /// replace a pairing; and `Changer de relais…`, which opens the repointing screen
-/// ([OcptRoute.repointing]) to move the project's ongoing sync onto a different relay
-/// (`docs/plans/on-set-server.md`, Phase E). Under a read-only preview (`isReadOnly`) all four are
-/// withheld — a null callback, never merely a disabled one, exactly as every other affordance that
-/// writes does.
+/// ([OcptRoute.repointing]) to move the project's ongoing sync onto a different relay. Under a
+/// read-only preview (`isReadOnly`) all four are withheld — a null callback, never merely a
+/// disabled one, exactly as every other affordance that writes does.
 class OcptSyncStatusIndicator extends StatelessWidget {
-  /// Class constructor
-  ///
-  /// [syncManager] and [routerManager] are the injectable seams over `globalGetIt()` a widget test
-  /// hands in instead. [isReadOnly] defaults to reading
-  /// [OcptProjectsManager.currentProject]'s own `isReadOnly` through `globalGetIt()`, so a test can
-  /// simply pass the boolean it wants rather than fake the whole projects manager for it.
-  const OcptSyncStatusIndicator({
-    super.key,
-    OcptSyncManager? syncManager,
-    OcptRouterManager? routerManager,
-    bool? isReadOnly,
-  }) : _syncManager = syncManager,
-       _routerManager = routerManager,
-       _isReadOnly = isReadOnly;
-
+  /// The sync manager handed in by the caller, or null to use the registered one.
   final OcptSyncManager? _syncManager;
+
+  /// The router manager handed in by the caller, or null to use the registered one.
   final OcptRouterManager? _routerManager;
+
+  /// Whether the caller forces the read-only state, or null to read it from the current project.
   final bool? _isReadOnly;
 
-  /// [_syncManager], or the one `globalGetIt()` holds when there is an app-wide manager
+  /// Get [_syncManager], or the one `globalGetIt()` holds when there is an app-wide manager
   /// environment that actually registered one, or null otherwise.
   ///
   /// Null is not an edge case this indicator merely tolerates: it is exactly the "no session
@@ -84,9 +73,10 @@ class OcptSyncStatusIndicator extends StatelessWidget {
     return managers.isRegistered<OcptSyncManager>() ? managers.get<OcptSyncManager>() : null;
   }
 
+  /// Get the router manager: [_routerManager], or the one `globalGetIt()` holds.
   OcptRouterManager get _router => _routerManager ?? globalGetIt().get<OcptRouterManager>();
 
-  /// [_isReadOnly], or [OcptProjectsManager.currentProject]'s own `isReadOnly` when an app-wide
+  /// Get [_isReadOnly], or [OcptProjectsManager.currentProject]'s own `isReadOnly` when an app-wide
   /// manager environment registered one, or false otherwise — see [_sync]'s own doc comment for
   /// why a missing registration reads as the harmless case rather than a crash.
   bool get _readOnly {
@@ -106,6 +96,22 @@ class OcptSyncStatusIndicator extends StatelessWidget {
     return managers.get<OcptProjectsManager>().currentProject?.isReadOnly ?? false;
   }
 
+  /// Class constructor
+  ///
+  /// [syncManager] and [routerManager] are the injectable seams over `globalGetIt()` a widget test
+  /// hands in instead. [isReadOnly] defaults to reading
+  /// [OcptProjectsManager.currentProject]'s own `isReadOnly` through `globalGetIt()`, so a test can
+  /// simply pass the boolean it wants rather than fake the whole projects manager for it.
+  const OcptSyncStatusIndicator({
+    super.key,
+    OcptSyncManager? syncManager,
+    OcptRouterManager? routerManager,
+    bool? isReadOnly,
+  }) : _syncManager = syncManager,
+       _routerManager = routerManager,
+       _isReadOnly = isReadOnly;
+
+  /// Build the sync status indicator as a [StreamBuilder].
   @override
   Widget build(BuildContext context) {
     final manager = _sync;
@@ -147,14 +153,6 @@ class OcptSyncStatusIndicator extends StatelessWidget {
 /// [_OcptSyncStatusPanel] on tap, over the exact `MenuAnchor`/`builder` idiom
 /// `OcptLocationSheetHeader`'s own colour bar already uses for a popover triggered by a badge.
 class _OcptSyncStatusBadge extends StatelessWidget {
-  /// Class constructor
-  const _OcptSyncStatusBadge({
-    required this.status,
-    required this.onSyncNowRequested,
-    required this.onSharingRequested,
-    required this.onSwitchRelayRequested,
-  });
-
   /// The status this badge (and the panel it opens) renders.
   final OcptSyncStatus status;
 
@@ -170,6 +168,15 @@ class _OcptSyncStatusBadge extends StatelessWidget {
   /// withhold it (a read-only preview).
   final VoidCallback? onSwitchRelayRequested;
 
+  /// Class constructor
+  const _OcptSyncStatusBadge({
+    required this.status,
+    required this.onSyncNowRequested,
+    required this.onSharingRequested,
+    required this.onSwitchRelayRequested,
+  });
+
+  /// Build the sync status badge as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -186,14 +193,14 @@ class _OcptSyncStatusBadge extends StatelessWidget {
         ),
       ],
       builder: (context, controller, child) => InkWell(
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
         onTap: () => controller.isOpen ? controller.close() : controller.open(),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: ocptSelectedStateAlpha),
-            borderRadius: BorderRadius.circular(ocptRadiusLarge),
+            color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -218,15 +225,16 @@ class _OcptSyncStatusBadge extends StatelessWidget {
 /// The badge's leading glyph: a small spinner while [OcptSyncStatusSyncing], a static dot
 /// otherwise — the mock-up's own "small spinner" for the one state actually in flight.
 class _OcptSyncStatusGlyph extends StatelessWidget {
-  /// Class constructor
-  const _OcptSyncStatusGlyph({required this.status, required this.color});
-
   /// The status deciding whether this glyph spins.
   final OcptSyncStatus status;
 
   /// The colour tinting the glyph, matching the badge's own text.
   final Color color;
 
+  /// Class constructor
+  const _OcptSyncStatusGlyph({required this.status, required this.color});
+
+  /// Build the sync status glyph as a [Container].
   @override
   Widget build(BuildContext context) {
     if (status is OcptSyncStatusSyncing) {
@@ -247,14 +255,6 @@ class _OcptSyncStatusGlyph extends StatelessWidget {
 /// The panel [_OcptSyncStatusBadge] opens on tap: the current state (plus the relay's own error
 /// message, when there is one) and the three actions the mock-up gives the indicator.
 class _OcptSyncStatusPanel extends StatelessWidget {
-  /// Class constructor
-  const _OcptSyncStatusPanel({
-    required this.status,
-    required this.onSyncNowRequested,
-    required this.onSharingRequested,
-    required this.onSwitchRelayRequested,
-  });
-
   /// The status this panel describes.
   final OcptSyncStatus status;
 
@@ -267,6 +267,15 @@ class _OcptSyncStatusPanel extends StatelessWidget {
   /// Forwarded from [_OcptSyncStatusBadge], see its own doc comment.
   final VoidCallback? onSwitchRelayRequested;
 
+  /// Class constructor
+  const _OcptSyncStatusPanel({
+    required this.status,
+    required this.onSyncNowRequested,
+    required this.onSharingRequested,
+    required this.onSwitchRelayRequested,
+  });
+
+  /// Build the sync status panel as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -298,18 +307,9 @@ class _OcptSyncStatusPanel extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
-          MenuItemButton(
-            onPressed: onSyncNowRequested,
-            child: Text(tr.workspaceSyncActionSyncNow),
-          ),
-          MenuItemButton(
-            onPressed: onSharingRequested,
-            child: Text(tr.workspaceSyncActionShowQr),
-          ),
-          MenuItemButton(
-            onPressed: onSharingRequested,
-            child: Text(tr.workspaceSyncActionRepair),
-          ),
+          MenuItemButton(onPressed: onSyncNowRequested, child: Text(tr.workspaceSyncActionSyncNow)),
+          MenuItemButton(onPressed: onSharingRequested, child: Text(tr.workspaceSyncActionShowQr)),
+          MenuItemButton(onPressed: onSharingRequested, child: Text(tr.workspaceSyncActionRepair)),
           MenuItemButton(
             onPressed: onSwitchRelayRequested,
             child: Text(tr.workspaceSyncActionSwitchRelay),
@@ -320,18 +320,20 @@ class _OcptSyncStatusPanel extends StatelessWidget {
   }
 }
 
-/// [status]'s own label, shared by the badge and the panel's header so the two never say something
+/// Get [status]'s own label, shared by the badge and the panel's header so the two never say
+/// something
 /// different about the very same status.
 String _labelFor(Tr tr, OcptSyncStatus status) => switch (status) {
   OcptSyncStatusInSync() => tr.workspaceSyncStatusInSync,
   OcptSyncStatusSyncing() => tr.workspaceSyncStatusSyncing,
-  OcptSyncStatusOffline(pendingEditCount: final count) => count == null
-      ? tr.workspaceSyncStatusOfflineUnknown
-      : tr.workspaceSyncStatusOfflinePending(count),
+  OcptSyncStatusOffline(pendingEditCount: final count) =>
+    count == null
+        ? tr.workspaceSyncStatusOfflineUnknown
+        : tr.workspaceSyncStatusOfflinePending(count),
   OcptSyncStatusError() => tr.workspaceSyncStatusError,
 };
 
-/// [status]'s own colour: the calm green of a shot already accepted for
+/// Get [status]'s own colour: the calm green of a shot already accepted for
 /// [OcptSyncStatusInSync] (reused generically here, exactly as the breakdown/schedule/resources
 /// labels already do), the app's one violet accent while [OcptSyncStatusSyncing], the app's amber
 /// "needs attention" colour for [OcptSyncStatusOffline], and `error` for [OcptSyncStatusError].

@@ -3,25 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_storyboard_annotation_kind_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_storyboard_panels_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
-
-/// Converts a [OcptStoryboardAnnotationKind] to and from the text stored in the
-/// `storyboard_annotations.kind` column.
-class OcptStoryboardAnnotationKindConverter
-    extends TypeConverter<OcptStoryboardAnnotationKind, String> {
-  /// Class constructor
-  const OcptStoryboardAnnotationKindConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptStoryboardAnnotationKind fromSql(String fromDb) =>
-      OcptStoryboardAnnotationKind.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptStoryboardAnnotationKind value) => value.name;
-}
 
 /// One mark drawn over a storyboard panel's frame: a movement arrow, a camera-move arrow or a
 /// short text label — the fixed vocabulary the storyboard's light annotation layer is limited to,
@@ -37,13 +20,13 @@ class OcptStoryboardAnnotationsTable extends Table {
   @override
   String get tableName => 'storyboard_annotations';
 
-  /// The stable, unique id of this annotation (a UUID).
+  /// Get the stable, unique id of this annotation (a UUID).
   TextColumn get id => text()();
 
-  /// The panel this mark is drawn on.
+  /// Get the panel this mark is drawn on.
   TextColumn get panelId => text().references(OcptStoryboardPanelsTable, #id)();
 
-  /// What kind of mark this is.
+  /// Get what kind of mark this is.
   TextColumn get kind => text().map(const OcptStoryboardAnnotationKindConverter())();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -51,22 +34,25 @@ class OcptStoryboardAnnotationsTable extends Table {
   /// Orders the marks of one panel, which is also their draw order.
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// The first end's X coordinate, **normalised 0..1 to the frame** — a label's anchor point when
+  /// Get the first end's X coordinate, **normalised 0..1 to the frame** — a label's anchor point
+  /// when
   /// [kind] is `OcptStoryboardAnnotationKind.label`, the arrow's tail otherwise. Normalised rather
   /// than in logical pixels, so a replaced image of another size keeps the marks where they were.
   RealColumn get x1 => real()();
 
-  /// The first end's Y coordinate, normalised 0..1 to the frame. See [x1].
+  /// Get the first end's Y coordinate, normalised 0..1 to the frame. See [x1].
   RealColumn get y1 => real()();
 
-  /// The second end's X coordinate, normalised 0..1 to the frame — an arrow's head. Meaningless,
+  /// Get the second end's X coordinate, normalised 0..1 to the frame — an arrow's head.
+  /// Meaningless,
   /// and left at 0, for a label.
   RealColumn get x2 => real()();
 
-  /// The second end's Y coordinate, normalised 0..1 to the frame. See [x2].
+  /// Get the second end's Y coordinate, normalised 0..1 to the frame. See [x2].
   RealColumn get y2 => real()();
 
-  /// The label's text when [kind] is `OcptStoryboardAnnotationKind.label`, or an arrow's optional
+  /// Get the label's text when [kind] is `OcptStoryboardAnnotationKind.label`, or an arrow's
+  /// optional
   /// caption (`dolly in`).
   ///
   /// Named [labelText] rather than `text` on the Dart side — that identifier would shadow the

@@ -14,17 +14,17 @@ import 'package:equatable/equatable.dart';
 /// device-local Lamport counter, never a relay `OcptSequenceNumber`: a relay's own counter cannot
 /// play this role once a set relay and a prep relay both assign sequence numbers on the same day.
 class OcptLamportStamp extends Equatable implements Comparable<OcptLamportStamp> {
-  /// Creates a stamp from the device-local Lamport counter [version] reached by [deviceId] at the
-  /// moment of the write it describes.
-  const OcptLamportStamp({required this.version, required this.deviceId});
-
   /// The device-local Lamport counter reached at the moment of the write this stamp describes.
   final int version;
 
   /// The device that made the write this stamp describes.
   final String deviceId;
 
-  /// Orders this stamp against [other]: a higher [version] sorts after a lower one, and two equal
+  /// Create a stamp from the device-local Lamport counter [version] reached by [deviceId] at the
+  /// moment of the write it describes.
+  const OcptLamportStamp({required this.version, required this.deviceId});
+
+  /// Order this stamp against [other]: a higher [version] sorts after a lower one, and two equal
   /// versions are ordered by comparing [deviceId] lexicographically.
   @override
   int compareTo(OcptLamportStamp other) {
@@ -35,13 +35,15 @@ class OcptLamportStamp extends Equatable implements Comparable<OcptLamportStamp>
     return deviceId.compareTo(other.deviceId);
   }
 
-  /// True when this stamp is the one a merge keeps over [other], per the ADR 0010 ordering:
+  /// Tell whether this stamp is the one a merge keeps over [other], per the ADR 0010 ordering:
   /// [compareTo] returning a strictly positive value.
   bool wins(OcptLamportStamp other) => compareTo(other) > 0;
 
-  @override
-  List<Object?> get props => [version, deviceId];
-
+  /// Describe this [OcptLamportStamp] for debugging and logging.
   @override
   String toString() => 'OcptLamportStamp(version: $version, deviceId: $deviceId)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [version, deviceId];
 }

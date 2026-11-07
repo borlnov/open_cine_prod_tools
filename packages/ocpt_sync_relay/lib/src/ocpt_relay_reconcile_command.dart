@@ -7,7 +7,7 @@ import 'package:ocpt_sync_relay/src/ocpt_relay_reconciler.dart';
 import 'package:ocpt_sync_relay/src/ocpt_relay_store.dart';
 import 'package:ocpt_sync_relay/src/ocpt_relay_upstream_client.dart';
 
-/// Parses an `ocpt://join?r=<baseUri>&p=<projectId>&t=<token>` invite string into the upstream
+/// Parse an `ocpt://join?r=<baseUri>&p=<projectId>&t=<token>` invite string into the upstream
 /// base URI, project id and bearer token [runReconcileCommand] needs to reconcile against it.
 ///
 /// This is a minimal, local parser for the same string the app's own `OcptRelayInvite` produces —
@@ -53,7 +53,7 @@ import 'package:ocpt_sync_relay/src/ocpt_relay_upstream_client.dart';
   return (upstream: upstream, projectId: projectId, token: token);
 }
 
-/// Runs the `reconcile` CLI subcommand: parses [args], opens the local store and an upstream
+/// Run the `reconcile` CLI subcommand: parses [args], opens the local store and an upstream
 /// client, runs [OcptRelayReconciler.reconcileProject] once, logs a one-line summary through
 /// [log], and closes both in a `finally` — see `bin/ocpt_sync_relay.dart` for how this is wired
 /// into the binary's `main`.
@@ -132,11 +132,17 @@ Future<void> runReconcileCommand(
 
   final resolvedDbPath = dbPath ?? environment[relayDbPathEnvVar] ?? defaultRelayDbPath;
   final store = (openStore ?? OcptRelayStore.new)(resolvedDbPath);
-  final upstream = (openUpstream ?? OcptRelayUpstreamClient.new)(baseUri: upstreamUri, token: token);
+  final upstream = (openUpstream ?? OcptRelayUpstreamClient.new)(
+    baseUri: upstreamUri,
+    token: token,
+  );
 
   try {
     final reconciler = OcptRelayReconciler(store: store, upstream: upstream);
-    final result = await reconciler.reconcileProject(projectId: projectId, enrolmentSecret: enrolmentSecret);
+    final result = await reconciler.reconcileProject(
+      projectId: projectId,
+      enrolmentSecret: enrolmentSecret,
+    );
     log('pushed ${result.pushed}, pulled ${result.pulled}');
   } finally {
     store.close();

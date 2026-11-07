@@ -5,12 +5,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_financing_plan_pdf_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_financing_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
@@ -85,37 +86,41 @@ OcptBudgetResource _buildResource({
 );
 
 /// Builds an entry crediting [resourceId], everything else neutral.
-OcptBudgetEntry _buildCreditEntry({required String id, required String resourceId, required int creditCents}) =>
-    OcptBudgetEntry(
-      id: id,
-      date: DateTime(2026),
-      label: "",
-      posteId: null,
-      debitCents: 0,
-      creditCents: creditCents,
-      isTaxInclusive: true,
-      vatRateBasisPoints: null,
-      voucherNumber: "J-001",
-      sortKey: "a",
-      resourceId: resourceId,
-      revenueId: null,
-      shareId: null,
-      commitmentId: null,
-      personId: null,
-    );
+OcptBudgetEntry _buildCreditEntry({
+  required String id,
+  required String resourceId,
+  required int creditCents,
+}) => OcptBudgetEntry(
+  id: id,
+  date: DateTime(2026),
+  label: "",
+  accountId: null,
+  debitCents: 0,
+  creditCents: creditCents,
+  isTaxInclusive: true,
+  vatRateBasisPoints: null,
+  voucherNumber: "J-001",
+  sortKey: "a",
+  resourceId: resourceId,
+  revenueId: null,
+  shareId: null,
+  commitmentId: null,
+  personId: null,
+);
 
+/// Run the tests of [OcptBudgetFinancingPlanPdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final service = OcptBudgetFinancingPlanPdfService();
+  final service = OcptBudgetFinancingPlanPdfService(logger: const SilentLogger());
   const pageSetup = OcptPageSetup.standard();
 
   OcptBudgetSnapshot buildSnapshot({
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetEntry> entries = const [],
   }) => OcptBudgetSnapshot.build(
-    postes: postes,
+    accounts: accounts,
     entries: entries,
     commitments: const [],
     resources: resources,
@@ -169,33 +174,39 @@ void main() {
       expect(_pageCount(bytes), 1);
     });
 
-    test("an in-kind resource with an entry naming it prints differently from one with none", () async {
-      final uncollected = buildSnapshot(
-        resources: [_buildResource(id: "res-1", groupKind: OcptBudgetResourceGroupKind.inKind)],
-      );
-      final collected = buildSnapshot(
-        resources: [_buildResource(id: "res-1", groupKind: OcptBudgetResourceGroupKind.inKind)],
-        entries: [_buildCreditEntry(id: "entry-1", resourceId: "res-1", creditCents: 50000)],
-      );
+    test(
+      "an in-kind resource with an entry naming it prints differently from one with none",
+      () async {
+        final uncollected = buildSnapshot(
+          resources: [_buildResource(id: "res-1", groupKind: OcptBudgetResourceGroupKind.inKind)],
+        );
+        final collected = buildSnapshot(
+          resources: [_buildResource(id: "res-1", groupKind: OcptBudgetResourceGroupKind.inKind)],
+          entries: [_buildCreditEntry(id: "entry-1", resourceId: "res-1", creditCents: 50000)],
+        );
 
-      Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
-        snapshot: snapshot,
-        pageSetup: pageSetup,
-        labels: _labels,
-        projectName: "My Movie",
-        includeTitlePage: false,
-      );
+        Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
+          snapshot: snapshot,
+          pageSetup: pageSetup,
+          labels: _labels,
+          projectName: "My Movie",
+          includeTitlePage: false,
+        );
 
-      expect(_contentStreams(await generateFor(uncollected)), isNot(_contentStreams(await generateFor(collected))));
-    });
+        expect(
+          _contentStreams(await generateFor(uncollected)),
+          isNot(_contentStreams(await generateFor(collected))),
+        );
+      },
+    );
 
     test("a quote with no line at all prints a different verdict from a covered one", () async {
       final noQuote = buildSnapshot(
         resources: [_buildResource(id: "res-1", groupKind: OcptBudgetResourceGroupKind.cash)],
       );
       final covered = buildSnapshot(
-        postes: [
-          const OcptBudgetPoste(
+        accounts: [
+          const OcptBudgetAccount(
             id: "poste-1",
             code: "1",
             label: "Rights",
@@ -205,11 +216,15 @@ void main() {
             lines: [
               OcptBudgetLine(
                 id: "line-1",
-                posteId: "poste-1",
+                accountId: "poste-1",
                 label: "Line",
                 quantityMilli: 1000,
                 unit: "day",
-                unitPrice: OcptMoney(amountCents: 10000, isTaxInclusive: true, vatRateBasisPoints: null),
+                unitPrice: OcptMoney(
+                  amountCents: 10000,
+                  isTaxInclusive: true,
+                  vatRateBasisPoints: null,
+                ),
                 elementId: null,
                 inKindResourceId: null,
                 provisionKey: null,
@@ -231,7 +246,10 @@ void main() {
         includeTitlePage: false,
       );
 
-      expect(_contentStreams(await generateFor(noQuote)), isNot(_contentStreams(await generateFor(covered))));
+      expect(
+        _contentStreams(await generateFor(noQuote)),
+        isNot(_contentStreams(await generateFor(covered))),
+      );
     });
   });
 
@@ -256,8 +274,8 @@ int _pageCount(Uint8List bytes) {
   return RegExp(r"/Type\s*/Page[^s]").allMatches(text).length;
 }
 
-/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order —
-/// mirroring `ocpt_day_out_of_days_pdf_service_test.dart`'s own `_contentStreams`.
+/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order
+/// — mirroring `ocpt_day_out_of_days_pdf_service_test.dart`'s own `_contentStreams`.
 List<String> _contentStreams(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);
   final pattern = RegExp(r"stream\r?\n(.*?)endstream", dotAll: true);

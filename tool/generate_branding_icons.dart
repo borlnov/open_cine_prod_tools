@@ -30,7 +30,7 @@ const _markColor = _Rgb(0xFF, 0xFF, 0xFF);
 /// The colour of the corner flag that flavours a non-production (qualification) build's icon: the
 /// same `Colors.blue` (`#2196F3`) the app-bar environment banner paints in qualification, so the
 /// launcher icon and the in-app banner read as one convention.
-const _qualifFlagColor = _Rgb(0x21, 0x96, 0xF3);
+const _qualificationFlagColor = _Rgb(0x21, 0x96, 0xF3);
 
 /// The side of the square the mark is authored in, matching the SVGs' `76 76` viewBox.
 const double _canvasUnits = 76;
@@ -77,15 +77,16 @@ const _masters = <_MasterSpec>[
   ),
 ];
 
-/// Rasterizes every entry of [_masters] — both the plain masters and, for the ones that carry a
-/// container, their qualification-banded counterparts — and writes them under [_outputDirectoryPath].
+/// Rasterize every entry of [_masters] — both the plain masters and, for the ones that carry a
+/// container, their qualification-banded counterparts — and write them under
+/// [_outputDirectoryPath].
 ///
 /// A containered master is emitted twice: once as itself (the production icon), and once with a
-/// `_qualif` suffix carrying the corner flag (the qualification icon the CI regenerates the native
-/// launcher icons from for a non-stable build). The adaptive foreground layer has no counterpart: it
-/// is masked to the canvas centre where a corner flag would be clipped away, so a qualification
-/// Android build reuses this very foreground unchanged and takes its flavour from a blue background
-/// layer instead (chosen in the packaging step, not here).
+/// `_qualification` suffix carrying the corner flag (the qualification icon the CI regenerates the
+/// native launcher icons from for a non-stable build). The adaptive foreground layer has no
+/// counterpart: it is masked to the canvas centre where a corner flag would be clipped away, so a
+/// qualification Android build reuses this very foreground unchanged and takes its flavour from a
+/// blue background layer instead (chosen in the packaging step, not here).
 void main() {
   final outputDirectory = Directory(_outputDirectoryPath)..createSync(recursive: true);
 
@@ -103,7 +104,7 @@ void main() {
   }
 }
 
-/// Rasterizes one master in [style] at [sidePixels] and writes it as [fileName] under [directory],
+/// Rasterize one master in [style] at [sidePixels] and write it as [fileName] under [directory],
 /// laying the qualification corner flag over it when [banded] and the style carries a container.
 void _write(
   Directory directory,
@@ -112,22 +113,25 @@ void _write(
   _MarkStyle style, {
   required bool banded,
 }) {
-  // The flag rides on the container's silhouette; the container-less adaptive foreground never takes
-  // a banded copy, so only a containered master reaches here with [banded] set.
+  // The flag rides on the container's silhouette; the container-less adaptive foreground never
+  // takes a banded copy, so only a containered master reaches here with [banded] set.
   final flag = banded ? const _CornerFlag(cornerSize: 34) : null;
 
   final pixels = _renderMark(sidePixels: sidePixels, style: style, flag: flag);
   final file = File("${directory.path}/$fileName");
   file.writeAsBytesSync(_encodePng(pixels: pixels, width: sidePixels));
 
-  stdout.writeln("Wrote ${file.path} ($sidePixels" "x$sidePixels)");
+  stdout.writeln(
+    "Wrote ${file.path} ($sidePixels"
+    "x$sidePixels)",
+  );
 }
 
-/// Inserts the `_qualif` marker into [fileName] right after its `ocpt_icon` stem, so
-/// `ocpt_icon_ios_1024.png` becomes `ocpt_icon_qualif_ios_1024.png`.
+/// Insert the `_qualification` marker into [fileName] right after its `ocpt_icon` stem, so
+/// `ocpt_icon_ios_1024.png` becomes `ocpt_icon_qualification_ios_1024.png`.
 String _bandedFileName(String fileName) => fileName.replaceFirst("ocpt_icon", "ocpt_icon_qualif");
 
-/// Renders the mark in the given [style] into a straight (non premultiplied) RGBA buffer of
+/// Render the mark in the given [style] into a straight (non premultiplied) RGBA buffer of
 /// [sidePixels] squared, laying [flag] over it when one is given.
 Uint8List _renderMark({required int sidePixels, required _MarkStyle style, _CornerFlag? flag}) {
   final container = switch (style) {
@@ -198,7 +202,7 @@ Uint8List _renderMark({required int sidePixels, required _MarkStyle style, _Corn
         final clip = container != null
             ? _coverageOf(container.distanceTo(x, y), unitsPerPixel)
             : 1.0;
-        paint(flag.coverage(x, y, unitsPerPixel) * clip, _qualifFlagColor);
+        paint(flag.coverage(x, y, unitsPerPixel) * clip, _qualificationFlagColor);
       }
 
       final offset = (row * sidePixels + column) * 4;
@@ -213,13 +217,13 @@ Uint8List _renderMark({required int sidePixels, required _MarkStyle style, _Corn
   return pixels;
 }
 
-/// Turns the signed [distance] of a pixel centre to a shape's edge, in mark units, into how much
+/// Turn the signed [distance] of a pixel centre to a shape's edge, in mark units, into how much
 /// of that pixel the shape covers, antialiasing the edge over the width of one pixel
 /// ([unitsPerPixel]).
 double _coverageOf(double distance, double unitsPerPixel) =>
     (0.5 - distance / unitsPerPixel).clamp(0, 1);
 
-/// Converts a 0..1 channel value into the 0..255 byte a PNG holds.
+/// Convert a 0..1 channel value into the 0..255 byte a PNG holds.
 int _toByte(double value) => (value * 255).round().clamp(0, 255);
 
 /// A shape of the mark, able to tell how far a point is from its edge (negative inside).
@@ -227,7 +231,7 @@ sealed class _Shape {
   /// Class constructor
   const _Shape();
 
-  /// Returns the signed distance from the point ([x], [y]) to this shape's edge, in mark units.
+  /// Return the signed distance from the point ([x], [y]) to this shape's edge, in mark units.
   double distanceTo(double x, double y);
 }
 
@@ -239,6 +243,7 @@ class _Fill extends _Shape {
   /// Class constructor
   const _Fill(this.rect);
 
+  /// Measure the distance to the rectangle.
   @override
   double distanceTo(double x, double y) => rect.distanceTo(x, y);
 }
@@ -254,6 +259,8 @@ class _Stroke extends _Shape {
   /// Class constructor
   const _Stroke(this.rect, {required this.strokeWidth});
 
+  /// Measure the distance to the outline: the distance to the rectangle's edge, less half the
+  /// stroke width.
   @override
   double distanceTo(double x, double y) => rect.distanceTo(x, y).abs() - strokeWidth / 2;
 }
@@ -284,7 +291,7 @@ class _RoundedRect {
     required this.radius,
   });
 
-  /// Returns the signed distance from the point ([x], [y]) to this rectangle's edge, negative
+  /// Return the signed distance from the point ([x], [y]) to this rectangle's edge, negative
   /// inside it and positive outside.
   double distanceTo(double x, double y) {
     final offsetX = (x - (left + width / 2)).abs() - (width / 2 - radius);
@@ -309,13 +316,14 @@ class _CornerFlag {
   /// The length of each of the triangle's right-angle legs, in canvas units.
   final double cornerSize;
 
+  /// Get the value of `x - y` along the triangle's hypotenuse; the corner lies below it (more
+  /// negative).
+  double get _hypotenuse => -(_canvasUnits - cornerSize);
+
   /// Class constructor
   const _CornerFlag({required this.cornerSize});
 
-  /// The value of `x - y` along the triangle's hypotenuse; the corner lies below it (more negative).
-  double get _hypotenuse => -(_canvasUnits - cornerSize);
-
-  /// The coverage of the flag at ([x], [y]), antialiased over one pixel ([unitsPerPixel]).
+  /// Get the coverage of the flag at ([x], [y]), antialiased over one pixel ([unitsPerPixel]).
   ///
   /// The `√2` scales the `x - y` gap into a true perpendicular distance to the 45° hypotenuse, so
   /// the antialiased edge is one pixel wide rather than `√2` of one.
@@ -323,7 +331,7 @@ class _CornerFlag {
       _edgeCoverage((_hypotenuse - (x - y)) / sqrt2, unitsPerPixel);
 }
 
-/// Antialiases a signed [distance] in canvas units — positive inside the shape — into 0..1 coverage
+/// Antialias a signed [distance] in canvas units — positive inside the shape — into 0..1 coverage
 /// over one pixel of width [unitsPerPixel].
 double _edgeCoverage(double distance, double unitsPerPixel) =>
     (0.5 + distance / unitsPerPixel).clamp(0, 1);
@@ -371,7 +379,7 @@ class _MasterSpec {
   const _MasterSpec({required this.fileName, required this.sidePixels, required this.style});
 }
 
-/// Encodes a straight RGBA [pixels] buffer of [width] squared into an 8 bit RGBA PNG.
+/// Encode a straight RGBA [pixels] buffer of [width] squared into an 8 bit RGBA PNG.
 Uint8List _encodePng({required Uint8List pixels, required int width}) {
   // One filter byte (0, "no filter") in front of every row of the image.
   final raw = Uint8List(width * (width * 4 + 1));
@@ -400,7 +408,7 @@ Uint8List _encodePng({required Uint8List pixels, required int width}) {
   ]);
 }
 
-/// Builds one PNG chunk: the length of [data], its four letter [type], [data] itself, and the
+/// Build one PNG chunk: the length of [data], its four letter [type], [data] itself, and the
 /// CRC-32 of the two last fields.
 List<int> _pngChunk(String type, Uint8List data) {
   final typeAndData = <int>[...type.codeUnits, ...data];
@@ -424,7 +432,7 @@ final _crc32Table = List<int>.generate(256, (index) {
   return value;
 });
 
-/// Returns the CRC-32 of [bytes], the checksum every PNG chunk ends with.
+/// Return the CRC-32 of [bytes], the checksum every PNG chunk ends with.
 int _crc32(List<int> bytes) {
   var crc = 0xFFFFFFFF;
   for (final byte in bytes) {

@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:ocpt_sync_protocol/src/ocpt_sync_error_code.dart';
+import 'package:ocpt_sync_protocol/src/ocpt_sync_malformed_data_error.dart';
 import 'package:ocpt_sync_protocol/src/ocpt_sync_protocol_format_error.dart';
 import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 
@@ -16,10 +18,23 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 /// [OcptSyncMalformedDataError], which describe *this build's own decoding failures* and are
 /// thrown, never carried as data.
 class OcptSyncError extends Equatable {
-  /// Creates an error report pairing [code] with a human-readable [message].
+  /// The JSON key of `code`.
+  static const _codeKey = 'code';
+
+  /// The JSON key of `message`.
+  static const _messageKey = 'message';
+
+  /// Which kind of failure this is, for a caller to branch on.
+  final OcptSyncErrorCode code;
+
+  /// A human-readable detail describing this failure, for a log or a status indicator — never
+  /// parsed.
+  final String message;
+
+  /// Create an error report pairing [code] with a human-readable [message].
   const OcptSyncError({required this.code, required this.message});
 
-  /// Parses an error from the JSON object a relay reports it as.
+  /// Parse an error from the JSON object a relay reports it as.
   ///
   /// Throws [OcptSyncMalformedDataError] when [json]'s `code` is missing, not a string, or not
   /// one of [OcptSyncErrorCode]'s own names — an unrecognised code is itself malformed data here,
@@ -41,44 +56,14 @@ class OcptSyncError extends Equatable {
     return OcptSyncError(code: code, message: OcptSyncWireJson.string(json, _messageKey));
   }
 
-  static const _codeKey = 'code';
-  static const _messageKey = 'message';
-
-  /// Which kind of failure this is, for a caller to branch on.
-  final OcptSyncErrorCode code;
-
-  /// A human-readable detail describing this failure, for a log or a status indicator — never
-  /// parsed.
-  final String message;
-
-  /// Serialises this error to the JSON object a relay reports it as.
+  /// Serialise this error to the JSON object a relay reports it as.
   Map<String, dynamic> toJson() => {_codeKey: code.name, _messageKey: message};
 
-  @override
-  List<Object?> get props => [code, message];
-
+  /// Describe this [OcptSyncError] for debugging and logging.
   @override
   String toString() => 'OcptSyncError(code: $code, message: $message)';
-}
 
-/// Every reason a relay's routes refuse a request.
-///
-/// Domain-blind by construction: none of these names a table, a column or a project's own data —
-/// only the shape of the failure at the protocol boundary.
-enum OcptSyncErrorCode {
-  /// The bearer token presented does not match the one held for this project.
-  badToken,
-
-  /// The request names a project the relay has never heard of, and carried no enrolment secret
-  /// to create one.
-  unknownProject,
-
-  /// The request assumed a sequence position the relay's log has since moved past.
-  sequenceConflict,
-
-  /// The request body could not be parsed as this protocol's wire format.
-  malformed,
-
-  /// The request declares a protocol or snapshot format newer than this relay knows how to read.
-  unsupportedFormat,
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [code, message];
 }

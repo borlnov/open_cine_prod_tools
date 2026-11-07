@@ -45,43 +45,34 @@ Widget _buildHeader({
   ),
 );
 
+/// Run the tests of [OcptScheduleHeader].
 void main() {
-  testWidgets("the Colour by control is hidden outside the agenda view", (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _buildHeader(centreView: OcptScheduleCentreView.day),
-    );
+  testWidgets("the Colour by control is hidden outside the agenda view", (tester) async {
+    await tester.pumpWidget(_buildHeader(centreView: OcptScheduleCentreView.day));
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleHeader)));
     expect(find.text(tr.scheduleAgendaColorByLabel), findsNothing);
   });
 
-  testWidgets(
-    "the Colour by control shows with the agenda view, defaulting to Location",
-    (tester) async {
-      await tester.pumpWidget(
-        _buildHeader(centreView: OcptScheduleCentreView.agenda),
-      );
-      await tester.pumpAndSettle();
+  testWidgets("the Colour by control shows with the agenda view, defaulting to Location", (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildHeader(centreView: OcptScheduleCentreView.agenda));
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptScheduleHeader)));
-      expect(find.text(tr.scheduleAgendaColorByLabel), findsOneWidget);
-      expect(find.text(tr.scheduleAgendaColorModeLocation), findsOneWidget);
-      expect(find.text(tr.scheduleAgendaColorModeEffect), findsOneWidget);
-      // Nothing to teach a reader while every day is tinted by its own location.
-      expect(find.text(tr.scheduleAgendaEffectLegendMixed), findsNothing);
-    },
-  );
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleHeader)));
+    expect(find.text(tr.scheduleAgendaColorByLabel), findsOneWidget);
+    expect(find.text(tr.scheduleAgendaColorModeLocation), findsOneWidget);
+    expect(find.text(tr.scheduleAgendaColorModeEffect), findsOneWidget);
+    // Nothing to teach a reader while every day is tinted by its own location.
+    expect(find.text(tr.scheduleAgendaEffectLegendMixed), findsNothing);
+  });
 
   testWidgets("tapping the Effect segment reports the switch", (tester) async {
     final selections = <OcptScheduleAgendaColorMode>[];
     await tester.pumpWidget(
-      _buildHeader(
-        centreView: OcptScheduleCentreView.agenda,
-        onColorModeSelected: selections.add,
-      ),
+      _buildHeader(centreView: OcptScheduleCentreView.agenda, onColorModeSelected: selections.add),
     );
     await tester.pumpAndSettle();
 
@@ -92,35 +83,22 @@ void main() {
     expect(selections, [OcptScheduleAgendaColorMode.effect]);
   });
 
-  testWidgets(
-    "the effect legend shows all five readings, only under Colour by effect",
-    (tester) async {
-      await tester.pumpWidget(
-        _buildHeader(
-          centreView: OcptScheduleCentreView.agenda,
-          colorMode: OcptScheduleAgendaColorMode.effect,
-        ),
-      );
-      await tester.pumpAndSettle();
+  testWidgets("the effect legend shows all five readings, only under Colour by effect", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildHeader(
+        centreView: OcptScheduleCentreView.agenda,
+        colorMode: OcptScheduleAgendaColorMode.effect,
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptScheduleHeader)));
-      expect(
-        find.text(tr.scheduleAgendaEffectLegendInteriorDay),
-        findsOneWidget,
-      );
-      expect(
-        find.text(tr.scheduleAgendaEffectLegendInteriorNight),
-        findsOneWidget,
-      );
-      expect(
-        find.text(tr.scheduleAgendaEffectLegendExteriorDay),
-        findsOneWidget,
-      );
-      expect(
-        find.text(tr.scheduleAgendaEffectLegendExteriorNight),
-        findsOneWidget,
-      );
-      expect(find.text(tr.scheduleAgendaEffectLegendMixed), findsOneWidget);
-    },
-  );
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleHeader)));
+    expect(find.text(tr.scheduleAgendaEffectLegendInteriorDay), findsOneWidget);
+    expect(find.text(tr.scheduleAgendaEffectLegendInteriorNight), findsOneWidget);
+    expect(find.text(tr.scheduleAgendaEffectLegendExteriorDay), findsOneWidget);
+    expect(find.text(tr.scheduleAgendaEffectLegendExteriorNight), findsOneWidget);
+    expect(find.text(tr.scheduleAgendaEffectLegendMixed), findsOneWidget);
+  });
 }

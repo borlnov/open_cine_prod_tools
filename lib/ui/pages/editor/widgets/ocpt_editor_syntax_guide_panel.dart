@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_fountain_syntax_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_fountain_syntax_section.dart';
 import 'package:open_cine_prod_tools/types/ocpt_fountain_syntax_topic.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
@@ -19,6 +20,7 @@ class OcptEditorSyntaxGuidePanel extends StatelessWidget {
   /// Class constructor
   const OcptEditorSyntaxGuidePanel({super.key});
 
+  /// Build the editor syntax guide panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -45,7 +47,7 @@ class OcptEditorSyntaxGuidePanel extends StatelessWidget {
     );
   }
 
-  /// The localized header of [section], read from [tr].
+  /// Get the localized header of [section], read from [tr].
   String _sectionTitleOf(Tr tr, OcptFountainSyntaxSection section) => switch (section) {
     OcptFountainSyntaxSection.structure => tr.editorSyntaxGuideStructureSectionTitle,
     OcptFountainSyntaxSection.organisation => tr.editorSyntaxGuideOrganisationSectionTitle,
@@ -69,6 +71,7 @@ class _OcptSyntaxGuideEntry extends StatelessWidget {
   /// Class constructor
   const _OcptSyntaxGuideEntry({required this.entry, required this.tr, required this.theme});
 
+  /// Build the syntax guide entry as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 16),
@@ -100,7 +103,7 @@ class _OcptSyntaxGuideEntry extends StatelessWidget {
     ),
   );
 
-  /// The localized title of [topic], read from [tr].
+  /// Get the localized title of [topic], read from [tr].
   String _labelOf(Tr tr, OcptFountainSyntaxTopic topic) => switch (topic) {
     OcptFountainSyntaxTopic.sceneHeading => tr.editorBlockTypeSceneHeading,
     OcptFountainSyntaxTopic.sceneNumber => tr.editorSyntaxGuideSceneNumberTitle,
@@ -121,7 +124,7 @@ class _OcptSyntaxGuideEntry extends StatelessWidget {
     OcptFountainSyntaxTopic.titlePage => tr.editorSyntaxGuideTitlePageTitle,
   };
 
-  /// The localized description of [topic], read from [tr].
+  /// Get the localized description of [topic], read from [tr].
   String _descriptionOf(Tr tr, OcptFountainSyntaxTopic topic) => switch (topic) {
     OcptFountainSyntaxTopic.sceneHeading => tr.editorSyntaxGuideSceneHeadingDescription,
     OcptFountainSyntaxTopic.sceneNumber => tr.editorSyntaxGuideSceneNumberDescription,

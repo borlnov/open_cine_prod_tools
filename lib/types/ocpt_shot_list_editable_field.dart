@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// One of the shot inspector's typed fields, whose edits go through the shot list bloc's 2 s
-/// autosave debounce (`OcptShotListState.pendingFieldEdits`) rather than being written
+/// One of the shot inspector's typed fields, whose edits go through the inspector bloc's 2 s
+/// autosave debounce (`OcptShotListInspectorState.pendingFieldEdits`) rather than being written
 /// immediately like a difficulty dot or a character chip, which are each a single discrete action
 /// rather than typing.
 ///
@@ -12,9 +12,9 @@
 ///
 /// Every case maps onto one `OcptShotListService.updateShot` argument of the same name, except
 /// [estimatedDuration], which is parsed from its typed text through `ocptParseShotDuration`
-/// (`lib/ui/utils/ocpt_shot_list_labels.dart`) into `estimatedDurationMs` rather than being stored
-/// verbatim. It being unparseable rejects the edit (the shot list bloc leaves the stored value
-/// untouched) rather than writing anything.
+/// (`lib/ui/widgets/helpers/ocpt_shot_list_labels.dart`) into `estimatedDurationMs` rather than
+/// being stored verbatim. It being unparseable rejects the edit (the shot list bloc leaves the
+/// stored value untouched) rather than writing anything.
 enum OcptShotListEditableField {
   /// Maps to `updateShot`'s `shotSize`.
   shotSize,

@@ -6,7 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_relative_time.dart';
 
 /// The screenplay status bar's self-refreshing "saved x ago" segment: keeps the last-saved
 /// relative time current by re-rendering every 30 s, without the surrounding status bar itself
@@ -22,7 +22,13 @@ class OcptEditorSavedTimeSegment extends StatefulWidget {
   /// Class constructor
   const OcptEditorSavedTimeSegment({super.key, required this.lastSavedAt});
 
-  /// The saved-state text [lastSavedAt] renders right now, computed without building this widget.
+  /// Create the [_OcptEditorSavedTimeSegmentState] holding the state of the editor saved time
+  /// segment.
+  @override
+  State<OcptEditorSavedTimeSegment> createState() => _OcptEditorSavedTimeSegmentState();
+
+  /// Get the saved-state text [lastSavedAt] renders right now, computed without building this
+  /// widget.
   ///
   /// `OcptWorkspaceStatusBar`'s width-driven degradation needs a plain-text stand-in for this
   /// self-refreshing segment to size the rest of the summary against, before this widget is
@@ -34,9 +40,6 @@ class OcptEditorSavedTimeSegment extends StatefulWidget {
         ? tr.editorStatsNeverSaved
         : tr.editorStatsSavedRelative(formatRelativeTime(context, lastSavedAt));
   }
-
-  @override
-  State<OcptEditorSavedTimeSegment> createState() => _OcptEditorSavedTimeSegmentState();
 }
 
 /// The state of [OcptEditorSavedTimeSegment]: ticks a 30 s timer so the relative time stays
@@ -45,23 +48,26 @@ class _OcptEditorSavedTimeSegmentState extends State<OcptEditorSavedTimeSegment>
   /// Ticks every 30 s so the relative time stays current while this segment is on screen.
   Timer? _refreshTimer;
 
+  /// Start a timer that rebuilds the segment every 30 seconds, so the saved time stays current.
   @override
   void initState() {
     super.initState();
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) => setState(() {}));
   }
 
-  @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
-  }
-
+  /// Build the editor saved time segment as a [Text].
   @override
   Widget build(BuildContext context) {
     final text = OcptEditorSavedTimeSegment.textFor(context, widget.lastSavedAt);
     final style = Theme.of(context).textTheme.labelSmall;
 
     return Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis);
+  }
+
+  /// Cancel [_refreshTimer].
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 }

@@ -25,6 +25,7 @@ class OcptEditorFormatControls extends StatelessWidget {
   /// Class constructor
   const OcptEditorFormatControls({super.key, required this.controller});
 
+  /// Build the editor format controls as a [ListenableBuilder].
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,

@@ -13,14 +13,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/ui/main_app/main_app_bloc.dart';
 import 'package:open_cine_prod_tools/ui/main_app/main_app_state.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 
 /// The extra factor the mobile UI is scaled up by, on top of `flutter_screenutil`'s own
 /// design-size scaling.
@@ -34,7 +34,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 /// device.
 const double _ocptMobileUiScale = 1.2;
 
-/// Builds the root [MaterialApp] shell of the application.
+/// Build the root [MaterialApp] shell of the application.
 ///
 /// The app locale and theme both follow the preferences persisted through
 /// [OcptGlobalManager]'s managers: [LocalesObserverWidget] and [OcptMainAppBloc] keep the wanted
@@ -44,84 +44,94 @@ const double _ocptMobileUiScale = 1.2;
 /// The whole tree is wrapped in [ScreenUtilInit], which initialises `flutter_screenutil` before
 /// calling its `builder` — so `.sp`/`.w`/`.r` are valid by the time the [BlocBuilder] below reads
 /// them. On a **phone** (mobile, and a shortest side below [ocptPhoneWidthBreakpoint]) the theme is
-/// rebuilt with those scalers ([buildOcptThemeModel]); on a tablet and on desktop it is not — a
-/// tablet has desktop-class room, especially in landscape, so magnifying every size by the phone
-/// design-size ratio would blow the type and the controls up out of proportion. There the app keeps
-/// the bloc state's own theme model (the global [ocptTheme]) unchanged and `.sp`/`.w`/`.r` are never
-/// called. Phones and tablets are told apart by the rotation-invariant shortest side, the same 600dp
-/// line the orientation policy and Android's `sw600dp` qualifier draw.
-class MainAppUi extends StatelessWidget {
-  /// Creates the main app widget.
-  const MainAppUi({super.key});
+/// rebuilt with those scalers ([ocpt_theme.buildOcptThemeModel]); on a tablet and on desktop it is
+/// not — a tablet has desktop-class room, especially in landscape, so magnifying every size by the
+/// phone design-size ratio would blow the type and the controls up out of proportion. There the app
+/// keeps the bloc state's own theme model (the global [ocpt_theme.ocptTheme]) unchanged and
+/// `.sp`/`.w`/`.r` are never called. Phones and tablets are told apart by the rotation-invariant
+/// shortest side, the same 600dp line the orientation policy and Android's `sw600dp` qualifier
+/// draw.
+class OcptMainAppUi extends StatelessWidget {
+  /// Create the main app widget.
+  const OcptMainAppUi({super.key});
 
+  /// Build the main app UI as a [ScreenUtilInit].
+  @override
+  Widget build(BuildContext context) => ScreenUtilInit(
+    designSize: const Size(375, 812),
+    minTextAdapt: true,
+    builder: (context, _) => LocalesObserverWidget(
+      child: BlocProvider(create: (context) => OcptMainAppBloc(), child: const _MainAppView()),
+    ),
+  );
+}
+
+/// The content of [OcptMainAppUi], separated from it so [OcptMainAppUi] only wires the
+/// [OcptMainAppBloc] up inside [ScreenUtilInit] and [LocalesObserverWidget].
+class _MainAppView extends StatelessWidget {
+  /// Class constructor
+  const _MainAppView();
+
+  /// Build the main app view as a [BlocBuilder].
   @override
   Widget build(BuildContext context) {
     final router = globalGetIt().get<OcptRouterManager>().router;
 
-    return ScreenUtilInit(
-      designSize: const Size(375, 812),
-      minTextAdapt: true,
-      builder: (context, _) => LocalesObserverWidget(
-        child: BlocProvider(
-          create: (context) => OcptMainAppBloc(),
-          child: BlocBuilder<OcptMainAppBloc, OcptMainAppState>(
-            builder: (context, state) {
-              final platform = globalGetIt().get<PlatformManager>();
-              // The screenutil-based scaling is a phone concern: only there is the room tight enough
-              // to want the whole UI grown by the phone design-size ratio. A tablet has desktop-class
-              // room, so it keeps the unscaled desktop theme and reads like the desktop build rather
-              // than magnifying every size. The two are told apart by the rotation-invariant shortest
-              // side — [ScreenUtil] is already initialised here, so its screen dimensions are the
-              // measure to hand.
-              final screenUtil = ScreenUtil();
-              final shortestSide = screenUtil.screenWidth < screenUtil.screenHeight
-                  ? screenUtil.screenWidth
-                  : screenUtil.screenHeight;
-              final isPhone = platform.isMobile && shortestSide < ocptPhoneWidthBreakpoint;
-              final themeModel = isPhone
-                  ? buildOcptThemeModel(
-                      sp: (v) => (v * _ocptMobileUiScale).sp,
-                      w: (v) => (v * _ocptMobileUiScale).w,
-                      r: (v) => v.r,
-                    )
-                  : state.currentTheme.themeData;
+    return BlocBuilder<OcptMainAppBloc, OcptMainAppState>(
+      builder: (context, state) {
+        final platform = globalGetIt().get<PlatformManager>();
+        // The screenutil-based scaling is a phone concern: only there is the room tight
+        // enough to want the whole UI grown by the phone design-size ratio. A tablet has
+        // desktop-class room, so it keeps the unscaled desktop theme and reads like the
+        // desktop build rather than magnifying every size. The two are told apart by the
+        // rotation-invariant shortest side — [ScreenUtil] is already initialised here, so its
+        // screen dimensions are the measure to hand.
+        final screenUtil = ScreenUtil();
+        final shortestSide = screenUtil.screenWidth < screenUtil.screenHeight
+            ? screenUtil.screenWidth
+            : screenUtil.screenHeight;
+        final isPhone = platform.isMobile && shortestSide < ocptPhoneWidthBreakpoint;
+        final themeModel = isPhone
+            ? ocpt_theme.buildOcptThemeModel(
+                sp: (v) => (v * _ocptMobileUiScale).sp,
+                w: (v) => (v * _ocptMobileUiScale).w,
+                r: (v) => v.r,
+              )
+            : state.currentTheme.themeData;
 
-              return MaterialApp.router(
-                // The app title is the one displayed in the window title bar.
-                onGenerateTitle: (context) => Tr.of(context).appTitle,
-                routerConfig: router,
-                theme: themeModel.lightThemeData,
-                darkTheme: themeModel.darkThemeData,
-                themeMode: state.themeMode,
-                locale: state.wantedLocale,
-                localizationsDelegates: const [
-                  Tr.delegate,
-                  GlobalMaterialLocalizations.delegate,
-                  GlobalWidgetsLocalizations.delegate,
-                  GlobalCupertinoLocalizations.delegate,
-                ],
-                supportedLocales: Tr.delegate.supportedLocales,
-                builder: (context, child) {
-                  OcptGlobalManager.instance.initInFirstView(context);
+        return MaterialApp.router(
+          // The app title is the one displayed in the window title bar.
+          onGenerateTitle: (context) => Tr.of(context).appTitle,
+          routerConfig: router,
+          theme: themeModel.lightThemeData,
+          darkTheme: themeModel.darkThemeData,
+          themeMode: state.themeMode,
+          locale: state.wantedLocale,
+          localizationsDelegates: const [
+            Tr.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: Tr.delegate.supportedLocales,
+          builder: (context, child) {
+            OcptGlobalManager.instance.initInFirstView(context);
 
-                  return _EdgeToEdgeShell(child: child ?? const SizedBox.shrink());
-                },
-              );
-            },
-          ),
-        ),
-      ),
+            return _EdgeToEdgeShell(child: child ?? const SizedBox.shrink());
+          },
+        );
+      },
     );
   }
 }
 
-/// Wraps every route the [MaterialApp.router] builds so no screen ever hides behind the platform's
+/// Wrap every route the [MaterialApp.router] builds so no screen ever hides behind the platform's
 /// system bars, while still letting the app paint edge to edge under them.
 ///
 /// Android 15 (`targetSdk` 35) draws apps edge to edge: the status bar and the navigation bar
 /// overlay the content instead of insetting it, so a screen that does not account for them slips
-/// underneath. Rather than repeat a `SafeArea` in every page and every future one, this single shell
-/// does three things once, for the whole app:
+/// underneath. Rather than repeat a `SafeArea` in every page and every future one, this single
+/// shell does three things once, for the whole app:
 ///
 /// - it makes both system bars transparent and picks their icon brightness from the active theme,
 ///   through an [AnnotatedRegion] that re-evaluates whenever the theme flips, so the bars read as a
@@ -135,7 +145,8 @@ class MainAppUi extends StatelessWidget {
 /// [AnnotatedRegion] is inert: the shell is a no-op there and changes nothing.
 ///
 /// It is also where the app's device-orientation policy is applied, for the same reason it is the
-/// one wrapper every route passes through: see [_EdgeToEdgeShellState._lockOrientationForDeviceClass].
+/// one wrapper every route passes through: see
+/// [_EdgeToEdgeShellState._lockOrientationForDeviceClass].
 class _EdgeToEdgeShell extends StatefulWidget {
   /// The routed content to inset — the [MaterialApp.router]'s own `child`.
   final Widget child;
@@ -143,46 +154,21 @@ class _EdgeToEdgeShell extends StatefulWidget {
   /// Class constructor
   const _EdgeToEdgeShell({required this.child});
 
+  /// Create the [_EdgeToEdgeShellState] holding the state of the edge to edge shell.
   @override
   State<_EdgeToEdgeShell> createState() => _EdgeToEdgeShellState();
 }
 
 /// State of [_EdgeToEdgeShell]: applies the orientation policy once its [MediaQuery] is available.
 class _EdgeToEdgeShellState extends State<_EdgeToEdgeShell> {
+  /// Lock the orientation for the device class, now that [MediaQuery] is available.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _lockOrientationForDeviceClass();
   }
 
-  /// On a mobile build, pins a phone to portrait and leaves a tablet free to rotate.
-  ///
-  /// A phone has too little room to lay a production mode out in landscape, so it is kept upright; a
-  /// tablet has the space, so every orientation stays available. The two are told apart by the
-  /// screen's shortest side — the one measure that does not itself change when the device rotates —
-  /// against [ocptPhoneWidthBreakpoint], the same 600dp line Android's own `sw600dp` tablet
-  /// qualifier draws. A desktop build reaches none of this: it has no device orientation to
-  /// constrain, and [PlatformManager.isMobile] gates the whole thing out there.
-  void _lockOrientationForDeviceClass() {
-    if (!globalGetIt().get<PlatformManager>().isMobile) {
-      return;
-    }
-
-    final isPhone = MediaQuery.sizeOf(context).shortestSide < ocptPhoneWidthBreakpoint;
-    unawaited(
-      SystemChrome.setPreferredOrientations(
-        isPhone
-            ? const [DeviceOrientation.portraitUp]
-            : const [
-                DeviceOrientation.portraitUp,
-                DeviceOrientation.portraitDown,
-                DeviceOrientation.landscapeLeft,
-                DeviceOrientation.landscapeRight,
-              ],
-      ),
-    );
-  }
-
+  /// Build the edge to edge shell as an [AnnotatedRegion].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -206,11 +192,39 @@ class _EdgeToEdgeShellState extends State<_EdgeToEdgeShell> {
         // A corner banner naming the environment (blue "QUALIF", red "DEV") over every screen's top
         // toolbar — withheld entirely for a release build in `Environment.production`, so a stable
         // release shows nothing. `EnvBanner` reads `OcptConfigManager`'s own env and is consumed
-        // unchanged (ACT's default colours), the single insertion point being this one wrapper every
-        // route passes through.
+        // unchanged (ACT's default colours), the single insertion point being this one wrapper
+        // every route passes through.
         child: SafeArea(
           child: EnvBanner.displayAppBarBanner<OcptConfigManager>(child: widget.child),
         ),
+      ),
+    );
+  }
+
+  /// Pin a phone to portrait and leave a tablet free to rotate on a mobile build.
+  ///
+  /// A phone has too little room to lay a production mode out in landscape, so it is kept upright;
+  /// a tablet has the space, so every orientation stays available. The two are told apart by the
+  /// screen's shortest side — the one measure that does not itself change when the device rotates —
+  /// against [ocptPhoneWidthBreakpoint], the same 600dp line Android's own `sw600dp` tablet
+  /// qualifier draws. A desktop build reaches none of this: it has no device orientation to
+  /// constrain, and [PlatformManager.isMobile] gates the whole thing out there.
+  void _lockOrientationForDeviceClass() {
+    if (!globalGetIt().get<PlatformManager>().isMobile) {
+      return;
+    }
+
+    final isPhone = MediaQuery.sizeOf(context).shortestSide < ocptPhoneWidthBreakpoint;
+    unawaited(
+      SystemChrome.setPreferredOrientations(
+        isPhone
+            ? const [DeviceOrientation.portraitUp]
+            : const [
+                DeviceOrientation.portraitUp,
+                DeviceOrientation.portraitDown,
+                DeviceOrientation.landscapeLeft,
+                DeviceOrientation.landscapeRight,
+              ],
       ),
     );
   }

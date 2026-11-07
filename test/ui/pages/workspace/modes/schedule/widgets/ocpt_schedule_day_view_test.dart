@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timelines.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -22,7 +23,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the workspace shell's own centre area.
@@ -247,6 +247,7 @@ Future<void> _pumpDayView(
   await tester.pumpAndSettle();
 }
 
+/// Run the tests of [OcptScheduleDayView].
 void main() {
   testWidgets(
     "the events band is absent on a day with no event when the view may not be written to",
@@ -286,9 +287,7 @@ void main() {
     await _pumpDayView(
       tester,
       slots: [_buildSlot()],
-      blocks: [
-        _buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition, roleId: "role-1"),
-      ],
+      blocks: [_buildBlock(id: "block-1", kind: OcptShootingBlockKind.audition, roleId: "role-1")],
     );
 
     expect(find.byType(OcptScheduleSlotCard), findsOneWidget);

@@ -11,8 +11,10 @@ import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:test/test.dart';
 
+/// The enrolment secret the tests pair with.
 const _enrolmentSecret = 'enrolment-secret';
 
+/// Build an envelope with [changesetId] and [lamport], from a fixed device.
 OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptChangesetEnvelope(
   changesetId: changesetId,
   originDeviceId: 'device-1',
@@ -21,14 +23,20 @@ OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptCh
   payload: Uint8List.fromList([1, 2, 3]),
 );
 
-OcptSnapshotDescriptor _descriptor({required String snapshotId, required OcptSequenceNumber sequenceUpTo, required Uint8List bytes}) =>
-    OcptSnapshotDescriptor(
-      snapshotId: snapshotId,
-      sequenceUpTo: sequenceUpTo,
-      byteLength: bytes.length,
-      contentDigest: sha256.convert(bytes).toString(),
-    );
+/// Build a descriptor of the snapshot [snapshotId] up to [sequenceUpTo], which describes [bytes].
+OcptSnapshotDescriptor _descriptor({
+  required String snapshotId,
+  required OcptSequenceNumber sequenceUpTo,
+  required Uint8List bytes,
+}) => OcptSnapshotDescriptor(
+  snapshotId: snapshotId,
+  sequenceUpTo: sequenceUpTo,
+  byteLength: bytes.length,
+  contentDigest: sha256.convert(bytes).toString(),
+);
 
+/// Send a `POST` of [jsonBody] to [path] through [handler], with the bearer [token] and the
+/// enrolment secret when given.
 Future<shelf.Response> _post(
   shelf.Handler handler,
   String path, {
@@ -47,6 +55,7 @@ Future<shelf.Response> _post(
   ),
 );
 
+/// Send a `GET` to [path] through [handler], with the bearer [token] when given.
 Future<shelf.Response> _get(shelf.Handler handler, String path, {String? token}) async => handler(
   shelf.Request(
     'GET',
@@ -55,9 +64,11 @@ Future<shelf.Response> _get(shelf.Handler handler, String path, {String? token})
   ),
 );
 
+/// Decode the body of [response] as a JSON object.
 Future<Map<String, dynamic>> _jsonBodyOf(shelf.Response response) =>
     response.readAsString().then((body) => jsonDecode(body) as Map<String, dynamic>);
 
+/// Run the tests of [OcptRelayServer].
 void main() {
   group('OcptRelayServer', () {
     late OcptRelayStore store;
@@ -109,39 +120,45 @@ void main() {
       expect(response.statusCode, 200);
     });
 
-    test('onEvent fires an auth-rejected line for an unknown project with no enrolment secret', () async {
-      final events = <String>[];
-      final onEventHandler = OcptRelayServer(
-        store: store,
-        enrolmentSecret: _enrolmentSecret,
-        onEvent: events.add,
-      ).handler;
+    test(
+      'onEvent fires an auth-rejected line for an unknown project with no enrolment secret',
+      () async {
+        final events = <String>[];
+        final onEventHandler = OcptRelayServer(
+          store: store,
+          enrolmentSecret: _enrolmentSecret,
+          onEvent: events.add,
+        ).handler;
 
-      final response = await _post(
-        onEventHandler,
-        '/projects/project-1/changesets',
-        token: 'token-1',
-        jsonBody: _envelope('changeset-1').toJson(),
-      );
+        final response = await _post(
+          onEventHandler,
+          '/projects/project-1/changesets',
+          token: 'token-1',
+          jsonBody: _envelope('changeset-1').toJson(),
+        );
 
-      expect(response.statusCode, 404);
-      expect(events, ['auth rejected: project=project-1 status=404']);
-    });
+        expect(response.statusCode, 404);
+        expect(events, ['auth rejected: project=project-1 status=404']);
+      },
+    );
 
-    test('an unknown project is created and appended to with a matching enrolment secret', () async {
-      final response = await _post(
-        handler,
-        '/projects/project-1/changesets',
-        token: 'token-1',
-        enrolmentSecret: _enrolmentSecret,
-        jsonBody: _envelope('changeset-1').toJson(),
-      );
+    test(
+      'an unknown project is created and appended to with a matching enrolment secret',
+      () async {
+        final response = await _post(
+          handler,
+          '/projects/project-1/changesets',
+          token: 'token-1',
+          enrolmentSecret: _enrolmentSecret,
+          jsonBody: _envelope('changeset-1').toJson(),
+        );
 
-      expect(response.statusCode, 200);
-      final body = await _jsonBodyOf(response);
-      expect(body, {'sequence': 1});
-      expect(store.findProject('project-1'), isNotNull);
-    });
+        expect(response.statusCode, 200);
+        final body = await _jsonBodyOf(response);
+        expect(body, {'sequence': 1});
+        expect(store.findProject('project-1'), isNotNull);
+      },
+    );
 
     test('an unknown project is refused, and not created, without the enrolment secret', () async {
       final response = await _post(
@@ -171,14 +188,21 @@ void main() {
     });
 
     test('only POST changesets may create a project: an unknown project on GET is 404', () async {
-      final response = await _get(handler, '/projects/project-1/changesets?since=0', token: 'token-1');
+      final response = await _get(
+        handler,
+        '/projects/project-1/changesets?since=0',
+        token: 'token-1',
+      );
 
       expect(response.statusCode, 404);
       expect(store.findProject('project-1'), isNull);
     });
 
     test('a changeset appended over the route is read back via readSince over the route', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      store.createProject(
+        projectId: 'project-1',
+        tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+      );
 
       final appendResponse = await _post(
         handler,
@@ -189,15 +213,29 @@ void main() {
       expect(appendResponse.statusCode, 200);
       expect(await _jsonBodyOf(appendResponse), {'sequence': 1});
 
-      final readResponse = await _get(handler, '/projects/project-1/changesets?since=0', token: 'token-1');
+      final readResponse = await _get(
+        handler,
+        '/projects/project-1/changesets?since=0',
+        token: 'token-1',
+      );
       expect(readResponse.statusCode, 200);
       final body = jsonDecode(await readResponse.readAsString()) as List<dynamic>;
-      final stored = [for (final row in body) OcptStoredChangeset.fromJson(row as Map<String, dynamic>)];
-      expect(stored, [OcptStoredChangeset(sequenceNumber: const OcptSequenceNumber(1), envelope: _envelope('changeset-1'))]);
+      final stored = [
+        for (final row in body) OcptStoredChangeset.fromJson(row as Map<String, dynamic>),
+      ];
+      expect(stored, [
+        OcptStoredChangeset(
+          sequenceNumber: const OcptSequenceNumber(1),
+          envelope: _envelope('changeset-1'),
+        ),
+      ]);
     });
 
     test('sequence numbers are monotonic across several route calls', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      store.createProject(
+        projectId: 'project-1',
+        tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+      );
 
       final first = await _post(
         handler,
@@ -224,7 +262,10 @@ void main() {
     });
 
     test('posting the same changeset twice over the route is idempotent', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      store.createProject(
+        projectId: 'project-1',
+        tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+      );
       final envelope = _envelope('changeset-1');
 
       final first = await _post(
@@ -243,13 +284,20 @@ void main() {
       expect(await _jsonBodyOf(first), {'sequence': 1});
       expect(await _jsonBodyOf(second), {'sequence': 1});
 
-      final readResponse = await _get(handler, '/projects/project-1/changesets?since=0', token: 'token-1');
+      final readResponse = await _get(
+        handler,
+        '/projects/project-1/changesets?since=0',
+        token: 'token-1',
+      );
       final body = jsonDecode(await readResponse.readAsString()) as List<dynamic>;
       expect(body, hasLength(1));
     });
 
     test('readSince requires a since query parameter', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      store.createProject(
+        projectId: 'project-1',
+        tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+      );
 
       final response = await _get(handler, '/projects/project-1/changesets', token: 'token-1');
 
@@ -259,7 +307,10 @@ void main() {
     });
 
     test('a missing bearer token is rejected with 401', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      store.createProject(
+        projectId: 'project-1',
+        tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+      );
 
       final response = await _get(handler, '/projects/project-1/changesets?since=0');
 
@@ -269,37 +320,60 @@ void main() {
     });
 
     test('a bad bearer token is rejected with 401', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      store.createProject(
+        projectId: 'project-1',
+        tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+      );
 
-      final response = await _get(handler, '/projects/project-1/changesets?since=0', token: 'wrong-token');
+      final response = await _get(
+        handler,
+        '/projects/project-1/changesets?since=0',
+        token: 'wrong-token',
+      );
 
       expect(response.statusCode, 401);
       final body = await _jsonBodyOf(response);
       expect(body['code'], 'badToken');
     });
 
-    test('a snapshot uploaded is fetched back over the routes, descriptor and bytes intact', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
-      final bytes = Uint8List.fromList(utf8.encode('a snapshot payload'));
-      final descriptor = _descriptor(snapshotId: 'snapshot-1', sequenceUpTo: OcptSequenceNumber.zero, bytes: bytes);
+    test(
+      'a snapshot uploaded is fetched back over the routes, descriptor and bytes intact',
+      () async {
+        store.createProject(
+          projectId: 'project-1',
+          tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+        );
+        final bytes = Uint8List.fromList(utf8.encode('a snapshot payload'));
+        final descriptor = _descriptor(
+          snapshotId: 'snapshot-1',
+          sequenceUpTo: OcptSequenceNumber.zero,
+          bytes: bytes,
+        );
 
-      final uploadResponse = await _post(
-        handler,
-        '/projects/project-1/snapshot',
-        token: 'token-1',
-        jsonBody: {'descriptor': descriptor.toJson(), 'bytes': base64Encode(bytes)},
-      );
-      expect(uploadResponse.statusCode, 204);
+        final uploadResponse = await _post(
+          handler,
+          '/projects/project-1/snapshot',
+          token: 'token-1',
+          jsonBody: {'descriptor': descriptor.toJson(), 'bytes': base64Encode(bytes)},
+        );
+        expect(uploadResponse.statusCode, 204);
 
-      final fetchResponse = await _get(handler, '/projects/project-1/snapshot', token: 'token-1');
-      expect(fetchResponse.statusCode, 200);
-      final body = await _jsonBodyOf(fetchResponse);
-      expect(OcptSnapshotDescriptor.fromJson(body['descriptor'] as Map<String, dynamic>), descriptor);
-      expect(base64Decode(body['bytes'] as String), bytes);
-    });
+        final fetchResponse = await _get(handler, '/projects/project-1/snapshot', token: 'token-1');
+        expect(fetchResponse.statusCode, 200);
+        final body = await _jsonBodyOf(fetchResponse);
+        expect(
+          OcptSnapshotDescriptor.fromJson(body['descriptor'] as Map<String, dynamic>),
+          descriptor,
+        );
+        expect(base64Decode(body['bytes'] as String), bytes);
+      },
+    );
 
     test('fetching a snapshot on a project with none yet is 404', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      store.createProject(
+        projectId: 'project-1',
+        tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+      );
 
       final response = await _get(handler, '/projects/project-1/snapshot', token: 'token-1');
 
@@ -309,7 +383,10 @@ void main() {
     });
 
     test('a malformed changeset body is rejected with 400', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      store.createProject(
+        projectId: 'project-1',
+        tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+      );
 
       final response = await _post(
         handler,
@@ -324,7 +401,10 @@ void main() {
     });
 
     test('a malformed snapshot upload body is rejected with 400', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      store.createProject(
+        projectId: 'project-1',
+        tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+      );
 
       final response = await _post(
         handler,
@@ -344,10 +424,17 @@ void main() {
         enrolmentSecret: _enrolmentSecret,
         maxAuthFailuresPerSource: 3,
       ).handler;
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+      store.createProject(
+        projectId: 'project-1',
+        tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+      );
 
       for (var i = 0; i < 3; i++) {
-        final response = await _get(throttledHandler, '/projects/project-1/changesets?since=0', token: 'wrong-token');
+        final response = await _get(
+          throttledHandler,
+          '/projects/project-1/changesets?since=0',
+          token: 'wrong-token',
+        );
         expect(response.statusCode, 401);
       }
 
@@ -367,13 +454,23 @@ void main() {
       expect(stillBlockedWithGoodToken.statusCode, 429);
     });
 
-    test('the rate limiter does not interfere with a generous default across many happy-path calls', () async {
-      store.createProject(projectId: 'project-1', tokenHash: sha256.convert(utf8.encode('token-1')).toString());
+    test(
+      'the rate limiter does not interfere with a generous default across many happy-path calls',
+      () async {
+        store.createProject(
+          projectId: 'project-1',
+          tokenHash: sha256.convert(utf8.encode('token-1')).toString(),
+        );
 
-      for (var i = 0; i < 10; i++) {
-        final response = await _get(handler, '/projects/project-1/changesets?since=0', token: 'token-1');
-        expect(response.statusCode, 200);
-      }
-    });
+        for (var i = 0; i < 10; i++) {
+          final response = await _get(
+            handler,
+            '/projects/project-1/changesets?since=0',
+            token: 'token-1',
+          );
+          expect(response.statusCode, 200);
+        }
+      },
+    );
   });
 }

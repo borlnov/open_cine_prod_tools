@@ -5,15 +5,17 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -24,15 +26,18 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_view.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -40,6 +45,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// The method channel `flutter_secure_storage` talks over — `sharing_page_test.dart`'s own mock.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -73,26 +79,42 @@ void _mockSecureStorage(Map<String, String> store) {
 /// An in-memory [OcptRemoteStorage] carrying no network at all — `sharing_page_test.dart`'s own
 /// fixture, unused by these tests beyond satisfying [OcptSyncManager]'s own constructor.
 class _FakeRemoteStorage implements OcptRemoteStorage {
-  @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
-
-  @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
-
-  @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {}
-
-  @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => null;
-
+  /// Emit nothing.
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
-  @override
-  void sendPresence(String opaquePayload) {}
-
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
+
+  /// Accept the envelope, answering with sequence zero.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async =>
+      const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
+
+  /// Answer with an empty log.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
+
+  /// Accept the snapshot without keeping it.
+  @override
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
+
+  /// Answer that no snapshot was ever uploaded.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
+
+  /// Drop the payload.
+  @override
+  void sendPresence(String opaquePayload) {}
 }
 
 /// An [OcptSyncManager] whose [openRelayRemoteStorage] hands back a fixed fake transport instead of
@@ -100,9 +122,16 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// `_FakeTransportSyncManager`. Its every other method (`loadPairedProjectId`, `presenceRoster`, …)
 /// is the real, unpaired-project behaviour, which is all these gating tests need of it.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  /// Class constructor
   _FakeTransportSyncManager({required OcptPairingService super.pairingService})
-    : super(changesetService: const OcptChangesetService());
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
+  /// Open a storage that accepts everything and holds nothing.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -116,14 +145,18 @@ class _FakeTransportSyncManager extends OcptSyncManager {
 /// exercised by these gating tests — `hosting_bloc_test.dart`'s own `_FakeHostManager`, trimmed to
 /// what a page-level gating test needs.
 class _FakeHostManager extends OcptRelayHostManager {
+  /// The controller behind [stateStream].
   final _controller = StreamController<OcptRelayHostState>.broadcast();
 
+  /// Report that the host is stopped.
   @override
   OcptRelayHostState get state => const OcptRelayHostStopped();
 
+  /// Emit the host states the test adds to the controller.
   @override
   Stream<OcptRelayHostState> get stateStream => _controller.stream;
 
+  /// Do nothing.
   @override
   Future<void> startHosting({
     required OcptProjectDatabase database,
@@ -134,32 +167,37 @@ class _FakeHostManager extends OcptRelayHostManager {
     int? port,
   }) async {}
 
+  /// Do nothing.
   @override
   Future<void> stopHosting() async {}
 
+  /// Answer that the reconcile failed, as this test does not exercise it.
   @override
   Future<OcptReconcileOutcome> reconcileWithUpstream(OcptRelayInvite invite) async =>
       const OcptReconcileFailed('not exercised by this test');
 
+  /// Close the controller behind the stream.
   Future<void> disposeStream() => _controller.close();
 }
 
 /// A [PlatformManager] whose [isDesktop] is stubbed, so [OcptSharingView]'s own gating can be
 /// exercised on either branch without a real platform underneath it — mirrors
-/// `ocpt_export_manager_test.dart`'s own `_StubPlatformManager`, stubbing `isDesktop` directly
-/// rather than `isMobile`/`isLinux`/etc., since that is the one flag the gating actually reads.
+/// `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own `_StubPlatformManager`,
+/// stubbing `isDesktop` directly rather than `isMobile`/`isLinux`/etc., since that is the one flag
+/// the gating actually reads.
 class _StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  _StubPlatformManager({required this.isDesktop});
-
+  /// Whether this double stands for a desktop platform.
   @override
   final bool isDesktop;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isDesktop});
 }
 
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve,
 /// exactly `sharing_page_test.dart`'s own `_wrapWithLocalization`.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -170,6 +208,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of the sharing page hosting.
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptPairingService pairingService;
@@ -196,7 +235,10 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    pairingService = OcptPairingService(secretsManager: secretsManager);
+    pairingService = OcptPairingService(
+      logger: const SilentLogger(),
+      secretsManager: secretsManager,
+    );
   });
 
   setUp(() async {
@@ -210,7 +252,10 @@ void main() {
     managers.registerSingleton<OcptRouterManager>(OcptRouterManager());
 
     tempDir = await Directory.systemTemp.createTemp("ocpt_sharing_page_hosting_test_");
-    projectsManager = OcptProjectsManager(propertiesManager: propertiesManager, appLanguageCode: () => "en");
+    projectsManager = OcptProjectsManager(
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
     await projectsManager.initLifeCycle();
     await projectsManager.createProject(
       name: "Les Vagues",
@@ -223,9 +268,10 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  /// Pumps [OcptSharingView] over both blocs [OcptSharingPage] itself provides, with [platformManager]
-  /// and [isReadOnly] injected straight into the view — the same seam `OcptSyncStatusIndicator`'s own
-  /// test already uses for the very same "no `globalGetIt()` registration needed" reason.
+  /// Pumps [OcptSharingView] over both blocs [OcptSharingPage] itself provides, with
+  /// [platformManager] and [isReadOnly] injected straight into the view — the same seam
+  /// `OcptSyncStatusIndicator`'s own test already uses for the very same "no `globalGetIt()`
+  /// registration needed" reason.
   Future<void> pumpView(
     WidgetTester tester, {
     required PlatformManager platformManager,

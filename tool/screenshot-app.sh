@@ -51,31 +51,36 @@
 #
 # Requires: Xvfb, openbox, xdotool, xwininfo, ImageMagick - all installed by the
 # dev container image (.devcontainer/Dockerfile).
+
+# The session file is sourced, so the OCPT_* variables that the commands read are assigned there,
+# where ShellCheck cannot see them.
+# shellcheck disable=SC2154
 set -euo pipefail
 
 REPO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 STATE_DIR="${OCPT_SCREENSHOT_DIR:-${TMPDIR:-/tmp}/ocpt-screenshot}"
-STATE_FILE="$STATE_DIR/session"
-RELEASE_BIN="$REPO_ROOT/build/linux/x64/release/bundle/open_cine_prod_tools"
-DEBUG_BIN="$REPO_ROOT/build/linux/x64/debug/bundle/open_cine_prod_tools"
+STATE_FILE="${STATE_DIR}/session"
+RELEASE_BIN="${REPO_ROOT}/build/linux/x64/release/bundle/open_cine_prod_tools"
+DEBUG_BIN="${REPO_ROOT}/build/linux/x64/debug/bundle/open_cine_prod_tools"
+readonly REPO_ROOT STATE_DIR STATE_FILE RELEASE_BIN DEBUG_BIN
 
 die() { echo "$*" >&2; exit 1; }
 
 require_tools() {
-  local missing=()
-  for tool in Xvfb openbox xdotool xwininfo xdpyinfo import; do
-    command -v "$tool" >/dev/null || missing+=("$tool")
-  done
-  [[ ${#missing[@]} -eq 0 ]] || die \
-    "Missing: ${missing[*]}. Rebuild the dev container, or install them with:
-  sudo apt-get install -y xvfb openbox xdotool x11-utils imagemagick"
+    local missing=()
+    for tool in Xvfb openbox xdotool xwininfo xdpyinfo import; do
+        command -v "${tool}" >/dev/null || missing+=("${tool}")
+    done
+    [[ ${#missing[@]} -eq 0 ]] || die \
+        "Missing: ${missing[*]}. Rebuild the dev container, or install them with:
+    sudo apt-get install -y xvfb openbox xdotool x11-utils imagemagick"
 }
 
 load_session() {
-  [[ -f "$STATE_FILE" ]] || die "No session running. Start one with: $0 start"
-  # shellcheck disable=SC1090
-  source "$STATE_FILE"
-  export DISPLAY="$OCPT_DISPLAY"
+    [[ -f "${STATE_FILE}" ]] || die "No session running. Start one with: ${0} start"
+    # shellcheck disable=SC1090
+    source "${STATE_FILE}"
+    export DISPLAY="${OCPT_DISPLAY}"
 }
 
 # Whether an X server is answering on that display. This is the only reliable
@@ -83,138 +88,138 @@ load_session() {
 # create its socket file there and falls back to an abstract socket. Looking for
 # the file would report every display as free and every server as never started.
 display_is_up() {
-  xdpyinfo -display "$1" >/dev/null 2>&1
+    xdpyinfo -display "${1}" >/dev/null 2>&1
 }
 
 # Xvfb refuses a display number already taken, and several agents may be
 # capturing at once, so take the first free one rather than a fixed :99.
 pick_display() {
-  local n
-  for n in $(seq 90 99); do
-    display_is_up ":$n" || { echo ":$n"; return; }
-  done
-  die "No free display between :90 and :99."
+    local n
+    for n in $(seq 90 99); do
+        display_is_up ":${n}" || { echo ":${n}"; return; }
+    done
+    die "No free display between :90 and :99."
 }
 
 cmd_start() {
-  local size="1280x720" build=0 keep_home=0
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --size) size="${2:?--size needs WxH}"; shift 2 ;;
-      --build) build=1; shift ;;
-      --keep-home) keep_home=1; shift ;;
-      *) die "Unknown option: $1" ;;
-    esac
-  done
-  [[ "$size" =~ ^([0-9]+)x([0-9]+)$ ]] || die "--size must look like 1440x900"
-  local width="${BASH_REMATCH[1]}" height="${BASH_REMATCH[2]}"
+    local size="1280x720" build=0 keep_home=0
+    while [[ $# -gt 0 ]]; do
+        case "${1}" in
+            --size) size="${2:?--size needs WxH}"; shift 2 ;;
+            --build) build=1; shift ;;
+            --keep-home) keep_home=1; shift ;;
+            *) die "Unknown option: ${1}" ;;
+        esac
+    done
+    [[ "${size}" =~ ^([0-9]+)x([0-9]+)$ ]] || die "--size must look like 1440x900"
+    local width="${BASH_REMATCH[1]}" height="${BASH_REMATCH[2]}"
 
-  require_tools
-  [[ -f "$STATE_FILE" ]] && die "A session is already running. Stop it with: $0 stop"
+    require_tools
+    [[ -f "${STATE_FILE}" ]] && die "A session is already running. Stop it with: ${0} stop"
 
-  if [[ $build -eq 1 ]]; then
-    echo "Building the Linux release bundle..."
-    (cd "$REPO_ROOT" && flutter build linux --release)
-  fi
+    if [[ ${build} -eq 1 ]]; then
+        echo "Building the Linux release bundle..."
+        (cd "${REPO_ROOT}" && flutter build linux --release)
+    fi
 
-  local binary
-  if [[ -x "$RELEASE_BIN" ]]; then binary="$RELEASE_BIN"
-  elif [[ -x "$DEBUG_BIN" ]]; then binary="$DEBUG_BIN"
-  else die "No Linux build found. Run '$0 start --build', or 'flutter build linux --release'."
-  fi
+    local binary
+    if [[ -x "${RELEASE_BIN}" ]]; then binary="${RELEASE_BIN}"
+    elif [[ -x "${DEBUG_BIN}" ]]; then binary="${DEBUG_BIN}"
+    else die "No Linux build found. Run '${0} start --build', or 'flutter build linux --release'."
+    fi
 
-  local display; display=$(pick_display)
-  mkdir -p "$STATE_DIR"
-  local app_home="$STATE_DIR/home"
-  [[ $keep_home -eq 1 ]] || rm -rf "$app_home"
-  mkdir -p "$app_home"
+    local display; display=$(pick_display)
+    mkdir -p "${STATE_DIR}"
+    local app_home="${STATE_DIR}/home"
+    [[ ${keep_home} -eq 1 ]] || rm -rf "${app_home}"
+    mkdir -p "${app_home}"
 
-  # The screen is larger than the window so a resized or dialog-covered window
-  # still has room; the window itself is what gets captured.
-  Xvfb "$display" -screen 0 "$((width + 320))x$((height + 280))x24" -nolisten tcp \
-    >"$STATE_DIR/xvfb.log" 2>&1 &
-  local xvfb_pid=$!
-  # Wait for the server to answer rather than sleeping a guessed amount.
-  local i
-  for i in $(seq 1 50); do
-    display_is_up "$display" && break
-    sleep 0.2
-  done
-  display_is_up "$display" || die "Xvfb failed to start (see $STATE_DIR/xvfb.log)."
+    # The screen is larger than the window so a resized or dialog-covered window
+    # still has room; the window itself is what gets captured.
+    Xvfb "${display}" -screen 0 "$((width + 320))x$((height + 280))x24" -nolisten tcp \
+        >"${STATE_DIR}/xvfb.log" 2>&1 &
+    local xvfb_pid=$!
+    # Wait for the server to answer rather than sleeping a guessed amount.
+    for _ in $(seq 1 50); do
+        display_is_up "${display}" && break
+        sleep 0.2
+    done
+    display_is_up "${display}" || die "Xvfb failed to start (see ${STATE_DIR}/xvfb.log)."
 
-  # Without a window manager the app cannot be resized: it keeps the 1280x720 it
-  # asks for at startup and ignores any XResizeWindow.
-  DISPLAY="$display" setsid openbox >"$STATE_DIR/openbox.log" 2>&1 &
-  local wm_pid=$!
+    # Without a window manager the app cannot be resized: it keeps the 1280x720 it
+    # asks for at startup and ignores any XResizeWindow.
+    DISPLAY="${display}" setsid openbox >"${STATE_DIR}/openbox.log" 2>&1 &
+    local wm_pid=$!
 
-  # Three things matter in this launch, and each one has bitten:
-  #  - WAYLAND_DISPLAY unset and GDK_BACKEND=x11: GTK prefers Wayland when it is
-  #    advertised, and in the dev container that is the developer's own WSLg
-  #    compositor. The app would open on their desktop and never appear here.
-  #  - HOME pointed at an empty directory: the home screen lists recent projects
-  #    with their full paths, so the real one would end up in the screenshots.
-  #  - setsid: the app outlives the shell that started it, which is what makes a
-  #    session usable across several invocations of this script.
-  env -u WAYLAND_DISPLAY \
-    HOME="$app_home" \
-    DISPLAY="$display" \
-    GDK_BACKEND=x11 \
-    LIBGL_ALWAYS_SOFTWARE=1 \
-    setsid "$binary" >"$STATE_DIR/app.log" 2>&1 &
-  local app_pid=$!
+    # Three things matter in this launch, and each one has bitten:
+    #  - WAYLAND_DISPLAY unset and GDK_BACKEND=x11: GTK prefers Wayland when it is
+    #    advertised, and in the dev container that is the developer's own WSLg
+    #    compositor. The app would open on their desktop and never appear here.
+    #  - HOME pointed at an empty directory: the home screen lists recent projects
+    #    with their full paths, so the real one would end up in the screenshots.
+    #  - setsid: the app outlives the shell that started it, which is what makes a
+    #    session usable across several invocations of this script.
+    env -u WAYLAND_DISPLAY \
+        HOME="${app_home}" \
+        DISPLAY="${display}" \
+        GDK_BACKEND=x11 \
+        LIBGL_ALWAYS_SOFTWARE=1 \
+        setsid "${binary}" >"${STATE_DIR}/app.log" 2>&1 &
+    local app_pid=$!
 
-  local wid=""
-  for i in $(seq 1 60); do
-    wid=$(DISPLAY="$display" xdotool search --name '^open_cine_prod_tools$' 2>/dev/null | head -1 || true)
-    [[ -n "$wid" ]] && break
-    sleep 0.5
-  done
-  [[ -n "$wid" ]] || die "The app window never appeared (see $STATE_DIR/app.log)."
+    local wid=""
+    for _ in $(seq 1 60); do
+        wid=$(DISPLAY="${display}" xdotool search --name '^open_cine_prod_tools$' 2>/dev/null \
+            | head -1 || true)
+        [[ -n "${wid}" ]] && break
+        sleep 0.5
+    done
+    [[ -n "${wid}" ]] || die "The app window never appeared (see ${STATE_DIR}/app.log)."
 
-  cat >"$STATE_FILE" <<STATE
-OCPT_DISPLAY=$display
-OCPT_WID=$wid
-OCPT_APP_HOME=$app_home
-OCPT_XVFB_PID=$xvfb_pid
-OCPT_WM_PID=$wm_pid
-OCPT_APP_PID=$app_pid
+    cat >"${STATE_FILE}" <<STATE
+OCPT_DISPLAY=${display}
+OCPT_WID=${wid}
+OCPT_APP_HOME=${app_home}
+OCPT_XVFB_PID=${xvfb_pid}
+OCPT_WM_PID=${wm_pid}
+OCPT_APP_PID=${app_pid}
 STATE
 
-  if [[ "$width" != "1280" || "$height" != "720" ]]; then
-    # Resizing before the first frame is rendered makes the app give up with
-    # "Timed out waiting for OpenGL frame" and exit - llvmpipe is slow enough
-    # that the window has to be settled first.
-    sleep 6
-    DISPLAY="$display" xdotool windowsize "$wid" "$width" "$height"
+    if [[ "${width}" != "1280" || "${height}" != "720" ]]; then
+        # Resizing before the first frame is rendered makes the app give up with
+        # "Timed out waiting for OpenGL frame" and exit - llvmpipe is slow enough
+        # that the window has to be settled first.
+        sleep 6
+        DISPLAY="${display}" xdotool windowsize "${wid}" "${width}" "${height}"
+        sleep 3
+    fi
+    # Let the UI finish its first paint before anyone captures it.
     sleep 3
-  fi
-  # Let the UI finish its first paint before anyone captures it.
-  sleep 3
 
-  echo "Session ready on $display (window $wid, ${width}x${height})."
-  echo "Isolated HOME: $app_home"
+    echo "Session ready on ${display} (window ${wid}, ${width}x${height})."
+    echo "Isolated HOME: ${app_home}"
 }
 
 cmd_shot() {
-  local out="${1:?Usage: $0 shot <file.png> [window-id]}"
-  local target="${2:-}"
-  load_session
-  mkdir -p "$(dirname -- "$out")"
-  import -window "${target:-$OCPT_WID}" "$out"
-  echo "$out"
+    local out="${1:?Usage: ${0} shot <file.png> [window-id]}"
+    local target="${2:-}"
+    load_session
+    mkdir -p "$(dirname -- "${out}")"
+    import -window "${target:-${OCPT_WID}}" "${out}"
+    echo "${out}"
 }
 
 cmd_windows() {
-  load_session
-  xwininfo -root -children | sed -n '/children:/,$p'
+    load_session
+    xwininfo -root -children | sed -n '/children:/,$p'
 }
 
 cmd_click() {
-  local x="${1:?Usage: $0 click <x> <y>}" y="${2:?Usage: $0 click <x> <y>}"
-  load_session
-  # mousemove then a settled click: Flutter drops press/release pairs that
-  # arrive in the same instant as the move.
-  xdotool mousemove --window "$OCPT_WID" "$x" "$y" sleep 0.4 click 1 sleep 1
+    local x="${1:?Usage: ${0} click <x> <y>}" y="${2:?Usage: ${0} click <x> <y>}"
+    load_session
+    # mousemove then a settled click: Flutter drops press/release pairs that
+    # arrive in the same instant as the move.
+    xdotool mousemove --window "${OCPT_WID}" "${x}" "${y}" sleep 0.4 click 1 sleep 1
 }
 
 # No --window here on purpose: the app's file dialogs are separate X windows, and
@@ -222,25 +227,25 @@ cmd_click() {
 # the user's would. Sending to $OCPT_WID would type into the window behind the
 # dialog instead.
 cmd_move() {
-  local x="${1:?Usage: $0 move <x> <y>}" y="${2:?Usage: $0 move <x> <y>}"
-  load_session
-  xdotool mousemove --window "$OCPT_WID" "$x" "$y"
-  # Long enough for a tooltip the pointer is leaving to fade out.
-  sleep 1
+    local x="${1:?Usage: ${0} move <x> <y>}" y="${2:?Usage: ${0} move <x> <y>}"
+    load_session
+    xdotool mousemove --window "${OCPT_WID}" "${x}" "${y}"
+    # Long enough for a tooltip the pointer is leaving to fade out.
+    sleep 1
 }
 
 cmd_type() {
-  local text="${1?Usage: $0 type <text>}"
-  load_session
-  xdotool type --clearmodifiers --delay 25 -- "$text"
-  sleep 0.5
+    local text="${1?Usage: ${0} type <text>}"
+    load_session
+    xdotool type --clearmodifiers --delay 25 -- "${text}"
+    sleep 0.5
 }
 
 cmd_key() {
-  local keys="${1:?Usage: $0 key <keys>}"
-  load_session
-  xdotool key --clearmodifiers "$keys"
-  sleep 1
+    local keys="${1:?Usage: ${0} key <keys>}"
+    load_session
+    xdotool key --clearmodifiers "${keys}"
+    sleep 1
 }
 
 # Flutter scrolls whatever is under the pointer, so the pointer has to be moved
@@ -248,68 +253,67 @@ cmd_key() {
 # default lands in the middle of the window, which is the content area in every
 # mode; pass x and y to aim at a specific panel.
 cmd_scroll() {
-  local direction="${1:?Usage: $0 scroll <up|down> [n] [x y]}" count="${2:-3}"
-  load_session
-  local button
-  case "$direction" in
-    up) button=4 ;;
-    down) button=5 ;;
-    *) die "scroll takes 'up' or 'down'" ;;
-  esac
+    local direction="${1:?Usage: ${0} scroll <up|down> [n] [x y]}" count="${2:-3}"
+    load_session
+    local button
+    case "${direction}" in
+        up) button=4 ;;
+        down) button=5 ;;
+        *) die "scroll takes 'up' or 'down'" ;;
+    esac
 
-  local x="${3:-}" y="${4:-}"
-  if [[ -z "$x" || -z "$y" ]]; then
-    local geometry width height
-    geometry=$(xdotool getwindowgeometry --shell "$OCPT_WID")
-    width=$(sed -n 's/^WIDTH=//p' <<<"$geometry")
-    height=$(sed -n 's/^HEIGHT=//p' <<<"$geometry")
-    x=$((width / 2))
-    y=$((height / 2))
-  fi
-  xdotool mousemove --window "$OCPT_WID" "$x" "$y"
+    local x="${3:-}" y="${4:-}"
+    if [[ -z "${x}" || -z "${y}" ]]; then
+        local geometry width height
+        geometry=$(xdotool getwindowgeometry --shell "${OCPT_WID}")
+        width=$(sed -n 's/^WIDTH=//p' <<<"${geometry}")
+        height=$(sed -n 's/^HEIGHT=//p' <<<"${geometry}")
+        x=$((width / 2))
+        y=$((height / 2))
+    fi
+    xdotool mousemove --window "${OCPT_WID}" "${x}" "${y}"
 
-  local i
-  for i in $(seq 1 "$count"); do
-    xdotool click "$button"
-  done
-  sleep 1
+    for _ in $(seq 1 "${count}"); do
+        xdotool click "${button}"
+    done
+    sleep 1
 }
 
-cmd_home() { load_session; echo "$OCPT_APP_HOME"; }
+cmd_home() { load_session; echo "${OCPT_APP_HOME}"; }
 
 cmd_status() {
-  load_session
-  echo "display: $OCPT_DISPLAY"
-  echo "window:  $OCPT_WID"
-  echo "home:    $OCPT_APP_HOME"
-  xwininfo -id "$OCPT_WID" | grep -E '^\s+(Width|Height):'
+    load_session
+    echo "display: ${OCPT_DISPLAY}"
+    echo "window:  ${OCPT_WID}"
+    echo "home:    ${OCPT_APP_HOME}"
+    xwininfo -id "${OCPT_WID}" | grep -E '^\s+(Width|Height):'
 }
 
 cmd_stop() {
-  [[ -f "$STATE_FILE" ]] || { echo "No session running."; return; }
-  # shellcheck disable=SC1090
-  source "$STATE_FILE"
-  # Kill by recorded pid, never `pkill -f open_cine_prod_tools`: that pattern
-  # also matches this script's own command line, so it would kill the caller.
-  local pid
-  for pid in "$OCPT_APP_PID" "$OCPT_WM_PID" "$OCPT_XVFB_PID"; do
-    kill "$pid" 2>/dev/null || true
-  done
-  rm -f "$STATE_FILE"
-  echo "Session stopped."
+    [[ -f "${STATE_FILE}" ]] || { echo "No session running."; return; }
+    # shellcheck disable=SC1090
+    source "${STATE_FILE}"
+    # Kill by recorded pid, never `pkill -f open_cine_prod_tools`: that pattern
+    # also matches this script's own command line, so it would kill the caller.
+    local pid
+    for pid in "${OCPT_APP_PID}" "${OCPT_WM_PID}" "${OCPT_XVFB_PID}"; do
+        kill "${pid}" 2>/dev/null || true
+    done
+    rm -f "${STATE_FILE}"
+    echo "Session stopped."
 }
 
 case "${1:-}" in
-  start)  shift; cmd_start "$@" ;;
-  shot)   shift; cmd_shot "$@" ;;
-  click)  shift; cmd_click "$@" ;;
-  move)   shift; cmd_move "$@" ;;
-  type)   shift; cmd_type "$@" ;;
-  key)    shift; cmd_key "$@" ;;
-  scroll) shift; cmd_scroll "$@" ;;
-  windows) shift; cmd_windows ;;
-  home)   shift; cmd_home ;;
-  status) shift; cmd_status ;;
-  stop)   shift; cmd_stop ;;
-  *)      sed -n '6,52p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 1 ;;
+    start)  shift; cmd_start "$@" ;;
+    shot)   shift; cmd_shot "$@" ;;
+    click)  shift; cmd_click "$@" ;;
+    move)   shift; cmd_move "$@" ;;
+    type)   shift; cmd_type "$@" ;;
+    key)    shift; cmd_key "$@" ;;
+    scroll) shift; cmd_scroll "$@" ;;
+    windows) shift; cmd_windows ;;
+    home)   shift; cmd_home ;;
+    status) shift; cmd_status ;;
+    stop)   shift; cmd_stop ;;
+    *)      sed -n '6,52p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

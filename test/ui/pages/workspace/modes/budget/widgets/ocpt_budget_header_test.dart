@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
@@ -24,6 +24,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptBudgetHeader].
 void main() {
   /// Widens the test surface — `flutter_test`'s own substituted test font renders these short
   /// labels far wider than any real one does, which would make the narrow-window wrapping case
@@ -48,9 +49,9 @@ void main() {
     ValueChanged<bool>? onSimplifiedChanged,
     OcptBudgetTaxBasis taxBasis = OcptBudgetTaxBasis.includingTax,
     ValueChanged<OcptBudgetTaxBasis>? onTaxBasisChanged,
-    List<OcptBudgetPoste> postes = const [],
-    String? filterPosteId,
-    VoidCallback? onPosteFilterCleared,
+    List<OcptBudgetAccount> accounts = const [],
+    String? filterAccountId,
+    VoidCallback? onAccountFilterCleared,
     int alertCount = 0,
     String? captureLabel,
     VoidCallback? onCaptureRequested,
@@ -66,9 +67,9 @@ void main() {
           onSimplifiedChanged: onSimplifiedChanged ?? (_) {},
           taxBasis: taxBasis,
           onTaxBasisChanged: onTaxBasisChanged ?? (_) {},
-          postes: postes,
-          filterPosteId: filterPosteId,
-          onPosteFilterCleared: onPosteFilterCleared ?? () {},
+          accounts: accounts,
+          filterAccountId: filterAccountId,
+          onAccountFilterCleared: onAccountFilterCleared ?? () {},
           alertCount: alertCount,
           captureLabel: captureLabel,
           onCaptureRequested: onCaptureRequested,
@@ -119,9 +120,7 @@ void main() {
         expect(find.text(label), findsOneWidget);
       }
 
-      final positions = [
-        for (final label in labels) tester.getCenter(find.text(label)).dx,
-      ];
+      final positions = [for (final label in labels) tester.getCenter(find.text(label)).dx];
       expect(positions, orderedEquals(List<double>.from(positions)..sort()));
     });
 
@@ -169,7 +168,7 @@ void main() {
 
       tr = await pumpHeader(tester, view: OcptBudgetView.tools);
       expect(find.text(tr.budgetHeaderCashFlowSegmentLabel), findsOneWidget);
-      expect(find.text(tr.budgetHeaderRegieSegmentLabel), findsOneWidget);
+      expect(find.text(tr.budgetHeaderLogisticsSegmentLabel), findsOneWidget);
       expect(find.text(tr.budgetHeaderSharingSegmentLabel), findsOneWidget);
     });
 
@@ -178,12 +177,12 @@ void main() {
       final tr = await pumpHeader(
         tester,
         view: OcptBudgetView.tools,
-        toolsView: OcptBudgetToolsView.regie,
+        toolsView: OcptBudgetToolsView.logistics,
       );
 
       final segment = tester.widget<InkWell>(
         find.ancestor(
-          of: find.text(tr.budgetHeaderRegieSegmentLabel),
+          of: find.text(tr.budgetHeaderLogisticsSegmentLabel),
           matching: find.byType(InkWell),
         ),
       );
@@ -237,7 +236,7 @@ void main() {
         final tr = await pumpHeader(tester, view: OcptBudgetView.resources);
         expect(find.text(tr.budgetHeaderExcludingTaxSegmentLabel), findsNothing);
 
-        for (final toolsView in [OcptBudgetToolsView.regie, OcptBudgetToolsView.sharing]) {
+        for (final toolsView in [OcptBudgetToolsView.logistics, OcptBudgetToolsView.sharing]) {
           final tr = await pumpHeader(tester, view: OcptBudgetView.tools, toolsView: toolsView);
           expect(
             find.text(tr.budgetHeaderExcludingTaxSegmentLabel),
@@ -294,7 +293,7 @@ void main() {
   });
 
   group("the poste filter tag", () {
-    final poste = const OcptBudgetPoste(
+    final account = const OcptBudgetAccount(
       id: "poste-1",
       code: "1",
       label: "Interpretation",
@@ -306,7 +305,7 @@ void main() {
 
     testWidgets("draws nothing at all while unfiltered", (tester) async {
       useWideWindow(tester);
-      await pumpHeader(tester, postes: [poste]);
+      await pumpHeader(tester, accounts: [account]);
 
       expect(find.text("Interpretation"), findsNothing);
       expect(find.byIcon(Icons.close), findsNothing);
@@ -317,9 +316,9 @@ void main() {
       var wasCalled = false;
       await pumpHeader(
         tester,
-        postes: [poste],
-        filterPosteId: "poste-1",
-        onPosteFilterCleared: () => wasCalled = true,
+        accounts: [account],
+        filterAccountId: "poste-1",
+        onAccountFilterCleared: () => wasCalled = true,
       );
 
       expect(find.text("Interpretation"), findsOneWidget);
@@ -330,20 +329,17 @@ void main() {
       expect(wasCalled, isTrue);
     });
 
-    testWidgets(
-      "stands on every route, whether or not it is honoured there",
-      (tester) async {
-        useWideWindow(tester);
-        for (final view in OcptBudgetView.values) {
-          await pumpHeader(tester, postes: [poste], filterPosteId: "poste-1", view: view);
-          expect(find.text("Interpretation"), findsOneWidget, reason: "$view");
-        }
-      },
-    );
-
-    testWidgets("draws nothing while filterPosteId names no live poste", (tester) async {
+    testWidgets("stands on every route, whether or not it is honoured there", (tester) async {
       useWideWindow(tester);
-      await pumpHeader(tester, postes: [poste], filterPosteId: "gone");
+      for (final view in OcptBudgetView.values) {
+        await pumpHeader(tester, accounts: [account], filterAccountId: "poste-1", view: view);
+        expect(find.text("Interpretation"), findsOneWidget, reason: "$view");
+      }
+    });
+
+    testWidgets("draws nothing while filterAccountId names no live account", (tester) async {
+      useWideWindow(tester);
+      await pumpHeader(tester, accounts: [account], filterAccountId: "gone");
 
       expect(find.text("Interpretation"), findsNothing);
       expect(find.byIcon(Icons.close), findsNothing);

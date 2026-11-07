@@ -21,51 +21,56 @@
 
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-  echo "usage: $(basename "$0") <X.Y.Z>" >&2
-  exit 2
+if [[ ${#} -ne 1 ]]; then
+    echo "usage: $(basename "${0}") <X.Y.Z>" >&2
+    exit 2
 fi
 
-version="$1"
+VERSION="${1}"
+readonly VERSION
 
-if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "error: '$version' is not a X.Y.Z version number (no leading 'v')." >&2
-  exit 2
+if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "error: '${VERSION}' is not a X.Y.Z version number (no leading 'v')." >&2
+    exit 2
 fi
 
 # Resolve the site directory from this script's own location, so the command works from any cwd.
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-site_dir="$(cd "$script_dir/.." && pwd)"
-cd "$site_dir"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
+SITE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+readonly SITE_DIR
+cd "${SITE_DIR}"
 
-fr_current="i18n/fr/docusaurus-plugin-content-docs/current"
-fr_versioned="i18n/fr/docusaurus-plugin-content-docs/version-$version"
+FR_CURRENT="i18n/fr/docusaurus-plugin-content-docs/current"
+readonly FR_CURRENT
+FR_VERSIONED="i18n/fr/docusaurus-plugin-content-docs/version-${VERSION}"
+readonly FR_VERSIONED
 
 # Refuse to run over a dirty site tree: the cut must be a clean, reviewable diff on its own.
-if [[ -n "$(git status --porcelain -- "$site_dir")" ]]; then
-  echo "error: the docs-site working tree is dirty; commit or stash first." >&2
-  exit 1
+if [[ -n "$(git status --porcelain -- "${SITE_DIR}")" ]]; then
+    echo "error: the docs-site working tree is dirty; commit or stash first." >&2
+    exit 1
 fi
 
 # Refuse to overwrite a version that already exists.
-if [[ -d "versioned_docs/version-$version" || -d "$fr_versioned" ]]; then
-  echo "error: version $version already has a snapshot; nothing to do." >&2
-  exit 1
+if [[ -d "versioned_docs/version-${VERSION}" || -d "${FR_VERSIONED}" ]]; then
+    echo "error: version ${VERSION} already has a snapshot; nothing to do." >&2
+    exit 1
 fi
 
-echo "Cutting guide version $version ..."
+echo "Cutting guide version ${VERSION} ..."
 
 # 1. The default-locale snapshot, sidebar and versions.json.
-npm run docusaurus docs:version "$version"
+npm run docusaurus docs:version "${VERSION}"
 
 # 2. The French mirror the command does not create.
-cp -R "$fr_current" "$fr_versioned"
+cp -R "${FR_CURRENT}" "${FR_VERSIONED}"
 
 echo
 echo "Created:"
-echo "  versioned_docs/version-$version/"
-echo "  versioned_sidebars/version-$version-sidebars.json"
-echo "  $fr_versioned/"
+echo "  versioned_docs/version-${VERSION}/"
+echo "  versioned_sidebars/version-${VERSION}-sidebars.json"
+echo "  ${FR_VERSIONED}/"
 echo "  versions.json (updated)"
 echo
 echo "Next:"

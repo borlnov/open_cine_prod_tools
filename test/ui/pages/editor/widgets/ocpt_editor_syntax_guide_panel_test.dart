@@ -11,8 +11,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_syntax_guide_panel.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests, matching
-/// `editor_page_test.dart`'s own `_wrapWithLocalization` helper. When [height] is given, the
-/// panel is constrained to it (used by the small-height overflow test).
+/// `editor_page_test_doubles.dart`'s own `_wrapWithLocalization` helper. When [height] is given,
+/// the panel is constrained to it (used by the small-height overflow test).
 Widget _wrapWithLocalization(Widget child, {double? height}) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
@@ -37,6 +37,7 @@ void _growTestSurface(WidgetTester tester, {double height = 3000}) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
+/// Run the tests of [OcptEditorSyntaxGuidePanel].
 void main() {
   testWidgets("renders all 4 section headers", (tester) async {
     _growTestSurface(tester);

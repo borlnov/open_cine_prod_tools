@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_quote_export_options.dart';
@@ -38,7 +38,12 @@ class OcptBudgetQuoteExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptBudgetQuoteExportDialog({required this.current, required this.taxBasis, super.key});
 
-  /// Shows the dialog and returns the [OcptBudgetQuoteExportOptions] the user applied, or null if
+  /// Create the [_OcptBudgetQuoteExportDialogState] holding the state of the budget quote export
+  /// dialog.
+  @override
+  State<OcptBudgetQuoteExportDialog> createState() => _OcptBudgetQuoteExportDialogState();
+
+  /// Show the dialog and return the [OcptBudgetQuoteExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptBudgetQuoteExportOptions?> show(
     BuildContext context, {
@@ -48,9 +53,6 @@ class OcptBudgetQuoteExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptBudgetQuoteExportDialog(current: current, taxBasis: taxBasis),
   );
-
-  @override
-  State<OcptBudgetQuoteExportDialog> createState() => _OcptBudgetQuoteExportDialogState();
 }
 
 /// The state of [OcptBudgetQuoteExportDialog].
@@ -64,6 +66,7 @@ class _OcptBudgetQuoteExportDialogState extends State<OcptBudgetQuoteExportDialo
   /// Whether the title page will be included in the exported document.
   bool _includeTitlePage = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
@@ -71,6 +74,7 @@ class _OcptBudgetQuoteExportDialogState extends State<OcptBudgetQuoteExportDialo
     _selectedTaxBasis = widget.taxBasis;
   }
 
+  /// Build the budget quote export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -85,7 +89,7 @@ class _OcptBudgetQuoteExportDialogState extends State<OcptBudgetQuoteExportDialo
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -132,15 +136,15 @@ class _OcptBudgetQuoteExportDialogState extends State<OcptBudgetQuoteExportDialo
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptBudgetQuoteExportOptions].
+  /// Pop the dialog returning the resulting [OcptBudgetQuoteExportOptions].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the [OcptBudgetQuoteExportDialog.show]
   /// caller.
   void _submit() {

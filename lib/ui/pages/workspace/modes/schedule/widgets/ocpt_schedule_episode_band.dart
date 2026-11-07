@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// The band an episode wears wherever the schedule mode groups shots by episode before it groups
 /// them by sequence — the left dock's own shots-still-to-place list and
@@ -31,6 +31,7 @@ class OcptScheduleEpisodeBand extends StatelessWidget {
   /// Class constructor
   const OcptScheduleEpisodeBand({super.key, required this.label});
 
+  /// Build the schedule episode band as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -40,7 +41,7 @@ class OcptScheduleEpisodeBand extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Text(
         label,

@@ -4,9 +4,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -15,7 +15,7 @@ import 'package:super_editor/super_editor.dart';
 /// base in group 1 and the letter suffix (possibly empty) in group 2.
 final RegExp _sequentialSceneNumberPattern = RegExp(r'^([0-9]+)([A-Za-z]*)$');
 
-/// Computes the requests needed to bring every scene heading's [ocptSceneNumberMetadataKey]
+/// Compute the requests needed to bring every scene heading's [ocptSceneNumberMetadataKey]
 /// metadata back to a valid, gapless sequential numbering of [document], in source order —
 /// every heading always ends up with a number, so it always round-trips into the Fountain source
 /// through [OcptWysiwygCodec.encode] (this app has no "hide the numbers from the source" mode).
@@ -46,13 +46,17 @@ List<EditRequest> sceneNumberNormalizationRequests(Document document, {bool isHi
     if (node is! ParagraphNode) {
       continue;
     }
-    final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+    final type = OcptFountainLineAttributions.typeOfAttributionValue(
+      node.getMetadataValue("blockType"),
+    );
     if (type != FountainLineType.sceneHeading) {
       continue;
     }
 
     final currentNumber = node.getMetadataValue(ocptSceneNumberMetadataKey);
-    final match = currentNumber is String ? _sequentialSceneNumberPattern.firstMatch(currentNumber) : null;
+    final match = currentNumber is String
+        ? _sequentialSceneNumberPattern.firstMatch(currentNumber)
+        : null;
     final base = match == null ? null : int.parse(match.group(1)!);
     final hasLetterSuffix = match != null && match.group(2)!.isNotEmpty;
 
@@ -106,32 +110,6 @@ List<EditRequest> sceneNumberNormalizationRequests(Document document, {bool isHi
 /// every [ParagraphComponentViewModel] regardless of node type would therefore swallow every other
 /// builder's nodes too, never letting them run at all.
 class OcptSceneNumberGutterComponentBuilder implements ComponentBuilder {
-  /// Creates an [OcptSceneNumberGutterComponentBuilder]. Prefer
-  /// [OcptSceneNumberGutterComponentBuilder.build] over calling this directly: it derives
-  /// [gutterWidth] and [numberGap] from an `OcptEditorPreviewLayout` consistently with the rest
-  /// of the styled editor's typesetting.
-  const OcptSceneNumberGutterComponentBuilder({
-    required this.sceneNumbers,
-    required this.gutterWidth,
-    required this.numberGap,
-    required this.textStyle,
-  });
-
-  /// Builds an [OcptSceneNumberGutterComponentBuilder] for [layout]'s scene-heading indent: the
-  /// gutter available to paint a number in is exactly that indent (the same left margin the raw
-  /// preview and the PDF exporter both derive from [layout]/`FountainLayoutMetrics`), and the
-  /// number stops one glyph width short of the heading's own text.
-  factory OcptSceneNumberGutterComponentBuilder.build({
-    required Map<String, String> sceneNumbers,
-    required OcptEditorPreviewLayout layout,
-    required TextStyle textStyle,
-  }) => OcptSceneNumberGutterComponentBuilder(
-    sceneNumbers: sceneNumbers,
-    gutterWidth: layout.indentOf(layout.metrics.sceneHeading),
-    numberGap: layout.glyphWidth,
-    textStyle: textStyle,
-  );
-
   /// The delegate every scene-heading node's actual paragraph rendering is built through.
   static const _delegate = ParagraphComponentBuilder();
 
@@ -151,7 +129,33 @@ class OcptSceneNumberGutterComponentBuilder implements ComponentBuilder {
   /// The text style the number is painted with.
   final TextStyle textStyle;
 
-  /// Delegates to [ParagraphComponentBuilder] for every node, but only actually claims scene
+  /// Create an [OcptSceneNumberGutterComponentBuilder]. Prefer
+  /// [OcptSceneNumberGutterComponentBuilder.build] over calling this directly: it derives
+  /// [gutterWidth] and [numberGap] from an `OcptEditorPreviewLayout` consistently with the rest
+  /// of the styled editor's typesetting.
+  const OcptSceneNumberGutterComponentBuilder({
+    required this.sceneNumbers,
+    required this.gutterWidth,
+    required this.numberGap,
+    required this.textStyle,
+  });
+
+  /// Build an [OcptSceneNumberGutterComponentBuilder] for [layout]'s scene-heading indent: the
+  /// gutter available to paint a number in is exactly that indent (the same left margin the raw
+  /// preview and the PDF exporter both derive from [layout]/`FountainLayoutMetrics`), and the
+  /// number stops one glyph width short of the heading's own text.
+  factory OcptSceneNumberGutterComponentBuilder.build({
+    required Map<String, String> sceneNumbers,
+    required OcptEditorPreviewLayout layout,
+    required TextStyle textStyle,
+  }) => OcptSceneNumberGutterComponentBuilder(
+    sceneNumbers: sceneNumbers,
+    gutterWidth: layout.indentOf(layout.metrics.sceneHeading),
+    numberGap: layout.glyphWidth,
+    textStyle: textStyle,
+  );
+
+  /// Delegate to [ParagraphComponentBuilder] for every node, but only actually claims scene
   /// heading nodes (returning null for every other node lets the next builder in the list handle
   /// it) — the gutter number is only ever relevant next to a scene heading.
   @override
@@ -159,7 +163,9 @@ class OcptSceneNumberGutterComponentBuilder implements ComponentBuilder {
     if (node is! ParagraphNode) {
       return null;
     }
-    final type = OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+    final type = OcptFountainLineAttributions.typeOfAttributionValue(
+      node.getMetadataValue("blockType"),
+    );
     if (type != FountainLineType.sceneHeading) {
       return null;
     }
@@ -167,8 +173,8 @@ class OcptSceneNumberGutterComponentBuilder implements ComponentBuilder {
     return _delegate.createViewModel(document, node);
   }
 
-  /// Builds the delegate's normal paragraph component, then, if this node has a scene number to
-  /// show, overlays it in the left gutter with a non-clipping `Stack`.
+  /// Build the delegate's normal paragraph component, then, if this node has a scene number to
+  /// show, overlay it in the left gutter with a non-clipping `Stack`.
   ///
   /// Claims a node — rather than falling through to let the next builder try — only when
   /// [sceneNumbers] actually has an entry for it: every scene heading is expected to have one (see

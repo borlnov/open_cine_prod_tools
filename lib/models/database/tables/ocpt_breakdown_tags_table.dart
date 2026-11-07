@@ -3,26 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_breakdown_target_kind_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sets_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
-
-/// Converts a [OcptBreakdownTargetKind] to and from the text stored in the
-/// `breakdown_tags.targetKind` column.
-class OcptBreakdownTargetKindConverter extends TypeConverter<OcptBreakdownTargetKind, String> {
-  /// Class constructor
-  const OcptBreakdownTargetKindConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptBreakdownTargetKind fromSql(String fromDb) => OcptBreakdownTargetKind.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptBreakdownTargetKind value) => value.name;
-}
 
 /// A passage of the screenplay tagged during the breakdown pass, anchoring it to the catalogue row
 /// it calls for.
@@ -51,38 +37,40 @@ class OcptBreakdownTagsTable extends Table {
   @override
   String get tableName => 'breakdown_tags';
 
-  /// The stable, unique id of this tag (a UUID).
+  /// Get the stable, unique id of this tag (a UUID).
   TextColumn get id => text()();
 
-  /// The scene the tagged passage is in. [startOffset]/[endOffset] are relative to this scene's
+  /// Get the scene the tagged passage is in. [startOffset]/[endOffset] are relative to this scene's
   /// `charStart`.
   TextColumn get sceneId => text().references(OcptScenesTable, #id)();
 
-  /// Which of [elementId]/[roleId]/[setId] this tag points at.
+  /// Tell which of [elementId]/[roleId]/[setId] this tag points at.
   TextColumn get targetKind => text().map(const OcptBreakdownTargetKindConverter())();
 
-  /// The element this tag points at, non-null iff [targetKind] is
+  /// Get the element this tag points at, non-null iff [targetKind] is
   /// [OcptBreakdownTargetKind.element].
   TextColumn get elementId => text().nullable().references(OcptElementsTable, #id)();
 
-  /// The role this tag points at, non-null iff [targetKind] is [OcptBreakdownTargetKind.role].
+  /// Get the role this tag points at, non-null iff [targetKind] is [OcptBreakdownTargetKind.role].
   TextColumn get roleId => text().nullable().references(OcptRolesTable, #id)();
 
-  /// The set this tag points at, non-null iff [targetKind] is [OcptBreakdownTargetKind.set].
+  /// Get the set this tag points at, non-null iff [targetKind] is [OcptBreakdownTargetKind.set].
   TextColumn get setId => text().nullable().references(OcptSetsTable, #id)();
 
-  /// The character offset, relative to the scene's `charStart`, at which the tagged passage
+  /// Get the character offset, relative to the scene's `charStart`, at which the tagged passage
   /// starts.
   IntColumn get startOffset => integer()();
 
-  /// The character offset, relative to the scene's `charStart`, one past the last character of the
+  /// Get the character offset, relative to the scene's `charStart`, one past the last character of
+  /// the
   /// tagged passage.
   IntColumn get endOffset => integer()();
 
-  /// The tagged passage, verbatim, as it read when this tag was last written or re-anchored.
+  /// Get the tagged passage, verbatim, as it read when this tag was last written or re-anchored.
   TextColumn get taggedText => text()();
 
-  /// Whether the passage at [startOffset]/[endOffset] no longer matches [taggedText] and could not
+  /// Tell whether the passage at [startOffset]/[endOffset] no longer matches [taggedText] and could
+  /// not
   /// be re-anchored by searching the scene for it.
   BoolColumn get needsCheck => boolean().withDefault(const Constant(false))();
 

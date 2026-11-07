@@ -6,7 +6,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-/// Draws the image file at [path], or whatever [fallbackBuilder] returns when there is no file
+/// Draw the image file at [path], or whatever [fallbackBuilder] returns when there is no file
 /// there to draw.
 ///
 /// **The single place the app decides what a referenced image looks like.** Three surfaces show
@@ -22,14 +22,14 @@ import 'package:flutter/material.dart';
 /// and a list silently one item short is a bug the user cannot see. A person has **one** photo, and
 /// their initials are a perfectly good thing to see in its place.
 ///
-/// A [StatefulWidget] (the documented RFL1 exception) for the reason `OcptAssetFileLine` is one:
+/// A [StatefulWidget] (the documented exception) for the reason `OcptAssetFileLine` is one:
 /// whether the file is there is asked once, with a single `stat`, when the widget is built or given
 /// another path — never from `build`, which would run it on every frame an unrelated rebuild
 /// produces. [Image.file]'s own `errorBuilder` is the second guard, for the file that *is* there
 /// and still cannot be decoded.
 class OcptReferencedImage extends StatefulWidget {
-  /// The absolute path of the image to draw, or null while nothing is referenced — [fallbackBuilder]
-  /// then answers without a `stat` ever running.
+  /// The absolute path of the image to draw, or null while nothing is referenced —
+  /// [fallbackBuilder] then answers without a `stat` ever running.
   final String? path;
 
   /// How the image fills the space it is given.
@@ -46,6 +46,7 @@ class OcptReferencedImage extends StatefulWidget {
     this.fit = BoxFit.cover,
   });
 
+  /// Create the [_OcptReferencedImageState] holding the state of the referenced image.
   @override
   State<OcptReferencedImage> createState() => _OcptReferencedImageState();
 }
@@ -56,6 +57,7 @@ class _OcptReferencedImageState extends State<OcptReferencedImage> {
   /// referenced at all, which is the same thing to draw and one `stat` fewer to run.
   late bool _exists = _fileExists(widget.path);
 
+  /// Check again that the file exists when its path changes.
   @override
   void didUpdateWidget(covariant OcptReferencedImage oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -64,10 +66,7 @@ class _OcptReferencedImageState extends State<OcptReferencedImage> {
     }
   }
 
-  /// Whether [path] names a file that is there right now.
-  static bool _fileExists(String? path) =>
-      path != null && path.isNotEmpty && File(path).existsSync();
-
+  /// Build the referenced image as an [Image].
   @override
   Widget build(BuildContext context) {
     final path = widget.path;
@@ -82,4 +81,8 @@ class _OcptReferencedImageState extends State<OcptReferencedImage> {
       errorBuilder: (context, error, stackTrace) => widget.fallbackBuilder(context),
     );
   }
+
+  /// Tell whether [path] names a file that is there right now.
+  static bool _fileExists(String? path) =>
+      path != null && path.isNotEmpty && File(path).existsSync();
 }

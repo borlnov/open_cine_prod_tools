@@ -6,9 +6,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:http/http.dart' as http;
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -18,7 +22,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 typedef OcptWebSocketConnector = WebSocketChannel Function(Uri uri);
 
 /// An [OcptRemoteStorage] talking to `packages/ocpt_sync_relay`'s five routes over HTTP and a
-/// WebSocket — see `docs/plans/relay.md` (M4, Phase B) and
+/// WebSocket — see `docs/architecture/sync.md` and
 /// `docs/adr/0009-offline-first-sync-through-a-domain-blind-relay.md`.
 ///
 /// This class never imports `ocpt_sync_relay`: per ADR 0009, the app never depends on the relay
@@ -42,52 +46,31 @@ typedef OcptWebSocketConnector = WebSocketChannel Function(Uri uri);
 /// Every route is authenticated with `Authorization: Bearer <token>`; an append that might be the
 /// first request ever made for [projectId] also carries `X-Ocpt-Enrolment-Secret` when
 /// [enrolmentSecret] is set (see that field's own doc comment). A non-2xx response is decoded as
-/// [OcptSyncError] and thrown, except the snapshot route's `404`, which [fetchLatestSnapshot] maps
-/// to `null` per its own contract.
-class OcptRelayRemoteStorage implements OcptRemoteStorage {
-  /// Creates a transport talking to the relay at [relayBaseUri] for [projectId], authenticating
-  /// every request with [token].
-  ///
-  /// [enrolmentSecret] is only ever needed the first time this project is pushed to a relay that
-  /// has never heard of it — the relay creates the project on that first append and ignores the
-  /// header on every request after, so this class does not track whether creation already
-  /// happened: when [enrolmentSecret] is set, [append] sends it every time, which is harmless once
-  /// the project exists and keeps this class simple. A caller that knows creation has already
-  /// succeeded (a previously paired project) simply does not pass one.
-  ///
-  /// [httpClient] defaults to a fresh [http.Client] and [webSocketConnector] to
-  /// [IOWebSocketChannel.connect] carrying the bearer header — both are injectable so a test can
-  /// substitute a `package:http/testing.dart` `MockClient` and a fake connector instead of a live
-  /// relay.
-  /// [reconnectDelay] is the backoff [newWorkStream] waits before reconnecting a dropped socket;
-  /// its default is a sensible value for a real relay, and a test passes a short one so a
-  /// regression in the reconnect path fails fast instead of timing out.
-  OcptRelayRemoteStorage({
-    required this.relayBaseUri,
-    required this.projectId,
-    required this.token,
-    this.enrolmentSecret,
-    http.Client? httpClient,
-    OcptWebSocketConnector? webSocketConnector,
-    this.reconnectDelay = const Duration(seconds: 2),
-  }) : _httpClient = httpClient ?? http.Client(),
-       _ownsHttpClient = httpClient == null,
-       // A bearer header on a WebSocket handshake is only possible because the default connector
-       // below is `IOWebSocketChannel` (`dart:io`), which forwards arbitrary headers to
-       // `WebSocket.connect` — the `dart:html` implementation this package also ships has no way
-       // to set request headers at all, so this default only ever works on desktop/mobile, which
-       // is the only place this transport runs.
-       _webSocketConnector =
-           webSocketConnector ??
-           ((uri) => IOWebSocketChannel.connect(uri, headers: {_authorizationHeader: 'Bearer $token'}));
-
+/// [OcptSyncError] and answered as [OcptRemoteStorageStatus.rejected], except the snapshot route's
+/// `404`, which [fetchLatestSnapshot] maps to `null` per its own contract.
+class OcptRelayRemoteStorage extends AbsOcptService implements OcptRemoteStorage {
+  /// The name of the HTTP header carrying the bearer token.
   static const _authorizationHeader = 'Authorization';
+
+  /// The name of the HTTP header carrying the enrolment secret.
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
+
+  /// The name of the HTTP content type header.
   static const _contentTypeHeader = 'Content-Type';
+
+  /// The content type of a JSON request body.
   static const _contentTypeJson = 'application/json';
+
+  /// The query parameter holding the cursor [readSince] reads after.
   static const _sinceParam = 'since';
+
+  /// The JSON key of the sequence number in the relay's answer.
   static const _sequenceKey = 'sequence';
+
+  /// The JSON key of the snapshot descriptor.
   static const _descriptorKey = 'descriptor';
+
+  /// The JSON key of the snapshot bytes, written in base 64.
   static const _bytesKey = 'bytes';
 
   /// The literal frame `OcptRelayServer` sends on new work — mirrors its own `_newWorkPing`
@@ -112,102 +95,37 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   /// How long [newWorkStream] waits after a dropped socket before reconnecting.
   final Duration reconnectDelay;
 
+  /// The HTTP client every request goes through.
   final http.Client _httpClient;
 
   /// True when this transport created [_httpClient] itself (no [http.Client] was handed in), and
   /// so must close it itself from [dispose] rather than leaving that to whoever owns the client it
   /// was given.
   final bool _ownsHttpClient;
+
+  /// Opens the `events` socket.
   final OcptWebSocketConnector _webSocketConnector;
 
+  /// The controller behind [newWorkStream], or null until the stream is first listened to.
   StreamController<void>? _newWorkController;
+
+  /// The controller behind [presenceStream], or null until the stream is first listened to.
   StreamController<String>? _presenceController;
+
+  /// The `events` socket currently open, or null while none is.
   WebSocketChannel? _activeSocket;
+
+  /// The subscription to the frames of [_activeSocket], or null while none is open.
   StreamSubscription<Object?>? _activeSocketSubscription;
+
+  /// The timer of the scheduled reconnection, or null while none is waiting.
   Timer? _reconnectTimer;
-  bool _socketWanted = false;
 
-  @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async {
-    final response = await _httpClient.post(
-      _changesetsUri(),
-      headers: _jsonHeaders(includeEnrolmentSecret: true),
-      body: jsonEncode(envelope.toJson()),
-    );
-    final json = _decodeObjectOrThrow(response);
+  /// Whether a stream has a listener, so the `events` socket should be open.
+  bool _socketWanted;
 
-    return OcptSequenceNumber.fromJson(json[_sequenceKey] as int);
-  }
-
-  @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async {
-    final response = await _httpClient.get(
-      _changesetsUri().replace(queryParameters: {_sinceParam: cursor.value.toString()}),
-      headers: _authHeaders(),
-    );
-    final decoded = _decodeListOrThrow(response);
-
-    return [
-      for (final entry in decoded) OcptStoredChangeset.fromJson(entry as Map<String, dynamic>),
-    ];
-  }
-
-  @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {
-    final response = await _httpClient.post(
-      _snapshotUri(),
-      headers: _jsonHeaders(),
-      body: jsonEncode({_descriptorKey: descriptor.toJson(), _bytesKey: base64Encode(bytes)}),
-    );
-    _throwIfFailed(response);
-  }
-
-  /// Writes [opaquePayload] to the `events` socket for the relay to rebroadcast to this project's
-  /// other subscribers (`OcptRelayServer._rebroadcastToPeers`).
-  ///
-  /// Silently dropped, never thrown, when the socket is not currently connected — disconnected or
-  /// not yet opened because nothing is listening to [newWorkStream] or [presenceStream] — exactly
-  /// as [OcptRemoteStorage.sendPresence]'s own contract asks: the next heartbeat call carries
-  /// current state again once the socket comes back.
-  @override
-  void sendPresence(String opaquePayload) {
-    _activeSocket?.sink.add(opaquePayload);
-  }
-
-  @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async {
-    final response = await _httpClient.get(_snapshotUri(), headers: _authHeaders());
-    if (response.statusCode == 404) {
-      return null;
-    }
-    final json = _decodeObjectOrThrow(response);
-    final descriptor = OcptSnapshotDescriptor.fromJson(json[_descriptorKey] as Map<String, dynamic>);
-    final bytes = base64Decode(json[_bytesKey] as String);
-
-    return (descriptor, bytes);
-  }
-
-  /// Releases every resource this transport holds: tears down the `events` WebSocket and its
-  /// pending reconnect timer exactly as unsubscribing from [newWorkStream] and [presenceStream]
-  /// would, closes both streams' own broadcast controllers, and — only when this transport created
-  /// its own [http.Client] rather than being handed one — closes that client too.
-  ///
-  /// [OcptRemoteStorage] declares no disposal method of its own (a folder-backed transport holds
-  /// nothing that needs releasing), so a caller pairing a project with a relay owns calling this
-  /// once it is done with the transport, exactly as it would for any other object it constructed
-  /// with its own resources.
-  void dispose() {
-    _stopWatchingEvents();
-    unawaited(_newWorkController?.close());
-    _newWorkController = null;
-    unawaited(_presenceController?.close());
-    _presenceController = null;
-    if (_ownsHttpClient) {
-      _httpClient.close();
-    }
-  }
-
-  /// A broadcast stream emitting one event per opaque ping the relay's `events` WebSocket sends.
+  /// Get a broadcast stream emitting one event per opaque ping the relay's `events` WebSocket
+  /// sends.
   ///
   /// Connecting starts once either this stream or [presenceStream] gets its first listener, and
   /// stops once both have no listener left, so an unpaired or idle transport never holds a socket
@@ -229,7 +147,8 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return controller.stream;
   }
 
-  /// A broadcast stream emitting every frame the `events` WebSocket receives other than the literal
+  /// Get a broadcast stream emitting every frame the `events` WebSocket receives other than the
+  /// literal
   /// [_newWorkFrame] — a peer's own opaque presence payload, sent through its
   /// [OcptRemoteStorage.sendPresence].
   ///
@@ -249,6 +168,145 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return controller.stream;
   }
 
+  /// Create a transport talking to the relay at [relayBaseUri] for [projectId], authenticating
+  /// every request with [token].
+  ///
+  /// [enrolmentSecret] is only ever needed the first time this project is pushed to a relay that
+  /// has never heard of it — the relay creates the project on that first append and ignores the
+  /// header on every request after, so this class does not track whether creation already
+  /// happened: when [enrolmentSecret] is set, [append] sends it every time, which is harmless once
+  /// the project exists and keeps this class simple. A caller that knows creation has already
+  /// succeeded (a previously paired project) simply does not pass one.
+  ///
+  /// [httpClient] defaults to a fresh [http.Client] and [webSocketConnector] to
+  /// [IOWebSocketChannel.connect] carrying the bearer header — both are injectable so a test can
+  /// substitute a `package:http/testing.dart` `MockClient` and a fake connector instead of a live
+  /// relay.
+  /// [reconnectDelay] is the backoff [newWorkStream] waits before reconnecting a dropped socket;
+  /// its default is a sensible value for a real relay, and a test passes a short one so a
+  /// regression in the reconnect path fails fast instead of timing out.
+  OcptRelayRemoteStorage({
+    required super.logger,
+    required this.relayBaseUri,
+    required this.projectId,
+    required this.token,
+    this.enrolmentSecret,
+    http.Client? httpClient,
+    OcptWebSocketConnector? webSocketConnector,
+    this.reconnectDelay = const Duration(seconds: 2),
+  }) : _socketWanted = false,
+       _httpClient = httpClient ?? http.Client(),
+       _ownsHttpClient = httpClient == null,
+       // A bearer header on a WebSocket handshake is only possible because the default connector
+       // below is `IOWebSocketChannel` (`dart:io`), which forwards arbitrary headers to
+       // `WebSocket.connect` — the `dart:html` implementation this package also ships has no way
+       // to set request headers at all, so this default only ever works on desktop/mobile, which
+       // is the only place this transport runs.
+       _webSocketConnector =
+           webSocketConnector ??
+           ((uri) =>
+               IOWebSocketChannel.connect(uri, headers: {_authorizationHeader: 'Bearer $token'}));
+
+  /// Post [envelope] to the relay's changesets route, creating the project with the enrolment
+  /// secret
+  /// when there is one, and answer with the sequence number the relay assigned.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) => _guarded(() async {
+    final response = await _httpClient.post(
+      _changesetsUri(),
+      headers: _jsonHeaders(includeEnrolmentSecret: true),
+      body: jsonEncode(envelope.toJson()),
+    );
+    final rejection = _rejectionOf(response);
+    if (rejection != null) {
+      return ResultWithStatus(status: OcptRemoteStorageStatus.rejected, extraInfo: rejection);
+    }
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+
+    return ResultWithStatus(
+      status: OcptRemoteStorageStatus.ok,
+      value: OcptSequenceNumber.fromJson(json[_sequenceKey] as int),
+    );
+  });
+
+  /// Get the changesets the relay holds after [cursor], through its changesets route.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) => _guarded(() async {
+    final response = await _httpClient.get(
+      _changesetsUri().replace(queryParameters: {_sinceParam: cursor.value.toString()}),
+      headers: _authHeaders(),
+    );
+    final rejection = _rejectionOf(response);
+    if (rejection != null) {
+      return ResultWithStatus(status: OcptRemoteStorageStatus.rejected, extraInfo: rejection);
+    }
+    final decoded = jsonDecode(response.body) as List<dynamic>;
+
+    return ResultWithStatus(
+      status: OcptRemoteStorageStatus.ok,
+      value: [
+        for (final entry in decoded) OcptStoredChangeset.fromJson(entry as Map<String, dynamic>),
+      ],
+    );
+  });
+
+  /// Post [descriptor] and [bytes] to the relay's snapshot route.
+  @override
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) => _guarded<Object>(() async {
+    final response = await _httpClient.post(
+      _snapshotUri(),
+      headers: _jsonHeaders(),
+      body: jsonEncode({_descriptorKey: descriptor.toJson(), _bytesKey: base64Encode(bytes)}),
+    );
+    final rejection = _rejectionOf(response);
+    if (rejection != null) {
+      return ResultWithStatus(status: OcptRemoteStorageStatus.rejected, extraInfo: rejection);
+    }
+
+    return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
+  });
+
+  /// Write [opaquePayload] to the `events` socket for the relay to rebroadcast to this project's
+  /// other subscribers (`OcptRelayServer._rebroadcastToPeers`).
+  ///
+  /// Silently dropped, never thrown, when the socket is not currently connected — disconnected or
+  /// not yet opened because nothing is listening to [newWorkStream] or [presenceStream] — exactly
+  /// as [OcptRemoteStorage.sendPresence]'s own contract asks: the next heartbeat call carries
+  /// current state again once the socket comes back.
+  @override
+  void sendPresence(String opaquePayload) {
+    _activeSocket?.sink.add(opaquePayload);
+  }
+
+  /// Get the relay's latest snapshot, or an answer without value when it has none (a 404).
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() => _guarded(() async {
+    final response = await _httpClient.get(_snapshotUri(), headers: _authHeaders());
+    if (response.statusCode == 404) {
+      return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
+    }
+    final rejection = _rejectionOf(response);
+    if (rejection != null) {
+      return ResultWithStatus(status: OcptRemoteStorageStatus.rejected, extraInfo: rejection);
+    }
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final descriptor = OcptSnapshotDescriptor.fromJson(
+      json[_descriptorKey] as Map<String, dynamic>,
+    );
+    final bytes = base64Decode(json[_bytesKey] as String);
+
+    return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: (descriptor, bytes));
+  });
+
+  /// Mark the `events` socket as wanted and open it, unless it is open or waiting to reconnect.
   void _startWatchingEvents() {
     _socketWanted = true;
     if (_activeSocket != null || _reconnectTimer != null) {
@@ -259,7 +317,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _connectEventsSocket();
   }
 
-  /// Tears down the socket once neither [newWorkStream] nor [presenceStream] has a listener left —
+  /// Tear down the socket once neither [newWorkStream] nor [presenceStream] has a listener left —
   /// called from each controller's `onCancel` and from [dispose], which forces it regardless of
   /// listeners since the transport itself is going away.
   void _stopWatchingEvents() {
@@ -275,20 +333,31 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _activeSocket = null;
   }
 
+  /// Open the `events` socket and route its frames, scheduling a reconnection when it cannot be
+  /// opened.
   void _connectEventsSocket() {
     if (!_socketWanted) {
       return;
     }
 
-    final WebSocketChannel socket;
+    WebSocketChannel? opened;
     try {
-      socket = _webSocketConnector(_eventsUri());
-    } on Object {
+      opened = _webSocketConnector(_eventsUri());
+    } on Object catch (error, stackTrace) {
+      // The error of a failed connection names the relay's address, which is not logged.
+      logger.w(
+        'The relay events socket could not be opened, retrying: ${error.runtimeType}',
+        null,
+        stackTrace,
+      );
       _scheduleReconnect();
+    }
 
+    if (opened == null) {
       return;
     }
 
+    final socket = opened;
     _activeSocket = socket;
     _activeSocketSubscription = socket.stream.listen(
       _routeIncomingFrame,
@@ -298,7 +367,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     );
   }
 
-  /// Routes one inbound `events` frame: the literal [_newWorkFrame] ping to [newWorkStream], and
+  /// Route one inbound `events` frame: the literal [_newWorkFrame] ping to [newWorkStream], and
   /// every other text frame — a peer's opaque presence payload — to [presenceStream]. Never
   /// inspects a non-ping frame beyond telling it apart from the ping itself; a non-text frame (the
   /// relay never sends one) is dropped rather than routed anywhere.
@@ -313,7 +382,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     }
   }
 
-  /// Reacts to [socket] going down (from either end): reconnects only when [socket] is still the
+  /// React to [socket] going down (from either end): reconnects only when [socket] is still the
   /// transport's active one — a socket superseded by [_stopWatchingEvents] or a fresh
   /// [_connectEventsSocket] call reports its own demise here too late to matter, and must not
   /// schedule a second, redundant reconnect.
@@ -323,9 +392,11 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     }
     _activeSocket = null;
     _activeSocketSubscription = null;
+    logger.d('The relay events socket went down, reconnecting');
     _scheduleReconnect();
   }
 
+  /// Reconnect the `events` socket after [reconnectDelay], when it is still wanted.
   void _scheduleReconnect() {
     if (!_socketWanted) {
       return;
@@ -334,17 +405,20 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _reconnectTimer = Timer(reconnectDelay, _connectEventsSocket);
   }
 
+  /// Get the URI of the project's changesets route.
   Uri _changesetsUri() => _projectUri('changesets');
 
+  /// Get the URI of the project's snapshot route.
   Uri _snapshotUri() => _projectUri('snapshot');
 
+  /// Get the URI of the project's `events` route, with the `ws` or `wss` scheme.
   Uri _eventsUri() {
     final httpUri = _projectUri('events');
 
     return httpUri.replace(scheme: httpUri.scheme == 'https' ? 'wss' : 'ws');
   }
 
-  /// Builds `<relayBaseUri>/projects/<projectId>/<suffix>`, joining paths explicitly rather than
+  /// Build `<relayBaseUri>/projects/<projectId>/<suffix>`, joining paths explicitly rather than
   /// through [Uri.resolve] — which would silently drop [relayBaseUri]'s last path segment when it
   /// does not already end in `/`.
   Uri _projectUri(String suffix) {
@@ -355,40 +429,69 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return relayBaseUri.replace(path: '$basePath/projects/$projectId/$suffix');
   }
 
+  /// Get the headers that authenticate a request, with the enrolment secret when asked and known.
   Map<String, String> _authHeaders({bool includeEnrolmentSecret = false}) => {
     _authorizationHeader: 'Bearer $token',
     if (includeEnrolmentSecret && enrolmentSecret != null) _enrolmentSecretHeader: enrolmentSecret!,
   };
 
+  /// Get the authentication headers plus the JSON content type.
   Map<String, String> _jsonHeaders({bool includeEnrolmentSecret = false}) => {
     ..._authHeaders(includeEnrolmentSecret: includeEnrolmentSecret),
     _contentTypeHeader: _contentTypeJson,
   };
 
-  Map<String, dynamic> _decodeObjectOrThrow(http.Response response) {
-    _throwIfFailed(response);
-
-    return jsonDecode(response.body) as Map<String, dynamic>;
-  }
-
-  List<dynamic> _decodeListOrThrow(http.Response response) {
-    _throwIfFailed(response);
-
-    return jsonDecode(response.body) as List<dynamic>;
-  }
-
-  /// Throws the [OcptSyncError] [response]'s body decodes to when [response] is not a 2xx.
+  /// Run [call], answering [OcptRemoteStorageStatus.unreachable] with the failure it caught when
+  /// it throws anything at all.
   ///
-  /// [OcptSyncError] is a plain value class, not an [Exception] or [Error] — deliberately, per its
-  /// own doc comment, so a caller can inspect, display or re-carry it — which is exactly what a
-  /// caller of this transport does with what it catches here.
-  void _throwIfFailed(http.Response response) {
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return;
+  /// This is the boundary with `package:http` and `dart:convert`, whose errors (a refused
+  /// connection, a body that is not the JSON it should be, the protocol package rejecting a
+  /// malformed wire value) are all the same thing to a caller: the relay could not be heard. The
+  /// error is kept rather than logged here, for the caller that decides what it means.
+  Future<ResultWithStatus<OcptRemoteStorageStatus, T>> _guarded<T>(
+    Future<ResultWithStatus<OcptRemoteStorageStatus, T>> Function() call,
+  ) async {
+    ResultWithStatus<OcptRemoteStorageStatus, T> result;
+    try {
+      result = await call();
+    } catch (error, stackTrace) {
+      result = ResultWithStatus(
+        status: OcptRemoteStorageStatus.unreachable,
+        extraInfo: OcptSyncTransportFailure(error: error, stackTrace: stackTrace),
+      );
     }
-    // OcptSyncError is a plain value class by design (see its own doc comment) so a caller can
-    // inspect, display or re-carry it — not an Exception/Error this lint expects to be thrown.
-    // ignore: only_throw_errors
-    throw OcptSyncError.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+
+    return result;
+  }
+
+  /// Get the [OcptSyncError] [response]'s body decodes to when [response] is not a 2xx, or null
+  /// when it
+  /// is one.
+  OcptSyncError? _rejectionOf(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return null;
+    }
+
+    return OcptSyncError.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// Release every resource this transport holds: tears down the `events` WebSocket and its
+  /// pending reconnect timer exactly as unsubscribing from [newWorkStream] and [presenceStream]
+  /// would, closes both streams' own broadcast controllers, and — only when this transport created
+  /// its own [http.Client] rather than being handed one — closes that client too.
+  ///
+  /// [OcptRemoteStorage] declares no disposal method of its own (a folder-backed transport holds
+  /// nothing that needs releasing), so a caller pairing a project with a relay owns calling this
+  /// once it is done with the transport, exactly as it would for any other object it constructed
+  /// with its own resources.
+  void dispose() {
+    _stopWatchingEvents();
+    unawaited(_newWorkController?.close());
+    _newWorkController = null;
+    unawaited(_presenceController?.close());
+    _presenceController = null;
+    if (_ownsHttpClient) {
+      _httpClient.close();
+    }
   }
 }

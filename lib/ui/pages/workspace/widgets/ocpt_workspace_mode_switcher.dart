@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 
@@ -42,13 +42,14 @@ class OcptWorkspaceModeSwitcher extends StatelessWidget {
     required this.onModeSelected,
   });
 
+  /// Build the workspace mode switcher as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final labelledBandWidth = OcptWorkspaceMode.values.length * _entryWidth;
 
     return Container(
-      height: ocptModeSwitcherHeight,
+      height: ocpt_theme.ocptModeSwitcherHeight,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLowest,
         border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
@@ -75,7 +76,8 @@ class OcptWorkspaceModeSwitcher extends StatelessWidget {
   }
 }
 
-/// [mode]'s short label — the one shown under its icon in the mode switcher, used as its tooltip
+/// Get [mode]'s short label — the one shown under its icon in the mode switcher, used as its
+/// tooltip
 /// base text there, and reused by the presence indicator's popover to name a peer's current mode
 /// so the two never disagree about what a mode is called.
 String ocptWorkspaceModeLabel(Tr tr, OcptWorkspaceMode mode) => switch (mode) {
@@ -87,7 +89,7 @@ String ocptWorkspaceModeLabel(Tr tr, OcptWorkspaceMode mode) => switch (mode) {
   OcptWorkspaceMode.budget => tr.workspaceModeBudget,
 };
 
-/// The icon shown above [mode]'s label.
+/// Get the icon shown above [mode]'s label.
 IconData _iconFor(OcptWorkspaceMode mode) => switch (mode) {
   OcptWorkspaceMode.screenplay => Icons.description_outlined,
   OcptWorkspaceMode.breakdown => Icons.fact_check_outlined,
@@ -120,6 +122,7 @@ class _OcptWorkspaceModeEntry extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the workspace mode entry as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -134,16 +137,16 @@ class _OcptWorkspaceModeEntry extends StatelessWidget {
         message: tooltip,
         child: InkWell(
           onTap: onTap,
-          mouseCursor: ocptClickableCursor,
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
+          mouseCursor: ocpt_theme.ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             padding: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
               color: isActive
-                  ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                  ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(ocptRadiusMedium),
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -179,6 +182,7 @@ class _OcptWorkspaceModeIcon extends StatelessWidget {
   /// Class constructor
   const _OcptWorkspaceModeIcon({required this.mode, required this.color});
 
+  /// Build the workspace mode icon as a [Stack].
   @override
   Widget build(BuildContext context) {
     final icon = Icon(_iconFor(mode), size: 22, color: color);

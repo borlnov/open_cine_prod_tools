@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The settings page's "Language" section card: a single language dropdown (System / one entry
@@ -22,6 +22,7 @@ class OcptSettingsLanguageSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the settings language section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -40,7 +41,7 @@ class OcptSettingsLanguageSection extends StatelessWidget {
                 DropdownButton<Locale?>(
                   value: wantedLocale,
                   onChanged: onLocaleChanged,
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   items: [
                     DropdownMenuItem(child: Text(tr.settingsLanguageSystemOption)),
                     for (final locale in Tr.delegate.supportedLocales)
@@ -55,7 +56,7 @@ class OcptSettingsLanguageSection extends StatelessWidget {
     );
   }
 
-  /// Labels [locale] in its own language, the usual convention for a language picker: unlike every
+  /// Label [locale] in its own language, the usual convention for a language picker: unlike every
   /// other string on this page, a language's own name doesn't go through [Tr], since it must not
   /// change when the app's current locale changes.
   static String _localeOwnLanguageLabel(Locale locale) => switch (locale.languageCode) {

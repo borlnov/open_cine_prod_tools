@@ -5,8 +5,9 @@
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
 import 'package:fountain_kit/src/models/fountain_title_page.dart';
+import 'package:fountain_kit/src/models/fountain_title_page_entry.dart';
 
-/// Writes a [FountainDocument] back out as canonical Fountain source text.
+/// Write a [FountainDocument] back out as canonical Fountain source text.
 ///
 /// The serializer does not aim to reproduce a parsed document's original
 /// source text byte-for-byte (whitespace between blocks, marker case,
@@ -15,10 +16,10 @@ import 'package:fountain_kit/src/models/fountain_title_page.dart';
 /// to the one it was given. That round-trip guarantee, not textual
 /// identity, is what this package's tests rely on.
 class FountainSerializer {
-  /// Creates a [FountainSerializer].
+  /// Create a [FountainSerializer].
   const FountainSerializer();
 
-  /// Renders [document] as Fountain source text.
+  /// Render [document] as Fountain source text.
   String write(FountainDocument document) {
     final parts = <String>[];
     final titlePage = document.titlePage;
@@ -29,22 +30,20 @@ class FountainSerializer {
     return parts.join('\n\n');
   }
 
-  /// Renders a title page as `key: value` lines, one block of text.
+  /// Render a title page as `key: value` lines, one block of text.
   String _writeTitlePage(FountainTitlePage titlePage) =>
       titlePage.entries.map(_writeTitleEntry).join('\n');
 
-  /// Renders a single title page entry.
+  /// Render a single title page entry.
   String _writeTitleEntry(FountainTitlePageEntry entry) {
     if (entry.values.length == 1) {
       return '${entry.key}: ${entry.values.single}';
     }
-    final continuationLines = entry.values
-        .map((value) => '    $value')
-        .join('\n');
+    final continuationLines = entry.values.map((value) => '    $value').join('\n');
     return '${entry.key}:\n$continuationLines';
   }
 
-  /// Renders a single top-level block.
+  /// Render a single top-level block.
   String _writeBlock(FountainBlock block) => switch (block) {
     FountainSceneHeading() => block.rawText,
     FountainActionBlock() => _writeAction(block),
@@ -62,7 +61,7 @@ class FountainSerializer {
     FountainPageBreak() => '===',
   };
 
-  /// Renders a [FountainActionBlock], re-adding its forcing `!` marker if
+  /// Render a [FountainActionBlock], re-adding its forcing `!` marker if
   /// [FountainActionBlock.forced] is set.
   String _writeAction(FountainActionBlock block) {
     final lines = List<String>.of(block.lines);
@@ -72,7 +71,7 @@ class FountainSerializer {
     return lines.join('\n');
   }
 
-  /// Renders a [FountainCharacter] cue. A name that is not already all
+  /// Render a [FountainCharacter] cue. A name that is not already all
   /// uppercase is forced with a leading `@` so it is recognized on
   /// re-parse regardless of case.
   String _writeCharacter(FountainCharacter character) {
@@ -92,20 +91,17 @@ class FountainSerializer {
     return buffer.toString();
   }
 
-  /// Renders a [FountainDialogueLine], substituting two spaces for a
+  /// Render a [FountainDialogueLine], substituting two spaces for a
   /// blank line so the "preserved blank dialogue line" round-trips back
   /// into an empty [FountainDialogueLine.text] rather than ending the
   /// dialogue block.
   String _writeDialogueLine(FountainDialogueLine line) =>
       line.text.trim().isEmpty ? '  ' : line.text;
 
-  /// Renders a [FountainDialogueGroup]: its character cue followed by its
+  /// Render a [FountainDialogueGroup]: its character cue followed by its
   /// parentheticals and dialogue lines, one per source line.
   String _writeDialogueGroup(FountainDialogueGroup group) {
-    final lines = [
-      _writeCharacter(group.character),
-      ...group.children.map(_writeBlock),
-    ];
+    final lines = [_writeCharacter(group.character), ...group.children.map(_writeBlock)];
     return lines.join('\n');
   }
 }

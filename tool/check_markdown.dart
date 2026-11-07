@@ -6,9 +6,10 @@
 /// workflow enforces, so a violation is caught before it is pushed rather than by a red build.
 ///
 /// The workflow runs `markdownlint-cli2`, which needs a Node runtime the devcontainer deliberately
-/// does not carry any more. Rather than reinstate one for a single linter, this script re-implements
-/// the handful of rules that need no markdown parsing — the ones a long paragraph or an editor's
-/// whitespace handling actually trips — reading their settings from `.markdownlint.yaml`:
+/// does not carry any more. Rather than reinstate one for a single linter, this script
+/// re-implements the handful of rules that need no markdown parsing — the ones a long paragraph or
+/// an editor's whitespace handling actually trips — reading their settings from
+/// `.markdownlint.yaml`:
 ///
 /// - **MD013** (line length): the rule that motivated this script. A line longer than the limit is
 ///   only reported when it *can* be wrapped, matching markdownlint's own non-strict default: a line
@@ -50,15 +51,9 @@ const _defaultLineLength = 80;
 
 /// The path prefixes the `markdown_lint` workflow's globs exclude, kept in the same order as the
 /// `!` entries of its `globs` block so the two lists can be compared at a glance.
-const _excludedPrefixes = [
-  "actlibs/",
-  "build/",
-  ".dart_tool/",
-  "test/",
-  "node_modules/",
-];
+const _excludedPrefixes = ["actlibs/", "build/", ".dart_tool/", "test/", "node_modules/"];
 
-/// Checks every markdown file of the repository and reports what the CI linter would reject.
+/// Check every markdown file of the repository and report what the CI linter would reject.
 Future<void> main() async {
   final files = await _markdownFiles();
 
@@ -86,7 +81,7 @@ Future<void> main() async {
   exitCode = 1;
 }
 
-/// Lists the markdown files to check: the ones git tracks plus the untracked ones it does not
+/// List the markdown files to check: the ones git tracks plus the untracked ones it does not
 /// ignore, minus [_excludedPrefixes].
 ///
 /// Asking git rather than walking the tree keeps the generated and vendored directories out for
@@ -105,19 +100,20 @@ Future<List<String>> _markdownFiles() async {
     return const [];
   }
 
-  final paths = (result.stdout as String)
-      .split("\n")
-      .map((path) => path.trim())
-      .where((path) => path.isNotEmpty)
-      .where((path) => !_excludedPrefixes.any(path.startsWith))
-      .toSet()
-      .toList()
-    ..sort();
+  final paths =
+      (result.stdout as String)
+          .split("\n")
+          .map((path) => path.trim())
+          .where((path) => path.isNotEmpty)
+          .where((path) => !_excludedPrefixes.any(path.startsWith))
+          .toSet()
+          .toList()
+        ..sort();
 
   return paths;
 }
 
-/// Reads the `line_length` of the `MD013` block of [_configPath], falling back to
+/// Read the `line_length` of the `MD013` block of [_configPath], falling back to
 /// [_defaultLineLength] when the file or the setting is missing.
 ///
 /// The block is read line by line rather than through a YAML parser: this script has no package
@@ -157,7 +153,7 @@ Future<int> _configuredLineLength() async {
   return _defaultLineLength;
 }
 
-/// Returns one message per rule violation found in the file at [path], empty when it is clean.
+/// Return one message per rule violation found in the file at [path], empty when it is clean.
 List<String> _checkFile(String path, {required int lineLength}) {
   final content = File(path).readAsStringSync();
   final lines = content.split("\n");
@@ -194,14 +190,16 @@ List<String> _checkFile(String path, {required int lineLength}) {
   // `split("\n")` leaves one trailing empty entry for a file ending on a single newline, and two
   // for one ending on a blank line.
   if (lines.length < 2 || lines.last.isNotEmpty || lines[lines.length - 2].isEmpty) {
-    violations.add("$path:${lines.length} MD047/single-trailing-newline "
-        "Files should end with a single newline character");
+    violations.add(
+      "$path:${lines.length} MD047/single-trailing-newline "
+      "Files should end with a single newline character",
+    );
   }
 
   return violations;
 }
 
-/// Whether [line] breaks MD013 as the project configures it.
+/// Tell whether [line] breaks MD013 as the project configures it.
 ///
 /// A line over [lineLength] is only a violation when it could be wrapped — markdownlint's own
 /// default with `strict` and `stern` both off — and table rows are exempt, the configuration

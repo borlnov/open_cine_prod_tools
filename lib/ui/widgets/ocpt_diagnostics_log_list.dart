@@ -8,10 +8,12 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' as intl;
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_level.dart';
 
 /// The full, live "Journaux (diagnostic)" list: a window onto `OcptDiagnosticsManager`'s own
 /// device-local ring buffer, so Benoit can see, on each device, what the relay server (when
@@ -31,30 +33,7 @@ class OcptDiagnosticsLogList extends StatelessWidget {
   /// Class constructor
   const OcptDiagnosticsLogList({this.categories, super.key});
 
-  /// The registered [OcptDiagnosticsManager], or null when none can be resolved — see this class's
-  /// own doc comment for why that is a real, tolerated case rather than a programmer error.
-  OcptDiagnosticsManager? _resolveManager() {
-    if (AbsGlobalManager.instance == null) {
-      return null;
-    }
-
-    final managers = globalGetIt();
-
-    return managers.isRegistered<OcptDiagnosticsManager>()
-        ? managers.get<OcptDiagnosticsManager>()
-        : null;
-  }
-
-  /// [entries] filtered down to [categories], when given.
-  List<OcptDiagnosticsEntry> _filtered(List<OcptDiagnosticsEntry> entries) {
-    final wanted = categories;
-    if (wanted == null) {
-      return entries;
-    }
-
-    return [for (final entry in entries) if (wanted.contains(entry.category)) entry];
-  }
-
+  /// Build the diagnostics log list as a [StreamBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -74,6 +53,34 @@ class OcptDiagnosticsLogList extends StatelessWidget {
       },
     );
   }
+
+  /// Get the registered [OcptDiagnosticsManager], or null when none can be resolved — see this
+  /// class's
+  /// own doc comment for why that is a real, tolerated case rather than a programmer error.
+  OcptDiagnosticsManager? _resolveManager() {
+    if (AbsGlobalManager.instance == null) {
+      return null;
+    }
+
+    final managers = globalGetIt();
+
+    return managers.isRegistered<OcptDiagnosticsManager>()
+        ? managers.get<OcptDiagnosticsManager>()
+        : null;
+  }
+
+  /// Get [entries] filtered down to [categories], when given.
+  List<OcptDiagnosticsEntry> _filtered(List<OcptDiagnosticsEntry> entries) {
+    final wanted = categories;
+    if (wanted == null) {
+      return entries;
+    }
+
+    return [
+      for (final entry in entries)
+        if (wanted.contains(entry.category)) entry,
+    ];
+  }
 }
 
 /// The list's own body once a real [OcptDiagnosticsManager] is resolved: the copy-all/clear
@@ -81,15 +88,16 @@ class OcptDiagnosticsLogList extends StatelessWidget {
 /// [OcptDiagnosticsLogList] is given, or [OcptDiagnosticsLogList]'s own empty state when
 /// [entries] is empty.
 class _OcptDiagnosticsBody extends StatelessWidget {
-  /// Class constructor
-  const _OcptDiagnosticsBody({required this.entries, required this.manager});
-
   /// The entries this body renders — already filtered to [OcptDiagnosticsLogList.categories].
   final List<OcptDiagnosticsEntry> entries;
 
   /// The manager the toolbar's own copy/clear actions act on.
   final OcptDiagnosticsManager manager;
 
+  /// Class constructor
+  const _OcptDiagnosticsBody({required this.entries, required this.manager});
+
+  /// Build the diagnostics body as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -106,9 +114,7 @@ class _OcptDiagnosticsBody extends StatelessWidget {
               icon: const Icon(Icons.copy_outlined),
               onPressed: entries.isEmpty
                   ? null
-                  : () => unawaited(
-                      Clipboard.setData(ClipboardData(text: _joinedText(entries))),
-                    ),
+                  : () => unawaited(Clipboard.setData(ClipboardData(text: _joinedText(entries)))),
             ),
             IconButton(
               tooltip: tr.diagnosticsClearTooltip,
@@ -130,7 +136,7 @@ class _OcptDiagnosticsBody extends StatelessWidget {
     );
   }
 
-  /// Every [entries] line, joined by newlines — what the copy-all button puts on the clipboard.
+  /// Get every [entries] line, joined by newlines — what the copy-all button puts on the clipboard.
   static String _joinedText(List<OcptDiagnosticsEntry> entries) =>
       entries.map(_lineText).join('\n');
 }
@@ -138,12 +144,13 @@ class _OcptDiagnosticsBody extends StatelessWidget {
 /// [OcptDiagnosticsLogList]'s own empty state, shown both when no manager can be resolved at all
 /// and when a real, resolved one simply holds nothing (yet) for the current filter.
 class _OcptDiagnosticsEmptyBody extends StatelessWidget {
-  /// Class constructor
-  const _OcptDiagnosticsEmptyBody({required this.text});
-
   /// The message shown.
   final String text;
 
+  /// Class constructor
+  const _OcptDiagnosticsEmptyBody({required this.text});
+
+  /// Build the diagnostics empty body as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -163,22 +170,23 @@ class _OcptDiagnosticsEmptyBody extends StatelessWidget {
 /// [OcptDiagnosticsLevel.warning] — [OcptDiagnosticsLevel.info] renders in the ordinary body
 /// colour.
 class _OcptDiagnosticsLine extends StatelessWidget {
-  /// Class constructor
-  const _OcptDiagnosticsLine({required this.entry, required this.theme});
-
   /// The entry this line renders.
   final OcptDiagnosticsEntry entry;
 
   /// The theme this line's own colours are read off.
   final ThemeData theme;
 
+  /// Class constructor
+  const _OcptDiagnosticsLine({required this.entry, required this.theme});
+
+  /// Build the diagnostics line as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
     child: Text(
       _lineText(entry),
       style: theme.textTheme.bodySmall?.copyWith(
-        fontFamily: ocptMonospaceFontFamily,
+        fontFamily: ocpt_theme.ocptMonospaceFontFamily,
         color: switch (entry.level) {
           OcptDiagnosticsLevel.error => theme.colorScheme.error,
           OcptDiagnosticsLevel.warning => theme.colorScheme.tertiary,
@@ -189,7 +197,7 @@ class _OcptDiagnosticsLine extends StatelessWidget {
   );
 }
 
-/// One [entry]'s own text: `HH:mm:ss · CATEGORY · message`.
+/// Get one [entry]'s own text: `HH:mm:ss · CATEGORY · message`.
 String _lineText(OcptDiagnosticsEntry entry) {
   final time = intl.DateFormat('HH:mm:ss').format(entry.time.toLocal());
   final category = entry.category.name.toUpperCase();

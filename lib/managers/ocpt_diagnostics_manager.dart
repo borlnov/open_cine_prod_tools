@@ -2,24 +2,27 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'dart:async';
-
+import 'package:act_dart_value_keeper/act_dart_value_keeper.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/models/ocpt_diagnostics_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_level.dart';
 
 /// The maximum number of entries [OcptDiagnosticsManager] keeps: appending past this cap drops
 /// the oldest entry first.
 const ocptDiagnosticsBufferCap = 500;
 
-/// Builds the [OcptDiagnosticsManager] instance registered by the global manager.
+/// Build the [OcptDiagnosticsManager] instance registered by the global manager.
 class OcptDiagnosticsManagerBuilder extends AbsLifeCycleFactory<OcptDiagnosticsManager> {
   /// Class constructor
   const OcptDiagnosticsManagerBuilder() : super(OcptDiagnosticsManager.new);
 
   /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
   @override
-  Iterable<Type> dependsOn() => [];
+  Iterable<Type> dependsOn() => [LoggerManager];
 }
 
 /// A device-local diagnostics buffer — the last [ocptDiagnosticsBufferCap]
@@ -41,81 +44,122 @@ class OcptDiagnosticsManagerBuilder extends AbsLifeCycleFactory<OcptDiagnosticsM
 /// (`CLAUDE.md`'s own pitfalls list) — so a caller seeds its own first render from [entries]
 /// before it ever listens, exactly as `OcptDiagnosticsLogList` does.
 class OcptDiagnosticsManager extends AbsWithLifeCycle {
-  final List<OcptDiagnosticsEntry> _entries = [];
-  final StreamController<List<OcptDiagnosticsEntry>> _controller =
-      StreamController<List<OcptDiagnosticsEntry>>.broadcast();
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "diagnostics";
 
-  /// Every entry recorded so far, oldest first, capped at [ocptDiagnosticsBufferCap] — an
+  /// The logger every recorded entry is forwarded to.
+  final LogsHelper _logger;
+
+  /// The buffer and its change stream. It holds an unmodifiable snapshot that is replaced on every
+  /// change, and emits even when the snapshot compares equal to the previous one (lists compare by
+  /// identity, so a replacement never does, but a cleared buffer cleared again must still emit).
+  final ValueKeeperWithStream<List<OcptDiagnosticsEntry>> _entries;
+
+  /// Whether [disposeLifeCycle] has closed the stream: an entry recorded afterwards still reaches
+  /// the logger, but neither the buffer nor the stream.
+  bool _isDisposed;
+
+  /// Get every entry recorded so far, oldest first, capped at [ocptDiagnosticsBufferCap] — an
   /// unmodifiable view, so a caller can never mutate this manager's own buffer directly.
-  List<OcptDiagnosticsEntry> get entries => List.unmodifiable(_entries);
+  List<OcptDiagnosticsEntry> get entries => _entries.value;
 
-  /// Emits the full, oldest-first entry list every time it changes ([record]/[clear]) — never its
+  /// Emit the full, oldest-first entry list every time it changes ([record]/[clear]) — never its
   /// current value at subscription time (see this class's own doc comment).
-  Stream<List<OcptDiagnosticsEntry>> get entriesStream => _controller.stream;
+  Stream<List<OcptDiagnosticsEntry>> get entriesStream => _entries.valueStream;
 
-  /// Appends one entry to the buffer, dropping the oldest one once [ocptDiagnosticsBufferCap] is
-  /// exceeded, and broadcasts the updated list on [entriesStream].
+  /// Build a manager with an empty buffer.
+  OcptDiagnosticsManager()
+    : _logger = buildOcptLogsHelper(_loggerCategory),
+      _isDisposed = false,
+      _entries = ValueKeeperWithStream<List<OcptDiagnosticsEntry>>(
+        value: List.unmodifiable(<OcptDiagnosticsEntry>[]),
+        emitUnchangedValue: true,
+      );
+
+  /// Append one entry to the buffer, dropping the oldest one once [ocptDiagnosticsBufferCap] is
+  /// exceeded, and broadcast the updated list on [entriesStream].
   ///
-  /// Also forwards the entry to `appLogger()`, at the level [category]/[level] map to, prefixed
-  /// with [category]'s own name — so the console and, when `logs.file.enabled` is true, the
-  /// crash-survivable file external logger capture these hosting/sync/join/relay/presence events
-  /// too, on top of this manager's own in-memory buffer. Guarded exactly like the static [log]
-  /// convenience below, so a test with no global manager environment stays unaffected.
+  /// Also forwards the entry to this manager's logger, at the level [category]/[level] map to,
+  /// prefixed with [category]'s own name — so the console and, when `logs.file.enabled` is true,
+  /// the crash-survivable file external logger capture these hosting/sync/join/relay/presence
+  /// events too, on top of this manager's own in-memory buffer.
+  ///
+  /// The buffer is device-local and shown to its own user, a log file is something a user may send
+  /// away: a [message] carrying a detail that must not reach a log (a project's name, a network
+  /// address, an error's text) passes a [logMessage] without it, which is what the logger gets
+  /// instead. Left out, the logger gets [message] itself.
+  ///
+  /// An entry that repeats on a timer ([isRoutine], a sync session's every-minute "syncing" and "in
+  /// sync") reaches the logger at debug level instead of info, so a log read for what happened is
+  /// not drowned in it.
   void record({
     required OcptDiagnosticsCategory category,
     OcptDiagnosticsLevel level = OcptDiagnosticsLevel.info,
     required String message,
+    String? logMessage,
+    bool isRoutine = false,
   }) {
-    _entries.add(
+    final updated = [
+      ..._entries.value,
       OcptDiagnosticsEntry(
         time: DateTime.now(),
         category: category,
         level: level,
         message: message,
       ),
-    );
-    if (_entries.length > ocptDiagnosticsBufferCap) {
-      _entries.removeAt(0);
+    ];
+    if (updated.length > ocptDiagnosticsBufferCap) {
+      updated.removeAt(0);
     }
-    _emit();
+    _store(updated);
 
-    if (AbsGlobalManager.instance != null) {
-      _forwardToAppLogger(category: category, level: level, message: message);
-    }
+    _forwardToLogger(
+      category: category,
+      level: level,
+      message: logMessage ?? message,
+      isRoutine: isRoutine,
+    );
   }
 
-  /// Forwards one entry to `appLogger()`, called only once [AbsGlobalManager.instance] is known
-  /// non-null by [record].
-  void _forwardToAppLogger({
+  /// Empty the buffer and broadcast the (now empty) list on [entriesStream] — what
+  /// `OcptDiagnosticsLogList`'s own "clear" button calls.
+  void clear() {
+    _store([]);
+  }
+
+  /// Forward one entry to [_logger].
+  void _forwardToLogger({
     required OcptDiagnosticsCategory category,
     required OcptDiagnosticsLevel level,
     required String message,
+    required bool isRoutine,
   }) {
     final prefixedMessage = '[${category.name}] $message';
     switch (level) {
       case OcptDiagnosticsLevel.info:
-        appLogger().i(prefixedMessage);
+        if (isRoutine) {
+          _logger.d(prefixedMessage);
+        } else {
+          _logger.i(prefixedMessage);
+        }
       case OcptDiagnosticsLevel.warning:
-        appLogger().w(prefixedMessage);
+        _logger.w(prefixedMessage);
       case OcptDiagnosticsLevel.error:
-        appLogger().e(prefixedMessage);
+        _logger.e(prefixedMessage);
     }
   }
 
-  /// Empties the buffer and broadcasts the (now empty) list on [entriesStream] — what
-  /// `OcptDiagnosticsLogList`'s own "clear" button calls.
-  void clear() {
-    _entries.clear();
-    _emit();
-  }
-
-  void _emit() {
-    if (!_controller.isClosed) {
-      _controller.add(entries);
+  /// Replace the buffer by [updated] and broadcast it, unless this manager is disposed.
+  void _store(List<OcptDiagnosticsEntry> updated) {
+    if (_isDisposed) {
+      // The keeper's stream is closed, and writing to it would throw.
+      return;
     }
+
+    _entries.value = List.unmodifiable(updated);
   }
 
-  /// Records [message] against [category]/[level] through the registered [OcptDiagnosticsManager]
+  /// Record [message] against [category]/[level] through the registered [OcptDiagnosticsManager]
   /// — the guarded call site every instrumented manager/bloc uses, exactly
   /// `OcptSyncSession._logWarning`'s own reasoning: this no-ops, rather than throwing, whenever no
   /// global manager instance exists at all, or one exists but [OcptDiagnosticsManager] itself was
@@ -125,6 +169,8 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     required OcptDiagnosticsCategory category,
     OcptDiagnosticsLevel level = OcptDiagnosticsLevel.info,
     required String message,
+    String? logMessage,
+    bool isRoutine = false,
   }) {
     if (AbsGlobalManager.instance == null) {
       return;
@@ -135,14 +181,21 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
       return;
     }
 
-    managers.get<OcptDiagnosticsManager>().record(category: category, level: level, message: message);
+    managers.get<OcptDiagnosticsManager>().record(
+      category: category,
+      level: level,
+      message: message,
+      logMessage: logMessage,
+      isRoutine: isRoutine,
+    );
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override
   Future<void> disposeLifeCycle() async {
-    if (!_controller.isClosed) {
-      await _controller.close();
+    if (!_isDisposed) {
+      _isDisposed = true;
+      await _entries.disposeLifeCycle();
     }
 
     return super.disposeLifeCycle();

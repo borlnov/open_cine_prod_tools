@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -9,26 +10,34 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_serv
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
+import '../../../ocpt_result_expectations.dart';
 
+/// Run the tests of [OcptBudgetJournalService].
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
   Future<String> testDeviceId() async => "test-device";
-  final assetsService = OcptAssetsService(deviceId: testDeviceId);
-  final service = OcptBudgetJournalService(assetsService: assetsService, deviceId: testDeviceId);
-  final quoteService = OcptBudgetQuoteService(deviceId: testDeviceId);
+  final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: testDeviceId);
+  final service = OcptBudgetJournalService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
+  final quoteService = OcptBudgetQuoteService(logger: const SilentLogger(), deviceId: testDeviceId);
 
   late OcptProjectDatabase database;
-  late String posteId;
+  late String accountId;
 
   setUp(() async {
     database = OcptProjectDatabase.memory();
-    posteId = (await quoteService.createPoste(database: database, label: "Personnel"))!;
+    accountId = (await quoteService
+        .createAccount(database: database, label: "Personnel")
+        .valueOrFail);
   });
 
   tearDown(() async {
@@ -44,54 +53,59 @@ void main() {
 
   group("entry CRUD", () {
     test("createEntry mints a sequential voucher number and appends at the end", () async {
-      final firstId = await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 2, 20),
-        label: "Location camion",
-        posteId: posteId,
-        debitCents: 15000,
-      );
-      final secondId = await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 2),
-        label: "Acompte subvention",
-        creditCents: 200000,
-      );
+      final firstId = await service
+          .createEntry(
+            database: database,
+            date: DateTime.utc(2026, 2, 20),
+            label: "Location camion",
+            accountId: accountId,
+            debitCents: 15000,
+          )
+          .maybeValueOrFail;
+      final secondId = await service
+          .createEntry(
+            database: database,
+            date: DateTime.utc(2026, 3, 2),
+            label: "Acompte subvention",
+            creditCents: 200000,
+          )
+          .maybeValueOrFail;
 
-      final entries = await service.loadEntries(database: database);
+      final entries = await service.loadEntries(database: database).valueOrFail;
       expect(entries.map((entry) => entry.id), [firstId, secondId]);
       expect(entries.first.voucherNumber, "J-001");
       expect(entries.last.voucherNumber, "J-002");
-      expect(entries.first.posteId, posteId);
+      expect(entries.first.accountId, accountId);
       expect(entries.first.debitCents, 15000);
       expect(entries.first.isTaxInclusive, isTrue);
       expect(entries.first.vatRateBasisPoints, isNull);
-      // Money coming in with no poste is a real fact, not an omission.
-      expect(entries.last.posteId, isNull);
+      // Money coming in with no account is a real fact, not an omission.
+      expect(entries.last.accountId, isNull);
       expect(entries.last.creditCents, 200000);
     });
 
-    test("createEntry never reuses a voucher number once handed out, even after a deletion", () async {
-      final firstId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "A",
-      ))!;
-      await service.createEntry(database: database, date: DateTime.utc(2026, 3, 2), label: "B");
+    test(
+      "createEntry never reuses a voucher number once handed out, even after a deletion",
+      () async {
+        final firstId = (await service
+            .createEntry(database: database, date: DateTime.utc(2026, 3, 6), label: "A")
+            .valueOrFail);
+        await service
+            .createEntry(database: database, date: DateTime.utc(2026, 3, 2), label: "B")
+            .maybeValueOrFail;
 
-      await service.deleteEntry(database: database, entryId: firstId);
+        await service.deleteEntry(database: database, entryId: firstId).okOrFail;
 
-      final thirdId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 3),
-        label: "C",
-      ))!;
+        final thirdId = (await service
+            .createEntry(database: database, date: DateTime.utc(2026, 3, 3), label: "C")
+            .valueOrFail);
 
-      final thirdRow = await (database.select(
-        database.ocptBudgetEntriesTable,
-      )..where((table) => table.id.equals(thirdId))).getSingle();
-      expect(thirdRow.voucherNumber, "J-003");
-    });
+        final thirdRow = await (database.select(
+          database.ocptBudgetEntriesTable,
+        )..where((table) => table.id.equals(thirdId))).getSingle();
+        expect(thirdRow.voucherNumber, "J-003");
+      },
+    );
 
     test("createEntry ignores a hand-typed voucher number when computing the next one", () async {
       await database
@@ -105,11 +119,9 @@ void main() {
             ),
           );
 
-      final id = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Fresh one",
-      ))!;
+      final id = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 6), label: "Fresh one")
+          .valueOrFail);
 
       final row = await (database.select(
         database.ocptBudgetEntriesTable,
@@ -131,11 +143,9 @@ void main() {
             ),
           );
 
-      final id = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "One thousand",
-      ))!;
+      final id = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 6), label: "One thousand")
+          .valueOrFail);
 
       final row = await (database.select(
         database.ocptBudgetEntriesTable,
@@ -144,30 +154,30 @@ void main() {
     });
 
     test("updateEntry writes every field passed, voucherNumber included", () async {
-      final id = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "A",
-      ))!;
+      final id = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 6), label: "A")
+          .valueOrFail);
 
-      await service.updateEntry(
-        database: database,
-        entryId: id,
-        date: Value(DateTime.utc(2026, 3, 5)),
-        label: const Value("Renamed"),
-        posteId: Value(posteId),
-        debitCents: const Value(5000),
-        isTaxInclusive: const Value(false),
-        vatRateBasisPoints: const Value(550),
-        voucherNumber: const Value("J-custom"),
-      );
+      await service
+          .updateEntry(
+            database: database,
+            entryId: id,
+            date: Value(DateTime.utc(2026, 3, 5)),
+            label: const Value("Renamed"),
+            accountId: Value(accountId),
+            debitCents: const Value(5000),
+            isTaxInclusive: const Value(false),
+            vatRateBasisPoints: const Value(550),
+            voucherNumber: const Value("J-custom"),
+          )
+          .okOrFail;
 
       final row = await (database.select(
         database.ocptBudgetEntriesTable,
       )..where((table) => table.id.equals(id))).getSingle();
       expect(row.date, DateTime.utc(2026, 3, 5));
       expect(row.label, "Renamed");
-      expect(row.posteId, posteId);
+      expect(row.accountId, accountId);
       expect(row.debitCents, 5000);
       expect(row.isTaxInclusive, isFalse);
       expect(row.vatRateBasisPoints, 550);
@@ -175,35 +185,30 @@ void main() {
     });
 
     test("reorderEntry moves an entry and writes exactly one row", () async {
-      final firstId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "A",
-      ))!;
-      final secondId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "B",
-      ))!;
-      final thirdId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "C",
-      ))!;
+      final firstId = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 6), label: "A")
+          .valueOrFail);
+      final secondId = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 6), label: "B")
+          .valueOrFail);
+      final thirdId = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 6), label: "C")
+          .valueOrFail);
 
       final before = {
         for (final row in await database.select(database.ocptBudgetEntriesTable).get())
           row.id: row.sortKey,
       };
 
-      await service.reorderEntry(database: database, entryId: thirdId, newPosition: 0);
+      await service.reorderEntry(database: database, entryId: thirdId, newPosition: 0).okOrFail;
 
       final rows = await database.select(database.ocptBudgetEntriesTable).get();
       final byId = {for (final row in rows) row.id: row};
-      expect(
-        (rows..sort((a, b) => a.sortKey.compareTo(b.sortKey))).map((row) => row.id),
-        [thirdId, firstId, secondId],
-      );
+      expect((rows..sort((a, b) => a.sortKey.compareTo(b.sortKey))).map((row) => row.id), [
+        thirdId,
+        firstId,
+        secondId,
+      ]);
 
       final unchanged = rows.where((row) => row.id != thirdId);
       expect(unchanged.every((row) => row.sortKey == before[row.id]), isTrue);
@@ -211,67 +216,74 @@ void main() {
     });
 
     test("deleteEntry tombstones the entry, filtered back out of loadEntries", () async {
-      final id = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "A",
-      ))!;
+      final id = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 6), label: "A")
+          .valueOrFail);
 
-      await service.deleteEntry(database: database, entryId: id);
+      await service.deleteEntry(database: database, entryId: id).okOrFail;
 
       final row = await (database.select(
         database.ocptBudgetEntriesTable,
       )..where((table) => table.id.equals(id))).getSingle();
       expect(row.isDeleted, isTrue);
-      expect(await service.loadEntries(database: database), isEmpty);
+      expect(await service.loadEntries(database: database).valueOrFail, isEmpty);
     });
 
-    test("deleteEntry tombstones the entry, so the commitment it named reads unsettled again", () async {
-      final commitmentId = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Assurance tournage",
-        amountCents: 30000,
-      ))!;
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Paiement assurance",
-        posteId: posteId,
-        commitmentId: commitmentId,
-        debitCents: 30000,
-      ))!;
+    test(
+      "deleteEntry tombstones the entry, so the commitment it named reads unsettled again",
+      () async {
+        final commitmentId = (await service
+            .createCommitment(
+              database: database,
+              accountId: accountId,
+              label: "Assurance tournage",
+              amountCents: 30000,
+            )
+            .valueOrFail);
+        final entryId = (await service
+            .createEntry(
+              database: database,
+              date: DateTime.utc(2026, 3, 6),
+              label: "Paiement assurance",
+              accountId: accountId,
+              commitmentId: commitmentId,
+              debitCents: 30000,
+            )
+            .valueOrFail);
 
-      final settled = (await service.loadCommitments(database: database)).single;
-      expect(
-        ocptBudgetCommitmentIsSettledOf(
-          settled,
-          await service.loadEntries(database: database),
-          projectVatRateBasisPoints: null,
-        ),
-        isTrue,
-      );
+        final settled = (await service.loadCommitments(database: database).valueOrFail).single;
+        expect(
+          ocptBudgetCommitmentIsSettledOf(
+            settled,
+            await service.loadEntries(database: database).valueOrFail,
+            projectVatRateBasisPoints: null,
+          ),
+          isTrue,
+        );
 
-      await service.deleteEntry(database: database, entryId: entryId);
+        await service.deleteEntry(database: database, entryId: entryId).okOrFail;
 
-      final commitment = (await service.loadCommitments(database: database)).single;
-      expect(
-        ocptBudgetCommitmentIsSettledOf(
-          commitment,
-          await service.loadEntries(database: database),
-          projectVatRateBasisPoints: null,
-        ),
-        isFalse,
-      );
-    });
+        final commitment = (await service.loadCommitments(database: database).valueOrFail).single;
+        expect(
+          ocptBudgetCommitmentIsSettledOf(
+            commitment,
+            await service.loadEntries(database: database).valueOrFail,
+            projectVatRateBasisPoints: null,
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test("deleteEntry tombstones every live receipt asset naming the entry", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Essence",
-        debitCents: 6000,
-      ))!;
+      final entryId = (await service
+          .createEntry(
+            database: database,
+            date: DateTime.utc(2026, 3, 6),
+            label: "Essence",
+            debitCents: 6000,
+          )
+          .valueOrFail);
       final assetId = await assetsService.insertAsset(
         database: database,
         kind: OcptAssetKind.receipt,
@@ -280,7 +292,7 @@ void main() {
         stamps: null,
       );
 
-      await service.deleteEntry(database: database, entryId: entryId);
+      await service.deleteEntry(database: database, entryId: entryId).okOrFail;
 
       final assetRow = await (database.select(
         database.ocptAssetsTable,
@@ -291,11 +303,9 @@ void main() {
     test("createEntry is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
 
-      final id = await service.createEntry(
-        database: preview,
-        date: DateTime.utc(2026, 3, 6),
-        label: "A",
-      );
+      final id = await service
+          .createEntry(database: preview, date: DateTime.utc(2026, 3, 6), label: "A")
+          .maybeValueOrFail;
 
       expect(id, isNull);
       expect(await preview.select(preview.ocptBudgetEntriesTable).get(), isEmpty);
@@ -315,13 +325,11 @@ void main() {
             ),
           );
 
-      await service.updateEntry(
-        database: preview,
-        entryId: "entry1",
-        label: const Value("Renamed"),
-      );
-      await service.reorderEntry(database: preview, entryId: "entry1", newPosition: 0);
-      await service.deleteEntry(database: preview, entryId: "entry1");
+      await service
+          .updateEntry(database: preview, entryId: "entry1", label: const Value("Renamed"))
+          .okOrFail;
+      await service.reorderEntry(database: preview, entryId: "entry1", newPosition: 0).okOrFail;
+      await service.deleteEntry(database: preview, entryId: "entry1").okOrFail;
 
       final row = await preview.select(preview.ocptBudgetEntriesTable).getSingle();
       expect(row.label, "A");
@@ -331,96 +339,91 @@ void main() {
     });
 
     test("loadEntries orders by date, then by sortKey within the same day", () async {
-      final sameDayFirst = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 5),
-        label: "Recorded first",
-      ))!;
-      final earlierDay = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 2, 20),
-        label: "Earlier day",
-      ))!;
-      final sameDaySecond = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 5),
-        label: "Recorded second",
-      ))!;
+      final sameDayFirst = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 5), label: "Recorded first")
+          .valueOrFail);
+      final earlierDay = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 2, 20), label: "Earlier day")
+          .valueOrFail);
+      final sameDaySecond = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 5), label: "Recorded second")
+          .valueOrFail);
 
-      final entries = await service.loadEntries(database: database);
+      final entries = await service.loadEntries(database: database).valueOrFail;
       expect(entries.map((entry) => entry.id), [earlierDay, sameDayFirst, sameDaySecond]);
     });
   });
 
   group("vouchers", () {
     test("setEntryReceipt references a fresh voucher and loadReceipts reads it back", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Essence",
-        debitCents: 6000,
-      ))!;
+      final entryId = (await service
+          .createEntry(
+            database: database,
+            date: DateTime.utc(2026, 3, 6),
+            label: "Essence",
+            debitCents: 6000,
+          )
+          .valueOrFail);
 
-      final assetId = await service.setEntryReceipt(
-        database: database,
-        entryId: entryId,
-        path: "/tmp/receipt.pdf",
-      );
+      final assetId = await service
+          .setEntryReceipt(database: database, entryId: entryId, path: "/tmp/receipt.pdf")
+          .maybeValueOrFail;
       expect(assetId, isNotNull);
 
-      final receipts = await service.loadReceipts(database: database);
+      final receipts = await service.loadReceipts(database: database).valueOrFail;
       expect(receipts, hasLength(1));
       expect(receipts[entryId]?.id, assetId);
       expect(receipts[entryId]?.path, "/tmp/receipt.pdf");
       expect(receipts[entryId]?.kind, OcptAssetKind.receipt);
     });
 
-    test("setEntryReceipt replaces whatever the entry already referenced, tombstoning it", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Essence",
-        debitCents: 6000,
-      ))!;
+    test(
+      "setEntryReceipt replaces whatever the entry already referenced, tombstoning it",
+      () async {
+        final entryId = (await service
+            .createEntry(
+              database: database,
+              date: DateTime.utc(2026, 3, 6),
+              label: "Essence",
+              debitCents: 6000,
+            )
+            .valueOrFail);
 
-      final firstAssetId = await service.setEntryReceipt(
-        database: database,
-        entryId: entryId,
-        path: "/tmp/first.pdf",
-      );
-      final secondAssetId = await service.setEntryReceipt(
-        database: database,
-        entryId: entryId,
-        path: "/tmp/second.pdf",
-      );
+        final firstAssetId = await service
+            .setEntryReceipt(database: database, entryId: entryId, path: "/tmp/first.pdf")
+            .maybeValueOrFail;
+        final secondAssetId = await service
+            .setEntryReceipt(database: database, entryId: entryId, path: "/tmp/second.pdf")
+            .maybeValueOrFail;
 
-      final receipts = await service.loadReceipts(database: database);
-      expect(receipts, hasLength(1));
-      expect(receipts[entryId]?.id, secondAssetId);
-      expect(receipts[entryId]?.path, "/tmp/second.pdf");
+        final receipts = await service.loadReceipts(database: database).valueOrFail;
+        expect(receipts, hasLength(1));
+        expect(receipts[entryId]?.id, secondAssetId);
+        expect(receipts[entryId]?.path, "/tmp/second.pdf");
 
-      final firstRow = await (database.select(
-        database.ocptAssetsTable,
-      )..where((table) => table.id.equals(firstAssetId!))).getSingle();
-      expect(firstRow.isDeleted, isTrue);
-    });
+        final firstRow = await (database.select(
+          database.ocptAssetsTable,
+        )..where((table) => table.id.equals(firstAssetId!))).getSingle();
+        expect(firstRow.isDeleted, isTrue);
+      },
+    );
 
     test("clearEntryReceipt drops the reference, the file untouched", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Essence",
-        debitCents: 6000,
-      ))!;
-      final assetId = await service.setEntryReceipt(
-        database: database,
-        entryId: entryId,
-        path: "/tmp/receipt.pdf",
-      );
+      final entryId = (await service
+          .createEntry(
+            database: database,
+            date: DateTime.utc(2026, 3, 6),
+            label: "Essence",
+            debitCents: 6000,
+          )
+          .valueOrFail);
+      final assetId = await service
+          .setEntryReceipt(database: database, entryId: entryId, path: "/tmp/receipt.pdf")
+          .maybeValueOrFail;
 
-      await service.clearEntryReceipt(database: database, entryId: entryId);
+      await service.clearEntryReceipt(database: database, entryId: entryId).okOrFail;
 
-      final receipts = await service.loadReceipts(database: database);
+      final receipts = await service.loadReceipts(database: database).valueOrFail;
       expect(receipts, isEmpty);
       final row = await (database.select(
         database.ocptAssetsTable,
@@ -435,18 +438,20 @@ void main() {
       await preview
           .into(preview.ocptBudgetEntriesTable)
           .insert(
-            OcptBudgetEntriesTableCompanion.insert(id: "entry1", date: DateTime.utc(2026, 3, 6), label: "A"),
+            OcptBudgetEntriesTableCompanion.insert(
+              id: "entry1",
+              date: DateTime.utc(2026, 3, 6),
+              label: "A",
+            ),
           );
 
-      final assetId = await service.setEntryReceipt(
-        database: preview,
-        entryId: "entry1",
-        path: "/tmp/receipt.pdf",
-      );
+      final assetId = await service
+          .setEntryReceipt(database: preview, entryId: "entry1", path: "/tmp/receipt.pdf")
+          .maybeValueOrFail;
       expect(assetId, isNull);
       expect(await preview.select(preview.ocptAssetsTable).get(), isEmpty);
 
-      await service.clearEntryReceipt(database: preview, entryId: "entry1");
+      await service.clearEntryReceipt(database: preview, entryId: "entry1").okOrFail;
       // Nothing to clear, and nothing thrown either.
 
       await preview.close();
@@ -455,47 +460,51 @@ void main() {
 
   group("commitment CRUD", () {
     test("createCommitment appends at the end and defaults to quoteAccepted", () async {
-      final firstId = await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Assurance",
-        amountCents: 20000,
-      );
-      final secondId = await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Location véhicule",
-      );
+      final firstId = await service
+          .createCommitment(
+            database: database,
+            accountId: accountId,
+            label: "Assurance",
+            amountCents: 20000,
+          )
+          .maybeValueOrFail;
+      final secondId = await service
+          .createCommitment(database: database, accountId: accountId, label: "Location véhicule")
+          .maybeValueOrFail;
 
-      final commitments = await service.loadCommitments(database: database);
+      final commitments = await service.loadCommitments(database: database).valueOrFail;
       expect(commitments.map((c) => c.id), [firstId, secondId]);
       expect(commitments.first.status, OcptBudgetCommitmentStatus.quoteAccepted);
       expect(commitments.first.amount.amountCents, 20000);
       expect(
-        ocptBudgetCommitmentIsSettledOf(commitments.first, const [], projectVatRateBasisPoints: null),
+        ocptBudgetCommitmentIsSettledOf(
+          commitments.first,
+          const [],
+          projectVatRateBasisPoints: null,
+        ),
         isFalse,
       );
     });
 
     test("updateCommitment writes every field passed", () async {
-      final id = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Assurance",
-      ))!;
+      final id = (await service
+          .createCommitment(database: database, accountId: accountId, label: "Assurance")
+          .valueOrFail);
 
-      await service.updateCommitment(
-        database: database,
-        commitmentId: id,
-        dueDate: Value(DateTime.utc(2026, 4, 6)),
-        label: const Value("Assurance tournage"),
-        amountCents: const Value(45000),
-        isTaxInclusive: const Value(false),
-        vatRateBasisPoints: const Value(2000),
-        status: const Value(OcptBudgetCommitmentStatus.contractSigned),
-      );
+      await service
+          .updateCommitment(
+            database: database,
+            commitmentId: id,
+            dueDate: Value(DateTime.utc(2026, 4, 6)),
+            label: const Value("Assurance tournage"),
+            amountCents: const Value(45000),
+            isTaxInclusive: const Value(false),
+            vatRateBasisPoints: const Value(2000),
+            status: const Value(OcptBudgetCommitmentStatus.contractSigned),
+          )
+          .okOrFail;
 
-      final commitment = (await service.loadCommitments(database: database)).single;
+      final commitment = (await service.loadCommitments(database: database).valueOrFail).single;
       expect(commitment.dueDate, DateTime.utc(2026, 4, 6));
       expect(commitment.label, "Assurance tournage");
       expect(commitment.amount.amountCents, 45000);
@@ -504,56 +513,57 @@ void main() {
       expect(commitment.status, OcptBudgetCommitmentStatus.contractSigned);
     });
 
-    test("updateCommitment moves a commitment to another poste", () async {
-      final otherPosteId = (await quoteService.createPoste(
-        database: database,
-        label: "Moyens techniques",
-      ))!;
-      final id = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Location optiques",
-      ))!;
+    test("updateCommitment moves a commitment to another account", () async {
+      final otherAccountId = (await quoteService
+          .createAccount(database: database, label: "Moyens techniques")
+          .valueOrFail);
+      final id = (await service
+          .createCommitment(database: database, accountId: accountId, label: "Location optiques")
+          .valueOrFail);
 
-      await service.updateCommitment(
-        database: database,
-        commitmentId: id,
-        posteId: Value(otherPosteId),
-      );
+      await service
+          .updateCommitment(database: database, commitmentId: id, accountId: Value(otherAccountId))
+          .okOrFail;
 
-      final commitment = (await service.loadCommitments(database: database)).single;
-      expect(commitment.posteId, otherPosteId);
+      final commitment = (await service.loadCommitments(database: database).valueOrFail).single;
+      expect(commitment.accountId, otherAccountId);
     });
 
     test("an entry naming a commitment settles it, and clearing that link unsettles it", () async {
-      final commitmentId = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Assurance",
-        amountCents: 10000,
-      ))!;
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Paiement",
-        commitmentId: commitmentId,
-        debitCents: 10000,
-      ))!;
+      final commitmentId = (await service
+          .createCommitment(
+            database: database,
+            accountId: accountId,
+            label: "Assurance",
+            amountCents: 10000,
+          )
+          .valueOrFail);
+      final entryId = (await service
+          .createEntry(
+            database: database,
+            date: DateTime.utc(2026, 3, 6),
+            label: "Paiement",
+            commitmentId: commitmentId,
+            debitCents: 10000,
+          )
+          .valueOrFail);
 
       expect(
         ocptBudgetCommitmentIsSettledOf(
-          (await service.loadCommitments(database: database)).single,
-          await service.loadEntries(database: database),
+          (await service.loadCommitments(database: database).valueOrFail).single,
+          await service.loadEntries(database: database).valueOrFail,
           projectVatRateBasisPoints: null,
         ),
         isTrue,
       );
 
-      await service.updateEntry(database: database, entryId: entryId, commitmentId: const Value(null));
+      await service
+          .updateEntry(database: database, entryId: entryId, commitmentId: const Value(null))
+          .okOrFail;
       expect(
         ocptBudgetCommitmentIsSettledOf(
-          (await service.loadCommitments(database: database)).single,
-          await service.loadEntries(database: database),
+          (await service.loadCommitments(database: database).valueOrFail).single,
+          await service.loadEntries(database: database).valueOrFail,
           projectVatRateBasisPoints: null,
         ),
         isFalse,
@@ -561,69 +571,60 @@ void main() {
     });
 
     test("reorderCommitment moves a commitment and writes exactly one row", () async {
-      final firstId = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "A",
-      ))!;
-      final secondId = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "B",
-      ))!;
-      final thirdId = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "C",
-      ))!;
+      final firstId = (await service
+          .createCommitment(database: database, accountId: accountId, label: "A")
+          .valueOrFail);
+      final secondId = (await service
+          .createCommitment(database: database, accountId: accountId, label: "B")
+          .valueOrFail);
+      final thirdId = (await service
+          .createCommitment(database: database, accountId: accountId, label: "C")
+          .valueOrFail);
 
       final before = {
         for (final row in await database.select(database.ocptBudgetCommitmentsTable).get())
           row.id: row.sortKey,
       };
 
-      await service.reorderCommitment(database: database, commitmentId: firstId, newPosition: 2);
+      await service
+          .reorderCommitment(database: database, commitmentId: firstId, newPosition: 2)
+          .okOrFail;
 
       final rows = await database.select(database.ocptBudgetCommitmentsTable).get();
       final byId = {for (final row in rows) row.id: row};
-      expect(
-        (rows..sort((a, b) => a.sortKey.compareTo(b.sortKey))).map((row) => row.id),
-        [secondId, thirdId, firstId],
-      );
+      expect((rows..sort((a, b) => a.sortKey.compareTo(b.sortKey))).map((row) => row.id), [
+        secondId,
+        thirdId,
+        firstId,
+      ]);
       final unchanged = rows.where((row) => row.id != firstId);
       expect(unchanged.every((row) => row.sortKey == before[row.id]), isTrue);
       expect(byId[firstId]!.sortKey, isNot(before[firstId]));
     });
 
     test("deleteCommitment tombstones it, filtered back out of loadCommitments", () async {
-      final id = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "A",
-      ))!;
+      final id = (await service
+          .createCommitment(database: database, accountId: accountId, label: "A")
+          .valueOrFail);
 
-      await service.deleteCommitment(database: database, commitmentId: id);
+      await service.deleteCommitment(database: database, commitmentId: id).okOrFail;
 
       final row = await (database.select(
         database.ocptBudgetCommitmentsTable,
       )..where((table) => table.id.equals(id))).getSingle();
       expect(row.isDeleted, isTrue);
-      expect(await service.loadCommitments(database: database), isEmpty);
+      expect(await service.loadCommitments(database: database).valueOrFail, isEmpty);
     });
 
     test("createCommitment is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
       await preview
-          .into(preview.ocptBudgetPostesTable)
-          .insert(
-            OcptBudgetPostesTableCompanion.insert(id: "poste1", label: "Personnel"),
-          );
+          .into(preview.ocptBudgetAccountsTable)
+          .insert(OcptBudgetAccountsTableCompanion.insert(id: "poste1", label: "Personnel"));
 
-      final id = await service.createCommitment(
-        database: preview,
-        posteId: "poste1",
-        label: "A",
-      );
+      final id = await service
+          .createCommitment(database: preview, accountId: "poste1", label: "A")
+          .maybeValueOrFail;
 
       expect(id, isNull);
       expect(await preview.select(preview.ocptBudgetCommitmentsTable).get(), isEmpty);
@@ -632,38 +633,42 @@ void main() {
     });
 
     test("loadCommitments orders by dueDate ascending, with the undated ones last", () async {
-      final undated = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Undated",
-      ))!;
-      final later = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Later",
-        dueDate: DateTime.utc(2026, 5, 6),
-      ))!;
-      final sooner = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Sooner",
-        dueDate: DateTime.utc(2026, 4, 6),
-      ))!;
+      final undated = (await service
+          .createCommitment(database: database, accountId: accountId, label: "Undated")
+          .valueOrFail);
+      final later = (await service
+          .createCommitment(
+            database: database,
+            accountId: accountId,
+            label: "Later",
+            dueDate: DateTime.utc(2026, 5, 6),
+          )
+          .valueOrFail);
+      final sooner = (await service
+          .createCommitment(
+            database: database,
+            accountId: accountId,
+            label: "Sooner",
+            dueDate: DateTime.utc(2026, 4, 6),
+          )
+          .valueOrFail);
 
-      final commitments = await service.loadCommitments(database: database);
+      final commitments = await service.loadCommitments(database: database).valueOrFail;
       expect(commitments.map((c) => c.id), [sooner, later, undated]);
     });
   });
 
   group("stamping", () {
     test("createEntry stamps every column of the new row", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Essence",
-        posteId: posteId,
-        debitCents: 6000,
-      ))!;
+      final entryId = (await service
+          .createEntry(
+            database: database,
+            date: DateTime.utc(2026, 3, 6),
+            label: "Essence",
+            accountId: accountId,
+            debitCents: 6000,
+          )
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -678,53 +683,55 @@ void main() {
       for (final column in row.toJson().keys) {
         final stamp = ownStamps["budget_entries/$entryId/$column"];
         expect(stamp, isNotNull, reason: "$column should be stamped");
-        // The device clock already ticked once creating `posteId` in setUp, so this entry's own
+        // The device clock already ticked once creating `accountId` in setUp, so this entry's own
         // transaction reserves the next tick, not the first one.
         expect(stamp!.version, 2);
       }
     });
 
     test("updateEntry stamps only the columns that actually changed", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "A",
-      ))!;
+      final entryId = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 6), label: "A")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.updateEntry(
-        database: database,
-        entryId: entryId,
-        label: const Value("Renamed"),
-        debitCents: const Value(5000),
-      );
+      await service
+          .updateEntry(
+            database: database,
+            entryId: entryId,
+            label: const Value("Renamed"),
+            debitCents: const Value(5000),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
-      final ownKeys = stamps.keys.where((key) => key.startsWith("budget_entries/$entryId/")).toSet();
+      final ownKeys = stamps.keys
+          .where((key) => key.startsWith("budget_entries/$entryId/"))
+          .toSet();
       expect(ownKeys, {"budget_entries/$entryId/label", "budget_entries/$entryId/debitCents"});
     });
 
     test("deleteEntry stamps isDeleted on the entry", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "A",
-      ))!;
+      final entryId = (await service
+          .createEntry(database: database, date: DateTime.utc(2026, 3, 6), label: "A")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.deleteEntry(database: database, entryId: entryId);
+      await service.deleteEntry(database: database, entryId: entryId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["budget_entries/$entryId/isDeleted"]!.version, 1);
     });
 
     test("createCommitment stamps every column of the new row", () async {
-      final commitmentId = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Assurance",
-        amountCents: 20000,
-      ))!;
+      final commitmentId = (await service
+          .createCommitment(
+            database: database,
+            accountId: accountId,
+            label: "Assurance",
+            amountCents: 20000,
+          )
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -739,26 +746,26 @@ void main() {
       for (final column in row.toJson().keys) {
         final stamp = ownStamps["budget_commitments/$commitmentId/$column"];
         expect(stamp, isNotNull, reason: "$column should be stamped");
-        // The device clock already ticked once creating `posteId` in setUp, so this commitment's
+        // The device clock already ticked once creating `accountId` in setUp, so this commitment's
         // own transaction reserves the next tick, not the first one.
         expect(stamp!.version, 2);
       }
     });
 
     test("updateCommitment stamps only the columns that actually changed", () async {
-      final commitmentId = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "Assurance",
-      ))!;
+      final commitmentId = (await service
+          .createCommitment(database: database, accountId: accountId, label: "Assurance")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.updateCommitment(
-        database: database,
-        commitmentId: commitmentId,
-        label: const Value("Assurance tournage"),
-        amountCents: const Value(45000),
-      );
+      await service
+          .updateCommitment(
+            database: database,
+            commitmentId: commitmentId,
+            label: const Value("Assurance tournage"),
+            amountCents: const Value(45000),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys
@@ -771,33 +778,31 @@ void main() {
     });
 
     test("deleteCommitment stamps isDeleted on the commitment", () async {
-      final commitmentId = (await service.createCommitment(
-        database: database,
-        posteId: posteId,
-        label: "A",
-      ))!;
+      final commitmentId = (await service
+          .createCommitment(database: database, accountId: accountId, label: "A")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.deleteCommitment(database: database, commitmentId: commitmentId);
+      await service.deleteCommitment(database: database, commitmentId: commitmentId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["budget_commitments/$commitmentId/isDeleted"]!.version, 1);
     });
 
     test("setEntryReceipt stamps the receipt asset it mints — previously left unstamped", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Essence",
-        debitCents: 6000,
-      ))!;
+      final entryId = (await service
+          .createEntry(
+            database: database,
+            date: DateTime.utc(2026, 3, 6),
+            label: "Essence",
+            debitCents: 6000,
+          )
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final assetId = (await service.setEntryReceipt(
-        database: database,
-        entryId: entryId,
-        path: "/tmp/receipt.pdf",
-      ))!;
+      final assetId = (await service
+          .setEntryReceipt(database: database, entryId: entryId, path: "/tmp/receipt.pdf")
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -818,68 +823,63 @@ void main() {
     test(
       "setEntryReceipt stamps isDeleted on the receipt it replaces — previously left unstamped",
       () async {
-        final entryId = (await service.createEntry(
-          database: database,
-          date: DateTime.utc(2026, 3, 6),
-          label: "Essence",
-          debitCents: 6000,
-        ))!;
-        final firstAssetId = (await service.setEntryReceipt(
-          database: database,
-          entryId: entryId,
-          path: "/tmp/first.pdf",
-        ))!;
+        final entryId = (await service
+            .createEntry(
+              database: database,
+              date: DateTime.utc(2026, 3, 6),
+              label: "Essence",
+              debitCents: 6000,
+            )
+            .valueOrFail);
+        final firstAssetId = (await service
+            .setEntryReceipt(database: database, entryId: entryId, path: "/tmp/first.pdf")
+            .valueOrFail);
         await database.delete(database.ocptRowFieldVersionsTable).go();
 
-        await service.setEntryReceipt(
-          database: database,
-          entryId: entryId,
-          path: "/tmp/second.pdf",
-        );
+        await service
+            .setEntryReceipt(database: database, entryId: entryId, path: "/tmp/second.pdf")
+            .maybeValueOrFail;
 
         final stamps = await readStamps();
         expect(stamps["assets/$firstAssetId/isDeleted"]!.version, 1);
       },
     );
 
-    test(
-      "clearEntryReceipt stamps isDeleted on the receipt — previously left unstamped",
-      () async {
-        final entryId = (await service.createEntry(
-          database: database,
-          date: DateTime.utc(2026, 3, 6),
-          label: "Essence",
-          debitCents: 6000,
-        ))!;
-        final assetId = (await service.setEntryReceipt(
-          database: database,
-          entryId: entryId,
-          path: "/tmp/receipt.pdf",
-        ))!;
-        await database.delete(database.ocptRowFieldVersionsTable).go();
-
-        await service.clearEntryReceipt(database: database, entryId: entryId);
-
-        final stamps = await readStamps();
-        expect(stamps["assets/$assetId/isDeleted"]!.version, 1);
-      },
-    );
-
-    test("deleteEntry stamps isDeleted on its own live receipt asset too", () async {
-      final entryId = (await service.createEntry(
-        database: database,
-        date: DateTime.utc(2026, 3, 6),
-        label: "Essence",
-        debitCents: 6000,
-      ))!;
-      final assetId = (await service.setEntryReceipt(
-        database: database,
-        entryId: entryId,
-        path: "/tmp/receipt.pdf",
-      ))!;
+    test("clearEntryReceipt stamps isDeleted on the receipt — previously left unstamped", () async {
+      final entryId = (await service
+          .createEntry(
+            database: database,
+            date: DateTime.utc(2026, 3, 6),
+            label: "Essence",
+            debitCents: 6000,
+          )
+          .valueOrFail);
+      final assetId = (await service
+          .setEntryReceipt(database: database, entryId: entryId, path: "/tmp/receipt.pdf")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.deleteEntry(database: database, entryId: entryId);
+      await service.clearEntryReceipt(database: database, entryId: entryId).okOrFail;
+
+      final stamps = await readStamps();
+      expect(stamps["assets/$assetId/isDeleted"]!.version, 1);
+    });
+
+    test("deleteEntry stamps isDeleted on its own live receipt asset too", () async {
+      final entryId = (await service
+          .createEntry(
+            database: database,
+            date: DateTime.utc(2026, 3, 6),
+            label: "Essence",
+            debitCents: 6000,
+          )
+          .valueOrFail);
+      final assetId = (await service
+          .setEntryReceipt(database: database, entryId: entryId, path: "/tmp/receipt.pdf")
+          .valueOrFail);
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service.deleteEntry(database: database, entryId: entryId).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["assets/$assetId/isDeleted"]!.version, 1);

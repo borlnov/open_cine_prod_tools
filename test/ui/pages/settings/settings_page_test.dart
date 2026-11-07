@@ -18,7 +18,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/settings/settings_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/settings/settings_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_about_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_appearance_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_calendar_section.dart';
@@ -29,14 +29,6 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// A locales manager whose current/wanted locale are held in plain fields: see the bloc test for
 /// why this fake exists instead of a real [LocalesManager].
 class _FakeLocalesManager extends LocalesManager {
-  /// Class constructor
-  _FakeLocalesManager()
-    : super(
-        getSupportedLocales: () => const <Locale>[Locale("en", "GB"), Locale("fr")],
-        propertiesGetter: () => throw UnimplementedError(),
-        configGetter: () => throw UnimplementedError(),
-      );
-
   /// The stream backing [currentLocaleStream]; never emits in this fake.
   final _currentLocaleCtrl = StreamController<Locale>.broadcast();
 
@@ -46,17 +38,29 @@ class _FakeLocalesManager extends LocalesManager {
   /// The locale returned by [wantedLocale].
   Locale? _wanted;
 
+  /// Read the locale the double holds.
   @override
   Locale get currentLocale => _current;
 
+  /// Emit the locales the test adds to the controller.
   @override
   Stream<Locale> get currentLocaleStream => _currentLocaleCtrl.stream;
 
+  /// Read the locale that was asked for.
   @override
   Locale? get wantedLocale => _wanted;
 
+  /// Remember the locale asked for.
   @override
   set wantedLocale(Locale? newLocale) => _wanted = newLocale;
+
+  /// Class constructor
+  _FakeLocalesManager()
+    : super(
+        getSupportedLocales: () => const <Locale>[Locale("en", "GB"), Locale("fr")],
+        propertiesGetter: () => throw UnimplementedError(),
+        configGetter: () => throw UnimplementedError(),
+      );
 
   /// Closes the stream backing this fake, for tidy test teardown.
   Future<void> disposeFake() => _currentLocaleCtrl.close();
@@ -65,16 +69,6 @@ class _FakeLocalesManager extends LocalesManager {
 /// A themes manager whose current theme/brightness are held in plain fields: see the bloc test
 /// for why this fake exists instead of a real [ActThemesManager].
 class _FakeActThemesManager extends ActThemesManager {
-  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
-  /// previous session.
-  _FakeActThemesManager({Brightness? brightness})
-    : _brightness = brightness,
-      super(
-        propertiesGetter: () => throw UnimplementedError(),
-        configGetter: () => throw UnimplementedError(),
-        appThemes: OcptAppTheme.values,
-      );
-
   /// The stream backing [currentThemeStream]; never emits in this fake.
   final _themeCtrl = StreamController<MixinActThemes>.broadcast();
 
@@ -87,24 +81,40 @@ class _FakeActThemesManager extends ActThemesManager {
   /// The brightness returned by [brightness].
   Brightness? _brightness;
 
+  /// Read the theme the double holds.
   @override
   MixinActThemes get currentTheme => _theme;
 
+  /// Emit the themes the test adds to the controller.
   @override
   Stream<MixinActThemes> get currentThemeStream => _themeCtrl.stream;
 
+  /// Read the brightness the double holds.
   @override
   Brightness? get brightness => _brightness;
 
+  /// Emit the brightnesses the test adds to the controller.
   @override
   Stream<Brightness?> get brightnessStream => _brightnessCtrl.stream;
 
+  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
+  /// previous session.
+  _FakeActThemesManager({Brightness? brightness})
+    : _brightness = brightness,
+      super(
+        propertiesGetter: () => throw UnimplementedError(),
+        configGetter: () => throw UnimplementedError(),
+        appThemes: OcptAppTheme.values,
+      );
+
+  /// Keep the brightness and emit it.
   @override
   Future<void> setBrightness({required Brightness? newBrightness}) async {
     _brightness = newBrightness;
     _brightnessCtrl.add(newBrightness);
   }
 
+  /// Keep the theme and emit it.
   @override
   Future<void> setCurrentTheme({required MixinActThemes newTheme}) async {
     _theme = newTheme;
@@ -127,6 +137,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// Whether [pop] was called.
   bool popped = false;
 
+  /// Record the route pushed, and answer with nothing.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -138,6 +149,7 @@ class _RecordingRouterManager extends OcptRouterManager {
     return null;
   }
 
+  /// Record that a pop happened, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -156,6 +168,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of the settings page.
 void main() {
   late _RecordingRouterManager routerManager;
   late OcptPropertiesManager propertiesManager;
@@ -208,7 +221,10 @@ void main() {
 
   /// Pumps [OcptSettingsView] backed by a fresh [OcptSettingsBloc] with the injected
   /// [appVersion], returning the bloc so tests can inspect its state.
-  Future<OcptSettingsBloc> pumpSettingsView(WidgetTester tester, {String appVersion = "1.2.3"}) async {
+  Future<OcptSettingsBloc> pumpSettingsView(
+    WidgetTester tester, {
+    String appVersion = "1.2.3",
+  }) async {
     final bloc = OcptSettingsBloc(appVersion: appVersion);
     addTearDown(bloc.close);
 

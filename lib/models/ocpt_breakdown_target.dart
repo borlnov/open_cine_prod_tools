@@ -48,6 +48,9 @@ class OcptBreakdownTarget extends Equatable {
   /// inspector's "jump to" list and the recap's per-scene column read.
   final int occurrenceCount;
 
+  /// Get this target's colour, delegating to [ocptBreakdownColorOf].
+  int get color => ocptBreakdownColorOf(kind: kind, category: category);
+
   /// Class constructor
   const OcptBreakdownTarget({
     required this.kind,
@@ -59,15 +62,12 @@ class OcptBreakdownTarget extends Equatable {
     required this.occurrenceCount,
   });
 
-  /// This target's colour, delegating to [ocptBreakdownColorOf].
-  int get color => ocptBreakdownColorOf(kind: kind, category: category);
-
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBreakdownTarget(kind: $kind, id: $id, name: $name, occurrenceCount: $occurrenceCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [kind, id, name, category, status, sceneIds, occurrenceCount];
 }

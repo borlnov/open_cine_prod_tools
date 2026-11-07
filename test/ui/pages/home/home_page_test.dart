@@ -6,10 +6,11 @@ import 'dart:io';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
@@ -20,6 +21,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_package_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_page.dart';
@@ -30,15 +32,14 @@ import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_card.dar
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_file_newer_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_package_skipped_files_dialog.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_responsive.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests, and with
-/// [ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the project
-/// card's poster tint) resolve one, just like the real app always does.
+/// [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the
+/// project card's poster tint) resolve one, just like the real app always does.
 ///
 /// [navigatorKey] is only given by the tests that need a dialog to *close* again: the app closes
 /// one through `OcptRouterManager.pop`, which drives a real `GoRouter` no widget test builds, so
@@ -46,7 +47,7 @@ import 'package:sqlite3/sqlite3.dart';
 Widget _wrapWithLocalization(Widget child, {GlobalKey<NavigatorState>? navigatorKey}) =>
     MaterialApp(
       navigatorKey: navigatorKey,
-      theme: ocptTheme.lightThemeData,
+      theme: ocpt_theme.ocptTheme.lightThemeData,
       localizationsDelegates: const [
         Tr.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -86,18 +87,20 @@ class _NavigatorKeyRouterManager extends OcptRouterManager {
   /// The key of the navigator the pumped [MaterialApp] builds.
   final GlobalKey<NavigatorState> navigatorKey;
 
-  /// Class constructor
-  _NavigatorKeyRouterManager({required this.navigatorKey});
-
-  @override
-  void pop<Y extends Object?>([Y? result]) => navigatorKey.currentState?.pop<Y>(result);
-
   /// The route the last [push] named, or null if none ever was.
   ///
   /// A push is recorded rather than performed: these tests stop at the home page, and none of them
   /// ever gets far enough to open a project.
   OcptRoute? pushedRoute;
 
+  /// Class constructor
+  _NavigatorKeyRouterManager({required this.navigatorKey});
+
+  /// Pop the route of the test's own navigator.
+  @override
+  void pop<Y extends Object?>([Y? result]) => navigatorKey.currentState?.pop<Y>(result);
+
+  /// Record the route pushed, and answer with nothing.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -122,6 +125,7 @@ class _FakeFileSelectorManager extends FileSelectorManager {
   /// Class constructor
   _FakeFileSelectorManager();
 
+  /// Answer with the canned file.
   @override
   Future<ResultWithBoolStatus<XFile>> openSelector({
     required List<String> allowedExtensions,
@@ -140,8 +144,9 @@ class _FakeSaveLocationService extends OcptSaveLocationService {
   final String? directoryAnswer;
 
   /// Class constructor
-  const _FakeSaveLocationService({this.directoryAnswer});
+  const _FakeSaveLocationService({this.directoryAnswer}) : super(logger: const SilentLogger());
 
+  /// Answer with the canned directory.
   @override
   Future<String?> pickDirectory({
     required String confirmButtonText,
@@ -149,8 +154,9 @@ class _FakeSaveLocationService extends OcptSaveLocationService {
   }) async => directoryAnswer;
 }
 
+/// Run the tests of [OcptHomePage].
 void main() {
-  // HomePage builds its OcptHomeBloc internally via `OcptHomeBloc()`, which resolves every
+  // OcptHomePage builds its OcptHomeBloc internally via `OcptHomeBloc()`, which resolves every
   // manager it needs from globalGetIt() by default. We register real (but test-controlled)
   // instances of those managers in the app's actual GetIt instance once, matching how
   // OcptPropertiesManager's own test backs it with an in-memory store instead of mocking it.
@@ -192,20 +198,20 @@ void main() {
   });
 
   testWidgets('shows the empty state when there are no recent projects', (tester) async {
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptHomeEmptyState), findsOneWidget);
     expect(find.byType(OcptProjectCard), findsNothing);
 
-    final context = tester.element(find.byType(HomePage));
+    final context = tester.element(find.byType(OcptHomePage));
     expect(find.text(Tr.of(context).homeEmptyStateTitle), findsOneWidget);
   });
 
   testWidgets('shows the New project FAB at compact width', (tester) async {
     await _pumpHome(
       tester,
-      const HomePage(),
+      const OcptHomePage(),
       size: const Size(ocptCompactWidthBreakpoint - 100, 900),
     );
     await tester.pumpAndSettle();
@@ -214,31 +220,30 @@ void main() {
   });
 
   testWidgets('shows no New project FAB at wide width', (tester) async {
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(FloatingActionButton), findsNothing);
   });
 
-  testWidgets(
-    'the empty state shows the compact hint instead of the button row at compact width',
-    (tester) async {
-      await _pumpHome(
-        tester,
-        const HomePage(),
-        size: const Size(ocptCompactWidthBreakpoint - 100, 900),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('the empty state shows the compact hint instead of the button row at compact width', (
+    tester,
+  ) async {
+    await _pumpHome(
+      tester,
+      const OcptHomePage(),
+      size: const Size(ocptCompactWidthBreakpoint - 100, 900),
+    );
+    await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(HomePage));
-      final tr = Tr.of(context);
+    final context = tester.element(find.byType(OcptHomePage));
+    final tr = Tr.of(context);
 
-      expect(find.text(tr.homeEmptyStateCompactHint), findsOneWidget);
-      expect(find.text(tr.homeNewProjectAction), findsNothing);
-      expect(find.text(tr.homeOpenProjectAction), findsNothing);
-      expect(find.text(tr.homeImportAction), findsNothing);
-    },
-  );
+    expect(find.text(tr.homeEmptyStateCompactHint), findsOneWidget);
+    expect(find.text(tr.homeNewProjectAction), findsNothing);
+    expect(find.text(tr.homeOpenProjectAction), findsNothing);
+    expect(find.text(tr.homeImportAction), findsNothing);
+  });
 
   testWidgets('shows a card per recent project once loaded', (tester) async {
     final existingFile = File(p.join(tempDir.path, "movie.ocpt"))..writeAsStringSync("");
@@ -250,7 +255,7 @@ void main() {
       ),
     );
 
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptHomeEmptyState), findsNothing);
@@ -270,7 +275,7 @@ void main() {
       ),
     );
 
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptProjectCard), findsOneWidget);
@@ -279,17 +284,17 @@ void main() {
     expect(cardWidget.entry.exists, isFalse);
 
     // The card is wrapped in a Tooltip explaining why it's disabled, instead of being tappable.
-    final context = tester.element(find.byType(HomePage));
+    final context = tester.element(find.byType(OcptHomePage));
     expect(find.byTooltip(Tr.of(context).homeMissingFileTooltip), findsOneWidget);
     final inkWell = tester.widget<InkWell>(find.byKey(ValueKey(missingPath)));
     expect(inkWell.onTap, isNull);
   });
 
   testWidgets('the import action is shown in the header and the empty state', (tester) async {
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(HomePage));
+    final context = tester.element(find.byType(OcptHomePage));
     expect(find.text(Tr.of(context).homeImportAction), findsNWidgets(2));
   });
 
@@ -334,10 +339,10 @@ void main() {
   });
 
   testWidgets('Import… opens a modal offering a project and a screenplay', (tester) async {
-    await _pumpHome(tester, const HomePage());
+    await _pumpHome(tester, const OcptHomePage());
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(HomePage));
+    final context = tester.element(find.byType(OcptHomePage));
     await tester.tap(find.text(Tr.of(context).homeImportAction).first);
     await tester.pumpAndSettle();
 
@@ -384,13 +389,13 @@ void main() {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await addRecentProjectStatingFormat(filePath, OcptProjectDatabase.currentSchemaVersion - 1);
 
-      await _pumpHome(tester, const HomePage());
+      await _pumpHome(tester, const OcptHomePage());
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(ValueKey(filePath)));
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(HomePage));
+      final context = tester.element(find.byType(OcptHomePage));
       expect(find.byType(OcptConfirmDialog), findsOneWidget);
       expect(find.text(Tr.of(context).homeMigrateProjectTitle), findsOneWidget);
       expect(
@@ -407,13 +412,13 @@ void main() {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await addRecentProjectStatingFormat(filePath, OcptProjectDatabase.currentSchemaVersion + 1);
 
-      await _pumpHome(tester, const HomePage());
+      await _pumpHome(tester, const OcptHomePage());
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(ValueKey(filePath)));
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(HomePage));
+      final context = tester.element(find.byType(OcptHomePage));
       expect(find.byType(OcptProjectFileNewerDialog), findsOneWidget);
       expect(find.text(Tr.of(context).homeProjectFileNewerTitle), findsOneWidget);
       expect(
@@ -445,13 +450,13 @@ void main() {
           OcptRecentProjectModel(path: filePath, name: "My Movie", lastOpenedAt: DateTime.now()),
         );
 
-        await _pumpHome(tester, const HomePage());
+        await _pumpHome(tester, const OcptHomePage());
         await tester.pumpAndSettle();
 
         await tester.tap(find.byKey(ValueKey(filePath)));
         await tester.pumpAndSettle();
 
-        final context = tester.element(find.byType(HomePage));
+        final context = tester.element(find.byType(OcptHomePage));
         expect(find.byType(OcptProjectFileNewerDialog), findsOneWidget);
         expect(find.text(Tr.of(context).homeProjectFileForeignDevBuildTitle), findsOneWidget);
         expect(
@@ -557,7 +562,7 @@ void main() {
 
       final packagePath = p.join(tempDir.path, "sent", "My Movie.ocptz");
       await tester.runAsync(() async {
-        final exported = await const OcptProjectPackageService().writePackage(
+        final exported = await const OcptProjectPackageService(logger: SilentLogger()).writePackage(
           projectFilePath: projectPath,
           packageFilePath: packagePath,
           projectName: "My Movie",
@@ -578,10 +583,10 @@ void main() {
     /// progresses while [WidgetTester.runAsync] hands the real event loop back. The settle that
     /// follows is what draws whatever the bloc emitted once it had.
     Future<void> importTheProject(WidgetTester tester) async {
-      await _pumpHome(tester, const HomePage(), navigatorKey: navigatorKey);
+      await _pumpHome(tester, const OcptHomePage(), navigatorKey: navigatorKey);
       await tester.pumpAndSettle();
 
-      final context = tester.element(find.byType(HomePage));
+      final context = tester.element(find.byType(OcptHomePage));
       await tester.tap(find.text(Tr.of(context).homeImportAction).first);
       await tester.pumpAndSettle();
 
@@ -602,7 +607,7 @@ void main() {
 
       await importTheProject(tester);
 
-      final context = tester.element(find.byType(HomePage));
+      final context = tester.element(find.byType(OcptHomePage));
       expect(find.byType(OcptProjectPackageSkippedFilesDialog), findsOneWidget);
       expect(find.textContaining("Autorisation mairie"), findsOneWidget);
       expect(

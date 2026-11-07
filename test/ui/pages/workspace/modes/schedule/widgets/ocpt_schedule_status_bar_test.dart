@@ -18,9 +18,12 @@ Widget _wrapInApp(Widget child, {double width = 700}) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: width, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: width, child: child),
+  ),
 );
 
+/// Run the tests of [OcptScheduleStatusBar].
 void main() {
   /// Pumps the status bar for a schedule of [dayCount] days, with or without a selected day and its
   /// own computed end.

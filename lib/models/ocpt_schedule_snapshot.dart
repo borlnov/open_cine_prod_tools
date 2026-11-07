@@ -21,10 +21,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// order (i.e. `sortKey` order); each day's [slotsByDayId] entry is in `sortKey` order, each slot
 /// carrying its own live crew, cast and guests already nested
 /// (`OcptShootingSlot.crew`/`.cast`/`.guests`); each day's [blocksByDayId] entry is in `sortKey`
-/// order too — the timetable order `lib/utils/ocpt_shooting_day_timeline.dart` reads to chain a
-/// slot's clock, this snapshot deferring to it for every clock time rather than computing one; each
-/// day's [eventsByDayId] entry is ordered by [OcptShootingDayEvent.minute], ties broken by
-/// `sortKey` — an event's own hour, not a chain, being the only thing that orders it.
+/// order too — the timetable order `lib/models/rules/ocpt_shooting_day_timeline.dart` reads to
+/// chain a slot's clock, this snapshot deferring to it for every clock time rather than computing
+/// one; each day's [eventsByDayId] entry is ordered by [OcptShootingDayEvent.minute], ties broken
+/// by `sortKey` — an event's own hour, not a chain, being the only thing that orders it.
 class OcptScheduleSnapshot extends Equatable {
   /// Every live day, in [OcptShootingDay.dayNumber] order.
   final List<OcptShootingDay> days;
@@ -50,11 +50,14 @@ class OcptScheduleSnapshot extends Equatable {
 
   /// The id of every shot that is placed somewhere in the schedule: every live block whose `kind`
   /// is [OcptShootingBlockKind.shot], across every day. `OcptScheduleService.placeShot` is the only
-  /// writer that can grow this set — a shot placed more than once (interrupted by the meal break and
-  /// resumed after it, say) still appears here exactly once, this being a set of shots rather than
-  /// of placements; `OcptShotListSnapshot.placementsByShotId` is where a shot's *own* count of
+  /// writer that can grow this set — a shot placed more than once (interrupted by the meal break
+  /// and resumed after it, say) still appears here exactly once, this being a set of shots rather
+  /// than of placements; `OcptShotListSnapshot.placementsByShotId` is where a shot's *own* count of
   /// placements is read.
   final Set<String> placedShotIds;
+
+  /// Get the total number of live days.
+  int get dayCount => days.length;
 
   /// Class constructor
   const OcptScheduleSnapshot({
@@ -66,7 +69,7 @@ class OcptScheduleSnapshot extends Equatable {
     required this.placedShotIds,
   });
 
-  /// Builds an [OcptScheduleSnapshot] of the project from its already-ordered [days],
+  /// Build an [OcptScheduleSnapshot] of the project from its already-ordered [days],
   /// [slotsByDayId], [blocksByDayId] and [eventsByDayId], deriving [daysById] and [placedShotIds]
   /// from them.
   factory OcptScheduleSnapshot.build({
@@ -91,15 +94,12 @@ class OcptScheduleSnapshot extends Equatable {
     );
   }
 
-  /// The total number of live days.
-  int get dayCount => days.length;
-
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptScheduleSnapshot(dayCount: $dayCount, placedShotCount: ${placedShotIds.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     days,

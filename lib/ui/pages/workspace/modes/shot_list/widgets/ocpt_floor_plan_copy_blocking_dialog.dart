@@ -6,19 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-
-/// One candidate shot [OcptFloorPlanCopyBlockingDialog] offers as the source of a
-/// `OcptFloorPlanService.copyShotBlocking` call.
-class OcptFloorPlanCopyBlockingCandidate {
-  /// The candidate shot's own id.
-  final String shotId;
-
-  /// The candidate shot's own display code (`12/3`).
-  final String shotCode;
-
-  /// Class constructor
-  const OcptFloorPlanCopyBlockingCandidate({required this.shotId, required this.shotCode});
-}
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_copy_blocking_candidate.dart';
 
 /// The dialog opened by the set tabs' own `＋ Set` menu's `Copy blocking from another shot` entry:
 /// a plain list of [candidates], each a one-click pick.
@@ -33,15 +21,7 @@ class OcptFloorPlanCopyBlockingDialog extends StatelessWidget {
   /// Class constructor
   const OcptFloorPlanCopyBlockingDialog({super.key, required this.candidates});
 
-  /// Shows the dialog and returns the picked shot's id, or null if the user dismissed it.
-  static Future<String?> show(
-    BuildContext context, {
-    required List<OcptFloorPlanCopyBlockingCandidate> candidates,
-  }) => showDialog<String>(
-    context: context,
-    builder: (context) => OcptFloorPlanCopyBlockingDialog(candidates: candidates),
-  );
-
+  /// Build the floor plan copy blocking dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -61,8 +41,7 @@ class OcptFloorPlanCopyBlockingDialog extends StatelessWidget {
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 title: Text(candidate.shotCode),
-                onTap: () =>
-                    globalGetIt().get<OcptRouterManager>().pop<String>(candidate.shotId),
+                onTap: () => globalGetIt().get<OcptRouterManager>().pop<String>(candidate.shotId),
               ),
           ],
         ),
@@ -75,4 +54,13 @@ class OcptFloorPlanCopyBlockingDialog extends StatelessWidget {
       ],
     );
   }
+
+  /// Show the dialog and return the picked shot's id, or null if the user dismissed it.
+  static Future<String?> show(
+    BuildContext context, {
+    required List<OcptFloorPlanCopyBlockingCandidate> candidates,
+  }) => showDialog<String>(
+    context: context,
+    builder: (context) => OcptFloorPlanCopyBlockingDialog(candidates: candidates),
+  );
 }

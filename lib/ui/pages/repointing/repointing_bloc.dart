@@ -4,7 +4,10 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
@@ -16,12 +19,19 @@ import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_state.dart';
 /// This is the bloc class for the "Changer de relais" (repointing) screen.
 ///
 /// Unlike `OcptSharingBloc`, this bloc reads no pairing on entry: the page always opens ready to
-/// enter or scan a *new* relay (`docs/plans/on-set-server.md`, Phase E), even for a project already
-/// paired elsewhere. [OcptSyncManager.repointProjectToRelay] is the only write this bloc ever
-/// makes, and it is the only manager method this screen calls beyond reading the current project's
-/// own `sync_pairings` row for the `projectId` that method needs — exactly as `OcptSharingBloc`
-/// reads that same single row for the very same reason.
-class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
+/// enter or scan a *new* relay, even for a project already paired elsewhere.
+/// [OcptSyncManager.repointProjectToRelay] is the only write this bloc ever makes, and it is the
+/// only manager method this screen calls beyond reading the current project's own `sync_pairings`
+/// row for the `projectId` that method needs — exactly as `OcptSharingBloc` reads that same single
+/// row for the very same reason.
+class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
+    with MixinAsyncInitBloc<OcptRepointingState> {
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "repointing_bloc";
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger;
+
   /// The manager used to read the current project and its own app version.
   final OcptProjectsManager _projectsManager;
 
@@ -31,45 +41,45 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
   /// The manager used to read this replica's own device id.
   final OcptPropertiesManager _propertiesManager;
 
-  /// Class constructor
-  OcptRepointingBloc({
-    OcptProjectsManager? projectsManager,
-    OcptSyncManager? syncManager,
-    OcptPropertiesManager? propertiesManager,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
-       _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
-       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
-       super(const OcptRepointingState.init()) {
-    add(const OcptRepointingLoadRequestedEvent());
-  }
-
-  /// The current project's writable file — a re-point moves the project **file**'s own pairing and
+  /// Get the current project's writable file — a re-point moves the project **file**'s own pairing
+  /// and
   /// ongoing sync session, never a read-only preview's (`OcptOpenProjectModel.fileDatabase`'s own
   /// doc comment). The route that reaches this page is guarded exactly like the sharing screen's
   /// own, so a project is always open by the time this runs.
   OcptProjectDatabase get _database => _projectsManager.currentProject!.fileDatabase;
 
+  /// Class constructor
+  OcptRepointingBloc({
+    OcptProjectsManager? projectsManager,
+    OcptSyncManager? syncManager,
+    OcptPropertiesManager? propertiesManager,
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+       _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
+       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+       super(const OcptRepointingState.init());
+
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptRepointingLoadRequestedEvent>(_onLoadRequested);
     on<OcptRepointingRequestedEvent>(_onRepointRequested);
     on<OcptRepointingErrorDismissedEvent>(_onErrorDismissed);
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
   /// Loads the current project's own display name — the page always opens on ① Configure, so
   /// there is nothing else to read.
-  Future<void> _onLoadRequested(
-    OcptRepointingLoadRequestedEvent event,
-    Emitter<OcptRepointingState> emitter,
-  ) async {
-    emitter(
-      state.copyWith(isLoading: false, projectName: _projectsManager.currentProject!.name),
-    );
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptRepointingState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
+    emit(state.copyToLoaded(projectName: _projectsManager.currentProject!.name));
   }
 
-  /// Re-points the current project to `event.relayBaseUri` with `event.enrolmentSecret`, reusing
+  /// Re-point the current project to `event.relayBaseUri` with `event.enrolmentSecret`, reusing
   /// the token its existing pairing already holds, and moving the page to ② QR code on success.
   ///
   /// A failure (the relay unreachable, a bad enrolment secret, the project not paired at all yet)
@@ -80,50 +90,58 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
     OcptRepointingRequestedEvent event,
     Emitter<OcptRepointingState> emitter,
   ) async {
-    emitter(state.copyWith(isRepointing: true, repointFailed: false));
+    emitter(state.copyWithRepointing());
 
     try {
       final project = _projectsManager.currentProject!;
       final database = _database;
       final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
       if (row == null) {
-        throw StateError(
-          'Cannot switch relay for project "${project.name}": it has no existing pairing to '
-          'reuse a token from.',
+        _logger.e('Switching the project to another relay failed: it has no existing pairing');
+        emitter(state.copyWithRepointFailed());
+      } else {
+        final deviceId = await _propertiesManager.loadOrCreateDeviceId();
+        final repointed = await _syncManager.repointProjectToRelay(
+          database: database,
+          projectId: row.projectId,
+          projectFilePath: project.path,
+          projectName: project.name,
+          appVersion: _projectsManager.appVersion,
+          relayBaseUri: event.relayBaseUri,
+          enrolmentSecret: event.enrolmentSecret,
+          deviceId: deviceId,
         );
+        if (!repointed.status.isSuccess) {
+          // The relay's answer can name its address, so only the status is logged.
+          _logger.e('Switching the project to another relay failed: ${repointed.status.name}');
+          emitter(state.copyWithRepointFailed());
+        } else {
+          emitter(
+            state.copyWithRepointed(
+              enrolment: OcptRelayEnrolment(
+                relayBaseUri: event.relayBaseUri,
+                enrolmentSecret: event.enrolmentSecret,
+              ),
+            ),
+          );
+        }
       }
-
-      final deviceId = await _propertiesManager.loadOrCreateDeviceId();
-      await _syncManager.repointProjectToRelay(
-        database: database,
-        projectId: row.projectId,
-        projectFilePath: project.path,
-        projectName: project.name,
-        appVersion: _projectsManager.appVersion,
-        relayBaseUri: event.relayBaseUri,
-        enrolmentSecret: event.enrolmentSecret,
-        deviceId: deviceId,
+    } catch (error, stackTrace) {
+      // The error can name the relay's address, so only its type is logged.
+      _logger.e(
+        'Switching the project to another relay failed: ${error.runtimeType}',
+        null,
+        stackTrace,
       );
-
-      emitter(
-        state.copyWith(
-          isRepointing: false,
-          enrolment: OcptRelayEnrolment(
-            relayBaseUri: event.relayBaseUri,
-            enrolmentSecret: event.enrolmentSecret,
-          ),
-        ),
-      );
-    } catch (_) {
-      emitter(state.copyWith(isRepointing: false, repointFailed: true));
+      emitter(state.copyWithRepointFailed());
     }
   }
 
-  /// Clears [OcptRepointingState.repointFailed] once the page has shown its own snack bar for it.
+  /// Clear [OcptRepointingState.repointFailed] once the page has shown its own snack bar for it.
   void _onErrorDismissed(
     OcptRepointingErrorDismissedEvent event,
     Emitter<OcptRepointingState> emitter,
   ) {
-    emitter(state.copyWith(repointFailed: false));
+    emitter(state.copyWithErrorDismissed());
   }
 }

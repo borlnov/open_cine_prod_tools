@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart';
@@ -27,8 +27,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 /// through unchanged: this dialog never lets the user edit them. Use [show] to display it and get
 /// back the resulting [OcptCallSheetExportOptions], or null if the user cancelled.
 class OcptScheduleCallSheetsExportDialog extends StatefulWidget {
-  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown and
-  /// to supply the margins carried through unchanged into the resulting options.
+  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown
+  /// and to supply the margins carried through unchanged into the resulting options.
   final OcptPageSetup current;
 
   /// Every live shooting day, offered by [OcptScheduleDaySelectionList].
@@ -45,8 +45,14 @@ class OcptScheduleCallSheetsExportDialog extends StatefulWidget {
     super.key,
   });
 
-  /// Shows the dialog and returns the [OcptCallSheetExportOptions] the user applied, or null if they
-  /// cancelled it.
+  /// Create the [_OcptScheduleCallSheetsExportDialogState] holding the state of the schedule call
+  /// sheets export dialog.
+  @override
+  State<OcptScheduleCallSheetsExportDialog> createState() =>
+      _OcptScheduleCallSheetsExportDialogState();
+
+  /// Show the dialog and return the [OcptCallSheetExportOptions] the user applied, or null if
+  /// they cancelled it.
   static Future<OcptCallSheetExportOptions?> show(
     BuildContext context, {
     required OcptPageSetup current,
@@ -60,10 +66,6 @@ class OcptScheduleCallSheetsExportDialog extends StatefulWidget {
       selectedDayId: selectedDayId,
     ),
   );
-
-  @override
-  State<OcptScheduleCallSheetsExportDialog> createState() =>
-      _OcptScheduleCallSheetsExportDialogState();
 }
 
 /// The state of [OcptScheduleCallSheetsExportDialog].
@@ -74,6 +76,7 @@ class _OcptScheduleCallSheetsExportDialogState extends State<OcptScheduleCallShe
   /// The ids of the days currently ticked.
   late Set<String> _selectedDayIds;
 
+  /// Start from the current format, with only the selected day ticked when there is one.
   @override
   void initState() {
     super.initState();
@@ -81,6 +84,7 @@ class _OcptScheduleCallSheetsExportDialogState extends State<OcptScheduleCallShe
     _selectedDayIds = {if (widget.selectedDayId != null) widget.selectedDayId!};
   }
 
+  /// Build the schedule call sheets export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -95,7 +99,7 @@ class _OcptScheduleCallSheetsExportDialogState extends State<OcptScheduleCallShe
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -129,23 +133,26 @@ class _OcptScheduleCallSheetsExportDialogState extends State<OcptScheduleCallShe
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptCallSheetExportOptions], the selected days in
+  /// Pop the dialog returning the resulting [OcptCallSheetExportOptions], the selected days in
   /// [OcptScheduleCallSheetsExportDialog.days]' own order rather than selection order.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleCallSheetsExportDialog.show] caller.
   void _submit() {
     final options = OcptCallSheetExportOptions(
       format: _selectedFormat,
       margins: widget.current.margins,
-      dayIds: [for (final day in widget.days) if (_selectedDayIds.contains(day.id)) day.id],
+      dayIds: [
+        for (final day in widget.days)
+          if (_selectedDayIds.contains(day.id)) day.id,
+      ],
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptCallSheetExportOptions>(options);
   }

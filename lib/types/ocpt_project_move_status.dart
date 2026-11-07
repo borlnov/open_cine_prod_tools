@@ -24,7 +24,13 @@ enum OcptProjectMoveStatus with MixinResultStatus {
   fileAlreadyExists(isSuccess: false, canBeRetried: false),
 
   /// A filesystem or database error occurred while copying the project or verifying the copy.
-  ioError(isSuccess: false, canBeRetried: true);
+  ioError(isSuccess: false, canBeRetried: true),
+
+  /// The project was moved and is open at its new path, but the connection to its old file could
+  /// not be closed: the old file, the sidecar and the recent-projects entry are left as they were.
+  /// The project settings page stops there without a word, as it did when this failure was raised
+  /// rather than answered.
+  oldFileNotClosed(isSuccess: false, canBeRetried: false);
 
   /// {@macro act_dart_result.MixinResultStatus.isSuccess}
   @override

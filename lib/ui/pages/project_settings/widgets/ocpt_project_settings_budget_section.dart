@@ -5,8 +5,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_vat.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 
 /// The project settings page's "Budget defaults" section card: the project's default VAT rate, the
 /// price of one meal and the price of the buffet (`project_info.defaultVatRateBasisPoints`,
@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/utils/ocpt_cost_amount.dart';
 /// nobody has recorded a figure, not that none applies, and nothing here is ever pre-filled with a
 /// figure this app has not been told to advance (ADR 0027). The budget mode's
 /// own views read all three once they ship — the VAT rate as the fallback every unpriced quote line
-/// inherits, the two catering prices as the unit costs `ocpt_budget_regie.dart` multiplies the
+/// inherits, the two catering prices as the unit costs `ocpt_budget_logistics.dart` multiplies the
 /// schedule's own head counts by.
 class OcptProjectSettingsBudgetSection extends StatelessWidget {
   /// The project's current default VAT rate, in basis points (`2000` is 20 %, `550` is 5.5 %), or
@@ -57,6 +57,7 @@ class OcptProjectSettingsBudgetSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings budget section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -149,6 +150,8 @@ class _OcptProjectSettingsVatRateField extends StatefulWidget {
   /// Class constructor
   const _OcptProjectSettingsVatRateField({required this.basisPoints, required this.onChanged});
 
+  /// Create the [_OcptProjectSettingsVatRateFieldState] holding the state of the project settings
+  /// VAT rate field.
   @override
   State<_OcptProjectSettingsVatRateField> createState() => _OcptProjectSettingsVatRateFieldState();
 }
@@ -168,16 +171,18 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
   /// commits the very same edit twice (`_OcptProjectSettingsMinimumRestField`'s own reasoning).
   late int? _lastReportedBasisPoints = widget.basisPoints;
 
-  /// [_OcptProjectSettingsVatRateField.basisPoints] written in per cent through
+  /// Get [_OcptProjectSettingsVatRateField.basisPoints] written in per cent through
   /// [ocptVatRatePercentTextOf], or the empty string while it is null.
   String get _formatted => ocptVatRatePercentTextOf(widget.basisPoints);
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new rate in the field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant _OcptProjectSettingsVatRateField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -190,40 +195,7 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
     }
   }
 
-  @override
-  void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  /// Commits the field's current text once it loses focus.
-  void _onFocusChanged() {
-    if (!_focusNode.hasFocus) {
-      _commit();
-    }
-  }
-
-  /// Parses the field's current text as a rate in per cent and reports the basis points it makes:
-  /// a non-negative figure, `0` included, is reported and read back in the canonical per cent
-  /// writing; an empty, unparseable or negative text reverts the field to whatever was last
-  /// committed instead — "not recorded" is put back only through the card's own `No rate` button.
-  void _commit() {
-    final basisPoints = ocptVatRateBasisPointsOf(_controller.text.trim());
-    if (basisPoints == null) {
-      _controller.text = _formatted;
-      return;
-    }
-
-    _controller.text = ocptVatRatePercentTextOf(basisPoints);
-    if (basisPoints != _lastReportedBasisPoints) {
-      _lastReportedBasisPoints = basisPoints;
-      widget.onChanged(basisPoints);
-    }
-  }
-
+  /// Build the project settings VAT rate field as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -245,16 +217,52 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
       ),
     );
   }
+
+  /// Commit the field's current text once it loses focus.
+  void _onFocusChanged() {
+    if (!_focusNode.hasFocus) {
+      _commit();
+    }
+  }
+
+  /// Parse the field's current text as a rate in per cent and report the basis points it makes:
+  /// a non-negative figure, `0` included, is reported and read back in the canonical per cent
+  /// writing; an empty, unparseable or negative text reverts the field to whatever was last
+  /// committed instead — "not recorded" is put back only through the card's own `No rate` button.
+  void _commit() {
+    final basisPoints = ocptVatRateBasisPointsOf(_controller.text.trim());
+    if (basisPoints == null) {
+      _controller.text = _formatted;
+      return;
+    }
+
+    _controller.text = ocptVatRatePercentTextOf(basisPoints);
+    if (basisPoints != _lastReportedBasisPoints) {
+      _lastReportedBasisPoints = basisPoints;
+      widget.onChanged(basisPoints);
+    }
+  }
+
+  /// Detach [_onFocusChanged] from [_focusNode], then dispose [_focusNode] and [_controller].
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
+  }
 }
 
 /// One of the card's two money fields (meal price, buffet price): typed and read back through
 /// [ocptCostTextOf]/[ocptCostCentsOf], committed on submit or focus loss —
-/// `_OcptProjectSettingsMinimumRestField`'s own idiom, with an **empty** submission a legal clearing
-/// gesture exactly as that field's own is, since neither price has a `0` reading to be confused
-/// with "not recorded" the way the VAT rate does.
+/// `_OcptProjectSettingsMinimumRestField`'s own idiom, with an **empty** submission a legal
+/// clearing gesture exactly as that field's own is, since neither price has a `0` reading to be
+/// confused with "not recorded" the way the VAT rate does.
 ///
-/// The currency symbol is worn as the field's own `suffixText`, `OcptElementSheetSourcingCard`'s own
-/// reasoning for its cost field: what a committed field holds is always something it accepts back.
+/// The currency symbol is worn as the field's own `suffixText`, `OcptElementSheetSourcingCard`'s
+/// own reasoning for its cost field: what a committed field holds is always something it accepts
+/// back.
 class _OcptProjectSettingsBudgetMoneyField extends StatefulWidget {
   /// The project's current price, in cents, or null while unset.
   final int? cents;
@@ -272,6 +280,8 @@ class _OcptProjectSettingsBudgetMoneyField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptProjectSettingsBudgetMoneyFieldState] holding the state of the project
+  /// settings budget money field.
   @override
   State<_OcptProjectSettingsBudgetMoneyField> createState() =>
       _OcptProjectSettingsBudgetMoneyFieldState();
@@ -279,9 +289,10 @@ class _OcptProjectSettingsBudgetMoneyField extends StatefulWidget {
 
 /// The state of [_OcptProjectSettingsBudgetMoneyField]: owns the controller and the
 /// commit-on-submit-or-focus-loss idiom.
-class _OcptProjectSettingsBudgetMoneyFieldState extends State<_OcptProjectSettingsBudgetMoneyField> {
-  /// The field's own text controller, seeded from [_OcptProjectSettingsBudgetMoneyField.cents]'s own
-  /// formatted reading.
+class _OcptProjectSettingsBudgetMoneyFieldState
+    extends State<_OcptProjectSettingsBudgetMoneyField> {
+  /// The field's own text controller, seeded from [_OcptProjectSettingsBudgetMoneyField.cents]'s
+  /// own formatted reading.
   late final TextEditingController _controller = TextEditingController(text: _formatted);
 
   /// The field's own focus node, committing the moment it loses focus.
@@ -292,16 +303,19 @@ class _OcptProjectSettingsBudgetMoneyFieldState extends State<_OcptProjectSettin
   /// commits the very same edit twice.
   late int? _lastReportedCents = widget.cents;
 
-  /// [_OcptProjectSettingsBudgetMoneyField.cents] written through [ocptCostTextOf], or the empty
+  /// Get [_OcptProjectSettingsBudgetMoneyField.cents] written through [ocptCostTextOf], or the
+  /// empty
   /// string while it is null.
   String get _formatted => ocptCostTextOf(widget.cents);
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new amount in the field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant _OcptProjectSettingsBudgetMoneyField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -314,23 +328,32 @@ class _OcptProjectSettingsBudgetMoneyFieldState extends State<_OcptProjectSettin
     }
   }
 
+  /// Build the project settings budget money field as a [SizedBox].
   @override
-  void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: 110,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onSubmitted: (_) => _commit(),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: theme.textTheme.bodySmall,
+        decoration: InputDecoration(isDense: true, suffixText: widget.suffixText),
+      ),
+    );
   }
 
-  /// Commits the field's current text once it loses focus.
+  /// Commit the field's current text once it loses focus.
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
       _commit();
     }
   }
 
-  /// Parses the field's current text as money and reports the cents it makes: empty clears the
+  /// Parse the field's current text as money and report the cents it makes: empty clears the
   /// price (a real gesture, reported as null), a parseable figure is reported and read back in the
   /// canonical writing, and anything unparseable reverts the field to whatever was last committed.
   void _commit() {
@@ -358,20 +381,13 @@ class _OcptProjectSettingsBudgetMoneyFieldState extends State<_OcptProjectSettin
     }
   }
 
+  /// Detach [_onFocusChanged] from [_focusNode], then dispose [_focusNode] and [_controller].
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: 110,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: (_) => _commit(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: theme.textTheme.bodySmall,
-        decoration: InputDecoration(isDense: true, suffixText: widget.suffixText),
-      ),
-    );
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }

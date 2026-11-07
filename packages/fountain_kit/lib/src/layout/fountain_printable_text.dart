@@ -4,8 +4,8 @@
 
 import 'package:fountain_kit/src/models/fountain_block.dart';
 
-/// Yields the rendered text of [block] — the same text
-/// [FountainScriptComposer] would print, parentheses and scene numbers
+/// Yield the rendered text of [block] — the same text
+/// `FountainScriptComposer` would print, parentheses and scene numbers
 /// included — and (for a dialogue group) of every child it introduces, if
 /// [block] is part of the printed screenplay; yields nothing for a section,
 /// synopsis, note, boneyard comment or page break, mirroring the filter
@@ -13,7 +13,7 @@ import 'package:fountain_kit/src/models/fountain_block.dart';
 /// (replicated rather than shared, since that filter is private to its own
 /// file).
 ///
-/// Shared by [FountainScriptStatistics] and [FountainSceneStatistics], which
+/// Shared by `FountainScriptStatistics` and `FountainSceneStatistics`, which
 /// both measure a body of printable Fountain text — the whole document for
 /// one, a single scene for the other — the same way.
 Iterable<String> printableTextsOf(FountainBlock block) sync* {
@@ -50,23 +50,24 @@ Iterable<String> printableTextsOf(FountainBlock block) sync* {
   }
 }
 
-/// The full character cue text: the name, followed by its parenthetical
+/// Get the full character cue text: the name, followed by its parenthetical
 /// extension if any, exactly as it is printed.
 String characterCueTextOf(FountainCharacter character) =>
     character.extension == null ? character.name : '${character.name} (${character.extension})';
 
-/// Splits [text] on runs of whitespace and counts the resulting words; an
+/// Split [text] on runs of whitespace and count the resulting words; an
 /// empty or all-whitespace [text] counts as zero.
 int wordCountOf(String text) {
   final trimmed = text.trim();
   return trimmed.isEmpty ? 0 : trimmed.split(RegExp(r'\s+')).length;
 }
 
-/// Counts the non-whitespace characters of [text] — what a writer means by
+/// Count the non-whitespace characters of [text] — what a writer means by
 /// "signs": every printed glyph, spaces excluded.
 int signCountOf(String text) => text.replaceAll(RegExp(r'\s'), '').length;
 
-/// Trims [name], collapses runs of internal whitespace to a single space,
-/// and upper-cases it, so two spellings of the same role are recognized as
+/// Trim [name], collapse runs of internal whitespace to a single space, and upper-case it, so two
+/// spellings of the same role are recognized as
 /// one.
-String normalizeCharacterName(String name) => name.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
+String normalizeCharacterName(String name) =>
+    name.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();

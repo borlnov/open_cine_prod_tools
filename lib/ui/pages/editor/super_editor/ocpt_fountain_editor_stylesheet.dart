@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_field_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Builds the `Stylesheet` that lays every Fountain line out at its true screenplay position
+/// Build the `Stylesheet` that lays every Fountain line out at its true screenplay position
 /// while the user types, driving the styled block editor entirely through super_editor's own
 /// stylesheet mechanism: no custom `ComponentBuilder` is needed, because every plain
 /// `ParagraphNode` this editor ever creates already supports `Styles.padding` (used here for the
@@ -25,8 +25,17 @@ import 'package:super_editor/super_editor.dart';
 /// consistent with the preview's, even though the styled editor is a fluid-width editing surface
 /// with no simulated page.
 class OcptFountainEditorStylesheet {
-  /// Private constructor: this class only exposes static members.
-  const OcptFountainEditorStylesheet._();
+  /// The fixed horizontal inset kept around the document even while page simulation is on (never
+  /// 0): a zero horizontal `documentPadding` was found, empirically, to make `SuperEditor`
+  /// occasionally fail to open a live IME connection when the caret is placed by a simulated tap
+  /// right at the document's edge — this margin sidesteps it entirely.
+  ///
+  /// It eats into the width available to every block's `Styles.maxWidth`, so a caller sizing the
+  /// editor to an exact content width (`OcptStyledScreenplayEditor`, while page simulation is on)
+  /// must widen its box by this inset on each side and shift it back by one, or every element
+  /// would wrap [horizontalDocumentPaddingInset] pixels early on each side and no longer share the
+  /// raw preview's wrap columns.
+  static const double horizontalDocumentPaddingInset = 8;
 
   /// The opacity applied to non-printing elements (sections and synopses), which never appear in
   /// the printed screenplay and so are dimmed to read as authoring scaffolding rather than
@@ -41,40 +50,31 @@ class OcptFountainEditorStylesheet {
   /// the surrounding text it's embedded in (a note is authoring scaffolding, never printed).
   static const double _noteInlineOpacity = 0.55;
 
-  /// The fixed horizontal inset kept around the document even while page simulation is on (never
-  /// 0): a zero horizontal `documentPadding` was found, empirically, to make `SuperEditor`
-  /// occasionally fail to open a live IME connection when the caret is placed by a simulated tap
-  /// right at the document's edge — this margin sidesteps it entirely.
-  ///
-  /// It eats into the width available to every block's `Styles.maxWidth`, so a caller sizing the
-  /// editor to an exact content width (`OcptStyledScreenplayEditor`, while page simulation is on)
-  /// must widen its box by this inset on each side and shift it back by one, or every element
-  /// would wrap [horizontalDocumentPaddingInset] pixels early on each side and no longer share the
-  /// raw preview's wrap columns.
-  static const double horizontalDocumentPaddingInset = 8;
-
   /// The vertical document padding used while page simulation is off (a small, fixed inset for
   /// the fluid, theme-following editing surface, top and bottom alike).
   static const double _fluidVerticalDocumentPaddingInset = 16;
 
-  /// Builds the stylesheet for typesetting the styled editor at [metrics].
+  /// Private constructor: this class only exposes static members.
+  const OcptFountainEditorStylesheet._();
+
+  /// Build the stylesheet for typesetting the styled editor at [metrics].
   ///
   /// When [isPageSimulationEnabled] is off, colors follow [colorScheme] (so the editing surface
   /// follows the app's light/dark theme) — *unless* [usePaperColors] forces the fixed paper colors
   /// on regardless (a phone, where the fluid surface stands in for the desktop's simulated page and
   /// must read as paper, see `OcptStyledScreenplayEditor`). When page simulation is on, every color
-  /// is a fixed paper color (black text, greyed-out scaffolding) regardless of [colorScheme] for the
-  /// same reason [usePaperColors] requests it: the sheet is always white, so a theme-derived color
-  /// (in particular dark mode's light `onSurface`) would otherwise render invisible or
-  /// near-invisible on it. A page-starting node (flagged by
-  /// [ocptStartsNewPageMetadataKey], set by `computeOcptStyledPagination`) also gets extra top
-  /// padding — the exact pixel amount `computeOcptStyledPagination` computed for it — standing in
-  /// for the page gap and the previous/next page's margins. When page simulation is on, the
-  /// document's own top/bottom padding is the page's real top margin and (respectively)
-  /// [trailingBottomPadding], so the first page's content starts at its true margin and the last
-  /// page's content region genuinely fills the sheet down to its own bottom margin, exactly like
-  /// every other simulated page (see [OcptStyledPagination.trailingBottomPadding]'s own doc
-  /// comment for how that padding is computed).
+  /// is a fixed paper color (black text, greyed-out scaffolding) regardless of [colorScheme] for
+  /// the same reason [usePaperColors] requests it: the sheet is always white, so a theme-derived
+  /// color (in particular dark mode's light `onSurface`) would otherwise render invisible or
+  /// near-invisible on it. A page-starting node (flagged by [ocptStartsNewPageMetadataKey], set by
+  /// `computeOcptStyledPagination`) also gets extra top padding — the exact pixel amount
+  /// `computeOcptStyledPagination` computed for it — standing in for the page gap and the
+  /// previous/next page's margins. When page simulation is on, the document's own top/bottom
+  /// padding is the page's real top margin and (respectively) [trailingBottomPadding], so the first
+  /// page's content starts at its true margin and the last page's content region genuinely fills
+  /// the sheet down to its own bottom margin, exactly like every other simulated page (see
+  /// [OcptStyledPagination.trailingBottomPadding]'s own doc comment for how that padding is
+  /// computed).
   ///
   /// [isCompact] scales every element's indent and box width down by
   /// [OcptEditorPreviewLayout.compactLayoutScale] (see [_rule]), carrying the block hierarchy by
@@ -123,7 +123,9 @@ class OcptFountainEditorStylesheet {
         left: horizontalDocumentPaddingInset,
         right: horizontalDocumentPaddingInset,
         top: isPageSimulationEnabled ? layout.marginTop : _fluidVerticalDocumentPaddingInset,
-        bottom: isPageSimulationEnabled ? trailingBottomPadding : _fluidVerticalDocumentPaddingInset,
+        bottom: isPageSimulationEnabled
+            ? trailingBottomPadding
+            : _fluidVerticalDocumentPaddingInset,
       ),
       inlineTextStyler: (attributions, existingStyle) =>
           _inlineTextStyler(attributions, existingStyle, onSurfaceVariant),
@@ -166,8 +168,10 @@ class OcptFountainEditorStylesheet {
           // (which gives a character cue no base weight of its own — only its upper-casing, a
           // print-time transform this editor never applies to the source text it displays);
           // absent from both the raw preview and the PDF.
-          textStyle: _baseTextStyle(FountainLineType.character, baseStyle)
-              .copyWith(color: accent, fontWeight: FontWeight.bold),
+          textStyle: _baseTextStyle(
+            FountainLineType.character,
+            baseStyle,
+          ).copyWith(color: accent, fontWeight: FontWeight.bold),
           isCompact: isCompactFluid,
         ),
         _rule(
@@ -178,10 +182,10 @@ class OcptFountainEditorStylesheet {
           // marking a parenthetical as visually secondary to the dialogue it annotates, layered on
           // top of the shared table's base style (plain, for this type); absent from both the raw
           // preview and the PDF (which print it in plain roman, at full opacity).
-          textStyle: _baseTextStyle(FountainLineType.parenthetical, baseStyle).copyWith(
-            color: onSurfaceVariant,
-            fontStyle: FontStyle.italic,
-          ),
+          textStyle: _baseTextStyle(
+            FountainLineType.parenthetical,
+            baseStyle,
+          ).copyWith(color: onSurfaceVariant, fontStyle: FontStyle.italic),
           opacity: _parentheticalOpacity,
           isCompact: isCompactFluid,
         ),
@@ -231,10 +235,7 @@ class OcptFountainEditorStylesheet {
           FountainLineType.synopsis,
           metrics.action,
           layout,
-          textStyle: baseStyle.copyWith(
-            color: onSurfaceVariant,
-            fontStyle: FontStyle.italic,
-          ),
+          textStyle: baseStyle.copyWith(color: onSurfaceVariant, fontStyle: FontStyle.italic),
           opacity: _nonPrintingOpacity,
           isCompact: isCompactFluid,
         ),
@@ -252,7 +253,7 @@ class OcptFountainEditorStylesheet {
     );
   }
 
-  /// Builds the `StyleRule` every title-page field node shares (see
+  /// Build the `StyleRule` every title-page field node shares (see
   /// `OcptWysiwygCodec.ocptTitlePageFieldAttribution`): unlike every other rule in this class,
   /// which selects one [FountainLineType] each, this single selector covers all six title-page
   /// fields and reads each node's own `OcptWysiwygCodec.ocptTitlePageKeyMetadataKey` metadata
@@ -285,7 +286,7 @@ class OcptFountainEditorStylesheet {
         };
       });
 
-  /// Applies [FountainPrintStyle.of]'s base weight/slope for [type] to [style]: the shared table
+  /// Apply [FountainPrintStyle.of]'s base weight/slope for [type] to [style]: the shared table
   /// this editor, the raw preview and the PDF exporter all derive a printed element's base
   /// typesetting from, so a rule below never hardcodes its own bold/italic decision for a type the
   /// table already has an opinion on. Deliberately leaves [FountainPrintStyle.isUppercase] out of
@@ -299,7 +300,7 @@ class OcptFountainEditorStylesheet {
     );
   }
 
-  /// Builds the `StyleRule` for [type], selecting nodes by the `blockType` attribution
+  /// Build the `StyleRule` for [type], selecting nodes by the `blockType` attribution
   /// [OcptFountainLineAttributions.attributionOf] gives it, and positioning them at [element]'s
   /// indent and width (converted to pixels through [layout]); each node's own
   /// [ocptBlankLinesBeforeMetadataKey] metadata additionally opens up top padding, visually
@@ -320,27 +321,28 @@ class OcptFountainEditorStylesheet {
     TextAlign textAlign = TextAlign.left,
     double opacity = 1,
     bool isCompact = false,
-  }) => StyleRule(
-    BlockSelector(OcptFountainLineAttributions.attributionOf(type).name),
-    (document, node) {
-      final scale = isCompact ? OcptEditorPreviewLayout.compactLayoutScale : 1.0;
-      final indent = layout.indentOf(element) * scale;
-      final width = layout.widthOf(element) * scale;
+  }) => StyleRule(BlockSelector(OcptFountainLineAttributions.attributionOf(type).name), (
+    document,
+    node,
+  ) {
+    final scale = isCompact ? OcptEditorPreviewLayout.compactLayoutScale : 1.0;
+    final indent = layout.indentOf(element) * scale;
+    final width = layout.widthOf(element) * scale;
 
-      return {
-        Styles.padding: CascadingPadding.only(
-          left: indent,
-          top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node),
-        ),
-        Styles.maxWidth: indent + width,
-        Styles.textAlign: textAlign,
-        Styles.textStyle: textStyle,
-        Styles.opacity: opacity,
-      };
-    },
-  );
+    return {
+      Styles.padding: CascadingPadding.only(
+        left: indent,
+        top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node),
+      ),
+      Styles.maxWidth: indent + width,
+      Styles.textAlign: textAlign,
+      Styles.textStyle: textStyle,
+      Styles.opacity: opacity,
+    };
+  });
 
-  /// The extra top padding standing in for [node]'s [ocptBlankLinesBeforeMetadataKey] blank source
+  /// Get the extra top padding standing in for [node]'s [ocptBlankLinesBeforeMetadataKey] blank
+  /// source
   /// lines, one [OcptEditorPreviewLayout.lineHeight] each, capped at
   /// [ocptMaxBlankLinesBeforeSpacing].
   static double _blankLinesBeforeTopPadding(DocumentNode node, OcptEditorPreviewLayout layout) {
@@ -349,7 +351,7 @@ class OcptFountainEditorStylesheet {
     return count.clamp(0, ocptMaxBlankLinesBeforeSpacing) * layout.lineHeight;
   }
 
-  /// The extra top padding standing in for the page gap and the previous/next page's margins,
+  /// Get the extra top padding standing in for the page gap and the previous/next page's margins,
   /// opened up above a node flagged [ocptStartsNewPageMetadataKey] by `computeOcptStyledPagination`
   /// — the exact pixel amount that pass computed for this node so it lands precisely at its
   /// sheet's text origin, rather than a fixed estimate (0 for a node not flagged, or while page
@@ -359,7 +361,7 @@ class OcptFountainEditorStylesheet {
     return value is double ? value : 0;
   }
 
-  /// Wraps `defaultInlineTextStyler` to additionally dim an [ocptFountainNoteAttribution] span
+  /// Wrap `defaultInlineTextStyler` to additionally dim an [ocptFountainNoteAttribution] span
   /// ([_noteInlineOpacity] of [onSurfaceVariant]), read-only authoring scaffolding that never
   /// prints.
   static TextStyle _inlineTextStyler(

@@ -5,14 +5,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_about_section.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo.dart';
 
 /// Builds an [OcptSettingsAboutSection] for [appVersion], themed and localized as the app does.
 Widget _buildSection(String appVersion) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -23,6 +23,7 @@ Widget _buildSection(String appVersion) => MaterialApp(
   home: Scaffold(body: OcptSettingsAboutSection(appVersion: appVersion)),
 );
 
+/// Run the tests of [OcptSettingsAboutSection].
 void main() {
   testWidgets("the app logo stands next to the name and version of the application", (
     tester,

@@ -9,11 +9,11 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_convocations_panel.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the right dock the panel fills in the app.
@@ -120,6 +120,7 @@ Future<void> _pumpPanel(
   ),
 );
 
+/// Run the tests of [OcptScheduleConvocationsPanel].
 void main() {
   testWidgets("shows the empty hint while no day is selected", (tester) async {
     await _pumpPanel(tester);
@@ -248,9 +249,7 @@ void main() {
     expect(find.text("Matin · Soir"), findsOneWidget);
   });
 
-  testWidgets("several convocations are ordered by arrival, then by name on a tie", (
-    tester,
-  ) async {
+  testWidgets("several convocations are ordered by arrival, then by name on a tie", (tester) async {
     final early = _buildPerson(id: "person-early", firstName: "Zoé");
     final tiedOne = _buildPerson(id: "person-b", firstName: "Bruno");
     final tiedTwo = _buildPerson(id: "person-a", firstName: "Alice");
@@ -316,64 +315,67 @@ void main() {
     expect(aliceOffset, lessThan(brunoOffset));
   });
 
-  testWidgets("guests form their own trailing group, after crew and cast, under their own heading", (
+  testWidgets(
+    "guests form their own trailing group, after crew and cast, under their own heading",
+    (tester) async {
+      final crewPerson = _buildPerson(id: "person-crew", firstName: "Alice");
+      final guestPerson = _buildPerson(id: "person-guest", firstName: "Zoé");
+      final slot = _buildSlot(id: "slot-1", label: "Plateau");
+
+      await _pumpPanel(
+        tester,
+        convocations: [
+          // The guest arrives before the crew member on purpose: even so, it must draw after — the
+          // grouping is not a plain re-sort by arrival across the whole list.
+          OcptDayConvocation(
+            personId: null,
+            roleId: null,
+            guestPersonId: guestPerson.id,
+            guestFreeName: null,
+            arrivalMinute: 300,
+            patStartMinute: null,
+            patEndMinute: null,
+            isPatBand: true,
+            departureMinute: 360,
+            slotIds: const ["slot-1"],
+            roleCandidateIds: {},
+            hasSlotConvocation: true,
+          ),
+          OcptDayConvocation(
+            personId: crewPerson.id,
+            roleId: null,
+            guestPersonId: null,
+            guestFreeName: null,
+            arrivalMinute: 480,
+            patStartMinute: null,
+            patEndMinute: null,
+            isPatBand: true,
+            departureMinute: 600,
+            slotIds: const ["slot-1"],
+            roleCandidateIds: {},
+            hasSlotConvocation: true,
+          ),
+        ],
+        personById: {crewPerson.id: crewPerson, guestPerson.id: guestPerson},
+        slotById: {"slot-1": slot},
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptScheduleConvocationsPanel)));
+      final heading = tr.scheduleConvocationsGuestsSectionTitle.toUpperCase();
+      expect(find.text(heading), findsOneWidget);
+
+      final crewOffset = tester.getTopLeft(find.text(crewPerson.displayName)).dy;
+      final headingOffset = tester.getTopLeft(find.text(heading)).dy;
+      final guestOffset = tester.getTopLeft(find.text(guestPerson.displayName)).dy;
+
+      expect(crewOffset, lessThan(headingOffset));
+      expect(headingOffset, lessThan(guestOffset));
+    },
+  );
+
+  testWidgets("a candidate reads a real band, in their own trailing group before the guests", (
     tester,
   ) async {
-    final crewPerson = _buildPerson(id: "person-crew", firstName: "Alice");
-    final guestPerson = _buildPerson(id: "person-guest", firstName: "Zoé");
-    final slot = _buildSlot(id: "slot-1", label: "Plateau");
-
-    await _pumpPanel(
-      tester,
-      convocations: [
-        // The guest arrives before the crew member on purpose: even so, it must draw after — the
-        // grouping is not a plain re-sort by arrival across the whole list.
-        OcptDayConvocation(
-          personId: null,
-          roleId: null,
-          guestPersonId: guestPerson.id,
-          guestFreeName: null,
-          arrivalMinute: 300,
-          patStartMinute: null,
-          patEndMinute: null,
-          isPatBand: true,
-          departureMinute: 360,
-          slotIds: const ["slot-1"],
-          roleCandidateIds: {},
-          hasSlotConvocation: true,
-        ),
-        OcptDayConvocation(
-          personId: crewPerson.id,
-          roleId: null,
-          guestPersonId: null,
-          guestFreeName: null,
-          arrivalMinute: 480,
-          patStartMinute: null,
-          patEndMinute: null,
-          isPatBand: true,
-          departureMinute: 600,
-          slotIds: const ["slot-1"],
-          roleCandidateIds: {},
-          hasSlotConvocation: true,
-        ),
-      ],
-      personById: {crewPerson.id: crewPerson, guestPerson.id: guestPerson},
-      slotById: {"slot-1": slot},
-    );
-
-    final tr = Tr.of(tester.element(find.byType(OcptScheduleConvocationsPanel)));
-    final heading = tr.scheduleConvocationsGuestsSectionTitle.toUpperCase();
-    expect(find.text(heading), findsOneWidget);
-
-    final crewOffset = tester.getTopLeft(find.text(crewPerson.displayName)).dy;
-    final headingOffset = tester.getTopLeft(find.text(heading)).dy;
-    final guestOffset = tester.getTopLeft(find.text(guestPerson.displayName)).dy;
-
-    expect(crewOffset, lessThan(headingOffset));
-    expect(headingOffset, lessThan(guestOffset));
-  });
-
-  testWidgets("a candidate reads a real band, in their own trailing group before the guests", (tester) async {
     final person = _buildPerson(id: "person-1", firstName: "Camille");
     final crewPerson = _buildPerson(id: "person-2", firstName: "Léa");
     final guestPerson = _buildPerson(id: "person-3", firstName: "Le maire");
@@ -441,11 +443,15 @@ void main() {
     // Crew first, then the candidates group, then the guests.
     expect(
       tester.getCenter(find.text("Léa")).dy,
-      lessThan(tester.getCenter(find.text(tr.scheduleConvocationsCandidatesSectionTitle.toUpperCase())).dy),
+      lessThan(
+        tester.getCenter(find.text(tr.scheduleConvocationsCandidatesSectionTitle.toUpperCase())).dy,
+      ),
     );
     expect(
       tester.getCenter(find.text(tr.scheduleConvocationsCandidatesSectionTitle.toUpperCase())).dy,
-      lessThan(tester.getCenter(find.text(tr.scheduleConvocationsGuestsSectionTitle.toUpperCase())).dy),
+      lessThan(
+        tester.getCenter(find.text(tr.scheduleConvocationsGuestsSectionTitle.toUpperCase())).dy,
+      ),
     );
   });
 
@@ -474,9 +480,6 @@ void main() {
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptScheduleConvocationsPanel)));
-    expect(
-      find.text(tr.scheduleConvocationsCandidatesSectionTitle.toUpperCase()),
-      findsNothing,
-    );
+    expect(find.text(tr.scheduleConvocationsCandidatesSectionTitle.toUpperCase()), findsNothing);
   });
 }

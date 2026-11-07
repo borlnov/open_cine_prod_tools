@@ -13,8 +13,9 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 ///
 /// [coverageReadOutTemplate] mirrors `tr.budgetCostTrackingCoverageReadOut` word for word, with
 /// `{amount}`, `{coveredCount}` and `{totalCount}` placeholders standing in for the figures a
-/// manager-layer service cannot ask `Tr` to interpolate itself — `ocptBudgetExportCoveredAmountText`
-/// (`lib/managers/export/services/ocpt_budget_pdf_shared.dart`) is what fills them in.
+/// manager-layer service cannot ask `Tr` to interpolate itself —
+/// `ocptBudgetExportCoveredAmountText` (`lib/managers/export/services/ocpt_budget_pdf_shared.dart`)
+/// is what fills them in.
 class OcptBudgetQuoteLabels extends Equatable {
   /// The localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - quote.pdf`). A blank one falls back to the project name alone, exactly as its
@@ -41,8 +42,8 @@ class OcptBudgetQuoteLabels extends Equatable {
   /// The header of a quote line's own total column.
   final String lineTotalHeader;
 
-  /// The label printed beside a poste's own subtotal row.
-  final String posteSubtotalLabel;
+  /// The label printed beside an account's own subtotal row.
+  final String accountSubtotalLabel;
 
   /// The label printed beside the project's own grand total, at the very end of the document.
   final String projectTotalLabel;
@@ -53,10 +54,10 @@ class OcptBudgetQuoteLabels extends Equatable {
   /// The caption stating every amount is printed excluding tax — `OcptBudgetTaxBasis.excludingTax`.
   final String excludingTaxCaption;
 
-  /// The note a poste holding no line at all prints in place of its own table.
+  /// The note an account holding no line at all prints in place of its own table.
   final String noLinesLabel;
 
-  /// The note the whole document prints in place of every poste when the project holds none at
+  /// The note the whole document prints in place of every account when the project holds none at
   /// all.
   final String emptyDocumentNote;
 
@@ -77,7 +78,7 @@ class OcptBudgetQuoteLabels extends Equatable {
     required this.quantityHeader,
     required this.unitPriceHeader,
     required this.lineTotalHeader,
-    required this.posteSubtotalLabel,
+    required this.accountSubtotalLabel,
     required this.projectTotalLabel,
     required this.includingTaxCaption,
     required this.excludingTaxCaption,
@@ -87,16 +88,16 @@ class OcptBudgetQuoteLabels extends Equatable {
     required this.inKindLineMarker,
   });
 
-  /// The caption stating which of the two bases [basis] itself is — [includingTaxCaption] or
+  /// Get the caption stating which of the two bases [basis] itself is — [includingTaxCaption] or
   /// [excludingTaxCaption].
   String taxBasisCaptionOf(OcptBudgetTaxBasis basis) =>
       basis == OcptBudgetTaxBasis.includingTax ? includingTaxCaption : excludingTaxCaption;
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptBudgetQuoteLabels(documentTitle: $documentTitle)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,
@@ -106,7 +107,7 @@ class OcptBudgetQuoteLabels extends Equatable {
     quantityHeader,
     unitPriceHeader,
     lineTotalHeader,
-    posteSubtotalLabel,
+    accountSubtotalLabel,
     projectTotalLabel,
     includingTaxCaption,
     excludingTaxCaption,

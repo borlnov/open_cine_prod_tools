@@ -115,6 +115,7 @@ Widget _panel({
   onRenameConfirmed: (id, name, note) => calls.renameConfirmed.add((id, name, note)),
 );
 
+/// Run the tests of [OcptProjectVersionsPanel].
 void main() {
   /// Grows the test surface past the panel's own 700px-tall wrapper: three actions in a card's
   /// footer (`Rename`, `Restore this version`, `Delete`) wrap onto two lines at this width, tall
@@ -167,9 +168,7 @@ void main() {
     expect(bTop, lessThan(aTop));
   });
 
-  testWidgets('the working copy card names its base and reports Create a version', (
-    tester,
-  ) async {
+  testWidgets('the working copy card names its base and reports Create a version', (tester) async {
     final calls = _PanelCalls();
     await tester.pumpWidget(
       _wrapWithLocalization(
@@ -193,10 +192,7 @@ void main() {
   testWidgets('renders one card per version, in the order given', (tester) async {
     await tester.pumpWidget(
       _wrapWithLocalization(
-        _panel(
-          versions: [_version("b", isBase: true), _version("a")],
-          calls: _PanelCalls(),
-        ),
+        _panel(versions: [_version("b", isBase: true), _version("a")], calls: _PanelCalls()),
       ),
     );
 
@@ -213,10 +209,7 @@ void main() {
     final calls = _PanelCalls();
     await tester.pumpWidget(
       _wrapWithLocalization(
-        _panel(
-          versions: [_version("b", isBase: true), _version("a")],
-          calls: calls,
-        ),
+        _panel(versions: [_version("b", isBase: true), _version("a")], calls: calls),
       ),
     );
 
@@ -262,9 +255,7 @@ void main() {
 
     // Found by its button type: the confirmation's `Delete` and the other cards' own `Delete`
     // deliberately read the same, and only one of them is a filled button.
-    await tester.tap(
-      find.widgetWithText(FilledButton, tr.projectVersionDeleteConfirmAction),
-    );
+    await tester.tap(find.widgetWithText(FilledButton, tr.projectVersionDeleteConfirmAction));
     expect(calls.deleteConfirmed, ["a"]);
   });
 
@@ -285,16 +276,12 @@ void main() {
     expect(calls.restoreRequested, ["b"]);
 
     await tester.pumpWidget(
-      _wrapWithLocalization(
-        _panel(versions: versions, calls: calls, versionPendingRestoreId: "a"),
-      ),
+      _wrapWithLocalization(_panel(versions: versions, calls: calls, versionPendingRestoreId: "a")),
     );
 
     expect(find.text(tr.projectVersionRestoreConfirmMessage), findsOneWidget);
 
-    await tester.tap(
-      find.widgetWithText(FilledButton, tr.projectVersionRestoreConfirmAction),
-    );
+    await tester.tap(find.widgetWithText(FilledButton, tr.projectVersionRestoreConfirmAction));
 
     // The whole version rather than its id: the page names the safety version after it, and that
     // name is localized.
@@ -355,9 +342,7 @@ void main() {
     // The state guarantees only one pending id is ever set: rebuilding with `b`'s rename pending
     // is what the bloc does once the user clicks `Rename` on `b` while `a`'s confirmation was up.
     await tester.pumpWidget(
-      _wrapWithLocalization(
-        _panel(versions: versions, calls: calls, versionPendingRenameId: "b"),
-      ),
+      _wrapWithLocalization(_panel(versions: versions, calls: calls, versionPendingRenameId: "b")),
     );
 
     expect(find.text(tr.projectVersionDeleteConfirmMessage), findsNothing);

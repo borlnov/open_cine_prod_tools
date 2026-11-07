@@ -3,24 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_role_candidate_status_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_roles_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
-
-/// Converts a [OcptRoleCandidateStatus] to and from the text stored in the
-/// `role_candidates.status` column.
-class OcptRoleCandidateStatusConverter extends TypeConverter<OcptRoleCandidateStatus, String> {
-  /// Class constructor
-  const OcptRoleCandidateStatusConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptRoleCandidateStatus fromSql(String fromDb) => OcptRoleCandidateStatus.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptRoleCandidateStatus value) => value.name;
-}
 
 /// One person seen for one part, and what the casting decision is being made on.
 ///
@@ -52,16 +38,16 @@ class OcptRoleCandidatesTable extends Table {
   @override
   String get tableName => 'role_candidates';
 
-  /// The stable, unique id of this candidacy (a UUID).
+  /// Get the stable, unique id of this candidacy (a UUID).
   TextColumn get id => text()();
 
-  /// The part this person is seen for.
+  /// Get the part this person is seen for.
   TextColumn get roleId => text().references(OcptRolesTable, #id)();
 
-  /// The person seen — a `people` row like everybody else on the film.
+  /// Get the person seen — a `people` row like everybody else on the film.
   TextColumn get personId => text().references(OcptPeopleTable, #id)();
 
-  /// Where this person stands in the casting of this part.
+  /// Tell where this person stands in the casting of this part.
   ///
   /// The status a new candidacy starts at is decided by `OcptRoleCandidatesService.addCandidate`,
   /// which always writes it, as does every other write of this table (full rows, from a version
@@ -74,14 +60,14 @@ class OcptRoleCandidatesTable extends Table {
   TextColumn get status =>
       text().map(const OcptRoleCandidateStatusConverter()).withDefault(const Constant('seen'))();
 
-  /// When this person was seen for the part, or null while nobody has said.
+  /// Get when this person was seen for the part, or null while nobody has said.
   ///
   /// **Typed by hand, never derived from a session**: a candidate seen before the app was opened,
   /// or seen over a self-tape, has a date and no session at all, and a date read off a block would
   /// go empty the day that block is deleted.
   DateTimeColumn get auditionedOn => dateTime().nullable()();
 
-  /// The impressions kept on **this** person for **this** part, free text.
+  /// Get the impressions kept on **this** person for **this** part, free text.
   ///
   /// Personal data about the person, and blanked by an erasure — see the class doc comment.
   TextColumn get notes => text().withDefault(const Constant(''))();

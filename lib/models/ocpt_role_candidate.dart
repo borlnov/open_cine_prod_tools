@@ -39,6 +39,9 @@ class OcptRoleCandidate extends Equatable {
   /// The impressions kept on this person for this part, free text.
   final String notes;
 
+  /// Tell whether this candidacy is the one that cast the part.
+  bool get isRetained => status == OcptRoleCandidateStatus.retained;
+
   /// Class constructor
   const OcptRoleCandidate({
     required this.id,
@@ -49,7 +52,7 @@ class OcptRoleCandidate extends Equatable {
     required this.notes,
   });
 
-  /// Builds an [OcptRoleCandidate] from its stored [row] and the [person] its `personId` resolves
+  /// Build an [OcptRoleCandidate] from its stored [row] and the [person] its `personId` resolves
   /// to.
   factory OcptRoleCandidate.fromRow({
     required OcptRoleCandidateRow row,
@@ -63,14 +66,11 @@ class OcptRoleCandidate extends Equatable {
     notes: row.notes,
   );
 
-  /// Whether this candidacy is the one that cast the part.
-  bool get isRetained => status == OcptRoleCandidateStatus.retained;
-
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptRoleCandidate(id: $id, roleId: $roleId, status: $status)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, roleId, person, status, auditionedOn, notes];
 }

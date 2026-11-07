@@ -4,9 +4,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_type_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart';
 
 /// The compact block-type dropdown of the editor toolbar: shows the caret's current
 /// [FountainLineType] and lets the user pick any of the 11 assignable types manually (the same
@@ -23,8 +23,13 @@ class OcptEditorBlockTypeDropdown extends StatelessWidget {
   final ValueChanged<FountainLineType> onTypeSelected;
 
   /// Class constructor
-  const OcptEditorBlockTypeDropdown({super.key, required this.currentType, required this.onTypeSelected});
+  const OcptEditorBlockTypeDropdown({
+    super.key,
+    required this.currentType,
+    required this.onTypeSelected,
+  });
 
+  /// Build the editor block type dropdown as a [Focus].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -37,7 +42,7 @@ class OcptEditorBlockTypeDropdown extends StatelessWidget {
           child: DropdownButton<FountainLineType>(
             value: currentType,
             isDense: true,
-            mouseCursor: ocptClickableCursor,
+            mouseCursor: ocpt_theme.ocptClickableCursor,
             style: Theme.of(context).textTheme.labelSmall,
             items: [
               for (final type in ocptAssignableFountainLineTypes)

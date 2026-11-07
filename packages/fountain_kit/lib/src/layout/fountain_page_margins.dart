@@ -9,12 +9,24 @@ import 'package:equatable/equatable.dart';
 ///
 /// Margins are a rendering preference: they anchor the boxes that stretch to
 /// the printable area (scene heading, action, transition, centered text) and
-/// determine [FountainLayoutMetrics.linesPerPage]/`printableWidthInches`/
+/// determine `FountainLayoutMetrics.linesPerPage`/`printableWidthInches`/
 /// `printableHeightInches`, but they never move the element indents that are
 /// fixed relative to the *page's* left edge (character cues, parentheticals,
 /// dialogue) — see `FountainLayoutMetrics`'s class doc.
 class FountainPageMargins extends Equatable {
-  /// Creates a [FountainPageMargins] with every margin given explicitly.
+  /// The left page margin, in inches.
+  final double leftInches;
+
+  /// The right page margin, in inches.
+  final double rightInches;
+
+  /// The top page margin, in inches.
+  final double topInches;
+
+  /// The bottom page margin, in inches.
+  final double bottomInches;
+
+  /// Create a [FountainPageMargins] with every margin given explicitly.
   /// Prefer [FountainPageMargins.standard] unless a non-standard margin set
   /// is genuinely required.
   const FountainPageMargins({
@@ -33,18 +45,6 @@ class FountainPageMargins extends Equatable {
       topInches = 1,
       bottomInches = 1;
 
-  /// The left page margin, in inches.
-  final double leftInches;
-
-  /// The right page margin, in inches.
-  final double rightInches;
-
-  /// The top page margin, in inches.
-  final double topInches;
-
-  /// The bottom page margin, in inches.
-  final double bottomInches;
-
   /// Copy these margins and update the given elements.
   FountainPageMargins copyWith({
     double? leftInches,
@@ -58,16 +58,13 @@ class FountainPageMargins extends Equatable {
     bottomInches: bottomInches ?? this.bottomInches,
   );
 
-  @override
-  List<Object?> get props => [
-    leftInches,
-    rightInches,
-    topInches,
-    bottomInches,
-  ];
-
+  /// Describe this [FountainPageMargins] for debugging and logging.
   @override
   String toString() =>
       'FountainPageMargins(left: ${leftInches}in, right: ${rightInches}in, '
       'top: ${topInches}in, bottom: ${bottomInches}in)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [leftInches, rightInches, topInches, bottomInches];
 }

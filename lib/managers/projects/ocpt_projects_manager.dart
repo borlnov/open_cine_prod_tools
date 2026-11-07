@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:io';
-import 'dart:ui' show PlatformDispatcher;
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_dart_value_keeper/act_dart_value_keeper.dart';
@@ -12,11 +11,17 @@ import 'package:act_intl/act_intl.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
-import 'package:drift/drift.dart' show Value;
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:intl/intl.dart' show NumberFormat;
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/mixin_ocpt_project_settings.dart';
+import 'package:open_cine_prod_tools/managers/projects/ocpt_project_episode_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/ocpt_project_move_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/ocpt_project_open_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/ocpt_project_preview_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_services.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_allowances_service.dart';
@@ -31,11 +36,9 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_serv
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dictionary_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_file_compatibility_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_package_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
@@ -43,35 +46,29 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_export_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_import_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
-import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
-import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_free_file_path.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_free_file_path.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
-import 'package:uuid/uuid.dart';
 
-/// Returns the language code of the locale the app's own UI is running in (`fr`, `en`…). The
+/// Return the language code of the locale the app's own UI is running in (`fr`, `en`…). The
 /// type of [OcptProjectsManager]'s injectable seam over [LocalesManager] — see that class's
 /// constructor for why a test wants to be able to replace it.
 typedef OcptAppLanguageCodeGetter = String Function();
 
-/// Builds the [OcptProjectsManager] instance registered by the global manager.
+/// Build the [OcptProjectsManager] instance registered by the global manager.
 class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager> {
   /// Class constructor
   const OcptProjectsManagerBuilder() : super(OcptProjectsManager.new);
@@ -81,7 +78,7 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
   Iterable<Type> dependsOn() => [LoggerManager, OcptPropertiesManager, LocalesManager];
 }
 
-/// Owns the project the user currently has open, and every operation that creates, opens or
+/// Own the project the user currently has open, and every operation that creates, opens or
 /// closes one.
 ///
 /// Every Open Cine Prod Tools project is a single `.ocpt` SQLite file (an [OcptProjectDatabase]);
@@ -98,7 +95,7 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// [projectDictionaryService], [projectPackageService], [projectFileCompatibilityService],
 /// [budgetQuoteService], [budgetJournalService], [budgetFinancingService],
 /// [budgetAllowancesService] and [budgetSharingService], the twenty-three services this manager
-/// owns and wires together (RFL19):
+/// owns and wires together:
 /// this manager itself is only
 /// responsible for the lifecycle of the project file (create/open/move/close), for keeping the
 /// properties manager's recent-projects list in sync, and for handing those services the facts
@@ -115,11 +112,7 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// a state of the open project rather than of the database and so belongs here rather than in
 /// [projectVersionsService]: previewing swaps the database the modes read through for an in-memory
 /// one hydrated from the version's payload, and re-emits the project on [currentProjectStream].
-class OcptProjectsManager extends AbsWithLifeCycle {
-  /// The name of the folder created inside the platform's documents directory to hold projects
-  /// created/saved without the user picking a different location.
-  static const _defaultProjectsDirectoryName = "OpenCineProdTools";
-
+class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings {
   /// The extension used by project files, without the leading dot.
   ///
   /// The one definition lives in [ocptProjectFileExtension], which the package service reads too:
@@ -127,8 +120,15 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// could drift from the file this manager actually writes.
   static const projectFileExtension = ocptProjectFileExtension;
 
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "projects";
+
+  /// The name of the folder created inside the platform's documents directory to hold projects
+  /// created/saved without the user picking a different location.
+  static const _defaultProjectsDirectoryName = "OpenCineProdTools";
+
   /// The app version stamped into newly created and migrated projects' `project_info` (see
-  /// [createProject] and [_gateOnFileFormat]).
+  /// [createProject] and `_gateOnFileFormat`).
   ///
   /// Read from a `--dart-define=APP_VERSION=...` the CI passes at build time
   /// (`.github/workflows/build.yml`'s `get-version` job, itself derived from `git describe` on the
@@ -142,29 +142,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   // value the CI passes deliberately (`--dart-define=APP_VERSION=...`), with a documented,
   // version-controlled default for every build that doesn't pass one.
   // ignore: do_not_use_environment
-  static const _appVersion = String.fromEnvironment(
-    "APP_VERSION",
-    defaultValue: "0.3.0",
-  );
-
-  /// The running build's own app version — see [_appVersion]'s own doc comment for where it comes
-  /// from and why it defaults the way it does.
-  ///
-  /// Exposed alongside it rather than duplicated: the Partager screen's own pairing call
-  /// (`docs/plans/relay.md`, Phase C, commit 3) stamps a freshly published snapshot with this same
-  /// version, through `OcptSyncManager.pairProjectToRelay`, and reading it here is what keeps that
-  /// one string from drifting out of step with what [createProject] and [_gateOnFileFormat] already
-  /// stamp into a project file.
-  String get appVersion => _appVersion;
-
-  /// The properties manager used to persist the recently opened projects list.
-  final OcptPropertiesManager _propertiesManager;
-
-  /// The seam [_defaultScreenplayLanguageForAppLocale] reads the app's UI language through.
-  final OcptAppLanguageCodeGetter _appLanguageCode;
-
-  /// The manager [newProjectsDirectory] branches on to tell a desktop platform from a mobile one.
-  final PlatformManager _platformManager;
+  static const _appVersion = String.fromEnvironment("APP_VERSION", defaultValue: "0.3.0");
 
   /// The service used to load/save a screenplay's text and manage its snapshots.
   final OcptScreenplayService screenplayService;
@@ -189,16 +167,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
   /// The service used for CRUD over a screenplay's storyboard: its shots' panels and their
   /// annotation layer.
-  ///
-  /// Held here as well as inside [shotListService] (RFL19, the same reasoning [assetsService]'s own
-  /// doc comment gives): the board view reads and writes it directly, and [shotListService] only
-  /// needs it for its own `deleteShot`/`tombstoneShotsOfScreenplay` cascade.
   final OcptStoryboardService storyboardService;
 
   /// The service used for CRUD over a screenplay's floor plans: each Resources set's symbols and
   /// arrows.
-  ///
-  /// Held for the same reason [storyboardService] is.
   final OcptFloorPlanService floorPlanService;
 
   /// The service used for CRUD over the people seen for a part, and for the one rule saying which
@@ -216,7 +188,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   final OcptBudgetQuoteService budgetQuoteService;
 
   /// The service used for CRUD over the budget mode's cash journal: the `budget_entries` movements
-  /// and the `budget_commitments` still owed against a poste.
+  /// and the `budget_commitments` still owed against an account.
   final OcptBudgetJournalService budgetJournalService;
 
   /// The service used for CRUD over the budget mode's financing plan: the `budget_resources`
@@ -241,10 +213,6 @@ class OcptProjectsManager extends AbsWithLifeCycle {
 
   /// The service used to mint and tombstone the `assets` rows referencing a file — a headshot, a
   /// scouting photo, an element's photo, a signed release.
-  ///
-  /// Held here as well as inside the three services that compose it, because the resources mode
-  /// drops a reference without caring what owns it: the row is the same row whoever it belongs to,
-  /// so "remove this file" has one answer rather than three.
   final OcptAssetsService assetsService;
 
   /// The service used to learn, unlearn and read back the words this project's writer has taught
@@ -252,28 +220,32 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   final OcptProjectDictionaryService projectDictionaryService;
 
   /// The service used to write the project out as a portable package, and to read one back.
-  ///
-  /// Unlike every other service here it takes **paths** rather than an open database: a package is
-  /// written from a project file, which is how the same code serves a project open in the workspace
-  /// and a project card on the home page, and why exporting never migrates what it copies.
   final OcptProjectPackageService projectPackageService;
 
   /// The service reading a project file's own format before anything opens it, and keeping the
   /// copy a migration is answered with.
-  ///
-  /// Like [projectPackageService] it takes **paths** rather than an open database, and for a
-  /// sharper reason: what it exists to prevent is precisely a project file being opened before its
-  /// format is known.
   final OcptProjectFileCompatibilityService projectFileCompatibilityService;
 
+  /// The logger this manager writes to, and the parent of every service's own.
+  final LogsHelper _logger;
+
+  /// The properties manager used to persist the recently opened projects list.
+  final OcptPropertiesManager _propertiesManager;
+
+  /// The seam `_defaultScreenplayLanguageForAppLocale` reads the app's UI language through.
+  final OcptAppLanguageCodeGetter _appLanguageCode;
+
+  /// The manager [newProjectsDirectory] branches on to tell a desktop platform from a mobile one.
+  final PlatformManager _platformManager;
+
   /// Whether a create/open/close operation is currently in progress.
-  bool _isBusy = false;
+  bool _isBusy;
 
   /// The callbacks the modes register to answer, at any moment, whether they hold changes that
   /// haven't reached the database yet.
   ///
   /// See [registerUnsavedChangesReporter] for why this manager has to ask at all.
-  final _unsavedChangesReporters = <bool Function()>[];
+  final List<bool Function()> _unsavedChangesReporters;
 
   /// The project currently open, if any, with a stream to react to it changing.
   ///
@@ -282,11 +254,36 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// be freely settable back to null whenever it's closed.
   late final ValueKeeperWithStream<OcptOpenProjectModel?> _currentProject;
 
+  /// Get the running build's own app version — see [_appVersion]'s own doc comment for where it
+  /// comes
+  /// from and why it defaults the way it does.
+  ///
+  /// Exposed alongside it rather than duplicated: the Partager screen's own pairing call
+  /// (`docs/architecture/sync.md`) stamps a freshly published snapshot with this same
+  /// version, through `OcptSyncManager.pairProjectToRelay`, and reading it here is what keeps that
+  /// one string from drifting out of step with what [createProject] and `_gateOnFileFormat` already
+  /// stamp into a project file.
+  String get appVersion => _appVersion;
+
+  /// Get the project currently open, or null if none is.
+  @override
+  OcptOpenProjectModel? get currentProject => _currentProject.value;
+
+  /// Get the logger the failures of the project settings are written to: this manager's own.
+  @override
+  LogsHelper get settingsLogger => _logger;
+
+  /// Emit the project currently open (or null) every time it changes.
+  Stream<OcptOpenProjectModel?> get currentProjectStream => _currentProject.valueStream;
+
+  /// Tell whether any mode currently reports changes that haven't reached the database yet.
+  bool get hasUnsavedChanges => _unsavedChangesReporters.any((reporter) => reporter());
+
   /// Class constructor
   ///
   /// [appLanguageCode] is the injectable seam over reading the app's own UI language, defaulting
   /// to [LocalesManager]'s `currentLocale`, and read only when a project is created
-  /// ([_defaultScreenplayLanguageForAppLocale]) — never when this manager is built, so a test only
+  /// (`_defaultScreenplayLanguageForAppLocale`) — never when this manager is built, so a test only
   /// needs to hand one in when it creates a project.
   ///
   /// [platformManager] is not resolved through [globalGetIt] like the managers above:
@@ -298,200 +295,101 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     OcptPropertiesManager? propertiesManager,
     OcptAppLanguageCodeGetter? appLanguageCode,
     PlatformManager? platformManager,
-  }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+  }) : this._(
+         logger: buildOcptLogsHelper(_loggerCategory),
+         propertiesManager: propertiesManager,
+         appLanguageCode: appLanguageCode,
+         platformManager: platformManager,
+       );
+
+  /// Class constructor, taking the one logger the services built here are given sub-loggers of.
+  ///
+  /// A constructor initializer list cannot see `this`, so the logger is built once by the public
+  /// constructor and handed down as a parameter.
+  OcptProjectsManager._({
+    required LogsHelper logger,
+    required OcptPropertiesManager? propertiesManager,
+    required OcptAppLanguageCodeGetter? appLanguageCode,
+    required PlatformManager? platformManager,
+  }) : this._withServices(
+         logger: logger,
+         services: OcptProjectsServices(logger: logger, propertiesManager: propertiesManager),
+         propertiesManager: propertiesManager,
+         appLanguageCode: appLanguageCode,
+         platformManager: platformManager,
+       );
+
+  /// Class constructor, taking the services already built for this manager.
+  OcptProjectsManager._withServices({
+    required LogsHelper logger,
+    required OcptProjectsServices services,
+    required OcptPropertiesManager? propertiesManager,
+    required OcptAppLanguageCodeGetter? appLanguageCode,
+    required PlatformManager? platformManager,
+  }) : _isBusy = false,
+       _unsavedChangesReporters = <bool Function()>[],
+       _logger = logger,
+       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _appLanguageCode = appLanguageCode ?? _localesManagerLanguageCode,
        _platformManager = platformManager ?? PlatformManager(),
-       sceneIndexService = const OcptSceneIndexService(),
-       shotListService = OcptShotListService(
-         roleIndexService: OcptRoleIndexService(
-           elementsService: OcptElementsService(
-             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           roleCandidatesService: OcptRoleCandidatesService(
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-         storyboardService: _buildStoryboardService(propertiesManager),
-         floorPlanService: _buildFloorPlanService(propertiesManager),
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       shotCoverageService = OcptShotCoverageService(
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       projectVersionsService = OcptProjectVersionsService(
-         codec: const OcptProjectVersionCodec(),
-         screenplayService: OcptScreenplayService(
-           sceneIndexService: const OcptSceneIndexService(),
-           shotListService: OcptShotListService(
-             roleIndexService: OcptRoleIndexService(
-               elementsService: OcptElementsService(
-                 assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-                 deviceId: _resolveDeviceId(propertiesManager),
-               ),
-               roleCandidatesService: OcptRoleCandidatesService(
-                 deviceId: _resolveDeviceId(propertiesManager),
-               ),
-               deviceId: _resolveDeviceId(propertiesManager),
-             ),
-             storyboardService: _buildStoryboardService(propertiesManager),
-             floorPlanService: _buildFloorPlanService(propertiesManager),
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           shotCoverageService: OcptShotCoverageService(
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           roleIndexService: OcptRoleIndexService(
-             elementsService: OcptElementsService(
-               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-               deviceId: _resolveDeviceId(propertiesManager),
-             ),
-             roleCandidatesService: OcptRoleCandidatesService(
-               deviceId: _resolveDeviceId(propertiesManager),
-             ),
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           breakdownService: OcptBreakdownService(
-             elementsService: OcptElementsService(
-               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-               deviceId: _resolveDeviceId(propertiesManager),
-             ),
-             locationsService: OcptLocationsService(
-               floorPlanService: _buildFloorPlanService(propertiesManager),
-               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-               deviceId: _resolveDeviceId(propertiesManager),
-             ),
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           scheduleService: OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager)),
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-       ),
-       screenplayService = OcptScreenplayService(
-         sceneIndexService: const OcptSceneIndexService(),
-         shotListService: OcptShotListService(
-           roleIndexService: OcptRoleIndexService(
-             elementsService: OcptElementsService(
-               assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-               deviceId: _resolveDeviceId(propertiesManager),
-             ),
-             roleCandidatesService: OcptRoleCandidatesService(
-               deviceId: _resolveDeviceId(propertiesManager),
-             ),
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           storyboardService: _buildStoryboardService(propertiesManager),
-           floorPlanService: _buildFloorPlanService(propertiesManager),
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-         shotCoverageService: OcptShotCoverageService(
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-         roleIndexService: OcptRoleIndexService(
-           elementsService: OcptElementsService(
-             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           roleCandidatesService: OcptRoleCandidatesService(
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-         breakdownService: OcptBreakdownService(
-           elementsService: OcptElementsService(
-             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           locationsService: OcptLocationsService(
-             floorPlanService: _buildFloorPlanService(propertiesManager),
-             assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-             deviceId: _resolveDeviceId(propertiesManager),
-           ),
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-         scheduleService: OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager)),
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       peopleService = OcptPeopleService(
-         deviceId: _resolveDeviceId(propertiesManager),
-         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-         roleCandidatesService: OcptRoleCandidatesService(
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-       ),
-       roleIndexService = OcptRoleIndexService(
-         elementsService: OcptElementsService(
-           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-         roleCandidatesService: OcptRoleCandidatesService(
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       roleCandidatesService = OcptRoleCandidatesService(
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       locationsService = OcptLocationsService(
-         floorPlanService: _buildFloorPlanService(propertiesManager),
-         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       elementsService = OcptElementsService(
-         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       budgetQuoteService = OcptBudgetQuoteService(deviceId: _resolveDeviceId(propertiesManager)),
-       budgetJournalService = OcptBudgetJournalService(
-         assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       budgetFinancingService = OcptBudgetFinancingService(
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       budgetAllowancesService = OcptBudgetAllowancesService(
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       budgetSharingService = OcptBudgetSharingService(
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       assetsService = OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-       storyboardService = _buildStoryboardService(propertiesManager),
-       floorPlanService = _buildFloorPlanService(propertiesManager),
-       projectDictionaryService = OcptProjectDictionaryService(
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       projectPackageService = const OcptProjectPackageService(),
-       projectFileCompatibilityService = const OcptProjectFileCompatibilityService(),
-       breakdownService = OcptBreakdownService(
-         elementsService: OcptElementsService(
-           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-         locationsService: OcptLocationsService(
-           floorPlanService: _buildFloorPlanService(propertiesManager),
-           assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-           deviceId: _resolveDeviceId(propertiesManager),
-         ),
-         deviceId: _resolveDeviceId(propertiesManager),
-       ),
-       scheduleService = OcptScheduleService(deviceId: _resolveDeviceId(propertiesManager));
-
-  /// The project currently open, or null if none is.
-  OcptOpenProjectModel? get currentProject => _currentProject.value;
-
-  /// Emits the project currently open (or null) every time it changes.
-  Stream<OcptOpenProjectModel?> get currentProjectStream => _currentProject.valueStream;
+       sceneIndexService = services.sceneIndexService,
+       shotListService = services.shotListService,
+       shotCoverageService = services.shotCoverageService,
+       projectVersionsService = services.projectVersionsService,
+       screenplayService = services.screenplayService,
+       peopleService = services.peopleService,
+       roleIndexService = services.roleIndexService,
+       roleCandidatesService = services.roleCandidatesService,
+       locationsService = services.locationsService,
+       elementsService = services.elementsService,
+       budgetQuoteService = services.budgetQuoteService,
+       budgetJournalService = services.budgetJournalService,
+       budgetFinancingService = services.budgetFinancingService,
+       budgetAllowancesService = services.budgetAllowancesService,
+       budgetSharingService = services.budgetSharingService,
+       assetsService = services.assetsService,
+       storyboardService = services.storyboardService,
+       floorPlanService = services.floorPlanService,
+       projectDictionaryService = services.projectDictionaryService,
+       projectPackageService = services.projectPackageService,
+       projectFileCompatibilityService = services.projectFileCompatibilityService,
+       breakdownService = services.breakdownService,
+       scheduleService = services.scheduleService;
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   @override
   Future<void> initLifeCycle() async {
     await super.initLifeCycle();
     _currentProject = ValueKeeperWithStream<OcptOpenProjectModel?>(value: null);
+    await sceneIndexService.initLifeCycle();
+    await shotListService.initLifeCycle();
+    await shotCoverageService.initLifeCycle();
+    await projectVersionsService.initLifeCycle();
+    await screenplayService.initLifeCycle();
+    await peopleService.initLifeCycle();
+    await roleIndexService.initLifeCycle();
+    await roleCandidatesService.initLifeCycle();
+    await locationsService.initLifeCycle();
+    await elementsService.initLifeCycle();
+    await budgetQuoteService.initLifeCycle();
+    await budgetJournalService.initLifeCycle();
+    await budgetFinancingService.initLifeCycle();
+    await budgetAllowancesService.initLifeCycle();
+    await budgetSharingService.initLifeCycle();
+    await assetsService.initLifeCycle();
+    await storyboardService.initLifeCycle();
+    await floorPlanService.initLifeCycle();
+    await projectDictionaryService.initLifeCycle();
+    await projectPackageService.initLifeCycle();
+    await projectFileCompatibilityService.initLifeCycle();
+    await breakdownService.initLifeCycle();
+    await scheduleService.initLifeCycle();
+
+    _logger.i("The projects manager started");
   }
 
-  /// The app's own projects folder, Documents/OpenCineProdTools, creating it if it doesn't already
+  /// Get the app's own projects folder, Documents/OpenCineProdTools, creating it if it doesn't
+  /// already
   /// exist: what [suggestedProjectsDirectory] proposes until a dialog has landed a project
   /// elsewhere, and where [newProjectsDirectory] puts one on desktop.
   Future<Directory> getDefaultProjectsDirectory() async {
@@ -507,7 +405,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return projectsDirectory;
   }
 
-  /// Where a new project's `.ocpt` lands when no dialog lets the user choose — [createProject]'s
+  /// Tell where a new project's `.ocpt` lands when no dialog lets the user choose —
+  /// [createProject]'s
   /// callers turn it into an actual file path through [freeNewProjectFilePath], which never names
   /// a file already there.
   ///
@@ -522,7 +421,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return getDefaultProjectsDirectory();
   }
 
-  /// The first free `.ocpt` path for a project named [name] inside [newProjectsDirectory] — see
+  /// Get the first free `.ocpt` path for a project named [name] inside [newProjectsDirectory] — see
   /// [ocptFreeFilePath] for the numbering a name already taken there is given.
   Future<String> freeNewProjectFilePath(String name) async {
     final directory = await newProjectsDirectory();
@@ -535,7 +434,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     );
   }
 
-  /// The folder a native save-file or folder-picker dialog opens in when creating, importing,
+  /// Get the folder a native save-file or folder-picker dialog opens in when creating, importing,
   /// joining or moving a project on desktop: [OcptPropertiesManager.lastProjectsDirectory]'s own
   /// folder, when it is still there, or [getDefaultProjectsDirectory] the very first time, or again
   /// once a remembered folder has since been deleted from under the app.
@@ -548,30 +447,16 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return (await getDefaultProjectsDirectory()).path;
   }
 
-  /// Remembers [directoryPath] as the folder [suggestedProjectsDirectory] proposes next time —
+  /// Remember [directoryPath] as the folder [suggestedProjectsDirectory] proposes next time —
   /// called after every create, import, join and move that actually lands a project there.
   Future<void> rememberProjectsDirectory(String directoryPath) =>
       _propertiesManager.lastProjectsDirectory.store(directoryPath);
 
-  /// Creates a new project named [name] at [filePath], seeds it with a single empty screenplay —
+  /// Create a new project named [name] at [filePath], seed it with a single empty screenplay —
   /// episode 1 (`number: 1`), given a real first `sortKey` rather than left at the column
   /// defaults, so a project made today looks exactly like one that came through the schema version
   /// 18 migration (`docs/adr/0019-one-project-several-episodes.md`) — registers it in the recent
   /// projects list, and makes it the [currentProject].
-  ///
-  /// **Never overwrites an existing file.** If [filePath] is already taken, nothing is created,
-  /// nothing is touched — not even the currently open project, which stays open — and this returns
-  /// [OcptProjectStatus.fileAlreadyExists]. A caller normally avoids that outcome by resolving
-  /// [filePath] through [freeNewProjectFilePath] first; the check stands here on its own so that no
-  /// caller, present or future, can make this method destroy a file.
-  ///
-  /// If a project is already open and [filePath] is free, the open one is closed first. The
-  /// project's page format defaults to [OcptPageFormat.a4] when the platform's locale is French, and
-  /// to [OcptPageFormat.usLetter] otherwise. Its currency defaults to whatever `intl` names for the
-  /// platform's current locale (`fr_FR` suggests EUR, `en_US` suggests USD…), falling back to
-  /// [ocptDefaultCurrencyCode] when it can't. Its screenplay language is seeded from the **app's**
-  /// own UI language instead ([_defaultScreenplayLanguageForAppLocale]), and left unset when no
-  /// dictionary is bundled for it.
   Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> createProject({
     required String name,
     required String filePath,
@@ -581,77 +466,25 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
     _isBusy = true;
 
-    OcptProjectDatabase? database;
     try {
-      final file = File(filePath);
-      if (file.existsSync()) {
-        return const ResultWithStatus(status: OcptProjectStatus.fileAlreadyExists);
-      }
-
-      if (currentProject != null) {
-        await closeCurrentProject();
-      }
-
-      await file.parent.create(recursive: true);
-
-      database = OcptProjectDatabase(file);
-
-      final now = DateTime.now();
-      await database
-          .into(database.ocptProjectInfoTable)
-          .insert(
-            OcptProjectInfoTableCompanion.insert(
-              name: name,
-              createdAt: now,
-              appVersionAtCreation: _appVersion,
-              pageFormat: _defaultPageFormatForPlatformLocale(),
-              currencyCode: Value(_defaultCurrencyCodeForPlatformLocale()),
-              screenplayLanguage: Value(_defaultScreenplayLanguageForAppLocale()),
-              migratedByAppVersion: const Value(_appVersion),
-            ),
-          );
-
-      final screenplayId = const Uuid().v4();
-      await database
-          .into(database.ocptScreenplaysTable)
-          .insert(
-            OcptScreenplaysTableCompanion.insert(
-              id: screenplayId,
-              title: name,
-              updatedAt: now,
-              number: const Value(1),
-              sortKey: Value(ocptFractionalKeyBetween()),
-            ),
-          );
-
-      final project = OcptOpenProjectModel(
-        path: filePath,
+      return await OcptProjectOpenOps.createProject(
         name: name,
-        primaryScreenplayId: screenplayId,
-        database: database,
+        filePath: filePath,
+        currentProject: currentProject,
+        appVersion: _appVersion,
+        appLanguageCode: _appLanguageCode,
+        logger: _logger,
+        propertiesManager: _propertiesManager,
+        onCreated: (project) => _currentProject.value = project,
+        closeCurrentProject: closeCurrentProject,
+        rememberProjectsDirectory: rememberProjectsDirectory,
       );
-      _currentProject.value = project;
-
-      await _propertiesManager.addRecentProject(
-        // A fresh project holds exactly one episode — no need to read it back.
-        OcptRecentProjectModel(path: filePath, name: name, lastOpenedAt: now, episodeCount: 1),
-      );
-      await rememberProjectsDirectory(p.dirname(filePath));
-
-      return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to create the project '$name' at $filePath: "
-        "$error",
-      );
-      await database?.close();
-      return const ResultWithStatus(status: OcptProjectStatus.ioError);
     } finally {
       _isBusy = false;
     }
   }
 
-  /// Reads which format the project file at [filePath] is in, and what that means for this build,
+  /// Read which format the project file at [filePath] is in, and what that means for this build,
   /// without opening it as a project.
   ///
   /// What every door into a project file asks before it goes through: the home page's `Open…`, a
@@ -666,27 +499,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         appVersion: _appVersion,
       );
 
-  /// Opens the project stored at [filePath], registers it in the recent projects list, and makes
+  /// Open the project stored at [filePath], register it in the recent projects list, and makes
   /// it the [currentProject].
-  ///
-  /// If a project is already open, it's closed first — but only once the file's own format has been
-  /// read and accepted, so a refusal never costs the user the project they already had open.
-  ///
-  /// **A file written by another build never opens silently.** It is probed first
-  /// ([probeProjectFile]), and:
-  /// - a **newer** format is refused with [OcptProjectStatus.newerFormat]: it isn't opened, isn't
-  ///   touched and doesn't reach the recent projects list. Handing it to drift would stamp its
-  ///   `user_version` back down to this build's number while leaving the newer build's tables in
-  ///   place, which is not a failure the user could ever undo;
-  /// - a file at this build's own schema, but last written by a **pre-release build that isn't
-  ///   this exact build**, is refused the same way, with [OcptProjectStatus.foreignDevBuildFormat]:
-  ///   its shape isn't guaranteed to match the frozen release
-  ///   (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`);
-  /// - an **older** format returns [OcptProjectStatus.migrationRequired] unless [allowMigration] is
-  ///   true, which is the caller saying the user has been told what is about to happen. Only then is
-  ///   the copy written — at the path the probe named, so the promise and the write cannot drift
-  ///   apart — and the file handed to drift, whose `onUpgrade` migrates it as it always has;
-  /// - anything else opens exactly as it did before this gate existed.
   Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> openProject({
     required String filePath,
     bool allowMigration = false,
@@ -696,402 +510,26 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
     _isBusy = true;
 
-    OcptProjectDatabase? database;
     try {
-      if (!File(filePath).existsSync()) {
-        return const ResultWithStatus(status: OcptProjectStatus.fileNotFound);
-      }
-
-      final formatGate = _gateOnFileFormat(filePath: filePath, allowMigration: allowMigration);
-      if (formatGate.status != null) {
-        return ResultWithStatus(status: formatGate.status!);
-      }
-
-      if (currentProject != null) {
-        await closeCurrentProject();
-      }
-
-      database = OcptProjectDatabase(File(filePath));
-
-      final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
-      final screenplay = await (database.select(
-        database.ocptScreenplaysTable,
-      )..limit(1)).getSingleOrNull();
-
-      if (info == null || screenplay == null) {
-        appLogger().w(
-          "The project file at $filePath is missing its project info or its "
-          "screenplay, it's considered corrupted",
-        );
-        await database.close();
-        return const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
-      }
-
-      // Stamp the writer identity only when a real migration just ran (the file was `older`, and
-      // drift's `onUpgrade` has now brought it up to `currentSchemaVersion` through the query
-      // above). A plain open of an already-current file must NOT touch this column: doing so would
-      // lose the freeze guarantee ADR 0029 relies on — that a file at the build's own stable schema
-      // still names the stable build that actually produced its shape, not whichever later build
-      // happened to open it since.
-      if (formatGate.isMigrating) {
-        await database
-            .update(database.ocptProjectInfoTable)
-            .write(const OcptProjectInfoTableCompanion(migratedByAppVersion: Value(_appVersion)));
-      }
-
-      final project = OcptOpenProjectModel(
-        path: filePath,
-        name: info.name,
-        primaryScreenplayId: screenplay.id,
-        database: database,
+      return await OcptProjectOpenOps.openProject(
+        filePath: filePath,
+        allowMigration: allowMigration,
+        currentProject: currentProject,
+        appVersion: _appVersion,
+        logger: _logger,
+        propertiesManager: _propertiesManager,
+        projectFileCompatibilityService: projectFileCompatibilityService,
+        screenplayService: screenplayService,
+        probeProjectFile: probeProjectFile,
+        onOpened: (project) => _currentProject.value = project,
+        closeCurrentProject: closeCurrentProject,
       );
-      _currentProject.value = project;
-
-      await screenplayService.snapshotOnProjectOpen(
-        database: database,
-        screenplayId: screenplay.id,
-      );
-
-      final episodeCount = (await screenplayService.loadEpisodes(database: database)).length;
-
-      await _propertiesManager.addRecentProject(
-        OcptRecentProjectModel(
-          path: filePath,
-          name: info.name,
-          lastOpenedAt: DateTime.now(),
-          episodeCount: episodeCount,
-        ),
-      );
-
-      return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
-    } on SqliteException catch (error) {
-      appLogger().e("The project file at $filePath appears corrupted: $error");
-      await database?.close();
-      return const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to open the project at $filePath: $error");
-      await database?.close();
-      return const ResultWithStatus(status: OcptProjectStatus.ioError);
     } finally {
       _isBusy = false;
     }
   }
 
-  /// Answers whether the file at [filePath] may be handed to drift, and takes the backup when a
-  /// migration is going ahead: `status` is null to go on, or the status to report back instead;
-  /// `isMigrating` tells [openProject] whether drift is about to run a real `onUpgrade` on this
-  /// file, which is what decides whether the writer identity gets stamped once it has.
-  ///
-  /// Split out of [openProject] because it is the one part of opening a project that must happen
-  /// **before anything else does** — before the currently open project is closed, and before drift
-  /// ever sees the file.
-  ({OcptProjectStatus? status, bool isMigrating}) _gateOnFileFormat({
-    required String filePath,
-    required bool allowMigration,
-  }) {
-    final compatibility = probeProjectFile(filePath: filePath);
-
-    switch (compatibility.verdict) {
-      case OcptProjectFileVerdict.newer:
-        appLogger().w(
-          "The project file at $filePath is in format ${compatibility.fileSchemaVersion}, which "
-          "this build (format ${compatibility.appSchemaVersion}) can't read: it's refused, not "
-          "opened",
-        );
-        return (status: OcptProjectStatus.newerFormat, isMigrating: false);
-      case OcptProjectFileVerdict.foreignDevBuild:
-        appLogger().w(
-          "The project file at $filePath is at this build's own format "
-          "(${compatibility.fileSchemaVersion}), but was last written by "
-          "${compatibility.migratedByAppVersion}, a pre-release build that isn't this one: it's "
-          "refused, not opened",
-        );
-        return (status: OcptProjectStatus.foreignDevBuildFormat, isMigrating: false);
-      case OcptProjectFileVerdict.older:
-        final backupPath = compatibility.suggestedBackupPath;
-        if (!allowMigration || backupPath == null) {
-          return (status: OcptProjectStatus.migrationRequired, isMigrating: false);
-        }
-
-        if (!projectFileCompatibilityService.writeBackup(
-          filePath: filePath,
-          backupPath: backupPath,
-        )) {
-          // The migration is irreversible, and it was allowed on the promise that a copy would be
-          // kept: no copy, no migration.
-          return (status: OcptProjectStatus.ioError, isMigrating: false);
-        }
-
-        appLogger().i(
-          "The project file at $filePath is being migrated from format "
-          "${compatibility.fileSchemaVersion} to ${compatibility.appSchemaVersion}; a copy of it "
-          "was kept at $backupPath",
-        );
-        return (status: null, isMigrating: true);
-      case OcptProjectFileVerdict.current:
-      case OcptProjectFileVerdict.unreadable:
-        return (status: null, isMigrating: false);
-    }
-  }
-
-  /// Loads the page format stored in the [currentProject]'s `project_info` table, or null if no
-  /// project is currently open.
-  ///
-  /// This lives here (rather than in the editor's UI layer) so reading the project database stays
-  /// confined to the managers/services layer.
-  Future<OcptPageFormat?> loadCurrentProjectPageFormat() async {
-    final project = currentProject;
-    if (project == null) {
-      return null;
-    }
-
-    final info = await project.database
-        .select(project.database.ocptProjectInfoTable)
-        .getSingleOrNull();
-    return info?.pageFormat;
-  }
-
-  /// Updates the page format stored in the [currentProject]'s `project_info` table. Does nothing if
-  /// no project is currently open.
-  ///
-  /// This is the first write to `project_info` after the project is created: [createProject] seeds
-  /// it once, and this is the only path that ever changes it afterwards.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectPageFormat(OcptPageFormat format) async {
-    final project = currentProject;
-    if (project == null || project.database.refusesUserWrite("saveCurrentProjectPageFormat")) {
-      return;
-    }
-
-    await project.database
-        .update(project.database.ocptProjectInfoTable)
-        .write(OcptProjectInfoTableCompanion(pageFormat: Value(format)));
-  }
-
-  /// Loads the ISO 4217 currency code stored in the [currentProject]'s `project_info` table, or
-  /// null if no project is currently open.
-  ///
-  /// Modelled on [loadCurrentProjectPageFormat]: reading the project database stays confined to
-  /// the managers/services layer.
-  Future<String?> loadCurrentProjectCurrencyCode() async {
-    final project = currentProject;
-    if (project == null) {
-      return null;
-    }
-
-    final info = await project.database
-        .select(project.database.ocptProjectInfoTable)
-        .getSingleOrNull();
-    return info?.currencyCode;
-  }
-
-  /// Updates the currency code stored in the [currentProject]'s `project_info` table. Does nothing
-  /// if no project is currently open.
-  ///
-  /// Modelled on [saveCurrentProjectPageFormat]: [code] is a property of the project, not of the
-  /// app, so it is written the very same way.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectCurrencyCode(String code) async {
-    final project = currentProject;
-    if (project == null || project.database.refusesUserWrite("saveCurrentProjectCurrencyCode")) {
-      return;
-    }
-
-    await project.database
-        .update(project.database.ocptProjectInfoTable)
-        .write(OcptProjectInfoTableCompanion(currencyCode: Value(code)));
-  }
-
-  /// Loads the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table, or
-  /// null.
-  ///
-  /// The two reasons for a null answer are indistinguishable here, exactly as
-  /// [loadCurrentProjectCurrencyCode]'s would be if that column were nullable: no project is open,
-  /// or one is and nobody has recorded a minimum for it — the column's own truthful "nobody has
-  /// said" (`OcptProjectInfoTable.minimumRestMinutes`).
-  Future<int?> loadCurrentProjectMinimumRestMinutes() async {
-    final project = currentProject;
-    if (project == null) {
-      return null;
-    }
-
-    final info = await project.database
-        .select(project.database.ocptProjectInfoTable)
-        .getSingleOrNull();
-    return info?.minimumRestMinutes;
-  }
-
-  /// Updates the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table,
-  /// or clears it when [minutes] is null — a production that decides it no longer wants to record
-  /// one is as real a gesture as setting it. Does nothing if no project is currently open.
-  ///
-  /// Modelled on [saveCurrentProjectCurrencyCode], with one difference the column's own nullability
-  /// forces: [minutes] is written whichever it is, including null, rather than only ever holding a
-  /// value the way a page format or a currency always does.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectMinimumRestMinutes(int? minutes) async {
-    final project = currentProject;
-    if (project == null ||
-        project.database.refusesUserWrite("saveCurrentProjectMinimumRestMinutes")) {
-      return;
-    }
-
-    await project.database
-        .update(project.database.ocptProjectInfoTable)
-        .write(OcptProjectInfoTableCompanion(minimumRestMinutes: Value(minutes)));
-  }
-
-  /// Loads the screenplay language stored in the [currentProject]'s `project_info` table, or null.
-  ///
-  /// The two reasons for a null answer are indistinguishable here, exactly as
-  /// [loadCurrentProjectMinimumRestMinutes]'s are: no project is open, or one is and nobody has
-  /// recorded a language for it — the column's own truthful "nobody has said"
-  /// (`OcptProjectInfoTable.screenplayLanguage`).
-  Future<OcptScreenplayLanguage?> loadCurrentProjectScreenplayLanguage() async {
-    final project = currentProject;
-    if (project == null) {
-      return null;
-    }
-
-    final info = await project.database
-        .select(project.database.ocptProjectInfoTable)
-        .getSingleOrNull();
-    return info?.screenplayLanguage;
-  }
-
-  /// Updates the screenplay language stored in the [currentProject]'s `project_info` table, or
-  /// clears it when [language] is null — a writer who decides the checker should stay off this
-  /// screenplay is making as real a choice as picking one of the two bundled languages. Does
-  /// nothing if no project is currently open.
-  ///
-  /// Modelled on [saveCurrentProjectMinimumRestMinutes]: [language] is written whichever it is,
-  /// including null, rather than only ever holding a value the way a page format or a currency
-  /// always does.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectScreenplayLanguage(OcptScreenplayLanguage? language) async {
-    final project = currentProject;
-    if (project == null ||
-        project.database.refusesUserWrite("saveCurrentProjectScreenplayLanguage")) {
-      return;
-    }
-
-    await project.database
-        .update(project.database.ocptProjectInfoTable)
-        .write(OcptProjectInfoTableCompanion(screenplayLanguage: Value(language)));
-  }
-
-  /// Loads the default VAT rate, in basis points, stored in the [currentProject]'s `project_info`
-  /// table, or null.
-  ///
-  /// The two reasons for a null answer are indistinguishable here, exactly as
-  /// [loadCurrentProjectMinimumRestMinutes]'s are: no project is open, or one is and nobody has
-  /// recorded a rate for it — the column's own truthful "nobody has said"
-  /// (`OcptProjectInfoTable.defaultVatRateBasisPoints`).
-  Future<int?> loadCurrentProjectDefaultVatRateBasisPoints() async {
-    final project = currentProject;
-    if (project == null) {
-      return null;
-    }
-
-    final info = await project.database
-        .select(project.database.ocptProjectInfoTable)
-        .getSingleOrNull();
-    return info?.defaultVatRateBasisPoints;
-  }
-
-  /// Updates the default VAT rate, in basis points, stored in the [currentProject]'s `project_info`
-  /// table, or clears it when [basisPoints] is null — a production putting the rate back to "not
-  /// recorded" is as real a gesture as setting it (`OcptProjectSettingsBudgetSection`'s `No rate`
-  /// button). Does nothing if no project is currently open.
-  ///
-  /// Modelled on [saveCurrentProjectMinimumRestMinutes]: [basisPoints] is written whichever it is,
-  /// including null, rather than only ever holding a value the way a page format or a currency
-  /// always does.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectDefaultVatRateBasisPoints(int? basisPoints) async {
-    final project = currentProject;
-    if (project == null ||
-        project.database.refusesUserWrite("saveCurrentProjectDefaultVatRateBasisPoints")) {
-      return;
-    }
-
-    await project.database
-        .update(project.database.ocptProjectInfoTable)
-        .write(OcptProjectInfoTableCompanion(defaultVatRateBasisPoints: Value(basisPoints)));
-  }
-
-  /// Loads the price of one meal, in cents, stored in the [currentProject]'s `project_info` table,
-  /// or null — the same "nobody has said" reading [loadCurrentProjectDefaultVatRateBasisPoints]
-  /// gets.
-  Future<int?> loadCurrentProjectMealPriceCents() async {
-    final project = currentProject;
-    if (project == null) {
-      return null;
-    }
-
-    final info = await project.database
-        .select(project.database.ocptProjectInfoTable)
-        .getSingleOrNull();
-    return info?.mealPriceCents;
-  }
-
-  /// Updates the price of one meal, in cents, stored in the [currentProject]'s `project_info`
-  /// table, or clears it when [cents] is null. Does nothing if no project is currently open.
-  ///
-  /// Modelled on [saveCurrentProjectDefaultVatRateBasisPoints]: [cents] is written whichever it is,
-  /// including null.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectMealPriceCents(int? cents) async {
-    final project = currentProject;
-    if (project == null || project.database.refusesUserWrite("saveCurrentProjectMealPriceCents")) {
-      return;
-    }
-
-    await project.database
-        .update(project.database.ocptProjectInfoTable)
-        .write(OcptProjectInfoTableCompanion(mealPriceCents: Value(cents)));
-  }
-
-  /// Loads the price of the buffet, in cents, stored in the [currentProject]'s `project_info` table,
-  /// or null — [loadCurrentProjectMealPriceCents]'s sibling, read the same way. **Named after the
-  /// column it reads, `project_info.snackPriceCents`, kept for the schema (ADR 0007's schema-number
-  /// rule); the UI names this figure the buffet, or craft services, never a snack.**
-  Future<int?> loadCurrentProjectSnackPriceCents() async {
-    final project = currentProject;
-    if (project == null) {
-      return null;
-    }
-
-    final info = await project.database
-        .select(project.database.ocptProjectInfoTable)
-        .getSingleOrNull();
-    return info?.snackPriceCents;
-  }
-
-  /// Updates the price of the buffet, in cents, stored in the [currentProject]'s `project_info`
-  /// table, or clears it when [cents] is null — [saveCurrentProjectMealPriceCents]'s sibling. See
-  /// [loadCurrentProjectSnackPriceCents]'s own doc comment for why this keeps the column's name.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> saveCurrentProjectSnackPriceCents(int? cents) async {
-    final project = currentProject;
-    if (project == null ||
-        project.database.refusesUserWrite("saveCurrentProjectSnackPriceCents")) {
-      return;
-    }
-
-    await project.database
-        .update(project.database.ocptProjectInfoTable)
-        .write(OcptProjectInfoTableCompanion(snackPriceCents: Value(cents)));
-  }
-
-  /// Lists the [currentProject]'s versions, newest first, or an empty list if no project is open.
+  /// List the [currentProject]'s versions, newest first, or an empty list if no project is open.
   ///
   /// {@template open_cine_prod_tools.OcptProjectsManager.versionOperations}
   /// The version operations live here rather than being called on [projectVersionsService]
@@ -1102,27 +540,57 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// [OcptOpenProjectModel.fileDatabase] rather than [OcptOpenProjectModel.database]: the version
   /// list belongs to the project file, and stays readable and editable while a preview is on
   /// screen — deleting a version you happen not to be previewing is perfectly legitimate then.
+  ///
+  /// A failure of the project file is answered as the service answered it, with the type of what
+  /// failed as its `extraInfo`.
   /// {@endtemplate}
-  Future<List<OcptProjectVersion>> listProjectVersions() async {
+  @useResult
+  Future<OcptDatabaseResult<List<OcptProjectVersion>>> listProjectVersions() async {
     final project = currentProject;
     if (project == null) {
-      return const [];
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok, value: []);
     }
 
     return projectVersionsService.listVersions(database: project.fileDatabase);
   }
 
-  /// Captures the [currentProject] as a new version named [name], with the user's [note], and
-  /// returns it. Returns null if no project is open.
+  /// Capture the [currentProject] as a new version named [name], with the user's [note], and return
+  /// it. Answers `ok` with no value if no project is open.
+  ///
+  /// The device id and the page margins it is stamped with come from the app's preferences: one
+  /// that cannot be read is answered as a failure too, with the type of what failed.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
-  Future<OcptProjectVersion?> createProjectVersion({
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectVersion>> createProjectVersion({
     required String name,
     required String note,
   }) async {
     final project = currentProject;
     if (project == null) {
-      return null;
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok);
+    }
+
+    String? deviceId;
+    FountainPageMargins? pageMargins;
+    OcptDatabaseResult<OcptProjectVersion>? failure;
+    try {
+      deviceId = await _propertiesManager.loadOrCreateDeviceId();
+      pageMargins = await _loadPageMargins();
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to create a project version: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      failure = OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: error.runtimeType,
+      );
+    }
+
+    if (failure != null) {
+      return failure;
     }
 
     return projectVersionsService.createVersion(
@@ -1130,12 +598,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       name: name,
       note: note,
       appVersion: _appVersion,
-      deviceId: await _propertiesManager.loadOrCreateDeviceId(),
-      pageMargins: await _loadPageMargins(),
+      deviceId: deviceId!,
+      pageMargins: pageMargins!,
     );
   }
 
-  /// Renames the version [versionId] of the [currentProject] to [name], replacing its [note]. Does
+  /// Rename the version [versionId] of the [currentProject] to [name], replacing its [note]. Does
   /// nothing if no project is open.
   ///
   /// Unlike every other version operation, this one is left available while a version is being
@@ -1143,17 +611,18 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// never reads the project's data, so there is nothing here a preview could make stale.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
-  Future<void> renameProjectVersion({
+  @useResult
+  Future<OcptDatabaseOutcome> renameProjectVersion({
     required String versionId,
     required String name,
     required String note,
   }) async {
     final project = currentProject;
     if (project == null) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
-    await projectVersionsService.renameVersion(
+    return projectVersionsService.renameVersion(
       database: project.fileDatabase,
       id: versionId,
       name: name,
@@ -1161,28 +630,54 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     );
   }
 
-  /// Measures the [currentProject]'s working copy exactly as
-  /// [OcptProjectVersionsService.captureWorkingCopyState] does, or null if no project is open.
+  /// Measure the [currentProject]'s working copy exactly as
+  /// [OcptProjectVersionsService.captureWorkingCopyState] does, or `ok` with no value if no project
+  /// is open.
   ///
-  /// Also null while a version is being previewed, for the same reason [createProjectVersion] is
-  /// refused by the bloc that calls it then: this reads [OcptOpenProjectModel.fileDatabase], the
+  /// Also no value while a version is being previewed, for the same reason [createProjectVersion]
+  /// is refused by the bloc that calls it then: this reads [OcptOpenProjectModel.fileDatabase], the
   /// project file underneath whatever the user is actually looking at, so a working-copy card built
   /// from it during a preview would describe a state that isn't on screen.
   ///
+  /// The page margins it measures against come from the app's preferences: ones that cannot be read
+  /// are answered as a failure too, with the type of what failed.
+  ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
-  Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> captureWorkingCopyState() async {
     final project = currentProject;
     if (project == null || project.isReadOnly) {
-      return null;
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok);
+    }
+
+    FountainPageMargins? pageMargins;
+    OcptDatabaseResult<OcptProjectWorkingCopyState>? failure;
+    try {
+      pageMargins = await _loadPageMargins();
+    } catch (error, stackTrace) {
+      _logger.w(
+        "A problem occurred when tried to read the page margins of a working copy capture: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      failure = OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: error.runtimeType,
+      );
+    }
+
+    if (failure != null) {
+      return failure;
     }
 
     return projectVersionsService.captureWorkingCopyState(
       database: project.fileDatabase,
-      pageMargins: await _loadPageMargins(),
+      pageMargins: pageMargins!,
     );
   }
 
-  /// Deletes the version [versionId] of the [currentProject]. Does nothing if no project is open,
+  /// Delete the version [versionId] of the [currentProject]. Does nothing if no project is open,
   /// or if [versionId] is the version currently being previewed.
   ///
   /// Refusing to delete the previewed version is a matter of the open project's state rather than
@@ -1191,24 +686,25 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// under the user would leave them reading something the project no longer has.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
-  Future<void> deleteProjectVersion(String versionId) async {
+  @useResult
+  Future<OcptDatabaseOutcome> deleteProjectVersion(String versionId) async {
     final project = currentProject;
     if (project == null) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
     if (project.previewedVersion?.id == versionId) {
-      appLogger().w(
-        "The project version $versionId can't be deleted while it's the one being "
-        "previewed: leave the preview first",
+      _logger.w(
+        "The project version $versionId can't be deleted while it's the one being previewed: "
+        "leave the preview first",
       );
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
-    await projectVersionsService.deleteVersion(database: project.fileDatabase, id: versionId);
+    return projectVersionsService.deleteVersion(database: project.fileDatabase, id: versionId);
   }
 
-  /// Puts the [currentProject] back into the state the version [versionId] captured, keeping the
+  /// Put the [currentProject] back into the state the version [versionId] captured, keeping the
   /// state it leaves behind as a version of its own named [safetyVersionName] — unless that state
   /// already matches the version the working copy currently descends from, in which case
   /// [OcptProjectVersionsService.restoreVersion] skips it rather than mint a duplicate of a card
@@ -1226,6 +722,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// that would have written them.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
+  @useResult
   Future<OcptProjectRestoreStatus> restoreProjectVersion({
     required String versionId,
     required String safetyVersionName,
@@ -1234,7 +731,10 @@ class OcptProjectsManager extends AbsWithLifeCycle {
       return OcptProjectRestoreStatus.noProjectOpen;
     }
 
-    await exitPreview();
+    final left = await exitPreview();
+    if (left.isError) {
+      return OcptProjectRestoreStatus.databaseError;
+    }
 
     final project = currentProject!;
     final result = await projectVersionsService.restoreVersion(
@@ -1256,18 +756,16 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     _currentProject.value = project.workingCopy;
 
     // A restored version may hold a different number of episodes than the working copy did.
-    await recordCurrentProjectEpisodeCount();
+    final recorded = await recordCurrentProjectEpisodeCount();
+    if (recorded.isError) {
+      return OcptProjectRestoreStatus.databaseError;
+    }
 
     return result.status;
   }
 
-  /// The app-wide page margins a version is measured and restored against, falling back to the
-  /// standard ones while the user has never set any.
-  Future<FountainPageMargins> _loadPageMargins() async =>
-      await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard();
-
-  /// Registers [reporter], which answers whether the caller holds changes that haven't reached the
-  /// database yet, and returns the callback that unregisters it.
+  /// Register [reporter], which answers whether the caller holds changes that haven't reached the
+  /// database yet, and return the callback that unregisters it.
   ///
   /// A mode's bloc registers itself when it mounts and calls the returned callback when it closes.
   /// This exists for [previewVersion] alone: entering a preview swaps the database every edit is
@@ -1279,125 +777,34 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return () => _unsavedChangesReporters.remove(reporter);
   }
 
-  /// Whether any mode currently reports changes that haven't reached the database yet.
-  bool get hasUnsavedChanges => _unsavedChangesReporters.any((reporter) => reporter());
-
-  /// Enters the read-only preview of the version [versionId] of the [currentProject]: the version's
+  /// Enter the read-only preview of the version [versionId] of the [currentProject]: the version's
   /// payload is hydrated into an in-memory database, and *that* is what [currentProject] hands the
   /// modes from now on.
-  ///
-  /// **The project file is never opened for writing by a preview.** It stays open as
-  /// [OcptOpenProjectModel.fileDatabase] — same connection, still writable by everything that
-  /// isn't a user edit — and a crash mid-preview leaves it exactly as it was. Nothing of the
-  /// version is written anywhere either: the page setup it was typeset with travels on
-  /// [OcptOpenProjectModel.previewedPageSetup] and is rendered with, never stored, since the
-  /// margins half of it is an app-wide preference that has nothing to do with this project.
-  ///
-  /// Every mode's bloc already rebuilds on [currentProjectStream], so none of them learns anything
-  /// about versions to display one — that stream emission is the whole of the propagation. It
-  /// works because the emitted model doesn't compare equal to the previous one (see
-  /// [OcptOpenProjectModel.props]).
-  ///
-  /// Refused with [OcptProjectPreviewStatus.unsavedChanges] while any mode reports itself dirty:
-  /// the caller saves first and retries. Refused as a whole on any failure — a preview that can't
-  /// be entered leaves the working copy on screen, untouched.
+  @useResult
   Future<ResultWithStatus<OcptProjectPreviewStatus, OcptOpenProjectModel>> previewVersion(
     String versionId,
-  ) async {
-    final project = currentProject;
-    if (project == null) {
-      return const ResultWithStatus(status: OcptProjectPreviewStatus.noProjectOpen);
-    }
+  ) => OcptProjectPreviewOps.previewVersion(
+    project: currentProject,
+    versionId: versionId,
+    hasUnsavedChanges: hasUnsavedChanges,
+    projectVersionsService: projectVersionsService,
+    logger: _logger,
+    onPreviewed: (previewedProject) => _currentProject.value = previewedProject,
+  );
 
-    if (hasUnsavedChanges) {
-      appLogger().w(
-        "The project version $versionId can't be previewed while a mode still holds "
-        "unsaved changes: they must be saved first, or they would be written into the preview",
-      );
-      return const ResultWithStatus(status: OcptProjectPreviewStatus.unsavedChanges);
-    }
-
-    final version = await projectVersionsService.loadVersion(
-      database: project.fileDatabase,
-      id: versionId,
-    );
-
-    if (version == null) {
-      appLogger().w(
-        "The project version $versionId can't be previewed: no such version in this "
-        "project",
-      );
-      return const ResultWithStatus(status: OcptProjectPreviewStatus.versionNotFound);
-    }
-
-    final payloadResult = await projectVersionsService.loadPayload(
-      database: project.fileDatabase,
-      id: versionId,
-    );
-
-    final payload = payloadResult.value;
-    if (payload == null) {
-      return ResultWithStatus(
-        status: switch (payloadResult.status) {
-          OcptProjectVersionPayloadStatus.unsupportedFutureFormat =>
-            OcptProjectPreviewStatus.unsupportedFutureFormat,
-          _ => OcptProjectPreviewStatus.malformedPayload,
-        },
-      );
-    }
-
-    final previewDatabase = OcptProjectDatabase.memory(isPreview: true);
-    try {
-      await projectVersionsService.hydratePreview(
-        database: previewDatabase,
-        projectInfo: await project.fileDatabase
-            .select(project.fileDatabase.ocptProjectInfoTable)
-            .getSingle(),
-        payload: payload,
-      );
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to hydrate the preview of the project version "
-        "$versionId: $error",
-      );
-      await previewDatabase.close();
-      return const ResultWithStatus(status: OcptProjectPreviewStatus.hydrationFailed);
-    }
-
-    // Only now that the new preview is ready does the previous one go: a preview that failed to
-    // load must leave what was on screen alone.
-    final previousPreviewDatabase = project.isReadOnly ? project.database : null;
-
-    final previewedProject = project.previewing(
-      previewDatabase: previewDatabase,
-      version: version,
-      pageSetup: payload.pageSetup,
-    );
-    _currentProject.value = previewedProject;
-
-    await previousPreviewDatabase?.close();
-
-    return ResultWithStatus(status: OcptProjectPreviewStatus.ok, value: previewedProject);
-  }
-
-  /// Leaves the read-only preview, putting the working copy back on screen. Does nothing if no
+  /// Leave the read-only preview, putting the working copy back on screen. Does nothing if no
   /// project is open or if none is being previewed.
   ///
-  /// The model is re-emitted *before* the preview database is closed, so every mode has already
-  /// been told to read from the project file again by the time that connection goes.
-  Future<void> exitPreview() async {
-    final project = currentProject;
-    if (project == null || !project.isReadOnly) {
-      return;
-    }
+  /// The order of its steps and the failure of closing the preview are in
+  /// [OcptProjectPreviewOps.exitPreview].
+  @useResult
+  Future<OcptDatabaseOutcome> exitPreview() => OcptProjectPreviewOps.exitPreview(
+    project: currentProject,
+    logger: _logger,
+    onLeft: (workingCopy) => _currentProject.value = workingCopy,
+  );
 
-    final previewDatabase = project.database;
-    _currentProject.value = project.workingCopy;
-
-    await previewDatabase.close();
-  }
-
-  /// Stats every file the project stored at [projectFilePath] references, without writing
+  /// Stat every file the project stored at [projectFilePath] references, without writing
   /// anything.
   ///
   /// The question a package export asks before it writes: a referenced file that is gone does not
@@ -1410,8 +817,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   OcptProjectPackagePreflight? scanProjectPackageAssets({required String projectFilePath}) =>
       projectPackageService.scanAssets(projectFilePath: projectFilePath);
 
-  /// Writes the project stored at [projectFilePath] out as a portable package at
-  /// [packageFilePath], and reports what travelled.
+  /// Write the project stored at [projectFilePath] out as a portable package at [packageFilePath],
+  /// and report what travelled.
   ///
   /// [projectName] is the display name the package carries, resolved by the caller — from
   /// [currentProject] for an open project, from the recent entry for a card on the home page.
@@ -1433,8 +840,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     exportedAt: DateTime.now(),
   );
 
-  /// Unpacks the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
-  /// reports what landed.
+  /// Unpack the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
+  /// report what landed.
   ///
   /// **It does not open the project it just unpacked.** The `.ocpt` this writes may be at any
   /// schema version — a package carries the database exactly as it was exported, unmigrated (see
@@ -1449,293 +856,49 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         parentDirectoryPath: parentDirectoryPath,
       );
 
-  /// Closes the [currentProject], disposing its database handle. Does nothing if no project is
+  /// Close the [currentProject], disposing its database handle. Does nothing if no project is
   /// open.
   ///
-  /// A project closed while a version is being previewed disposes both of its connections: the
-  /// in-memory one holding the version, then the project file itself. Before either goes, the
-  /// recent-projects entry for this project is updated with its live episode count, read through
-  /// [screenplayService]'s own [OcptScreenplayService.loadEpisodes] over
-  /// [OcptOpenProjectModel.fileDatabase] — the working copy, **never**
-  /// [OcptOpenProjectModel.database], which would be the in-memory preview database while a
-  /// version is being previewed — so a session that added or deleted episodes leaves a truthful
-  /// count behind rather than the one it opened with, and previewing a version never overwrites it
-  /// with a count that isn't the project's own.
-  Future<void> closeCurrentProject() async {
-    final project = currentProject;
-    if (project == null) {
-      return;
-    }
+  /// A project whose episodes cannot be counted is left open, and the failure is answered with the
+  /// type of what failed as its `extraInfo`.
+  @useResult
+  Future<OcptDatabaseOutcome> closeCurrentProject() => OcptProjectEpisodeOps.closeProject(
+    project: currentProject,
+    screenplayService: screenplayService,
+    propertiesManager: _propertiesManager,
+    logger: _logger,
+    onClosed: () => _currentProject.value = null,
+  );
 
-    final episodeCount = (await screenplayService.loadEpisodes(
-      database: project.fileDatabase,
-    )).length;
-
-    _currentProject.value = null;
-
-    if (project.isReadOnly) {
-      await project.database.close();
-    }
-
-    await project.fileDatabase.close();
-
-    await _recordEpisodeCount(path: project.path, episodeCount: episodeCount);
-  }
-
-  /// Updates the recent-projects entry for the [currentProject] so it carries the episode count
+  /// Update the recent-projects entry for the [currentProject] so it carries the episode count
   /// the project holds right now. Does nothing when no project is open.
-  ///
-  /// [closeCurrentProject] records that count on the way out too, but only a session that *leaves*
-  /// the project ever reaches it: an app closed while the project is still open never runs it, and
-  /// the home card would then go on showing the count the project was opened with until the next
-  /// time it is opened. Whoever adds or removes an episode calls this the moment it happens, so
-  /// that count survives a window closed on the spot.
-  ///
-  /// The live count is read over [OcptOpenProjectModel.fileDatabase] — the working copy, **never**
-  /// [OcptOpenProjectModel.database], which would be the in-memory preview database while a
-  /// version is being previewed.
-  Future<void> recordCurrentProjectEpisodeCount() async {
-    final project = currentProject;
-    if (project == null) {
-      return;
-    }
+  @useResult
+  Future<OcptDatabaseOutcome> recordCurrentProjectEpisodeCount() =>
+      OcptProjectEpisodeOps.recordOpenProjectEpisodeCount(
+        project: currentProject,
+        screenplayService: screenplayService,
+        propertiesManager: _propertiesManager,
+      );
 
-    final episodeCount = (await screenplayService.loadEpisodes(
-      database: project.fileDatabase,
-    )).length;
-
-    await _recordEpisodeCount(path: project.path, episodeCount: episodeCount);
-  }
-
-  /// Updates the recent-projects entry for [path], if it is still in the list, so it carries
-  /// [episodeCount] rather than whichever count was recorded when the project was opened.
-  ///
-  /// Left untouched, rather than created, when [path] isn't in the list at all — e.g. it was
-  /// removed from the recent projects list while the project stayed open.
-  Future<void> _recordEpisodeCount({required String path, required int episodeCount}) async {
-    final recents = await _propertiesManager.recentProjects.load() ?? const [];
-    final index = recents.indexWhere((entry) => entry.path == path);
-    if (index == -1) {
-      return;
-    }
-
-    final updated = [...recents];
-    updated[index] = updated[index].copyWith(episodeCount: episodeCount);
-    await _propertiesManager.recentProjects.store(updated);
-  }
-
-  /// Moves the [currentProject]'s file to [newFilePath] — the project settings page's own `Move…`
-  /// action — and keeps it the [currentProject] there.
-  ///
-  /// Refused with [OcptProjectMoveStatus.noProjectOpen] when no project is open or the open one
-  /// sits under a read-only version preview, and with [OcptProjectMoveStatus.fileAlreadyExists]
-  /// when a file already sits at [newFilePath] — neither ever touches anything. Asking to move a
-  /// project to the path it is already at is a silent no-op returning [OcptProjectMoveStatus.ok].
-  ///
-  /// The move is a copy-then-swap, never an in-place rename: `VACUUM INTO` runs on the still-open
-  /// [OcptOpenProjectModel.fileDatabase], which needs no connection to close first and yields a
-  /// single, consistent file — including the schema's own `user_version` — even though the source
-  /// is being written to right up to the moment it runs. The copy is opened and read back (its
-  /// `project_info` row) to make sure it is a real project before anything else happens; only once
-  /// that has succeeded is [_currentProject] swapped to point at it, the old connection closed, and
-  /// the old file (with its `-wal`/`-shm` companions, if SQLite left any) deleted. Any failure
-  /// before the swap deletes the half-written copy and returns [OcptProjectMoveStatus.ioError],
-  /// leaving the original file exactly as it was; a failure deleting the *old* file after the swap
-  /// has already happened is only ever logged — the move itself has already succeeded by then.
-  ///
-  /// The `<path>.relay.sqlite` sidecar an in-app-hosted relay stores beside the project file, if one
-  /// exists, travels with it (with its own `-wal`/`-shm`), renamed first and copied-then-deleted as
-  /// a fallback across filesystems. **This never checks whether in-app hosting is currently online**
-  /// for the project being moved: this manager is a dependency of `OcptSyncManager`, which
-  /// `OcptRelayHostManager` itself depends on, so it may never import either — the dependency rules
-  /// this whole app follows forbid it (`AGENTS.md`, "Dependencies never reference their
-  /// dependents"). A hosted relay keeps the sidecar file open, so moving it out from under a live
-  /// server would leave that server writing to a file at a path nothing else still expects; it is
-  /// therefore the caller's own responsibility to withhold `Move…` while hosting is online for this
-  /// project (`OcptProjectSettingsBloc` reads `OcptRelayHostManager.state` for exactly that), and
-  /// this method trusts that it did.
-  ///
-  /// For the very same reason, **this never touches a running sync session**: `OcptSyncSession` is
-  /// owned by `OcptSyncManager`, which this manager may not import either. A session reading or
-  /// writing through the very [OcptOpenProjectModel.fileDatabase] connection this closes on a
-  /// successful move would find it closed under it; the caller stops the session first and restarts
-  /// it against the freshly moved database afterwards, mirroring
-  /// `OcptWorkspaceBloc._startSyncSessionIfPaired`'s own start path.
-  ///
-  /// The recent-projects entry the old path named is updated to the new one in place
-  /// ([OcptPropertiesManager.updateRecentProjectPath]), and [newFilePath]'s own parent folder is
-  /// remembered as the next dialog's suggested one ([rememberProjectsDirectory]), exactly as
-  /// [createProject] already does for a freshly created project.
+  /// Move the [currentProject]'s file to [newFilePath] — the project settings page's own `Move…`
+  /// action — and keep it the [currentProject] there.
   Future<ResultWithStatus<OcptProjectMoveStatus, OcptOpenProjectModel>> moveCurrentProject({
     required String newFilePath,
-  }) async {
-    final project = currentProject;
-    if (project == null || project.isReadOnly) {
-      return const ResultWithStatus(status: OcptProjectMoveStatus.noProjectOpen);
-    }
+  }) => OcptProjectMoveOps.moveProject(
+    project: currentProject,
+    newFilePath: newFilePath,
+    logger: _logger,
+    propertiesManager: _propertiesManager,
+    onSwapped: (movedProject) => _currentProject.value = movedProject,
+    rememberProjectsDirectory: rememberProjectsDirectory,
+  );
 
-    if (p.equals(newFilePath, project.path)) {
-      return ResultWithStatus(status: OcptProjectMoveStatus.ok, value: project);
-    }
+  /// Get the app-wide page margins a version is measured and restored against, falling back to the
+  /// standard ones while the user has never set any.
+  Future<FountainPageMargins> _loadPageMargins() async =>
+      await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard();
 
-    if (File(newFilePath).existsSync()) {
-      return const ResultWithStatus(status: OcptProjectMoveStatus.fileAlreadyExists);
-    }
-
-    OcptProjectDatabase? newDatabase;
-    try {
-      await File(newFilePath).parent.create(recursive: true);
-
-      // VACUUM INTO takes its target as a plain SQL string expression, not a bindable parameter —
-      // the single quotes a path could legitimately contain are doubled, exactly how SQLite's own
-      // string-literal escaping works.
-      final escapedPath = newFilePath.replaceAll("'", "''");
-      await project.fileDatabase.customStatement("VACUUM INTO '$escapedPath'");
-
-      newDatabase = OcptProjectDatabase.alongsideAnother(File(newFilePath));
-      final info = await newDatabase.select(newDatabase.ocptProjectInfoTable).getSingleOrNull();
-      if (info == null) {
-        throw StateError("the copy at $newFilePath has no project_info row");
-      }
-    } catch (error) {
-      appLogger().e(
-        "A problem occurred when tried to move the project at ${project.path} to $newFilePath: "
-        "$error",
-      );
-      await newDatabase?.close();
-      await _deleteFileIfExists(newFilePath);
-      return const ResultWithStatus(status: OcptProjectMoveStatus.ioError);
-    }
-
-    final oldPath = project.path;
-    final oldFileDatabase = project.fileDatabase;
-
-    final movedProject = OcptOpenProjectModel(
-      path: newFilePath,
-      name: project.name,
-      primaryScreenplayId: project.primaryScreenplayId,
-      database: newDatabase,
-    );
-    _currentProject.value = movedProject;
-
-    await oldFileDatabase.close();
-    await _deleteFileAndWalCompanions(oldPath);
-    await _moveRelaySidecarIfPresent(oldPath: oldPath, newPath: newFilePath);
-
-    await _propertiesManager.updateRecentProjectPath(oldPath: oldPath, newPath: newFilePath);
-    await rememberProjectsDirectory(p.dirname(newFilePath));
-
-    return ResultWithStatus(status: OcptProjectMoveStatus.ok, value: movedProject);
-  }
-
-  /// Moves the `<oldPath minus its extension>.relay.sqlite` sidecar an in-app-hosted relay leaves
-  /// beside a project file, along with its own `-wal`/`-shm` companions, to sit beside [newPath]
-  /// instead — a no-op when [oldPath] has no such sidecar at all.
-  ///
-  /// Renamed first, which is instant on the same filesystem; a rename across two different
-  /// filesystems fails, so each file falls back to a copy followed by deleting the source. A
-  /// failure moving one of the three files is only ever logged: the sidecar is a cache a hosted
-  /// relay rebuilds if it has to, not project data, and [moveCurrentProject] has already succeeded
-  /// by the time this runs.
-  Future<void> _moveRelaySidecarIfPresent({
-    required String oldPath,
-    required String newPath,
-  }) async {
-    final oldSidecarPath = p.setExtension(oldPath, ".relay.sqlite");
-    if (!File(oldSidecarPath).existsSync()) {
-      return;
-    }
-    final newSidecarPath = p.setExtension(newPath, ".relay.sqlite");
-
-    for (final suffix in ["", "-wal", "-shm"]) {
-      final source = File("$oldSidecarPath$suffix");
-      if (!source.existsSync()) {
-        continue;
-      }
-
-      final destinationPath = "$newSidecarPath$suffix";
-      try {
-        await source.rename(destinationPath);
-      } catch (_) {
-        try {
-          await source.copy(destinationPath);
-          await source.delete();
-        } catch (error) {
-          appLogger().w(
-            "Could not move the relay sidecar file ${source.path} to $destinationPath: $error",
-          );
-        }
-      }
-    }
-  }
-
-  /// Deletes [path] and its SQLite `-wal`/`-shm` companions, if any of the three exist. A failure
-  /// deleting any of them is only ever logged, never thrown: by the time this runs the project has
-  /// already been moved to its new file, and a leftover fragment of the old one is a cosmetic
-  /// annoyance, not a reason to report the move itself as failed.
-  Future<void> _deleteFileAndWalCompanions(String path) async {
-    for (final candidate in [path, "$path-wal", "$path-shm"]) {
-      await _deleteFileIfExists(candidate);
-    }
-  }
-
-  /// Deletes [path] if it exists, logging rather than throwing on failure.
-  Future<void> _deleteFileIfExists(String path) async {
-    try {
-      final file = File(path);
-      if (file.existsSync()) {
-        await file.delete();
-      }
-    } catch (error) {
-      appLogger().w("Could not delete $path: $error");
-    }
-  }
-
-  /// Returns the default [OcptPageFormat] for a newly created project, based on the platform's
-  /// current locale: [OcptPageFormat.a4] for French, [OcptPageFormat.usLetter] otherwise.
-  static OcptPageFormat _defaultPageFormatForPlatformLocale() {
-    final languageCode = PlatformDispatcher.instance.locale.languageCode;
-    return languageCode == "fr" ? OcptPageFormat.a4 : OcptPageFormat.usLetter;
-  }
-
-  /// Returns the default currency code for a newly created project, guessed from the platform's
-  /// current locale (e.g. `fr_FR` suggests `EUR`, `en_US` suggests `USD`) through `intl`'s own
-  /// locale-to-currency table, falling back to the schema's own default (`EUR`) when `intl` can't
-  /// name one for the locale — a Dart platform locale that carries no region at all, say.
-  static String _defaultCurrencyCodeForPlatformLocale() =>
-      NumberFormat.simpleCurrency(
-        locale: PlatformDispatcher.instance.locale.toString(),
-      ).currencyName ??
-      ocptDefaultCurrencyCode;
-
-  /// Returns the default [OcptScreenplayLanguage] for a newly created project: the language the
-  /// **app's own UI** is running in ([_appLanguageCode]), or **null** when no dictionary is bundled for
-  /// it.
-  ///
-  /// The two other defaults a new project is seeded with read the *platform* locale
-  /// ([_defaultPageFormatForPlatformLocale], [_defaultCurrencyCodeForPlatformLocale]) because a
-  /// paper size and a currency belong to where the production is, whichever language its menus are
-  /// in. A screenplay language is not that: it is the language the writer is about to type in, and
-  /// the language they chose to read the app in is the far better guess — a French UI on an
-  /// English system means a French writer.
-  ///
-  /// Returning null rather than falling back to any bundled dictionary is deliberate: with no
-  /// dictionary for the app's language there is no honest guess left to make, and no dictionary
-  /// selected means no spell-check underlines rather than every word underlined against a language
-  /// the screenplay isn't written in. Whichever it is, it is a guess made once, at the only moment
-  /// where getting it wrong costs nothing worse than a dropdown pick in the project settings page.
-  OcptScreenplayLanguage? _defaultScreenplayLanguageForAppLocale() {
-    switch (_appLanguageCode()) {
-      case "fr":
-        return OcptScreenplayLanguage.fr;
-      case "en":
-        return OcptScreenplayLanguage.enGb;
-      default:
-        return null;
-    }
-  }
-
-  /// The default [OcptAppLanguageCodeGetter]: the language of the app's own UI locale, as
+  /// Get the default [OcptAppLanguageCodeGetter]: the language of the app's own UI locale, as
   /// [LocalesManager] holds it.
   ///
   /// Resolved through [globalGetIt] at call time rather than when this manager is built, so
@@ -1743,36 +906,40 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   static String _localesManagerLanguageCode() =>
       globalGetIt().get<LocalesManager>().currentLocale.languageCode;
 
-  /// The [OcptDeviceIdGetter] every stamping service this manager builds is given: [propertiesManager]
-  /// when the constructor received one (a test's own double), [globalGetIt]'s singleton otherwise —
-  /// the same fallback [_propertiesManager] itself resolves, repeated here rather than read off that
-  /// field because a constructor initializer list cannot see `this`.
-  static OcptDeviceIdGetter _resolveDeviceId(OcptPropertiesManager? propertiesManager) =>
-      (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>()).loadOrCreateDeviceId;
-
-  /// The [OcptStoryboardService] every place this manager builds one needs, built fresh each time
-  /// for the same reason [_resolveDeviceId] is repeated rather than read off a field: a constructor
-  /// initializer list cannot see `this`, so nothing already being initialized can be shared.
-  static OcptStoryboardService _buildStoryboardService(OcptPropertiesManager? propertiesManager) =>
-      OcptStoryboardService(
-        assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-        deviceId: _resolveDeviceId(propertiesManager),
-      );
-
-  /// The [OcptFloorPlanService] every place this manager builds one needs. See
-  /// [_buildStoryboardService]'s own doc comment for why this is a static factory rather than a
-  /// shared field.
-  static OcptFloorPlanService _buildFloorPlanService(OcptPropertiesManager? propertiesManager) =>
-      OcptFloorPlanService(
-        assetsService: OcptAssetsService(deviceId: _resolveDeviceId(propertiesManager)),
-        deviceId: _resolveDeviceId(propertiesManager),
-      );
-
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override
   Future<void> disposeLifeCycle() async {
-    await closeCurrentProject();
+    _logger.i("The projects manager is being disposed");
+    final closed = await closeCurrentProject();
+    if (closed.isError) {
+      // The project is still open: nothing after this runs, as when the close raised.
+      return;
+    }
+
     await _currentProject.disposeLifeCycle();
+    await scheduleService.disposeLifeCycle();
+    await breakdownService.disposeLifeCycle();
+    await projectFileCompatibilityService.disposeLifeCycle();
+    await projectPackageService.disposeLifeCycle();
+    await projectDictionaryService.disposeLifeCycle();
+    await floorPlanService.disposeLifeCycle();
+    await storyboardService.disposeLifeCycle();
+    await assetsService.disposeLifeCycle();
+    await budgetSharingService.disposeLifeCycle();
+    await budgetAllowancesService.disposeLifeCycle();
+    await budgetFinancingService.disposeLifeCycle();
+    await budgetJournalService.disposeLifeCycle();
+    await budgetQuoteService.disposeLifeCycle();
+    await elementsService.disposeLifeCycle();
+    await locationsService.disposeLifeCycle();
+    await roleCandidatesService.disposeLifeCycle();
+    await roleIndexService.disposeLifeCycle();
+    await peopleService.disposeLifeCycle();
+    await screenplayService.disposeLifeCycle();
+    await projectVersionsService.disposeLifeCycle();
+    await shotCoverageService.disposeLifeCycle();
+    await shotListService.disposeLifeCycle();
+    await sceneIndexService.disposeLifeCycle();
     return super.disposeLifeCycle();
   }
 }

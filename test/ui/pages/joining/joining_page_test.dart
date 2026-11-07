@@ -4,14 +4,16 @@
 
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -20,13 +22,16 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/join_step.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/joining/joining_page.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/joining_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_manual_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scanner_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_status_overlay.dart';
@@ -36,7 +41,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve in
 /// tests, exactly as `sharing_page_test.dart` already does.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -52,26 +57,36 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 /// tree, exactly what `joining_bloc_test.dart`'s own `_FakeSyncManager` exists to cover more
 /// thoroughly (its stub instead returns a real path, which none of these tests need).
 class _FailFastSyncManager extends OcptSyncManager {
-  _FailFastSyncManager() : super(changesetService: const OcptChangesetService());
+  /// Class constructor
+  _FailFastSyncManager()
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
+  /// Answer that the relay is unreachable.
   @override
-  Future<String> joinFromRelay({
+  Future<ResultWithStatus<OcptSyncFlowStatus, String>> joinFromRelay({
     required OcptRemoteStorage storage,
     required String parentDirectoryPath,
     required OcptPairingService pairingService,
     required Uri relayBaseUri,
     required String token,
-  }) async => throw Exception("no relay reachable in this test");
+  }) async => const ResultWithStatus(status: OcptSyncFlowStatus.unreachable);
 }
 
 /// A [PlatformManager] whose [isMobile] is stubbed to true, so [_joiningExportManager] never
 /// actually reaches a real native dialog — none of this page's own tests exercise the desktop
 /// save/folder dialogs themselves, that being `joining_bloc_test.dart`'s own job.
 class _StubPlatformManager extends PlatformManager {
-  _StubPlatformManager({required this.isMobile});
-
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// The export manager every [OcptJoiningBloc] built below is given: real, but reporting
@@ -86,8 +101,10 @@ OcptExportManager _joiningExportManager() => OcptExportManager(
 /// asking `path_provider`, which never answers under a plain `flutter test` run: the join a test
 /// submits resolves its folder through it before reaching [_FailFastSyncManager].
 class _TestProjectsManager extends OcptProjectsManager {
+  /// Class constructor
   _TestProjectsManager({super.propertiesManager}) : super(appLanguageCode: () => "en");
 
+  /// Answer with the system temporary directory.
   @override
   Future<Directory> newProjectsDirectory() async => Directory.systemTemp;
 }
@@ -98,6 +115,7 @@ class _TestProjectsManager extends OcptProjectsManager {
 /// success states without wiring up the whole relay/snapshot machinery `joining_bloc_test.dart`
 /// already covers on its own.
 class _TestableJoiningBloc extends OcptJoiningBloc {
+  /// Class constructor
   _TestableJoiningBloc({
     required OcptSyncManager syncManager,
     required OcptProjectsManager projectsManager,
@@ -120,6 +138,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The last route [replace] was called with, or null if it never was.
   OcptRoute? replacedRoute;
 
+  /// Record the route replaced, and answer with nothing.
   @override
   Future<Y?> replace<Y extends Object?>(
     OcptRoute route, {
@@ -132,6 +151,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
+/// Run the tests of the joining page.
 void main() {
   late OcptPropertiesManager propertiesManager;
 
@@ -225,10 +245,10 @@ void main() {
 
     await tester.enterText(find.byType(TextField), inviteLink);
     await tester.tap(find.text(tr.joiningJoinAction));
-    // A bounded pump only: `_FailFastSyncManager.joinFromRelay` throws straight away, which
-    // `OcptJoiningBloc._join` catches and reports as `OcptJoiningState.joinFailed` — this test only
-    // cares that submitting doesn't overflow or crash the widget tree, not about that failure
-    // itself.
+    // A bounded pump only: `_FailFastSyncManager.joinFromRelay` answers a failure straight away,
+    // which `OcptJoiningBloc._join` catches and reports as `OcptJoiningState.joinFailed` — this
+    // test only cares that submitting doesn't overflow or crash the widget tree, not about that
+    // failure itself.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
@@ -256,7 +276,12 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final bloc = _TestableJoiningBloc(
-      syncManager: OcptSyncManager(changesetService: const OcptChangesetService()),
+      syncManager: OcptSyncManager(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      ),
       projectsManager: _TestProjectsManager(propertiesManager: propertiesManager),
       routerManager: OcptRouterManager(),
     );
@@ -270,7 +295,13 @@ void main() {
     await tester.pump();
 
     bloc.pushTestState(
-      const OcptJoiningState(isJoining: true, joinFailed: false, joinStep: OcptJoinStep.downloading),
+      const OcptJoiningState(
+        isJoining: true,
+        joinFailed: false,
+        joinStep: OcptJoinStep.downloading,
+        joinSucceeded: false,
+        isCancelled: false,
+      ),
     );
     // Two pumps: `pushTestState` calls `Bloc.emit` directly (bypassing any event handler's own
     // await chain), so the stream's async delivery to `BlocConsumer`'s subscription needs one pump
@@ -299,7 +330,12 @@ void main() {
 
     final routerManager = _RecordingRouterManager();
     final bloc = _TestableJoiningBloc(
-      syncManager: OcptSyncManager(changesetService: const OcptChangesetService()),
+      syncManager: OcptSyncManager(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      ),
       projectsManager: _TestProjectsManager(propertiesManager: propertiesManager),
       routerManager: routerManager,
     );
@@ -312,7 +348,15 @@ void main() {
     );
     await tester.pump();
 
-    bloc.pushTestState(const OcptJoiningState(isJoining: false, joinFailed: false, joinSucceeded: true));
+    bloc.pushTestState(
+      const OcptJoiningState(
+        isJoining: false,
+        joinFailed: false,
+        joinStep: null,
+        joinSucceeded: true,
+        isCancelled: false,
+      ),
+    );
     // See the sibling "blocking overlay" test's own comment for why this needs two pumps.
     await tester.pump();
     await tester.pump();

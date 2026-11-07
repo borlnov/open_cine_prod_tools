@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_crew_position_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -16,6 +17,10 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timelines.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_sun_times.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -23,21 +28,15 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_events_list.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_timetable.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_crew_position_prefill.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
-/// The day view: the mode's real working surface — the day's own
-/// summary band, then one [OcptScheduleSlotCard] per slot with
-/// its own `+ Slot` footer. A day used to draw one shared [OcptScheduleTimetable] of its own beneath
-/// every card; it no longer does (M2') — each card now draws its own, over that slot's own blocks
-/// alone, so [blocks] and [timeline] here only ever feed the summary band's own totals and each
-/// card's own slice of them. Below the slot cards sits [day]'s own events band, built exactly like
-/// the summary band's own container over `OcptScheduleDayEventsList` — see that widget's own doc
-/// comment for why this band is the day view's only representation of an event.
+/// The day view: the mode's real working surface — the day's own summary band, then one
+/// [OcptScheduleSlotCard] per slot with its own `+ Slot` footer. Each card draws its own
+/// [OcptScheduleTimetable], over that slot's own blocks alone, so [blocks] and [timeline] here only
+/// ever feed the summary band's own totals and each card's own slice of them. Below the slot cards
+/// sits [day]'s own events band, built exactly like the summary band's own container over
+/// `OcptScheduleDayEventsList` — see that widget's own doc comment for why this band is the day
+/// view's only representation of an event.
 ///
 /// Every writing affordance every one of its children exposes is threaded through as a nullable
 /// callback, withheld while a project version is being previewed — this widget itself withholds
@@ -221,8 +220,8 @@ class OcptScheduleDayView extends StatelessWidget {
   /// row's `+` picker, or null while withheld — see [OcptScheduleSlotCard.onBlockCandidateAdded].
   final void Function(String blockId, String roleCandidateId)? onBlockCandidateAdded;
 
-  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or null
-  /// while withheld — see [OcptScheduleSlotCard.onBlockCandidateRemoved].
+  /// Called with a candidacy convocation's own id when its chip's remove control is clicked, or
+  /// null while withheld — see [OcptScheduleSlotCard.onBlockCandidateRemoved].
   final ValueChanged<String>? onBlockCandidateRemoved;
 
   /// Called with a block's id when its own remove control is clicked, or null while withheld.
@@ -236,8 +235,8 @@ class OcptScheduleDayView extends StatelessWidget {
   /// null while withheld — see [OcptScheduleSlotCard.onShotBlockRequested].
   final void Function(String slotId)? onShotBlockRequested;
 
-  /// Called with a block's id and the id of the slot it is moved to, dispatched by a cross-slot drag
-  /// or by a row's own `Move to…` menu, or null while withheld — see
+  /// Called with a block's id and the id of the slot it is moved to, dispatched by a cross-slot
+  /// drag or by a row's own `Move to…` menu, or null while withheld — see
   /// [OcptScheduleTimetable.onBlockMovedToSlot].
   final void Function(String blockId, String targetSlotId)? onBlockMovedToSlot;
 
@@ -339,135 +338,239 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onEventDeletionRequested,
   });
 
+  /// Build the schedule day view as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
-    return ListView(
-      children: [
-        _buildSummaryBand(context),
+    final anchorSourceBySlotId = {for (final other in slots) other.id: other.anchorSlotId};
+    final leading = <Widget>[
+      _OcptScheduleDaySummaryBand(
+        day: day,
+        blocks: blocks,
+        timeline: timeline,
+        dayArrivalMinute: dayArrivalMinute,
+        sunTimes: sunTimes,
+        alerts: alerts,
+        onAlertsOpenRequested: onAlertsOpenRequested,
+      ),
+      const SizedBox(height: 16),
+    ];
+    final trailing = <Widget>[
+      if (onSlotAdded != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: OutlinedButton.icon(
+            onPressed: onSlotAdded,
+            icon: const Icon(Icons.add, size: 16),
+            label: Text(tr.scheduleAddSlotAction),
+          ),
+        ),
+      if (events.isNotEmpty || onEventAdded != null) ...[
+        _OcptScheduleDayEventsBand(
+          events: events,
+          eventLabelValueOf: eventLabelValueOf,
+          eventNotesValueOf: eventNotesValueOf,
+          onEventAdded: onEventAdded,
+          onEventMinuteChanged: onEventMinuteChanged,
+          onEventLabelChanged: onEventLabelChanged,
+          onEventNotesChanged: onEventNotesChanged,
+          onEventDeletionRequested: onEventDeletionRequested,
+        ),
         const SizedBox(height: 16),
-        for (final (index, slot) in slots.indexed)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 11),
-            child: OcptScheduleSlotCard(
-              slot: slot,
-              location: slot.locationId == null ? null : locationById[slot.locationId],
-              set: slot.setId == null ? null : setById[slot.setId],
-              locations: locations,
-              personById: personById,
-              roleById: roleById,
-              roleCandidateById: roleCandidateById,
-              people: people,
-              roles: roles,
-              labelValue: slotLabelValueOf(slot.id),
-              onLabelChanged: onSlotLabelChanged == null
-                  ? null
-                  : (value) => onSlotLabelChanged!(slot.id, value),
-              notesValue: slotNotesValueOf(slot.id),
-              onNotesChanged: onSlotNotesChanged == null
-                  ? null
-                  : (value) => onSlotNotesChanged!(slot.id, value),
-              onPlaceChanged: onSlotPlaceChanged == null
-                  ? null
-                  : (locationId, setId) => onSlotPlaceChanged!(slot.id, locationId, setId),
-              onAnchorChanged: onSlotAnchorChanged == null
-                  ? null
-                  : (edge, minute, sourceSlotId) =>
-                        onSlotAnchorChanged!(slot.id, edge, minute, sourceSlotId),
-              anchorSourceBySlotId: {
-                for (final other in slots) other.id: other.anchorSlotId,
-              },
-              onMovedUp: onSlotMoved == null || index == 0
-                  ? null
-                  : () => onSlotMoved!(slot.id, index - 1),
-              onMovedDown: onSlotMoved == null || index == slots.length - 1
-                  ? null
-                  : () => onSlotMoved!(slot.id, index + 1),
-              onDeletionRequested: onSlotDeletionRequested == null
-                  ? null
-                  : () => onSlotDeletionRequested!(slot.id),
-              onCrewMemberAdded: onSlotCrewMemberAdded == null
-                  ? null
-                  : (personId) => onSlotCrewMemberAdded!(slot.id, personId),
-              onCrewMemberPositionChanged: onSlotCrewMemberPositionChanged,
-              onCrewMemberRemoved: onSlotCrewMemberRemoved,
-              onCastRoleAdded: onSlotCastRoleAdded == null
-                  ? null
-                  : (roleId) => onSlotCastRoleAdded!(slot.id, roleId),
-              onCastRoleRemoved: onSlotCastRoleRemoved,
-              onGuestAdded: onSlotGuestAdded == null
-                  ? null
-                  : (personId) => onSlotGuestAdded!(slot.id, personId),
-              onGuestRemoved: onSlotGuestRemoved,
-              guestReasonValueOf: slotGuestReasonValueOf,
-              onGuestReasonChanged: onSlotGuestReasonChanged,
-              guestNotesValueOf: slotGuestNotesValueOf,
-              onGuestNotesChanged: onSlotGuestNotesChanged,
-              blocks: blocks,
-              timeline: timeline?.bySlotId[slot.id],
-              shotOf: shotOf,
-              selectedBlockId: selectedBlockId,
-              sequences: sequences,
-              otherSlots: [
-                for (final other in slots)
-                  if (other.id != slot.id) (other.id, slotLabelValueOf(other.id)),
-              ],
-              onBlockSelected: onBlockSelected,
-              onBlockReordered: onBlockReordered,
-              onBlockDurationChanged: onBlockDurationChanged,
-              onBlockAnchorChanged: onBlockAnchorChanged,
-              onShotStatusChanged: onShotStatusChanged,
-              onBlockSequenceChanged: onBlockSequenceChanged,
-              onBlockCandidateAdded: onBlockCandidateAdded,
-              onBlockCandidateRemoved: onBlockCandidateRemoved,
-              onBlockDeletionRequested: onBlockDeletionRequested,
-              onBlockAdded: onBlockAdded == null ? null : (kind) => onBlockAdded!(slot.id, kind),
-              onShotBlockRequested: onShotBlockRequested == null
-                  ? null
-                  : () => onShotBlockRequested!(slot.id),
-              onBlockMovedToSlot: onBlockMovedToSlot,
-            ),
-          ),
-        if (onSlotAdded != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: OutlinedButton.icon(
-              onPressed: onSlotAdded,
-              icon: const Icon(Icons.add, size: 16),
-              label: Text(tr.scheduleAddSlotAction),
-            ),
-          ),
-        if (events.isNotEmpty || onEventAdded != null) ...[
-          _buildEventsBand(context),
-          const SizedBox(height: 16),
-        ],
-        if (day.crewNote.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Text(day.crewNote, style: Theme.of(context).textTheme.bodySmall),
-        ],
-        const SizedBox(height: 24),
       ],
+      if (day.crewNote.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        Text(day.crewNote, style: Theme.of(context).textTheme.bodySmall),
+      ],
+      const SizedBox(height: 24),
+    ];
+
+    return ListView.builder(
+      itemCount: leading.length + slots.length + trailing.length,
+      itemBuilder: (context, index) {
+        if (index < leading.length) {
+          return leading[index];
+        }
+
+        final slotIndex = index - leading.length;
+        if (slotIndex >= slots.length) {
+          return trailing[slotIndex - slots.length];
+        }
+
+        return _OcptScheduleDaySlotEntry(
+          view: this,
+          index: slotIndex,
+          anchorSourceBySlotId: anchorSourceBySlotId,
+        );
+      },
     );
   }
+}
 
-  /// The day's own summary band: arrival → estimated end, sun times, weather and the total (shot
-  /// count and duration of presence).
-  Widget _buildSummaryBand(BuildContext context) {
+/// One slot of the day, its card padded away from the next: the part of [OcptScheduleDayView] that
+/// is rebuilt per slot, so the list builds only the slots that are on screen.
+class _OcptScheduleDaySlotEntry extends StatelessWidget {
+  /// The day view whose callbacks and lookups the card is wired to.
+  final OcptScheduleDayView view;
+
+  /// The position of the slot within [OcptScheduleDayView.slots].
+  final int index;
+
+  /// `{slot id: id of the slot it is anchored to}`, across every slot of the day.
+  final Map<String, String?> anchorSourceBySlotId;
+
+  /// Class constructor
+  const _OcptScheduleDaySlotEntry({
+    required this.view,
+    required this.index,
+    required this.anchorSourceBySlotId,
+  });
+
+  /// Build the schedule day slot entry as a [Padding].
+  @override
+  Widget build(BuildContext context) {
+    final slot = view.slots[index];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 11),
+      child: OcptScheduleSlotCard(
+        slot: slot,
+        location: slot.locationId == null ? null : view.locationById[slot.locationId],
+        set: slot.setId == null ? null : view.setById[slot.setId],
+        locations: view.locations,
+        personById: view.personById,
+        roleById: view.roleById,
+        roleCandidateById: view.roleCandidateById,
+        people: view.people,
+        roles: view.roles,
+        labelValue: view.slotLabelValueOf(slot.id),
+        onLabelChanged: view.onSlotLabelChanged == null
+            ? null
+            : (value) => view.onSlotLabelChanged!(slot.id, value),
+        notesValue: view.slotNotesValueOf(slot.id),
+        onNotesChanged: view.onSlotNotesChanged == null
+            ? null
+            : (value) => view.onSlotNotesChanged!(slot.id, value),
+        onPlaceChanged: view.onSlotPlaceChanged == null
+            ? null
+            : (locationId, setId) => view.onSlotPlaceChanged!(slot.id, locationId, setId),
+        onAnchorChanged: view.onSlotAnchorChanged == null
+            ? null
+            : (edge, minute, sourceSlotId) =>
+                  view.onSlotAnchorChanged!(slot.id, edge, minute, sourceSlotId),
+        anchorSourceBySlotId: anchorSourceBySlotId,
+        onMovedUp: view.onSlotMoved == null || index == 0
+            ? null
+            : () => view.onSlotMoved!(slot.id, index - 1),
+        onMovedDown: view.onSlotMoved == null || index == view.slots.length - 1
+            ? null
+            : () => view.onSlotMoved!(slot.id, index + 1),
+        onDeletionRequested: view.onSlotDeletionRequested == null
+            ? null
+            : () => view.onSlotDeletionRequested!(slot.id),
+        onCrewMemberAdded: view.onSlotCrewMemberAdded == null
+            ? null
+            : (personId) => view.onSlotCrewMemberAdded!(slot.id, personId),
+        onCrewMemberPositionChanged: view.onSlotCrewMemberPositionChanged,
+        onCrewMemberRemoved: view.onSlotCrewMemberRemoved,
+        onCastRoleAdded: view.onSlotCastRoleAdded == null
+            ? null
+            : (roleId) => view.onSlotCastRoleAdded!(slot.id, roleId),
+        onCastRoleRemoved: view.onSlotCastRoleRemoved,
+        onGuestAdded: view.onSlotGuestAdded == null
+            ? null
+            : (personId) => view.onSlotGuestAdded!(slot.id, personId),
+        onGuestRemoved: view.onSlotGuestRemoved,
+        guestReasonValueOf: view.slotGuestReasonValueOf,
+        onGuestReasonChanged: view.onSlotGuestReasonChanged,
+        guestNotesValueOf: view.slotGuestNotesValueOf,
+        onGuestNotesChanged: view.onSlotGuestNotesChanged,
+        blocks: view.blocks,
+        timeline: view.timeline?.bySlotId[slot.id],
+        shotOf: view.shotOf,
+        selectedBlockId: view.selectedBlockId,
+        sequences: view.sequences,
+        otherSlots: [
+          for (final other in view.slots)
+            if (other.id != slot.id) (other.id, view.slotLabelValueOf(other.id)),
+        ],
+        onBlockSelected: view.onBlockSelected,
+        onBlockReordered: view.onBlockReordered,
+        onBlockDurationChanged: view.onBlockDurationChanged,
+        onBlockAnchorChanged: view.onBlockAnchorChanged,
+        onShotStatusChanged: view.onShotStatusChanged,
+        onBlockSequenceChanged: view.onBlockSequenceChanged,
+        onBlockCandidateAdded: view.onBlockCandidateAdded,
+        onBlockCandidateRemoved: view.onBlockCandidateRemoved,
+        onBlockDeletionRequested: view.onBlockDeletionRequested,
+        onBlockAdded: view.onBlockAdded == null
+            ? null
+            : (kind) => view.onBlockAdded!(slot.id, kind),
+        onShotBlockRequested: view.onShotBlockRequested == null
+            ? null
+            : () => view.onShotBlockRequested!(slot.id),
+        onBlockMovedToSlot: view.onBlockMovedToSlot,
+      ),
+    );
+  }
+}
+
+/// The day's own summary band: arrival → estimated end, sun times, weather and the total (shot
+/// count and duration of presence).
+class _OcptScheduleDaySummaryBand extends StatelessWidget {
+  /// The day the band sums up.
+  final OcptShootingDay day;
+
+  /// The day's live blocks, across every slot, counted for the shot total.
+  final List<OcptShootingDayBlock> blocks;
+
+  /// The day's computed timelines, read for its end minute, or null while it has no live slot.
+  final OcptShootingDayTimelines? timeline;
+
+  /// The day's earliest arrival, or null while it has no live slot.
+  final int? dayArrivalMinute;
+
+  /// The day's computed sun times, or null while unknown.
+  final OcptSunTimes? sunTimes;
+
+  /// The alerts the plan raises about the day.
+  final List<OcptScheduleAlert> alerts;
+
+  /// Called when the alert badge is clicked.
+  final VoidCallback? onAlertsOpenRequested;
+
+  /// Class constructor
+  const _OcptScheduleDaySummaryBand({
+    required this.day,
+    required this.blocks,
+    required this.timeline,
+    required this.dayArrivalMinute,
+    required this.sunTimes,
+    required this.alerts,
+    required this.onAlertsOpenRequested,
+  });
+
+  /// Build the schedule day summary band as a [Container].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final shotBlocks = blocks.where((block) => block.kind == OcptShootingBlockKind.shot).length;
     final dayEndMinute = timeline?.dayEndMinute;
     final totalLabel = dayEndMinute == null || dayArrivalMinute == null
         ? tr.scheduleDayNoShotsPlaced
-        : tr.scheduleDaySummaryTotal(shotBlocks, ocptFormatMinuteDuration(dayEndMinute - dayArrivalMinute!));
+        : tr.scheduleDaySummaryTotal(
+            shotBlocks,
+            ocptFormatMinuteDuration(dayEndMinute - dayArrivalMinute!),
+          );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Wrap(
         spacing: 26,
@@ -479,30 +582,69 @@ class OcptScheduleDayView extends StatelessWidget {
           // other surface it sits on, the badge takes the user to where it is read in full.
           if (alerts.isNotEmpty)
             OcptScheduleDayAlertBadge(alerts: alerts, onTap: onAlertsOpenRequested),
-          _buildSummaryField(
-            context,
-            tr.scheduleInspectorArrivalToEndLabel,
-            ocptScheduleDayMinuteRangeLabel(dayArrivalMinute, dayEndMinute),
+          _OcptScheduleSummaryField(
+            label: tr.scheduleInspectorArrivalToEndLabel,
+            value: ocptScheduleDayMinuteRangeLabel(dayArrivalMinute, dayEndMinute),
           ),
-          _buildSummaryField(context, tr.scheduleInspectorSunLabel, ocptScheduleSunTimesLine(tr, sunTimes)),
-          _buildSummaryField(
-            context,
-            tr.scheduleInspectorWeatherLabel,
-            day.weatherNote.isEmpty ? "—" : day.weatherNote,
+          _OcptScheduleSummaryField(
+            label: tr.scheduleInspectorSunLabel,
+            value: ocptScheduleSunTimesLine(tr, sunTimes),
           ),
-          _buildSummaryField(context, tr.scheduleDaySummaryTotalLabel, totalLabel),
+          _OcptScheduleSummaryField(
+            label: tr.scheduleInspectorWeatherLabel,
+            value: day.weatherNote.isEmpty ? "—" : day.weatherNote,
+          ),
+          _OcptScheduleSummaryField(label: tr.scheduleDaySummaryTotalLabel, value: totalLabel),
         ],
       ),
     );
   }
+}
 
-  /// The day's own events band, under the slot cards and their `+ Slot` footer, above the day's
-  /// own crew note — built exactly like the summary band's own container, and drawn only while
-  /// [day] has at least one event or this view may be written to (see `build`'s own guard): a
-  /// previewed day with none draws nothing at all. `OcptScheduleDayEventsList`'s own doc comment
-  /// explains why this band is the day view's only representation of an event, with no marker of
-  /// its own.
-  Widget _buildEventsBand(BuildContext context) {
+/// The day's own events band, under the slot cards and their `+ Slot` footer, above the day's
+/// own crew note — built exactly like the summary band's own container.
+/// `OcptScheduleDayEventsList`'s own doc comment explains why this band is the day view's only
+/// representation of an event.
+class _OcptScheduleDayEventsBand extends StatelessWidget {
+  /// The day's live events, ordered by hour.
+  final List<OcptShootingDayEvent> events;
+
+  /// Resolves an event's id to its label as currently held.
+  final String Function(String eventId) eventLabelValueOf;
+
+  /// Resolves an event's id to its notes as currently held.
+  final String Function(String eventId) eventNotesValueOf;
+
+  /// Called when the `+ Event` footer is clicked, or null while withheld.
+  final VoidCallback? onEventAdded;
+
+  /// Called with an event's id and its new minute, or null while withheld.
+  final void Function(String eventId, int minute)? onEventMinuteChanged;
+
+  /// Called with an event's id and its raw label text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventLabelChanged;
+
+  /// Called with an event's id and its raw note text, or null while withheld.
+  final void Function(String eventId, String rawValue)? onEventNotesChanged;
+
+  /// Called with an event's id when its remove control is clicked, or null while withheld.
+  final ValueChanged<String>? onEventDeletionRequested;
+
+  /// Class constructor
+  const _OcptScheduleDayEventsBand({
+    required this.events,
+    required this.eventLabelValueOf,
+    required this.eventNotesValueOf,
+    required this.onEventAdded,
+    required this.onEventMinuteChanged,
+    required this.onEventLabelChanged,
+    required this.onEventNotesChanged,
+    required this.onEventDeletionRequested,
+  });
+
+  /// Build the schedule day events band as a [Container].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
@@ -511,7 +653,7 @@ class OcptScheduleDayView extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,9 +677,22 @@ class OcptScheduleDayView extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// One labelled field of the summary band.
-  Widget _buildSummaryField(BuildContext context, String label, String value) {
+/// One labelled field of the summary band.
+class _OcptScheduleSummaryField extends StatelessWidget {
+  /// The field's caption, drawn in capitals.
+  final String label;
+
+  /// The field's value.
+  final String value;
+
+  /// Class constructor
+  const _OcptScheduleSummaryField({required this.label, required this.value});
+
+  /// Build the schedule summary field as a [Column].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Column(

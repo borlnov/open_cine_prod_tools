@@ -14,28 +14,30 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dar
 ///
 /// [imageAssetId] is nullable so a panel **outlives its image**: replacing it tombstones the old
 /// `assets` row, mints a new one and re-points this column, while the panel's own [id] — what its
-/// `storyboard_annotations` and a version payload refer to — never changes. The panel's rank (`1/2`,
-/// `2/2` on the board) is a read-time count off [sortKey], exactly as a shot's own code is.
+/// `storyboard_annotations` and a version payload refer to — never changes. The panel's rank
+/// (`1/2`, `2/2` on the board) is a read-time count off [sortKey], exactly as a shot's own code is.
 @DataClassName('OcptStoryboardPanelRow')
 class OcptStoryboardPanelsTable extends Table {
   /// {@macro open_cine_prod_tools.OcptStoryboardPanelsTable}
   @override
   String get tableName => 'storyboard_panels';
 
-  /// The stable, unique id of this panel (a UUID).
+  /// Get the stable, unique id of this panel (a UUID).
   TextColumn get id => text()();
 
-  /// The shot this panel belongs to.
+  /// Get the shot this panel belongs to.
   TextColumn get shotId => text().references(OcptShotsTable, #id)();
 
   /// {@macro open_cine_prod_tools.sortKey}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// The panel's frame, an `assets` row of kind `storyboardPanelImage` — null while no image has
+  /// Get the panel's frame, an `assets` row of kind `storyboardPanelImage` — null while no image
+  /// has
   /// been imported yet, or after one was removed without a replacement.
   TextColumn get imageAssetId => text().nullable().references(OcptAssetsTable, #id)();
 
-  /// The free comment shown under the frame. No start/end captions — a single comment per panel.
+  /// Get the free comment shown under the frame. No start/end captions — a single comment per
+  /// panel.
   TextColumn get comment => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

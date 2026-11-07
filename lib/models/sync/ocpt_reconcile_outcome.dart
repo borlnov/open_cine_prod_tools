@@ -16,16 +16,20 @@ sealed class OcptReconcileOutcome extends Equatable {
 /// action shows as "pushed N, pulled M" — see `OcptRelayReconciler.reconcileProject`'s own doc
 /// comment for exactly what each counts.
 final class OcptReconcileSucceeded extends OcptReconcileOutcome {
-  /// Class constructor
-  const OcptReconcileSucceeded({required this.pushed, required this.pulled});
-
   /// How many changesets this run sent to the upstream relay.
   final int pushed;
 
   /// How many changesets this run received from the upstream relay.
   final int pulled;
 
-  /// Object properties
+  /// Class constructor
+  const OcptReconcileSucceeded({required this.pushed, required this.pulled});
+
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() => "OcptReconcileSucceeded(pushed: $pushed, pulled: $pulled)";
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pushed, pulled];
 }
@@ -33,13 +37,17 @@ final class OcptReconcileSucceeded extends OcptReconcileOutcome {
 /// The reconcile did not run, or did not complete. [message] is a human-readable detail meant for
 /// a log or a snackbar — never parsed.
 final class OcptReconcileFailed extends OcptReconcileOutcome {
-  /// Class constructor
-  const OcptReconcileFailed(this.message);
-
   /// A human-readable detail of what went wrong, meant for a log or a panel — never parsed.
   final String message;
 
-  /// Object properties
+  /// Class constructor
+  const OcptReconcileFailed(this.message);
+
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() => "OcptReconcileFailed(message: $message)";
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [message];
 }

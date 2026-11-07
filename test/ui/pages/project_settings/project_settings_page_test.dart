@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -19,11 +20,13 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_minimum_rest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_dictionary_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_budget_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_currency_section.dart';
@@ -31,12 +34,12 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_proj
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_screenplay_language_section.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_workspace_episode_label.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_label.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_minimum_rest.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close a
 /// dialog opened through `showDialog` (the episodes card's own `OcptConfirmDialog`) exactly as the
@@ -56,6 +59,8 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedResult;
 
+  /// Record the pop and its result, then pop the route of the test's own navigator, when it can
+  /// pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     wasPopped = true;
@@ -70,12 +75,15 @@ class _RecordingRouterManager extends OcptRouterManager {
 
 /// A [PlatformManager] whose [isMobile] is stubbed, so a test can exercise either of the `Project
 /// file` card's own branches without a real platform underneath it — the same double
-/// `ocpt_export_manager_test.dart`'s own `_StubPlatformManager` already is.
+/// `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own `_StubPlatformManager` already
+/// is.
 class _StubPlatformManager extends PlatformManager {
-  _StubPlatformManager({required this.isMobile});
-
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A save location service answering [saveLocationAnswer] without ever showing a native dialog,
@@ -95,8 +103,10 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   String? lastInitialDirectory;
 
   /// Class constructor
-  _RecordingSaveLocationService({this.saveLocationAnswer});
+  _RecordingSaveLocationService({this.saveLocationAnswer}) : super(logger: const SilentLogger());
 
+  /// Count the question, remember the suggested name and the initial directory, and answer with the
+  /// canned location.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -126,6 +136,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of [OcptProjectSettingsPage].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late Directory tempDir;
@@ -236,7 +247,10 @@ void main() {
   /// A finder scoped to the budget defaults section's own VAT rate field — the first of its three
   /// `TextField`s, so it can't collide with the meal and snack price fields sharing the same card.
   Finder budgetVatRateField() => find
-      .descendant(of: find.byType(OcptProjectSettingsBudgetSection), matching: find.byType(TextField))
+      .descendant(
+        of: find.byType(OcptProjectSettingsBudgetSection),
+        matching: find.byType(TextField),
+      )
       .first;
 
   /// A finder scoped to the episodes card, matching [inner] inside it alone.
@@ -248,11 +262,13 @@ void main() {
   /// builds on, extending [projectsManager]'s own single-screenplay project rather than a parallel
   /// one.
   Future<String> addEpisode({String title = "", int? number}) async {
-    final id = await projectsManager.screenplayService.createEpisode(
-      database: projectsManager.currentProject!.database,
-      title: title,
-      number: number,
-    );
+    final id = await projectsManager.screenplayService
+        .createEpisode(
+          database: projectsManager.currentProject!.database,
+          title: title,
+          number: number,
+        )
+        .maybeValueOrFail;
     return id!;
   }
 
@@ -272,7 +288,7 @@ void main() {
 
     // Asserts against whatever the manager actually seeded, not a hardcoded EUR: the device
     // locale running the test may suggest a different one.
-    final currencyCode = await projectsManager.loadCurrentProjectCurrencyCode();
+    final currencyCode = await projectsManager.loadCurrentProjectCurrencyCode().maybeValueOrFail;
     final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
     expect(find.text("$currencyCode — $currencySymbol"), findsOneWidget);
   });
@@ -281,7 +297,7 @@ void main() {
     tester,
   ) async {
     final bloc = await pumpView(tester);
-    final initialCode = await projectsManager.loadCurrentProjectCurrencyCode();
+    final initialCode = await projectsManager.loadCurrentProjectCurrencyCode().maybeValueOrFail;
     final otherCode = initialCode == "USD" ? "GBP" : "USD";
     final otherSymbol = NumberFormat.simpleCurrency(name: otherCode).currencySymbol;
 
@@ -292,14 +308,14 @@ void main() {
 
     expect(bloc.state.currencyCode, otherCode);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectCurrencyCode(), otherCode);
+    expect(await projectsManager.loadCurrentProjectCurrencyCode().maybeValueOrFail, otherCode);
   });
 
   testWidgets("picking a page format writes it to the project and marks the state changed", (
     tester,
   ) async {
     final bloc = await pumpView(tester);
-    final initialFormat = await projectsManager.loadCurrentProjectPageFormat();
+    final initialFormat = await projectsManager.loadCurrentProjectPageFormat().maybeValueOrFail;
     final otherFormat = initialFormat == OcptPageFormat.usLetter
         ? OcptPageFormat.a4
         : OcptPageFormat.usLetter;
@@ -316,13 +332,13 @@ void main() {
 
     expect(bloc.state.pageFormat, otherFormat);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectPageFormat(), otherFormat);
+    expect(await projectsManager.loadCurrentProjectPageFormat().maybeValueOrFail, otherFormat);
   });
 
   testWidgets("shows the project's currently seeded screenplay language", (tester) async {
     await pumpView(tester);
 
-    final language = await projectsManager.loadCurrentProjectScreenplayLanguage();
+    final language = await projectsManager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail;
     final context = tester.element(find.byType(OcptProjectSettingsView));
     final tr = Tr.of(context);
     final label = switch (language) {
@@ -337,7 +353,9 @@ void main() {
     "picking a screenplay language writes it to the project and marks the state changed",
     (tester) async {
       final bloc = await pumpView(tester);
-      final initialLanguage = await projectsManager.loadCurrentProjectScreenplayLanguage();
+      final initialLanguage = await projectsManager
+          .loadCurrentProjectScreenplayLanguage()
+          .maybeValueOrFail;
       final otherLanguage = initialLanguage == OcptScreenplayLanguage.fr
           ? OcptScreenplayLanguage.enGb
           : OcptScreenplayLanguage.fr;
@@ -354,7 +372,10 @@ void main() {
 
       expect(bloc.state.screenplayLanguage, otherLanguage);
       expect(bloc.state.hasChanged, isTrue);
-      expect(await projectsManager.loadCurrentProjectScreenplayLanguage(), otherLanguage);
+      expect(
+        await projectsManager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail,
+        otherLanguage,
+      );
     },
   );
 
@@ -370,7 +391,7 @@ void main() {
 
     expect(bloc.state.screenplayLanguage, isNull);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectScreenplayLanguage(), isNull);
+    expect(await projectsManager.loadCurrentProjectScreenplayLanguage().maybeValueOrFail, isNull);
   });
 
   testWidgets("the dictionary section shows the empty state for a project with no learned word", (
@@ -387,8 +408,12 @@ void main() {
     tester,
   ) async {
     final database = projectsManager.currentProject!.database;
-    await projectsManager.projectDictionaryService.learnWord(database: database, word: "Marie");
-    await projectsManager.projectDictionaryService.learnWord(database: database, word: "Zorglurbe");
+    await projectsManager.projectDictionaryService
+        .learnWord(database: database, word: "Marie")
+        .okOrFail;
+    await projectsManager.projectDictionaryService
+        .learnWord(database: database, word: "Zorglurbe")
+        .okOrFail;
 
     await pumpView(tester);
 
@@ -398,55 +423,58 @@ void main() {
     expect(find.text(tr.projectSettingsDictionaryEmpty), findsNothing);
   });
 
-  testWidgets(
-    "the dictionary dialog's report reaches the service, and the section reflects it",
-    (tester) async {
-      final database = projectsManager.currentProject!.database;
-      await projectsManager.projectDictionaryService.learnWord(database: database, word: "Marie");
+  testWidgets("the dictionary dialog's report reaches the service, and the section reflects it", (
+    tester,
+  ) async {
+    final database = projectsManager.currentProject!.database;
+    await projectsManager.projectDictionaryService
+        .learnWord(database: database, word: "Marie")
+        .okOrFail;
 
-      final bloc = await pumpView(tester);
-      final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
+    final bloc = await pumpView(tester);
+    final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
 
-      await tester.tap(find.widgetWithText(OutlinedButton, tr.projectSettingsDictionaryEditAction));
-      await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, tr.projectSettingsDictionaryEditAction));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(OcptProjectDictionaryDialog), findsOneWidget);
+    expect(find.byType(OcptProjectDictionaryDialog), findsOneWidget);
 
-      // Remove the seeded "Marie".
-      await tester.tap(find.byTooltip(tr.projectDictionaryRemoveTooltip));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(tr.projectDictionaryRemoveConfirmYesAction));
-      await tester.pumpAndSettle();
+    // Remove the seeded "Marie".
+    await tester.tap(find.byTooltip(tr.projectDictionaryRemoveTooltip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr.projectDictionaryRemoveConfirmYesAction));
+    await tester.pumpAndSettle();
 
-      // Add a fresh word.
-      final addField = find
-          .descendant(of: find.byType(OcptProjectDictionaryDialog), matching: find.byType(TextField))
-          .last;
-      await tester.enterText(addField, "Zorglurbe");
-      await tester.tap(find.widgetWithText(FilledButton, tr.projectDictionaryAddAction));
-      await tester.pumpAndSettle();
+    // Add a fresh word.
+    final addField = find
+        .descendant(of: find.byType(OcptProjectDictionaryDialog), matching: find.byType(TextField))
+        .last;
+    await tester.enterText(addField, "Zorglurbe");
+    await tester.tap(find.widgetWithText(FilledButton, tr.projectDictionaryAddAction));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, tr.projectDictionaryCloseAction));
-      await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, tr.projectDictionaryCloseAction));
+    await tester.pumpAndSettle();
 
-      expect(bloc.state.hasChanged, isTrue);
-      expect(bloc.state.dictionaryWords, ["Zorglurbe"]);
+    expect(bloc.state.hasChanged, isTrue);
+    expect(bloc.state.dictionaryWords, ["Zorglurbe"]);
 
-      final persisted = await projectsManager.projectDictionaryService.loadWords(
-        database: database,
-      );
-      expect(persisted, ["Zorglurbe"]);
+    final persisted = await projectsManager.projectDictionaryService
+        .loadWords(database: database)
+        .valueOrFail;
+    expect(persisted, ["Zorglurbe"]);
 
-      // The section, back on screen once the dialog closed, reflects the very same word list.
-      expect(find.text(tr.projectSettingsDictionaryWordCount(1)), findsOneWidget);
-    },
-  );
+    // The section, back on screen once the dialog closed, reflects the very same word list.
+    expect(find.text(tr.projectSettingsDictionaryWordCount(1)), findsOneWidget);
+  });
 
   testWidgets("closing the dictionary dialog with nothing touched leaves the state unchanged", (
     tester,
   ) async {
     final database = projectsManager.currentProject!.database;
-    await projectsManager.projectDictionaryService.learnWord(database: database, word: "Marie");
+    await projectsManager.projectDictionaryService
+        .learnWord(database: database, word: "Marie")
+        .okOrFail;
 
     final bloc = await pumpView(tester);
     final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
@@ -462,7 +490,7 @@ void main() {
   });
 
   testWidgets("shows the project's currently recorded minimum rest, in hours", (tester) async {
-    await projectsManager.saveCurrentProjectMinimumRestMinutes(90);
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(90).okOrFail;
 
     await pumpView(tester);
 
@@ -480,11 +508,11 @@ void main() {
 
     expect(bloc.state.minimumRestMinutes, 660);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 660);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, 660);
   });
 
   testWidgets("a committed minimum rest can be typed over again", (tester) async {
-    await projectsManager.saveCurrentProjectMinimumRestMinutes(660);
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(660).okOrFail;
     final bloc = await pumpView(tester);
 
     // What the field shows after a commit is what it accepts back: the digits alone, the unit
@@ -496,12 +524,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bloc.state.minimumRestMinutes, 750);
-    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 750);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, 750);
     expect(find.text("12.5"), findsOneWidget);
   });
 
   testWidgets("clearing the minimum rest writes null to the project", (tester) async {
-    await projectsManager.saveCurrentProjectMinimumRestMinutes(660);
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(660).okOrFail;
     final bloc = await pumpView(tester);
 
     await tester.enterText(minimumRestField(), "");
@@ -510,13 +538,11 @@ void main() {
 
     expect(bloc.state.minimumRestMinutes, isNull);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), isNull);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, isNull);
   });
 
-  testWidgets("a zero or negative minimum rest is rejected and nothing is written", (
-    tester,
-  ) async {
-    await projectsManager.saveCurrentProjectMinimumRestMinutes(90);
+  testWidgets("a zero or negative minimum rest is rejected and nothing is written", (tester) async {
+    await projectsManager.saveCurrentProjectMinimumRestMinutes(90).okOrFail;
     final bloc = await pumpView(tester);
 
     await tester.enterText(minimumRestField(), "-5");
@@ -525,7 +551,7 @@ void main() {
 
     expect(bloc.state.minimumRestMinutes, 90);
     expect(bloc.state.hasChanged, isFalse);
-    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes(), 90);
+    expect(await projectsManager.loadCurrentProjectMinimumRestMinutes().maybeValueOrFail, 90);
     // The field reverts to the last committed value's own reading.
     expect(find.text(ocptMinimumRestHoursTextOf(90)), findsOneWidget);
   });
@@ -541,11 +567,14 @@ void main() {
 
     expect(bloc.state.defaultVatRateBasisPoints, 2000);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectDefaultVatRateBasisPoints(), 2000);
+    expect(
+      await projectsManager.loadCurrentProjectDefaultVatRateBasisPoints().maybeValueOrFail,
+      2000,
+    );
   });
 
   testWidgets("the No rate button clears a recorded default VAT rate", (tester) async {
-    await projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(2000);
+    await projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(2000).okOrFail;
     final bloc = await pumpView(tester);
     final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
 
@@ -554,7 +583,10 @@ void main() {
 
     expect(bloc.state.defaultVatRateBasisPoints, isNull);
     expect(bloc.state.hasChanged, isTrue);
-    expect(await projectsManager.loadCurrentProjectDefaultVatRateBasisPoints(), isNull);
+    expect(
+      await projectsManager.loadCurrentProjectDefaultVatRateBasisPoints().maybeValueOrFail,
+      isNull,
+    );
   });
 
   testWidgets("tapping the back arrow pops with whether anything changed", (tester) async {
@@ -570,7 +602,7 @@ void main() {
 
   testWidgets("popping after a change hands back true", (tester) async {
     await pumpView(tester);
-    final initialFormat = await projectsManager.loadCurrentProjectPageFormat();
+    final initialFormat = await projectsManager.loadCurrentProjectPageFormat().maybeValueOrFail;
     final otherFormat = initialFormat == OcptPageFormat.usLetter
         ? OcptPageFormat.a4
         : OcptPageFormat.usLetter;
@@ -619,9 +651,9 @@ void main() {
     expect(bloc.state.episodes.length, 2);
     expect(bloc.state.episodes.last.number, 2);
     expect(bloc.state.hasChanged, isTrue);
-    final episodesInDatabase = await projectsManager.screenplayService.loadEpisodes(
-      database: projectsManager.currentProject!.database,
-    );
+    final episodesInDatabase = await projectsManager.screenplayService
+        .loadEpisodes(database: projectsManager.currentProject!.database)
+        .valueOrFail;
     expect(episodesInDatabase.length, 2);
 
     // The home card's badge learns about it without waiting for the project to be closed: an app
@@ -645,9 +677,9 @@ void main() {
     expect(bloc.state.episodes.single.title, "Le départ");
     expect(bloc.state.episodes.single.number, 5);
     expect(bloc.state.hasChanged, isTrue);
-    final episodesInDatabase = await projectsManager.screenplayService.loadEpisodes(
-      database: projectsManager.currentProject!.database,
-    );
+    final episodesInDatabase = await projectsManager.screenplayService
+        .loadEpisodes(database: projectsManager.currentProject!.database)
+        .valueOrFail;
     expect(episodesInDatabase.single.title, "Le départ");
     expect(episodesInDatabase.single.number, 5);
   });
@@ -682,7 +714,8 @@ void main() {
     final upButtons = tester
         .widgetList<IconButton>(
           find.byWidgetPredicate(
-            (widget) => widget is IconButton && widget.tooltip == tr.projectSettingsEpisodeMoveUpTooltip,
+            (widget) =>
+                widget is IconButton && widget.tooltip == tr.projectSettingsEpisodeMoveUpTooltip,
           ),
         )
         .toList();
@@ -714,7 +747,7 @@ void main() {
     final secondId = await addEpisode(title: "Les falaises");
     // The fixture stands for an episode the user added, so the recent-projects entry counts it
     // too — which is what makes the assertion on that count below say something.
-    await projectsManager.recordCurrentProjectEpisodeCount();
+    await projectsManager.recordCurrentProjectEpisodeCount().okOrFail;
     final bloc = await pumpView(tester);
     final tr = Tr.of(tester.element(find.byType(OcptProjectSettingsView)));
     final firstEpisode = bloc.state.episodes.first;
@@ -735,9 +768,9 @@ void main() {
 
     expect(bloc.state.episodes.single.id, secondId);
     expect(bloc.state.hasChanged, isTrue);
-    final episodesInDatabase = await projectsManager.screenplayService.loadEpisodes(
-      database: projectsManager.currentProject!.database,
-    );
+    final episodesInDatabase = await projectsManager.screenplayService
+        .loadEpisodes(database: projectsManager.currentProject!.database)
+        .valueOrFail;
     expect(episodesInDatabase.single.id, secondId);
 
     // The home card's badge is brought back down to one episode straight away, exactly as adding
@@ -773,10 +806,7 @@ void main() {
     await pumpShortView(tester);
 
     // The very same card the reveal brings up, left below the fold of the same short surface.
-    expect(
-      tester.getTopLeft(find.byType(OcptProjectSettingsEpisodesSection)).dy,
-      greaterThan(500),
-    );
+    expect(tester.getTopLeft(find.byType(OcptProjectSettingsEpisodesSection)).dy, greaterThan(500));
   });
 
   group("the Project file card", () {

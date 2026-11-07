@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:shared_preferences_platform_interface/types.dart';
 
 /// Builds a project with the given [path], for tests that only care about ordering/deduplication.
 OcptRecentProjectModel _projectAt(String path, {DateTime? lastOpenedAt}) => OcptRecentProjectModel(
@@ -18,6 +19,7 @@ OcptRecentProjectModel _projectAt(String path, {DateTime? lastOpenedAt}) => Ocpt
   lastOpenedAt: lastOpenedAt ?? DateTime.utc(2026),
 );
 
+/// Run the tests of [OcptPropertiesManager].
 void main() {
   // [OcptPropertiesManager] wraps `PropertiesSingleton`, which is a process-wide singleton bound
   // to whichever `SharedPreferencesAsyncPlatform` was set when it was first created. We therefore
@@ -44,6 +46,16 @@ void main() {
       expect(await manager.recentProjects.load(), isNull);
     });
 
+    test('a stored value that is not a JSON array loads as null', () async {
+      await SharedPreferencesAsyncPlatform.instance!.setString(
+        'RECENT_PROJECTS',
+        'not json',
+        const SharedPreferencesOptions(),
+      );
+
+      expect(await manager.recentProjects.load(), isNull);
+    });
+
     test('addRecentProject inserts the most recently opened project first', () async {
       await manager.addRecentProject(_projectAt("/a"));
       await manager.addRecentProject(_projectAt("/b"));
@@ -54,16 +66,19 @@ void main() {
       expect(stored?.map((project) => project.path).toList(), ["/c", "/b", "/a"]);
     });
 
-    test('addRecentProject moves an already known path to the front instead of duplicating it', () async {
-      await manager.addRecentProject(_projectAt("/a"));
-      await manager.addRecentProject(_projectAt("/b"));
-      await manager.addRecentProject(_projectAt("/a", lastOpenedAt: DateTime.utc(2026, 2)));
+    test(
+      'addRecentProject moves an already known path to the front instead of duplicating it',
+      () async {
+        await manager.addRecentProject(_projectAt("/a"));
+        await manager.addRecentProject(_projectAt("/b"));
+        await manager.addRecentProject(_projectAt("/a", lastOpenedAt: DateTime.utc(2026, 2)));
 
-      final stored = await manager.recentProjects.load();
+        final stored = await manager.recentProjects.load();
 
-      expect(stored?.map((project) => project.path).toList(), ["/a", "/b"]);
-      expect(stored?.first.lastOpenedAt, DateTime.utc(2026, 2));
-    });
+        expect(stored?.map((project) => project.path).toList(), ["/a", "/b"]);
+        expect(stored?.first.lastOpenedAt, DateTime.utc(2026, 2));
+      },
+    );
 
     test('addRecentProject caps the list at 10 entries, dropping the oldest ones', () async {
       for (var i = 0; i < 12; i++) {
@@ -144,13 +159,16 @@ void main() {
       expect(await manager.deviceId.load(), isNull);
     });
 
-    test('loadOrCreateDeviceId mints one, stores it, and returns the same one afterwards', () async {
-      final minted = await manager.loadOrCreateDeviceId();
+    test(
+      'loadOrCreateDeviceId mints one, stores it, and returns the same one afterwards',
+      () async {
+        final minted = await manager.loadOrCreateDeviceId();
 
-      expect(minted, isNotEmpty);
-      expect(await manager.deviceId.load(), minted);
-      expect(await manager.loadOrCreateDeviceId(), minted);
-    });
+        expect(minted, isNotEmpty);
+        expect(await manager.deviceId.load(), minted);
+        expect(await manager.loadOrCreateDeviceId(), minted);
+      },
+    );
 
     test('loadOrCreateDeviceId keeps an id already stored rather than minting a new one', () async {
       await manager.deviceId.store("an-existing-device-id");

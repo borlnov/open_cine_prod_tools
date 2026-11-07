@@ -18,9 +18,12 @@ Widget _wrapInApp(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+  home: Scaffold(
+    body: Align(alignment: Alignment.topLeft, child: child),
+  ),
 );
 
+/// Run the tests of [OcptShotStatusPill].
 void main() {
   testWidgets("shows the current status label", (tester) async {
     await tester.pumpWidget(_wrapInApp(const OcptShotStatusPill(status: OcptShotStatus.retake)));

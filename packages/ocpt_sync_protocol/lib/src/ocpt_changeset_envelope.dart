@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
+import 'package:ocpt_sync_protocol/src/ocpt_sync_malformed_data_error.dart';
 import 'package:ocpt_sync_protocol/src/ocpt_sync_protocol_format_error.dart';
 import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 
@@ -19,47 +20,6 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 /// looks inside it — a relay built against this protocol never learns a table name, a column
 /// name or a row id.
 class OcptChangesetEnvelope extends Equatable {
-  /// Creates an envelope. [protocolFormat] defaults to [currentProtocolFormat], which is what
-  /// every envelope this build writes should carry; a caller decoding one off the wire uses
-  /// [OcptChangesetEnvelope.fromJson] instead, which reads the format the envelope actually
-  /// declares.
-  const OcptChangesetEnvelope({
-    required this.changesetId,
-    required this.originDeviceId,
-    required this.lamport,
-    required this.createdAt,
-    required this.payload,
-    this.protocolFormat = currentProtocolFormat,
-  });
-
-  /// Parses an envelope from the JSON object a relay stores or transmits it as.
-  ///
-  /// Throws [OcptSyncUnsupportedFormatError] when [json]'s `protocolFormat` is newer than
-  /// [currentProtocolFormat] — this build cannot know what such an envelope means and refuses to
-  /// guess — and [OcptSyncMalformedDataError] when a required field is missing or of the wrong
-  /// type. An **older** `protocolFormat` is accepted: per
-  /// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`'s sibling rule for this
-  /// protocol, no stable release has shipped yet, so there is no older shape to upgrade from
-  /// today, and the fields below are simply read as they are.
-  factory OcptChangesetEnvelope.fromJson(Map<String, dynamic> json) {
-    final protocolFormat = OcptSyncWireJson.integer(json, _protocolFormatKey);
-    if (protocolFormat > currentProtocolFormat) {
-      throw OcptSyncUnsupportedFormatError(
-        subject: 'changeset envelope',
-        foundFormat: protocolFormat,
-        knownUpTo: currentProtocolFormat,
-      );
-    }
-    return OcptChangesetEnvelope(
-      changesetId: OcptSyncWireJson.string(json, _changesetIdKey),
-      originDeviceId: OcptSyncWireJson.string(json, _originDeviceIdKey),
-      lamport: OcptSyncWireJson.integer(json, _lamportKey),
-      createdAt: OcptSyncWireJson.dateTime(json, _createdAtKey),
-      payload: base64Decode(OcptSyncWireJson.string(json, _payloadKey)),
-      protocolFormat: protocolFormat,
-    );
-  }
-
   /// The wire format this build writes, and the highest one it can read.
   ///
   /// Mirrors the overwrite-vs-create discipline `OcptProjectVersionCodec.currentPayloadFormat`
@@ -68,11 +28,22 @@ class OcptChangesetEnvelope extends Equatable {
   /// half-reading it.
   static const currentProtocolFormat = 1;
 
+  /// The JSON key of `changesetId`.
   static const _changesetIdKey = 'changesetId';
+
+  /// The JSON key of `originDeviceId`.
   static const _originDeviceIdKey = 'originDeviceId';
+
+  /// The JSON key of `lamport`.
   static const _lamportKey = 'lamport';
+
+  /// The JSON key of `createdAt`.
   static const _createdAtKey = 'createdAt';
+
+  /// The JSON key of `payload`.
   static const _payloadKey = 'payload';
+
+  /// The JSON key of `protocolFormat`.
   static const _protocolFormatKey = 'protocolFormat';
 
   /// The UUID identifying this changeset, minted once by the device that created it and stable
@@ -102,7 +73,48 @@ class OcptChangesetEnvelope extends Equatable {
   /// The wire format this envelope declares itself to be written in.
   final int protocolFormat;
 
-  /// Serialises this envelope to the JSON object a relay stores or transmits it as.
+  /// Create an envelope. [protocolFormat] defaults to [currentProtocolFormat], which is what
+  /// every envelope this build writes should carry; a caller decoding one off the wire uses
+  /// [OcptChangesetEnvelope.fromJson] instead, which reads the format the envelope actually
+  /// declares.
+  const OcptChangesetEnvelope({
+    required this.changesetId,
+    required this.originDeviceId,
+    required this.lamport,
+    required this.createdAt,
+    required this.payload,
+    this.protocolFormat = currentProtocolFormat,
+  });
+
+  /// Parse an envelope from the JSON object a relay stores or transmit it as.
+  ///
+  /// Throws [OcptSyncUnsupportedFormatError] when [json]'s `protocolFormat` is newer than
+  /// [currentProtocolFormat] — this build cannot know what such an envelope means and refuses to
+  /// guess — and [OcptSyncMalformedDataError] when a required field is missing or of the wrong
+  /// type. An **older** `protocolFormat` is accepted: per
+  /// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`'s sibling rule for this
+  /// protocol, no stable release has shipped yet, so there is no older shape to upgrade from
+  /// today, and the fields below are simply read as they are.
+  factory OcptChangesetEnvelope.fromJson(Map<String, dynamic> json) {
+    final protocolFormat = OcptSyncWireJson.integer(json, _protocolFormatKey);
+    if (protocolFormat > currentProtocolFormat) {
+      throw OcptSyncUnsupportedFormatError(
+        subject: 'changeset envelope',
+        foundFormat: protocolFormat,
+        knownUpTo: currentProtocolFormat,
+      );
+    }
+    return OcptChangesetEnvelope(
+      changesetId: OcptSyncWireJson.string(json, _changesetIdKey),
+      originDeviceId: OcptSyncWireJson.string(json, _originDeviceIdKey),
+      lamport: OcptSyncWireJson.integer(json, _lamportKey),
+      createdAt: OcptSyncWireJson.dateTime(json, _createdAtKey),
+      payload: base64Decode(OcptSyncWireJson.string(json, _payloadKey)),
+      protocolFormat: protocolFormat,
+    );
+  }
+
+  /// Serialise this envelope to the JSON object a relay stores or transmit it as.
   Map<String, dynamic> toJson() => {
     _changesetIdKey: changesetId,
     _originDeviceIdKey: originDeviceId,
@@ -112,12 +124,21 @@ class OcptChangesetEnvelope extends Equatable {
     _protocolFormatKey: protocolFormat,
   };
 
-  @override
-  List<Object?> get props => [changesetId, originDeviceId, lamport, createdAt, payload, protocolFormat];
-
+  /// Describe this [OcptChangesetEnvelope] for debugging and logging.
   @override
   String toString() =>
       'OcptChangesetEnvelope(changesetId: $changesetId, originDeviceId: $originDeviceId, '
       'lamport: $lamport, createdAt: $createdAt, payload: ${payload.length} bytes, '
       'protocolFormat: $protocolFormat)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [
+    changesetId,
+    originDeviceId,
+    lamport,
+    createdAt,
+    payload,
+    protocolFormat,
+  ];
 }

@@ -7,12 +7,18 @@ import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
-import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts_loader.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_bar_segment.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_bar_side.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_gap.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_tick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_page.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -97,13 +103,13 @@ const Map<int, pw.TableColumnWidth> _legendColumnWidths = {
   4: pw.FlexColumnWidth(2),
 };
 
-/// Renders the scenario coverage of a shot list: the screenplay printed as usual, with a coloured
+/// Render the scenario coverage of a shot list: the screenplay printed as usual, with a coloured
 /// bar in the margin alongside every passage a shot covers, a wash behind every passage no shot
 /// covers, and two appendix pages naming the shots and measuring the coverage.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
-/// through `globalGetIt()` (RFL18), exactly like its three siblings.
+/// through `globalGetIt()`, exactly like its three siblings.
 ///
 /// It draws nothing it decides itself. [OcptScenarioCoverageLayout] says which bar goes in which
 /// lane of which page and which text is uncovered, [OcptScriptPagePainter] draws the screenplay
@@ -113,14 +119,7 @@ const Map<int, pw.TableColumnWidth> _legendColumnWidths = {
 /// The document reads: title page, legend, summary, then the annotated screenplay. The two
 /// appendices come *before* the body on purpose — the legend is the key to the colours the body is
 /// covered in, and a key nobody has read yet is of no use at the back of the document.
-class OcptScenarioCoveragePdfService {
-  /// Creates an [OcptScenarioCoveragePdfService].
-  ///
-  /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
-  /// a service built without one gets a loader of its own.
-  OcptScenarioCoveragePdfService({OcptCourierPrimeFontsLoader? fontsLoader})
-    : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
+class OcptScenarioCoveragePdfService extends AbsOcptService {
   /// The Fountain-to-page-layout engine, stateless so one instance is shared across every
   /// [generate] call.
   ///
@@ -131,7 +130,14 @@ class OcptScenarioCoveragePdfService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// The `.pdf` file name to suggest when exporting the scenario coverage of [projectName].
+  /// Create an [OcptScenarioCoveragePdfService].
+  ///
+  /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
+  /// a service built without one gets a loader of its own.
+  OcptScenarioCoveragePdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
+    : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
+
+  /// Get the `.pdf` file name to suggest when exporting the scenario coverage of [projectName].
   ///
   /// [suffix] is the localized word telling this document apart from the plain screenplay export
   /// (`My Movie - couverture.pdf`); a blank one falls back to the project name alone rather than
@@ -149,7 +155,7 @@ class OcptScenarioCoveragePdfService {
     extension: "pdf",
   );
 
-  /// Renders the scenario coverage of [snapshot] over [document], returning the PDF's bytes.
+  /// Render the scenario coverage of [snapshot] over [document], returning the PDF's bytes.
   ///
   /// [screenplayText] must be the very text [document] was parsed from and [snapshot]'s scenes were
   /// indexed against: a coverage range addresses it by character offset, so a text that has moved
@@ -214,7 +220,7 @@ class OcptScenarioCoveragePdfService {
     return pdfDocument.save();
   }
 
-  /// The washes drawn behind [page]'s uncovered runs, in the page's own coordinates.
+  /// Build the washes drawn behind [page]'s uncovered runs, in the page's own coordinates.
   ///
   /// One rectangle per [OcptCoverageGap], as tall as the row it sits on so two washed rows of the
   /// same paragraph read as one block rather than as a row of stripes.
@@ -236,7 +242,7 @@ class OcptScenarioCoveragePdfService {
         ),
   ];
 
-  /// The bars, their labels and their ticks, drawn on top of the script [page] [coveragePage]
+  /// Build the bars, their labels and their ticks, drawn on top of the script [page] [coveragePage]
   /// annotates.
   ///
   /// Every label comes after every bar rather than each one right after its own: a page dense
@@ -265,7 +271,8 @@ class OcptScenarioCoveragePdfService {
     return [...bars, ...labels];
   }
 
-  /// The widgets one bar draws, kept apart so the caller can stack them in its own order: the bar
+  /// Build the widgets one bar draws, kept apart so the caller can stack them in its own order: the
+  /// bar
   /// itself, the caps closing it where the covered passage really starts and ends, and the ticks
   /// marking where inside its first and last rows those boundaries fall, then the label printed
   /// beside it.
@@ -300,7 +307,9 @@ class OcptScenarioCoveragePdfService {
             width: widthPt,
             height: heightPt,
             decoration: segment.isStale
-                ? pw.BoxDecoration(border: pw.Border.all(color: color, width: _staleBarStrokePt))
+                ? pw.BoxDecoration(
+                    border: pw.Border.all(color: color, width: _staleBarStrokePt),
+                  )
                 : pw.BoxDecoration(color: color),
           ),
         ),
@@ -335,7 +344,8 @@ class OcptScenarioCoveragePdfService {
     );
   }
 
-  /// The label printed beside one bar, at its vertical middle and in its own colour, on an opaque
+  /// Build the label printed beside one bar, at its vertical middle and in its own colour, on an
+  /// opaque
   /// plate of its own.
   ///
   /// Grows away from the text — leftward for a bar in the left margin, rightward for one in the
@@ -391,7 +401,7 @@ class OcptScenarioCoveragePdfService {
     );
   }
 
-  /// The horizontal stroke closing a bar at [topPt], centred on the bar it caps.
+  /// Build the horizontal stroke closing a bar at [topPt], centred on the bar it caps.
   ///
   /// Only ever drawn where the covered passage really begins or ends, never where a page break cut
   /// the bar in two: an uncapped end is precisely how a reader tells a bar continues overleaf.
@@ -415,7 +425,7 @@ class OcptScenarioCoveragePdfService {
     );
   }
 
-  /// The short vertical stroke marking, inside the text itself, the exact character a covered
+  /// Build the short vertical stroke marking, inside the text itself, the exact character a covered
   /// passage starts or ends at when that boundary falls mid-line.
   pw.Widget _tickWidget({
     required OcptCoverageTick tick,
@@ -428,7 +438,7 @@ class OcptScenarioCoveragePdfService {
     child: pw.Container(width: _tickWidthPt, height: painter.lineHeightPt, color: color),
   );
 
-  /// Builds the legend page: every shot of the shot list, grouped by sequence, with the colour its
+  /// Build the legend page: every shot of the shot list, grouped by sequence, with the colour its
   /// bars are drawn in.
   pw.Page _buildLegendPage({
     required OcptScenarioCoverageLayout coverage,
@@ -496,20 +506,23 @@ class OcptScenarioCoveragePdfService {
     );
   }
 
-  /// Builds the summary page: how much of each sequence its shots cover, and what they leave out.
+  /// Build the summary page: how much of each sequence its shots cover, and what they leave out.
   pw.Page _buildSummaryPage({
     required OcptScenarioCoverageLayout coverage,
     required OcptScenarioCoverageLabels labels,
     required OcptScriptPagePainter painter,
   }) {
     final rows = <pw.TableRow>[
-      _appendixHeaderRow(painter: painter, cells: [
-        labels.summarySequenceHeader,
-        labels.summaryShotCountHeader,
-        labels.summaryCoveredHeader,
-        labels.summaryStaleHeader,
-        labels.summaryUncoveredHeader,
-      ]),
+      _appendixHeaderRow(
+        painter: painter,
+        cells: [
+          labels.summarySequenceHeader,
+          labels.summaryShotCountHeader,
+          labels.summaryCoveredHeader,
+          labels.summaryStaleHeader,
+          labels.summaryUncoveredHeader,
+        ],
+      ),
       for (final row in coverage.summary)
         pw.TableRow(
           children: [
@@ -546,17 +559,14 @@ class OcptScenarioCoveragePdfService {
           pw.SizedBox(height: _appendixTitleFontSizePt),
           pw.Text(
             labels.laneOverflowNote,
-            style: pw.TextStyle(
-              font: painter.fonts.italic,
-              fontSize: _appendixFontSizePt,
-            ),
+            style: pw.TextStyle(font: painter.fonts.italic, fontSize: _appendixFontSizePt),
           ),
         ],
       ],
     );
   }
 
-  /// One appendix [pw.MultiPage], titled [title] and flowing [children] under it.
+  /// Build one appendix [pw.MultiPage], titled [title] and flowing [children] under it.
   ///
   /// A flowing page rather than one of [OcptScriptPagePainter]'s absolutely positioned ones: an
   /// appendix has as many rows as the shot list has shots, so it must be free to run onto a second
@@ -586,7 +596,7 @@ class OcptScenarioCoveragePdfService {
     ],
   );
 
-  /// The header row of an appendix table, one cell per entry of [cells].
+  /// Build the header row of an appendix table, one cell per entry of [cells].
   pw.TableRow _appendixHeaderRow({
     required OcptScriptPagePainter painter,
     required List<String> cells,
@@ -597,7 +607,7 @@ class OcptScenarioCoveragePdfService {
     ],
   );
 
-  /// The full-width tinted band introducing one sequence's own table, carrying its [title].
+  /// Build the full-width tinted band introducing one sequence's own table, carrying its [title].
   ///
   /// A band between two tables rather than a row inside one: a table row is bound to its column's
   /// width, and a sequence title (a scene number and a whole heading) has no business being folded
@@ -616,7 +626,7 @@ class OcptScenarioCoveragePdfService {
         ),
       );
 
-  /// One appendix table cell holding [text].
+  /// Build one appendix table cell holding [text].
   pw.Widget _appendixTextCell({
     required OcptScriptPagePainter painter,
     required String text,
@@ -631,7 +641,7 @@ class OcptScenarioCoveragePdfService {
     ),
   );
 
-  /// One appendix table cell wrapping [child] in the tables' shared padding.
+  /// Build one appendix table cell wrapping [child] in the tables' shared padding.
   pw.Widget _appendixCell({required pw.Widget child}) =>
       pw.Padding(padding: const pw.EdgeInsets.all(_appendixCellPaddingPt), child: child);
 }

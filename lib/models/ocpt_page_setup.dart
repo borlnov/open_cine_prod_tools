@@ -29,12 +29,10 @@ class OcptPageSetup extends Equatable {
       margins = const FountainPageMargins.standard();
 
   /// Copy the current page setup and update the given elements
-  OcptPageSetup copyWith({OcptPageFormat? format, FountainPageMargins? margins}) => OcptPageSetup(
-    format: format ?? this.format,
-    margins: margins ?? this.margins,
-  );
+  OcptPageSetup copyWith({OcptPageFormat? format, FountainPageMargins? margins}) =>
+      OcptPageSetup(format: format ?? this.format, margins: margins ?? this.margins);
 
-  /// Builds the [FountainLayoutMetrics] matching this page setup.
+  /// Build the [FountainLayoutMetrics] matching this page setup.
   ///
   /// This is the single `switch (format)` of the whole app: every call site that needs the page
   /// metrics for a screenplay goes through this method instead of switching over [format] itself.
@@ -43,11 +41,11 @@ class OcptPageSetup extends Equatable {
     OcptPageFormat.a4 => FountainLayoutMetrics.a4(margins: margins),
   };
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptPageSetup(format: $format, margins: $margins)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins];
 }

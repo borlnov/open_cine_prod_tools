@@ -5,7 +5,7 @@
 import 'package:fountain_kit/src/layout/fountain_printable_text.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
 
-/// The normalized, deduplicated, first-appearance-ordered speaking roles
+/// Get the normalized, deduplicated, first-appearance-ordered speaking roles
 /// introduced by a [FountainDialogueGroup] anywhere in [blocks]: every
 /// [FountainCharacter.name], normalized (trimmed, internal whitespace
 /// collapsed, upper-cased, see [normalizeCharacterName]) so the same role

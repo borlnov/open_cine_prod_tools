@@ -22,14 +22,12 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptWorkspaceModeSwitcher].
 void main() {
   testWidgets('shows exactly one entry per workspace mode', (tester) async {
     await tester.pumpWidget(
       _wrapInApp(
-        OcptWorkspaceModeSwitcher(
-          activeMode: OcptWorkspaceMode.screenplay,
-          onModeSelected: (_) {},
-        ),
+        OcptWorkspaceModeSwitcher(activeMode: OcptWorkspaceMode.screenplay, onModeSelected: (_) {}),
       ),
     );
     await tester.pumpAndSettle();
@@ -53,7 +51,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptWorkspaceModeSwitcher)));
-    final colorScheme = Theme.of(tester.element(find.byType(OcptWorkspaceModeSwitcher))).colorScheme;
+    final colorScheme = Theme.of(
+      tester.element(find.byType(OcptWorkspaceModeSwitcher)),
+    ).colorScheme;
 
     final activeText = tester.widget<Text>(find.text(tr.workspaceModeBudget));
     final inactiveText = tester.widget<Text>(find.text(tr.workspaceModeScreenplay));

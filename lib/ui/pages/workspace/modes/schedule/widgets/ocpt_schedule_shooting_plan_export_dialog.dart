@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -25,17 +25,27 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 /// Use [show] to display it and get back the resulting [OcptShootingPlanExportOptions], or null if
 /// the user cancelled.
 class OcptScheduleShootingPlanExportDialog extends StatefulWidget {
-  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown and
-  /// to supply the margins carried through unchanged into the resulting options.
+  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown
+  /// and to supply the margins carried through unchanged into the resulting options.
   final OcptPageSetup current;
 
   /// Every live shooting day, offered by [OcptScheduleDaySelectionList].
   final List<OcptShootingDay> days;
 
   /// Class constructor
-  const OcptScheduleShootingPlanExportDialog({required this.current, required this.days, super.key});
+  const OcptScheduleShootingPlanExportDialog({
+    required this.current,
+    required this.days,
+    super.key,
+  });
 
-  /// Shows the dialog and returns the [OcptShootingPlanExportOptions] the user applied, or null if
+  /// Create the [_OcptScheduleShootingPlanExportDialogState] holding the state of the schedule
+  /// shooting plan export dialog.
+  @override
+  State<OcptScheduleShootingPlanExportDialog> createState() =>
+      _OcptScheduleShootingPlanExportDialogState();
+
+  /// Show the dialog and return the [OcptShootingPlanExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptShootingPlanExportOptions?> show(
     BuildContext context, {
@@ -45,10 +55,6 @@ class OcptScheduleShootingPlanExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptScheduleShootingPlanExportDialog(current: current, days: days),
   );
-
-  @override
-  State<OcptScheduleShootingPlanExportDialog> createState() =>
-      _OcptScheduleShootingPlanExportDialogState();
 }
 
 /// The state of [OcptScheduleShootingPlanExportDialog].
@@ -78,6 +84,7 @@ class _OcptScheduleShootingPlanExportDialogState
   /// Whether the elements summary grid will be included.
   bool _includeElementsGrid = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
@@ -85,6 +92,7 @@ class _OcptScheduleShootingPlanExportDialogState
     _selectedDayIds = widget.days.map((day) => day.id).toSet();
   }
 
+  /// Build the schedule shooting plan export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -99,7 +107,7 @@ class _OcptScheduleShootingPlanExportDialogState
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -166,16 +174,16 @@ class _OcptScheduleShootingPlanExportDialogState
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptShootingPlanExportOptions], the selected days in
+  /// Pop the dialog returning the resulting [OcptShootingPlanExportOptions], the selected days in
   /// [OcptScheduleShootingPlanExportDialog.days]' own order rather than selection order.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleShootingPlanExportDialog.show] caller. Unlike its two siblings, this dialog never
   /// disables its own export button while no day is ticked: an empty selection still produces a
@@ -185,7 +193,10 @@ class _OcptScheduleShootingPlanExportDialogState
     final options = OcptShootingPlanExportOptions(
       format: _selectedFormat,
       margins: widget.current.margins,
-      dayIds: [for (final day in widget.days) if (_selectedDayIds.contains(day.id)) day.id],
+      dayIds: [
+        for (final day in widget.days)
+          if (_selectedDayIds.contains(day.id)) day.id,
+      ],
       includeTitlePage: _includeTitlePage,
       includeLocationsGrid: _includeLocationsGrid,
       includeSequencesGrid: _includeSequencesGrid,

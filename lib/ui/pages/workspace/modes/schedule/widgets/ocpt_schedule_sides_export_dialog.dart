@@ -5,15 +5,15 @@
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
-import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_export_options.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
 /// A dialog letting the user pick the one-off options a sides export runs with: the page format,
 /// the one day printed, whether scene numbers are printed, and which presentation the booklet is
@@ -52,7 +52,12 @@ class OcptScheduleSidesExportDialog extends StatefulWidget {
     super.key,
   });
 
-  /// Shows the dialog and returns the [OcptSidesExportOptions] the user applied, or null if they
+  /// Create the [_OcptScheduleSidesExportDialogState] holding the state of the schedule sides
+  /// export dialog.
+  @override
+  State<OcptScheduleSidesExportDialog> createState() => _OcptScheduleSidesExportDialogState();
+
+  /// Show the dialog and return the [OcptSidesExportOptions] the user applied, or null if they
   /// cancelled it.
   static Future<OcptSidesExportOptions?> show(
     BuildContext context, {
@@ -64,9 +69,6 @@ class OcptScheduleSidesExportDialog extends StatefulWidget {
     builder: (context) =>
         OcptScheduleSidesExportDialog(current: current, days: days, selectedDayId: selectedDayId),
   );
-
-  @override
-  State<OcptScheduleSidesExportDialog> createState() => _OcptScheduleSidesExportDialogState();
 }
 
 /// The state of [OcptScheduleSidesExportDialog].
@@ -83,6 +85,7 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
   /// Whether a scene heading prints its own scene number in both margins.
   bool _includeSceneNumbers = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
@@ -92,6 +95,7 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
         : widget.days.first.id;
   }
 
+  /// Build the schedule sides export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -107,13 +111,14 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
             DropdownButtonFormField<String>(
               initialValue: _selectedDayId,
               decoration: InputDecoration(labelText: tr.scheduleExportSidesDayLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final day in widget.days)
                   DropdownMenuItem(
                     value: day.id,
                     child: Text(
-                      "${ocptScheduleDayTagLabel(tr, day.dayNumber)} · ${dateFormat.format(day.date)}",
+                      "${ocptScheduleDayTagLabel(tr, day.dayNumber)} · "
+                      "${dateFormat.format(day.date)}",
                     ),
                   ),
               ],
@@ -128,7 +133,7 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -144,7 +149,7 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
             DropdownButtonFormField<OcptSidesPresentation>(
               initialValue: _presentation,
               decoration: InputDecoration(labelText: tr.scheduleExportSidesPresentationLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final presentation in OcptSidesPresentation.values)
                   DropdownMenuItem(
@@ -178,15 +183,15 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptSidesExportOptions].
+  /// Pop the dialog returning the resulting [OcptSidesExportOptions].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleSidesExportDialog.show] caller.
   void _submit() {

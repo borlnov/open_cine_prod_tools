@@ -20,6 +20,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -39,6 +40,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of [OcptProjectVersionCreateDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 
@@ -81,7 +83,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(routerManager.popped, isTrue);
-    expect(routerManager.poppedValue, (name: "v4 — Shot list seq. 1 to 3", note: "Before the rewrite"));
+    expect(routerManager.poppedValue, (
+      name: "v4 — Shot list seq. 1 to 3",
+      note: "Before the rewrite",
+    ));
   });
 
   testWidgets('a version with no name is refused, and nothing is popped', (tester) async {

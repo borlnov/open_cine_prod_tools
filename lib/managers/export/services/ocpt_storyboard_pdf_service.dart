@@ -7,7 +7,9 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' show Offset;
 
-import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:act_foundation/act_foundation.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts_loader.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_floor_plan_pdf_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
@@ -21,9 +23,9 @@ import 'package:open_cine_prod_tools/models/ocpt_storyboard_annotation.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_storyboard_annotation_geometry.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_storyboard_aspect_ratio.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_storyboard_annotation_geometry.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_storyboard_aspect_ratio.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -35,6 +37,8 @@ const double _frameHeightPt = 120;
 /// relative to [_frameHeightPt] — a very wide anamorphic or very tall portrait format still prints
 /// a frame that fits beside its neighbours rather than one that swallows the row.
 const double _minimumAspectRatio = 0.5;
+
+/// The widest aspect ratio a frame is sized to, see [_minimumAspectRatio].
 const double _maximumAspectRatio = 2.6;
 
 /// The fixed width, in points, of the key-information block leading every shot row.
@@ -84,14 +88,14 @@ const double _annotationHeadLengthPt = 7;
 /// The angle, in radians, an arrow annotation's head strokes open at.
 const double _annotationHeadAnglePt = 0.45;
 
-/// Renders the storyboard of a shot list: per sequence, a header band, then per shot a row — its
+/// Render the storyboard of a shot list: per sequence, a header band, then per shot a row — its
 /// key information beside its frames, printed at a common height and their own derived aspect
 /// ratios, each frame's annotations drawn over it, its comment underneath.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own beyond reading a
 /// panel's own image file at render time (see below); it's owned by `OcptExportManager` and
 /// exposed as a public final field, reached through the manager rather than through
-/// `globalGetIt()` (RFL18), exactly like its siblings.
+/// `globalGetIt()`, exactly like its siblings.
 ///
 /// **Image bytes are read at render time, off the asset's own resolved path**
 /// (`OcptStoryboardPanel.imagePath`, ADR 0013), as `pw.MemoryImage` — the `pdf` package decodes
@@ -114,34 +118,53 @@ const double _annotationHeadAnglePt = 0.45;
 /// sheets print right after that sequence's own rows** — through [floorPlanPdfService], the very
 /// same service (and the very same `OcptFloorPlanSheet`-drawing code) the standalone floor plans
 /// PDF uses, so the two documents can never draw one set's plan two different ways.
-class OcptStoryboardPdfService {
-  /// Creates an [OcptStoryboardPdfService].
-  ///
-  /// Pass the manager's own [fontsLoader] so every export of the app session shares one font
-  /// cache, and its own [floorPlanPdfService] so the two documents' shared font cache and shared
-  /// page-building code are truly the same instance; a service built without either gets one of
-  /// its own.
-  OcptStoryboardPdfService({OcptCourierPrimeFontsLoader? fontsLoader, OcptFloorPlanPdfService? floorPlanPdfService})
-    : this._(
-        fontsLoader: fontsLoader ?? OcptCourierPrimeFontsLoader(),
-        floorPlanPdfService: floorPlanPdfService,
-      );
-
-  /// Class constructor, taking the resolved [fontsLoader] so [floorPlanPdfService]'s own default
-  /// can share it.
-  OcptStoryboardPdfService._({
-    required OcptCourierPrimeFontsLoader fontsLoader,
-    required OcptFloorPlanPdfService? floorPlanPdfService,
-  }) : fontsLoader = fontsLoader,
-       floorPlanPdfService = floorPlanPdfService ?? OcptFloorPlanPdfService(fontsLoader: fontsLoader);
-
+class OcptStoryboardPdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The service the floor plan sheets are drawn through, when appended after a sequence.
   final OcptFloorPlanPdfService floorPlanPdfService;
 
-  /// The `.pdf` file name to suggest when exporting the storyboard of [projectName]. See
+  /// Create an [OcptStoryboardPdfService].
+  ///
+  /// Pass the manager's own [fontsLoader] so every export of the app session shares one font
+  /// cache, and its own [floorPlanPdfService] so the two documents' shared font cache and shared
+  /// page-building code are truly the same instance; a service built without either gets one of
+  /// its own.
+  OcptStoryboardPdfService({
+    required MixinActLogger logger,
+    OcptCourierPrimeFontsLoader? fontsLoader,
+    OcptFloorPlanPdfService? floorPlanPdfService,
+  }) : this._(
+         logger: logger,
+         fontsLoader: fontsLoader ?? OcptCourierPrimeFontsLoader(),
+         floorPlanPdfService: floorPlanPdfService,
+       );
+
+  /// Class constructor, taking the resolved [fontsLoader] so [floorPlanPdfService]'s own default
+  /// can share it.
+  OcptStoryboardPdfService._({
+    required super.logger,
+    required OcptCourierPrimeFontsLoader fontsLoader,
+    required OcptFloorPlanPdfService? floorPlanPdfService,
+  }) : fontsLoader = fontsLoader,
+       floorPlanPdfService =
+           floorPlanPdfService ??
+           OcptFloorPlanPdfService(
+             logger: logger.createAbsSubLogger(subCategory: 'floor_plan_pdf'),
+             fontsLoader: fontsLoader,
+           );
+
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await floorPlanPdfService.initLifeCycle();
+  }
+
+  /// Get the `.pdf` file name to suggest when exporting the storyboard of [projectName]. See
   /// `OcptScenarioCoveragePdfService.coverageFileName`'s own doc comment for [suffix] and
   /// [episodeTag].
   String storyboardFileName({
@@ -155,7 +178,7 @@ class OcptStoryboardPdfService {
     extension: "pdf",
   );
 
-  /// Renders the storyboard of [snapshot]/[storyboardSnapshot], returning the PDF's bytes.
+  /// Render the storyboard of [snapshot]/[storyboardSnapshot], returning the PDF's bytes.
   ///
   /// [shotsPerPage] is how many shot rows print before a fresh page starts (clamped to at least
   /// 1); a sequence with more shots than that spans several pages, its own header band repeated at
@@ -219,7 +242,7 @@ class OcptStoryboardPdfService {
     return pdfDocument.save();
   }
 
-  /// Reads every referenced panel image once, ahead of building the page widgets — a `pw.Document`
+  /// Read every referenced panel image once, ahead of building the page widgets — a `pw.Document`
   /// is built synchronously, so every file this render touches is read up front rather than from
   /// inside a widget's own `build`.
   ///
@@ -238,23 +261,31 @@ class OcptStoryboardPdfService {
     return result;
   }
 
-  /// [path]'s bytes decoded as a `pw.MemoryImage`, or null when [path] is null, names no file, or
+  /// Get [path]'s bytes decoded as a `pw.MemoryImage`, or null when [path] is null, names no file,
+  /// or
   /// cannot be decoded.
   Future<pw.MemoryImage?> _readImageOrNull(String? path) async {
     if (path == null) {
       return null;
     }
+    pw.MemoryImage? image;
     try {
       final bytes = await File(path).readAsBytes();
-      return pw.MemoryImage(bytes);
-    } catch (_) {
+      image = pw.MemoryImage(bytes);
+    } catch (error, stackTrace) {
       // A missing file (ADR 0013), a path that no longer names a file at all, or bytes the `pdf`
       // package cannot decode: all the same printed state, the placeholder frame.
-      return null;
+      logger.d(
+        'An image could not be read, using the placeholder: ${error.runtimeType}',
+        null,
+        stackTrace,
+      );
     }
+
+    return image;
   }
 
-  /// [shots] split into chunks of at most [size], in order.
+  /// Get [shots] split into chunks of at most [size], in order.
   List<List<OcptShot>> _chunked(List<OcptShot> shots, int size) {
     final chunks = <List<OcptShot>>[];
     for (var start = 0; start < shots.length; start += size) {
@@ -263,7 +294,8 @@ class OcptStoryboardPdfService {
     return chunks;
   }
 
-  /// One page (a `pw.MultiPage`, so a chunk whose rows still overflow it flows onto a continuation
+  /// Build one page (a `pw.MultiPage`, so a chunk whose rows still overflow it flows onto a
+  /// continuation
   /// page rather than clipping): the running head, [sequence]'s own header band, then one row per
   /// shot of [shots].
   pw.MultiPage _buildChunkPage({
@@ -300,7 +332,7 @@ class OcptStoryboardPdfService {
     ],
   );
 
-  /// The running head every page carries: the project and the document's own name.
+  /// Build the running head every page carries: the project and the document's own name.
   pw.Widget _runningHead({
     required OcptScriptPagePainter painter,
     required OcptStoryboardLabels labels,
@@ -310,7 +342,7 @@ class OcptStoryboardPdfService {
     style: pw.TextStyle(font: painter.fonts.regular, fontSize: _headFontSizePt, color: _mutedColor),
   );
 
-  /// The full-width band introducing [sequence]'s own rows.
+  /// Build the full-width band introducing [sequence]'s own rows.
   pw.Widget _sequenceBand({
     required OcptScriptPagePainter painter,
     required OcptStoryboardLabels labels,
@@ -325,7 +357,7 @@ class OcptStoryboardPdfService {
     ),
   );
 
-  /// One shot row: its key-information block, then its frames (or the "no panel" note) at a
+  /// Build one shot row: its key-information block, then its frames (or the "no panel" note) at a
   /// common height and their own derived aspect ratios.
   pw.Widget _shotRow({
     required OcptScriptPagePainter painter,
@@ -372,7 +404,7 @@ class OcptStoryboardPdfService {
     );
   }
 
-  /// The key-information block leading a shot row: its code and status, then its shot size,
+  /// Build the key-information block leading a shot row: its code and status, then its shot size,
   /// framing, camera move, lens, recording format and attached cast.
   pw.Widget _keyInfoBlock({
     required OcptScriptPagePainter painter,
@@ -386,10 +418,17 @@ class OcptStoryboardPdfService {
     child: pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(shot.code, style: pw.TextStyle(font: painter.fonts.bold, fontSize: _codeFontSizePt)),
+        pw.Text(
+          shot.code,
+          style: pw.TextStyle(font: painter.fonts.bold, fontSize: _codeFontSizePt),
+        ),
         pw.Text(
           labels.labelOfStatus(shot.status),
-          style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt, color: _mutedColor),
+          style: pw.TextStyle(
+            font: painter.fonts.italic,
+            fontSize: _bodyFontSizePt,
+            color: _mutedColor,
+          ),
         ),
         pw.SizedBox(height: 4),
         _infoLine(painter, labels.shotSizeLabel, shot.shotSize),
@@ -402,7 +441,7 @@ class OcptStoryboardPdfService {
     ),
   );
 
-  /// One `label: value` line of the key-information block, omitted entirely when [value] is
+  /// Build one `label: value` line of the key-information block, omitted entirely when [value] is
   /// blank — a block naming every field it holds nothing for would read as noisier than the read
   /// it is meant to shorten.
   pw.Widget _infoLine(OcptScriptPagePainter painter, String label, String value) {
@@ -419,7 +458,8 @@ class OcptStoryboardPdfService {
     );
   }
 
-  /// A dashed-bordered placeholder frame — a shot with no panel, or a panel whose image could not
+  /// Build a dashed-bordered placeholder frame — a shot with no panel, or a panel whose image could
+  /// not
   /// be read.
   pw.Widget _placeholderFrame({
     required OcptScriptPagePainter painter,
@@ -435,11 +475,15 @@ class OcptStoryboardPdfService {
     child: pw.Text(
       text,
       textAlign: pw.TextAlign.center,
-      style: pw.TextStyle(font: painter.fonts.italic, fontSize: _bodyFontSizePt, color: _mutedColor),
+      style: pw.TextStyle(
+        font: painter.fonts.italic,
+        fontSize: _bodyFontSizePt,
+        color: _mutedColor,
+      ),
     ),
   );
 
-  /// One panel's own frame: its image (or the placeholder, when [image] is null) with its
+  /// Build one panel's own frame: its image (or the placeholder, when [image] is null) with its
   /// annotations drawn over it, its comment underneath.
   pw.Widget _panelFrame({
     required OcptScriptPagePainter painter,
@@ -465,7 +509,8 @@ class OcptStoryboardPdfService {
                 pw.Positioned.fill(
                   child: pw.CustomPaint(
                     size: PdfPoint(widthPt, heightPt),
-                    painter: (canvas, size) => _paintAnnotationMarks(canvas, size, panel.annotations),
+                    painter: (canvas, size) =>
+                        _paintAnnotationMarks(canvas, size, panel.annotations),
                   ),
                 ),
                 ..._annotationCaptionOverlays(panel.annotations, widthPt, heightPt, painter),
@@ -493,15 +538,20 @@ class OcptStoryboardPdfService {
     );
   }
 
-  /// Draws every arrow's shaft and head, and every label's own anchor dot, over a frame of [size],
+  /// Draw every arrow's shaft and head, and every label's own anchor dot, over a frame of [size],
   /// from the very same shared pure rule `OcptStoryboardAnnotationOverlayPainter` reads,
-  /// `ocptStoryboardAnnotationPointOf` (`lib/utils/ocpt_storyboard_annotation_geometry.dart`) —
-  /// see this class's own doc comment. A label's own text is a separate [pw.Text] overlay
-  /// ([_annotationCaptionOverlays]): `pdf`'s low-level `PdfGraphics.drawString` takes a `PdfFont`
-  /// the widget-level `pw.Font` this app's `OcptCourierPrimeFonts` hands out cannot be converted
-  /// to outside of a build context, the same reason `OcptFloorPlanPdfService` keeps every caption
-  /// it prints out of its own `CustomPaint` calls.
-  void _paintAnnotationMarks(PdfGraphics canvas, PdfPoint size, List<OcptStoryboardAnnotation> annotations) {
+  /// `ocptStoryboardAnnotationPointOf`
+  /// (`lib/models/rules/ocpt_storyboard_annotation_geometry.dart`) — see this class's own doc
+  /// comment. A label's own text is a separate [pw.Text] overlay ([_annotationCaptionOverlays]):
+  /// `pdf`'s low-level `PdfGraphics.drawString` takes a `PdfFont` the widget-level `pw.Font` this
+  /// app's `OcptCourierPrimeFonts` hands out cannot be converted to outside of a build context, the
+  /// same reason `OcptFloorPlanPdfService` keeps every caption it prints out of its own
+  /// `CustomPaint` calls.
+  void _paintAnnotationMarks(
+    PdfGraphics canvas,
+    PdfPoint size,
+    List<OcptStoryboardAnnotation> annotations,
+  ) {
     for (final annotation in annotations) {
       // The shared rule measures y from the frame's own top; PdfGraphics measures it from the
       // frame's own bottom — the one flip this drawing needs, applied here and nowhere else.
@@ -534,7 +584,8 @@ class OcptStoryboardPdfService {
     }
   }
 
-  /// One [pw.Positioned] [pw.Text] per non-empty label annotation, at the very same normalised
+  /// Build one [pw.Positioned] [pw.Text] per non-empty label annotation, at the very same
+  /// normalised
   /// point [_paintAnnotationMarks] draws its anchor dot at — a `pw.Positioned` measures its own
   /// `left`/`top` from the frame's own top-left corner, exactly the stored convention's own origin,
   /// so no flip is needed here (unlike every `PdfGraphics` call, which is not a widget and measures
@@ -550,7 +601,7 @@ class OcptStoryboardPdfService {
         _labelCaption(annotation, widthPt, heightPt, painter),
   ];
 
-  /// One label annotation's own caption, positioned at its own normalised anchor.
+  /// Build one label annotation's own caption, positioned at its own normalised anchor.
   pw.Widget _labelCaption(
     OcptStoryboardAnnotation annotation,
     double widthPt,
@@ -573,9 +624,16 @@ class OcptStoryboardPdfService {
     );
   }
 
-  /// One arrow annotation: a shaft from [tail] to [head], solid or [dashed], and a small filled
+  /// Paint one arrow annotation: a shaft from [tail] to [head], solid or [dashed], and a small
+  /// filled
   /// arrowhead at [head].
-  void _paintArrow(PdfGraphics canvas, Offset tail, Offset head, PdfColor color, {required bool dashed}) {
+  void _paintArrow(
+    PdfGraphics canvas,
+    Offset tail,
+    Offset head,
+    PdfColor color, {
+    required bool dashed,
+  }) {
     canvas
       ..setColor(color)
       ..setLineWidth(1.5);
@@ -607,5 +665,15 @@ class OcptStoryboardPdfService {
       ..lineTo(left.dx, left.dy)
       ..lineTo(right.dx, right.dy)
       ..fillPath();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await floorPlanPdfService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }

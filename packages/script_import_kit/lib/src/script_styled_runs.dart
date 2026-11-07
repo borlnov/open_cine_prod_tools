@@ -4,7 +4,7 @@
 
 import 'package:fountain_kit/fountain_kit.dart';
 
-/// Trims the outer whitespace of [runs] taken as one line — the leading
+/// Trim the outer whitespace of [runs] taken as one line — the leading
 /// whitespace of the first run, the trailing whitespace of the last —
 /// dropping any run left with nothing in it.
 ///
@@ -44,11 +44,10 @@ List<FountainStyledRun> trimStyledRunEdges(List<FountainStyledRun> runs) {
   return trimmed;
 }
 
-/// [run] with its text replaced by [text], its styles kept.
-FountainStyledRun _withText(FountainStyledRun run, String text) =>
-    FountainStyledRun(
-      text: text,
-      isBold: run.isBold,
-      isItalic: run.isItalic,
-      isUnderline: run.isUnderline,
-    );
+/// Get [run] with its text replaced by [text], its styles kept.
+FountainStyledRun _withText(FountainStyledRun run, String text) => FountainStyledRun(
+  text: text,
+  isBold: run.isBold,
+  isItalic: run.isItalic,
+  isUnderline: run.isUnderline,
+);

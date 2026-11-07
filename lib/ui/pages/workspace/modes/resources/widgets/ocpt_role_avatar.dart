@@ -32,6 +32,7 @@ class OcptRoleAvatar extends StatelessWidget {
   /// Class constructor
   const OcptRoleAvatar({super.key, required this.castMember, required this.radius});
 
+  /// Build the role avatar as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -45,7 +46,10 @@ class OcptRoleAvatar extends StatelessWidget {
     return Container(
       width: radius * 2,
       height: radius * 2,
-      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: outline)),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: outline),
+      ),
       child: Icon(Icons.person_outline, size: radius * _iconScale, color: outline),
     );
   }

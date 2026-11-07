@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// One of the budget mode's typed, free-text fields — a poste's or a quote line's own — whose
+/// One of the budget mode's typed, free-text fields — an account's or a quote line's own — whose
 /// edits go through `OcptBudgetBloc`'s 2 s autosave debounce rather than being written immediately,
-/// mirroring `OcptScheduleField`'s own single flat enum over several kinds of entity (a poste's own
-/// fields are prefixed `poste…`, a line's `line…`, so one pending-edit map can key on either
+/// mirroring `OcptScheduleField`'s own single flat enum over several kinds of entity (an account's
+/// own fields are prefixed `account…`, a line's `line…`, so one pending-edit map can key on either
 /// without the two ever colliding).
 ///
 /// Every non-typed write of this mode — a line's tax-basis radio, a reorder, a delete, a creation —
@@ -17,30 +17,30 @@
 /// submission, and this mode reads that null as "leave the override exactly as it is" rather than
 /// as "clear it" — the field's own way back to inheriting the project's rate is
 /// `OcptBudgetLineVatRateInheritedRequestedEvent`, a dedicated, immediate gesture, exactly as the
-/// project settings' own `No rate` button is for `defaultVatRateBasisPoints`. An empty text field is
-/// not that gesture: a stray backspace must never silently drop an override typed on purpose.
+/// project settings' own `No rate` button is for `defaultVatRateBasisPoints`. An empty text field
+/// is not that gesture: a stray backspace must never silently drop an override typed on purpose.
 enum OcptBudgetField {
-  /// Maps to `OcptBudgetQuoteService.updatePoste`'s `label`.
-  posteLabel,
+  /// Maps to `OcptBudgetQuoteService.updateAccount`'s `label`.
+  accountLabel,
 
-  /// Maps to `OcptBudgetQuoteService.updatePoste`'s `code`.
-  posteCode,
+  /// Maps to `OcptBudgetQuoteService.updateAccount`'s `code`.
+  accountCode,
 
-  /// Maps to `OcptBudgetQuoteService.updatePoste`'s `simpleLabel` — an empty submission is written
-  /// as `null`, unlike every other free-text field here: a simple label's own null already means
-  /// something (falling back to [posteLabel], `docs/architecture/budget.md`'s own reading), so
-  /// clearing the field is the plain, unambiguous way back to it, with no second gesture needed the
-  /// way [lineVatRateOverride] or [posteEstimateToComplete] need one.
-  posteSimpleLabel,
+  /// Maps to `OcptBudgetQuoteService.updateAccount`'s `simpleLabel` — an empty submission is
+  /// written as `null`, unlike every other free-text field here: a simple label's own null already
+  /// means something (falling back to [accountLabel], `docs/architecture/budget.md`'s own reading),
+  /// so clearing the field is the plain, unambiguous way back to it, with no second gesture needed
+  /// the way [lineVatRateOverride] or [accountEstimateToComplete] need one.
+  accountSimpleLabel,
 
-  /// Maps to `OcptBudgetQuoteService.updatePoste`'s `estimateToCompleteCents`, read through
+  /// Maps to `OcptBudgetQuoteService.updateAccount`'s `estimateToCompleteCents`, read through
   /// `ocptCostCentsOf` exactly as [lineUnitAmount] is. An empty or unparseable submission is
   /// **skipped**, never written as null and never as zero — the same "null, never zero" honesty
   /// [lineVatRateOverride] already argues for a stray backspace: a figure typed on purpose is never
   /// silently dropped. The dedicated way back to the derived figure is
-  /// `OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent`, mirroring
+  /// `OcptBudgetAccountEstimateToCompleteDerivedRequestedEvent`, mirroring
   /// `OcptBudgetLineVatRateInheritedRequestedEvent`.
-  posteEstimateToComplete,
+  accountEstimateToComplete,
 
   /// Maps to `OcptBudgetQuoteService.updateLine`'s `label`.
   lineLabel,

@@ -4,10 +4,14 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
@@ -43,39 +47,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 /// refresh dispatched on mount, say, against a version operation the user triggers a moment
 /// later — would otherwise be free to interleave their own multi-step reads and writes against the
 /// very same database.
-mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> on BlocForMixin<S> {
-  /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
-  /// The manager owning the open project, its version list and the preview state.
-  ///
-  /// Declared here and implemented by each mode's bloc, rather than resolved through [globalGetIt]
-  /// by the mixin itself, so a bloc built with an explicitly injected manager (which is what every
-  /// test does) has this mixin work against that same instance.
-  /// {@endtemplate}
-  @protected
-  OcptProjectsManager get projectsManager;
-
-  /// Writes whatever the mode still holds outside the database — a pending autosave, a debounced
-  /// field edit — before a preview swaps that database out from under it.
-  ///
-  /// Called with the current handler's [emitter], so the mode can report the write through its own
-  /// state exactly as it would for a user-triggered save.
-  @protected
-  Future<void> flushPendingProjectWrites(Emitter<S> emitter);
-
-  /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
-  /// Reads everything the mode shows from `OcptOpenProjectModel.database` again, after entering or
-  /// leaving a preview replaced it.
-  ///
-  /// Normally the mode's own load handler, called directly with the current handler's `emitter`.
-  ///
-  /// It must emit [MixinOcptProjectVersionsState.previewedVersionId] — read from
-  /// `OcptProjectsManager.currentProject`, the source of truth — in the very same state as the data
-  /// it just read, since that data comes from whichever database the id names. Emitting the two
-  /// separately would leave one frame showing a version's content with every editing affordance of
-  /// the working copy still on it.
-  /// {@endtemplate}
-  @protected
-  Future<void> reloadFromProjectDatabase(Emitter<S> emitter);
+mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
+    on BlocForMixin<S>, MixinAsyncInitBloc<S> {
+  /// The logger category linked to this mixin.
+  static const _loggerCategory = "project_versions_bloc";
 
   /// The minimum delay this mixin lets pass between two working-copy captures that
   /// [_onWorkingCopyRefreshRequested] performs, since [OcptProjectsManager.captureWorkingCopyState]
@@ -85,6 +60,9 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   /// directly instead of through the throttled handler.
   static const _workingCopyCaptureThrottle = Duration(seconds: 2);
 
+  /// The logger this mixin writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
   /// When the working copy was last captured, or null before the first one. Read and written by
   /// [_captureWorkingCopyState] alone, which is the single primitive both capture paths share.
   DateTime? _lastWorkingCopyCaptureAt;
@@ -92,29 +70,62 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   /// The tail of every project-touching operation queued through [_serialized] so far.
   Future<void> _pendingOperations = Future.value();
 
-  /// Runs [operation] only once every operation already queued through this has settled, and
-  /// queues it in turn — the mixin's own way of making its handlers behave as if events were
-  /// processed sequentially, which several of them (see the class doc comment) depend on.
+  /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  /// Get the manager owning the open project, its version list and the preview state.
   ///
-  /// [_emitVersions] in particular reads the version list and only then captures the working
-  /// copy, two separate awaits: without this, a slower, earlier operation's list read could land
-  /// in the very same emitted state as a later operation's working-copy capture, pairing data that
-  /// never coexisted (a version list from before a version existed, say, next to a working-copy
-  /// snapshot measured after it was created).
+  /// Declared here and implemented by each mode's bloc, rather than resolved through [globalGetIt]
+  /// by the mixin itself, so a bloc built with an explicitly injected manager (which is what every
+  /// test does) has this mixin work against that same instance.
+  /// {@endtemplate}
+  @protected
+  OcptProjectsManager get projectsManager;
+
+  /// Write whatever the mode still holds outside the database — a pending autosave, a debounced
+  /// field edit — before a preview swaps that database out from under it.
   ///
-  /// A failed [operation] must not leave the queue stuck: whatever already reported the failure (a
-  /// notice, a logged error) has done its job, so [_pendingOperations] itself never carries the
-  /// error forward — only the [Future] handed back to the caller does.
-  Future<void> _serialized(Future<void> Function() operation) {
-    final result = _pendingOperations.then((_) => operation());
-    _pendingOperations = result.then((_) {}, onError: (_) {});
-    return result;
+  /// Called with the current handler's [emitter], so the mode can report the write through its own
+  /// state exactly as it would for a user-triggered save.
+  ///
+  /// Answers whether the action it was called for may go on. A mode that shows a failed write
+  /// itself and carries on answers true; one whose action must not run over a database missing a
+  /// typed edit (the edit would be dropped with the state the action replaces) answers false, and
+  /// the handler stops there with nothing changed.
+  @protected
+  Future<bool> flushPendingProjectWrites(Emitter<S> emitter);
+
+  /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
+  /// Read everything the mode shows from `OcptOpenProjectModel.database` again, after entering or
+  /// leaving a preview replaced it.
+  ///
+  /// Normally the mode's own load handler, called directly with the current handler's `emitter`.
+  ///
+  /// It must emit [MixinOcptProjectVersionsState.previewedVersionId] — read from
+  /// `OcptProjectsManager.currentProject`, the source of truth — in the very same state as the data
+  /// it just read, since that data comes from whichever database the id names. Emitting the two
+  /// separately would leave one frame showing a version's content with every editing affordance of
+  /// the working copy still on it.
+  ///
+  /// Answers whether the mode could read its data. A mode whose read failed answers false, and the
+  /// handler that asked stops there, as a raised failure used to stop it: the version list is not
+  /// emitted over data the mode did not read.
+  /// {@endtemplate}
+  @protected
+  Future<bool> reloadFromProjectDatabase(Emitter<S> emitter);
+
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
+  /// The initial refresh runs from here rather than being left to each mode, so a mode never has to
+  /// remember to populate the panel it hosts. It is dispatched rather than awaited: capturing the
+  /// working copy hashes the whole project, and the mode's own first read must not wait for that.
+  @protected
+  @override
+  @mustCallSuper
+  Future<void> initAsyncBloc({required Emitter<S> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+    add(const OcptProjectVersionsRefreshRequestedEvent());
   }
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
-  ///
-  /// The initial refresh is dispatched from here rather than left to each mode's constructor, so a
-  /// mode never has to remember to populate the panel it hosts.
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
@@ -134,17 +145,34 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     on<OcptProjectVersionPreviewExitRequestedEvent>(_onVersionPreviewExitRequested);
     on<OcptProjectWorkingCopyRefreshRequestedEvent>(_onWorkingCopyRefreshRequested);
     on<OcptProjectVersionNoticeDismissedEvent>(_onVersionNoticeDismissed);
-
-    add(const OcptProjectVersionsRefreshRequestedEvent());
   }
 
-  /// Reloads the version list and the previewed version's id from the open project.
+  /// Run [operation] only once every operation already queued through this has settled, and
+  /// queues it in turn — the mixin's own way of making its handlers behave as if events were
+  /// processed sequentially, which several of them (see the class doc comment) depend on.
+  ///
+  /// [_emitVersions] in particular reads the version list and only then captures the working
+  /// copy, two separate awaits: without this, a slower, earlier operation's list read could land
+  /// in the very same emitted state as a later operation's working-copy capture, pairing data that
+  /// never coexisted (a version list from before a version existed, say, next to a working-copy
+  /// snapshot measured after it was created).
+  ///
+  /// A failed [operation] must not leave the queue stuck: whatever already reported the failure (a
+  /// notice, a logged error) has done its job, so [_pendingOperations] itself never carries the
+  /// error forward — only the [Future] handed back to the caller does.
+  Future<void> _serialized(Future<void> Function() operation) {
+    final result = _pendingOperations.then((_) => operation());
+    _pendingOperations = result.then((_) {}, onError: (_) {});
+    return result;
+  }
+
+  /// Reload the version list and the previewed version's id from the open project.
   Future<void> _onVersionsRefreshRequested(
     OcptProjectVersionsRefreshRequestedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() => _emitVersions(emitter));
 
-  /// Captures the working copy as a new version, then reloads the list so the new card — the
+  /// Capture the working copy as a new version, then reload the list so the new card — the
   /// current one from now on — appears at its top.
   ///
   /// Deliberately refused while a version is being previewed: the capture reads the project file
@@ -154,49 +182,43 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     Emitter<S> emitter,
   ) => _serialized(() async {
     if (state.isPreviewingVersion) {
-      appLogger().w("A project version can't be created while another one is being previewed: the "
-          "capture would record the working copy rather than what is on screen");
+      _logger.w(
+        "A project version can't be created while another one is being previewed: the capture "
+        "would record the working copy rather than what is on screen",
+      );
       return;
     }
 
-    await flushPendingProjectWrites(emitter);
-
-    try {
-      await projectsManager.createProjectVersion(name: event.name, note: event.note);
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to create the project version "
-          "'${event.name}': $error");
-      await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.creationFailed);
+    if (!await flushPendingProjectWrites(emitter)) {
       return;
     }
 
-    await _emitVersions(emitter);
+    final created = await projectsManager.createProjectVersion(name: event.name, note: event.note);
+
+    await _emitVersions(
+      emitter,
+      notice: created.isError ? OcptProjectVersionNoticeKind.creationFailed : null,
+    );
   });
 
-  /// Shows the inline delete confirmation of one card, replacing whichever answer any card was
+  /// Show the inline delete confirmation of one card, replacing whichever answer any card was
   /// already asking for.
   Future<void> _onVersionDeletionRequested(
     OcptProjectVersionDeletionRequestedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(
-      state.copyProjectVersionsState(
-        versionPendingDeletionId: event.versionId,
-        clearVersionPendingRestoreId: true,
-        clearVersionPendingRenameId: true,
-      ),
-    );
+    emitter(state.copyWithDeletionPending(versionId: event.versionId));
   }
 
-  /// Hides the inline delete confirmation currently shown.
+  /// Hide the inline delete confirmation currently shown.
   Future<void> _onVersionDeletionCancelled(
     OcptProjectVersionDeletionCancelledEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectVersionsState(clearVersionPendingDeletionId: true));
+    emitter(state.copyWithDeletionDismissed());
   }
 
-  /// Deletes a version for good, then reloads the list.
+  /// Delete a version for good, then reload the list.
   ///
   /// The confirmation is cleared whatever happens: a failed deletion leaves the card there, but
   /// not stuck on a confirmation the user already answered.
@@ -204,42 +226,32 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionDeletionConfirmedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
-    try {
-      await projectsManager.deleteProjectVersion(event.versionId);
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to delete the project version "
-          "${event.versionId}: $error");
-      await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.deletionFailed);
-      return;
-    }
+    final deleted = await projectsManager.deleteProjectVersion(event.versionId);
 
-    await _emitVersions(emitter);
+    await _emitVersions(
+      emitter,
+      notice: deleted.isError ? OcptProjectVersionNoticeKind.deletionFailed : null,
+    );
   });
 
-  /// Shows the inline restore confirmation of one card, replacing whichever answer any card was
+  /// Show the inline restore confirmation of one card, replacing whichever answer any card was
   /// already asking for.
   Future<void> _onVersionRestoreRequested(
     OcptProjectVersionRestoreRequestedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(
-      state.copyProjectVersionsState(
-        versionPendingRestoreId: event.versionId,
-        clearVersionPendingDeletionId: true,
-        clearVersionPendingRenameId: true,
-      ),
-    );
+    emitter(state.copyWithRestorePending(versionId: event.versionId));
   }
 
-  /// Hides the inline restore confirmation currently shown.
+  /// Hide the inline restore confirmation currently shown.
   Future<void> _onVersionRestoreCancelled(
     OcptProjectVersionRestoreCancelledEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectVersionsState(clearVersionPendingRestoreId: true));
+    emitter(state.copyWithRestoreDismissed());
   }
 
-  /// Puts the whole project back into the state a version holds, then reloads everything the mode
+  /// Put the whole project back into the state a version holds, then reload everything the mode
   /// shows from the restored working copy.
   ///
   /// This is also what the read-only banner's `Start from this version` dispatches when the
@@ -260,46 +272,49 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionRestoreConfirmedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
-    await flushPendingProjectWrites(emitter);
+    if (!await flushPendingProjectWrites(emitter)) {
+      return;
+    }
 
     final status = await projectsManager.restoreProjectVersion(
       versionId: event.versionId,
       safetyVersionName: event.safetyVersionName,
     );
 
+    if (status == OcptProjectRestoreStatus.databaseError) {
+      return;
+    }
+
     if (!status.isSuccess) {
       await _emitVersions(emitter, notice: _noticeForRestoreStatus(status));
       return;
     }
 
-    await reloadFromProjectDatabase(emitter);
+    if (!await reloadFromProjectDatabase(emitter)) {
+      return;
+    }
+
     await _emitVersions(emitter);
   });
 
-  /// Shows the inline rename form of one card, replacing whichever answer any card was already
+  /// Show the inline rename form of one card, replacing whichever answer any card was already
   /// asking for.
   Future<void> _onVersionRenameRequested(
     OcptProjectVersionRenameRequestedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(
-      state.copyProjectVersionsState(
-        versionPendingRenameId: event.versionId,
-        clearVersionPendingDeletionId: true,
-        clearVersionPendingRestoreId: true,
-      ),
-    );
+    emitter(state.copyWithRenamePending(versionId: event.versionId));
   }
 
-  /// Hides the inline rename form currently shown.
+  /// Hide the inline rename form currently shown.
   Future<void> _onVersionRenameCancelled(
     OcptProjectVersionRenameCancelledEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectVersionsState(clearVersionPendingRenameId: true));
+    emitter(state.copyWithRenameDismissed());
   }
 
-  /// Renames a version's name and note, then reloads the list so its card reads the new ones.
+  /// Rename a version's name and note, then reload the list so its card reads the new ones.
   ///
   /// The rename form is cleared whatever happens, exactly as a delete's confirmation is: a failed
   /// rename leaves the card there, but not stuck on a form the user already submitted.
@@ -307,23 +322,19 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionRenameConfirmedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
-    try {
-      await projectsManager.renameProjectVersion(
-        versionId: event.versionId,
-        name: event.name,
-        note: event.note,
-      );
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to rename the project version "
-          "${event.versionId}: $error");
-      await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.renameFailed);
-      return;
-    }
+    final renamed = await projectsManager.renameProjectVersion(
+      versionId: event.versionId,
+      name: event.name,
+      note: event.note,
+    );
 
-    await _emitVersions(emitter);
+    await _emitVersions(
+      emitter,
+      notice: renamed.isError ? OcptProjectVersionNoticeKind.renameFailed : null,
+    );
   });
 
-  /// Enters the read-only preview of a version: flushes whatever the mode still holds, asks the
+  /// Enter the read-only preview of a version: flushes whatever the mode still holds, asks the
   /// manager to swap the database, then reloads everything the mode shows from it.
   ///
   /// A failed preview leaves the working copy on screen (the manager guarantees it) and reports
@@ -354,20 +365,29 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionPreviewRequestedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
-    await flushPendingProjectWrites(emitter);
+    if (!await flushPendingProjectWrites(emitter)) {
+      return;
+    }
 
     final result = await projectsManager.previewVersion(event.versionId);
+    if (result.status == OcptProjectPreviewStatus.databaseError) {
+      return;
+    }
+
     if (!result.status.isSuccess) {
       await _emitVersions(emitter, notice: _noticeForPreviewStatus(result.status));
       return;
     }
 
-    emitter(state.copyProjectVersionsState(clearWorkingCopy: true));
-    await reloadFromProjectDatabase(emitter);
-    emitter(state.copyProjectVersionsState(clearVersionPendingDeletionId: true));
+    emitter(state.copyWithWorkingCopyCleared());
+    if (!await reloadFromProjectDatabase(emitter)) {
+      return;
+    }
+
+    emitter(state.copyWithDeletionDismissed());
   });
 
-  /// Leaves the read-only preview and reloads everything the mode shows from the working copy.
+  /// Leave the read-only preview and reload everything the mode shows from the working copy.
   ///
   /// The working copy is captured again on the way, unthrottled: entering the preview cleared it,
   /// and nothing else would put it back — the tab showing its card is already the selected one, so
@@ -382,29 +402,34 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionPreviewExitRequestedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
-    await projectsManager.exitPreview();
+    final left = await projectsManager.exitPreview();
+    if (left.isError) {
+      return;
+    }
 
-    final workingCopy = await _captureWorkingCopyState();
-    emitter(
-      state.copyProjectVersionsState(
-        workingCopy: workingCopy,
-        clearWorkingCopy: workingCopy == null,
-      ),
-    );
+    final captured = await _captureWorkingCopyState();
+    if (captured.isError) {
+      return;
+    }
 
-    await reloadFromProjectDatabase(emitter);
-    emitter(state.copyProjectVersionsState(clearVersionPendingDeletionId: true));
+    emitter(state.copyWithCapturedWorkingCopy(workingCopy: captured.value));
+
+    if (!await reloadFromProjectDatabase(emitter)) {
+      return;
+    }
+
+    emitter(state.copyWithDeletionDismissed());
   });
 
-  /// Clears the transient version notice currently shown, if any.
+  /// Clear the transient version notice currently shown, if any.
   Future<void> _onVersionNoticeDismissed(
     OcptProjectVersionNoticeDismissedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectVersionsState(clearProjectVersionNotice: true));
+    emitter(state.copyWithVersionNoticeDismissed());
   }
 
-  /// Emits the version list, the previewed version's id and a fresh working-copy capture as the
+  /// Emit the version list, the previewed version's id and a fresh working-copy capture as the
   /// project now holds them, optionally alongside [notice].
   ///
   /// Every handler that actually changes the project ends here, so the panel is redrawn from the
@@ -421,32 +446,28 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   /// on its way out, and every caller already reports its own failures through [notice] before
   /// ever reaching this.
   Future<void> _emitVersions(Emitter<S> emitter, {OcptProjectVersionNoticeKind? notice}) async {
-    try {
-      final versions = await projectsManager.listProjectVersions();
-      final previewedVersionId = projectsManager.currentProject?.previewedVersion?.id;
-      final workingCopy = await _captureWorkingCopyState();
-
-      emitter(
-        state.copyProjectVersionsState(
-          projectVersions: versions,
-          previewedVersionId: previewedVersionId,
-          clearPreviewedVersionId: previewedVersionId == null,
-          workingCopy: workingCopy,
-          clearWorkingCopy: workingCopy == null,
-          clearVersionPendingDeletionId: true,
-          clearVersionPendingRestoreId: true,
-          clearVersionPendingRenameId: true,
-          projectVersionNotice: notice,
-          clearProjectVersionNotice: notice == null,
-        ),
-      );
-    } catch (error) {
-      appLogger().w("A problem occurred when tried to read the project's versions, most likely "
-          "because the project already closed: $error");
+    final versions = await projectsManager.listProjectVersions();
+    if (versions.isError) {
+      return;
     }
+
+    final previewedVersionId = projectsManager.currentProject?.previewedVersion?.id;
+    final captured = await _captureWorkingCopyState();
+    if (captured.isError) {
+      return;
+    }
+
+    emitter(
+      state.copyWithReloadedVersions(
+        versions: versions.value!,
+        previewedVersionId: previewedVersionId,
+        workingCopy: captured.value,
+        notice: notice,
+      ),
+    );
   }
 
-  /// Captures the working copy's live state through
+  /// Capture the working copy's live state through
   /// [OcptProjectsManager.captureWorkingCopyState], recording when it did so
   /// [_onWorkingCopyRefreshRequested]'s throttle has something to measure against.
   ///
@@ -460,20 +481,24 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   /// answers the other two cases without touching the file, so there is nothing to throttle, and
   /// stamping them would make the first real capture after a preview wait out a window nothing
   /// ever paid for.
-  Future<OcptProjectWorkingCopyState?> _captureWorkingCopyState() async {
-    final workingCopy = await projectsManager.captureWorkingCopyState();
+  ///
+  /// Answers the failure of the capture as it came, and the caller stops there.
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> _captureWorkingCopyState() async {
+    final captured = await projectsManager.captureWorkingCopyState();
 
-    if (workingCopy != null) {
+    if (!captured.isError && captured.value != null) {
       _lastWorkingCopyCaptureAt = DateTime.now();
     }
 
-    return workingCopy;
+    return captured;
   }
 
-  /// Refreshes the working copy's own card alone, throttled to at most one real capture every
+  /// Refresh the working copy's own card alone, throttled to at most one real capture every
   /// [_workingCopyCaptureThrottle]: dispatched on a tab reselection or a save (see the mixin's own
-  /// doc comment for exactly where each mode dispatches it), both of which can happen far more often
-  /// than the whole-project read behind [OcptProjectsManager.captureWorkingCopyState] should run.
+  /// doc comment for exactly where each mode dispatches it), both of which can happen far more
+  /// often than the whole-project read behind [OcptProjectsManager.captureWorkingCopyState] should
+  /// run.
   ///
   /// A dispatch that lands inside the throttle window is a silent no-op — nothing is emitted, so
   /// the state already showing what the last capture found is never replaced by a second,
@@ -490,21 +515,15 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
       return;
     }
 
-    try {
-      final workingCopy = await _captureWorkingCopyState();
-      emitter(
-        state.copyProjectVersionsState(
-          workingCopy: workingCopy,
-          clearWorkingCopy: workingCopy == null,
-        ),
-      );
-    } catch (error) {
-      appLogger().w("A problem occurred when tried to refresh the working copy, most likely "
-          "because the project already closed: $error");
+    final captured = await _captureWorkingCopyState();
+    if (captured.isError) {
+      return;
     }
+
+    emitter(state.copyWithCapturedWorkingCopy(workingCopy: captured.value));
   });
 
-  /// The notice reporting the failed restore [status] to the user.
+  /// Get the notice reporting the failed restore [status] to the user.
   ///
   /// [OcptProjectRestoreStatus.noProjectOpen] and [OcptProjectRestoreStatus.versionNotFound] read
   /// as the generic failure, for the reason [_noticeForPreviewStatus] gives about its own two.
@@ -515,7 +534,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
         _ => OcptProjectVersionNoticeKind.restoreFailed,
       };
 
-  /// The notice reporting the failed preview [status] to the user.
+  /// Get the notice reporting the failed preview [status] to the user.
   ///
   /// [OcptProjectPreviewStatus.noProjectOpen] and [OcptProjectPreviewStatus.versionNotFound] can
   /// only happen when the panel is showing a project or a version that is already gone, which the

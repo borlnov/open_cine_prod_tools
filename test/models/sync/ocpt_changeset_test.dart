@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 
+/// Run the tests of [OcptChangeset].
 void main() {
   const stamp = OcptFieldStamp(
     tableName: 'locations',

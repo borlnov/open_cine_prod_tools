@@ -6,7 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:act_global_manager/act_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
@@ -21,54 +21,38 @@ const ocptDefaultPresenceHeartbeatInterval = Duration(seconds: 5);
 /// dropped frame alone never flickers a peer out.
 const ocptDefaultPresencePeerTimeout = Duration(seconds: 12);
 
-/// The default [OcptPresenceService.clock]: the wall clock. A test hands in its own so a peer's
+/// Get the default [OcptPresenceService.clock]: the wall clock. A test hands in its own so a peer's
 /// ageing past [OcptPresenceService.peerTimeout] can be driven deterministically instead of
 /// waiting on real time.
 DateTime _systemClock() => DateTime.now();
 
 /// One peer this service currently knows to be present: its last heartbeat, and when it arrived.
 class _SeenPeer {
-  _SeenPeer({required this.frame, required this.lastSeen});
-
   /// The peer's own last frame.
   OcptPresenceFrame frame;
 
   /// When [frame] was recorded, read from [OcptPresenceService.clock] — never a peer's own claim,
   /// so a peer with a wrong system clock still ages out on this replica's own schedule.
   DateTime lastSeen;
+
+  /// Class constructor
+  _SeenPeer({required this.frame, required this.lastSeen});
 }
 
-/// Keeps one project's presence roster converging against its peers for as long as it runs —
-/// `docs/plans/presence.md` (M5, Phase B): the client-side half of the avatar cluster a future
-/// widget renders, over the very same [OcptRemoteStorage] a project's `OcptChangesetService`
-/// already pushes and pulls through.
+/// Keep one project's presence roster converging against its peers for as long as it runs — the
+/// client-side half of the avatar cluster the presence indicator renders, over the very same
+/// [OcptRemoteStorage] a project's `OcptChangesetService` already pushes and pull through.
 ///
 /// This class heartbeats this replica's own [OcptPresenceFrame] every [heartbeatInterval] via
 /// [OcptRemoteStorage.sendPresence], listens to [OcptRemoteStorage.presenceStream] for every peer
 /// doing the same, and keeps a [OcptPresenceRoster] of whoever has heartbeated within the last
 /// [peerTimeout] — a peer that goes silent longer than that is swept out on the next tick. Nothing
-/// here is persisted, on this device or anywhere past [storage]: presence is entirely ephemeral,
-/// exactly as `docs/plans/presence.md`'s own "out of scope" section says.
+/// here is persisted, on this device or anywhere past [storage]: presence is entirely ephemeral.
 ///
 /// [start]/[stop] bound this service's lifetime, mirroring `OcptSyncSession`'s own pair exactly —
 /// [roster] seeds a fresh listener the way `OcptSyncSession.status` does, since [rosterStream]
 /// never replays its current value either (no ACT stream does, `CLAUDE.md`'s own pitfalls list).
-class OcptPresenceService {
-  /// Class constructor
-  ///
-  /// [platform] defaults to [Platform.operatingSystem] — not usable as a literal default value,
-  /// since it is a runtime call, not a constant. [clock] defaults to the wall clock
-  /// ([_systemClock]); a test hands in its own so a peer's ageing past [peerTimeout] can be driven
-  /// deterministically instead of waiting on real time.
-  OcptPresenceService({
-    required this.storage,
-    required this.deviceId,
-    String? platform,
-    this.heartbeatInterval = ocptDefaultPresenceHeartbeatInterval,
-    this.peerTimeout = ocptDefaultPresencePeerTimeout,
-    this.clock = _systemClock,
-  }) : platform = platform ?? Platform.operatingSystem;
-
+class OcptPresenceService extends AbsOcptService {
   /// The transport this service heartbeats over and listens to peers through.
   final OcptRemoteStorage storage;
 
@@ -88,19 +72,39 @@ class OcptPresenceService {
   /// injectable.
   final DateTime Function() clock;
 
+  /// The mode this replica reports in its frames, or null before one is set.
   OcptWorkspaceMode? _currentMode;
-  int _heartbeatCounter = 0;
-  final Map<String, _SeenPeer> _peers = {};
 
+  /// The heartbeat counter carried by this replica's frames.
+  int _heartbeatCounter;
+
+  /// The last frame seen from each peer, by device id.
+  final Map<String, _SeenPeer> _peers;
+
+  /// The subscription to the frames of the peers, or null while the service is stopped.
   StreamSubscription<String>? _presenceSubscription;
+
+  /// The timer of the periodic heartbeat, or null while the service is stopped.
   Timer? _heartbeatTimer;
-  bool _isRunning = false;
 
-  final StreamController<OcptPresenceRoster> _rosterController = StreamController<OcptPresenceRoster>.broadcast();
+  /// Whether the service is started.
+  bool _isRunning;
 
-  /// This replica's own current frame — [_heartbeatCounter] only actually advances when
-  /// [_sendHeartbeat] runs, so this always reflects the last heartbeat this replica sent (or, before
-  /// [start] has ever run, the frame it would send first).
+  /// The controller behind [rosterStream].
+  final StreamController<OcptPresenceRoster> _rosterController;
+
+  /// Get the current roster — see this class's own doc comment for why a caller reads this once
+  /// before
+  /// ever listening to [rosterStream].
+  OcptPresenceRoster get roster => _buildRoster();
+
+  /// Emit every roster this service moves through from the moment a listener subscribes onward —
+  /// never its current value at subscription time (see [roster] and this class's own doc comment).
+  Stream<OcptPresenceRoster> get rosterStream => _rosterController.stream;
+
+  /// Get this replica's own current frame — [_heartbeatCounter] only actually advances when
+  /// [_sendHeartbeat] runs, so this always reflects the last heartbeat this replica sent (or,
+  /// before [start] has ever run, the frame it would send first).
   OcptPresenceFrame get _selfFrame => OcptPresenceFrame(
     deviceId: deviceId,
     platform: platform,
@@ -108,16 +112,28 @@ class OcptPresenceService {
     heartbeat: _heartbeatCounter,
   );
 
-  /// The current roster — see this class's own doc comment for why a caller reads this once before
-  /// ever listening to [rosterStream].
-  OcptPresenceRoster get roster => _buildRoster();
+  /// Class constructor
+  ///
+  /// [platform] defaults to [Platform.operatingSystem] — not usable as a literal default value,
+  /// since it is a runtime call, not a constant. [clock] defaults to the wall clock
+  /// ([_systemClock]); a test hands in its own so a peer's ageing past [peerTimeout] can be driven
+  /// deterministically instead of waiting on real time.
+  OcptPresenceService({
+    required super.logger,
+    required this.storage,
+    required this.deviceId,
+    String? platform,
+    this.heartbeatInterval = ocptDefaultPresenceHeartbeatInterval,
+    this.peerTimeout = ocptDefaultPresencePeerTimeout,
+    this.clock = _systemClock,
+  }) : _heartbeatCounter = 0,
+       _peers = {},
+       _isRunning = false,
+       _rosterController = StreamController<OcptPresenceRoster>.broadcast(),
+       platform = platform ?? Platform.operatingSystem;
 
-  /// Emits every roster this service moves through from the moment a listener subscribes onward —
-  /// never its current value at subscription time (see [roster] and this class's own doc comment).
-  Stream<OcptPresenceRoster> get rosterStream => _rosterController.stream;
-
-  /// Subscribes to [storage]'s [OcptRemoteStorage.presenceStream], sends this replica's first
-  /// heartbeat, and starts the [heartbeatInterval] timer that keeps sending it and sweeps stale
+  /// Subscribe to [storage]'s [OcptRemoteStorage.presenceStream], send this replica's first
+  /// heartbeat, and start the [heartbeatInterval] timer that keeps sending it and sweeps stale
   /// peers. Throws [StateError] when this service is already running — call [stop] first to
   /// restart it.
   Future<void> start() async {
@@ -135,8 +151,8 @@ class OcptPresenceService {
     });
   }
 
-  /// Cancels the [heartbeatInterval] timer and the [OcptRemoteStorage.presenceStream] subscription,
-  /// and closes [rosterStream] — nothing this service holds outlives this call. Safe to call more
+  /// Cancel the [heartbeatInterval] timer and the [OcptRemoteStorage.presenceStream] subscription,
+  /// and close [rosterStream] — nothing this service holds outlives this call. Safe to call more
   /// than once, and safe to call before [start] ever ran.
   Future<void> stop() async {
     _isRunning = false;
@@ -149,8 +165,8 @@ class OcptPresenceService {
     }
   }
 
-  /// Sets this replica's own current mode and sends a heartbeat immediately, so a mode change
-  /// shows on peers at once rather than waiting for the next [heartbeatInterval] tick, then emits a
+  /// Set this replica's own current mode and send a heartbeat immediately, so a mode change shows
+  /// on peers at once rather than waiting for the next [heartbeatInterval] tick, then emit a
   /// fresh [roster] — this replica's own frame just changed.
   void updateMode(OcptWorkspaceMode? mode) {
     _currentMode = mode;
@@ -158,18 +174,17 @@ class OcptPresenceService {
     _emitRoster();
   }
 
-  /// Parses [raw] into a [OcptPresenceFrame] and records it, unless it is malformed (dropped, never
+  /// Parse [raw] into a [OcptPresenceFrame] and record it, unless it is malformed (dropped, never
   /// thrown) or carries this replica's own [deviceId] (the relay never echoes a sender's own frame
   /// back to it, but this is defensive rather than load-bearing).
   void _handleInboundFrame(String raw) {
-    final OcptPresenceFrame frame;
+    OcptPresenceFrame? frame;
     try {
       frame = OcptPresenceFrame.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (error, stackTrace) {
-      _logWarning('Dropping a malformed presence frame: $error\n$stackTrace');
-      return;
+      logger.w('Dropping a malformed presence frame: ${error.runtimeType}', null, stackTrace);
     }
-    if (frame.deviceId == deviceId) {
+    if (frame == null || frame.deviceId == deviceId) {
       return;
     }
 
@@ -177,7 +192,7 @@ class OcptPresenceService {
     _emitRoster();
   }
 
-  /// Drops every peer whose [_SeenPeer.lastSeen] is older than [peerTimeout], and emits a fresh
+  /// Drop every peer whose [_SeenPeer.lastSeen] is older than [peerTimeout], and emit a fresh
   /// [roster] only when at least one actually was.
   void _sweepStalePeers() {
     final now = clock();
@@ -193,14 +208,14 @@ class OcptPresenceService {
     _emitRoster();
   }
 
-  /// Advances [_heartbeatCounter] and sends this replica's own current frame through
+  /// Advance [_heartbeatCounter] and send this replica's own current frame through
   /// [OcptRemoteStorage.sendPresence].
   void _sendHeartbeat() {
     _heartbeatCounter++;
     storage.sendPresence(jsonEncode(_selfFrame.toJson()));
   }
 
-  /// This replica first, then every peer [_peers] still holds, sorted by device id for a stable
+  /// Get this replica first, then every peer [_peers] still holds, sorted by device id for a stable
   /// order.
   OcptPresenceRoster _buildRoster() {
     final peerFrames = _peers.values.map((seenPeer) => seenPeer.frame).toList()
@@ -209,18 +224,21 @@ class OcptPresenceService {
     return OcptPresenceRoster(participants: [_selfFrame, ...peerFrames], selfDeviceId: deviceId);
   }
 
+  /// Emit the current roster on [rosterStream], unless it is closed.
   void _emitRoster() {
     if (!_rosterController.isClosed) {
       _rosterController.add(_buildRoster());
     }
   }
 
-  /// Logs [message] through `appLogger()` when a global manager instance actually exists, and does
-  /// nothing otherwise — see `OcptSyncSession._logWarning`'s own doc comment for why a unit test
-  /// with no app-wide `AbsGlobalManager` behind it must not crash over this.
-  void _logWarning(String message) {
-    if (AbsGlobalManager.instance != null) {
-      appLogger().w(message);
-    }
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Stops this service, so whoever built it releases it by disposing it rather than by calling
+  /// [stop] as well.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await stop();
+
+    return super.disposeLifeCycle();
   }
 }

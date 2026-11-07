@@ -6,19 +6,21 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
+/// Run the tests of [OcptPdfExportService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   // A single shared instance, reused across every test below: this also
   // exercises the font-loading cache (repeated `generate` calls within the
   // same instance must not re-read the asset bundle).
-  final service = OcptPdfExportService();
+  final service = OcptPdfExportService(logger: const SilentLogger());
   const parser = FountainParser();
   const composer = FountainScriptComposer();
   const pageSetup = OcptPageSetup.standard();
@@ -103,31 +105,28 @@ void main() {
       expect(_pageCount(withTitlePage), _pageCount(withoutTitlePage) + 1);
     });
 
-    test(
-      'a document with no title page still gets a title page when the option is on',
-      () async {
-        const source = 'INT. HOUSE - DAY\n\nAction line.\n';
-        final document = parse(source);
-        expect(document.titlePage, isNull);
+    test('a document with no title page still gets a title page when the option is on', () async {
+      const source = 'INT. HOUSE - DAY\n\nAction line.\n';
+      final document = parse(source);
+      expect(document.titlePage, isNull);
 
-        final withTitlePage = await service.generate(
-          document: document,
-          pageSetup: pageSetup,
-          projectName: 'Fallback Project',
-          includeSceneNumbers: false,
-          includeTitlePage: true,
-        );
-        final withoutTitlePage = await service.generate(
-          document: document,
-          pageSetup: pageSetup,
-          projectName: 'Fallback Project',
-          includeSceneNumbers: false,
-          includeTitlePage: false,
-        );
+      final withTitlePage = await service.generate(
+        document: document,
+        pageSetup: pageSetup,
+        projectName: 'Fallback Project',
+        includeSceneNumbers: false,
+        includeTitlePage: true,
+      );
+      final withoutTitlePage = await service.generate(
+        document: document,
+        pageSetup: pageSetup,
+        projectName: 'Fallback Project',
+        includeSceneNumbers: false,
+        includeTitlePage: false,
+      );
 
-        expect(_pageCount(withTitlePage), _pageCount(withoutTitlePage) + 1);
-      },
-    );
+      expect(_pageCount(withTitlePage), _pageCount(withoutTitlePage) + 1);
+    });
 
     test(
       'generating twice from the same inputs yields the same page count and valid output',
@@ -329,36 +328,33 @@ void main() {
       },
     );
 
-    test(
-      'a plain action line with an inline underline run prints differently from the '
-      'same text unemphasised',
-      () async {
-        // Underline has no font variant of its own (it's a drawn stroke, not a font choice), so
-        // the oracle here is the same content-stream comparison the uppercasing group above uses.
-        // Both documents are underlined/plain for the *whole* line (one run each) rather than
-        // just one word, so the two content streams differ only by the underline's stroke
-        // operators, never by an incidental difference in how many runs the line split into.
-        final underlined = parse('_Plain action with underline word only._\n');
-        final plain = parse('Plain action with underline word only.\n');
+    test('a plain action line with an inline underline run prints differently from the '
+        'same text unemphasised', () async {
+      // Underline has no font variant of its own (it's a drawn stroke, not a font choice), so
+      // the oracle here is the same content-stream comparison the uppercasing group above uses.
+      // Both documents are underlined/plain for the *whole* line (one run each) rather than
+      // just one word, so the two content streams differ only by the underline's stroke
+      // operators, never by an incidental difference in how many runs the line split into.
+      final underlined = parse('_Plain action with underline word only._\n');
+      final plain = parse('Plain action with underline word only.\n');
 
-        final underlinedBytes = await service.generate(
-          document: underlined,
-          pageSetup: pageSetup,
-          projectName: 'P',
-          includeSceneNumbers: false,
-          includeTitlePage: false,
-        );
-        final plainBytes = await service.generate(
-          document: plain,
-          pageSetup: pageSetup,
-          projectName: 'P',
-          includeSceneNumbers: false,
-          includeTitlePage: false,
-        );
+      final underlinedBytes = await service.generate(
+        document: underlined,
+        pageSetup: pageSetup,
+        projectName: 'P',
+        includeSceneNumbers: false,
+        includeTitlePage: false,
+      );
+      final plainBytes = await service.generate(
+        document: plain,
+        pageSetup: pageSetup,
+        projectName: 'P',
+        includeSceneNumbers: false,
+        includeTitlePage: false,
+      );
 
-        expect(_contentStreams(underlinedBytes), isNot(_contentStreams(plainBytes)));
-      },
-    );
+      expect(_contentStreams(underlinedBytes), isNot(_contentStreams(plainBytes)));
+    });
   });
 
   group('print-time uppercasing and scene-number placement', () {
@@ -370,61 +366,51 @@ void main() {
     // deflate to byte-identical content streams (deflate is deterministic), while two documents
     // that print different text do not: comparing the raw stream bytes is therefore a genuine,
     // parser-free oracle for "did this render the text I expected" without ever decoding it.
-    test(
-      'a lower-case forced character cue and transition print exactly like '
-      'already upper-cased ones',
-      () async {
-        final mixedCase = parse(
-          'INT. HOUSE - DAY\n\n@Mr. smith\nHello there.\n\n> burn to white.\n',
-        );
-        final upperCase = parse(
-          'INT. HOUSE - DAY\n\n@MR. SMITH\nHello there.\n\n> BURN TO WHITE.\n',
-        );
+    test('a lower-case forced character cue and transition print exactly like '
+        'already upper-cased ones', () async {
+      final mixedCase = parse('INT. HOUSE - DAY\n\n@Mr. smith\nHello there.\n\n> burn to white.\n');
+      final upperCase = parse('INT. HOUSE - DAY\n\n@MR. SMITH\nHello there.\n\n> BURN TO WHITE.\n');
 
-        final mixedCaseBytes = await service.generate(
-          document: mixedCase,
-          pageSetup: pageSetup,
-          projectName: 'P',
-          includeSceneNumbers: false,
-          includeTitlePage: false,
-        );
-        final upperCaseBytes = await service.generate(
-          document: upperCase,
-          pageSetup: pageSetup,
-          projectName: 'P',
-          includeSceneNumbers: false,
-          includeTitlePage: false,
-        );
+      final mixedCaseBytes = await service.generate(
+        document: mixedCase,
+        pageSetup: pageSetup,
+        projectName: 'P',
+        includeSceneNumbers: false,
+        includeTitlePage: false,
+      );
+      final upperCaseBytes = await service.generate(
+        document: upperCase,
+        pageSetup: pageSetup,
+        projectName: 'P',
+        includeSceneNumbers: false,
+        includeTitlePage: false,
+      );
 
-        expect(_contentStreams(mixedCaseBytes), _contentStreams(upperCaseBytes));
-      },
-    );
+      expect(_contentStreams(mixedCaseBytes), _contentStreams(upperCaseBytes));
+    });
 
-    test(
-      'an explicitly numbered scene heading prints identically to an '
-      'unnumbered one when scene numbers are switched off',
-      () async {
-        final numbered = parse('INT. HOUSE #7#\n\nAction line.\n');
-        final unnumbered = parse('INT. HOUSE\n\nAction line.\n');
+    test('an explicitly numbered scene heading prints identically to an '
+        'unnumbered one when scene numbers are switched off', () async {
+      final numbered = parse('INT. HOUSE #7#\n\nAction line.\n');
+      final unnumbered = parse('INT. HOUSE\n\nAction line.\n');
 
-        final numberedBytes = await service.generate(
-          document: numbered,
-          pageSetup: pageSetup,
-          projectName: 'P',
-          includeSceneNumbers: false,
-          includeTitlePage: false,
-        );
-        final unnumberedBytes = await service.generate(
-          document: unnumbered,
-          pageSetup: pageSetup,
-          projectName: 'P',
-          includeSceneNumbers: false,
-          includeTitlePage: false,
-        );
+      final numberedBytes = await service.generate(
+        document: numbered,
+        pageSetup: pageSetup,
+        projectName: 'P',
+        includeSceneNumbers: false,
+        includeTitlePage: false,
+      );
+      final unnumberedBytes = await service.generate(
+        document: unnumbered,
+        pageSetup: pageSetup,
+        projectName: 'P',
+        includeSceneNumbers: false,
+        includeTitlePage: false,
+      );
 
-        expect(_contentStreams(numberedBytes), _contentStreams(unnumberedBytes));
-      },
-    );
+      expect(_contentStreams(numberedBytes), _contentStreams(unnumberedBytes));
+    });
   });
 }
 
@@ -451,13 +437,18 @@ List<double> _textBaselines(Uint8List bytes) {
   final zlib = ZLibCodec();
   final baselines = <double>[];
   for (final stream in _contentStreams(bytes)) {
-    final String content;
+    String? decoded;
     try {
-      content = latin1.decode(zlib.decode(latin1.encode(stream)));
+      decoded = latin1.decode(zlib.decode(latin1.encode(stream)));
     } on FormatException {
-      // Not a deflated stream at all.
+      decoded = null;
+    }
+
+    // Not a deflated stream at all.
+    if (decoded == null) {
       continue;
     }
+    final content = decoded;
 
     // A page's content stream is pure printable ASCII (operators plus
     // hex-encoded glyph indices), while the other deflated streams of the

@@ -4,50 +4,53 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_cash_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_needs_resources_balance.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail_badge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The height of the balance bar, in logical pixels.
 const double _ocptDashboardBarHeight = 6;
 
 /// The budget mode's own dashboard: **the summary of the other pages, and nothing else** — the
 /// mockup's own words. Four tiles, the needs/resources balance band, then the standing alerts, in
-/// that order, drawn once every live poste holds real data for them to read.
+/// that order, drawn once every live account holds real data for them to read.
 ///
 /// **It types nothing of its own.** Every figure is read off the quote, the cash journal, the
 /// financing plan and [ocptComputeBudgetAlerts]'s own answer — never recomputed here, never
-/// captured here. A poste's click only selects it and hands the reader off to `Dépenses`, which
+/// captured here. An account's click only selects it and hands the reader off to `Dépenses`, which
 /// writes nothing either, so this whole page needs no `isReadOnly` flag: it is the one page of the
 /// mode a reader always leaves having changed nothing.
 ///
-/// **What used to live here and no longer does.** The poste-by-poste list is gone — the mockup
+/// **What used to live here and no longer does.** The account-by-account list is gone — the mockup
 /// draws none, and the four tiles plus the balance band already carry the whole-project reading it
 /// used to add up to one row at a time. The "what feeds this budget" card is gone too, for the
 /// plan's own reason: it navigates, it does not summarise. `OcptBudgetFeedCard` itself is
-/// unaffected — the cost-tracking table and the régie both draw it at their own top and keep every
-/// one of its rows.
+/// unaffected — the cost-tracking table and the logistics both draw it at their own top and keep
+/// every one of its rows.
 ///
 /// [alerts] — [ocptComputeBudgetAlerts]'s own answer, carried by the state rather than recomputed
 /// here — draws **no card at all** while it is empty: a project raising no alert shows nothing
 /// under its balance band.
 ///
 /// The page itself gives way to [OcptWorkspaceEmptyMode] only for a project holding **nothing this
-/// page reads** — no poste, no financing resource and no journal entry. See the comment on that
+/// page reads** — no account, no financing resource and no journal entry. See the comment on that
 /// test in [build] for why the quote alone is not the question.
 class OcptBudgetDashboard extends StatelessWidget {
-  /// Every live poste, in display order.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account, in display order.
+  final List<OcptBudgetAccount> accounts;
 
   /// Which basis the header's excluding/including-tax switch currently reads every amount in.
   final OcptBudgetTaxBasis taxBasis;
@@ -61,19 +64,20 @@ class OcptBudgetDashboard extends StatelessWidget {
   /// The cash journal's own debit, credit and balance — the `Solde en banque` tile's own figure.
   final OcptBudgetCashTotals cashTotals;
 
-  /// What has actually been paid against each poste, keyed by its own id — folded with
+  /// What has actually been paid against each account, keyed by its own id — folded with
   /// [offQuotePaidTotal] into the `Dépensé` tile's own figure.
-  final Map<String, OcptBudgetCoveredTotal> paidByPosteId;
+  final Map<String, OcptBudgetCoveredTotal> paidByAccountId;
 
-  /// The total of every debit that names no poste at all — spending outside the quote
-  /// (`ocptBudgetOffQuotePaidTotalOf`, `lib/utils/ocpt_budget_journal.dart`), folded into the
-  /// `Dépensé` tile alongside [paidByPosteId] so that figure agrees with the cash journal: what has
-  /// actually gone out, off-quote spending included, rather than only what priced a poste.
+  /// The total of every debit that names no account at all — spending outside the quote
+  /// (`ocptBudgetOffQuotePaidTotalOf`, `lib/models/rules/ocpt_budget_journal.dart`), folded into
+  /// the `Dépensé` tile alongside [paidByAccountId] so that figure agrees with the cash journal:
+  /// what has actually gone out, off-quote spending included, rather than only what priced an
+  /// account.
   final OcptBudgetCoveredTotal offQuotePaidTotal;
 
-  /// What is committed against each poste, keyed by its own id — the `Solde en banque` tile's own
+  /// What is committed against each account, keyed by its own id — the `Solde en banque` tile's own
   /// hint, once the tile's own value carries no coverage read-out of its own.
-  final Map<String, OcptBudgetCoveredTotal> committedByPosteId;
+  final Map<String, OcptBudgetCoveredTotal> committedByAccountId;
 
   /// The dashboard's own standing alerts, computed once by [ocptComputeBudgetAlerts] and carried
   /// here by the state — see the class doc comment.
@@ -84,13 +88,13 @@ class OcptBudgetDashboard extends StatelessWidget {
   /// reads it through [ocptBudgetNeedsResourcesBalanceOf].
   final List<OcptBudgetResource> resources;
 
-  /// Called with a poste's id when its own over-quote alert row is clicked: **selects the poste and
-  /// opens the quote on it**.
+  /// Called with an account's id when its own over-quote alert row is clicked: **selects the
+  /// account and opens the quote on it**.
   ///
   /// A dashboard row is a **link to where the thing is worked on**, which is `Dépenses` — selecting
   /// alone would leave the reader on a read-only summary with nothing on it to do about what they
   /// had just picked.
-  final ValueChanged<String> onPosteOpened;
+  final ValueChanged<String> onAccountOpened;
 
   /// Called when the cash-projection alert's own row is clicked, opening the tools drawer's own
   /// `Flux de trésorerie` page — the statement is what answers a cash question.
@@ -99,20 +103,21 @@ class OcptBudgetDashboard extends StatelessWidget {
   /// Class constructor
   const OcptBudgetDashboard({
     super.key,
-    required this.postes,
+    required this.accounts,
     required this.taxBasis,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
     required this.cashTotals,
-    required this.paidByPosteId,
+    required this.paidByAccountId,
     required this.offQuotePaidTotal,
-    required this.committedByPosteId,
+    required this.committedByAccountId,
     required this.alerts,
     required this.resources,
-    required this.onPosteOpened,
+    required this.onAccountOpened,
     required this.onCashAlertActionRequested,
   });
 
+  /// Build the budget dashboard as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -122,20 +127,23 @@ class OcptBudgetDashboard extends StatelessWidget {
     // and gating this page on the quote alone hid every figure it had already typed behind an
     // invitation to start a different document — while leaving the balance band's own "no quote to
     // measure the financing plan against yet" branch, which exists for exactly that production,
-    // almost unreachable. Every reading below stands on nothing: a quote with no poste totals zero
-    // over zero lines, and the tiles say so rather than guessing.
-    if (postes.isEmpty && resources.isEmpty && cashTotals.entryCount == 0) {
-      return OcptWorkspaceEmptyMode(icon: Icons.payments_outlined, message: tr.budgetDashboardEmptyHint);
+    // almost unreachable. Every reading below stands on nothing: a quote with no account totals
+    // zero over zero lines, and the tiles say so rather than guessing.
+    if (accounts.isEmpty && resources.isEmpty && cashTotals.entryCount == 0) {
+      return OcptWorkspaceEmptyMode(
+        icon: Icons.payments_outlined,
+        message: tr.budgetDashboardEmptyHint,
+      );
     }
 
-    final allLines = [for (final poste in postes) ...poste.lines];
+    final allLines = [for (final account in accounts) ...account.lines];
     final quotedTotal = ocptBudgetTotalOf(
       allLines,
       basis: taxBasis,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByPosteId.values, offQuotePaidTotal]);
-    final committedTotal = ocptBudgetCoveredTotalsFoldOf(committedByPosteId.values);
+    final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByAccountId.values, offQuotePaidTotal]);
+    final committedTotal = ocptBudgetCoveredTotalsFoldOf(committedByAccountId.values);
 
     // Read tax-inclusive, always — see the balance bar's own doc comment
     // ([_OcptDashboardBalanceBar]) for why this never follows [taxBasis].
@@ -152,17 +160,20 @@ class OcptBudgetDashboard extends StatelessWidget {
       resourcesCents: resourcesTotalCents,
     );
 
-    final posteLabelById = {for (final poste in postes) poste.id: poste.label};
+    final accountLabelById = {for (final account in accounts) account.id: account.label};
 
     // The `Dépensé` tile's own hint: the coverage read-out wins, exactly as the other two tiles
     // built on an `OcptBudgetCoveredTotal` — losing "30 %" for a partial reading is acceptable,
     // losing the honesty read-out is not. Once [paidTotal] is complete, a zero-total quote is
     // withheld rather than divided by: printing "0 %" or an infinite share would both state a
     // figure the data does not support, so the tile falls back to no hint at all, the same silence
-    // the off-quote row keeps for a poste it cannot measure against a quote nobody has begun.
+    // the off-quote row keeps for an account it cannot measure against a quote nobody has begun.
     final String? spentHint;
     if (!paidTotal.isComplete) {
-      spentHint = tr.budgetDashboardCoverageCaption(paidTotal.coveredLineCount, paidTotal.lineCount);
+      spentHint = tr.budgetDashboardCoverageCaption(
+        paidTotal.coveredLineCount,
+        paidTotal.lineCount,
+      );
     } else if (quotedTotal.amountCents <= 0) {
       spentHint = null;
     } else {
@@ -182,7 +193,7 @@ class OcptBudgetDashboard extends StatelessWidget {
                 label: tr.budgetDashboardQuotedTotalLabel,
                 value: ocptBudgetAmountLabel(quotedTotal.amountCents, currencyCode),
                 hint: quotedTotal.isComplete
-                    ? tr.budgetStatsPostes(postes.length)
+                    ? tr.budgetStatsAccounts(accounts.length)
                     : tr.budgetDashboardCoverageCaption(
                         quotedTotal.coveredLineCount,
                         quotedTotal.lineCount,
@@ -221,9 +232,9 @@ class OcptBudgetDashboard extends StatelessWidget {
           const SizedBox(height: 16),
           _OcptDashboardAlertsCard(
             alerts: alerts,
-            posteLabelById: posteLabelById,
+            accountLabelById: accountLabelById,
             currencyCode: currencyCode,
-            onPosteOpened: onPosteOpened,
+            onAccountOpened: onAccountOpened,
             onCashAlertActionRequested: onCashAlertActionRequested,
           ),
         ],
@@ -248,6 +259,7 @@ class _OcptDashboardTile extends StatelessWidget {
   /// Class constructor
   const _OcptDashboardTile({required this.label, required this.value, this.hint});
 
+  /// Build the dashboard tile as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -264,14 +276,18 @@ class _OcptDashboardTile extends StatelessWidget {
           children: [
             Text(
               label.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             Text(value, style: theme.textTheme.headlineSmall),
             if (hint != null)
               Text(
                 hint,
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
           ],
         ),
@@ -296,25 +312,24 @@ class _OcptDashboardTile extends StatelessWidget {
 ///
 /// Whenever `balance.needs` is not [OcptBudgetCoveredTotal.isComplete], the needs figure prints the
 /// very same idiom `OcptBudgetCostTracking`'s own total row already prints in place of a plain
-/// amount — `tr.budgetDashboardBalanceCoverageReadOut` mirrors `tr.budgetCostTrackingCoverageReadOut`
-/// exactly, minted under its own key for the same reason `OcptBudgetRegie`'s own two coverage
-/// read-outs are: this total counts quote *lines*, not postes, the noun the cost-tracking table's
-/// own string names.
+/// amount — `tr.budgetDashboardBalanceCoverageReadOut` mirrors
+/// `tr.budgetCostTrackingCoverageReadOut` exactly, minted under its own key for the same reason
+/// `OcptBudgetLogistics`'s own two coverage read-outs are: this total counts quote *lines*, not
+/// accounts, the noun the cost-tracking table's own string names.
 ///
 /// **A quote with no line at all is not a quote this bar can say anything about.** A plain
 /// `resources >= needs` reading would answer "balanced" for a project that has recorded nothing,
 /// and declare the financing plan sufficient against a quote nobody has begun — which is precisely
 /// the sort of claim the data cannot support that this whole mode refuses to make (see the em dash
-/// `Consumed` keeps for a poste with no quote, `docs/architecture/budget.md`). So the message is
+/// `Consumed` keeps for an account with no quote, `docs/architecture/budget.md`). So the message is
 /// three-way rather than two: no quote yet, covered, or short by an amount. The bar itself is drawn
 /// either way — nothing disappears from the screen — it simply stops asserting a verdict it has no
 /// grounds for.
 ///
 /// **The card's own title and verdict share one line**, the mockup's own arrangement — the title on
 /// the left, `Manque {amount}`/`Short by {amount}` in the error colour on the right the moment the
-/// plan falls short. `Ressources {amount}`/`Besoins {amount}` stay small and muted underneath the
-/// bar, mirroring the balance bar the mode drew before this milestone, only turned the other way
-/// up.
+/// plan falls short. `Resources {amount}`/`Besoins {amount}` stay small and muted underneath the
+/// bar, turned the other way up from the balance bar the mode drew before.
 class _OcptDashboardBalanceBar extends StatelessWidget {
   /// The balance this bar draws — `ocptBudgetNeedsResourcesBalanceOf`'s own answer.
   final OcptBudgetNeedsResourcesBalance balance;
@@ -325,6 +340,7 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
   /// Class constructor
   const _OcptDashboardBalanceBar({required this.balance, required this.currencyCode});
 
+  /// Build the dashboard balance bar as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -333,7 +349,11 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
     final needsAmount = ocptBudgetAmountLabel(needs.amountCents, currencyCode);
     final needsText = needs.isComplete
         ? needsAmount
-        : tr.budgetDashboardBalanceCoverageReadOut(needsAmount, needs.coveredLineCount, needs.lineCount);
+        : tr.budgetDashboardBalanceCoverageReadOut(
+            needsAmount,
+            needs.coveredLineCount,
+            needs.lineCount,
+          );
     final resourcesText = ocptBudgetAmountLabel(balance.resourcesCents, currencyCode);
     final shareOfNeeds = needs.amountCents <= 0
         ? (balance.resourcesCents > 0 ? 1.0 : 0.0)
@@ -413,11 +433,15 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
               children: [
                 Text(
                   "${tr.budgetDashboardBalanceResourcesLabel} $resourcesText",
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 Text(
                   "${tr.budgetDashboardBalanceNeedsLabel} $needsText",
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -430,20 +454,20 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
 
 /// The alerts card, `Ce qui demande une décision`: one row per [OcptBudgetAlert], a coloured badge,
 /// the message and an amount right-aligned. **No buttons — the row itself is the click target**,
-/// exactly as a poste row already was before this milestone, each one going where its own alert
+/// exactly as an account row is, each one going where its own alert
 /// already goes.
 class _OcptDashboardAlertsCard extends StatelessWidget {
   /// The alerts this card draws, one row each, in [ocptComputeBudgetAlerts]'s own order.
   final List<OcptBudgetAlert> alerts;
 
-  /// Every live poste's own label, keyed by its id, so an over-quote alert can name its poste.
-  final Map<String, String> posteLabelById;
+  /// Every live account's own label, keyed by its id, so an over-quote alert can name its account.
+  final Map<String, String> accountLabelById;
 
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// Called with a poste's id when its own over-quote row is clicked.
-  final ValueChanged<String> onPosteOpened;
+  /// Called with an account's id when its own over-quote row is clicked.
+  final ValueChanged<String> onAccountOpened;
 
   /// Called when the cash-projection row is clicked.
   final VoidCallback onCashAlertActionRequested;
@@ -451,12 +475,13 @@ class _OcptDashboardAlertsCard extends StatelessWidget {
   /// Class constructor
   const _OcptDashboardAlertsCard({
     required this.alerts,
-    required this.posteLabelById,
+    required this.accountLabelById,
     required this.currencyCode,
-    required this.onPosteOpened,
+    required this.onAccountOpened,
     required this.onCashAlertActionRequested,
   });
 
+  /// Build the dashboard alerts card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -471,65 +496,109 @@ class _OcptDashboardAlertsCard extends StatelessWidget {
           children: [
             Text(
               tr.budgetDashboardAlertsSectionTitle,
-              style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 8),
-            for (final alert in alerts) _buildRow(context, tr, alert),
+            for (final alert in alerts)
+              _OcptDashboardAlert(
+                alert: alert,
+                accountLabelById: accountLabelById,
+                currencyCode: currencyCode,
+                onAccountOpened: onAccountOpened,
+                onCashAlertActionRequested: onCashAlertActionRequested,
+              ),
           ],
         ),
       ),
     );
   }
+}
 
-  /// One alert's own row, switching over [alert]'s own subclass exhaustively — a poste over its
-  /// quote names it through [posteLabelById] (falling back to `tr.budgetPosteUnnamed`, exactly as
-  /// the retired poste-by-poste list once did, for a poste that carries no label of its own), the
-  /// cash projection going negative words its own undated reading differently from a recorded date,
-  /// per [OcptBudgetCashProjectionNegativeAlert]'s own doc comment.
-  Widget _buildRow(BuildContext context, Tr tr, OcptBudgetAlert alert) => switch (alert) {
-    OcptBudgetPosteOverQuoteAlert() => _OcptDashboardAlertRow(
-      badge: tr.budgetDashboardOverrunBadge,
-      color: Theme.of(context).colorScheme.error,
-      message: tr.budgetDashboardPosteOverQuoteAlertMessage(
-        _posteLabelOf(tr, alert.posteId),
-        ocptBudgetAmountLabel(alert.paidCents + alert.committedCents, currencyCode),
-        ocptBudgetAmountLabel(alert.quotedAmountCents, currencyCode),
-        ocptBudgetAmountLabel(alert.varianceCents, currencyCode),
+/// One alert's own row, switching over [alert]'s own subclass exhaustively — an account over its
+/// quote names it through [accountLabelById] (falling back to `tr.budgetAccountUnnamed`, exactly as
+/// the retired account-by-account list once did, for an account that carries no label of its own),
+/// the cash projection going negative words its own undated reading differently from a recorded
+/// date, per [OcptBudgetCashProjectionNegativeAlert]'s own doc comment.
+class _OcptDashboardAlert extends StatelessWidget {
+  /// The alert this row draws.
+  final OcptBudgetAlert alert;
+
+  /// Every live account's own label, keyed by its id, so an over-quote alert can name its account.
+  final Map<String, String> accountLabelById;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Called with an account's id when its own over-quote row is clicked.
+  final ValueChanged<String> onAccountOpened;
+
+  /// Called when the cash-projection row is clicked.
+  final VoidCallback onCashAlertActionRequested;
+
+  /// Class constructor
+  const _OcptDashboardAlert({
+    required this.alert,
+    required this.accountLabelById,
+    required this.currencyCode,
+    required this.onAccountOpened,
+    required this.onCashAlertActionRequested,
+  });
+
+  /// Build the dashboard alert.
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    // Read into a local so that each case below promotes it to its own subclass.
+    final alert = this.alert;
+
+    return switch (alert) {
+      OcptBudgetAccountOverQuoteAlert() => _OcptDashboardAlertRow(
+        badge: tr.budgetDashboardOverrunBadge,
+        color: Theme.of(context).colorScheme.error,
+        message: tr.budgetDashboardAccountOverQuoteAlertMessage(
+          _accountLabelOf(tr, alert.accountId),
+          ocptBudgetAmountLabel(alert.paidCents + alert.committedCents, currencyCode),
+          ocptBudgetAmountLabel(alert.quotedAmountCents, currencyCode),
+          ocptBudgetAmountLabel(alert.varianceCents, currencyCode),
+        ),
+        amount: ocptBudgetAmountLabel(-alert.varianceCents, currencyCode),
+        onTap: () => onAccountOpened(alert.accountId),
       ),
-      amount: ocptBudgetAmountLabel(-alert.varianceCents, currencyCode),
-      onTap: () => onPosteOpened(alert.posteId),
-    ),
-    OcptBudgetCashProjectionNegativeAlert() => _OcptDashboardAlertRow(
-      badge: tr.budgetDashboardCashAlertBadge,
-      color: ocptWarningColor(context),
-      message: alert.dueDate == null
-          ? tr.budgetDashboardCashNegativeAlertMessageUndated(
-              ocptBudgetAmountLabel(alert.balanceCents, currencyCode),
-              ocptBudgetAmountLabel(alert.fallingDueCents, currencyCode),
-            )
-          : tr.budgetDashboardCashNegativeAlertMessageDated(
-              ocptBudgetAmountLabel(alert.balanceCents, currencyCode),
-              DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(alert.dueDate!),
-              ocptBudgetAmountLabel(alert.fallingDueCents, currencyCode),
-            ),
-      amount: ocptBudgetAmountLabel(alert.balanceAfterCents, currencyCode),
-      onTap: onCashAlertActionRequested,
-    ),
-  };
+      OcptBudgetCashProjectionNegativeAlert() => _OcptDashboardAlertRow(
+        badge: tr.budgetDashboardCashAlertBadge,
+        color: ocptWarningColor(context),
+        message: alert.dueDate == null
+            ? tr.budgetDashboardCashNegativeAlertMessageUndated(
+                ocptBudgetAmountLabel(alert.balanceCents, currencyCode),
+                ocptBudgetAmountLabel(alert.fallingDueCents, currencyCode),
+              )
+            : tr.budgetDashboardCashNegativeAlertMessageDated(
+                ocptBudgetAmountLabel(alert.balanceCents, currencyCode),
+                DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(alert.dueDate!),
+                ocptBudgetAmountLabel(alert.fallingDueCents, currencyCode),
+              ),
+        amount: ocptBudgetAmountLabel(alert.balanceAfterCents, currencyCode),
+        onTap: onCashAlertActionRequested,
+      ),
+    };
+  }
 
-  /// [posteId]'s own label out of [posteLabelById], or `tr.budgetPosteUnnamed` while it is empty —
-  /// never absent, since an alert's own poste always comes straight out of the very dashboard that
-  /// built [posteLabelById].
-  String _posteLabelOf(Tr tr, String posteId) {
-    final label = posteLabelById[posteId];
-    return (label == null || label.isEmpty) ? tr.budgetPosteUnnamed : label;
+  /// Get [accountId]'s own label out of [accountLabelById], or `tr.budgetAccountUnnamed` while it
+  /// is empty —
+  /// never absent, since an alert's own account always comes straight out of the very dashboard
+  /// that built [accountLabelById].
+  String _accountLabelOf(Tr tr, String accountId) {
+    final label = accountLabelById[accountId];
+    return (label == null || label.isEmpty) ? tr.budgetAccountUnnamed : label;
   }
 }
 
 /// One row of [_OcptDashboardAlertsCard]: a coloured badge, the message and an amount right-aligned
-/// — the whole row is the click target, [ocptClickableCursor] hinting it exactly as a table row
-/// already does everywhere else in this mode. The message wraps rather than clipping; see the
-/// comment on the row's own `Row` for why this one cell breaks the mode's own habit.
+/// — the whole row is the click target, [ocpt_theme.ocptClickableCursor] hinting it exactly as a
+/// table row already does everywhere else in this mode. The message wraps rather than clipping; see
+/// the comment on the row's own `Row` for why this one cell breaks the mode's own habit.
 class _OcptDashboardAlertRow extends StatelessWidget {
   /// The row's own badge text.
   final String badge;
@@ -555,29 +624,30 @@ class _OcptDashboardAlertRow extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the dashboard alert row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           vertical: 8,
-          horizontal: ocptTableRowHorizontalPadding,
+          horizontal: ocpt_theme.ocptTableRowHorizontalPadding,
         ),
         child: Row(
           // **The message wraps rather than truncating**, and the badge and the amount align to its
-          // first line. Every other row in this mode clips a cell to one line because the reader can
-          // widen the column or open the fiche to see the rest; an alert has neither, and its
-          // sentence *is* the whole of what it says — an ellipsis in the middle of "6 840,00 paid or
-          // committed against a 6 200,00 quote" would leave exactly the figure that raised the alert
-          // off screen, on a page built to be read at a glance.
+          // first line. Every other row in this mode clips a cell to one line because the reader
+          // can widen the column or open the detail panel to see the rest; an alert has neither,
+          // and its sentence *is* the whole of what it says — an ellipsis in the middle of "6
+          // 840,00 paid or committed against a 6 200,00 quote" would leave exactly the figure that
+          // raised the alert off screen, on a page built to be read at a glance.
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _OcptDashboardAlertBadge(text: badge, color: color),
+            OcptBudgetDetailBadge(text: badge, color: color),
             const SizedBox(width: 12),
             Expanded(child: Text(message, style: theme.textTheme.bodySmall)),
             const SizedBox(width: 12),
@@ -592,32 +662,4 @@ class _OcptDashboardAlertRow extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A small coloured badge, the alert row's own kind — mirrors `_OcptBudgetFicheBadge`
-/// (`ocpt_budget_fiche.dart`), a private class of that file this one cannot import.
-class _OcptDashboardAlertBadge extends StatelessWidget {
-  /// The badge's own text.
-  final String text;
-
-  /// The badge's own accent colour.
-  final Color color;
-
-  /// Class constructor
-  const _OcptDashboardAlertBadge({required this.text, required this.color});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.14),
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-    ),
-    child: Text(
-      text,
-      style: Theme.of(
-        context,
-      ).textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w600),
-    ),
-  );
 }

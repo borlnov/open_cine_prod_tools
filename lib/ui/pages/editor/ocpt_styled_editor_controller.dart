@@ -7,60 +7,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller_delegate.dart';
 import 'package:spell_kit/spell_kit.dart';
-
-/// Internal wiring contract between [OcptStyledEditorController] and whichever widget state
-/// currently owns a live styled editor: **not** a public extension point, just the interface that
-/// lets the controller live in this page-level file (no `package:super_editor` import) while the
-/// widget state that actually knows how to apply a change lives in the `super_editor/` directory.
-///
-/// Dart's privacy is per-file, so this can't be a leading-underscore name if the implementing
-/// class lives in a different file; only [OcptStyledEditorController] is meant to call these
-/// methods, and only the styled editor's own state is meant to implement them.
-abstract class OcptStyledEditorControllerDelegate {
-  /// Applies a manual block-type change (dropdown selection) to the currently selected block.
-  void applyBlockType(FountainLineType type);
-
-  /// Toggles [style] on the current selection (or the composer's pending style, if collapsed).
-  void applyToggleInlineStyle(OcptInlineStyle style);
-
-  /// Replaces the find/replace query and current-match index the delegate highlights/navigates
-  /// to, mirroring [OcptStyledEditorController.updateSearch]'s own doc comment. `null`/`null`
-  /// means "no active search" (the bar is closed, a different mode is active, or a version is
-  /// being previewed).
-  void updateSearch({required OcptEditorSearchQuery? query, required int? currentMatchIndex});
-
-  /// Replaces the current match (the one [updateSearch] last pointed at) with [replacement],
-  /// returning the index, among the matches left afterwards, of the first one starting at or past
-  /// the end of what was just written (wrapping to `0`, or `null` if none remain) — the caller
-  /// (`editor_page.dart`) is what turns that into a fresh `OcptEditorSearchCurrentMatchSelectedEvent`,
-  /// mirroring the raw mode's own `_requestRawReplace`.
-  int? replaceCurrentMatch(String replacement);
-
-  /// Replaces every current match with [replacement] in one grouped edit.
-  void replaceAllMatches(String replacement);
-
-  /// Applies [rangesByNodeId] — the bloc's own answer, keyed by node id — to this delegate's own
-  /// spelling styler, mirroring [updateSearch]'s own direction of travel. Ranges for a node id this
-  /// delegate's live document no longer holds, or that no longer fit that node's *current* text
-  /// length, are dropped rather than fed to the styler
-  /// (`docs/architecture/screenplay.md`).
-  void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId);
-
-  /// Whether there is a gesture of the writer's left for [undo] to take back.
-  bool get canUndo;
-
-  /// Whether there is an undone gesture left for [redo] to put back *and* it can still be put
-  /// back — no edit having been made since it was undone.
-  bool get canRedo;
-
-  /// Takes back the writer's last gesture, plus everything the editor derived from it; does
-  /// nothing when [canUndo] is false.
-  void undo();
-
-  /// Puts back the last undone gesture; does nothing when [canRedo] is false.
-  void redo();
-}
 
 /// The app-level bridge between the editor toolbar and the live styled screenplay editor: the
 /// toolbar only ever talks to this controller (read the caret's block type / active inline
@@ -78,11 +26,11 @@ class OcptStyledEditorController extends ChangeNotifier {
 
   /// The block type of the caret's current node, mirrored from the live styled editor by
   /// [updateReadState].
-  FountainLineType _currentBlockType = FountainLineType.action;
+  FountainLineType _currentBlockType;
 
   /// The inline styles active at the caret (or across the whole selection), mirrored from the live
   /// styled editor by [updateReadState].
-  Set<OcptInlineStyle> _activeInlineStyles = const {};
+  Set<OcptInlineStyle> _activeInlineStyles;
 
   /// The find/replace query last handed to [updateSearch], remembered here (rather than only
   /// forwarded) so a delegate that attaches *after* the query was set — a raw → styled mode switch
@@ -96,88 +44,100 @@ class OcptStyledEditorController extends ChangeNotifier {
 
   /// The match count the attached delegate last reported through [reportSearchMatchCount]; `0`
   /// while detached.
-  int _searchMatchCount = 0;
+  int _searchMatchCount;
 
   /// The misspelled ranges by node id [updateSpellCheckRanges] last set, remembered here for the
   /// same reason [_searchQuery] is: a delegate attaching after this was set (a raw → styled mode
   /// switch while the ranges are already known) must receive them immediately at [attach] time,
   /// rather than waiting for the page's next reactive sync.
-  Map<String, List<SpellRange>> _spellCheckRangesByNodeId = const {};
+  Map<String, List<SpellRange>> _spellCheckRangesByNodeId;
 
   /// The checkable node texts the attached delegate last reported through [reportSpellCheckTexts];
   /// empty while detached, since there is nothing to check without a live document to read them
   /// from.
-  Map<String, String> _spellCheckTextsByNodeId = const {};
+  Map<String, String> _spellCheckTextsByNodeId;
 
   /// Whether the attached delegate had anything left to undo when it last called
   /// [updateReadState]; false while detached.
-  bool _canUndo = false;
+  bool _canUndo;
 
   /// Whether the attached delegate had anything left to redo when it last called
   /// [updateReadState]; false while detached.
-  bool _canRedo = false;
-
-  /// The match count the toolbar/page should currently show for the styled mode's own search.
-  int get searchMatchCount => _searchMatchCount;
-
-  /// The checkable node texts the page should currently forward into a fresh spell-check request —
-  /// `editor_page.dart` reads this from its own controller-listener wiring (the equivalent of
-  /// `_onStyledEditorControllerChanged`) and dispatches a fresh bloc event whenever it actually
-  /// changed, mirroring [searchMatchCount]'s own pattern.
-  Map<String, String> get spellCheckTextsByNodeId => _spellCheckTextsByNodeId;
+  bool _canRedo;
 
   /// Whether [dispose] was already called, checked by a pending [_notifySafely] deferral before it
   /// finally calls `notifyListeners()`: a post-frame callback can otherwise easily outlive this
   /// controller (for example in a widget test that tears its tree down, disposing this controller,
   /// before the next frame that would have run the callback ever gets pumped), and
   /// `ChangeNotifier.notifyListeners()` asserts when called after [dispose].
-  bool _disposed = false;
+  bool _disposed;
 
-  /// Whether a live styled editor is currently attached; false in raw mode.
+  /// Get the match count the toolbar/page should currently show for the styled mode's own search.
+  int get searchMatchCount => _searchMatchCount;
+
+  /// Get the checkable node texts the page should currently forward into a fresh spell-check
+  /// request —
+  /// `editor_page.dart` reads this from its own controller-listener wiring (the equivalent of
+  /// `_onStyledEditorControllerChanged`) and dispatches a fresh bloc event whenever it actually
+  /// changed, mirroring [searchMatchCount]'s own pattern.
+  Map<String, String> get spellCheckTextsByNodeId => _spellCheckTextsByNodeId;
+
+  /// Tell whether a live styled editor is currently attached; false in raw mode.
   bool get isAttached => _delegate != null;
 
-  /// The block type the toolbar's dropdown should currently show.
+  /// Get the block type the toolbar's dropdown should currently show.
   FountainLineType get currentBlockType => _currentBlockType;
 
-  /// The inline styles the toolbar's B/I/U toggles should currently show as selected.
+  /// Get the inline styles the toolbar's B/I/U toggles should currently show as selected.
   Set<OcptInlineStyle> get activeInlineStyles => _activeInlineStyles;
 
-  /// Whether the live styled editor currently has anything to undo — what an `Undo` affordance
+  /// Tell whether the live styled editor currently has anything to undo — what an `Undo` affordance
   /// reads to decide whether to appear at all. False while detached (raw mode), where the raw
   /// field's own `UndoHistoryController` is what answers the same question.
   bool get canUndo => _canUndo;
 
-  /// Whether the live styled editor currently has anything to redo, in the sense that it can
+  /// Tell whether the live styled editor currently has anything to redo, in the sense that it can
   /// still be redone *correctly*: the attached delegate refuses a redo whose transactions a later
   /// edit has overtaken, and this mirrors that same predicate rather than recomputing one of its
   /// own. False while detached (raw mode).
   bool get canRedo => _canRedo;
 
-  /// Requests that the writer's last gesture be taken back, forwarded to the attached delegate; a
+  /// Class constructor
+  OcptStyledEditorController()
+    : _currentBlockType = FountainLineType.action,
+      _activeInlineStyles = const {},
+      _searchMatchCount = 0,
+      _spellCheckRangesByNodeId = const {},
+      _spellCheckTextsByNodeId = const {},
+      _canUndo = false,
+      _canRedo = false,
+      _disposed = false;
+
+  /// Request that the writer's last gesture be taken back, forwarded to the attached delegate; a
   /// no-op while detached (raw mode).
   void undo() {
     _delegate?.undo();
   }
 
-  /// Requests that the last undone gesture be put back, forwarded to the attached delegate (which
+  /// Request that the last undone gesture be put back, forwarded to the attached delegate (which
   /// refuses it when [canRedo] is false); a no-op while detached (raw mode).
   void redo() {
     _delegate?.redo();
   }
 
-  /// Requests that the caret's current block become [type], forwarded to the attached delegate; a
+  /// Request that the caret's current block become [type], forwarded to the attached delegate; a
   /// no-op while detached (raw mode).
   void setBlockType(FountainLineType type) {
     _delegate?.applyBlockType(type);
   }
 
-  /// Requests that [style] be toggled on the current selection, forwarded to the attached
+  /// Request that [style] be toggled on the current selection, forwarded to the attached
   /// delegate; a no-op while detached (raw mode).
   void toggleInlineStyle(OcptInlineStyle style) {
     _delegate?.applyToggleInlineStyle(style);
   }
 
-  /// Records the find/replace bar's current [query]/[currentMatchIndex] and forwards them to the
+  /// Record the find/replace bar's current [query]/[currentMatchIndex] and forward them to the
   /// attached delegate (which highlights every match, places the selection on the current one and
   /// scrolls it into view — deliberately without taking keyboard focus, since the find field is
   /// what must keep it), or simply remembers them while detached (raw mode) for the next [attach]
@@ -193,19 +153,19 @@ class OcptStyledEditorController extends ChangeNotifier {
     _delegate?.updateSearch(query: query, currentMatchIndex: currentMatchIndex);
   }
 
-  /// Requests that the current match (the one the last [updateSearch] call pointed at) be
+  /// Request that the current match (the one the last [updateSearch] call pointed at) be
   /// replaced by [replacement], forwarded to the attached delegate; returns null while detached
   /// (raw mode). See [OcptStyledEditorControllerDelegate.replaceCurrentMatch]'s own doc comment
   /// for what the returned index means.
   int? replaceCurrentMatch(String replacement) => _delegate?.replaceCurrentMatch(replacement);
 
-  /// Requests that every current match be replaced by [replacement], forwarded to the attached
+  /// Request that every current match be replaced by [replacement], forwarded to the attached
   /// delegate; a no-op while detached (raw mode).
   void replaceAllMatches(String replacement) {
     _delegate?.replaceAllMatches(replacement);
   }
 
-  /// Records the misspelled ranges [rangesByNodeId] (keyed by node id) and forwards them to the
+  /// Record the misspelled ranges [rangesByNodeId] (keyed by node id) and forward them to the
   /// attached delegate, or simply remembers them while detached (raw mode) for the next [attach] to
   /// pick up — the styled mode's own counterpart to [updateSearch], for the identical reason: a raw
   /// → styled mode switch while the ranges are already known must not wait for the page's next
@@ -215,7 +175,7 @@ class OcptStyledEditorController extends ChangeNotifier {
     _delegate?.updateSpellCheckRanges(rangesByNodeId);
   }
 
-  /// Pushes a fresh set of checkable node texts from the attached delegate — the styled mode's own
+  /// Push a fresh set of checkable node texts from the attached delegate — the styled mode's own
   /// half of "each mode matches what it shows" (`docs/architecture/screenplay.md`), and
   /// the mirror image of [updateSpellCheckRanges]'s direction of travel.
   ///
@@ -231,7 +191,7 @@ class OcptStyledEditorController extends ChangeNotifier {
     _notifySafely();
   }
 
-  /// Pushes a fresh match count from the attached delegate, the search half of [updateReadState]:
+  /// Push a fresh match count from the attached delegate, the search half of [updateReadState]:
   /// called every time the delegate recomputes its matches (an explicit navigation, or a live
   /// document edit while the bar is open), listened to directly by the page (not routed through a
   /// bloc round trip) so it can turn a genuine change into a fresh
@@ -244,7 +204,7 @@ class OcptStyledEditorController extends ChangeNotifier {
     _notifySafely();
   }
 
-  /// Attaches [delegate] as the live styled editor backing this controller, making [isAttached]
+  /// Attach [delegate] as the live styled editor backing this controller, making [isAttached]
   /// true and letting the toolbar's format controls appear.
   ///
   /// Immediately pushes whatever [_searchQuery]/[_searchCurrentMatchIndex] and
@@ -262,7 +222,7 @@ class OcptStyledEditorController extends ChangeNotifier {
     _notifySafely();
   }
 
-  /// Detaches [delegate], making [isAttached] false again (the toolbar's format controls hide) —
+  /// Detach [delegate], making [isAttached] false again (the toolbar's format controls hide) —
   /// a no-op if [delegate] isn't the currently attached one, guarding against a stale detach call
   /// after a rebuild already swapped in a different delegate.
   void detach(OcptStyledEditorControllerDelegate delegate) {
@@ -277,7 +237,7 @@ class OcptStyledEditorController extends ChangeNotifier {
     _notifySafely();
   }
 
-  /// Pushes a fresh read-side snapshot from the attached delegate: the caret's current block type,
+  /// Push a fresh read-side snapshot from the attached delegate: the caret's current block type,
   /// the set of inline styles active at the caret/selection, and whether that editor has anything
   /// left to undo or redo. Listeners are only notified when one of those four actually changed,
   /// avoiding redundant toolbar rebuilds on every keystroke that doesn't move the caret across a
@@ -301,7 +261,7 @@ class OcptStyledEditorController extends ChangeNotifier {
     _notifySafely();
   }
 
-  /// Notifies listeners immediately, unless the framework is currently in the middle of building
+  /// Notify listeners immediately, unless the framework is currently in the middle of building
   /// the widget tree, in which case the notification is deferred to right after the current frame.
   ///
   /// [attach]/[detach]/[updateReadState] can all be triggered from the styled editor's
@@ -327,7 +287,7 @@ class OcptStyledEditorController extends ChangeNotifier {
     }
   }
 
-  /// Marks this controller disposed (see [_disposed]) before the inherited `ChangeNotifier`
+  /// Mark this controller disposed (see [_disposed]) before the inherited `ChangeNotifier`
   /// teardown, so a [_notifySafely] deferral still pending at that point knows not to call
   /// `notifyListeners()` once it finally runs.
   @override

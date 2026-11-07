@@ -3,39 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-
-/// Which subsystem recorded an [OcptDiagnosticsEntry] — lets `OcptDiagnosticsLogList` filter
-/// `OcptDiagnosticsManager`'s own buffer down to only what a given screen cares about (the
-/// hosting panel shows every category, the Rejoindre screen only [join] and [sync]).
-enum OcptDiagnosticsCategory {
-  /// `OcptRelayHostManager`'s own start/stop/online/failed lifecycle.
-  hosting,
-
-  /// `OcptSyncSession`'s own status transitions.
-  sync,
-
-  /// `OcptJoiningBloc`'s own step-by-step progress.
-  join,
-
-  /// `OcptRelayServer`'s own request-level events, forwarded through `OcptRelayHostManager`'s
-  /// `onEvent` sink while this replica is hosting.
-  relayServer,
-
-  /// A change to the connected-peers presence roster.
-  presence,
-}
-
-/// How severe an [OcptDiagnosticsEntry] is — tints the line `OcptDiagnosticsLogList` draws it on.
-enum OcptDiagnosticsLevel {
-  /// An ordinary, expected event.
-  info,
-
-  /// Something worth a second look, but not a failure on its own.
-  warning,
-
-  /// A failure.
-  error,
-}
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_diagnostics_level.dart';
 
 /// One line of `OcptDiagnosticsManager`'s own ring buffer: a device-local diagnostics log entry
 /// recording what the relay server (when hosting) and the sync client are doing on this device —
@@ -64,12 +33,12 @@ class OcptDiagnosticsEntry extends Equatable {
     required this.message,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptDiagnosticsEntry(time: $time, category: $category, level: $level, message: $message)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [time, category, level, message];
 }

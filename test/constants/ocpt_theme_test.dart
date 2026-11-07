@@ -4,27 +4,28 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 
+/// Run the tests of the theme.
 void main() {
-  group('ocptTheme builds both brightnesses', () {
+  group('ocpt_theme.ocptTheme builds both brightnesses', () {
     test('the light theme is built', () {
-      expect(ocptTheme.lightThemeData, isNotNull);
+      expect(ocpt_theme.ocptTheme.lightThemeData, isNotNull);
     });
 
     test('the dark theme is built', () {
-      expect(ocptTheme.darkThemeData, isNotNull);
+      expect(ocpt_theme.ocptTheme.darkThemeData, isNotNull);
     });
   });
 
   group('OcptSpecificColors extension', () {
     test('is present on the light theme', () {
-      expect(ocptTheme.lightThemeData!.extension<OcptSpecificColors>(), isNotNull);
+      expect(ocpt_theme.ocptTheme.lightThemeData!.extension<OcptSpecificColors>(), isNotNull);
     });
 
     test('is present on the dark theme', () {
-      expect(ocptTheme.darkThemeData!.extension<OcptSpecificColors>(), isNotNull);
+      expect(ocpt_theme.ocptTheme.darkThemeData!.extension<OcptSpecificColors>(), isNotNull);
     });
   });
 
@@ -59,8 +60,8 @@ void main() {
 
     for (final brightness in Brightness.values) {
       final themeData = brightness == Brightness.light
-          ? ocptTheme.lightThemeData!
-          : ocptTheme.darkThemeData!;
+          ? ocpt_theme.ocptTheme.lightThemeData!
+          : ocpt_theme.ocptTheme.darkThemeData!;
 
       test('every overridden slot has a non-null color in $brightness', () {
         for (final slot in overriddenSlots) {
@@ -73,8 +74,8 @@ void main() {
   group('component themes read their colors from the scheme', () {
     for (final brightness in Brightness.values) {
       final themeData = brightness == Brightness.light
-          ? ocptTheme.lightThemeData!
-          : ocptTheme.darkThemeData!;
+          ? ocpt_theme.ocptTheme.lightThemeData!
+          : ocpt_theme.ocptTheme.darkThemeData!;
       final colorScheme = themeData.colorScheme;
 
       test('the card border color equals outlineVariant in $brightness', () {
@@ -109,7 +110,10 @@ void main() {
         final selectedBackground = style.backgroundColor?.resolve(<WidgetState>{
           WidgetState.selected,
         });
-        expect(selectedBackground, colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha));
+        expect(
+          selectedBackground,
+          colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        );
 
         final unselectedBackground = style.backgroundColor?.resolve(<WidgetState>{});
         expect(unselectedBackground, Colors.transparent);
@@ -119,12 +123,12 @@ void main() {
 
   group('clickable controls show the hand cursor', () {
     // Material's own defaults resolve to the plain arrow outside the web, so every control that
-    // reads its cursor from the theme must be handed [ocptClickableCursor] here: a missing entry
-    // is a control that silently stops looking clickable on Linux and Windows.
+    // reads its cursor from the theme must be handed [ocpt_theme.ocptClickableCursor] here: a
+    // missing entry is a control that silently stops looking clickable on Linux and Windows.
     for (final brightness in Brightness.values) {
       final themeData = brightness == Brightness.light
-          ? ocptTheme.lightThemeData!
-          : ocptTheme.darkThemeData!;
+          ? ocpt_theme.ocptTheme.lightThemeData!
+          : ocpt_theme.ocptTheme.darkThemeData!;
 
       /// The cursor [style] resolves for an enabled control.
       MouseCursor? enabledCursorOf(ButtonStyle? style) =>
@@ -174,21 +178,24 @@ void main() {
     }
   });
 
-  group('buildOcptThemeModel scaler parametrisation', () {
+  group('ocpt_theme.buildOcptThemeModel scaler parametrisation', () {
     // These assertions build the theme model directly, without ScreenUtilInit: the scalers below
     // are plain functions, not flutter_screenutil's `.sp`/`.w`/`.r`, so the theme's own
     // parametrisation is exercised independently of ScreenUtil ever being initialised.
     test('the identity default leaves the dense headlineSmall size at 22', () {
-      expect(buildOcptThemeModel().lightThemeData!.textTheme.headlineSmall!.fontSize, 22);
+      expect(
+        ocpt_theme.buildOcptThemeModel().lightThemeData!.textTheme.headlineSmall!.fontSize,
+        22,
+      );
     });
 
     test('a doubling sp scaler doubles the dense headlineSmall size to 44', () {
-      final model = buildOcptThemeModel(sp: (v) => v * 2);
+      final model = ocpt_theme.buildOcptThemeModel(sp: (v) => v * 2);
       expect(model.lightThemeData!.textTheme.headlineSmall!.fontSize, 44);
     });
 
     test('a doubling w scaler doubles the icon button minimum size to 56', () {
-      final model = buildOcptThemeModel(w: (v) => v * 2);
+      final model = ocpt_theme.buildOcptThemeModel(w: (v) => v * 2);
       final minimumSize = model.lightThemeData!.iconButtonTheme.style!.minimumSize!.resolve(
         <WidgetState>{},
       );
@@ -197,10 +204,10 @@ void main() {
 
     test('a doubling r scaler doubles the card corner radius', () {
       final identityShape =
-          ocptTheme.lightThemeData!.cardTheme.shape as RoundedRectangleBorder?;
+          ocpt_theme.ocptTheme.lightThemeData!.cardTheme.shape as RoundedRectangleBorder?;
       final identityRadius = (identityShape?.borderRadius as BorderRadius?)?.topLeft.x;
 
-      final model = buildOcptThemeModel(r: (v) => v * 2);
+      final model = ocpt_theme.buildOcptThemeModel(r: (v) => v * 2);
       final scaledShape = model.lightThemeData!.cardTheme.shape as RoundedRectangleBorder?;
       final scaledRadius = (scaledShape?.borderRadius as BorderRadius?)?.topLeft.x;
 

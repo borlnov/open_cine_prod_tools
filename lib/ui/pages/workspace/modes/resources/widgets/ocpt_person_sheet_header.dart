@@ -5,12 +5,12 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_email_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_avatar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_email_format.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The person sheet's header: the photo slot on the left (see [OcptPersonSheetAvatar], which is
 /// where referencing a photo and picking the fallback colour both live), and on the right the
@@ -61,6 +61,7 @@ class OcptPersonSheetHeader extends StatelessWidget {
     required this.onBirthDateChanged,
   });
 
+  /// Build the person sheet header as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -90,7 +91,9 @@ class OcptPersonSheetHeader extends StatelessWidget {
                       label: "",
                       value: fieldValueOf(OcptPersonField.firstName),
                       hintText: tr.resourcesFirstNameHint,
-                      textStyle: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                      textStyle: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                       onChanged: _onFieldChangedOrNull(OcptPersonField.firstName),
                     ),
                   ),
@@ -101,18 +104,20 @@ class OcptPersonSheetHeader extends StatelessWidget {
                       label: "",
                       value: fieldValueOf(OcptPersonField.lastName),
                       hintText: tr.resourcesLastNameHint,
-                      textStyle: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                      textStyle: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                       onChanged: _onFieldChangedOrNull(OcptPersonField.lastName),
                     ),
                   ),
                   if (person.isMinor == true && age != null) ...[
                     const SizedBox(width: 8),
-                    _buildMinorBadge(context, age),
+                    _MinorBadge(age: age),
                   ],
                 ],
               ),
               const SizedBox(height: 14),
-              _buildContactGrid(context, tr),
+              _ContactGrid(header: this),
             ],
           ),
         ),
@@ -120,8 +125,30 @@ class OcptPersonSheetHeader extends StatelessWidget {
     );
   }
 
-  /// The `Minor · {age}` badge, tinted with the workspace's warning colour.
-  Widget _buildMinorBadge(BuildContext context, int age) {
+  /// Get the `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or
+  /// null
+  /// while the sheet may not be written to, which is what makes the field read out its value
+  /// instead of accepting a new one.
+  ValueChanged<String>? _onFieldChangedOrNull(OcptPersonField field) {
+    final onFieldChanged = this.onFieldChanged;
+    if (onFieldChanged == null) {
+      return null;
+    }
+    return (value) => onFieldChanged(field, value);
+  }
+}
+
+/// The `Minor · {age}` badge, tinted with the workspace's warning colour.
+class _MinorBadge extends StatelessWidget {
+  /// The person's age in years.
+  final int age;
+
+  /// Class constructor
+  const _MinorBadge({required this.age});
+
+  /// Build the minor badge as a [Padding].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = ocptWarningColor(context);
 
@@ -140,67 +167,22 @@ class OcptPersonSheetHeader extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The contact grid: email and phone, then the two address lines full width, then the postal
-  /// code beside the city and the region beside the country, and last the date of birth.
-  ///
-  /// The address is laid out in the order an international address form uses (street, then the
-  /// locality, then the administrative levels above it) rather than in any one country's own
-  /// printing order: `OcptPeopleTable.addressLine1`'s doc comment is where the six-column shape is
-  /// argued, and printing an address for a given country is a call sheet's job, not a form's.
-  Widget _buildContactGrid(BuildContext context, Tr tr) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _buildFieldRow(
-        first: _buildTextField(
-          tr.resourcesEmailLabel,
-          OcptPersonField.email,
-          errorTextOf: (value) =>
-              ocptEmailLooksWellFormed(value) ? null : tr.resourcesEmailMalformedError,
-        ),
-        second: _buildTextField(tr.resourcesPhoneLabel, OcptPersonField.phone),
-      ),
-      const SizedBox(height: 10),
-      _buildTextField(tr.resourcesAddressLine1Label, OcptPersonField.addressLine1),
-      const SizedBox(height: 10),
-      _buildTextField(tr.resourcesAddressLine2Label, OcptPersonField.addressLine2),
-      const SizedBox(height: 10),
-      _buildFieldRow(
-        first: _buildTextField(tr.resourcesPostalCodeLabel, OcptPersonField.postalCode),
-        second: _buildTextField(tr.resourcesCityLabel, OcptPersonField.city),
-      ),
-      const SizedBox(height: 10),
-      _buildFieldRow(
-        first: _buildTextField(tr.resourcesRegionLabel, OcptPersonField.region),
-        second: _buildTextField(tr.resourcesCountryLabel, OcptPersonField.country),
-      ),
-      const SizedBox(height: 10),
-      _buildFieldRow(
-        first: OcptPersonSheetDateField(
-          label: tr.resourcesBirthDateLabel,
-          value: person.birthDate,
-          onChanged: onBirthDateChanged,
-        ),
-        second: const SizedBox.shrink(),
-      ),
-    ],
-  );
+/// Two fields of the contact grid, side by side and equally wide.
+class _FieldRow extends StatelessWidget {
+  /// The field on the left.
+  final Widget first;
 
-  /// One field of the contact grid, optionally checked by [errorTextOf] once it loses the focus.
-  Widget _buildTextField(
-    String label,
-    OcptPersonField field, {
-    String? Function(String value)? errorTextOf,
-  }) => OcptResourcesSheetField(
-    ownerId: person.id,
-    label: label,
-    value: fieldValueOf(field),
-    errorTextOf: errorTextOf,
-    onChanged: _onFieldChangedOrNull(field),
-  );
+  /// The field on the right.
+  final Widget second;
 
-  /// Two fields of the contact grid, side by side and equally wide.
-  Widget _buildFieldRow({required Widget first, required Widget second}) => Row(
+  /// Class constructor
+  const _FieldRow({required this.first, required this.second});
+
+  /// Build the field row as a [Row].
+  @override
+  Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Expanded(child: first),
@@ -208,15 +190,124 @@ class OcptPersonSheetHeader extends StatelessWidget {
       Expanded(child: second),
     ],
   );
+}
 
-  /// The `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or null
-  /// while the sheet may not be written to, which is what makes the field read out its value
-  /// instead of accepting a new one.
-  ValueChanged<String>? _onFieldChangedOrNull(OcptPersonField field) {
-    final onFieldChanged = this.onFieldChanged;
-    if (onFieldChanged == null) {
-      return null;
-    }
-    return (value) => onFieldChanged(field, value);
+/// One field of the contact grid, optionally checked by [errorTextOf] once it loses the focus.
+class _TextField extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptPersonSheetHeader header;
+
+  /// The field's label.
+  final String label;
+
+  /// The field this one writes.
+  final OcptPersonField field;
+
+  /// Checks the field once it loses the focus, or null for no check.
+  final String? Function(String value)? errorTextOf;
+
+  /// Class constructor
+  const _TextField({
+    required this.header,
+    required this.label,
+    required this.field,
+    this.errorTextOf,
+  });
+
+  /// Build the text field as an [OcptResourcesSheetField].
+  @override
+  Widget build(BuildContext context) => OcptResourcesSheetField(
+    ownerId: header.person.id,
+    label: label,
+    value: header.fieldValueOf(field),
+    errorTextOf: errorTextOf,
+    onChanged: header._onFieldChangedOrNull(field),
+  );
+}
+
+/// The contact grid: email and phone, then the two address lines full width, then the postal
+/// code beside the city and the region beside the country, and last the date of birth.
+///
+/// The address is laid out in the order an international address form uses (street, then the
+/// locality, then the administrative levels above it) rather than in any one country's own
+/// printing order: `OcptPeopleTable.addressLine1`'s doc comment is where the six-column shape is
+/// argued, and printing an address for a given country is a call sheet's job, not a form's.
+class _ContactGrid extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptPersonSheetHeader header;
+
+  /// Class constructor
+  const _ContactGrid({required this.header});
+
+  /// Build the contact grid as a [Column].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FieldRow(
+          first: _TextField(
+            header: header,
+            label: tr.resourcesEmailLabel,
+            field: OcptPersonField.email,
+            errorTextOf: (value) =>
+                ocptEmailLooksWellFormed(value) ? null : tr.resourcesEmailMalformedError,
+          ),
+          second: _TextField(
+            header: header,
+            label: tr.resourcesPhoneLabel,
+            field: OcptPersonField.phone,
+          ),
+        ),
+        const SizedBox(height: 10),
+        _TextField(
+          header: header,
+          label: tr.resourcesAddressLine1Label,
+          field: OcptPersonField.addressLine1,
+        ),
+        const SizedBox(height: 10),
+        _TextField(
+          header: header,
+          label: tr.resourcesAddressLine2Label,
+          field: OcptPersonField.addressLine2,
+        ),
+        const SizedBox(height: 10),
+        _FieldRow(
+          first: _TextField(
+            header: header,
+            label: tr.resourcesPostalCodeLabel,
+            field: OcptPersonField.postalCode,
+          ),
+          second: _TextField(
+            header: header,
+            label: tr.resourcesCityLabel,
+            field: OcptPersonField.city,
+          ),
+        ),
+        const SizedBox(height: 10),
+        _FieldRow(
+          first: _TextField(
+            header: header,
+            label: tr.resourcesRegionLabel,
+            field: OcptPersonField.region,
+          ),
+          second: _TextField(
+            header: header,
+            label: tr.resourcesCountryLabel,
+            field: OcptPersonField.country,
+          ),
+        ),
+        const SizedBox(height: 10),
+        _FieldRow(
+          first: OcptPersonSheetDateField(
+            label: tr.resourcesBirthDateLabel,
+            value: header.person.birthDate,
+            onChanged: header.onBirthDateChanged,
+          ),
+          second: const SizedBox.shrink(),
+        ),
+      ],
+    );
   }
 }

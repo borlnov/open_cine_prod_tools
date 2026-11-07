@@ -5,27 +5,26 @@
 import 'dart:convert';
 
 import 'package:act_dart_result/act_dart_result.dart';
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_payload_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_restore_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
-import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_row_stamp_key.dart';
 import 'package:uuid/uuid.dart';
 
-/// Creates, lists, deletes and restores a project's named versions: the production history the user
+/// Create, lists, delete and restore a project's named versions: the production history the user
 /// drives from the workspace's `Versions` dock tab.
 ///
 /// {@macro open_cine_prod_tools.OcptProjectVersionsTable.versusSnapshots}
@@ -37,58 +36,7 @@ import 'package:uuid/uuid.dart';
 /// - a version captures **every row** of the tables it covers, tombstones included, exactly as
 ///   they stand — no read here filters `isDeleted` out, unlike every other read in the app;
 /// - versions are **never pruned**. Unlike `screenplay_snapshots`, only the user deletes one.
-class OcptProjectVersionsService {
-  /// The tables a payload carries every row of, as `row_field_versions.table_name` spells them.
-  ///
-  /// The stamps of those tables — and of no others — travel with a version (see
-  /// [_captureRowFieldVersions]).
-  static const _payloadTableNames = [
-    'screenplays',
-    'scenes',
-    'shots',
-    'shot_characters',
-    'shot_coverages',
-    'people',
-    'person_positions',
-    'person_skills',
-    'person_unavailabilities',
-    'roles',
-    'role_episodes',
-    'locations',
-    'location_availabilities',
-    'sets',
-    'scene_sets',
-    'elements',
-    'scene_elements',
-    'role_elements',
-    'role_candidates',
-    'assets',
-    'breakdown_tags',
-    'scene_breakdowns',
-    'shooting_days',
-    'shooting_slots',
-    'shooting_slot_crew',
-    'shooting_slot_cast',
-    'shooting_day_blocks',
-    'shooting_slot_guests',
-    'shooting_block_candidates',
-    'shooting_day_events',
-    'project_dictionary_words',
-    'budget_postes',
-    'budget_lines',
-    'budget_entries',
-    'budget_commitments',
-    'budget_resources',
-    'budget_mileage_rates',
-    'budget_revenues',
-    'budget_shares',
-    'storyboard_panels',
-    'storyboard_annotations',
-    'floor_plan_sets',
-    'floor_plan_symbols',
-    'floor_plan_arrows',
-  ];
-
+class OcptProjectVersionsService extends AbsOcptService {
   /// The codec turning the captured state into the text stored in `project_versions.payload`.
   final OcptProjectVersionCodec _codec;
 
@@ -98,20 +46,32 @@ class OcptProjectVersionsService {
 
   /// Class constructor
   const OcptProjectVersionsService({
+    required super.logger,
     required OcptProjectVersionCodec codec,
     required OcptScreenplayService screenplayService,
   }) : _codec = codec,
        _screenplayService = screenplayService;
 
-  /// Lists every version of the project in [database], newest first.
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await _screenplayService.initLifeCycle();
+  }
+
+  /// List every version of the project in [database], newest first.
   ///
   /// Deliberately does **not** deserialize any payload: a card renders from the counters stored
   /// with the version, and a payload is hundreds of kilobytes.
-  Future<List<OcptProjectVersion>> listVersions({required OcptProjectDatabase database}) async {
-    final rows =
-        await (database.select(database.ocptProjectVersionsTable)
-              ..orderBy([(table) => OrderingTerm.desc(table.createdAt)]))
-            .get();
+  @useResult
+  Future<OcptDatabaseResult<List<OcptProjectVersion>>> listVersions({
+    required OcptProjectDatabase database,
+  }) => guardResult("listVersions", () async {
+    final rows = await (database.select(
+      database.ocptProjectVersionsTable,
+    )..orderBy([(table) => OrderingTerm.desc(table.createdAt)])).get();
 
     final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
 
@@ -119,9 +79,9 @@ class OcptProjectVersionsService {
       for (final row in rows)
         OcptProjectVersion.fromRow(row: row, isBase: row.id == info?.currentVersionId),
     ];
-  }
+  });
 
-  /// Captures the current state of the project in [database] as a new version named [name], with
+  /// Capture the current state of the project in [database] as a new version named [name], with
   /// the user's [note], and makes it the version the working copy descends from.
   ///
   /// [appVersion] and [deviceId] are recorded on the row for provenance; [pageMargins] completes
@@ -133,25 +93,371 @@ class OcptProjectVersionsService {
   ///
   /// The capture, the insertion and the pointer update all happen in one transaction, so a version
   /// can never describe a project state that never existed.
-  Future<OcptProjectVersion> createVersion({
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectVersion>> createVersion({
     required OcptProjectDatabase database,
     required String name,
     required String note,
     required String appVersion,
     required String deviceId,
     required FountainPageMargins pageMargins,
-  }) => database.transaction(
-    () async => _insertVersion(
-      database: database,
-      payload: await _capturePayload(database: database, pageMargins: pageMargins),
-      name: name,
-      note: note,
-      appVersion: appVersion,
-      deviceId: deviceId,
+  }) => guardResult(
+    "createVersion",
+    () => database.transaction(
+      () async => _insertVersion(
+        database: database,
+        payload: await OcptProjectVersionsPayloadOps.capturePayload(
+          database: database,
+          pageMargins: pageMargins,
+        ),
+        name: name,
+        note: note,
+        appVersion: appVersion,
+        deviceId: deviceId,
+      ),
     ),
   );
 
-  /// Writes [payload] as a new version row named [name], with the user's [note], and makes it the
+  /// Rename the version [id] of the project in [database] to [name], replacing its [note].
+  ///
+  /// A plain update of the two columns, unlike every other version operation: it reads nothing
+  /// about the project's *data*, only writes to the version's own row, so — unlike restoring or
+  /// deleting — it stays available while a preview is up. Renaming the card the user happens to be
+  /// looking at, or any other, changes nothing about what a preview reads.
+  @useResult
+  Future<OcptDatabaseOutcome> renameVersion({
+    required OcptProjectDatabase database,
+    required String id,
+    required String name,
+    required String note,
+  }) => guardOutcome("renameVersion", () async {
+    await (database.update(database.ocptProjectVersionsTable)
+          ..where((table) => table.id.equals(id)))
+        .write(OcptProjectVersionsTableCompanion(name: Value(name), note: Value(note)));
+  });
+
+  /// Load the single version [id] of the project in [database], or null if it has no such
+  /// version.
+  ///
+  /// Reads the card's columns alone, deliberately leaving `payload` in the file: this is what the
+  /// preview asks for the version's *identity* with, and it must stay as cheap as [listVersions]
+  /// even though the payload of that same row is about to be read by [loadPayload].
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectVersion>> loadVersion({
+    required OcptProjectDatabase database,
+    required String id,
+  }) => guardResult("loadVersion", () => _readVersion(database: database, id: id));
+
+  /// Read and decode the payload of the version [id] of the project in [database].
+  ///
+  /// This is the one read that does deserialize a payload, and it exists for the two operations
+  /// that need the state itself rather than the card: entering a version's preview, and restoring
+  /// it. Every failure comes back as a status — a version whose payload can't be read is a version
+  /// the user must be told about, never an exception thrown at whichever screen asked. A payload
+  /// that can't be decoded is the status of the answer's value, and a database that can't be read
+  /// is the status of the answer itself.
+  ///
+  /// **This is also where an erased person is scrubbed back out**
+  /// ([OcptProjectVersionsPayloadOps.scrubErasedPeople]), and being the single door both operations
+  /// come through is the whole reason it belongs here rather than in the restore alone. The answer
+  /// to "a version captured before an erasure still holds that person's row, forever" is to scrub
+  /// **on decode**, not on disk: the stored text stays byte-identical, and no reader of it ever
+  /// sees the person again. A preview is a reader — it hydrates the payload into a database the
+  /// modes draw every sheet from — so a scrub that only guarded the restore would put the phone
+  /// number, the address and the allergies of somebody who asked to be removed straight back on
+  /// screen, one click away, for as long as the version exists.
+  @useResult
+  Future<
+    OcptDatabaseResult<ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload>>
+  >
+  loadPayload({required OcptProjectDatabase database, required String id}) =>
+      guardResult("loadPayload", () => _readPayload(database: database, id: id));
+
+  /// Write [payload] into [database], an empty [OcptProjectDatabase.memory] opened for a preview,
+  /// so the modes find the version's state exactly where they usually find the working copy's.
+  ///
+  /// [projectInfo] is the working copy's own header: the preview keeps the project's name, its
+  /// creation date and the app version that created it, and takes only what the payload owns — the
+  /// page format, the currency and the free-form settings. Its `currentVersionId` is deliberately
+  /// left null, since the preview database holds no `project_versions` row for it to point at.
+  ///
+  /// The rows go in verbatim, tombstones and primary keys included, in dependency order and within
+  /// a single transaction: a half-hydrated preview must never be shown. The page **margins** the
+  /// payload carries are not written here — they are an app-wide preference, and a preview never
+  /// touches the user's preferences (they travel on `OcptOpenProjectModel.previewedPageSetup`
+  /// instead).
+  @useResult
+  Future<OcptDatabaseOutcome> hydratePreview({
+    required OcptProjectDatabase database,
+    required OcptProjectInfoRow projectInfo,
+    required OcptProjectVersionPayload payload,
+  }) => guardOutcome(
+    "hydratePreview",
+    () => OcptProjectVersionsRestoreOps.hydratePreview(
+      database: database,
+      projectInfo: projectInfo,
+      payload: payload,
+    ),
+  );
+
+  /// Measure the working copy of the project in [database] exactly as a stored version would be,
+  /// at [pageMargins], without writing anything: the counters a working-copy card shows, and
+  /// whether that content actually differs from the version it descends from.
+  ///
+  /// One capture answers both, which matters because it isn't a cheap one: it reads the same
+  /// tables [createVersion] does. [restoreVersion] needs the very same two facts to decide whether
+  /// it owes a safety version, and reuses this method's private half so it never pays for that
+  /// read twice.
+  @useResult
+  Future<OcptDatabaseResult<OcptProjectWorkingCopyState>> captureWorkingCopyState({
+    required OcptProjectDatabase database,
+    required FountainPageMargins pageMargins,
+  }) => guardResult(
+    "captureWorkingCopyState",
+    () async =>
+        (await _captureWorkingCopySnapshot(database: database, pageMargins: pageMargins)).state,
+  );
+
+  /// Put the project in [database] back into the state the version [id] captured, and makes it the
+  /// version the working copy descends from.
+  ///
+  /// This is the one destructive operation of the app that isn't a file deletion, so everything it
+  /// does happens inside a single transaction. It starts by weighing whether the working copy it is
+  /// about to overwrite needs protecting at all: [_captureWorkingCopySnapshot] reads it and
+  /// compares its digest against the version it currently descends from, and only when the two
+  /// differ — or there is no base to compare against, or that base's digest is unknown — does the
+  /// transaction also capture it as a version of its own named [safetyVersionName]. Restoring a
+  /// working copy that already matches its base would otherwise mint a byte-for-byte duplicate of a
+  /// card already in the list. Either way, **a restore can itself be undone**: when no safety
+  /// version is taken, the state it replaces is exactly the base version's, which is still there. A
+  /// failure at any point rolls the whole thing back, the safety version included when one was
+  /// taken.
+  ///
+  /// The value returned on success is the page setup the version was captured with, which the
+  /// caller **must** finish restoring: the format half of it has just been written to the project
+  /// header here, but the margins are an app-wide preference rather than project data, so they are
+  /// written through `OcptPropertiesManager` by the caller, and only once this transaction has
+  /// committed — margins pointing at a restore that failed would leave the whole app paginating
+  /// against a state no project holds.
+  ///
+  /// The currency is written here too, **except when the payload doesn't carry one** — a version
+  /// captured before currencies existed — in which case the project's own currency is left exactly
+  /// as it stood: see `OcptProjectVersionPayload.currencyCode`. The minimum rest, the screenplay
+  /// language, the default VAT rate and the two catering prices are all written
+  /// **unconditionally**, null included: unlike the currency, a null here is never "this payload
+  /// predates the column" — every one of these five columns is nullable by design and null is one
+  /// of their truthful values on a live capture too — so there is no live value to leave alone.
+  ///
+  /// {@template open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
+  /// **A restore is an edit, not a reset**, and that distinction is what the whole of
+  /// [OcptProjectVersionsRestoreOps.applyPayload] is about. The obvious implementation — empty the
+  /// tables, bulk-insert the payload's rows — is wrong twice over, and both failures are silent
+  /// (see `docs/adr/0010-sync-ready-data-model-prerequisites.md`): it hard-deletes rows a replica
+  /// that was offline would then re-insert, having never learnt they were gone, and it leaves the
+  /// per-column version stamps behind, so the next merge would replace the restored project with
+  /// the very state the user had just deliberately abandoned. The restore therefore expresses
+  /// itself in the same vocabulary as any other write: rows are inserted, updated or tombstoned,
+  /// and every column it actually changes is stamped anew.
+  /// {@endtemplate}
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  Future<ResultWithStatus<OcptProjectRestoreStatus, OcptPageSetup>> restoreVersion({
+    required OcptProjectDatabase database,
+    required String id,
+    required String safetyVersionName,
+    required String appVersion,
+    required String deviceId,
+    required FountainPageMargins pageMargins,
+  }) async {
+    if (database.refusesUserWrite("restoreVersion")) {
+      return const ResultWithStatus(status: OcptProjectRestoreStatus.writeFailed);
+    }
+
+    if (await _readVersion(database: database, id: id) == null) {
+      logger.w("The project version $id can't be restored: no such version in this project");
+      return const ResultWithStatus(status: OcptProjectRestoreStatus.versionNotFound);
+    }
+
+    final payloadResult = await _readPayload(database: database, id: id);
+    final payload = payloadResult.value;
+    if (payload == null) {
+      return ResultWithStatus(
+        status: switch (payloadResult.status) {
+          OcptProjectVersionPayloadStatus.unsupportedFutureFormat =>
+            OcptProjectRestoreStatus.unsupportedFutureFormat,
+          _ => OcptProjectRestoreStatus.malformedPayload,
+        },
+      );
+    }
+
+    final workingCopy = await _captureWorkingCopySnapshot(
+      database: database,
+      pageMargins: pageMargins,
+    );
+
+    var isRestored = false;
+    try {
+      await database.transaction(() async {
+        // The payload's rows legitimately arrive in an order that violates a foreign key part way
+        // through (a scene reinstated after the shot pointing at it, say), so the checks are
+        // deferred to the commit rather than run statement by statement.
+        await database.customStatement('PRAGMA defer_foreign_keys = ON');
+
+        if (workingCopy.state.isModifiedSinceBase) {
+          await _insertVersion(
+            database: database,
+            payload: workingCopy.payload,
+            name: safetyVersionName,
+            note: "",
+            appVersion: appVersion,
+            deviceId: deviceId,
+          );
+        }
+
+        await OcptProjectVersionsRestoreOps.applyPayload(
+          database: database,
+          payload: payload,
+          screenplayService: _screenplayService,
+          deviceId: deviceId,
+        );
+
+        await database
+            .update(database.ocptProjectInfoTable)
+            .write(
+              OcptProjectInfoTableCompanion(
+                pageFormat: Value(payload.pageSetup.format),
+                settingsJson: Value(payload.settingsJson),
+                // Absent rather than written when the payload predates currencies: leaving the
+                // column out of a partial `.write()` keeps whatever the project already holds,
+                // which is the fail-safe direction — see `OcptProjectVersionPayload.currencyCode`.
+                currencyCode: switch (payload.currencyCode) {
+                  final code? => Value(code),
+                  null => const Value.absent(),
+                },
+                minimumRestMinutes: Value(payload.minimumRestMinutes),
+                screenplayLanguage: Value(payload.screenplayLanguage),
+                defaultVatRateBasisPoints: Value(payload.defaultVatRateBasisPoints),
+                mealPriceCents: Value(payload.mealPriceCents),
+                snackPriceCents: Value(payload.snackPriceCents),
+                currentVersionId: Value(id),
+              ),
+            );
+      });
+      isRestored = true;
+    } catch (error, stackTrace) {
+      logger.e(
+        "A problem occurred when tried to restore the project version $id: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
+
+    if (!isRestored) {
+      return const ResultWithStatus(status: OcptProjectRestoreStatus.writeFailed);
+    }
+
+    logger.i("The project version $id was restored");
+
+    return ResultWithStatus(status: OcptProjectRestoreStatus.ok, value: payload.pageSetup);
+  }
+
+  /// Delete the version [id] of the project in [database], clearing the project header's pointer
+  /// first when it is the one being deleted.
+  ///
+  /// This is a **real** `delete()`, and the only one left in the app: `project_versions` is local
+  /// and never synchronised, so there is no replica to tell about the deletion and nothing to
+  /// tombstone (see the table's doc comment — do not read this as a precedent for a synchronised
+  /// table). The pointer is cleared inside the same transaction and before the row goes, since
+  /// `project_info.currentVersionId` references it and the `foreign_keys` pragma is on.
+  ///
+  /// Deleting the version *currently being previewed* has to be refused, but that is a matter of
+  /// the open project's state rather than of the database, so it belongs to `OcptProjectsManager`
+  /// alongside the preview it owns — which doesn't exist yet.
+  @useResult
+  Future<OcptDatabaseOutcome> deleteVersion({
+    required OcptProjectDatabase database,
+    required String id,
+  }) => guardOutcome("deleteVersion", () async {
+    await database.transaction(() async {
+      final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
+
+      if (info?.currentVersionId == id) {
+        await database
+            .update(database.ocptProjectInfoTable)
+            .write(const OcptProjectInfoTableCompanion(currentVersionId: Value(null)));
+      }
+
+      await (database.delete(
+        database.ocptProjectVersionsTable,
+      )..where((table) => table.id.equals(id))).go();
+    });
+
+    logger.i("The project version $id was deleted");
+  });
+
+  /// Read the single version [id] of the project in [database], or null if it has no such version.
+  ///
+  /// What [loadVersion] answers, raising when the database fails: [restoreVersion] reads it too and
+  /// lets the failure leave it, exactly as it always has.
+  Future<OcptProjectVersion?> _readVersion({
+    required OcptProjectDatabase database,
+    required String id,
+  }) async {
+    final table = database.ocptProjectVersionsTable;
+
+    final row =
+        await (database.selectOnly(table)
+              ..addColumns([table.id, table.name, table.note, table.createdAt, table.summaryJson])
+              ..where(table.id.equals(id)))
+            .getSingleOrNull();
+
+    if (row == null) {
+      return null;
+    }
+
+    final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
+
+    return OcptProjectVersion(
+      id: row.read(table.id)!,
+      name: row.read(table.name)!,
+      note: row.read(table.note)!,
+      createdAt: row.read(table.createdAt)!,
+      summary: OcptProjectVersionSummary.parse(row.read(table.summaryJson)!),
+      isBase: info?.currentVersionId == id,
+    );
+  }
+
+  /// Read and decode the payload of the version [id] of the project in [database].
+  ///
+  /// What [loadPayload] answers, raising when the database fails: [restoreVersion] reads it too and
+  /// lets the failure leave it, exactly as it always has.
+  Future<ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload>>
+  _readPayload({required OcptProjectDatabase database, required String id}) async {
+    final row = await (database.select(
+      database.ocptProjectVersionsTable,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+
+    if (row == null) {
+      logger.w("The project version $id can't be loaded: no such version in this project");
+      return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
+    }
+
+    final decoded = _codec.decode(row.payload);
+    final payload = decoded.value;
+    if (payload == null) {
+      return decoded;
+    }
+
+    return ResultWithStatus(
+      status: decoded.status,
+      value: await OcptProjectVersionsPayloadOps.scrubErasedPeople(
+        database: database,
+        payload: payload,
+      ),
+    );
+  }
+
+  /// Write [payload] as a new version row named [name], with the user's [note], and makes it the
   /// version the working copy descends from.
   ///
   /// The half of [createVersion] that doesn't capture: shared with [restoreVersion]'s safety
@@ -191,6 +497,8 @@ class OcptProjectVersionsService {
         .update(database.ocptProjectInfoTable)
         .write(OcptProjectInfoTableCompanion(currentVersionId: Value(id)));
 
+    logger.i("A project version was captured: $id");
+
     return OcptProjectVersion(
       id: id,
       name: name,
@@ -201,60 +509,7 @@ class OcptProjectVersionsService {
     );
   }
 
-  /// Renames the version [id] of the project in [database] to [name], replacing its [note].
-  ///
-  /// A plain update of the two columns, unlike every other version operation: it reads nothing
-  /// about the project's *data*, only writes to the version's own row, so — unlike restoring or
-  /// deleting — it stays available while a preview is up. Renaming the card the user happens to be
-  /// looking at, or any other, changes nothing about what a preview reads.
-  Future<void> renameVersion({
-    required OcptProjectDatabase database,
-    required String id,
-    required String name,
-    required String note,
-  }) async {
-    await (database.update(
-      database.ocptProjectVersionsTable,
-    )..where((table) => table.id.equals(id))).write(
-      OcptProjectVersionsTableCompanion(name: Value(name), note: Value(note)),
-    );
-  }
-
-  /// Loads the single version [id] of the project in [database], or null if it has no such
-  /// version.
-  ///
-  /// Reads the card's columns alone, deliberately leaving `payload` in the file: this is what the
-  /// preview asks for the version's *identity* with, and it must stay as cheap as [listVersions]
-  /// even though the payload of that same row is about to be read by [loadPayload].
-  Future<OcptProjectVersion?> loadVersion({
-    required OcptProjectDatabase database,
-    required String id,
-  }) async {
-    final table = database.ocptProjectVersionsTable;
-
-    final row =
-        await (database.selectOnly(table)
-              ..addColumns([table.id, table.name, table.note, table.createdAt, table.summaryJson])
-              ..where(table.id.equals(id)))
-            .getSingleOrNull();
-
-    if (row == null) {
-      return null;
-    }
-
-    final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
-
-    return OcptProjectVersion(
-      id: row.read(table.id)!,
-      name: row.read(table.name)!,
-      note: row.read(table.note)!,
-      createdAt: row.read(table.createdAt)!,
-      summary: OcptProjectVersionSummary.parse(row.read(table.summaryJson)!),
-      isBase: info?.currentVersionId == id,
-    );
-  }
-
-  /// Reads the `contentDigest` column alone of the version [id] of the project in [database], or
+  /// Read the `contentDigest` column alone of the version [id] of the project in [database], or
   /// null when that version doesn't exist, or exists but carries no digest, which [restoreVersion]
   /// and [captureWorkingCopyState] both treat as "unknown" rather than assume it matches anything.
   Future<String?> _loadContentDigest({
@@ -272,208 +527,18 @@ class OcptProjectVersionsService {
     return row?.read(table.contentDigest);
   }
 
-  /// Reads and decodes the payload of the version [id] of the project in [database].
-  ///
-  /// This is the one read that does deserialize a payload, and it exists for the two operations
-  /// that need the state itself rather than the card: entering a version's preview, and restoring
-  /// it. Every failure comes back as a status — a version whose payload can't be read is a version
-  /// the user must be told about, never an exception thrown at whichever screen asked.
-  ///
-  /// **This is also where an erased person is scrubbed back out** ([_scrubErasedPeople]), and being
-  /// the single door both operations come through is the whole reason it belongs here rather than
-  /// in the restore alone. §4.9's answer to "a version captured before an erasure still holds that
-  /// person's row, forever" is to scrub **on decode**, not on disk: the stored text stays
-  /// byte-identical, and no reader of it ever sees the person again. A preview is a reader — it
-  /// hydrates the payload into a database the modes draw every sheet from — so a scrub that only
-  /// guarded the restore would put the phone number, the address and the allergies of somebody who
-  /// asked to be removed straight back on screen, one click away, for as long as the version
-  /// exists.
-  Future<ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload>> loadPayload({
-    required OcptProjectDatabase database,
-    required String id,
-  }) async {
-    final row = await (database.select(
-      database.ocptProjectVersionsTable,
-    )..where((table) => table.id.equals(id))).getSingleOrNull();
-
-    if (row == null) {
-      appLogger().w("The project version $id can't be loaded: no such version in this project");
-      return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
-    }
-
-    final decoded = _codec.decode(row.payload);
-    final payload = decoded.value;
-    if (payload == null) {
-      return decoded;
-    }
-
-    return ResultWithStatus(
-      status: decoded.status,
-      value: await _scrubErasedPeople(database: database, payload: payload),
-    );
-  }
-
-  /// Writes [payload] into [database], an empty [OcptProjectDatabase.memory] opened for a preview,
-  /// so the modes find the version's state exactly where they usually find the working copy's.
-  ///
-  /// [projectInfo] is the working copy's own header: the preview keeps the project's name, its
-  /// creation date and the app version that created it, and takes only what the payload owns — the
-  /// page format, the currency and the free-form settings. Its `currentVersionId` is deliberately
-  /// left null, since the preview database holds no `project_versions` row for it to point at.
-  ///
-  /// The rows go in verbatim, tombstones and primary keys included, in dependency order and within
-  /// a single transaction: a half-hydrated preview must never be shown. The page **margins** the
-  /// payload carries are not written here — they are an app-wide preference, and a preview never
-  /// touches the user's preferences (they travel on `OcptOpenProjectModel.previewedPageSetup`
-  /// instead).
-  Future<void> hydratePreview({
-    required OcptProjectDatabase database,
-    required OcptProjectInfoRow projectInfo,
-    required OcptProjectVersionPayload payload,
-  }) => database.transaction(() async {
-    await database
-        .into(database.ocptProjectInfoTable)
-        .insert(
-          OcptProjectInfoTableCompanion.insert(
-            name: projectInfo.name,
-            createdAt: projectInfo.createdAt,
-            appVersionAtCreation: projectInfo.appVersionAtCreation,
-            pageFormat: payload.pageSetup.format,
-            settingsJson: Value(payload.settingsJson),
-            // A payload predating currencies (format 2 or earlier) carries no currency of its own
-            // to preview: the schema's own default reads as truthfully as anything else can for a
-            // moment currencies didn't exist yet.
-            currencyCode: Value(payload.currencyCode ?? ocptDefaultCurrencyCode),
-            // Unlike the currency, a null here is never "this payload predates the column" — it is
-            // exactly as truthful on a live capture as on an old one — so it previews verbatim,
-            // null included.
-            minimumRestMinutes: Value(payload.minimumRestMinutes),
-            // The same `minimumRestMinutes` reading, not the currency's: see
-            // `OcptProjectVersionPayload.screenplayLanguage`.
-            screenplayLanguage: Value(payload.screenplayLanguage),
-            // Same reading again: `OcptProjectVersionPayload.defaultVatRateBasisPoints`,
-            // `.mealPriceCents` and `.snackPriceCents`.
-            defaultVatRateBasisPoints: Value(payload.defaultVatRateBasisPoints),
-            mealPriceCents: Value(payload.mealPriceCents),
-            snackPriceCents: Value(payload.snackPriceCents),
-          ),
-        );
-
-    await database.batch((batch) {
-      batch
-        ..insertAll(database.ocptScreenplaysTable, payload.screenplays)
-        ..insertAll(database.ocptScenesTable, payload.scenes)
-        ..insertAll(database.ocptShotsTable, payload.shots)
-        ..insertAll(database.ocptShotCoveragesTable, payload.shotCoverages)
-        // `budget_mileage_rates` references nothing, and must be inserted before `people`, which
-        // may name one through `mileageRateId` — the same reason `budget_resources` is inserted
-        // before `budget_entries`, further below.
-        ..insertAll(database.ocptBudgetMileageRatesTable, payload.budgetMileageRates)
-        ..insertAll(database.ocptPeopleTable, payload.people)
-        ..insertAll(database.ocptPersonPositionsTable, payload.personPositions)
-        ..insertAll(database.ocptPersonSkillsTable, payload.personSkills)
-        ..insertAll(database.ocptPersonUnavailabilitiesTable, payload.personUnavailabilities)
-        ..insertAll(database.ocptRolesTable, payload.roles)
-        ..insertAll(database.ocptRoleEpisodesTable, payload.roleEpisodes)
-        // `shot_characters.roleId` references `roles` (ADR 0030): inserted only now that the roles
-        // it names exist, rather than beside `shots` above.
-        ..insertAll(database.ocptShotCharactersTable, payload.shotCharacters)
-        ..insertAll(database.ocptLocationsTable, payload.locations)
-        ..insertAll(database.ocptLocationAvailabilitiesTable, payload.locationAvailabilities)
-        ..insertAll(database.ocptSetsTable, payload.sets)
-        ..insertAll(database.ocptSceneSetsTable, payload.sceneSets)
-        ..insertAll(database.ocptElementsTable, payload.elements)
-        ..insertAll(database.ocptSceneElementsTable, payload.sceneElements)
-        ..insertAll(database.ocptRoleElementsTable, payload.roleElements)
-        ..insertAll(database.ocptRoleCandidatesTable, payload.roleCandidates)
-        ..insertAll(database.ocptAssetsTable, payload.assets)
-        // Both breakdown tables follow every table they may reference (scenes, roles, sets and
-        // elements are all written above), so this is not a forward reference — unlike the
-        // asset-referencing trio above it, `breakdown_tags` closes no foreign-key cycle of its own.
-        ..insertAll(database.ocptBreakdownTagsTable, payload.breakdownTags)
-        ..insertAll(database.ocptSceneBreakdownsTable, payload.sceneBreakdowns)
-        // The schedule tables follow every table they may reference too — screenplays, shots,
-        // people, roles, locations and sets are all written above — so none of these is a forward
-        // reference either: shootingDays before shootingSlots (which may name a location or a set),
-        // before shootingSlotCrew/shootingSlotCast/shootingSlotGuests (which each point at a slot,
-        // and a guest at a person too) and
-        // shootingDayBlocks (which points at a slot, and a block may also point at a shot), and
-        // shootingDayEvents last, referencing only a day.
-        ..insertAll(database.ocptShootingDaysTable, payload.shootingDays)
-        ..insertAll(database.ocptShootingSlotsTable, payload.shootingSlots)
-        ..insertAll(database.ocptShootingSlotCrewTable, payload.shootingSlotCrew)
-        ..insertAll(database.ocptShootingSlotCastTable, payload.shootingSlotCast)
-        ..insertAll(database.ocptShootingSlotGuestsTable, payload.shootingSlotGuests)
-        ..insertAll(database.ocptShootingDayBlocksTable, payload.shootingDayBlocks)
-        ..insertAll(database.ocptShootingDayEventsTable, payload.shootingDayEvents)
-        ..insertAll(database.ocptProjectDictionaryWordsTable, payload.projectDictionaryWords)
-        // `budget_postes` references nothing, and `budget_lines` references `budget_postes`
-        // (just above) and, optionally, `elements` (already inserted above): neither is a forward
-        // reference. `budget_commitments` references `budget_postes` too, and, optionally,
-        // `budget_lines` (just above it) — and `assets.budgetEntryId`, inserted well above this,
-        // names a `budget_entries` row inserted only further below: a genuine forward reference, but
-        // `insertAll` defers foreign-key checking to the end of this batch's own transaction,
-        // exactly what already lets the person/location/element trio point at an `assets` row
-        // inserted after them.
-        ..insertAll(database.ocptBudgetPostesTable, payload.budgetPostes)
-        ..insertAll(database.ocptBudgetLinesTable, payload.budgetLines)
-        // `budget_resources` references nothing, and must be inserted before `budget_entries`,
-        // which may name one through `resourceId`. `budget_revenues` references nothing either,
-        // and `budget_shares` only optionally names a `people` row already inserted well above —
-        // both must still land before `budget_entries`, which may name either through `revenueId`/
-        // `shareId`.
-        ..insertAll(database.ocptBudgetResourcesTable, payload.budgetResources)
-        ..insertAll(database.ocptBudgetRevenuesTable, payload.budgetRevenues)
-        ..insertAll(database.ocptBudgetSharesTable, payload.budgetShares)
-        // `budget_allowances` only optionally names a `people` row already inserted well above,
-        // and nothing references it, so it may land anywhere after `people`.
-        ..insertAll(database.ocptBudgetAllowancesTable, payload.budgetAllowances)
-        // `budget_commitments`, inserted just above, before `budget_entries`, which may now name
-        // one through `commitmentId` — reversed from the order these two used to insert in, back
-        // when a commitment named its own settling entry rather than the other way round.
-        ..insertAll(database.ocptBudgetCommitmentsTable, payload.budgetCommitments)
-        ..insertAll(database.ocptBudgetEntriesTable, payload.budgetEntries)
-        // The storyboard and floor plan tables, in the same dependency order [_applyPayload] restores
-        // them in: `floor_plan_sets` references only `sets` (its
-        // own id) and, optionally, `assets` (both inserted above); `storyboard_panels` references
-        // `shots` and, optionally, `assets` (both inserted above); `storyboard_annotations`
-        // references the panel it marks, just inserted; `floor_plan_symbols` references
-        // `floor_plan_sets` and, optionally, `scenes`/`shots` (all inserted above) and, optionally,
-        // another live `floor_plan_symbols` row of its own (`overridesSymbolId`) — a self-reference
-        // `insertAll`'s deferred foreign-key checking handles the same way as the genuine forward
-        // reference noted above, whichever order the two rows land in; `floor_plan_arrows`
-        // references `floor_plan_sets`, `shots` and the two `floor_plan_symbols` rows it connects,
-        // so it comes last.
-        ..insertAll(database.ocptFloorPlanSetsTable, payload.floorPlanSets)
-        ..insertAll(database.ocptStoryboardPanelsTable, payload.storyboardPanels)
-        ..insertAll(database.ocptStoryboardAnnotationsTable, payload.storyboardAnnotations)
-        ..insertAll(database.ocptFloorPlanSymbolsTable, payload.floorPlanSymbols)
-        ..insertAll(database.ocptFloorPlanArrowsTable, payload.floorPlanArrows)
-        ..insertAll(database.ocptRowFieldVersionsTable, payload.rowFieldVersions);
-    });
-  });
-
-  /// Measures the working copy of the project in [database] exactly as a stored version would be,
-  /// at [pageMargins], without writing anything: the counters a working-copy card shows, and
-  /// whether that content actually differs from the version it descends from.
-  ///
-  /// One capture answers both, which matters because it isn't a cheap one: it reads the same
-  /// tables [createVersion] does. [restoreVersion] needs the very same two facts to decide whether
-  /// it owes a safety version, and reuses this method's private half so it never pays for that
-  /// read twice.
-  Future<OcptProjectWorkingCopyState> captureWorkingCopyState({
-    required OcptProjectDatabase database,
-    required FountainPageMargins pageMargins,
-  }) async => (await _captureWorkingCopySnapshot(database: database, pageMargins: pageMargins)).state;
-
-  /// The shared half of [captureWorkingCopyState]: everything it reports, plus the payload it was
+  /// Run the shared half of [captureWorkingCopyState]: everything it reports, plus the payload it
+  /// was
   /// measured from, which only [restoreVersion] needs — to write it out as a safety version without
   /// capturing the project a second time.
   Future<_OcptWorkingCopySnapshot> _captureWorkingCopySnapshot({
     required OcptProjectDatabase database,
     required FountainPageMargins pageMargins,
   }) async {
-    final payload = await _capturePayload(database: database, pageMargins: pageMargins);
+    final payload = await OcptProjectVersionsPayloadOps.capturePayload(
+      database: database,
+      pageMargins: pageMargins,
+    );
     final digest = _codec.contentDigest(payload);
 
     final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
@@ -493,1127 +558,14 @@ class OcptProjectVersionsService {
     );
   }
 
-  /// Puts the project in [database] back into the state the version [id] captured, and makes it
-  /// the version the working copy descends from.
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   ///
-  /// This is the one destructive operation of the app that isn't a file deletion, so everything it
-  /// does happens inside a single transaction. It starts by weighing whether the working copy it is
-  /// about to overwrite needs protecting at all: [_captureWorkingCopySnapshot] reads it and compares
-  /// its digest against the version it currently descends from, and only when the two differ — or
-  /// there is no base to compare against, or that base's digest is unknown — does the transaction
-  /// also capture it as a version of its own named [safetyVersionName]. Restoring a working copy
-  /// that already matches its base would otherwise mint a byte-for-byte duplicate of a card already
-  /// in the list. Either way, **a restore can itself be undone**: when no safety version is taken,
-  /// the state it replaces is exactly the base version's, which is still there. A failure at any
-  /// point rolls the whole thing back, the safety version included when one was taken.
-  ///
-  /// The value returned on success is the page setup the version was captured with, which the
-  /// caller **must** finish restoring: the format half of it has just been written to the project
-  /// header here, but the margins are an app-wide preference rather than project data, so they are
-  /// written through `OcptPropertiesManager` by the caller, and only once this transaction has
-  /// committed — margins pointing at a restore that failed would leave the whole app paginating
-  /// against a state no project holds.
-  ///
-  /// The currency is written here too, **except when the payload doesn't carry one** — a version
-  /// captured before currencies existed — in which case the project's own currency is left exactly
-  /// as it stood: see `OcptProjectVersionPayload.currencyCode`. The minimum rest, the screenplay
-  /// language, the default VAT rate and the two catering prices are all written
-  /// **unconditionally**, null included: unlike the currency, a null here is never "this payload
-  /// predates the column" — every one of these five columns is nullable by design and null is one
-  /// of their truthful values on a live capture too — so there is no live value to leave alone.
-  ///
-  /// {@template open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
-  /// **A restore is an edit, not a reset**, and that distinction is what the whole of
-  /// [_applyPayload] is about. The obvious implementation — empty the tables, bulk-insert the
-  /// payload's rows — is wrong twice over, and both failures are silent (see
-  /// `docs/adr/0010-sync-ready-data-model-prerequisites.md`): it hard-deletes rows a replica that
-  /// was offline would then re-insert, having never learnt they were gone, and it leaves the
-  /// per-column version stamps behind, so the next merge would replace the restored project with
-  /// the very state the user had just deliberately abandoned. The restore therefore expresses
-  /// itself in the same vocabulary as any other write: rows are inserted, updated or tombstoned,
-  /// and every column it actually changes is stamped anew.
-  /// {@endtemplate}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<ResultWithStatus<OcptProjectRestoreStatus, OcptPageSetup>> restoreVersion({
-    required OcptProjectDatabase database,
-    required String id,
-    required String safetyVersionName,
-    required String appVersion,
-    required String deviceId,
-    required FountainPageMargins pageMargins,
-  }) async {
-    if (database.refusesUserWrite("restoreVersion")) {
-      return const ResultWithStatus(status: OcptProjectRestoreStatus.writeFailed);
-    }
-
-    if (await loadVersion(database: database, id: id) == null) {
-      appLogger().w("The project version $id can't be restored: no such version in this project");
-      return const ResultWithStatus(status: OcptProjectRestoreStatus.versionNotFound);
-    }
-
-    final payloadResult = await loadPayload(database: database, id: id);
-    final payload = payloadResult.value;
-    if (payload == null) {
-      return ResultWithStatus(
-        status: switch (payloadResult.status) {
-          OcptProjectVersionPayloadStatus.unsupportedFutureFormat =>
-            OcptProjectRestoreStatus.unsupportedFutureFormat,
-          _ => OcptProjectRestoreStatus.malformedPayload,
-        },
-      );
-    }
-
-    final workingCopy = await _captureWorkingCopySnapshot(
-      database: database,
-      pageMargins: pageMargins,
-    );
-
-    try {
-      await database.transaction(() async {
-        // The payload's rows legitimately arrive in an order that violates a foreign key part way
-        // through (a scene reinstated after the shot pointing at it, say), so the checks are
-        // deferred to the commit rather than run statement by statement.
-        await database.customStatement('PRAGMA defer_foreign_keys = ON');
-
-        if (workingCopy.state.isModifiedSinceBase) {
-          await _insertVersion(
-            database: database,
-            payload: workingCopy.payload,
-            name: safetyVersionName,
-            note: "",
-            appVersion: appVersion,
-            deviceId: deviceId,
-          );
-        }
-
-        await _applyPayload(database: database, payload: payload, deviceId: deviceId);
-
-        await database
-            .update(database.ocptProjectInfoTable)
-            .write(
-              OcptProjectInfoTableCompanion(
-                pageFormat: Value(payload.pageSetup.format),
-                settingsJson: Value(payload.settingsJson),
-                // Absent rather than written when the payload predates currencies: leaving the
-                // column out of a partial `.write()` keeps whatever the project already holds,
-                // which is the fail-safe direction — see `OcptProjectVersionPayload.currencyCode`.
-                currencyCode: switch (payload.currencyCode) {
-                  final code? => Value(code),
-                  null => const Value.absent(),
-                },
-                minimumRestMinutes: Value(payload.minimumRestMinutes),
-                screenplayLanguage: Value(payload.screenplayLanguage),
-                defaultVatRateBasisPoints: Value(payload.defaultVatRateBasisPoints),
-                mealPriceCents: Value(payload.mealPriceCents),
-                snackPriceCents: Value(payload.snackPriceCents),
-                currentVersionId: Value(id),
-              ),
-            );
-      });
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to restore the project version $id: $error");
-      return const ResultWithStatus(status: OcptProjectRestoreStatus.writeFailed);
-    }
-
-    return ResultWithStatus(status: OcptProjectRestoreStatus.ok, value: payload.pageSetup);
-  }
-
-  /// Deletes the version [id] of the project in [database], clearing the project header's pointer
-  /// first when it is the one being deleted.
-  ///
-  /// This is a **real** `delete()`, and the only one left in the app: `project_versions` is local
-  /// and never synchronised, so there is no replica to tell about the deletion and nothing to
-  /// tombstone (see the table's doc comment — do not read this as a precedent for a synchronised
-  /// table). The pointer is cleared inside the same transaction and before the row goes, since
-  /// `project_info.currentVersionId` references it and the `foreign_keys` pragma is on.
-  ///
-  /// Deleting the version *currently being previewed* has to be refused, but that is a matter of
-  /// the open project's state rather than of the database, so it belongs to `OcptProjectsManager`
-  /// alongside the preview it owns — which doesn't exist yet.
-  Future<void> deleteVersion({
-    required OcptProjectDatabase database,
-    required String id,
-  }) async {
-    await database.transaction(() async {
-      final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
-
-      if (info?.currentVersionId == id) {
-        await database
-            .update(database.ocptProjectInfoTable)
-            .write(const OcptProjectInfoTableCompanion(currentVersionId: Value(null)));
-      }
-
-      await (database.delete(
-        database.ocptProjectVersionsTable,
-      )..where((table) => table.id.equals(id))).go();
-    });
-  }
-
-  /// Reads the whole state of the project in [database] into a payload, at [pageMargins].
-  ///
-  /// One query per table, none of them filtering tombstones: a version that carried only the live
-  /// rows would, on restore, resurrect everything the user had deleted since.
-  Future<OcptProjectVersionPayload> _capturePayload({
-    required OcptProjectDatabase database,
-    required FountainPageMargins pageMargins,
-  }) async {
-    final info = await database.select(database.ocptProjectInfoTable).getSingle();
-
-    return OcptProjectVersionPayload(
-      screenplays: await database.select(database.ocptScreenplaysTable).get(),
-      scenes: await database.select(database.ocptScenesTable).get(),
-      shots: await database.select(database.ocptShotsTable).get(),
-      shotCharacters: await database.select(database.ocptShotCharactersTable).get(),
-      shotCoverages: await database.select(database.ocptShotCoveragesTable).get(),
-      people: await database.select(database.ocptPeopleTable).get(),
-      personPositions: await database.select(database.ocptPersonPositionsTable).get(),
-      personSkills: await database.select(database.ocptPersonSkillsTable).get(),
-      personUnavailabilities: await database.select(database.ocptPersonUnavailabilitiesTable).get(),
-      roles: await database.select(database.ocptRolesTable).get(),
-      roleEpisodes: await database.select(database.ocptRoleEpisodesTable).get(),
-      locations: await database.select(database.ocptLocationsTable).get(),
-      locationAvailabilities: await database
-          .select(database.ocptLocationAvailabilitiesTable)
-          .get(),
-      sets: await database.select(database.ocptSetsTable).get(),
-      sceneSets: await database.select(database.ocptSceneSetsTable).get(),
-      elements: await database.select(database.ocptElementsTable).get(),
-      sceneElements: await database.select(database.ocptSceneElementsTable).get(),
-      roleElements: await database.select(database.ocptRoleElementsTable).get(),
-      roleCandidates: await database.select(database.ocptRoleCandidatesTable).get(),
-      assets: await database.select(database.ocptAssetsTable).get(),
-      breakdownTags: await database.select(database.ocptBreakdownTagsTable).get(),
-      sceneBreakdowns: await database.select(database.ocptSceneBreakdownsTable).get(),
-      shootingDays: await database.select(database.ocptShootingDaysTable).get(),
-      shootingSlots: await database.select(database.ocptShootingSlotsTable).get(),
-      shootingSlotCrew: await database.select(database.ocptShootingSlotCrewTable).get(),
-      shootingSlotCast: await database.select(database.ocptShootingSlotCastTable).get(),
-      shootingDayBlocks: await database.select(database.ocptShootingDayBlocksTable).get(),
-      shootingSlotGuests: await database.select(database.ocptShootingSlotGuestsTable).get(),
-      shootingBlockCandidates: await database
-          .select(database.ocptShootingBlockCandidatesTable)
-          .get(),
-      shootingDayEvents: await database.select(database.ocptShootingDayEventsTable).get(),
-      projectDictionaryWords: await database
-          .select(database.ocptProjectDictionaryWordsTable)
-          .get(),
-      budgetPostes: await database.select(database.ocptBudgetPostesTable).get(),
-      budgetLines: await database.select(database.ocptBudgetLinesTable).get(),
-      budgetEntries: await database.select(database.ocptBudgetEntriesTable).get(),
-      budgetCommitments: await database.select(database.ocptBudgetCommitmentsTable).get(),
-      budgetResources: await database.select(database.ocptBudgetResourcesTable).get(),
-      budgetMileageRates: await database.select(database.ocptBudgetMileageRatesTable).get(),
-      budgetRevenues: await database.select(database.ocptBudgetRevenuesTable).get(),
-      budgetShares: await database.select(database.ocptBudgetSharesTable).get(),
-      budgetAllowances: await database.select(database.ocptBudgetAllowancesTable).get(),
-      storyboardPanels: await database.select(database.ocptStoryboardPanelsTable).get(),
-      storyboardAnnotations: await database
-          .select(database.ocptStoryboardAnnotationsTable)
-          .get(),
-      floorPlanSets: await database.select(database.ocptFloorPlanSetsTable).get(),
-      floorPlanSymbols: await database.select(database.ocptFloorPlanSymbolsTable).get(),
-      floorPlanArrows: await database.select(database.ocptFloorPlanArrowsTable).get(),
-      rowFieldVersions: await _captureRowFieldVersions(database: database),
-      pageSetup: OcptPageSetup(format: info.pageFormat, margins: pageMargins),
-      settingsJson: info.settingsJson,
-      currencyCode: info.currencyCode,
-      minimumRestMinutes: info.minimumRestMinutes,
-      screenplayLanguage: info.screenplayLanguage,
-      defaultVatRateBasisPoints: info.defaultVatRateBasisPoints,
-      mealPriceCents: info.mealPriceCents,
-      snackPriceCents: info.snackPriceCents,
-      isBudgetSimplified: info.isBudgetSimplified,
-    );
-  }
-
-  /// Reads the version stamps of the rows the payload carries.
-  ///
-  /// Scoped by table rather than row by row, which comes to the same thing: a capture takes every
-  /// row of [_payloadTableNames], so every stamp of those tables describes a row the payload holds
-  /// — and it saves matching each stamp's [OcptRowFieldVersionRow.rowId] against a composite key
-  /// rebuilt through [ocptCompositeRowStampKey].
-  Future<List<OcptRowFieldVersionRow>> _captureRowFieldVersions({
-    required OcptProjectDatabase database,
-  }) => (database.select(
-    database.ocptRowFieldVersionsTable,
-  )..where((table) => table.targetTableName.isIn(_payloadTableNames))).get();
-
-  /// Writes [payload] over the project in [database], from inside [restoreVersion]'s transaction.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
-  ///
-  /// The tables are walked in dependency order — a screenplay before its scenes, a scene before the
-  /// shots pointing at it — and `scenes` is the one that carries no stamp at all: ADR 0010 keeps it
-  /// out of the merge entirely, since it is derived from the screenplay text and recomputed
-  /// locally. Its rows still go back **verbatim, ids included**, which is what stops the restored
-  /// `shots.sceneId` and `shot_coverages.sceneId` references from dangling; and a scene the payload
-  /// doesn't carry is tombstoned rather than deleted, for the reason `OcptScenesTable.isDeleted`
-  /// gives — the tombstoned shots and coverages still left over from the working copy reference it,
-  /// and `PRAGMA foreign_keys` is on.
-  ///
-  /// `budget_mileage_rates` is restored **before** the twelve resources tables below, for the one
-  /// reason it has to be: `people.mileageRateId` may name one of its rows, and a row the payload
-  /// doesn't hold there would otherwise be a genuine forward reference this ordering could avoid
-  /// paying for — unlike the asset trio further down, which cannot avoid it.
-  ///
-  /// The twelve resources tables follow, in the same dependency order the schema's own migration
-  /// creates them in: `people` (and its `person_positions`/`person_skills`/
-  /// `person_unavailabilities` siblings, each pointing at it) before `roles` (which may cast one),
-  /// before `locations` (whose contact may be one) before the `sets` inside them, before
-  /// `scene_sets` linking a scene to one, before `elements` (whose owner and bringer may be a
-  /// person) before `scene_elements` linking a scene to one and `role_elements` linking a role to
-  /// one, then `role_candidates` — the other link a role carries, onto the people seen for it —
-  /// which names `roles` and `people` alike and so follows both, and `assets` last, since a person,
-  /// a
-  /// location or an element may name one as its photo or document before that row itself exists.
-  /// `role_episodes` — which episode each role is named in
-  /// (`docs/adr/0019-one-project-several-episodes.md`) — is restored right after `roles`, the table
-  /// it names alongside `screenplays`: both are already restored by this point (`screenplays` at
-  /// the very top, `roles` immediately above), so this is not a forward reference, and — unlike the
-  /// asset trio below — it closes no foreign-key cycle of its own: nothing restored after
-  /// `role_episodes` ever references it back.
-  /// That last point is also where the ordering stops being fully satisfiable: `people`,
-  /// `locations` and `elements` each reference `assets` (a photo, a permit, a document) while
-  /// `assets` references all three back (whose photo or document it is) — a genuine foreign-key
-  /// cycle, the same one `OcptAssetsTable`'s own doc comment describes for `CREATE TABLE`. No
-  /// statement-by-statement ordering can satisfy every reference in a cycle, which is exactly why
-  /// [restoreVersion] runs this under `PRAGMA defer_foreign_keys = ON`: every constraint is only
-  /// checked at the transaction's commit, by which point every table above has been written in
-  /// full.
-  ///
-  /// `breakdown_tags` and `scene_breakdowns` follow the resources tables, since a tag may point at
-  /// an element, a role or a set, and both tables reference `scenes`: every one of those exists by
-  /// this point, so — unlike `assets` — neither closes a foreign-key cycle of its own; the deferred
-  /// pragma above is what the asset trio needs, not these two.
-  ///
-  /// The schedule tables follow last, in the same dependency order the schema's own v11 migration
-  /// creates the five of them it still carries in, `shooting_slot_guests` and `shooting_day_events`
-  /// (schema v17) slotted in beside the sibling each one follows: `shooting_days` (which may
-  /// reference a screenplay already restored
-  /// above) before `shooting_slots` (which may name a location or a set), before
-  /// `shooting_slot_crew`/`shooting_slot_cast`/`shooting_slot_guests`
-  /// (which each point at a slot, and at a person, a role or — nullable — a person respectively)
-  /// and `shooting_day_blocks`
-  /// (which points at a slot and, for a shot block, at
-  /// a shot), then `shooting_block_candidates` (which points at a block, so it has to follow them,
-  /// and at a candidacy restored back among the resources tables long before this group runs), and
-  /// `shooting_day_events` last,
-  /// referencing only a day. Every table it
-  /// could possibly reference is restored by this point, so this is not a forward reference and
-  /// closes no cycle of its own — the deferred pragma above is still what the asset trio further up
-  /// needs, not this group.
-  ///
-  /// `project_dictionary_words` is restored next, and could just as well go anywhere else: it
-  /// references nothing, and nothing else in the schema references it back, so there is no
-  /// dependency order for it to respect.
-  ///
-  /// `budget_postes` and `budget_lines` are restored next: `budget_postes` references nothing, and
-  /// `budget_lines` references `budget_postes` (restored immediately above it) and, optionally,
-  /// `elements` (restored well above, inside the asset trio's own deferred-foreign-key cycle) — so
-  /// neither is a forward reference, and this pair closes no cycle of its own either.
-  ///
-  /// `budget_resources` is restored next: it references nothing, and `budget_entries`, restored
-  /// right after it, may name one of its rows through `resourceId` — the same reason
-  /// `budget_mileage_rates` above is restored before `people`.
-  ///
-  /// `budget_revenues` and `budget_shares` follow, for the same reason again: `budget_revenues`
-  /// references nothing, `budget_shares` only optionally references `people` (restored well above,
-  /// inside the asset trio's own deferred-foreign-key cycle), and `budget_entries`, restored right
-  /// after both, may name either of their rows through `revenueId`/`shareId`.
-  ///
-  /// `budget_commitments` and `budget_entries` are restored last, in that order: `budget_commitments`
-  /// references only `budget_postes` (restored well above) and, optionally, `budget_lines` (restored
-  /// well above too), so it closes no cycle of its own. `budget_entries` follows it — reversed from
-  /// the order these two used to restore in, back when a commitment named its own settling entry
-  /// rather than the other way round — since it may now name a commitment through `commitmentId`,
-  /// beside `budget_postes`, `budget_resources`, `budget_revenues`, `budget_shares` (all restored
-  /// above it already) and `people` (through `personId`, restored well above, inside the asset
-  /// trio's own deferred-foreign-key cycle). None of these is a forward reference either.
-  /// `assets.budgetEntryId`, restored well above this pair, names a
-  /// `budget_entries` row that only exists once this method reaches here: a genuine forward
-  /// reference, closed the same way the asset trio's own cycle is, by this whole
-  /// restore running under `PRAGMA defer_foreign_keys = ON` (see [restoreVersion]).
-  ///
-  /// The five storyboard and floor plan tables are restored last, in
-  /// their own dependency order: `floor_plan_sets` (references only `scenes`, restored at the very
-  /// top, and optionally `assets`) before `storyboard_panels` (references `shots` and optionally
-  /// `assets`, both restored well above) before `storyboard_annotations` (references the panel it
-  /// marks, restored immediately above) before `floor_plan_symbols` (references `floor_plan_sets`
-  /// and optionally `shots`, both restored above) before `floor_plan_arrows` last (references
-  /// `floor_plan_sets`, `shots` and the two `floor_plan_symbols` rows it connects, all restored
-  /// above it). None of the five closes a cycle of its own.
-  ///
-  /// [payload] arrives already scrubbed of every erased person: [loadPayload] is what does it, once,
-  /// for every reader of a payload alike — see [_scrubErasedPeople]. None of the schedule
-  /// tables holds a person's own data (a phone number, an address, an allergy) — only ids pointing
-  /// at `people` and `roles`, `shooting_slot_guests.freeName` naming somebody the address book has
-  /// never heard of — so there is nothing in them for that scrub to touch; `role_candidates`, above
-  /// them, is the one link table that does hold some, and that scrub has already emptied it.
-  Future<void> _applyPayload({
-    required OcptProjectDatabase database,
-    required OcptProjectVersionPayload payload,
-    required String deviceId,
-  }) async {
-    final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
-    stamps.raiseFloor(payload.rowFieldVersions);
-
-    await _snapshotScreenplaysAboutToChange(database: database, payload: payload, stamps: stamps);
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptScreenplaysTable,
-      payloadRows: payload.screenplays,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptScenesTable,
-      payloadRows: payload.scenes,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: null,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptShotsTable,
-      payloadRows: payload.shots,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptShotCharactersTable,
-      payloadRows: payload.shotCharacters,
-      rowIdOf: (row) => ocptCompositeRowStampKey([row.shotId, row.roleId]),
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptShotCoveragesTable,
-      payloadRows: payload.shotCoverages,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // `budget_mileage_rates` references nothing, and `people`, restored right after it, may name
-    // one of its rows through `mileageRateId`.
-    await _restoreTable(
-      database: database,
-      table: database.ocptBudgetMileageRatesTable,
-      payloadRows: payload.budgetMileageRates,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptPeopleTable,
-      payloadRows: payload.people,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptPersonPositionsTable,
-      payloadRows: payload.personPositions,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptPersonSkillsTable,
-      payloadRows: payload.personSkills,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptPersonUnavailabilitiesTable,
-      payloadRows: payload.personUnavailabilities,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptRolesTable,
-      payloadRows: payload.roles,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptRoleEpisodesTable,
-      payloadRows: payload.roleEpisodes,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptLocationsTable,
-      payloadRows: payload.locations,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptLocationAvailabilitiesTable,
-      payloadRows: payload.locationAvailabilities,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptSetsTable,
-      payloadRows: payload.sets,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptSceneSetsTable,
-      payloadRows: payload.sceneSets,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptElementsTable,
-      payloadRows: payload.elements,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptSceneElementsTable,
-      payloadRows: payload.sceneElements,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptRoleElementsTable,
-      payloadRows: payload.roleElements,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptRoleCandidatesTable,
-      payloadRows: payload.roleCandidates,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptAssetsTable,
-      payloadRows: payload.assets,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptBreakdownTagsTable,
-      payloadRows: payload.breakdownTags,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptSceneBreakdownsTable,
-      payloadRows: payload.sceneBreakdowns,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptShootingDaysTable,
-      payloadRows: payload.shootingDays,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptShootingSlotsTable,
-      payloadRows: payload.shootingSlots,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptShootingSlotCrewTable,
-      payloadRows: payload.shootingSlotCrew,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptShootingSlotCastTable,
-      payloadRows: payload.shootingSlotCast,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptShootingSlotGuestsTable,
-      payloadRows: payload.shootingSlotGuests,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptShootingDayBlocksTable,
-      payloadRows: payload.shootingDayBlocks,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // After the blocks it hangs off, unlike every slot-level link above: a candidacy is named on an
-    // audition **block** (ADR 0024), so restoring it first would point at a row this very method
-    // has not written yet.
-    await _restoreTable(
-      database: database,
-      table: database.ocptShootingBlockCandidatesTable,
-      payloadRows: payload.shootingBlockCandidates,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptShootingDayEventsTable,
-      payloadRows: payload.shootingDayEvents,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // `project_dictionary_words` references nothing, and nothing references it back, so it needs
-    // no particular place in this dependency order: last is as good as any.
-    await _restoreTable(
-      database: database,
-      table: database.ocptProjectDictionaryWordsTable,
-      payloadRows: payload.projectDictionaryWords,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // `budget_postes` references nothing, and `budget_lines` references `budget_postes` (restored
-    // just above) and, optionally, `elements` (restored well above, inside the asset trio's own
-    // deferred-foreign-key cycle) — neither is a forward reference.
-    await _restoreTable(
-      database: database,
-      table: database.ocptBudgetPostesTable,
-      payloadRows: payload.budgetPostes,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptBudgetLinesTable,
-      payloadRows: payload.budgetLines,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // `budget_resources` references nothing, and `budget_entries`, restored right after it, may
-    // name one of its rows through `resourceId`.
-    await _restoreTable(
-      database: database,
-      table: database.ocptBudgetResourcesTable,
-      payloadRows: payload.budgetResources,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // `budget_revenues` references nothing, and `budget_shares` only optionally references
-    // `people` (restored well above): `budget_entries`, restored right after both, may name either
-    // of their rows through `revenueId`/`shareId`.
-    await _restoreTable(
-      database: database,
-      table: database.ocptBudgetRevenuesTable,
-      payloadRows: payload.budgetRevenues,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptBudgetSharesTable,
-      payloadRows: payload.budgetShares,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptBudgetAllowancesTable,
-      payloadRows: payload.budgetAllowances,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptBudgetCommitmentsTable,
-      payloadRows: payload.budgetCommitments,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await _restoreTable(
-      database: database,
-      table: database.ocptBudgetEntriesTable,
-      payloadRows: payload.budgetEntries,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // `floor_plan_sets` references only `scenes` (restored at the very top) and, optionally,
-    // `assets` (restored well above, inside the asset trio's own deferred-foreign-key cycle) — not a
-    // forward reference either way.
-    await _restoreTable(
-      database: database,
-      table: database.ocptFloorPlanSetsTable,
-      payloadRows: payload.floorPlanSets,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // `storyboard_panels` references `shots` and, optionally, `assets` — both restored well above —
-    // so it follows both.
-    await _restoreTable(
-      database: database,
-      table: database.ocptStoryboardPanelsTable,
-      payloadRows: payload.storyboardPanels,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // `storyboard_annotations` references the panel it marks, restored immediately above.
-    await _restoreTable(
-      database: database,
-      table: database.ocptStoryboardAnnotationsTable,
-      payloadRows: payload.storyboardAnnotations,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // `floor_plan_symbols` references `floor_plan_sets` (restored above) and, optionally, `shots`
-    // (restored well above) — not a forward reference either way.
-    await _restoreTable(
-      database: database,
-      table: database.ocptFloorPlanSymbolsTable,
-      payloadRows: payload.floorPlanSymbols,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    // `floor_plan_arrows` references `floor_plan_sets`, `shots` and the two `floor_plan_symbols`
-    // rows it connects — the last of them restored immediately above, so it comes last.
-    await _restoreTable(
-      database: database,
-      table: database.ocptFloorPlanArrowsTable,
-      payloadRows: payload.floorPlanArrows,
-      rowIdOf: (row) => row.id,
-      tombstonedOf: (row) => row.copyWith(isDeleted: true),
-      stamps: stamps,
-    );
-
-    await stamps.flush(database);
-  }
-
-  /// Rewrites [payload]'s `people` rows — and the `person_positions`/`person_skills`/
-  /// `person_unavailabilities`/`assets` rows hanging off them — for every person `local_erasures`
-  /// names in [database], so no reader of a payload ever sees an erased person again: neither [_applyPayload]
-  /// writing one back into the working copy, nor [hydratePreview] putting one on screen. [loadPayload]
-  /// is the single door both come through, which is why the scrub lives there.
-  ///
-  /// A version is captured before knowing about an erasure made later, so its stored payload still
-  /// holds that person's personal data verbatim, forever: a version is never rewritten once
-  /// captured (`OcptProjectVersionCodec`'s own doc comment). `local_erasures` is what lets this
-  /// replica remember the erasure happened without the payload that predates it ever having to
-  /// become untruthful about the moment it captured — decode-time scrubbing, not a rewrite on disk
-  /// (§4.9 of the plan this ships under, option 3). It is read fresh from [database] rather than
-  /// from [payload] on purpose: that is what lets a restore of an *old* version still honour an
-  /// erasure recorded strictly after that version was taken, and `local_erasures` itself is never
-  /// part of a payload — carrying it there would let this very restore rewind the fact that the
-  /// erasure ever happened.
-  ///
-  /// Every erased person's row is put back through exactly the blanking-and-tombstoning
-  /// [_erasedPersonRow] performs — chosen over dropping the row outright, since nothing in this
-  /// schema is ever hard-deleted, and other rows this same payload may carry (`roles.personId`,
-  /// `elements.ownerPersonId`/`broughtByPersonId`, `assets.personId`, `locations.contactPersonId`)
-  /// can still reference the id: the row they point at must keep existing, merely empty, or the
-  /// restore's own `PRAGMA defer_foreign_keys` commit would have nothing to resolve them against.
-  /// **This must be kept in step with `OcptPeopleService.deletePerson` by hand** — the two
-  /// implement the very same erasure from two different starting points (a live row there, a
-  /// captured one here), and a column blanked by one but not the other reopens exactly the leak
-  /// this method exists to close.
-  Future<OcptProjectVersionPayload> _scrubErasedPeople({
-    required OcptProjectDatabase database,
-    required OcptProjectVersionPayload payload,
-  }) async {
-    final erasedPersonIds = {
-      for (final row in await database.select(database.ocptLocalErasuresTable).get()) row.personId,
-    };
-
-    if (erasedPersonIds.isEmpty) {
-      return payload;
-    }
-
-    return OcptProjectVersionPayload(
-      screenplays: payload.screenplays,
-      scenes: payload.scenes,
-      shots: payload.shots,
-      shotCharacters: payload.shotCharacters,
-      shotCoverages: payload.shotCoverages,
-      people: [
-        for (final row in payload.people)
-          erasedPersonIds.contains(row.id) ? _erasedPersonRow(row) : row,
-      ],
-      personPositions: [
-        for (final row in payload.personPositions)
-          erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true) : row,
-      ],
-      // person_skills.label and person_unavailabilities.reason are blanked along with the
-      // tombstone, exactly as OcptPeopleService.deletePerson blanks them: both routinely hold
-      // something personal about the person (a driving licence, a language, why they were away on
-      // a date), and an erasure is about what the file stops holding, not only what a screen stops
-      // showing.
-      personSkills: [
-        for (final row in payload.personSkills)
-          erasedPersonIds.contains(row.personId)
-              ? row.copyWith(isDeleted: true, label: '')
-              : row,
-      ],
-      personUnavailabilities: [
-        for (final row in payload.personUnavailabilities)
-          erasedPersonIds.contains(row.personId)
-              ? row.copyWith(isDeleted: true, reason: '')
-              : row,
-      ],
-      roles: payload.roles,
-      // A role_episodes row names a role and a screenplay, never a person: an actor is reached
-      // through `roles.personId`, which the `roles` list above already answers for. Nothing here
-      // to scrub.
-      roleEpisodes: payload.roleEpisodes,
-      locations: payload.locations,
-      locationAvailabilities: payload.locationAvailabilities,
-      sets: payload.sets,
-      sceneSets: payload.sceneSets,
-      elements: payload.elements,
-      sceneElements: payload.sceneElements,
-      // A `role_elements` row names a role and an element, never a person: an actor is reached
-      // through `roles.personId`, which the `roles` list above already answers for. Nothing here
-      // to scrub.
-      roleElements: payload.roleElements,
-      // A `role_candidates` row is the one link table that *is* about a person: it names them, and
-      // its `notes` hold what somebody wrote about them at an audition. So a candidacy of an erased
-      // person is tombstoned **and blanked**, exactly as `OcptPeopleService.deletePerson` does it
-      // live — the mirror this method's own doc comment warns must be kept in step. `roles` is left
-      // alone, `roles.personId` staying valid against the blanked row it points at, exactly as
-      // every other reference to an erased person does.
-      roleCandidates: [
-        for (final row in payload.roleCandidates)
-          erasedPersonIds.contains(row.personId)
-              ? row.copyWith(isDeleted: true, notes: '')
-              : row,
-      ],
-      // An asset's `path` is personal data in its own right: an absolute path routinely names the
-      // person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a photograph of them
-      // sits on this machine. So a row belonging to an erased person is tombstoned **and blanked**,
-      // exactly as `OcptAssetsService.erasePersonAssets` does it live — the mirror this comment's
-      // method doc warns must be kept in step. A row belonging to a location or an element is
-      // nobody's personal data and travels through untouched.
-      assets: [
-        for (final row in payload.assets)
-          row.personId != null && erasedPersonIds.contains(row.personId)
-              ? row.copyWith(isDeleted: true, path: '', label: '')
-              : row,
-      ],
-      // A breakdown tag never names a person — only an element, a role or a set — and a scene
-      // breakdown carries nothing about anyone either, so neither list has anything for this method
-      // to scrub: both travel through unchanged.
-      breakdownTags: payload.breakdownTags,
-      sceneBreakdowns: payload.sceneBreakdowns,
-      // None of the schedule tables holds a person's own data either — only ids pointing at
-      // `people` or `roles`, which stay valid (an erased person's row is blanked and tombstoned,
-      // never dropped, so a `shooting_slot_crew.personId` or a `shooting_slot_guests.personId`
-      // referencing it still resolves) — so all of them travel through unchanged too.
-      // `shooting_slot_guests.freeName` names somebody who was never a `people` row in the first
-      // place, so there is nothing there for this scrub to reach either, `shooting_block_candidates`
-      // names a **candidacy** rather than a person (the blanked `role_candidates` row above is what
-      // holds their name and what somebody wrote about them), and `shooting_day_events` carries
-      // nobody's data at all.
-      shootingDays: payload.shootingDays,
-      shootingSlots: payload.shootingSlots,
-      shootingSlotCrew: payload.shootingSlotCrew,
-      shootingSlotCast: payload.shootingSlotCast,
-      shootingDayBlocks: payload.shootingDayBlocks,
-      shootingSlotGuests: payload.shootingSlotGuests,
-      shootingBlockCandidates: payload.shootingBlockCandidates,
-      shootingDayEvents: payload.shootingDayEvents,
-      // A dictionary word names no person — only the word itself and its tombstone — so there is
-      // nothing here for this scrub to reach either.
-      projectDictionaryWords: payload.projectDictionaryWords,
-      // Neither a budget poste nor a budget line names a person: a line points at a poste and,
-      // optionally, an element, never at the address book. Both travel through unchanged.
-      budgetPostes: payload.budgetPostes,
-      budgetLines: payload.budgetLines,
-      // Nor does a journal entry or a commitment: an entry points at a poste and, at most, a
-      // resource, and a commitment at a poste and, at most, at the entry that settled it — never at
-      // the address book. Both travel through unchanged too.
-      budgetEntries: payload.budgetEntries,
-      budgetCommitments: payload.budgetCommitments,
-      // A mileage rate names no person at all: a label and a rate. A financing resource may,
-      // through `personId`, exactly the way `roles.personId`/`budget_shares.personId` do above and
-      // below: the row it points at is blanked, not dropped, so the link itself still resolves and
-      // there is nothing here for this scrub to rewrite. Both travel through unchanged.
-      budgetResources: payload.budgetResources,
-      budgetMileageRates: payload.budgetMileageRates,
-      // Nor does a revenue name a person at all. A share may, through `personId`, exactly the way
-      // `roles.personId` does above: the row it points at is blanked, not dropped, so the link
-      // itself still resolves and there is nothing here for this scrub to rewrite.
-      budgetRevenues: payload.budgetRevenues,
-      budgetShares: payload.budgetShares,
-      // A defrayal may name a person, through `personId`, exactly as a share does just above:
-      // the row it points at is blanked, not dropped, so the link still resolves and there is
-      // nothing here for this scrub to rewrite.
-      budgetAllowances: payload.budgetAllowances,
-      // None of the five storyboard/floor plan tables holds anything about a person — a floor
-      // plan character symbol carries a free label, never a `personId` — so all five travel
-      // through unchanged.
-      storyboardPanels: payload.storyboardPanels,
-      storyboardAnnotations: payload.storyboardAnnotations,
-      floorPlanSets: payload.floorPlanSets,
-      floorPlanSymbols: payload.floorPlanSymbols,
-      floorPlanArrows: payload.floorPlanArrows,
-      rowFieldVersions: payload.rowFieldVersions,
-      pageSetup: payload.pageSetup,
-      settingsJson: payload.settingsJson,
-      currencyCode: payload.currencyCode,
-      minimumRestMinutes: payload.minimumRestMinutes,
-      screenplayLanguage: payload.screenplayLanguage,
-      defaultVatRateBasisPoints: payload.defaultVatRateBasisPoints,
-      mealPriceCents: payload.mealPriceCents,
-      snackPriceCents: payload.snackPriceCents,
-      isBudgetSimplified: payload.isBudgetSimplified,
-    );
-  }
-
-  /// [row], blanked exactly as `OcptPeopleService.deletePerson`'s own erasure blanks a live row:
-  /// every column held something about the person except `id`, `sortKey`, `isDeleted` (set to true
-  /// here rather than left alone) and `colorIndex`. `maxDailyPresenceMinutes` is blanked with the
-  /// rest, being personal data of the same nature as `minorNotes`, and `commuteKmMilli`/
-  /// `mileageRateId` are blanked for the same reason: a one-way commute distance says roughly where
-  /// somebody lives. See [_scrubErasedPeople] for why the two must stay in step by hand.
-  static OcptPersonRow _erasedPersonRow(OcptPersonRow row) => row.copyWith(
-    isDeleted: true,
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    addressLine1: '',
-    addressLine2: '',
-    postalCode: '',
-    city: '',
-    region: '',
-    country: '',
-    birthDate: const Value(null),
-    minorNotes: '',
-    maxDailyPresenceMinutes: const Value(null),
-    isTransportAutonomous: const Value(null),
-    accommodationNotes: '',
-    travelNotes: '',
-    dietaryNotes: '',
-    allergies: '',
-    measurementHeight: '',
-    measurementChest: '',
-    measurementWaist: '',
-    measurementHips: '',
-    sizeTop: '',
-    sizeBottom: '',
-    sizeShoes: '',
-    hmcNotes: '',
-    imageRightsStatus: OcptImageRightsStatus.notApplicable,
-    imageRightsDate: const Value(null),
-    imageRightsAssetId: const Value(null),
-    photoAssetId: const Value(null),
-    notes: '',
-    commuteKmMilli: const Value(null),
-    mileageRateId: const Value(null),
-  );
-
-  /// Snapshots the text of every screenplay [payload] is about to overwrite in [database].
-  ///
-  /// This is what a restore owes the merge rather than the user (see [OcptSnapshotReason.restore]),
-  /// and it has to happen before a single character of `screenplays.fountainText` changes. Only the
-  /// screenplays whose text actually differs are snapshotted: a restore that changes nothing must
-  /// not push thirty real snapshots out of the rolling window for nothing.
-  ///
-  /// [stamps] is [_applyPayload]'s own instance, already seeded and floor-raised: passed straight
-  /// through to `OcptScreenplayService.snapshotBeforeRestore`, which stamps the snapshot it takes
-  /// into it rather than seeding one of its own.
-  Future<void> _snapshotScreenplaysAboutToChange({
-    required OcptProjectDatabase database,
-    required OcptProjectVersionPayload payload,
-    required OcptRowStampService stamps,
-  }) async {
-    final currentRows = {
-      for (final row in await database.select(database.ocptScreenplaysTable).get()) row.id: row,
-    };
-
-    for (final screenplay in payload.screenplays) {
-      final current = currentRows[screenplay.id];
-
-      // A screenplay the working copy doesn't hold live has no text to protect: either it is about
-      // to be inserted, or it is a tombstone the restore only reinstates as one.
-      if (current == null || current.isDeleted || current.fountainText == screenplay.fountainText) {
-        continue;
-      }
-
-      await _screenplayService.snapshotBeforeRestore(
-        database: database,
-        screenplayId: screenplay.id,
-        stamps: stamps,
-      );
-    }
-  }
-
-  /// Restores one table of a payload: [payloadRows] are written over whatever [table] currently
-  /// holds in [database], and whatever it holds beyond them is tombstoned.
-  ///
-  /// The three cases, each stamped through [stamps] unless the table is one no merge ever sees (see
-  /// [_applyPayload]):
-  ///
-  /// - a row the payload holds and the working copy doesn't is **inserted**, and every one of its
-  ///   columns stamped;
-  /// - a row both hold is **updated**, and only the columns whose value actually changes are
-  ///   stamped. A column that already matches the payload is left alone: that is what keeps a
-  ///   restore from stomping an unrelated concurrent edit that happened to agree with it;
-  /// - a row the working copy holds and the payload doesn't is **tombstoned**, never deleted, and
-  ///   its tombstone column stamped. One already tombstoned is left untouched, stamp included.
-  ///
-  /// [rowIdOf] names a row both in the map matching the two sides up and in
-  /// `row_field_versions.rowId`, so a composite primary key goes through
-  /// [ocptCompositeRowStampKey]. [tombstonedOf] returns the row as its own tombstone — returning it
-  /// unchanged is how a table with no tombstone column would opt out.
-  ///
-  /// The per-row write and stamp itself — insert, update or tombstone-in-place alike — is
-  /// [OcptRowStampService.writeAndStamp]: the machinery shared with whatever, later, writes an
-  /// ordinary domain-service edit into `row_field_versions` the same way.
-  Future<void> _restoreTable<D extends DataClass>({
-    required OcptProjectDatabase database,
-    required TableInfo<Table, D> table,
-    required List<D> payloadRows,
-    required String Function(D row) rowIdOf,
-    required D Function(D row) tombstonedOf,
-    required OcptRowStampService? stamps,
-  }) async {
-    final leftovers = {
-      for (final row in await database.select(table).get()) rowIdOf(row): row,
-    };
-
-    for (final row in payloadRows) {
-      final rowId = rowIdOf(row);
-      final current = leftovers.remove(rowId);
-
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: table,
-        rowId: rowId,
-        current: current,
-        next: row,
-        stamps: stamps,
-      );
-    }
-
-    for (final leftover in leftovers.entries) {
-      final tombstone = tombstonedOf(leftover.value);
-      if (tombstone == leftover.value) {
-        continue;
-      }
-
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: table,
-        rowId: leftover.key,
-        current: leftover.value,
-        next: tombstone,
-        stamps: stamps,
-      );
-    }
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _screenplayService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }
 

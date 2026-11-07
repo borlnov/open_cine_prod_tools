@@ -6,6 +6,7 @@ import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
 import 'package:fountain_kit/src/models/fountain_title_page.dart';
+import 'package:fountain_kit/src/models/fountain_title_page_entry.dart';
 import 'package:fountain_kit/src/parser/fountain_block_builder.dart';
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 
@@ -13,34 +14,27 @@ import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 /// the title page pre-pass, before it is frozen into an immutable
 /// [FountainTitlePageEntry].
 class _PendingTitleEntry {
-  /// Creates a [_PendingTitleEntry] starting at [startLine].
-  _PendingTitleEntry({required this.key, required this.startLine})
-    : endLine = startLine;
-
   /// The entry key, exactly as written in the source.
   final String key;
 
   /// The value lines accumulated so far, in source order.
-  final List<String> values = [];
+  final List<String> values;
 
   /// The global line number of the `key: value` line itself.
   final int startLine;
 
   /// The global line number of the last value line accumulated so far.
   int endLine;
+
+  /// Create a [_PendingTitleEntry] starting at [startLine].
+  _PendingTitleEntry({required this.key, required this.startLine})
+    : values = [],
+      endLine = startLine;
 }
 
 /// A boneyard or standalone-note span found by a pre-pass, still expressed
 /// in raw offsets before it is turned into a [FountainBlock].
 class _ScrubbedSpan {
-  /// Creates a [_ScrubbedSpan].
-  const _ScrubbedSpan({
-    required this.startOffset,
-    required this.endOffset,
-    required this.text,
-    required this.isBoneyard,
-  });
-
   /// The character offset, in the document source, of the first character
   /// of this span (including its markers).
   final int startOffset;
@@ -55,9 +49,17 @@ class _ScrubbedSpan {
   /// Whether this span is a boneyard comment (`true`) or a standalone note
   /// (`false`).
   final bool isBoneyard;
+
+  /// Create a [_ScrubbedSpan].
+  const _ScrubbedSpan({
+    required this.startOffset,
+    required this.endOffset,
+    required this.text,
+    required this.isBoneyard,
+  });
 }
 
-/// Parses Fountain screenplay source text into a [FountainDocument].
+/// Parse Fountain screenplay source text into a [FountainDocument].
 ///
 /// Parsing runs in clearly separated, side-effect-free passes:
 ///
@@ -75,9 +77,6 @@ class _ScrubbedSpan {
 /// incremental `reparseRange` entry point that only redoes the passes for a
 /// changed region of the document.
 class FountainParser {
-  /// Creates a [FountainParser].
-  const FountainParser();
-
   /// Matches a title page key at the start of a line, for example `Draft
   /// date` in `Draft date: 1/1/2026`.
   static final RegExp _titleKeyPattern = RegExp('^([A-Za-z][A-Za-z0-9 ]*):');
@@ -89,25 +88,21 @@ class FountainParser {
   /// several lines.
   static final RegExp _notePattern = RegExp(r'\[\[[\s\S]*?\]\]');
 
-  /// Parses [source] into a [FountainDocument].
+  /// Create a [FountainParser].
+  const FountainParser();
+
+  /// Parse [source] into a [FountainDocument].
   FountainDocument parse(String source) {
     final normalized = source.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
     final lineStartOffsets = _computeLineStartOffsets(normalized);
 
-    final boneyardSpans = _extractSpans(
-      normalized,
-      _boneyardPattern,
-      isBoneyard: true,
-    );
+    final boneyardSpans = _extractSpans(normalized, _boneyardPattern, isBoneyard: true);
     final afterBoneyard = _scrub(
       normalized,
       boneyardSpans.map((span) => (span.startOffset, span.endOffset)),
     );
 
-    final noteSpans = _extractStandaloneNoteSpans(
-      afterBoneyard,
-      lineStartOffsets,
-    );
+    final noteSpans = _extractStandaloneNoteSpans(afterBoneyard, lineStartOffsets);
     final scrubbed = _scrub(
       afterBoneyard,
       noteSpans.map((span) => (span.startOffset, span.endOffset)),
@@ -130,9 +125,7 @@ class FountainParser {
       ..sort((a, b) => a.startOffset.compareTo(b.startOffset));
     final blocks = _mergeByOffset(
       bodyBlocks,
-      extraBlocks
-          .map((span) => _buildExtraBlock(span, lineStartOffsets))
-          .toList(growable: false),
+      extraBlocks.map((span) => _buildExtraBlock(span, lineStartOffsets)).toList(growable: false),
     );
 
     return FountainDocument(
@@ -142,7 +135,7 @@ class FountainParser {
     );
   }
 
-  /// Returns, for every global line number of [source], the character
+  /// Return, for every global line number of [source], the character
   /// offset of that line's first character.
   List<int> _computeLineStartOffsets(String source) {
     final offsets = <int>[0];
@@ -154,7 +147,7 @@ class FountainParser {
     return offsets;
   }
 
-  /// Returns the global line number containing character offset [offset],
+  /// Return the global line number containing character offset [offset],
   /// given the document's [lineStartOffsets] table.
   int _lineForOffset(List<int> lineStartOffsets, int offset) {
     var line = 0;
@@ -168,13 +161,9 @@ class FountainParser {
     return line;
   }
 
-  /// Finds every match of [pattern] in [source] and returns it as a
+  /// Find every match of [pattern] in [source] and return it as a
   /// [_ScrubbedSpan].
-  List<_ScrubbedSpan> _extractSpans(
-    String source,
-    RegExp pattern, {
-    required bool isBoneyard,
-  }) {
+  List<_ScrubbedSpan> _extractSpans(String source, RegExp pattern, {required bool isBoneyard}) {
     // Both `/* */` and `[[ ]]` markers are two characters long on each side.
     const markerLength = 2;
     return pattern
@@ -183,24 +172,18 @@ class FountainParser {
           (match) => _ScrubbedSpan(
             startOffset: match.start,
             endOffset: match.end,
-            text: source.substring(
-              match.start + markerLength,
-              match.end - markerLength,
-            ),
+            text: source.substring(match.start + markerLength, match.end - markerLength),
             isBoneyard: isBoneyard,
           ),
         )
         .toList(growable: false);
   }
 
-  /// Finds every `[[ ]]` note in [source] that occupies one or more whole
+  /// Find every `[[ ]]` note in [source] that occupies one or more whole
   /// lines by itself (i.e. nothing but whitespace shares its line(s)),
   /// which is what makes it a standalone [FountainNoteBlock] rather than an
   /// inline note span within another block (see `FountainInlineStyle.note`).
-  List<_ScrubbedSpan> _extractStandaloneNoteSpans(
-    String source,
-    List<int> lineStartOffsets,
-  ) {
+  List<_ScrubbedSpan> _extractStandaloneNoteSpans(String source, List<int> lineStartOffsets) {
     final spans = <_ScrubbedSpan>[];
     for (final match in _notePattern.allMatches(source)) {
       final startLine = _lineForOffset(lineStartOffsets, match.start);
@@ -225,7 +208,7 @@ class FountainParser {
     return spans;
   }
 
-  /// Returns a copy of [source] with every character offset covered by
+  /// Return a copy of [source] with every character offset covered by
   /// [spans] replaced by a space (newlines are preserved), so that the
   /// text's line structure and every other character offset stay stable
   /// for later passes.
@@ -243,12 +226,9 @@ class FountainParser {
     return buffer.toString();
   }
 
-  /// Builds the top-level [FountainBlock] (a [FountainBoneyard] or
+  /// Build the top-level [FountainBlock] (a [FountainBoneyard] or
   /// [FountainNoteBlock]) for a pre-pass [span].
-  FountainBlock _buildExtraBlock(
-    _ScrubbedSpan span,
-    List<int> lineStartOffsets,
-  ) {
+  FountainBlock _buildExtraBlock(_ScrubbedSpan span, List<int> lineStartOffsets) {
     final range = FountainSourceRange(
       startLine: _lineForOffset(lineStartOffsets, span.startOffset),
       endLine: _lineForOffset(lineStartOffsets, span.endOffset - 1),
@@ -260,18 +240,14 @@ class FountainParser {
         : FountainNoteBlock(sourceRange: range, text: span.text);
   }
 
-  /// Merges two block lists, both already in ascending source-offset
+  /// Merge two block lists, both already in ascending source-offset
   /// order, into one list in ascending source-offset order.
-  List<FountainBlock> _mergeByOffset(
-    List<FountainBlock> first,
-    List<FountainBlock> second,
-  ) {
+  List<FountainBlock> _mergeByOffset(List<FountainBlock> first, List<FountainBlock> second) {
     final merged = <FountainBlock>[];
     var indexA = 0;
     var indexB = 0;
     while (indexA < first.length && indexB < second.length) {
-      if (first[indexA].sourceRange.startOffset <=
-          second[indexB].sourceRange.startOffset) {
+      if (first[indexA].sourceRange.startOffset <= second[indexB].sourceRange.startOffset) {
         merged.add(first[indexA++]);
       } else {
         merged.add(second[indexB++]);
@@ -282,7 +258,7 @@ class FountainParser {
     return merged;
   }
 
-  /// Scans [lines] for a leading title page block and returns it together
+  /// Scan [lines] for a leading title page block and return it together
   /// with the global line number the document body starts at.
   ({FountainTitlePage? titlePage, int bodyStartLine}) _parseTitlePage(
     List<String> lines,
@@ -302,10 +278,7 @@ class FountainParser {
       }
       final keyMatch = _titleKeyPattern.firstMatch(line);
       if (keyMatch != null) {
-        final entry = _PendingTitleEntry(
-          key: keyMatch.group(1)!,
-          startLine: index,
-        );
+        final entry = _PendingTitleEntry(key: keyMatch.group(1)!, startLine: index);
         final rest = line.substring(keyMatch.end).trim();
         if (rest.isNotEmpty) {
           entry.values.add(rest);
@@ -334,8 +307,7 @@ class FountainParser {
               startLine: entry.startLine,
               endLine: entry.endLine,
               startOffset: lineStartOffsets[entry.startLine],
-              endOffset:
-                  lineStartOffsets[entry.endLine] + lines[entry.endLine].length,
+              endOffset: lineStartOffsets[entry.endLine] + lines[entry.endLine].length,
             ),
           ),
         )
@@ -347,9 +319,7 @@ class FountainParser {
         startLine: 0,
         endLine: pending.last.endLine,
         startOffset: lineStartOffsets[0],
-        endOffset:
-            lineStartOffsets[pending.last.endLine] +
-            lines[pending.last.endLine].length,
+        endOffset: lineStartOffsets[pending.last.endLine] + lines[pending.last.endLine].length,
       ),
     );
     return (titlePage: titlePage, bodyStartLine: index);

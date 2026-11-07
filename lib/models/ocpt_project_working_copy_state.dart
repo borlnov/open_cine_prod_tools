@@ -41,13 +41,13 @@ class OcptProjectWorkingCopyState extends Equatable {
     required this.isModifiedSinceBase,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptProjectWorkingCopyState(baseVersionId: $baseVersionId, "
       "isModifiedSinceBase: $isModifiedSinceBase)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [summary, contentDigest, baseVersionId, isModifiedSinceBase];
 }

@@ -10,10 +10,10 @@
 /// tint's own per-project palette index (`ocpt_coverage_palette.dart`, picked from a location's own
 /// `colorIndex`) — an effect category is not project data, it is a fact about the words a heading
 /// uses. [ocptScheduleEffectMixedColor] is deliberately as fixed and as legible as the four: it is
-/// information (a day genuinely mixes more than one effect), not its absence. The absence itself — a
-/// day with nothing placed, or with nothing classifiable — has no entry here at all: it tints with
-/// the theme's own `outlineVariant`, `ocptScheduleDayLocationTint`'s own "no location" convention,
-/// since there is no project-independent fact to colour it with either.
+/// information (a day genuinely mixes more than one effect), not its absence. The absence itself —
+/// a day with nothing placed, or with nothing classifiable — has no entry here at all: it tints
+/// with the theme's own `outlineVariant`, `ocptScheduleDayLocationTint`'s own "no location"
+/// convention, since there is no project-independent fact to colour it with either.
 library;
 
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
@@ -33,14 +33,12 @@ const int ocptScheduleEffectExteriorNightColor = 0xFF2A3B7A;
 /// The colour [OcptSceneEffectCategory.mixed] is drawn with, as an ARGB integer.
 const int ocptScheduleEffectMixedColor = 0xFF8C7FB8;
 
-/// The colour of effect category [category], as an ARGB integer.
+/// Get the colour of effect category [category], as an ARGB integer.
 ///
 /// A `switch` with no `default`: a new [OcptSceneEffectCategory] value must be given its own colour
 /// here rather than silently falling back to one already in use, exactly as `_elementColorOf`
 /// (`ocpt_breakdown_palette.dart`) already does for `OcptElementCategory`.
-int ocptScheduleEffectColorOf(
-  OcptSceneEffectCategory category,
-) => switch (category) {
+int ocptScheduleEffectColorOf(OcptSceneEffectCategory category) => switch (category) {
   OcptSceneEffectCategory.interiorDay => ocptScheduleEffectInteriorDayColor,
   OcptSceneEffectCategory.interiorNight => ocptScheduleEffectInteriorNightColor,
   OcptSceneEffectCategory.exteriorDay => ocptScheduleEffectExteriorDayColor,

@@ -5,12 +5,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_budget_financial_report_pdf_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_financial_report_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -23,7 +24,7 @@ const _labels = OcptBudgetFinancialReportLabels(
   fileNameSuffix: "financial report",
   documentTitle: "Financial report",
   versionLabel: "Version",
-  posteHeader: "Poste",
+  accountHeader: "Poste",
   quotedHeader: "Quoted",
   paidHeader: "Paid",
   committedHeader: "Committed",
@@ -41,53 +42,56 @@ const _labels = OcptBudgetFinancialReportLabels(
   balanceShortfallMessageTemplate: "Short by {amount}.",
 );
 
-/// Builds a poste holding [lines].
-OcptBudgetPoste _buildPoste({required String id, String code = "1", String label = "Rights", List<OcptBudgetLine> lines = const []}) =>
-    OcptBudgetPoste(id: id, code: code, label: label, simpleLabel: null, estimateToCompleteCents: null, sortKey: "a", lines: lines);
+/// Builds an account holding [lines].
+OcptBudgetAccount _buildAccount({
+  required String id,
+  String code = "1",
+  String label = "Rights",
+  List<OcptBudgetLine> lines = const [],
+}) => OcptBudgetAccount(
+  id: id,
+  code: code,
+  label: label,
+  simpleLabel: null,
+  estimateToCompleteCents: null,
+  sortKey: "a",
+  lines: lines,
+);
 
 /// Builds a quote line at a plain tax-inclusive price, everything else neutral.
-OcptBudgetLine _buildLine({required String id, required String posteId, int unitAmountCents = 10000}) =>
-    OcptBudgetLine(
-      id: id,
-      posteId: posteId,
-      label: "Line",
-      quantityMilli: 1000,
-      unit: "day",
-      unitPrice: OcptMoney(amountCents: unitAmountCents, isTaxInclusive: true, vatRateBasisPoints: null),
-      elementId: null,
-      inKindResourceId: null,
-      provisionKey: null,
-      provisionDigest: null,
-      notes: "",
-      sortKey: "a",
-    );
+OcptBudgetLine _buildLine({
+  required String id,
+  required String accountId,
+  int unitAmountCents = 10000,
+}) => OcptBudgetLine(
+  id: id,
+  accountId: accountId,
+  label: "Line",
+  quantityMilli: 1000,
+  unit: "day",
+  unitPrice: OcptMoney(
+    amountCents: unitAmountCents,
+    isTaxInclusive: true,
+    vatRateBasisPoints: null,
+  ),
+  elementId: null,
+  inKindResourceId: null,
+  provisionKey: null,
+  provisionDigest: null,
+  notes: "",
+  sortKey: "a",
+);
 
-/// Builds a debit entry against [posteId], everything else neutral.
-OcptBudgetEntry _buildDebitEntry({required String id, required String posteId, required int debitCents}) =>
-    OcptBudgetEntry(
-      id: id,
-      date: DateTime(2026),
-      label: "",
-      posteId: posteId,
-      debitCents: debitCents,
-      creditCents: 0,
-      isTaxInclusive: true,
-      vatRateBasisPoints: null,
-      voucherNumber: "J-001",
-      sortKey: "a",
-      resourceId: null,
-      revenueId: null,
-      shareId: null,
-      commitmentId: null,
-      personId: null,
-    );
-
-/// Builds a debit entry naming no poste at all — off-quote spending.
-OcptBudgetEntry _buildOffQuoteDebitEntry({required String id, required int debitCents}) => OcptBudgetEntry(
+/// Builds a debit entry against [accountId], everything else neutral.
+OcptBudgetEntry _buildDebitEntry({
+  required String id,
+  required String accountId,
+  required int debitCents,
+}) => OcptBudgetEntry(
   id: id,
   date: DateTime(2026),
   label: "",
-  posteId: null,
+  accountId: accountId,
   debitCents: debitCents,
   creditCents: 0,
   isTaxInclusive: true,
@@ -101,48 +105,75 @@ OcptBudgetEntry _buildOffQuoteDebitEntry({required String id, required int debit
   personId: null,
 );
 
-/// Builds a credit entry naming no poste, no resource and no revenue — money coming in this report
-/// reads nowhere, used to prove a poste-less credit never draws the off-quote row (only a debit
-/// does).
-OcptBudgetEntry _buildOffQuoteCreditEntry({required String id, required int creditCents}) => OcptBudgetEntry(
-  id: id,
-  date: DateTime(2026),
-  label: "",
-  posteId: null,
-  debitCents: 0,
-  creditCents: creditCents,
-  isTaxInclusive: true,
-  vatRateBasisPoints: null,
-  voucherNumber: "J-001",
-  sortKey: "a",
-  resourceId: null,
-  revenueId: null,
-  shareId: null,
-  commitmentId: null,
-  personId: null,
-);
+/// Builds a debit entry naming no account at all — off-quote spending.
+OcptBudgetEntry _buildOffQuoteDebitEntry({required String id, required int debitCents}) =>
+    OcptBudgetEntry(
+      id: id,
+      date: DateTime(2026),
+      label: "",
+      accountId: null,
+      debitCents: debitCents,
+      creditCents: 0,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: "J-001",
+      sortKey: "a",
+      resourceId: null,
+      revenueId: null,
+      shareId: null,
+      commitmentId: null,
+      personId: null,
+    );
 
+/// Builds a credit entry naming no account, no resource and no revenue — money coming in this
+/// report reads nowhere, used to prove an account-less credit never draws the off-quote row (only a
+/// debit does).
+OcptBudgetEntry _buildOffQuoteCreditEntry({required String id, required int creditCents}) =>
+    OcptBudgetEntry(
+      id: id,
+      date: DateTime(2026),
+      label: "",
+      accountId: null,
+      debitCents: 0,
+      creditCents: creditCents,
+      isTaxInclusive: true,
+      vatRateBasisPoints: null,
+      voucherNumber: "J-001",
+      sortKey: "a",
+      resourceId: null,
+      revenueId: null,
+      shareId: null,
+      commitmentId: null,
+      personId: null,
+    );
+
+/// Run the tests of [OcptBudgetFinancialReportPdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final service = OcptBudgetFinancialReportPdfService();
+  final service = OcptBudgetFinancialReportPdfService(logger: const SilentLogger());
   const pageSetup = OcptPageSetup.standard();
 
-  OcptBudgetSnapshot buildSnapshot({List<OcptBudgetPoste> postes = const [], List<OcptBudgetEntry> entries = const []}) =>
-      OcptBudgetSnapshot.build(
-        postes: postes,
-        entries: entries,
-        commitments: const [],
-        defaultVatRateBasisPoints: null,
-        currencyCode: "EUR",
-      );
+  OcptBudgetSnapshot buildSnapshot({
+    List<OcptBudgetAccount> accounts = const [],
+    List<OcptBudgetEntry> entries = const [],
+  }) => OcptBudgetSnapshot.build(
+    accounts: accounts,
+    entries: entries,
+    commitments: const [],
+    defaultVatRateBasisPoints: null,
+    currencyCode: "EUR",
+  );
 
   group("generate", () {
     test("produces bytes starting with the %PDF magic string", () async {
       final bytes = await service.generate(
         snapshot: buildSnapshot(
-          postes: [
-            _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+          accounts: [
+            _buildAccount(
+              id: "poste-1",
+              lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+            ),
           ],
         ),
         pageSetup: pageSetup,
@@ -157,8 +188,11 @@ void main() {
 
     test("the title page is one page of its own, and toggling it off drops it", () async {
       final snapshot = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
       );
 
@@ -189,15 +223,21 @@ void main() {
 
     test("a poste paid against prints differently from one nothing has moved against", () async {
       final untouched = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
       );
       final paid = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
-        entries: [_buildDebitEntry(id: "entry-1", posteId: "poste-1", debitCents: 5000)],
+        entries: [_buildDebitEntry(id: "entry-1", accountId: "poste-1", debitCents: 5000)],
       );
 
       Future<Uint8List> generateFor(OcptBudgetSnapshot snapshot) => service.generate(
@@ -208,18 +248,27 @@ void main() {
         includeTitlePage: false,
       );
 
-      expect(_contentStreams(await generateFor(untouched)), isNot(_contentStreams(await generateFor(paid))));
+      expect(
+        _contentStreams(await generateFor(untouched)),
+        isNot(_contentStreams(await generateFor(paid))),
+      );
     });
 
     test("draws an off-quote row once there is spending naming no poste", () async {
       final withoutOffQuote = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
       );
       final withOffQuote = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
         entries: [_buildOffQuoteDebitEntry(id: "entry-1", debitCents: 4000)],
       );
@@ -240,17 +289,23 @@ void main() {
 
     test("a poste-less credit draws no off-quote row at all", () async {
       final untouched = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
       );
-      // A credit naming no poste is money coming in, not off-quote spending
+      // A credit naming no account is money coming in, not off-quote spending
       // (`ocptBudgetOffQuotePaidTotalOf`'s own doc comment) — it names no resource or revenue
       // either, so nothing else in this report reads it, and the two documents must come out
       // byte-identical.
-      final withPosteLessCredit = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+      final withAccountLessCredit = buildSnapshot(
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
         entries: [_buildOffQuoteCreditEntry(id: "entry-1", creditCents: 4000)],
       );
@@ -265,23 +320,29 @@ void main() {
 
       expect(
         _contentStreams(await generateFor(untouched)),
-        _contentStreams(await generateFor(withPosteLessCredit)),
+        _contentStreams(await generateFor(withAccountLessCredit)),
       );
     });
 
     test("the totals row's own paid figure folds the off-quote total in", () async {
-      final posteOnlyPaid = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+      final accountOnlyPaid = buildSnapshot(
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
-        entries: [_buildDebitEntry(id: "entry-1", posteId: "poste-1", debitCents: 5000)],
+        entries: [_buildDebitEntry(id: "entry-1", accountId: "poste-1", debitCents: 5000)],
       );
-      final splitBetweenPosteAndOffQuote = buildSnapshot(
-        postes: [
-          _buildPoste(id: "poste-1", lines: [_buildLine(id: "line-1", posteId: "poste-1")]),
+      final splitBetweenAccountAndOffQuote = buildSnapshot(
+        accounts: [
+          _buildAccount(
+            id: "poste-1",
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
+          ),
         ],
         entries: [
-          _buildDebitEntry(id: "entry-1", posteId: "poste-1", debitCents: 3000),
+          _buildDebitEntry(id: "entry-1", accountId: "poste-1", debitCents: 3000),
           _buildOffQuoteDebitEntry(id: "entry-2", debitCents: 2000),
         ],
       );
@@ -295,8 +356,8 @@ void main() {
       );
 
       expect(
-        _contentStreams(await generateFor(posteOnlyPaid)),
-        isNot(_contentStreams(await generateFor(splitBetweenPosteAndOffQuote))),
+        _contentStreams(await generateFor(accountOnlyPaid)),
+        isNot(_contentStreams(await generateFor(splitBetweenAccountAndOffQuote))),
       );
     });
   });
@@ -310,7 +371,10 @@ void main() {
     });
 
     test("a blank suffix falls back to the project name alone", () {
-      expect(service.financialReportFileName(projectName: "My Movie", suffix: "   "), "My Movie.pdf");
+      expect(
+        service.financialReportFileName(projectName: "My Movie", suffix: "   "),
+        "My Movie.pdf",
+      );
     });
   });
 }
@@ -322,8 +386,8 @@ int _pageCount(Uint8List bytes) {
   return RegExp(r"/Type\s*/Page[^s]").allMatches(text).length;
 }
 
-/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order —
-/// mirroring `ocpt_day_out_of_days_pdf_service_test.dart`'s own `_contentStreams`.
+/// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order
+/// — mirroring `ocpt_day_out_of_days_pdf_service_test.dart`'s own `_contentStreams`.
 List<String> _contentStreams(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);
   final pattern = RegExp(r"stream\r?\n(.*?)endstream", dotAll: true);

@@ -49,26 +49,24 @@ class OcptProjectVersion extends Equatable {
     required this.isBase,
   });
 
-  /// Builds the version described by [row], flagged [isBase] by the caller, which is the one
+  /// Build the version described by [row], flagged [isBase] by the caller, which is the one
   /// that knows the project header's pointer.
-  factory OcptProjectVersion.fromRow({
-    required OcptProjectVersionRow row,
-    required bool isBase,
-  }) => OcptProjectVersion(
-    id: row.id,
-    name: row.name,
-    note: row.note,
-    createdAt: row.createdAt,
-    summary: OcptProjectVersionSummary.parse(row.summaryJson),
-    isBase: isBase,
-  );
+  factory OcptProjectVersion.fromRow({required OcptProjectVersionRow row, required bool isBase}) =>
+      OcptProjectVersion(
+        id: row.id,
+        name: row.name,
+        note: row.note,
+        createdAt: row.createdAt,
+        summary: OcptProjectVersionSummary.parse(row.summaryJson),
+        isBase: isBase,
+      );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptProjectVersion(id: $id, name: $name, createdAt: $createdAt, isBase: $isBase)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, name, note, createdAt, summary, isBase];
 }

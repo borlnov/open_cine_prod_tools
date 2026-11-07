@@ -8,6 +8,7 @@ import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
+/// Run the tests of [buildRelayServerFromEnvironment].
 void main() {
   group('buildRelayServerFromEnvironment', () {
     test('throws StateError when the enrolment secret is missing', () {

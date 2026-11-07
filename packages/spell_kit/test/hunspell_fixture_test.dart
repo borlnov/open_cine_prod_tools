@@ -11,14 +11,11 @@ import 'package:test/test.dart';
 /// builds a [SpellChecker] over it.
 SpellChecker _checkerFor(String name) {
   final affix = File('test/fixtures/$name/index.aff').readAsStringSync();
-  final dictionary = File(
-    'test/fixtures/$name/index.dic',
-  ).readAsStringSync();
-  return SpellChecker(
-    SpellDictionary.parse(affix: affix, dictionary: dictionary),
-  );
+  final dictionary = File('test/fixtures/$name/index.dic').readAsStringSync();
+  return SpellChecker(SpellDictionary.parse(affix: affix, dictionary: dictionary));
 }
 
+/// Run the tests of the hunspell fixture.
 void main() {
   group('flag width', () {
     test('the default (single-character) width is parsed', () {
@@ -91,9 +88,7 @@ void main() {
     test('it reports the range of every unknown token, and only those', () {
       // "happy" and "cat" are known, "flurg" is not; the offsets are the
       // ones the caller paints an underline at.
-      expect(checker.misspellingsIn('happy cat flurg'), const [
-        SpellRange(10, 15),
-      ]);
+      expect(checker.misspellingsIn('happy cat flurg'), const [SpellRange(10, 15)]);
     });
 
     test('a token the tokenizer skips is never reported', () {
@@ -125,7 +120,7 @@ void main() {
       checker.setExtraWords({'flurg'});
       expect(checker.isKnown('flurg'), isTrue);
       // The memo must not keep answering "known" for a word the caller has
-      // just un-learned: this is the round trip M5's dialog depends on.
+      // just un-learned: this is the round trip the project dictionary dialog depends on.
       checker.setExtraWords(const {});
       expect(checker.isKnown('flurg'), isFalse);
     });

@@ -3,23 +3,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/src/models/fountain_inline_span.dart';
+import 'package:fountain_kit/src/models/fountain_inline_style.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
 import 'package:fountain_kit/src/models/fountain_styled_run.dart';
 
 /// One recognized emphasis marker, paired with the [FountainInlineStyle] it
 /// produces.
 class _EmphasisMarker {
-  /// Creates an [_EmphasisMarker].
-  const _EmphasisMarker(this.token, this.style);
-
   /// The literal marker text, for example `**`.
   final String token;
 
   /// The style a span wrapped in [token] is rendered with.
   final FountainInlineStyle style;
+
+  /// Create an [_EmphasisMarker].
+  const _EmphasisMarker(this.token, this.style);
 }
 
-/// Parses inline emphasis (`*italic*`, `**bold**`, `***bold italic***`,
+/// Parse inline emphasis (`*italic*`, `**bold**`, `***bold italic***`,
 /// `_underline_`) and inline authoring notes (`[[note]]`) out of a single
 /// line of Fountain text.
 ///
@@ -29,9 +30,6 @@ class _EmphasisMarker {
 /// both from the block builder (for a future rich-text rendering pass) and
 /// directly by callers who just want to highlight a snippet of text.
 class FountainInlineParser {
-  /// Creates a [FountainInlineParser].
-  const FountainInlineParser();
-
   /// The emphasis markers this parser recognizes, ordered so that the
   /// longest marker (`***`) is tried before its prefixes (`**`, `*`).
   static const List<_EmphasisMarker> _markers = [
@@ -62,7 +60,10 @@ class FountainInlineParser {
   /// usual markup meaning.
   static const String _escapable = r'*_\[]';
 
-  /// Parses [text] into a sequence of [FountainInlineSpan]s.
+  /// Create a [FountainInlineParser].
+  const FountainInlineParser();
+
+  /// Parse [text] into a sequence of [FountainInlineSpan]s.
   ///
   /// [line] is the 0-based source line [text] was taken from, and
   /// [startOffset] is the character offset, in the larger source document,
@@ -70,11 +71,7 @@ class FountainInlineParser {
   /// snippet in isolation (as most tests do); a caller assembling a full
   /// document should pass the real values so the resulting spans'
   /// [FountainInlineSpan.sourceRange]s point back into the original source.
-  List<FountainInlineSpan> parse(
-    String text, {
-    int line = 0,
-    int startOffset = 0,
-  }) {
+  List<FountainInlineSpan> parse(String text, {int line = 0, int startOffset = 0}) {
     final spans = <FountainInlineSpan>[];
     final plainBuffer = StringBuffer();
     var plainStart = 0;
@@ -97,9 +94,7 @@ class FountainInlineParser {
     while (index < text.length) {
       final char = text[index];
 
-      if (char == r'\' &&
-          index + 1 < text.length &&
-          _escapable.contains(text[index + 1])) {
+      if (char == r'\' && index + 1 < text.length && _escapable.contains(text[index + 1])) {
         if (plainBuffer.isEmpty) {
           plainStart = index;
         }
@@ -135,12 +130,7 @@ class FountainInlineParser {
             FountainInlineSpan(
               text: text.substring(index + marker.length, closeIndex),
               style: matchedMarker.style,
-              sourceRange: _range(
-                line,
-                startOffset,
-                index,
-                closeIndex + marker.length,
-              ),
+              sourceRange: _range(line, startOffset, index, closeIndex + marker.length),
             ),
           );
           index = closeIndex + marker.length;
@@ -160,7 +150,7 @@ class FountainInlineParser {
     return spans;
   }
 
-  /// Parses [text] into a sequence of [FountainStyledRun]s, resolving one
+  /// Parse [text] into a sequence of [FountainStyledRun]s, resolving one
   /// level of nesting inside emphasis spans that [parse] leaves as a single
   /// token with its inner markers still literally in its text.
   ///
@@ -189,11 +179,7 @@ class FountainInlineParser {
   /// that would be a fiction. Unlike [parse]'s spans, a run's range covers
   /// only what the run actually renders: the outer emphasis markers, and the
   /// nested ones this method resolves, are excluded from it.
-  List<FountainStyledRun> parseRuns(
-    String text, {
-    int? line,
-    int? startOffset,
-  }) {
+  List<FountainStyledRun> parseRuns(String text, {int? line, int? startOffset}) {
     final isAnchored = line != null && startOffset != null;
     return parse(
       text,
@@ -202,15 +188,12 @@ class FountainInlineParser {
     ).map((span) => _toStyledRun(span, isAnchored: isAnchored)).toList();
   }
 
-  /// Converts one top-level [FountainInlineSpan] into a [FountainStyledRun],
+  /// Convert one top-level [FountainInlineSpan] into a [FountainStyledRun],
   /// resolving one level of nesting as described on [parseRuns].
   ///
   /// [isAnchored] tells whether [span]'s own range points into a real source
   /// document; when it does not, the resulting run carries no range at all.
-  FountainStyledRun _toStyledRun(
-    FountainInlineSpan span, {
-    required bool isAnchored,
-  }) {
+  FountainStyledRun _toStyledRun(FountainInlineSpan span, {required bool isAnchored}) {
     final range = isAnchored ? span.sourceRange : null;
     switch (span.style) {
       case FountainInlineStyle.plain:
@@ -218,11 +201,7 @@ class FountainInlineParser {
       case FountainInlineStyle.note:
         // A note's `[[`/`]]` delimiters stay in the run's text, so its range
         // is the span's own, unnarrowed.
-        return FountainStyledRun(
-          text: '[[${span.text}]]',
-          isNote: true,
-          sourceRange: range,
-        );
+        return FountainStyledRun(text: '[[${span.text}]]', isNote: true, sourceRange: range);
       case FountainInlineStyle.boldItalic:
         return FountainStyledRun(
           text: span.text,
@@ -254,15 +233,13 @@ class FountainInlineParser {
     }
   }
 
-  /// Narrows [range] by [markerLength] characters at each end, turning the
+  /// Narrow [range] by [markerLength] characters at each end, turning the
   /// range of a `**bold**` span into the range of the `bold` a
   /// [FountainStyledRun] actually renders. Returns `null` for a `null`
   /// [range]; the parse rules guarantee the range is always long enough for
   /// the markers it is asked to drop.
-  FountainSourceRange? _withoutMarkers(
-    FountainSourceRange? range,
-    int markerLength,
-  ) => range == null
+  FountainSourceRange? _withoutMarkers(FountainSourceRange? range, int markerLength) =>
+      range == null
       ? null
       : FountainSourceRange(
           startLine: range.startLine,
@@ -271,10 +248,10 @@ class FountainInlineParser {
           endOffset: range.endOffset - markerLength,
         );
 
-  /// Checks whether [text] is fully wrapped in one of [candidates]; if so,
-  /// returns a [FountainStyledRun] combining that nested style with the
-  /// outer style already carried by [isBold]/[isItalic]/[isUnderline],
-  /// otherwise returns a run with only the outer style and [text] as-is.
+  /// Check whether [text] is fully wrapped in one of [candidates]; if so, return a
+  /// [FountainStyledRun] combining that nested style with the outer style already carried by
+  /// [isBold]/[isItalic]/[isUnderline], otherwise return a run with only the outer style and [text]
+  /// as-is.
   ///
   /// [range] is [text]'s own range, the outer marker already dropped from it;
   /// a resolved nesting narrows it further by the nested marker's own length,
@@ -313,7 +290,7 @@ class FountainInlineParser {
     );
   }
 
-  /// Returns the nested style, inner text and marker length if [text] is
+  /// Return the nested style, inner text and marker length if [text] is
   /// entirely wrapped in one marker from [candidates] (tried longest-first),
   /// using the same leftmost-closing-marker rule as [parse] itself so the
   /// two agree on what counts as a matched pair; returns `null` if [text] is
@@ -330,17 +307,13 @@ class FountainInlineParser {
       }
       final closeIndex = text.indexOf(token, token.length);
       if (closeIndex == text.length - token.length) {
-        return (
-          marker.style,
-          text.substring(token.length, closeIndex),
-          token.length,
-        );
+        return (marker.style, text.substring(token.length, closeIndex), token.length);
       }
     }
     return null;
   }
 
-  /// Returns the first [_EmphasisMarker] whose token starts at [index] in
+  /// Return the first [_EmphasisMarker] whose token starts at [index] in
   /// [text], trying longer tokens first, or `null` if none matches.
   _EmphasisMarker? _matchEmphasis(String text, int index) {
     for (final marker in _markers) {
@@ -351,18 +324,14 @@ class FountainInlineParser {
     return null;
   }
 
-  /// Builds the [FountainSourceRange] for a span covering
+  /// Build the [FountainSourceRange] for a span covering
   /// `[localStart, localEnd)` of a line, given that line's own [line]
   /// number and [lineStartOffset] within the larger source document.
-  FountainSourceRange _range(
-    int line,
-    int lineStartOffset,
-    int localStart,
-    int localEnd,
-  ) => FountainSourceRange(
-    startLine: line,
-    endLine: line,
-    startOffset: lineStartOffset + localStart,
-    endOffset: lineStartOffset + localEnd,
-  );
+  FountainSourceRange _range(int line, int lineStartOffset, int localStart, int localEnd) =>
+      FountainSourceRange(
+        startLine: line,
+        endLine: line,
+        startOffset: lineStartOffset + localStart,
+        endOffset: lineStartOffset + localEnd,
+      );
 }

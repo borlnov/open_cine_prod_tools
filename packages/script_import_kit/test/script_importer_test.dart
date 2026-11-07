@@ -53,14 +53,19 @@ ScriptImportResult _read(String text, String fileName) =>
 
 /// The [ScriptImportFailure] reading [text] under [fileName] throws.
 ScriptImportFailure _failureOf(String text, String fileName) {
+  ScriptImportFailure? failure;
   try {
     _read(text, fileName);
   } on ScriptImportException catch (exception) {
-    return exception.failure;
+    failure = exception.failure;
   }
-  fail('reading the file was expected to throw');
+  if (failure == null) {
+    fail('reading the file was expected to throw');
+  }
+  return failure;
 }
 
+/// Run the tests of [ScriptImporter].
 void main() {
   group('dispatch by extension', () {
     test('a ".fdx" file is read as Final Draft', () {
@@ -106,10 +111,7 @@ void main() {
     });
 
     test('a file name with no extension is unsupported', () {
-      expect(
-        _failureOf('She waits.\n', 'the-last-kettle'),
-        ScriptImportFailure.unsupportedFormat,
-      );
+      expect(_failureOf('She waits.\n', 'the-last-kettle'), ScriptImportFailure.unsupportedFormat);
     });
   });
 
@@ -131,10 +133,7 @@ void main() {
 
   group('the result', () {
     test('two results holding the same screenplay are equal', () {
-      expect(
-        _read(_finalDraftDocument, 'a.fdx'),
-        _read(_finalDraftDocument, 'b.fdx'),
-      );
+      expect(_read(_finalDraftDocument, 'a.fdx'), _read(_finalDraftDocument, 'b.fdx'));
     });
   });
 }

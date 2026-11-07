@@ -15,9 +15,9 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// gives the role's card the order it wants for free: the catalogue's own `sortKey` order, grouped
 /// by category at read time.
 ///
-/// `OcptSceneElementLink`'s sibling, minus the quantity: a role wears the coat or they do not, while
-/// a scene may need two glasses. The link's own id travels with it because that is what an update
-/// and a removal are addressed to.
+/// `OcptSceneElementLink`'s sibling, minus the quantity: a role wears the coat or they do not,
+/// while a scene may need two glasses. The link's own id travels with it because that is what an
+/// update and a removal are addressed to.
 class OcptRoleElementLink extends Equatable {
   /// The stable, unique id of this link (a UUID).
   final String id;
@@ -31,15 +31,15 @@ class OcptRoleElementLink extends Equatable {
   /// Class constructor
   const OcptRoleElementLink({required this.id, required this.roleId, required this.notes});
 
-  /// Builds an [OcptRoleElementLink] from its stored [row].
+  /// Build an [OcptRoleElementLink] from its stored [row].
   factory OcptRoleElementLink.fromRow(OcptRoleElementRow row) =>
       OcptRoleElementLink(id: row.id, roleId: row.roleId, notes: row.notes);
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptRoleElementLink(id: $id, roleId: $roleId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, roleId, notes];
 }

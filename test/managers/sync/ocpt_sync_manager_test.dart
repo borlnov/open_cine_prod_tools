@@ -5,43 +5,66 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
-import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 
 /// A minimal [OcptRemoteStorage]: [OcptSyncManager]'s own tests below only care that a session
 /// starts and stops around it, never about what it actually stores.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// The controller behind [newWorkStream].
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
-  @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
-
-  @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
-
-  @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {}
-
-  @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => null;
-
+  /// Emit the pings the test adds to the controller.
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
 
-  @override
-  void sendPresence(String opaquePayload) {}
-
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Accept the envelope, answering with sequence zero.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async =>
+      const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
+
+  /// Answer with an empty log.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
+
+  /// Accept the snapshot without keeping it.
+  @override
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
+
+  /// Answer that no snapshot was ever uploaded.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
+
+  /// Drop the payload.
+  @override
+  void sendPresence(String opaquePayload) {}
+
+  /// Close the controller behind [newWorkStream].
   Future<void> dispose() => _newWorkController.close();
 }
 
@@ -49,12 +72,19 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// session's own test file for the fuller version this mirrors; this one only needs to prove
 /// [OcptSyncManager] wires a session up and tears it down correctly, so it stays minimal.
 class _FakeChangesetService extends OcptChangesetService {
-  _FakeChangesetService();
-
+  /// How many times a sync was run.
   int syncOnceCalls = 0;
 
+  /// Class constructor
+  _FakeChangesetService()
+    : super(
+        logger: const SilentLogger(),
+        mergeService: const OcptMergeService(logger: SilentLogger()),
+      );
+
+  /// Count the sync and answer that it went well, with no conflict.
   @override
-  Future<List<OcptScreenplayMergeConflict>> syncOnce({
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>> syncOnce({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
     required String relayId,
@@ -62,28 +92,37 @@ class _FakeChangesetService extends OcptChangesetService {
   }) async {
     syncOnceCalls++;
 
-    return const [];
+    return const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
   }
 
+  /// Answer that the pull went well, with no conflict.
   @override
-  Future<List<OcptScreenplayMergeConflict>> pullAndApply({
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>>
+  pullAndApply({
     required OcptProjectDatabase database,
     required OcptRemoteStorage storage,
     required String relayId,
-  }) async => const [];
+  }) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 }
 
+/// Run the tests of [OcptSyncManager].
 void main() {
   group('openRelayRemoteStorage', () {
     test('builds a relay transport from the pairing and the given project id', () {
-      final manager = OcptSyncManager(changesetService: const OcptChangesetService());
+      final manager = OcptSyncManager(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
       final pairing = OcptProjectPairing(
         relayBaseUri: Uri.https('relay.example.org'),
         token: 'token-1',
       );
 
-      final storage = manager.openRelayRemoteStorage(pairing, 'project-1', enrolmentSecret: 'secret-1')
-          as OcptRelayRemoteStorage;
+      final storage =
+          manager.openRelayRemoteStorage(pairing, 'project-1', enrolmentSecret: 'secret-1')
+              as OcptRelayRemoteStorage;
 
       expect(storage.relayBaseUri, pairing.relayBaseUri);
       expect(storage.projectId, 'project-1');
@@ -156,8 +195,8 @@ void main() {
       expect(changesetService.syncOnceCalls, 2);
     });
 
-    test('syncNow throws when no session is running', () async {
-      await expectLater(manager.syncNow, throwsStateError);
+    test('syncNow answers the not-running status when no session is running', () async {
+      expect(await manager.syncNow(), OcptSyncSessionStatus.notRunning);
     });
 
     test('stopSyncSession clears the running session', () async {
@@ -175,31 +214,38 @@ void main() {
       expect(manager.syncStatus, isNull);
     });
 
-    test('syncStatusChanges reaches a subscriber that subscribed before the session started', () async {
-      // The workspace's own status indicator subscribes when it is built — before the project it
-      // then opens has started its session. The per-session stream would be null at that point, so
-      // this manager-level one has to carry the session's status once it starts, and a null once it
-      // stops, for the indicator to ever appear (and later hide).
-      final received = <OcptSyncStatus?>[];
-      final subscription = manager.syncStatusChanges.listen(received.add);
-      addTearDown(subscription.cancel);
+    test(
+      'syncStatusChanges reaches a subscriber that subscribed before the session started',
+      () async {
+        // The workspace's own status indicator subscribes when it is built — before the project it
+        // then opens has started its session. The per-session stream would be null at that point,
+        // so this manager-level one has to carry the session's status once it starts, and a null
+        // once it stops, for the indicator to ever appear (and later hide).
+        final received = <OcptSyncStatus?>[];
+        final subscription = manager.syncStatusChanges.listen(received.add);
+        addTearDown(subscription.cancel);
 
-      await manager.startSyncSession(
-        projectId: 'project-1',
-        database: database,
-        deviceId: 'device-1',
-        relayId: 'relay-1',
-        storage: storage,
-      );
-      await pumpEventQueue();
+        await manager.startSyncSession(
+          projectId: 'project-1',
+          database: database,
+          deviceId: 'device-1',
+          relayId: 'relay-1',
+          storage: storage,
+        );
+        await pumpEventQueue();
 
-      expect(received, contains(const OcptSyncStatusInSync()));
+        expect(received, contains(const OcptSyncStatusInSync()));
 
-      await manager.stopSyncSession();
-      await pumpEventQueue();
+        await manager.stopSyncSession();
+        await pumpEventQueue();
 
-      expect(received.last, isNull, reason: 'the session stopping closes the stream out with a null');
-    });
+        expect(
+          received.last,
+          isNull,
+          reason: 'the session stopping closes the stream out with a null',
+        );
+      },
+    );
 
     test('starting a session again replaces the one already running', () async {
       await manager.startSyncSession(

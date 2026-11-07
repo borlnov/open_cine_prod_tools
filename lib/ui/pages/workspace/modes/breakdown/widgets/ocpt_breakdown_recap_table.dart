@@ -5,18 +5,18 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_search.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_search.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_breakdown_labels.dart';
 
 /// The narrowest the `Element` column is ever drawn, in logical pixels — past this, a very narrow
 /// window scrolls the table horizontally rather than crushing the name column.
@@ -50,7 +50,7 @@ const double _ocptRecapMutedDotDiameter = 4;
 /// The opacity a muted dot's own colour is drawn at.
 const double _ocptRecapMutedDotAlpha = 0.35;
 
-/// The room the vertical scroll bar's own thumb takes at the right edge of the rows, in logical
+/// Get the room the vertical scroll bar's own thumb takes at the right edge of the rows, in logical
 /// pixels — read off the ambient [ScrollbarThemeData] rather than repeated here, so the gutter
 /// follows `ocpt_theme.dart`'s own scroll bar rather than drifting from it.
 ///
@@ -94,7 +94,7 @@ double _ocptRecapScrollbarGutterOf(BuildContext context) {
 /// (`onTargetSelected`), which writes nothing to the project database — so, unlike the target and
 /// scene inspectors, this table needs no `isReadOnly` flag at all: there is nothing here for a
 /// previewed version to withhold.
-class OcptBreakdownRecapTable extends StatelessWidget {
+class OcptBreakdownRecapTable extends StatefulWidget {
   /// Every scene of the loaded snapshot, in source order — one column per entry, whatever
   /// [searchQuery] holds.
   final List<OcptBreakdownScene> scenes;
@@ -134,38 +134,69 @@ class OcptBreakdownRecapTable extends StatelessWidget {
     required this.onTargetSelected,
   });
 
+  /// Create the state caching the table's filtered, grouped sections.
+  @override
+  State<OcptBreakdownRecapTable> createState() => _OcptBreakdownRecapTableState();
+}
+
+/// The recap table's state: it holds the filtered, grouped and sorted sections, which only change
+/// with the targets, the catalogue, the address book, the search or the language, not with every
+/// rebuild (a selection, a resize).
+class _OcptBreakdownRecapTableState extends State<OcptBreakdownRecapTable> {
+  /// The lookup of [OcptBreakdownRecapTable.elements] by id.
+  Map<String, OcptElement> _elementById = const {};
+
+  /// The lookup of [OcptBreakdownRecapTable.people] by id.
+  Map<String, OcptPerson> _personById = const {};
+
+  /// The targets matching the search, or empty while there is none.
+  List<OcptBreakdownTarget> _matchingTargets = const [];
+
+  /// The legend sections of [_matchingTargets], each with its targets sorted by name.
+  List<(OcptBreakdownLegendEntry, List<OcptBreakdownTarget>)> _sections = const [];
+
+  /// Derive the sections again when the language changes, and for the first time.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _derive(Tr.of(context));
+  }
+
+  /// Derive the sections again when one of the inputs they read has changed.
+  @override
+  void didUpdateWidget(OcptBreakdownRecapTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.targets, widget.targets) ||
+        !identical(oldWidget.elements, widget.elements) ||
+        !identical(oldWidget.people, widget.people) ||
+        oldWidget.searchQuery != widget.searchQuery) {
+      _derive(Tr.of(context));
+    }
+  }
+
+  /// Build the breakdown recap table as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
+    final scenes = widget.scenes;
+    final selectedTargetRef = widget.selectedTargetRef;
+    final onTargetSelected = widget.onTargetSelected;
+    final elementById = _elementById;
+    final personById = _personById;
+    final sections = _sections;
 
-    if (targets.isEmpty) {
+    if (widget.targets.isEmpty) {
       return OcptWorkspaceEmptyMode(
         icon: Icons.grid_view_outlined,
         message: tr.breakdownRecapNothingTaggedHint,
       );
     }
 
-    final elementById = {for (final element in elements) element.id: element};
-    final personById = {for (final person in people) person.id: person};
-
-    final matchingTargets = [
-      for (final target in targets)
-        if (_matches(tr, target, elementById, personById)) target,
-    ];
-
-    if (matchingTargets.isEmpty) {
+    if (_matchingTargets.isEmpty) {
       return OcptWorkspaceEmptyMode(
         icon: Icons.search_off,
-        message: tr.breakdownRecapNoMatchesHint(searchQuery),
+        message: tr.breakdownRecapNoMatchesHint(widget.searchQuery),
       );
-    }
-
-    final matchingByKey = <OcptBreakdownLegendKey, List<OcptBreakdownTarget>>{};
-    for (final target in matchingTargets) {
-      matchingByKey.putIfAbsent(ocptBreakdownLegendKeyOf(target), () => []).add(target);
-    }
-    for (final group in matchingByKey.values) {
-      group.sort((a, b) => a.name.compareTo(b.name));
     }
 
     return LayoutBuilder(
@@ -196,22 +227,23 @@ class OcptBreakdownRecapTable extends StatelessWidget {
                   scrollbarGutter: scrollbarGutter,
                 ),
                 Expanded(
-                  child: ListView(
+                  child: ListView.builder(
                     padding: EdgeInsets.only(right: scrollbarGutter),
-                    children: [
-                      for (final entry in ocptBreakdownLegendEntriesOf(targets))
-                        if (matchingByKey[entry.key] case final groupTargets?)
-                          _RecapGroupSection(
-                            entry: entry,
-                            targets: groupTargets,
-                            elementById: elementById,
-                            personById: personById,
-                            scenes: scenes,
-                            elementWidth: elementWidth,
-                            selectedTargetRef: selectedTargetRef,
-                            onTargetSelected: onTargetSelected,
-                          ),
-                    ],
+                    itemCount: sections.length,
+                    itemBuilder: (context, index) {
+                      final (entry, groupTargets) = sections[index];
+
+                      return _RecapGroupSection(
+                        entry: entry,
+                        targets: groupTargets,
+                        elementById: elementById,
+                        personById: personById,
+                        scenes: scenes,
+                        elementWidth: elementWidth,
+                        selectedTargetRef: selectedTargetRef,
+                        onTargetSelected: onTargetSelected,
+                      );
+                    },
                   ),
                 ),
               ],
@@ -222,21 +254,40 @@ class OcptBreakdownRecapTable extends StatelessWidget {
     );
   }
 
-  /// Whether [target] matches [searchQuery], resolving its notes/sub-category/owner off
-  /// [elementById]/[personById] first — see `ocptBreakdownRecapRowMatches`'s own doc comment for why
-  /// a role or a set simply never passes those three.
-  bool _matches(
-    Tr tr,
-    OcptBreakdownTarget target,
-    Map<String, OcptElement> elementById,
-    Map<String, OcptPerson> personById,
-  ) {
-    final element = target.kind == OcptBreakdownTargetKind.element ? elementById[target.id] : null;
+  /// Filter, group and sort the targets of the widget into [_sections], reading [tr] for the
+  /// category labels the search matches against.
+  void _derive(Tr tr) {
+    _elementById = {for (final element in widget.elements) element.id: element};
+    _personById = {for (final person in widget.people) person.id: person};
+
+    _matchingTargets = [
+      for (final target in widget.targets)
+        if (_matches(tr, target)) target,
+    ];
+
+    final matchingByKey = <OcptBreakdownLegendKey, List<OcptBreakdownTarget>>{};
+    for (final target in _matchingTargets) {
+      matchingByKey.putIfAbsent(ocptBreakdownLegendKeyOf(target), () => []).add(target);
+    }
+    for (final group in matchingByKey.values) {
+      group.sort((a, b) => a.name.compareTo(b.name));
+    }
+    _sections = [
+      for (final entry in ocptBreakdownLegendEntriesOf(widget.targets))
+        if (matchingByKey[entry.key] case final groupTargets?) (entry, groupTargets),
+    ];
+  }
+
+  /// Tell whether [target] matches `searchQuery`, resolving its notes/sub-category/owner off
+  /// [_elementById]/[_personById] first — see `ocptBreakdownRecapRowMatches`'s own doc comment for
+  /// why a role or a set simply never passes those three.
+  bool _matches(Tr tr, OcptBreakdownTarget target) {
+    final element = target.kind == OcptBreakdownTargetKind.element ? _elementById[target.id] : null;
     final ownerPersonId = element?.ownerPersonId;
-    final owner = ownerPersonId == null ? null : personById[ownerPersonId];
+    final owner = ownerPersonId == null ? null : _personById[ownerPersonId];
 
     return ocptBreakdownRecapRowMatches(
-      query: searchQuery,
+      query: widget.searchQuery,
       targetName: target.name,
       categoryLabel: ocptBreakdownLegendKeyLabel(tr, ocptBreakdownLegendKeyOf(target)),
       subCategory: element?.subCategory,
@@ -268,6 +319,7 @@ class _RecapHeaderRow extends StatelessWidget {
     required this.scrollbarGutter,
   });
 
+  /// Build the recap header row as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -374,6 +426,7 @@ class _RecapGroupSection extends StatelessWidget {
     required this.onTargetSelected,
   });
 
+  /// Build the recap group section as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -395,12 +448,17 @@ class _RecapGroupSection extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 ocptBreakdownLegendKeyLabel(tr, entry.key).toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w700),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
                 "${targets.length}",
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -420,7 +478,7 @@ class _RecapGroupSection extends StatelessWidget {
     );
   }
 
-  /// [target]'s own owner, resolved off [elementById]/[personById], or null while [target] is a
+  /// Get [target]'s own owner, resolved off [elementById]/[personById], or null while [target] is a
   /// role/a set or its element carries none.
   OcptPerson? _ownerOf(OcptBreakdownTarget target) {
     final ownerPersonId = elementById[target.id]?.ownerPersonId;
@@ -468,6 +526,7 @@ class _RecapRow extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the recap row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -476,10 +535,10 @@ class _RecapRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 7),
@@ -568,6 +627,7 @@ class _RecapDot extends StatelessWidget {
   /// Class constructor
   const _RecapDot({super.key, required this.isTagged, required this.color});
 
+  /// Build the recap dot as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -597,6 +657,7 @@ class _RecapStatusPill extends StatelessWidget {
   /// Class constructor
   const _RecapStatusPill({required this.status});
 
+  /// Build the recap status pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -605,8 +666,8 @@ class _RecapStatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Text(
         ocptElementStatusLabel(Tr.of(context), status),

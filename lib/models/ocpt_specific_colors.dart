@@ -70,13 +70,12 @@ class OcptSpecificColors extends AbsAppSpecificColors<OcptSpecificColors> {
       previewBackdrop: Color.lerp(previewBackdrop, other.previewBackdrop, t) ?? previewBackdrop,
       projectPosterTints: _lerpColorList(projectPosterTints, other.projectPosterTints, t),
       shotStatusShot: Color.lerp(shotStatusShot, other.shotStatusShot, t) ?? shotStatusShot,
-      shotStatusRetake:
-          Color.lerp(shotStatusRetake, other.shotStatusRetake, t) ?? shotStatusRetake,
+      shotStatusRetake: Color.lerp(shotStatusRetake, other.shotStatusRetake, t) ?? shotStatusRetake,
     );
   }
 }
 
-/// Interpolates two colour lists element-wise. The two lists are expected to have the same
+/// Interpolate two colour lists element-wise. The two lists are expected to have the same
 /// length (both brightnesses of [OcptSpecificColors.projectPosterTints] share one palette size),
 /// but a differing length is tolerated defensively by holding the shorter list's last colour for
 /// the extra entries rather than throwing.

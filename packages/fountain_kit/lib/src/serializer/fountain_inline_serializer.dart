@@ -5,7 +5,7 @@
 import 'package:fountain_kit/src/models/fountain_styled_run.dart';
 import 'package:fountain_kit/src/parser/fountain_inline_parser.dart';
 
-/// Writes a list of [FountainStyledRun]s back out as a single marked-up
+/// Write a list of [FountainStyledRun]s back out as a single marked-up
 /// Fountain source line.
 ///
 /// The canonical markers are `***text***` for bold+italic, with underline
@@ -27,21 +27,21 @@ import 'package:fountain_kit/src/parser/fountain_inline_parser.dart';
 /// cleanly. A lone marker character that does not pair up with anything
 /// (and so already round-trips as plain text) is never escaped.
 class FountainInlineSerializer {
-  /// Creates a [FountainInlineSerializer].
-  const FountainInlineSerializer();
-
   /// The marker tokens [write] recognizes, tried longest-first, matching
   /// [FountainInlineParser]'s own matching order.
   static const List<String> _markerTokens = ['***', '**', '*', '_'];
 
+  /// The parser used to check that a written line reads back as the same runs.
   static const FountainInlineParser _parser = FountainInlineParser();
 
-  /// Renders [runs] as a single marked-up Fountain source line.
+  /// Create a [FountainInlineSerializer].
+  const FountainInlineSerializer();
+
+  /// Render [runs] as a single marked-up Fountain source line.
   String write(List<FountainStyledRun> runs) {
     final merged = _mergeAdjacent(runs);
     final texts = [
-      for (final run in merged)
-        _isPlain(run) ? _escapeAmbiguousMarkers(run.text) : run.text,
+      for (final run in merged) _isPlain(run) ? _escapeAmbiguousMarkers(run.text) : run.text,
     ];
     while (true) {
       final line = _emit(merged, texts);
@@ -56,7 +56,7 @@ class FountainInlineSerializer {
     }
   }
 
-  /// Merges adjacent runs that share the same style into one, dropping
+  /// Merge adjacent runs that share the same style into one, dropping
   /// empty runs (they carry no text to serialize). Note runs are never
   /// merged with each other or with anything else: each stays its own
   /// atomic `[[...]]` unit even when directly adjacent to another note.
@@ -67,10 +67,7 @@ class FountainInlineSerializer {
         continue;
       }
       final previous = merged.isEmpty ? null : merged.last;
-      if (previous != null &&
-          !previous.isNote &&
-          !run.isNote &&
-          _sameStyle(previous, run)) {
+      if (previous != null && !previous.isNote && !run.isNote && _sameStyle(previous, run)) {
         merged[merged.length - 1] = FountainStyledRun(
           text: previous.text + run.text,
           isBold: run.isBold,
@@ -84,17 +81,15 @@ class FountainInlineSerializer {
     return merged;
   }
 
-  /// Whether [a] and [b] carry the same style flags.
+  /// Tell whether [a] and [b] carry the same style flags.
   bool _sameStyle(FountainStyledRun a, FountainStyledRun b) =>
-      a.isBold == b.isBold &&
-      a.isItalic == b.isItalic &&
-      a.isUnderline == b.isUnderline;
+      a.isBold == b.isBold && a.isItalic == b.isItalic && a.isUnderline == b.isUnderline;
 
-  /// Whether [run] carries no style at all (plain text, not a note).
+  /// Tell whether [run] carries no style at all (plain text, not a note).
   bool _isPlain(FountainStyledRun run) =>
       !run.isBold && !run.isItalic && !run.isUnderline && !run.isNote;
 
-  /// Joins every run's emitted text, in order, into one line.
+  /// Join every run's emitted text, in order, into one line.
   String _emit(List<FountainStyledRun> runs, List<String> texts) {
     final buffer = StringBuffer();
     for (var i = 0; i < runs.length; i++) {
@@ -103,7 +98,7 @@ class FountainInlineSerializer {
     return buffer.toString();
   }
 
-  /// Wraps a single run's (possibly already escaped) [text] in its markers.
+  /// Wrap a single run's (possibly already escaped) [text] in its markers.
   String _emitRun(FountainStyledRun run, String text) {
     if (text.isEmpty) {
       return '';
@@ -114,7 +109,7 @@ class FountainInlineSerializer {
     return '${_openMarker(run)}$text${_closeMarker(run)}';
   }
 
-  /// The opening marker for [run]'s style combination, underline outermost.
+  /// Get the opening marker for [run]'s style combination, underline outermost.
   String _openMarker(FountainStyledRun run) {
     if (run.isUnderline) {
       if (run.isBold && run.isItalic) {
@@ -140,7 +135,7 @@ class FountainInlineSerializer {
     return '';
   }
 
-  /// The closing marker for [run]'s style combination, mirroring
+  /// Get the closing marker for [run]'s style combination, mirroring
   /// [_openMarker].
   String _closeMarker(FountainStyledRun run) {
     if (run.isUnderline) {
@@ -167,7 +162,7 @@ class FountainInlineSerializer {
     return '';
   }
 
-  /// Escapes marker pairs in [text] that would otherwise be misread as
+  /// Escape marker pairs in [text] that would otherwise be misread as
   /// emphasis or a note on re-parse, using the same longest-first,
   /// nearest-closing-marker rule [FountainInlineParser.parse] uses, so this
   /// agrees with how the parser would actually pair markers up. A marker
@@ -183,9 +178,7 @@ class FountainInlineSerializer {
           buffer
             ..write(r'\[')
             ..write('[')
-            ..write(
-              _escapeAmbiguousMarkers(text.substring(index + 2, closeIndex)),
-            )
+            ..write(_escapeAmbiguousMarkers(text.substring(index + 2, closeIndex)))
             ..write(']]');
           index = closeIndex + 2;
           continue;
@@ -210,7 +203,7 @@ class FountainInlineSerializer {
     return buffer.toString();
   }
 
-  /// Returns the first marker token starting at [index] in [text], trying
+  /// Return the first marker token starting at [index] in [text], trying
   /// longer tokens first, or `null` if none matches.
   String? _matchMarkerToken(String text, int index) {
     for (final token in _markerTokens) {
@@ -221,13 +214,12 @@ class FountainInlineSerializer {
     return null;
   }
 
-  /// Escapes every character of [token] individually, for example `**` →
+  /// Escape every character of [token] individually, for example `**` →
   /// `\*\*`, so re-parsing sees no unescaped marker character at all.
-  String _escapeToken(String token) =>
-      token.split('').map((char) => '\\$char').join();
+  String _escapeToken(String token) => token.split('').map((char) => '\\$char').join();
 
-  /// Escapes the next unescaped `*`, `_` or `[` found across [runs]' plain
-  /// (non-note, non-emphasis) [texts], in document order, and returns
+  /// Escape the next unescaped `*`, `_` or `[` found across [runs]' plain (non-note, non-emphasis)
+  /// [texts], in document order, and return
   /// `true`; returns `false` once no more candidates remain. This is a
   /// fallback for ambiguity across a run boundary (for example a lone `*`
   /// in a plain run immediately followed by a real bold run's marker),
@@ -254,7 +246,7 @@ class FountainInlineSerializer {
     return false;
   }
 
-  /// Whether [a] and [b] contain the same runs in the same order.
+  /// Tell whether [a] and [b] contain the same runs in the same order.
   bool _runsEqual(List<FountainStyledRun> a, List<FountainStyledRun> b) {
     if (a.length != b.length) {
       return false;

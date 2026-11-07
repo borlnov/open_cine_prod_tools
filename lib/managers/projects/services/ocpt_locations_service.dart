@@ -3,21 +3,28 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_database_result_abort.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_reference_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_rows.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_set_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location_availability.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_set_code.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over `locations`, their `sets`, the `scene_sets` links between a scene and the sets it is
@@ -37,12 +44,11 @@ import 'package:uuid/uuid.dart';
 /// [assignSceneToSet] and `OcptSceneSetsTable`'s own doc comment), and the scenes read back for a
 /// set are ordered by the screenplay's own scene order instead.
 ///
-/// This service does not decide *which* set a scene's heading suggests — §4.5 of the plan this
-/// service ships under is explicit that the suggestion is never applied automatically, only
-/// offered: `ocptSceneSetSuggestionOf` computes it and the resources mode offers it, while
-/// [assignSceneToSet]/[removeSceneFromSet] are the plain link writes the mode calls once the user
-/// has picked (or confirmed) one.
-class OcptLocationsService {
+/// This service does not decide *which* set a scene's heading suggests: the suggestion is never
+/// applied automatically, only offered: `ocptSceneSetSuggestionOf` computes it and the resources
+/// mode offers it, while [assignSceneToSet]/[removeSceneFromSet] are the plain link writes the mode
+/// calls once the user has picked (or confirmed) one.
+class OcptLocationsService extends AbsOcptService {
   /// The service minting and tombstoning the `assets` rows a location owns. Held rather than
   /// reached for so a test can hand in its own, exactly as `OcptBreakdownService` holds the two
   /// services it composes.
@@ -55,18 +61,28 @@ class OcptLocationsService {
   /// be depended on here without a cycle.
   final OcptFloorPlanService floorPlanService;
 
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
+  /// {@macro open_cine_prod_tools.serviceDeviceIdGetter}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
   const OcptLocationsService({
+    required super.logger,
     required this.assetsService,
     required this.floorPlanService,
     required this.deviceId,
   });
 
-  /// Loads every live location of [database], in `sortKey` order, each joined with its live
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await assetsService.initLifeCycle();
+    await floorPlanService.initLifeCycle();
+  }
+
+  /// Load every live location of [database], in `sortKey` order, each joined with its live
   /// [OcptSet]s and scouting photos (both in `sortKey` order), with its availability windows (in
   /// start-date order, the order they are read in rather than one the user chose) and with the
   /// document its `permitAssetId` resolves to.
@@ -75,8 +91,11 @@ class OcptLocationsService {
   /// the last reconciliation is skipped rather than shown as a scene that no longer exists, and
   /// comes back on its own if the scene does — `OcptSceneIndexService` reuses a scene's id for as
   /// long as it can match it.
-  Future<List<OcptLocation>> loadLocations({required OcptProjectDatabase database}) async {
-    final locationRows = await _liveLocationRows(database);
+  @useResult
+  Future<OcptDatabaseResult<List<OcptLocation>>> loadLocations({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadLocations", () async {
+    final locationRows = await OcptLocationsRows.liveLocationRows(database);
     final locationIds = locationRows.map((row) => row.id).toList(growable: false);
 
     final setRows = locationIds.isEmpty
@@ -86,7 +105,7 @@ class OcptLocationsService {
                 ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
               .get();
 
-    final sceneIdsBySetId = await _liveSceneIdsBySetId(
+    final sceneIdsBySetId = await OcptLocationsRows.liveSceneIdsBySetId(
       database: database,
       setIds: setRows.map((row) => row.id).toList(growable: false),
     );
@@ -142,9 +161,9 @@ class OcptLocationsService {
           availabilities: availabilitiesByLocationId[row.id] ?? const [],
         ),
     ];
-  }
+  });
 
-  /// Loads every live scene of screenplay [screenplayId] in [database], in source order.
+  /// Load every live scene of screenplay [screenplayId] in [database], in source order.
   ///
   /// The resources mode reads these to offer them for a set (see [assignSceneToSet]) and to name
   /// the ones a set already holds. This service is where the read lives because `scene_sets` is
@@ -155,35 +174,35 @@ class OcptLocationsService {
   /// single episode; it is only carried onto each [OcptSceneRef] for `displayNumber` to read, never
   /// resolved here — this service has no reason to depend on `OcptScreenplayService`, which already
   /// depends on it (dependencies never reference their dependents).
-  Future<List<OcptSceneRef>> loadScenes({
+  @useResult
+  Future<OcptDatabaseResult<List<OcptSceneRef>>> loadScenes({
     required OcptProjectDatabase database,
     required String screenplayId,
     required int? episodeNumber,
-  }) async {
+  }) => guardResult("loadScenes", () async {
     final rows =
         await (database.select(database.ocptScenesTable)
               ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())
               ..orderBy([(table) => OrderingTerm.asc(table.position)]))
             .get();
 
-    return [
-      for (final row in rows) OcptSceneRef.fromRow(row: row, episodeNumber: episodeNumber),
-    ];
-  }
+    return [for (final row in rows) OcptSceneRef.fromRow(row: row, episodeNumber: episodeNumber)];
+  });
 
-  /// Creates a new location named [name] in [database], appended at the end, and returns its
+  /// Create a new location named [name] in [database], appended at the end, and return its
   /// freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createLocation({
+  @useResult
+  Future<OcptDatabaseResult<String>> createLocation({
     required OcptProjectDatabase database,
     required String name,
-  }) async {
+  }) => guardResult("createLocation", () async {
     if (database.refusesUserWrite("createLocation")) {
       return null;
     }
 
-    final existing = await _liveLocationRows(database);
+    final existing = await OcptLocationsRows.liveLocationRows(database);
     final id = const Uuid().v4();
 
     await database.transaction(() async {
@@ -211,7 +230,9 @@ class OcptLocationsService {
           facilitiesNotes: '',
           constraintsNotes: '',
           notes: '',
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
         ),
         stamps: stamps,
@@ -220,14 +241,15 @@ class OcptLocationsService {
     });
 
     return id;
-  }
+  });
 
-  /// Updates the fields of location [locationId] in [database] that are passed as something other
+  /// Update the fields of location [locationId] in [database] that are passed as something other
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderLocation] and [deleteLocation].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateLocation({
+  @useResult
+  Future<OcptDatabaseOutcome> updateLocation({
     required OcptProjectDatabase database,
     required String locationId,
     Value<String> name = const Value.absent(),
@@ -251,7 +273,7 @@ class OcptLocationsService {
     Value<String> facilitiesNotes = const Value.absent(),
     Value<String> constraintsNotes = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateLocation", () async {
     if (database.refusesUserWrite("updateLocation")) {
       return;
     }
@@ -300,9 +322,9 @@ class OcptLocationsService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Tombstones location [locationId] in [database], its sets, the `scene_sets` links onto those
+  /// Tombstone location [locationId] in [database], its sets, the `scene_sets` links onto those
   /// sets, each set's own floor plan (`floorPlanService.tombstoneFloorPlanRowsOfSet`), its
   /// availability windows, and the `assets` rows it owns (its scouting photos and its permit
   /// document) along with it.
@@ -313,10 +335,11 @@ class OcptLocationsService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteLocation({
+  @useResult
+  Future<OcptDatabaseOutcome> deleteLocation({
     required OcptProjectDatabase database,
     required String locationId,
-  }) async {
+  }) => guardOutcome("deleteLocation", () async {
     if (database.refusesUserWrite("deleteLocation")) {
       return;
     }
@@ -324,19 +347,15 @@ class OcptLocationsService {
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final setRows =
-          await (database.select(database.ocptSetsTable)..where(
-                (table) => table.locationId.equals(locationId) & table.isDeleted.not(),
-              ))
-              .get();
+      final setRows = await (database.select(
+        database.ocptSetsTable,
+      )..where((table) => table.locationId.equals(locationId) & table.isDeleted.not())).get();
       final setIds = setRows.map((row) => row.id).toList(growable: false);
 
       if (setIds.isNotEmpty) {
-        final sceneSetRows =
-            await (database.select(
-                  database.ocptSceneSetsTable,
-                )..where((table) => table.setId.isIn(setIds) & table.isDeleted.not()))
-                .get();
+        final sceneSetRows = await (database.select(
+          database.ocptSceneSetsTable,
+        )..where((table) => table.setId.isIn(setIds) & table.isDeleted.not())).get();
         for (final row in sceneSetRows) {
           await OcptRowStampService.writeAndStamp(
             database: database,
@@ -366,11 +385,9 @@ class OcptLocationsService {
         }
       }
 
-      final availabilityRows =
-          await (database.select(database.ocptLocationAvailabilitiesTable)..where(
-                (table) => table.locationId.equals(locationId) & table.isDeleted.not(),
-              ))
-              .get();
+      final availabilityRows = await (database.select(
+        database.ocptLocationAvailabilitiesTable,
+      )..where((table) => table.locationId.equals(locationId) & table.isDeleted.not())).get();
       for (final availabilityRow in availabilityRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -382,11 +399,9 @@ class OcptLocationsService {
         );
       }
 
-      final assetRows =
-          await (database.select(
-                database.ocptAssetsTable,
-              )..where((table) => table.locationId.equals(locationId) & table.isDeleted.not()))
-              .get();
+      final assetRows = await (database.select(
+        database.ocptAssetsTable,
+      )..where((table) => table.locationId.equals(locationId) & table.isDeleted.not())).get();
       for (final assetRow in assetRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -414,23 +429,24 @@ class OcptLocationsService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Moves location [locationId] to [newPosition] (0-based), by giving it a `sortKey` sitting
+  /// Move location [locationId] to [newPosition] (0-based), by giving it a `sortKey` sitting
   /// between the two locations it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderLocation({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderLocation({
     required OcptProjectDatabase database,
     required String locationId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderLocation", () async {
     if (database.refusesUserWrite("reorderLocation")) {
       return;
     }
 
     await database.transaction(() async {
-      final rows = await _liveLocationRows(database);
+      final rows = await OcptLocationsRows.liveLocationRows(database);
       final current = rows.where((row) => row.id == locationId).firstOrNull;
       if (current == null) {
         return;
@@ -458,56 +474,25 @@ class OcptLocationsService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Creates a new set named [name] inside location [locationId], appended at the end of that
-  /// location's sets, and returns its freshly generated id.
-  ///
-  /// The set's code is generated here and nowhere else (`ocptSetCodeOf`, the first letters no live
-  /// set of the **project** already carries), exactly as `OcptElementsService.createElement`
-  /// generates an element's: it is the app's own identifier for the set rather than something the
-  /// user is asked for, so no sheet offers to type it and a caller minting a set as a side effect
-  /// of something else — the breakdown naming a décor while reading — cannot end up with one
-  /// without a code.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createSet({
+  /// Forward to [OcptLocationsSetOps.createSet].
+  @useResult
+  Future<OcptDatabaseResult<String>> createSet({
     required OcptProjectDatabase database,
     required String locationId,
     required String name,
-  }) async {
-    if (database.refusesUserWrite("createSet")) {
-      return null;
-    }
+  }) => guardResult(
+    "createSet",
+    () => OcptLocationsSetOps.createSet(
+      database: database,
+      locationId: locationId,
+      name: name,
+      deviceId: deviceId,
+    ),
+  );
 
-    final existing = await _liveSetRowsOfLocation(database: database, locationId: locationId);
-    final id = const Uuid().v4();
-
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSetsTable,
-        rowId: id,
-        current: null,
-        next: OcptSetRow(
-          id: id,
-          locationId: locationId,
-          code: ocptSetCodeOf(existingCodes: await _liveSetCodes(database)),
-          name: name,
-          notes: '',
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-          isDeleted: false,
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-
-    return id;
-  }
-
-  /// Creates a new set named [name] and says scene [sceneId] is shot in it, in one transaction.
+  /// Create a new set named [name] and say scene [sceneId] is shot in it, in one transaction.
   ///
   /// [locationId] names the place holding it. Passing null creates **a location of its own**, named
   /// [name] too, for the reason `OcptBreakdownService.createSetAndTag` gives from the other side: a
@@ -520,22 +505,24 @@ class OcptLocationsService {
   /// somewhere, which the breakdown mode's scene sheet and the resources mode's own set row both
   /// state without a passage of the script being involved.
   ///
-  /// Returns null, and rolls every write back, when any of them refuses.
+  /// Answers `ok` with no value, and rolls every write back, when any of them refuses, and answers
+  /// `databaseError`, with none of them kept, when the database fails one.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createSetLinkedToScene({
+  @useResult
+  Future<OcptDatabaseResult<String>> createSetLinkedToScene({
     required OcptProjectDatabase database,
     required String sceneId,
     required String name,
     String? locationId,
-  }) async {
+  }) => guardResult("createSetLinkedToScene", () async {
     if (database.refusesUserWrite("createSetLinkedToScene")) {
       return null;
     }
 
     return database.transaction(() async {
       final holdingLocationId =
-          locationId ?? await createLocation(database: database, name: name);
+          locationId ?? await createLocation(database: database, name: name).valueOrAbort();
       if (holdingLocationId == null) {
         return null;
       }
@@ -544,468 +531,169 @@ class OcptLocationsService {
         database: database,
         locationId: holdingLocationId,
         name: name,
-      );
+      ).valueOrAbort();
       if (setId == null) {
         return null;
       }
 
-      return await assignSceneToSet(database: database, sceneId: sceneId, setId: setId) == null
+      return await assignSceneToSet(
+                database: database,
+                sceneId: sceneId,
+                setId: setId,
+              ).valueOrAbort() ==
+              null
           ? null
           : setId;
     });
-  }
+  });
 
-  /// Updates the fields of set [setId] in [database] that are passed as something other than
-  /// [Value.absent].
-  ///
-  /// `code` is not among them, and neither is `locationId`, for the same kind of reason: a set's
-  /// code is the app's own ([createSet] mints it, nothing ever rewrites it), and its location is
-  /// what it belongs to ([moveSetToLocation] hands it over). Neither is a field of the sheet.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateSet({
+  /// Forward to [OcptLocationsSetOps.updateSet].
+  @useResult
+  Future<OcptDatabaseOutcome> updateSet({
     required OcptProjectDatabase database,
     required String setId,
     Value<String> name = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async {
-    if (database.refusesUserWrite("updateSet")) {
-      return;
-    }
+  }) => guardOutcome(
+    "updateSet",
+    () => OcptLocationsSetOps.updateSet(
+      database: database,
+      setId: setId,
+      name: name,
+      notes: notes,
+      deviceId: deviceId,
+    ),
+  );
 
-    final companion = OcptSetsTableCompanion(name: name, notes: notes);
-
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptSetsTable,
-      )..where((table) => table.id.equals(setId) & table.isDeleted.not())).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSetsTable,
-        rowId: setId,
-        current: current,
-        next: current.copyWithCompanion(companion),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Moves set [setId] to location [locationId], appended at the end of that location's sets.
-  ///
-  /// The one column [updateSet] deliberately does not write: a set's location is what it *is*, not
-  /// one of its fields, and a set moves as a whole — it leaves the sheet it was being edited on.
-  /// Its scenes, its notes and its code come along untouched, which is the whole point: a set filed
-  /// under the wrong house is repaired rather than deleted and typed again, `deleteSet` tombstoning
-  /// its `scene_sets` links along with it.
-  ///
-  /// A fresh `sortKey` is allocated in the destination: the one it held ranked it among its former
-  /// siblings, and means nothing among its new ones.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> moveSetToLocation({
+  /// Forward to [OcptLocationsSetOps.moveSetToLocation].
+  @useResult
+  Future<OcptDatabaseOutcome> moveSetToLocation({
     required OcptProjectDatabase database,
     required String setId,
     required String locationId,
-  }) async {
-    if (database.refusesUserWrite("moveSetToLocation")) {
-      return;
-    }
+  }) => guardOutcome(
+    "moveSetToLocation",
+    () => OcptLocationsSetOps.moveSetToLocation(
+      database: database,
+      setId: setId,
+      locationId: locationId,
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptSetsTable,
-      )..where((table) => table.id.equals(setId) & table.isDeleted.not())).getSingleOrNull();
+  /// Forward to [OcptLocationsSetOps.deleteSet].
+  @useResult
+  Future<OcptDatabaseOutcome> deleteSet({
+    required OcptProjectDatabase database,
+    required String setId,
+  }) => guardOutcome(
+    "deleteSet",
+    () => OcptLocationsSetOps.deleteSet(
+      database: database,
+      setId: setId,
+      deviceId: deviceId,
+      floorPlanService: floorPlanService,
+    ),
+  );
 
-      if (current == null) {
-        return;
-      }
-
-      final existing = await _liveSetRowsOfLocation(database: database, locationId: locationId);
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSetsTable,
-        rowId: setId,
-        current: current,
-        next: current.copyWith(
-          locationId: locationId,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Tombstones set [setId] in [database], the `scene_sets` links onto it and its floor plan
-  /// (`floorPlanService.tombstoneFloorPlanRowsOfSet` — its own plan row, symbols and arrows) along
-  /// with it.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteSet({required OcptProjectDatabase database, required String setId}) async {
-    if (database.refusesUserWrite("deleteSet")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      final sceneSetRows =
-          await (database.select(
-                database.ocptSceneSetsTable,
-              )..where((table) => table.setId.equals(setId) & table.isDeleted.not()))
-              .get();
-      for (final row in sceneSetRows) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptSceneSetsTable,
-          rowId: row.id,
-          current: row,
-          next: row.copyWith(isDeleted: true),
-          stamps: stamps,
-        );
-      }
-
-      await floorPlanService.tombstoneFloorPlanRowsOfSet(
-        database: database,
-        setId: setId,
-        stamps: stamps,
-      );
-
-      final current = await (database.select(
-        database.ocptSetsTable,
-      )..where((table) => table.id.equals(setId))).getSingleOrNull();
-      if (current != null) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptSetsTable,
-          rowId: setId,
-          current: current,
-          next: current.copyWith(isDeleted: true),
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-    });
-  }
-
-  /// Creates a new set named [name], in the same location as [sourceSetId], and returns its freshly
-  /// generated id — the "mint a Resources set" half of "duplicate this set", which
-  /// `OcptShotListBloc` puts together with
-  /// `OcptFloorPlanService.duplicateSet` (copying the plan) and [assignSceneToSet] (linking it to
-  /// the calling scene): see `OcptFloorPlanService.duplicateSet`'s own doc comment for why the
-  /// three steps live on three different calls rather than one. Returns null, doing nothing, if
-  /// [sourceSetId] doesn't name a live set.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createSiblingSet({
+  /// Forward to [OcptLocationsSetOps.createSiblingSet].
+  @useResult
+  Future<OcptDatabaseResult<String>> createSiblingSet({
     required OcptProjectDatabase database,
     required String sourceSetId,
     required String name,
-  }) async {
-    if (database.refusesUserWrite("createSiblingSet")) {
-      return null;
-    }
+  }) => guardResult(
+    "createSiblingSet",
+    () => OcptLocationsSetOps.createSiblingSet(
+      database: database,
+      sourceSetId: sourceSetId,
+      name: name,
+      deviceId: deviceId,
+    ),
+  );
 
-    final source = await (database.select(
-      database.ocptSetsTable,
-    )..where((table) => table.id.equals(sourceSetId) & table.isDeleted.not())).getSingleOrNull();
-    if (source == null) {
-      return null;
-    }
-
-    return createSet(database: database, locationId: source.locationId, name: name);
-  }
-
-  /// Duplicates set [sourceSetId] into a fresh Resources set named [name] — in the same location,
-  /// its plan's own set-scope symbols copied, linked to scene [sceneId] — as **one atomic
-  /// operation**, run inside a single transaction: the three
-  /// steps [createSiblingSet]/`floorPlanService.duplicateSet`/[assignSceneToSet]
-  /// `OcptShotListBloc._onSetDuplicationRequested` used to call one by one now happen here, so a
-  /// failure at any step (an exception thrown by any of the three) rolls back every one of them —
-  /// no orphan set left minted with nothing copied onto it or linked to nothing.
-  ///
-  /// Drift nests a `transaction()` opened while another is already active as its own **savepoint**:
-  /// an exception aborts and rolls back that inner savepoint alone before propagating outward, so a
-  /// failure inside [createSiblingSet], `floorPlanService.duplicateSet` or [assignSceneToSet] — none
-  /// of which is caught here — keeps unwinding until it reaches *this* method's own outermost
-  /// `transaction()` call below, which is what actually discards the whole thing.
-  ///
-  /// Returns null, having written nothing durable, when [sourceSetId] doesn't name a live set
-  /// ([createSiblingSet] itself returning null) or when [assignSceneToSet] somehow refuses the link
-  /// (defensive only — `refusesUserWrite` was already checked above, before either sibling call ever
-  /// ran, so this can only trip if the connection turned read-only mid-transaction).
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> duplicateSetForScene({
+  /// Forward to [OcptLocationsSetOps.duplicateSetForScene].
+  @useResult
+  Future<OcptDatabaseResult<String>> duplicateSetForScene({
     required OcptProjectDatabase database,
     required String sourceSetId,
     required String name,
     required String sceneId,
-  }) async {
-    if (database.refusesUserWrite("duplicateSetForScene")) {
-      return null;
-    }
+  }) => guardResult(
+    "duplicateSetForScene",
+    () => OcptLocationsSetOps.duplicateSetForScene(
+      database: database,
+      sourceSetId: sourceSetId,
+      name: name,
+      sceneId: sceneId,
+      deviceId: deviceId,
+      floorPlanService: floorPlanService,
+    ),
+  );
 
-    return database.transaction(() async {
-      final newSetId = await createSiblingSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        name: name,
-      );
-      if (newSetId == null) {
-        return null;
-      }
-
-      await floorPlanService.duplicateSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        destinationSetId: newSetId,
-      );
-
-      final linkId = await assignSceneToSet(database: database, sceneId: sceneId, setId: newSetId);
-      if (linkId == null) {
-        // Defensive: nothing observed in tests reaches this path (see this method's own doc
-        // comment), but leaving a freshly minted, freshly copied set with no link at all would be
-        // exactly the orphan this method exists to rule out — throwing is what rolls the whole
-        // transaction back rather than returning a set id the caller would have to clean up itself.
-        throw StateError(
-          "Could not link duplicated set $newSetId (from $sourceSetId) to scene $sceneId",
-        );
-      }
-
-      return newSetId;
-    });
-  }
-
-  /// Moves set [setId] to [newPosition] (0-based) within location [locationId]'s sets, by giving
-  /// it a `sortKey` sitting between the two sets it lands between. Writes **exactly one row**.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderSet({
+  /// Forward to [OcptLocationsSetOps.reorderSet].
+  @useResult
+  Future<OcptDatabaseOutcome> reorderSet({
     required OcptProjectDatabase database,
     required String locationId,
     required String setId,
     required int newPosition,
-  }) async {
-    if (database.refusesUserWrite("reorderSet")) {
-      return;
-    }
+  }) => guardOutcome(
+    "reorderSet",
+    () => OcptLocationsSetOps.reorderSet(
+      database: database,
+      locationId: locationId,
+      setId: setId,
+      newPosition: newPosition,
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final rows = await _liveSetRowsOfLocation(database: database, locationId: locationId);
-      final current = rows.where((row) => row.id == setId).firstOrNull;
-      if (current == null) {
-        return;
-      }
-
-      final others = rows.where((row) => row.id != setId).toList(growable: false);
-
-      final clampedPosition = newPosition < 0
-          ? 0
-          : (newPosition > others.length ? others.length : newPosition);
-
-      final sortKey = ocptFractionalKeyBetween(
-        before: clampedPosition > 0 ? others[clampedPosition - 1].sortKey : null,
-        after: clampedPosition < others.length ? others[clampedPosition].sortKey : null,
-      );
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSetsTable,
-        rowId: setId,
-        current: current,
-        next: current.copyWith(sortKey: sortKey),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Says scene [sceneId] is also shot in set [setId], and returns the id of the link.
-  ///
-  /// A scene may be shot in **several** sets (see `OcptSceneSetsTable`), so this adds a link beside
-  /// the ones the scene already carries rather than moving it: dropping a set is
-  /// [removeSceneFromSet]'s job, and saying "also here" must never silently answer "no longer
-  /// there".
-  ///
-  /// Saying the same thing twice writes nothing new — the live link's id comes back — and a link
-  /// the user had dropped is revived rather than duplicated, so a scene never ends up holding two
-  /// rows that say the same thing.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> assignSceneToSet({
+  /// Forward to [OcptLocationsSetOps.assignSceneToSet].
+  @useResult
+  Future<OcptDatabaseResult<String>> assignSceneToSet({
     required OcptProjectDatabase database,
     required String sceneId,
     required String setId,
-  }) async {
-    if (database.refusesUserWrite("assignSceneToSet")) {
-      return null;
-    }
+  }) => guardResult(
+    "assignSceneToSet",
+    () => OcptLocationsSetOps.assignSceneToSet(
+      database: database,
+      sceneId: sceneId,
+      setId: setId,
+      deviceId: deviceId,
+    ),
+  );
 
-    return database.transaction(() async {
-      final existingLinks =
-          await (database.select(database.ocptSceneSetsTable)..where(
-                (table) => table.sceneId.equals(sceneId) & table.setId.equals(setId),
-              ))
-              .get();
-
-      OcptSceneSetRow? droppedLink;
-      for (final link in existingLinks) {
-        if (!link.isDeleted) {
-          return link.id;
-        }
-
-        droppedLink ??= link;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      if (droppedLink != null) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptSceneSetsTable,
-          rowId: droppedLink.id,
-          current: droppedLink,
-          next: droppedLink.copyWith(isDeleted: false),
-          stamps: stamps,
-        );
-        await stamps.flush(database);
-
-        return droppedLink.id;
-      }
-
-      final id = const Uuid().v4();
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSceneSetsTable,
-        rowId: id,
-        current: null,
-        next: OcptSceneSetRow(id: id, sceneId: sceneId, setId: setId, isDeleted: false),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-
-      return id;
-    });
-  }
-
-  /// Removes the link saying scene [sceneId] is shot in set [setId], leaving whatever other sets
-  /// that scene is shot in alone. A no-op when there is no such live link.
-  ///
-  /// Takes the two ids the caller has rather than the link's own: the set sheet lists a scene, and
-  /// "this scene is not shot here" is what the user answers — the row carrying it is an
-  /// implementation detail of that answer.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeSceneFromSet({
+  /// Forward to [OcptLocationsSetOps.removeSceneFromSet].
+  @useResult
+  Future<OcptDatabaseOutcome> removeSceneFromSet({
     required OcptProjectDatabase database,
     required String sceneId,
     required String setId,
-  }) async {
-    if (database.refusesUserWrite("removeSceneFromSet")) {
-      return;
-    }
+  }) => guardOutcome(
+    "removeSceneFromSet",
+    () => OcptLocationsSetOps.removeSceneFromSet(
+      database: database,
+      sceneId: sceneId,
+      setId: setId,
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(database.ocptSceneSetsTable)..where(
-            (table) => table.sceneId.equals(sceneId) & table.setId.equals(setId) & table.isDeleted.not(),
-          ))
-          .getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSceneSetsTable,
-        rowId: current.id,
-        current: current,
-        next: current.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// The id of set [setId]'s own **first** live linked scene, in screenplay order — episode order
-  /// first (`screenplays.sortKey`), then that episode's own scene order (`scenes.position`) — and
-  /// the id of the episode (screenplay) it belongs to, or null while [setId] carries no live link
-  /// at all. What the Resources location sheet's own `Open in shot list`
-  /// (`OcptShotListRevealRequest`) reveals.
-  ///
-  /// Reads `screenplays`/`scenes` directly rather than through `OcptScreenplayService`
-  /// (dependencies never reference their dependents: that service already depends on this one, for
-  /// [loadScenes]'s own `episodeNumber` parameter) — the ordering this needs is a plain `sortKey`/
-  /// `position` sort, nothing an episode's own richer model would add.
-  Future<({String sceneId, String screenplayId})?> firstLinkedSceneOf({
+  /// Forward to [OcptLocationsSetOps.firstLinkedSceneOf].
+  @useResult
+  Future<OcptDatabaseResult<({String sceneId, String screenplayId})>> firstLinkedSceneOf({
     required OcptProjectDatabase database,
     required String setId,
-  }) async {
-    final linkRows =
-        await (database.select(
-              database.ocptSceneSetsTable,
-            )..where((table) => table.setId.equals(setId) & table.isDeleted.not()))
-            .get();
-    if (linkRows.isEmpty) {
-      return null;
-    }
+  }) => guardResult(
+    "firstLinkedSceneOf",
+    () => OcptLocationsSetOps.firstLinkedSceneOf(database: database, setId: setId),
+  );
 
-    final sceneIds = linkRows.map((row) => row.sceneId).toSet();
-    final sceneRows =
-        await (database.select(
-              database.ocptScenesTable,
-            )..where((table) => table.id.isIn(sceneIds) & table.isDeleted.not()))
-            .get();
-    if (sceneRows.isEmpty) {
-      return null;
-    }
-
-    final screenplayIds = sceneRows.map((row) => row.screenplayId).toSet();
-    final screenplayRows =
-        await (database.select(
-              database.ocptScreenplaysTable,
-            )..where((table) => table.id.isIn(screenplayIds) & table.isDeleted.not()))
-            .get();
-    final sortKeyByScreenplayId = {for (final row in screenplayRows) row.id: row.sortKey};
-
-    final sorted = sceneRows.toList()
-      ..sort((a, b) {
-        final byEpisode = (sortKeyByScreenplayId[a.screenplayId] ?? "").compareTo(
-          sortKeyByScreenplayId[b.screenplayId] ?? "",
-        );
-        return byEpisode != 0 ? byEpisode : a.position.compareTo(b.position);
-      });
-
-    final first = sorted.first;
-    return (sceneId: first.id, screenplayId: first.screenplayId);
-  }
-
-  /// Adds an availability window to location [locationId], and returns its freshly generated id.
-  ///
-  /// [endDate] is clamped up to [startDate] rather than refused, and [weekdays] falls back to
-  /// [ocptEveryWeekdayMask] when it covers no day at all: both are slips of a control, and the
-  /// caller has nothing useful to do with an error — the sheet shows what was written, which is
-  /// how the user sees it.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addAvailability({
+  /// Forward to [OcptLocationsReferenceOps.addAvailability].
+  @useResult
+  Future<OcptDatabaseResult<String>> addAvailability({
     required OcptProjectDatabase database,
     required String locationId,
     required DateTime startDate,
@@ -1016,46 +704,26 @@ class OcptLocationsService {
     int? endMinute,
     OcptLocationAvailabilityKind kind = OcptLocationAvailabilityKind.available,
     String note = "",
-  }) async {
-    if (database.refusesUserWrite("addAvailability")) {
-      return null;
-    }
+  }) => guardResult(
+    "addAvailability",
+    () => OcptLocationsReferenceOps.addAvailability(
+      database: database,
+      locationId: locationId,
+      startDate: startDate,
+      endDate: endDate,
+      weekdays: weekdays,
+      slot: slot,
+      startMinute: startMinute,
+      endMinute: endMinute,
+      kind: kind,
+      note: note,
+      deviceId: deviceId,
+    ),
+  );
 
-    final id = const Uuid().v4();
-
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptLocationAvailabilitiesTable,
-        rowId: id,
-        current: null,
-        next: OcptLocationAvailabilityRow(
-          id: id,
-          locationId: locationId,
-          startDate: startDate,
-          endDate: endDate.isBefore(startDate) ? startDate : endDate,
-          weekdays: weekdays & ocptEveryWeekdayMask == 0 ? ocptEveryWeekdayMask : weekdays,
-          slot: slot,
-          startMinute: startMinute,
-          endMinute: endMinute,
-          kind: kind,
-          note: note,
-          isDeleted: false,
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-
-    return id;
-  }
-
-  /// Updates the fields of availability window [id] that are passed as something other than
-  /// [Value.absent].
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateAvailability({
+  /// Forward to [OcptLocationsReferenceOps.updateAvailability].
+  @useResult
+  Future<OcptDatabaseOutcome> updateAvailability({
     required OcptProjectDatabase database,
     required String id,
     Value<DateTime> startDate = const Value.absent(),
@@ -1066,12 +734,11 @@ class OcptLocationsService {
     Value<int?> endMinute = const Value.absent(),
     Value<OcptLocationAvailabilityKind> kind = const Value.absent(),
     Value<String> note = const Value.absent(),
-  }) async {
-    if (database.refusesUserWrite("updateAvailability")) {
-      return;
-    }
-
-    final companion = OcptLocationAvailabilitiesTableCompanion(
+  }) => guardOutcome(
+    "updateAvailability",
+    () => OcptLocationsReferenceOps.updateAvailability(
+      database: database,
+      id: id,
       startDate: startDate,
       endDate: endDate,
       weekdays: weekdays,
@@ -1080,331 +747,96 @@ class OcptLocationsService {
       endMinute: endMinute,
       kind: kind,
       note: note,
-    );
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptLocationAvailabilitiesTable,
-      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptLocationAvailabilitiesTable,
-        rowId: id,
-        current: current,
-        next: current.copyWithCompanion(companion),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Removes availability window [id].
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeAvailability({
+  /// Forward to [OcptLocationsReferenceOps.removeAvailability].
+  @useResult
+  Future<OcptDatabaseOutcome> removeAvailability({
     required OcptProjectDatabase database,
     required String id,
-  }) async {
-    if (database.refusesUserWrite("removeAvailability")) {
-      return;
-    }
+  }) => guardOutcome(
+    "removeAvailability",
+    () => OcptLocationsReferenceOps.removeAvailability(
+      database: database,
+      id: id,
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptLocationAvailabilitiesTable,
-      )..where((table) => table.id.equals(id))).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptLocationAvailabilitiesTable,
-        rowId: id,
-        current: current,
-        next: current.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// References the file at [path] as a scouting photo of location [locationId], appended at the
-  /// end of its photos, and returns the freshly generated id of the `assets` row.
-  ///
-  /// **No byte of the file is read, copied or written here** — see
-  /// `docs/adr/0013-binary-assets-referenced-by-path.md` and `OcptAssetsTable`'s own doc comment:
-  /// the app stores the path and nothing else, and a path that resolves to nothing later is a
-  /// normal state the UI reports rather than an error.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addLocationPhoto({
+  /// Forward to [OcptLocationsReferenceOps.addLocationPhoto].
+  @useResult
+  Future<OcptDatabaseResult<String>> addLocationPhoto({
     required OcptProjectDatabase database,
     required String locationId,
     required String path,
     String label = "",
-  }) async {
-    if (database.refusesUserWrite("addLocationPhoto")) {
-      return null;
-    }
+  }) => guardResult(
+    "addLocationPhoto",
+    () => OcptLocationsReferenceOps.addLocationPhoto(
+      database: database,
+      locationId: locationId,
+      path: path,
+      label: label,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
+  );
 
-    final existing =
-        await (database.select(database.ocptAssetsTable)
-              ..where(
-                (table) =>
-                    table.locationId.equals(locationId) &
-                    table.kind.equalsValue(OcptAssetKind.locationPhoto) &
-                    table.isDeleted.not(),
-              )
-              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-            .get();
-
-    return database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      final id = await assetsService.insertAsset(
-        database: database,
-        kind: OcptAssetKind.locationPhoto,
-        locationId: locationId,
-        path: path,
-        label: label,
-        sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-
-      return id;
-    });
-  }
-
-  /// References the file at [path] as location [locationId]'s filming permit document, replacing
-  /// whichever document it referenced before, and returns the freshly generated id of the `assets`
-  /// row.
-  ///
-  /// The replaced document's row is tombstoned in the same transaction: a location has one permit
-  /// document, so a row nothing points at any more is not history worth keeping — it is an orphan.
-  /// See [addLocationPhoto] for why no byte of the file is touched.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> setPermitDocument({
+  /// Forward to [OcptLocationsReferenceOps.setPermitDocument].
+  @useResult
+  Future<OcptDatabaseResult<String>> setPermitDocument({
     required OcptProjectDatabase database,
     required String locationId,
     required String path,
     String label = "",
-  }) async {
-    if (database.refusesUserWrite("setPermitDocument")) {
-      return null;
-    }
+  }) => guardResult(
+    "setPermitDocument",
+    () => OcptLocationsReferenceOps.setPermitDocument(
+      database: database,
+      locationId: locationId,
+      path: path,
+      label: label,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
+  );
 
-    return database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      await _tombstonePermitDocument(database: database, locationId: locationId, stamps: stamps);
-
-      final id = await assetsService.insertAsset(
-        database: database,
-        kind: OcptAssetKind.document,
-        locationId: locationId,
-        path: path,
-        label: label,
-        stamps: stamps,
-      );
-
-      final current = await (database.select(
-        database.ocptLocationsTable,
-      )..where((table) => table.id.equals(locationId))).getSingleOrNull();
-      if (current != null) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptLocationsTable,
-          rowId: locationId,
-          current: current,
-          next: current.copyWith(permitAssetId: Value(id)),
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-
-      return id;
-    });
-  }
-
-  /// Drops location [locationId]'s reference to its filming permit document: the `assets` row is
-  /// tombstoned and `permitAssetId` goes back to null. The file itself is never touched.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearPermitDocument({
+  /// Forward to [OcptLocationsReferenceOps.clearPermitDocument].
+  @useResult
+  Future<OcptDatabaseOutcome> clearPermitDocument({
     required OcptProjectDatabase database,
     required String locationId,
-  }) async {
-    if (database.refusesUserWrite("clearPermitDocument")) {
-      return;
-    }
+  }) => guardOutcome(
+    "clearPermitDocument",
+    () => OcptLocationsReferenceOps.clearPermitDocument(
+      database: database,
+      locationId: locationId,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
+  );
 
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      await _tombstonePermitDocument(database: database, locationId: locationId, stamps: stamps);
-
-      final current = await (database.select(
-        database.ocptLocationsTable,
-      )..where((table) => table.id.equals(locationId))).getSingleOrNull();
-      if (current != null) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptLocationsTable,
-          rowId: locationId,
-          current: current,
-          next: current.copyWith(permitAssetId: const Value(null)),
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-    });
-  }
-
-  /// Tombstones whichever `assets` row location [locationId] currently names as its permit
-  /// document, if any. Leaves `permitAssetId` alone: both callers write it themselves. Stamps
-  /// through [stamps] — the caller's own instance.
-  Future<void> _tombstonePermitDocument({
-    required OcptProjectDatabase database,
-    required String locationId,
-    required OcptRowStampService? stamps,
-  }) async {
-    final row = await (database.select(
-      database.ocptLocationsTable,
-    )..where((table) => table.id.equals(locationId))).getSingleOrNull();
-
-    final permitAssetId = row?.permitAssetId;
-    if (permitAssetId == null) {
-      return;
-    }
-
-    await assetsService.tombstoneAsset(database: database, assetId: permitAssetId, stamps: stamps);
-  }
-
-  /// Tombstones every live `scene_sets` row naming any of [sceneIds]: `scene_sets` is this service's
-  /// table, not `OcptBreakdownService`'s, so its own cascade
-  /// (`OcptBreakdownService.tombstoneBreakdownOfScenes`) reaches for this narrow helper rather than
-  /// writing the table itself — the set these links point at is, of course, untouched.
-  ///
-  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller has
-  /// already refused the write on a preview connection and is already inside the transaction
-  /// removing the episode, so a second guard here would only be able to disagree with the first.
-  /// Stamps through [stamps] — that caller's own instance — rather than resolving a device id of
-  /// its own.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
+  /// Forward to [OcptLocationsSetOps.tombstoneSceneSetsOfScenes].
   Future<void> tombstoneSceneSetsOfScenes({
     required OcptProjectDatabase database,
     required List<String> sceneIds,
     required OcptRowStampService? stamps,
-  }) async {
-    if (sceneIds.isEmpty) {
-      return;
-    }
+  }) => OcptLocationsSetOps.tombstoneSceneSetsOfScenes(
+    database: database,
+    sceneIds: sceneIds,
+    stamps: stamps,
+  );
 
-    final rows =
-        await (database.select(
-              database.ocptSceneSetsTable,
-            )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not()))
-            .get();
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await floorPlanService.disposeLifeCycle();
+    await assetsService.disposeLifeCycle();
 
-    for (final row in rows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSceneSetsTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
+    return super.disposeLifeCycle();
   }
-
-  /// The ids of the live scenes linked to each of [setIds], keyed by set id and ordered by the
-  /// screenplay's own scene order. See [loadLocations] for why a link onto a tombstoned scene is
-  /// left out rather than reported.
-  Future<Map<String, List<String>>> _liveSceneIdsBySetId({
-    required OcptProjectDatabase database,
-    required List<String> setIds,
-  }) async {
-    if (setIds.isEmpty) {
-      return const {};
-    }
-
-    final linkRows =
-        await (database.select(database.ocptSceneSetsTable)..where(
-              (table) => table.setId.isIn(setIds) & table.isDeleted.not(),
-            ))
-            .get();
-    if (linkRows.isEmpty) {
-      return const {};
-    }
-
-    final sceneRows =
-        await (database.select(database.ocptScenesTable)..where(
-              (table) =>
-                  table.id.isIn(linkRows.map((row) => row.sceneId).toList(growable: false)) &
-                  table.isDeleted.not(),
-            ))
-            .get();
-
-    final positionBySceneId = {for (final row in sceneRows) row.id: row.position};
-
-    final sceneIdsBySetId = <String, List<String>>{};
-    for (final link in linkRows) {
-      if (positionBySceneId.containsKey(link.sceneId)) {
-        sceneIdsBySetId.putIfAbsent(link.setId, () => []).add(link.sceneId);
-      }
-    }
-
-    for (final sceneIds in sceneIdsBySetId.values) {
-      sceneIds.sort((a, b) => positionBySceneId[a]!.compareTo(positionBySceneId[b]!));
-    }
-
-    return sceneIdsBySetId;
-  }
-
-  /// Every live location row of [database], ordered by `sortKey`.
-  Future<List<OcptLocationRow>> _liveLocationRows(OcptProjectDatabase database) =>
-      (database.select(database.ocptLocationsTable)
-            ..where((table) => table.isDeleted.not())
-            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-          .get();
-
-  /// The code of every live set of [database], whichever location it belongs to — what
-  /// [createSet] numbers a new code from, a set's code being unique across the whole project rather
-  /// than within its location (`ocptSetCodeOf`).
-  Future<List<String>> _liveSetCodes(OcptProjectDatabase database) async {
-    final query = database.selectOnly(database.ocptSetsTable)
-      ..addColumns([database.ocptSetsTable.code])
-      ..where(database.ocptSetsTable.isDeleted.not());
-
-    final rows = await query.get();
-
-    return [for (final row in rows) row.read(database.ocptSetsTable.code) ?? ""];
-  }
-
-  /// Every live set row of location [locationId], ordered by `sortKey`.
-  Future<List<OcptSetRow>> _liveSetRowsOfLocation({
-    required OcptProjectDatabase database,
-    required String locationId,
-  }) => (database.select(database.ocptSetsTable)
-        ..where((table) => table.locationId.equals(locationId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
 }

@@ -3,19 +3,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The four-tab segmented control at the top of the resources mode's left dock: a rounded strip
 /// over `surfaceContainerLowest`, each tab sharing the strip's width equally, the active one
 /// tinted `primary` over a soft wash.
 ///
-/// All four tabs are always selectable, including [OcptResourcesTab.locations] and
-/// [OcptResourcesTab.elements], which show only a discreet placeholder line this milestone — a
-/// disabled strip would read as a bug, exactly the reasoning `OcptWorkspaceModeSwitcher` already
-/// follows for the modes not implemented yet.
+/// All four tabs are always selectable: a disabled strip would read as a bug, exactly the reasoning
+/// `OcptWorkspaceModeSwitcher` follows for its own modes.
 class OcptResourcesTabBar extends StatelessWidget {
   /// The currently active tab.
   final OcptResourcesTab activeTab;
@@ -26,6 +24,7 @@ class OcptResourcesTabBar extends StatelessWidget {
   /// Class constructor
   const OcptResourcesTabBar({super.key, required this.activeTab, required this.onTabSelected});
 
+  /// Build the resources tab bar as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -36,7 +35,7 @@ class OcptResourcesTabBar extends StatelessWidget {
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         ),
         child: Row(
           children: [
@@ -69,6 +68,7 @@ class _OcptResourcesTabEntry extends StatelessWidget {
   /// Class constructor
   const _OcptResourcesTabEntry({required this.label, required this.isActive, required this.onTap});
 
+  /// Build the resources tab entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -76,15 +76,15 @@ class _OcptResourcesTabEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Text(
           label,

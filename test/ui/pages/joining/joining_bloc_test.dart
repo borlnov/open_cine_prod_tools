@@ -5,8 +5,10 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -19,22 +21,26 @@ import 'package:open_cine_prod_tools/managers/ocpt_secrets_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/join_step.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_event.dart';
-import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// The method channel `flutter_secure_storage` talks over — mirrors `sharing_bloc_test.dart`'s own
 /// mock, which this file's [OcptPairingService] needs the exact same wiring for (never actually
 /// exercised: every fake [OcptSyncManager] below stubs `joinFromRelay` before it would touch it).
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -72,11 +78,13 @@ void _mockSecureStorage(Map<String, String> store) {
 /// note already flags elsewhere. This is what lets `OcptJoiningBloc._resolveParentDirectoryPath`
 /// be exercised for real in these tests.
 class _TestProjectsManager extends OcptProjectsManager {
-  _TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
-
   /// The directory [newProjectsDirectory] and [suggestedProjectsDirectory] always resolve to.
   final Directory directory;
 
+  /// Class constructor
+  _TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
+
+  /// Answer with the directory the test gave.
   @override
   Future<Directory> newProjectsDirectory() async => directory;
 
@@ -101,14 +109,11 @@ class _TestProjectsManager extends OcptProjectsManager {
 /// real relay round-trip and snapshot unpacking would take — what lets a test observe
 /// `OcptJoiningState.isJoining` while a join is still in flight.
 class _FakeSyncManager extends OcptSyncManager {
-  _FakeSyncManager({
-    required OcptPairingService pairingService,
-    required this.joinResultPath,
-    this.whileJoining,
-  }) : super(pairingService: pairingService, changesetService: const OcptChangesetService());
-
   /// The path [joinFromRelay] always returns.
   final String joinResultPath;
+
+  /// When set, the failure [joinFromRelay] answers instead of [joinResultPath].
+  OcptSyncFlowStatus? failWith;
 
   /// Optionally awaited before [joinFromRelay] returns.
   final Future<void> Function()? whileJoining;
@@ -120,8 +125,23 @@ class _FakeSyncManager extends OcptSyncManager {
   /// The parent directory path of the last [joinFromRelay] call, or null if it never was.
   String? lastParentDirectoryPath;
 
+  /// Class constructor
+  _FakeSyncManager({
+    required OcptPairingService pairingService,
+    required this.joinResultPath,
+    this.whileJoining,
+  }) : super(
+         pairingService: pairingService,
+         changesetService: const OcptChangesetService(
+           logger: SilentLogger(),
+           mergeService: OcptMergeService(logger: SilentLogger()),
+         ),
+       );
+
+  /// Count the call, remember the parent directory, wait for the hook, then fail with the canned
+  /// failure or answer with the joined path.
   @override
-  Future<String> joinFromRelay({
+  Future<ResultWithStatus<OcptSyncFlowStatus, String>> joinFromRelay({
     required OcptRemoteStorage storage,
     required String parentDirectoryPath,
     required OcptPairingService pairingService,
@@ -131,18 +151,26 @@ class _FakeSyncManager extends OcptSyncManager {
     joinCallCount++;
     lastParentDirectoryPath = parentDirectoryPath;
     await whileJoining?.call();
-    return joinResultPath;
+    final failure = failWith;
+    if (failure != null) {
+      return ResultWithStatus(status: failure);
+    }
+
+    return ResultWithStatus(status: OcptSyncFlowStatus.ok, value: joinResultPath);
   }
 }
 
 /// A [PlatformManager] whose [isMobile] is stubbed, so a test can exercise either of
 /// `OcptJoiningBloc._resolveParentDirectoryPath`'s branches without a real platform underneath it —
-/// the same double `ocpt_export_manager_test.dart`'s own `_StubPlatformManager` already is.
+/// the same double `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own
+/// `_StubPlatformManager` already is.
 class _StubPlatformManager extends PlatformManager {
-  _StubPlatformManager({required this.isMobile});
-
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A save location service answering [directoryAnswer] without ever showing a native folder
@@ -162,8 +190,10 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   String? lastInitialDirectory;
 
   /// Class constructor
-  _RecordingSaveLocationService({this.directoryAnswer});
+  _RecordingSaveLocationService({this.directoryAnswer}) : super(logger: const SilentLogger());
 
+  /// Count the question, remember the confirm button text and the initial directory, and answer
+  /// with the canned directory.
   @override
   Future<String?> pickDirectory({
     required String confirmButtonText,
@@ -182,6 +212,7 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
 /// dialog keeps taking the very same no-dialog branch it always has
 /// (`OcptProjectsManager.newProjectsDirectory`).
 class _FakeExportManager extends OcptExportManager {
+  /// Class constructor
   _FakeExportManager({bool isMobile = true, super.saveLocationService})
     : super(
         fileSelectorManager: const FileSelectorManager(),
@@ -191,7 +222,7 @@ class _FakeExportManager extends OcptExportManager {
 
 /// A router manager whose [push]/[replace] only record the route they were called with — this
 /// bloc's own tests don't build a real GoRouter for it to operate on, exactly
-/// `home_bloc_test.dart`'s own `_RecordingRouterManager`.
+/// `home_bloc_test_doubles.dart`'s own `_RecordingRouterManager`.
 class _RecordingRouterManager extends OcptRouterManager {
   /// The last route [push] was called with, or null if it never was.
   OcptRoute? pushedRoute;
@@ -199,6 +230,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The last route [replace] was called with, or null if it never was.
   OcptRoute? replacedRoute;
 
+  /// Record the route pushed, and answer with nothing.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -210,6 +242,7 @@ class _RecordingRouterManager extends OcptRouterManager {
     return null;
   }
 
+  /// Record the route replaced, and answer with nothing.
   @override
   Future<Y?> replace<Y extends Object?>(
     OcptRoute route, {
@@ -222,6 +255,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
+/// Run the tests of [OcptJoiningBloc].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -256,7 +290,10 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    pairingService = OcptPairingService(secretsManager: secretsManager);
+    pairingService = OcptPairingService(
+      logger: const SilentLogger(),
+      secretsManager: secretsManager,
+    );
   });
 
   setUp(() async {
@@ -277,12 +314,12 @@ void main() {
     // one that actually opens it, exactly as it would the real joined file.
     joinedProjectPath = p.join(tempDir.path, "joined-shared-movie.ocpt");
     await projectsManager.createProject(name: "Shared Movie", filePath: joinedProjectPath);
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
   });
 
   tearDown(() async {
     if (projectsManager.currentProject != null) {
-      await projectsManager.closeCurrentProject();
+      await projectsManager.closeCurrentProject().okOrFail;
     }
     await projectsManager.disposeLifeCycle();
     await tempDir.delete(recursive: true);
@@ -314,13 +351,18 @@ void main() {
     token: "token-1",
   ).toInviteString();
 
-  test("a valid manual entry emits the join steps in order then succeeds, without navigating", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
-    final routerManager = _RecordingRouterManager();
-    final bloc = buildBloc(manager: manager, routerManager: routerManager);
+  test(
+    "a valid manual entry emits the join steps in order then succeeds, without navigating",
+    () async {
+      final manager = _FakeSyncManager(
+        pairingService: pairingService,
+        joinResultPath: joinedProjectPath,
+      );
+      final routerManager = _RecordingRouterManager();
+      final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
-    final steps = <OcptJoinStep?>[];
-    final subscription = bloc.stream.listen((state) => steps.add(state.joinStep));
+      final steps = <OcptJoinStep?>[];
+      final subscription = bloc.stream.listen((state) => steps.add(state.joinStep));
 
       bloc.add(
         OcptJoiningManualSubmittedEvent(
@@ -349,8 +391,39 @@ void main() {
     },
   );
 
+  for (final failure in [
+    OcptSyncFlowStatus.emptyRelay,
+    OcptSyncFlowStatus.rejected,
+    OcptSyncFlowStatus.unreachable,
+  ]) {
+    test("a join the relay answers with ${failure.name} surfaces the join error", () async {
+      final manager = _FakeSyncManager(
+        pairingService: pairingService,
+        joinResultPath: joinedProjectPath,
+      )..failWith = failure;
+      final bloc = buildBloc(manager: manager, routerManager: _RecordingRouterManager());
+
+      bloc.add(
+        OcptJoiningManualSubmittedEvent(
+          inviteLinkText: validInviteLink,
+          destinationConfirmButtonText: "Join here",
+        ),
+      );
+      await pumpEventQueue();
+
+      expect(manager.joinCallCount, 1);
+      expect(bloc.state.isJoining, isFalse);
+      expect(bloc.state.joinFailed, isTrue);
+      expect(bloc.state.joinSucceeded, isFalse);
+      expect(projectsManager.currentProject, isNull);
+    });
+  }
+
   test("a valid scanned invite joins the project just like a manual submission", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
@@ -375,7 +448,10 @@ void main() {
   });
 
   test("OcptJoiningOpenRequestedEvent replaces the Rejoindre screen with the workspace", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
@@ -438,7 +514,10 @@ void main() {
   });
 
   test("a malformed manual entry surfaces an error without ever calling the relay", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
@@ -458,7 +537,10 @@ void main() {
   });
 
   test("an empty manual field surfaces an error without ever calling the relay", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
@@ -475,7 +557,10 @@ void main() {
   });
 
   test("a bad scanned string surfaces an error without ever calling the relay", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 
@@ -493,8 +578,30 @@ void main() {
     expect(routerManager.pushedRoute, isNull);
   });
 
+  test("a scanned invite whose query is not valid UTF-8 fails without throwing", () async {
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
+    final bloc = buildBloc(manager: manager, routerManager: _RecordingRouterManager());
+
+    bloc.add(
+      const OcptJoiningInviteScannedEvent(
+        "ocpt://join?r=%FF&p=x&t=y",
+        destinationConfirmButtonText: "Join here",
+      ),
+    );
+    await pumpEventQueue();
+
+    expect(manager.joinCallCount, 0);
+    expect(bloc.state.joinFailed, isTrue);
+  });
+
   test("dismissing the error clears the flag", () async {
-    final manager = _FakeSyncManager(pairingService: pairingService, joinResultPath: joinedProjectPath);
+    final manager = _FakeSyncManager(
+      pairingService: pairingService,
+      joinResultPath: joinedProjectPath,
+    );
     final routerManager = _RecordingRouterManager();
     final bloc = buildBloc(manager: manager, routerManager: routerManager);
 

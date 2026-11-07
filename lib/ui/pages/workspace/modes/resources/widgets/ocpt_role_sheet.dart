@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_role_origin.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -23,7 +24,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_episodes_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_role_alert_banner.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_role_origin.dart';
 
 /// The separator joining the names of the other roles a cast member holds.
 const String _otherRolesSeparator = ", ";
@@ -44,8 +44,8 @@ const String _otherRolesSeparator = ", ";
 /// episodes card ([OcptRoleSheetEpisodesCard]) right under that, because that is the order the
 /// questions are asked in: who plays them, who was seen, where they appear, then what they wear —
 /// and the episodes card is drawn at all only while the project holds more than one episode (a
-/// single-episode project names no episode anywhere, `docs/adr/0019-one-project-several-episodes.md`
-/// §8).
+/// single-episode project names no episode anywhere,
+/// `docs/adr/0019-one-project-several-episodes.md` §8).
 ///
 /// The removed-role alert is shown **inside the sheet of the role it names**, not stacked above
 /// whichever sheet happens to be open: the cast list of the left dock is what points at it, so the
@@ -161,6 +161,40 @@ class OcptRoleSheet extends StatelessWidget {
   /// only ever reachable for a hand-added role, see [OcptRoleSheetEpisodesCard]'s own doc comment.
   final ValueChanged<Set<String>> onEpisodesChanged;
 
+  /// Tell whether deleting this role would actually remove it, which is what decides that the
+  /// delete
+  /// action exists at all.
+  ///
+  /// False for a role a dialogue cue still speaks: `OcptRoleIndexService.reconcile` only ever reads
+  /// live rows, so the next save would insert that character right back as a fresh, uncast role —
+  /// the deletion would cost the casting and the notes without removing anything. Its existence
+  /// belongs to the screenplay, exactly as a scene's does to the scene index, so the way to remove
+  /// it is to remove the character's cues.
+  ///
+  /// True for an **action-detected** role ([ocptRoleIsActionDetected]) even though the screenplay
+  /// still names it: `OcptRoleIndexService.reconcile`'s own rule 3 refuses to recreate a role from
+  /// a name matching a tombstoned, action-detected one — deliberately, since reading a name out of
+  /// an action line is a convention, not a syntax, and an acronym or a shouted word read as a
+  /// character needs a way out. Without this, that rule would have nothing to be reached by: the
+  /// sheet would offer no gesture at all to reject a false positive.
+  ///
+  /// True as well for a hand-added role, and for an orphaned one (whose character is gone, so
+  /// nothing will re-insert it) — the three cases this getter tells apart all share the one thing
+  /// that matters here: nothing in the app will bring the row back once it is gone.
+  bool get _canBeDeleted =>
+      !role.isFromScreenplay ||
+      role.orphanedName != null ||
+      ocptRoleIsActionDetected(isFromScreenplay: role.isFromScreenplay, kind: role.kind);
+
+  /// Tell whether the sheet shows its own `Delete this role` action at the bottom.
+  ///
+  /// An orphaned role is deletable but shows nothing here: the shared role alert banner's orphaned
+  /// variant already offers that very answer, paired with the other one — keeping it as a silent
+  /// role — and the two belong together. Repeating the action at the bottom of the sheet would ask
+  /// the same question twice, once with its alternative and once without. The collision variant
+  /// offers no delete of its own, so it never withholds this.
+  bool get _showsDeleteAction => _canBeDeleted && removedRoleAlert == null;
+
   /// Class constructor
   const OcptRoleSheet({
     super.key,
@@ -195,39 +229,7 @@ class OcptRoleSheet extends StatelessWidget {
     required this.onEpisodesChanged,
   });
 
-  /// Whether deleting this role would actually remove it, which is what decides that the delete
-  /// action exists at all.
-  ///
-  /// False for a role a dialogue cue still speaks: `OcptRoleIndexService.reconcile` only ever reads
-  /// live rows, so the next save would insert that character right back as a fresh, uncast role —
-  /// the deletion would cost the casting and the notes without removing anything. Its existence
-  /// belongs to the screenplay, exactly as a scene's does to the scene index, so the way to remove
-  /// it is to remove the character's cues.
-  ///
-  /// True for an **action-detected** role ([ocptRoleIsActionDetected]) even though the screenplay
-  /// still names it: `OcptRoleIndexService.reconcile`'s own rule 3 refuses to recreate a role from a
-  /// name matching a tombstoned, action-detected one — deliberately, since reading a name out of an
-  /// action line is a convention, not a syntax, and an acronym or a shouted word read as a character
-  /// needs a way out. Without this, that rule would have nothing to be reached by: the sheet would
-  /// offer no gesture at all to reject a false positive.
-  ///
-  /// True as well for a hand-added role, and for an orphaned one (whose character is gone, so
-  /// nothing will re-insert it) — the three cases this getter tells apart all share the one thing
-  /// that matters here: nothing in the app will bring the row back once it is gone.
-  bool get _canBeDeleted =>
-      !role.isFromScreenplay ||
-      role.orphanedName != null ||
-      ocptRoleIsActionDetected(isFromScreenplay: role.isFromScreenplay, kind: role.kind);
-
-  /// Whether the sheet shows its own `Delete this role` action at the bottom.
-  ///
-  /// An orphaned role is deletable but shows nothing here: the shared role alert banner's orphaned
-  /// variant already offers that very answer, paired with the other one — keeping it as a silent
-  /// role — and the two belong together. Repeating the action at the bottom of the sheet would ask
-  /// the same question twice, once with its alternative and once without. The collision variant
-  /// offers no delete of its own, so it never withholds this.
-  bool get _showsDeleteAction => _canBeDeleted && removedRoleAlert == null;
-
+  /// Build the role sheet as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -266,7 +268,7 @@ class OcptRoleSheet extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
-          _buildCastingCard(context, tr),
+          _CastingCard(sheet: this),
           const SizedBox(height: 12),
           OcptRoleSheetCandidatesCard(
             candidates: candidates,
@@ -319,11 +321,48 @@ class OcptRoleSheet extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Builds the casting card: the cast member picker, and the muted line naming the other roles
-  /// that same person holds — a read-only remark, the way to reach one of them being the cast list
-  /// of the left dock.
-  Widget _buildCastingCard(BuildContext context, Tr tr) {
+/// Build the cast member picker: the shared [OcptResourcesPersonPicker] over the whole address
+/// book, withheld (a plain badge, no menu) while the sheet may not be written to.
+///
+/// It offers no `↗` of its own: the header's cast member line already is the jump to their sheet,
+/// and a second arrow next to the drop-down would compete with it (see `OcptRoleSheetHeader`).
+class _CastPicker extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheet sheet;
+
+  /// Class constructor
+  const _CastPicker({required this.sheet});
+
+  /// Build the cast picker as an [OcptResourcesPersonPicker].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    return OcptResourcesPersonPicker(
+      people: sheet.people,
+      selectedPerson: sheet.castMember,
+      label: tr.resourcesRoleCastMemberLabel,
+      emptyLabel: tr.resourcesRoleNotCast,
+      onChanged: sheet.isReadOnly ? null : sheet.onCastChanged,
+    );
+  }
+}
+
+/// Build the casting card: the cast member picker, and the muted line naming the other roles
+/// that same person holds — a read-only remark, the way to reach one of them being the cast list
+/// of the left dock.
+class _CastingCard extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheet sheet;
+
+  /// Class constructor
+  const _CastingCard({required this.sheet});
+
+  /// Build the casting card as an [OcptResourcesSheetCard].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
     final theme = Theme.of(context);
 
     return OcptResourcesSheetCard(
@@ -331,12 +370,12 @@ class OcptRoleSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCastPicker(tr),
-          if (otherRoles.isNotEmpty) ...[
+          _CastPicker(sheet: sheet),
+          if (sheet.otherRoles.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
               tr.resourcesRolesListOtherRolesLabel(
-                otherRoles
+                sheet.otherRoles
                     .map((other) => other.name.isEmpty ? tr.resourcesRoleUnnamed : other.name)
                     .join(_otherRolesSeparator),
               ),
@@ -349,17 +388,4 @@ class OcptRoleSheet extends StatelessWidget {
       ),
     );
   }
-
-  /// Builds the cast member picker: the shared [OcptResourcesPersonPicker] over the whole address
-  /// book, withheld (a plain badge, no menu) while the sheet may not be written to.
-  ///
-  /// It offers no `↗` of its own: the header's cast member line already is the jump to their sheet,
-  /// and a second arrow next to the drop-down would compete with it (see `OcptRoleSheetHeader`).
-  Widget _buildCastPicker(Tr tr) => OcptResourcesPersonPicker(
-    people: people,
-    selectedPerson: castMember,
-    label: tr.resourcesRoleCastMemberLabel,
-    emptyLabel: tr.resourcesRoleNotCast,
-    onChanged: isReadOnly ? null : onCastChanged,
-  );
 }

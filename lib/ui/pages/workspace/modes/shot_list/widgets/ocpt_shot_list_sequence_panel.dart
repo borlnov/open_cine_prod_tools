@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The shot list's left dock: the sequence tree, and the `+ Shot` action under it.
 ///
@@ -69,6 +69,7 @@ class OcptShotListSequencePanel extends StatelessWidget {
     required this.onOrphanedShotDeleted,
   });
 
+  /// Build the shot list sequence panel as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -157,21 +158,26 @@ class _SequenceEntry extends StatelessWidget {
     required this.onOrphanedShotDeleted,
   });
 
+  /// Build the sequence entry as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final sequence = this.sequence;
+    final onOrphanedShotDeleted = this.onOrphanedShotDeleted;
+    final averageDifficulty = tr.shotListAverageDifficulty(
+      ocptFormatShotDifficulty(context, sequence.averageDifficulty),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         InkWell(
           onTap: onSelected,
-          mouseCursor: ocptClickableCursor,
+          mouseCursor: ocpt_theme.ocptClickableCursor,
           child: ColoredBox(
             color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                 : Colors.transparent,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -211,10 +217,7 @@ class _SequenceEntry extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          "${tr.shotListShotsCount(sequence.shotCount)} · "
-                          "${tr.shotListAverageDifficulty(
-                            ocptFormatShotDifficulty(context, sequence.averageDifficulty),
-                          )}",
+                          "${tr.shotListShotsCount(sequence.shotCount)} · $averageDifficulty",
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.labelMedium?.copyWith(
@@ -229,43 +232,31 @@ class _SequenceEntry extends StatelessWidget {
             ),
           ),
         ),
-        if (isSelected) ..._buildShotEntries(),
+        // The expanded sequence's shot rows: plainly one per shot for a real scene, and — for the
+        // orphan group — a heading row before each run of shots that came from the same deleted
+        // scene, each row then carrying its own delete button.
+        //
+        // The runs need no grouping pass of their own: `detachShotsFromDeletedScenes` appends each
+        // newly orphaned scene's shots as a block, so shots of the same
+        // `OcptShot.orphanedHeading` are already contiguous in position order and a heading row is
+        // simply emitted wherever the heading changes.
+        if (isSelected)
+          for (final (index, shot) in sequence.shots.indexed) ...[
+            if (sequence is OcptOrphanShotSequence &&
+                shot.orphanedHeading !=
+                    (index == 0 ? null : sequence.shots[index - 1].orphanedHeading))
+              _OrphanedHeadingEntry(heading: shot.orphanedHeading),
+            _ShotEntry(
+              shot: shot,
+              isSelected: shot.id == selectedShotId,
+              onTap: () => onShotSelected(shot.id),
+              onDelete: sequence is OcptOrphanShotSequence && onOrphanedShotDeleted != null
+                  ? () => onOrphanedShotDeleted(shot.id)
+                  : null,
+            ),
+          ],
       ],
     );
-  }
-
-  /// Builds the expanded sequence's shot rows: plainly one per shot for a real scene, and — for the
-  /// orphan group — a heading row before each run of shots that came from the same deleted scene,
-  /// each row then carrying its own delete button.
-  ///
-  /// The runs need no grouping pass of their own: `detachShotsFromDeletedScenes` appends each newly
-  /// orphaned scene's shots as a block, so shots of the same [OcptShot.orphanedHeading] are already
-  /// contiguous in position order and a heading row is simply emitted wherever the heading changes.
-  List<Widget> _buildShotEntries() {
-    final isOrphanGroup = sequence is OcptOrphanShotSequence;
-    final onOrphanedShotDeleted = this.onOrphanedShotDeleted;
-    final entries = <Widget>[];
-    String? previousHeading;
-
-    for (final shot in sequence.shots) {
-      if (isOrphanGroup && shot.orphanedHeading != previousHeading) {
-        entries.add(_OrphanedHeadingEntry(heading: shot.orphanedHeading));
-        previousHeading = shot.orphanedHeading;
-      }
-
-      entries.add(
-        _ShotEntry(
-          shot: shot,
-          isSelected: shot.id == selectedShotId,
-          onTap: () => onShotSelected(shot.id),
-          onDelete: isOrphanGroup && onOrphanedShotDeleted != null
-              ? () => onOrphanedShotDeleted(shot.id)
-              : null,
-        ),
-      );
-    }
-
-    return entries;
   }
 }
 
@@ -279,6 +270,7 @@ class _OrphanedHeadingEntry extends StatelessWidget {
   /// Class constructor
   const _OrphanedHeadingEntry({required this.heading});
 
+  /// Build the orphaned heading entry as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -322,6 +314,7 @@ class _ShotEntry extends StatelessWidget {
     required this.onDelete,
   });
 
+  /// Build the shot entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -329,10 +322,10 @@ class _ShotEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(34, 6, 16, 6),
@@ -341,7 +334,7 @@ class _ShotEntry extends StatelessWidget {
               Text(
                 shot.code,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  fontFamily: ocptMonospaceFontFamily,
+                  fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                   color: isSelected
                       ? theme.colorScheme.onSurface
                       : theme.colorScheme.onSurfaceVariant,

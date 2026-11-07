@@ -19,13 +19,13 @@ const int _multilineMinLines = 3;
 /// ever blocks a write, since a sheet autosaves as it is typed.
 ///
 /// [value] is the field's current authoritative value — a pending edit still sitting in
-/// `OcptResourcesState.pendingFieldEdits` (or `pendingRoleFieldEdits`), or the record's own stored
-/// value otherwise, exactly as `OcptShotListMode._fieldValueOf` resolves a shot's own fields. The
-/// internal controller is only ever reset to it when [ownerId] changes (the sheet now shows a
-/// different record) or when [value] genuinely differs from what the controller already holds (an
-/// edit landed, or a reload changed the underlying data): a rebuild for an unrelated reason
-/// (another field's pending edit, a dock resize) never touches the controller, so the caret never
-/// jumps mid-typing.
+/// `OcptResourcesPeopleState.pendingFieldEdits` (or `pendingRoleFieldEdits`), or the record's own
+/// stored value otherwise, exactly as `OcptShotListMode._fieldValueOf` resolves a shot's own
+/// fields. The internal controller is only ever reset to it when [ownerId] changes (the sheet now
+/// shows a different record) or when [value] genuinely differs from what the controller already
+/// holds (an edit landed, or a reload changed the underlying data): a rebuild for an unrelated
+/// reason (another field's pending edit, a dock resize) never touches the controller, so the caret
+/// never jumps mid-typing.
 class OcptResourcesSheetField extends StatefulWidget {
   /// The id of the record this field belongs to — a person on the people tab, a role on the roles
   /// tab — used only to detect a switch from one to another (see the class doc comment).
@@ -93,6 +93,7 @@ class OcptResourcesSheetField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptResourcesSheetFieldState] holding the state of the resources sheet field.
   @override
   State<OcptResourcesSheetField> createState() => _OcptResourcesSheetFieldState();
 }
@@ -100,8 +101,7 @@ class OcptResourcesSheetField extends StatefulWidget {
 /// The state of [OcptResourcesSheetField]: owns the controller the class doc comment explains the
 /// reasoning for.
 class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
   /// The [OcptResourcesSheetField.ownerId] the controller was last synced against, so a switch
@@ -113,20 +113,14 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
   /// [OcptResourcesSheetField.errorTextOf] is only shown once typing has stopped.
   final FocusNode _focusNode = FocusNode();
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
-  /// Rebuilds so the error message appears the moment the field loses the focus, and disappears
-  /// again the moment it regains it.
-  void _onFocusChanged() {
-    if (widget.errorTextOf != null) {
-      setState(() {});
-    }
-  }
-
+  /// Show the new value when the owner or its value differs from the text in the field.
   @override
   void didUpdateWidget(covariant OcptResourcesSheetField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -137,23 +131,7 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
     }
   }
 
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  /// The message to show under the field right now: what [OcptResourcesSheetField.errorTextOf] says
-  /// about the current value, or null while the field has the focus or is never checked.
-  String? _resolveErrorText() {
-    final errorTextOf = widget.errorTextOf;
-    if (errorTextOf == null || _focusNode.hasFocus) {
-      return null;
-    }
-    return errorTextOf(_controller.text);
-  }
-
+  /// Build the resources sheet field as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -188,5 +166,32 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
         ),
       ],
     );
+  }
+
+  /// Rebuild so the error message appears the moment the field loses the focus, and disappears
+  /// again the moment it regains it.
+  void _onFocusChanged() {
+    if (widget.errorTextOf != null) {
+      setState(() {});
+    }
+  }
+
+  /// Get the message to show under the field right now: what [OcptResourcesSheetField.errorTextOf]
+  /// says
+  /// about the current value, or null while the field has the focus or is never checked.
+  String? _resolveErrorText() {
+    final errorTextOf = widget.errorTextOf;
+    if (errorTextOf == null || _focusNode.hasFocus) {
+      return null;
+    }
+    return errorTextOf(_controller.text);
+  }
+
+  /// Dispose [_focusNode] and [_controller].
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }

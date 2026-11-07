@@ -19,25 +19,27 @@ class OcptScenesTable extends Table {
   @override
   String get tableName => 'scenes';
 
-  /// The stable, unique id of this scene (a UUID). {@macro open_cine_prod_tools.OcptSceneIndexService.stability}
+  /// Get the stable, unique id of this scene (a UUID). {@macro
+  /// open_cine_prod_tools.OcptSceneIndexService.stability}
   TextColumn get id => text()();
 
-  /// The screenplay this scene belongs to.
+  /// Get the screenplay this scene belongs to.
   TextColumn get screenplayId => text().references(OcptScreenplaysTable, #id)();
 
-  /// The 0-based position of this scene among the screenplay's scenes, in source order.
+  /// Get the 0-based position of this scene among the screenplay's scenes, in source order.
   IntColumn get position => integer()();
 
-  /// The normalized scene heading text (e.g. `INT. KITCHEN - DAY`).
+  /// Get the normalized scene heading text (e.g. `INT. KITCHEN - DAY`).
   TextColumn get heading => text()();
 
-  /// The explicit scene number written in the source (e.g. `4A`), or null if none.
+  /// Get the explicit scene number written in the source (e.g. `4A`), or null if none.
   TextColumn get sceneNumber => text().nullable()();
 
-  /// The character offset, in the screenplay's Fountain text, at which this scene starts.
+  /// Get the character offset, in the screenplay's Fountain text, at which this scene starts.
   IntColumn get charStart => integer()();
 
-  /// The character offset, in the screenplay's Fountain text, one past the last character of this
+  /// Get the character offset, in the screenplay's Fountain text, one past the last character of
+  /// this
   /// scene.
   IntColumn get charEnd => integer()();
 

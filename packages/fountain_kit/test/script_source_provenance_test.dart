@@ -2,12 +2,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:fountain_kit/src/layout/fountain_element_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 import 'package:fountain_kit/src/layout/fountain_script_composer.dart';
+import 'package:fountain_kit/src/layout/fountain_script_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_script_line.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
-import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 import 'package:fountain_kit/src/parser/fountain_parser.dart';
 import 'package:test/test.dart';
 
@@ -54,11 +58,7 @@ FountainLayoutMetrics _metrics({
   character: _box(characterCols, leftIndentInches: 3.7),
   parenthetical: _box(parentheticalCols, leftIndentInches: 3.1),
   dialogue: _box(dialogueCols, leftIndentInches: 2.5),
-  transition: _box(
-    transitionCols,
-    leftIndentInches: 1.5,
-    alignment: FountainLayoutAlignment.right,
-  ),
+  transition: _box(transitionCols, leftIndentInches: 1.5, alignment: FountainLayoutAlignment.right),
   centeredText: _box(
     centeredCols,
     leftIndentInches: 1.5,
@@ -67,20 +67,16 @@ FountainLayoutMetrics _metrics({
   lyrics: _box(lyricsCols, leftIndentInches: 2.5),
 );
 
+/// The parser turning the test sources into documents.
 const FountainParser _parser = FountainParser();
+
+/// The composer laying documents out in pages.
 const FountainScriptComposer _composer = FountainScriptComposer();
 
 /// A screenplay parsed and composed in one step, kept together with its
 /// source text so a test can quote what a line's range points at instead of
 /// asserting on raw offsets.
 class _Composed {
-  /// Parses and composes [source].
-  _Composed(this.source, {FountainLayoutMetrics? metrics})
-    : layout = _composer.compose(
-        document: _parser.parse(source),
-        metrics: metrics ?? _metrics(),
-      );
-
   /// The screenplay source, exactly as parsed.
   final String source;
 
@@ -88,21 +84,21 @@ class _Composed {
   final FountainScriptLayout layout;
 
   /// Every line of every page, in reading order.
-  List<FountainScriptLine> get lines => [
-    for (final page in layout.pages) ...page.lines,
-  ];
-
-  /// The source text [line]'s range points at, or `null` when it has none.
-  String? covered(FountainScriptLine line) {
-    final range = line.sourceRange;
-    return range == null
-        ? null
-        : source.substring(range.startOffset, range.endOffset);
-  }
+  List<FountainScriptLine> get lines => [for (final page in layout.pages) ...page.lines];
 
   /// The source text every line of [layout] points at, `null` for the lines
   /// with no range of their own, in reading order.
   List<String?> get coveredTexts => lines.map(covered).toList();
+
+  /// Parses and composes [source].
+  _Composed(this.source, {FountainLayoutMetrics? metrics})
+    : layout = _composer.compose(document: _parser.parse(source), metrics: metrics ?? _metrics());
+
+  /// The source text [line]'s range points at, or `null` when it has none.
+  String? covered(FountainScriptLine line) {
+    final range = line.sourceRange;
+    return range == null ? null : source.substring(range.startOffset, range.endOffset);
+  }
 }
 
 /// A source range every hand-built block in this file shares: a document
@@ -114,6 +110,7 @@ const FountainSourceRange _range = FountainSourceRange(
   endOffset: 0,
 );
 
+/// Run the tests of the script source provenance.
 void main() {
   group('single-line elements', () {
     test('a scene heading points at its own text', () {
@@ -166,10 +163,7 @@ void main() {
       final transition = composed.lines.last;
       expect(transition.plainText, 'FADE OUT:');
       expect(transition.sourceRange!.startLine, 2);
-      expect(
-        transition.sourceRange!.startOffset,
-        composed.source.indexOf('> fade out:'),
-      );
+      expect(transition.sourceRange!.startOffset, composed.source.indexOf('> fade out:'));
     });
 
     test('a lower-case forced cue stays within its own source line', () {
@@ -189,14 +183,8 @@ void main() {
 
   group('multi-line elements', () {
     test('each action line points at its own source line', () {
-      final composed = _Composed(
-        'Sarah walks in.\nThe door slams.\nSilence.\n',
-      );
-      expect(composed.coveredTexts, [
-        'Sarah walks in.',
-        'The door slams.',
-        'Silence.',
-      ]);
+      final composed = _Composed('Sarah walks in.\nThe door slams.\nSilence.\n');
+      expect(composed.coveredTexts, ['Sarah walks in.', 'The door slams.', 'Silence.']);
     });
 
     test("a forced action block's leading bang is left out of the range", () {
@@ -214,9 +202,7 @@ void main() {
       // belongs to, so the second occurrence can never be anchored onto the
       // first.
       final composed = _Composed('Silence.\nSilence.\n');
-      final offsets = composed.lines
-          .map((line) => line.sourceRange!.startOffset)
-          .toList();
+      final offsets = composed.lines.map((line) => line.sourceRange!.startOffset).toList();
       expect(offsets, [0, 'Silence.\n'.length]);
       expect(composed.lines.map((line) => line.sourceRange!.startLine), [0, 1]);
     });
@@ -241,9 +227,7 @@ void main() {
         'Sarah walks in slowly and looks around the empty room.\n',
         metrics: _metrics(actionCols: 20),
       );
-      final ranges = composed.lines
-          .map((line) => line.sourceRange!)
-          .toList(growable: false);
+      final ranges = composed.lines.map((line) => line.sourceRange!).toList(growable: false);
       for (var index = 1; index < ranges.length; index++) {
         // One space between the two rows: the one the wrap broke at, which
         // belongs to neither of them.
@@ -269,15 +253,7 @@ void main() {
         'already',
         'here.',
       ]);
-      expect(composed.lines.map((line) => line.sourceRange!.startLine), [
-        0,
-        1,
-        1,
-        1,
-        2,
-        2,
-        2,
-      ]);
+      expect(composed.lines.map((line) => line.sourceRange!.startLine), [0, 1, 1, 1, 2, 2, 2]);
     });
   });
 
@@ -294,13 +270,7 @@ void main() {
       const source = 'He said **hello** loudly.\n';
       final composed = _Composed(source);
       final bold = composed.lines.single.runs.firstWhere((run) => run.isBold);
-      expect(
-        source.substring(
-          bold.sourceRange!.startOffset,
-          bold.sourceRange!.endOffset,
-        ),
-        'hello',
-      );
+      expect(source.substring(bold.sourceRange!.startOffset, bold.sourceRange!.endOffset), 'hello');
     });
 
     test('an emphasis marker never counts towards the wrap width', () {
@@ -310,11 +280,7 @@ void main() {
         '**one** two three four five\n',
         metrics: _metrics(actionCols: 11),
       );
-      expect(composed.lines.map((line) => line.plainText), [
-        'one two',
-        'three four',
-        'five',
-      ]);
+      expect(composed.lines.map((line) => line.plainText), ['one two', 'three four', 'five']);
       // A line's range is the union of its runs' own ranges, and a run's
       // range never includes its own markers: the `**` between "one" and
       // " two" is covered because it sits between two runs, the opening one
@@ -364,20 +330,14 @@ void main() {
               headingText: 'INT. KITCHEN - DAY',
               forcedMarker: false,
             ),
-            FountainActionBlock(
-              sourceRange: _range,
-              lines: ['Sarah walks in.'],
-              forced: false,
-            ),
+            FountainActionBlock(sourceRange: _range, lines: ['Sarah walks in.'], forced: false),
           ],
           sourceText: '',
         ),
         metrics: _metrics(),
       );
       expect(
-        [
-          for (final page in layout.pages) ...page.lines,
-        ].map((line) => line.sourceRange),
+        [for (final page in layout.pages) ...page.lines].map((line) => line.sourceRange),
         everyElement(isNull),
       );
     });
@@ -429,10 +389,7 @@ void main() {
     });
 
     test('a paragraph split by a page break keeps every row anchored', () {
-      final composed = _Composed(
-        'One.\nTwo.\nThree.\nFour.\n',
-        metrics: _metrics(linesPerPage: 2),
-      );
+      final composed = _Composed('One.\nTwo.\nThree.\nFour.\n', metrics: _metrics(linesPerPage: 2));
       expect(composed.layout.pages, hasLength(2));
       expect(composed.coveredTexts, ['One.', 'Two.', 'Three.', 'Four.']);
     });

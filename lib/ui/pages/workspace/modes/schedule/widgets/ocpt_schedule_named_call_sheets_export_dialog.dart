@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart';
@@ -12,10 +12,10 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_selection_list.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_convocations.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
 /// The tallest the convocation list is ever drawn before it starts scrolling, in logical pixels.
 const double _ocptScheduleNamedCallSheetsMaxHeight = 260;
@@ -23,30 +23,30 @@ const double _ocptScheduleNamedCallSheetsMaxHeight = 260;
 /// A dialog letting the user pick the one-off options a **named** call sheets export runs with: one
 /// PDF per (ticked day × ticked recipient), written into a folder.
 ///
-/// Modelled on `OcptScheduleCallSheetsExportDialog`, whose page-format dropdown, its two buttons and
-/// its own [OcptScheduleDaySelectionList] this dialog reuses outright (in turn reused from
+/// Modelled on `OcptScheduleCallSheetsExportDialog`, whose page-format dropdown, its two buttons
+/// and its own [OcptScheduleDaySelectionList] this dialog reuses outright (in turn reused from
 /// `OcptBreakdownSheetsExportDialog` for the format and the buttons). Unlike that dialog, ticking a
 /// day here does more than choose what gets printed: the recipient list itself is the **union** of
 /// the ticked days' own convocations, deduplicated by `OcptDayConvocation.selectionKey` — a person
 /// convoked on two of the ticked days appears once in the list, and ticking or unticking them there
 /// prints (or withholds) their sheet for every one of those days. Changing which days are ticked
-/// recomputes that union and carries the tick state over rather than resetting it: a recipient still
-/// in the union keeps whatever the user set for them, one newly appearing is ticked (the dialog's
-/// standing default is "everybody"), and one that has left the union is simply dropped — see the
-/// state's own `_onDaysChanged`. An uncast role is listed like any other convocation and named by
-/// its role, with a plain hint that such a sheet has nobody to send it to yet.
+/// recomputes that union and carries the tick state over rather than resetting it: a recipient
+/// still in the union keeps whatever the user set for them, one newly appearing is ticked (the
+/// dialog's standing default is "everybody"), and one that has left the union is simply dropped —
+/// see the state's own `_onDaysChanged`. An uncast role is listed like any other convocation and
+/// named by its role, with a plain hint that such a sheet has nobody to send it to yet.
 ///
 /// **A candidate is a recipient like anybody else**, named by their candidacy — who is coming, and
 /// the part they are coming to be seen for — since two candidacies of one person are two
-/// convocations, and a name alone could not tell them apart. Only a **guest** is absent, carrying no
-/// `selectionKey` at all: `OcptScheduleModeContent` filters the list on that, so this dialog needs
-/// no rule of its own about who may be written to.
+/// convocations, and a name alone could not tell them apart. Only a **guest** is absent, carrying
+/// no `selectionKey` at all: `OcptScheduleModeContent` filters the list on that, so this dialog
+/// needs no rule of its own about who may be written to.
 ///
 /// Use [show] to display it and get back the resulting [OcptCallSheetExportOptions], or null if the
 /// user cancelled.
 class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
-  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown and
-  /// to supply the margins carried through unchanged into the resulting options.
+  /// The page setup the three PDF exports are typeset with, used to pre-fill the format dropdown
+  /// and to supply the margins carried through unchanged into the resulting options.
   final OcptPageSetup current;
 
   /// Every live shooting day, offered by [OcptScheduleDaySelectionList].
@@ -70,7 +70,6 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
   /// candidate is coming to be seen for.
   final Map<String, OcptRole> roleById;
 
-
   /// Class constructor
   const OcptScheduleNamedCallSheetsExportDialog({
     required this.current,
@@ -82,8 +81,14 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
     super.key,
   });
 
-  /// Shows the dialog and returns the [OcptCallSheetExportOptions] the user applied, or null if they
-  /// cancelled it.
+  /// Create the [_OcptScheduleNamedCallSheetsExportDialogState] holding the state of the schedule
+  /// named call sheets export dialog.
+  @override
+  State<OcptScheduleNamedCallSheetsExportDialog> createState() =>
+      _OcptScheduleNamedCallSheetsExportDialogState();
+
+  /// Show the dialog and return the [OcptCallSheetExportOptions] the user applied, or null if
+  /// they cancelled it.
   static Future<OcptCallSheetExportOptions?> show(
     BuildContext context, {
     required OcptPageSetup current,
@@ -103,10 +108,6 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
       roleById: roleById,
     ),
   );
-
-  @override
-  State<OcptScheduleNamedCallSheetsExportDialog> createState() =>
-      _OcptScheduleNamedCallSheetsExportDialogState();
 }
 
 /// The state of [OcptScheduleNamedCallSheetsExportDialog].
@@ -119,13 +120,15 @@ class _OcptScheduleNamedCallSheetsExportDialogState
   late Set<String> _selectedDayIds;
 
   /// The union of [_selectedDayIds]' own convocations, deduplicated by [_keyOf] — the list the
-  /// checkboxes below are built from. Recomputed by [_onDaysChanged] whenever the ticked days change.
+  /// checkboxes below are built from. Recomputed by [_onDaysChanged] whenever the ticked days
+  /// change.
   late List<OcptDayConvocation> _recipients;
 
   /// The convocation keys currently ticked — `OcptDayConvocation.selectionKey`, the one place that
   /// reading is written.
   late Set<String> _selectedKeys;
 
+  /// Start from the current format, tick the selected day and every recipient of the days ticked.
   @override
   void initState() {
     super.initState();
@@ -135,6 +138,7 @@ class _OcptScheduleNamedCallSheetsExportDialogState
     _selectedKeys = {for (final convocation in _recipients) _keyOf(convocation)};
   }
 
+  /// Build the schedule named call sheets export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -149,7 +153,7 @@ class _OcptScheduleNamedCallSheetsExportDialogState
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -168,7 +172,10 @@ class _OcptScheduleNamedCallSheetsExportDialogState
               onChanged: _onDaysChanged,
             ),
             const SizedBox(height: 8),
-            Text(tr.scheduleExportRecipientsSectionTitle, style: Theme.of(context).textTheme.labelLarge),
+            Text(
+              tr.scheduleExportRecipientsSectionTitle,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
             Row(
               children: [
                 TextButton(
@@ -202,7 +209,7 @@ class _OcptScheduleNamedCallSheetsExportDialogState
                       CheckboxListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        mouseCursor: ocptClickableCursor,
+                        mouseCursor: ocpt_theme.ocptClickableCursor,
                         value: _selectedKeys.contains(_keyOf(convocation)),
                         title: Text(
                           ocptScheduleConvocationTitle(
@@ -248,7 +255,8 @@ class _OcptScheduleNamedCallSheetsExportDialogState
     );
   }
 
-  /// The union of [dayIds]' own convocations (via [OcptScheduleNamedCallSheetsExportDialog.days]'
+  /// Get the union of [dayIds]' own convocations (via
+  /// [OcptScheduleNamedCallSheetsExportDialog.days]'
   /// own order, then each day's own convocation order), deduplicated by [_keyOf]: a person convoked
   /// on more than one of [dayIds] contributes one entry, its first.
   List<OcptDayConvocation> _unionOf(Set<String> dayIds) {
@@ -261,7 +269,7 @@ class _OcptScheduleNamedCallSheetsExportDialogState
     ];
   }
 
-  /// Recomputes [_recipients] against [nextDayIds] and carries the tick state over: a key still in
+  /// Recompute [_recipients] against [nextDayIds] and carry the tick state over: a key still in
   /// the recomputed union keeps whatever [_selectedKeys] already says about it, a key the previous
   /// union didn't have is ticked (this dialog's standing default is "everybody"), and a key the new
   /// union no longer has is dropped — simply by not being iterated below, [_selectedKeys] holding
@@ -281,31 +289,34 @@ class _OcptScheduleNamedCallSheetsExportDialogState
     });
   }
 
-  /// [convocation]'s own selection key — see [_selectedKeys]' own doc comment.
+  /// Get [convocation]'s own selection key — see [_selectedKeys]' own doc comment.
   ///
-  /// Non-null for every convocation this dialog is ever handed: a guest is the one kind that carries
-  /// none, and [OcptScheduleNamedCallSheetsExportDialog.recipientsOfDay] filters those out before
-  /// the list ever reaches here.
+  /// Non-null for every convocation this dialog is ever handed: a guest is the one kind that
+  /// carries none, and [OcptScheduleNamedCallSheetsExportDialog.recipientsOfDay] filters those out
+  /// before the list ever reaches here.
   String _keyOf(OcptDayConvocation convocation) => convocation.selectionKey!;
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptCallSheetExportOptions], the selected days in
-  /// [OcptScheduleNamedCallSheetsExportDialog.days]' own order rather than selection order — mirrors
-  /// `OcptScheduleCallSheetsExportDialog._submit`.
+  /// Pop the dialog returning the resulting [OcptCallSheetExportOptions], the selected days in
+  /// [OcptScheduleNamedCallSheetsExportDialog.days]' own order rather than selection order —
+  /// mirrors `OcptScheduleCallSheetsExportDialog._submit`.
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScheduleNamedCallSheetsExportDialog.show] caller.
   void _submit() {
     final options = OcptCallSheetExportOptions(
       format: _selectedFormat,
       margins: widget.current.margins,
-      dayIds: [for (final day in widget.days) if (_selectedDayIds.contains(day.id)) day.id],
+      dayIds: [
+        for (final day in widget.days)
+          if (_selectedDayIds.contains(day.id)) day.id,
+      ],
       selectedConvocationKeys: _selectedKeys,
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptCallSheetExportOptions>(options);

@@ -6,8 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_view_switch.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_view_switch_segment.dart';
 
 /// The widest the sequence's own title and summary ever grow, in logical pixels — see
 /// [OcptShotListCentreHeader.build]'s own doc comment.
@@ -46,6 +47,11 @@ class OcptShotListCentreHeader extends StatelessWidget {
   /// What the active view needs on the header's trailing edge, built by the mode.
   final Widget trailing;
 
+  /// Get [boardPanelCount] when the board is what is actually shown, null otherwise — the summary
+  /// only ever prints the panel count for the view that made it meaningful.
+  int? get _summaryPanelCount =>
+      isBoardAvailable && centreView == OcptShotListCentreView.board ? boardPanelCount : null;
+
   /// Class constructor
   const OcptShotListCentreHeader({
     super.key,
@@ -58,6 +64,7 @@ class OcptShotListCentreHeader extends StatelessWidget {
     required this.trailing,
   });
 
+  /// Build the shot list centre header as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -107,11 +114,6 @@ class OcptShotListCentreHeader extends StatelessWidget {
       ],
     );
   }
-
-  /// [boardPanelCount] when the board is what is actually shown, null otherwise — the summary
-  /// only ever prints the panel count for the view that made it meaningful.
-  int? get _summaryPanelCount =>
-      isBoardAvailable && centreView == OcptShotListCentreView.board ? boardPanelCount : null;
 }
 
 /// The sequence's own title line and the muted summary under it — the content
@@ -128,6 +130,7 @@ class _SequenceSummary extends StatelessWidget {
   /// Class constructor
   const _SequenceSummary({required this.sequence, required this.boardPanelCount});
 
+  /// Build the sequence summary as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

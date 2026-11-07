@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_shooting_day_bl
 /// are expected at twenty past ten, for twenty minutes, which is exactly what an audition block
 /// *is*. So the block is what they are linked to, and their arrival, their PAT band and their
 /// departure are read off the audition blocks naming them
-/// (`lib/utils/ocpt_shooting_convocations.dart`). It is also what makes ADR 0018's own cost
+/// (`lib/models/rules/ocpt_shooting_convocations.dart`). It is also what makes ADR 0018's own cost
 /// disappear: convoking twelve candidates at twenty-minute intervals is **one** slot carrying
 /// twelve audition blocks, not twelve slots.
 ///
@@ -41,13 +41,13 @@ class OcptShootingBlockCandidatesTable extends Table {
   @override
   String get tableName => 'shooting_block_candidates';
 
-  /// The stable, unique id of this convocation (a UUID).
+  /// Get the stable, unique id of this convocation (a UUID).
   TextColumn get id => text()();
 
-  /// The audition block this convocation is read off.
+  /// Get the audition block this convocation is read off.
   TextColumn get blockId => text().references(OcptShootingDayBlocksTable, #id)();
 
-  /// The candidacy seen during the block — who, for which part.
+  /// Get the candidacy seen during the block — who, for which part.
   TextColumn get roleCandidateId => text().references(OcptRoleCandidatesTable, #id)();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -56,7 +56,7 @@ class OcptShootingBlockCandidatesTable extends Table {
   /// in — `shooting_slot_cast` carries one for the same reason, a convocation list being read down.
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// What this convocation says beside the hour, the sibling of `shooting_slot_cast.notes`.
+  /// Get what this convocation says beside the hour, the sibling of `shooting_slot_cast.notes`.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

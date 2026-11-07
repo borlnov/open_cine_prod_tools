@@ -5,11 +5,12 @@
 import 'dart:typed_data';
 
 import 'package:act_dart_result/act_dart_result.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:script_import_kit/script_import_kit.dart';
 
-/// Turns the bytes of a picked screenplay file into the Fountain text the app stores, whichever of
+/// Turn the bytes of a picked screenplay file into the Fountain text the app stores, whichever of
 /// the three formats it came in as.
 ///
 /// A `.fountain` file needs no conversion and goes straight to [fountainIoService]; an `.fdx` and a
@@ -21,8 +22,8 @@ import 'package:script_import_kit/script_import_kit.dart';
 /// This is pure bytes/text logic with no I/O of its own — no dialog, no file system access, not
 /// even a logger: the developer-facing detail of a refusal travels back as the result's own
 /// `extraInfo`, for the manager to log. It's owned by `OcptExportManager` and exposed as a public
-/// final field, reached through the manager rather than through `globalGetIt()` (RFL18).
-class OcptScriptImportService {
+/// final field, reached through the manager rather than through `globalGetIt()`.
+class OcptScriptImportService extends AbsOcptService {
   /// The extension of a Final Draft screenplay file, without its leading dot.
   static const finalDraftFileExtension = "fdx";
 
@@ -45,9 +46,18 @@ class OcptScriptImportService {
   final OcptFountainIoService fountainIoService;
 
   /// Class constructor
-  const OcptScriptImportService({this.fountainIoService = const OcptFountainIoService()});
+  const OcptScriptImportService({required super.logger, required this.fountainIoService});
 
-  /// Reads [bytes] as a screenplay, picking what to do with them from [fileName]'s extension.
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await fountainIoService.initLifeCycle();
+  }
+
+  /// Read [bytes] as a screenplay, picking what to do with them from [fileName]'s extension.
   ///
   /// Returns [OcptScreenplayImportStatus.ok] with the Fountain text, or
   /// [OcptScreenplayImportStatus.unreadableFile] when the file is not the screenplay its name
@@ -66,21 +76,32 @@ class OcptScriptImportService {
       );
     }
 
+    ResultWithStatus<OcptScreenplayImportStatus, String> imported;
     try {
       final result = _importer.read(bytes: bytes, fileName: fileName);
-      return ResultWithStatus(
+      imported = ResultWithStatus(
         status: OcptScreenplayImportStatus.ok,
         value: result.fountainText,
       );
-    } on ScriptImportException catch (error) {
-      return ResultWithStatus(
+    } on ScriptImportException catch (error, stackTrace) {
+      // Only the kind of failure is logged: the exception's details come from the XML parser and
+      // can quote the file's own text.
+      logger.w(
+        "A foreign screenplay file could not be read: ${error.failure.name}",
+        null,
+        stackTrace,
+      );
+      imported = ResultWithStatus(
         status: OcptScreenplayImportStatus.unreadableFile,
         extraInfo: error,
       );
     }
+
+    return imported;
   }
 
-  /// Whether [fileName]'s extension names a plain Fountain file, the one format read without any
+  /// Tell whether [fileName]'s extension names a plain Fountain file, the one format read without
+  /// any
   /// conversion.
   bool _isFountainFile(String fileName) {
     final dotIndex = fileName.lastIndexOf(".");
@@ -90,5 +111,15 @@ class OcptScriptImportService {
 
     return fileName.substring(dotIndex + 1).toLowerCase() ==
         OcptFountainIoService.fountainFileExtension;
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await fountainIoService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }

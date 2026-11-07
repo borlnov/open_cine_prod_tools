@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 
 /// The status pill shown next to the inspector header's `Shot 1/3`: a read-out, not a control.
 ///
@@ -20,6 +20,7 @@ class OcptShotStatusPill extends StatelessWidget {
   /// Class constructor
   const OcptShotStatusPill({super.key, required this.status});
 
+  /// Build the shot status pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -28,8 +29,8 @@ class OcptShotStatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Text(
         ocptShotStatusLabel(Tr.of(context), status),

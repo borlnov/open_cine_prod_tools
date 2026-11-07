@@ -3,59 +3,60 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_scene_bars.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_choice_chip.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_set_picker_popover.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_scene_bars.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_breakdown_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The right dock's `Inspector` tab while a scene is selected and no target is: the scene's own
 /// breakdown sheet — counts, its own status chips, **the sets it is shot in**, an alert naming the
 /// elements still to find, a second alert listing the tags a save could not re-anchor, its targets
 /// grouped by category and its own breakdown notes.
 ///
-/// The sets row ([_buildSetsRow]) is the one part of this sheet that is not about tags: it reads and
-/// writes the `scene_sets` link directly, so a link made by hand in the resources mode shows here
-/// too, and one made here shows there. A single `+ Set` control
+/// The sets row is the one part of this sheet that is not about tags: it reads
+/// and writes the `scene_sets` link directly, so a link made by hand in the resources mode shows
+/// here too, and one made here shows there. A single `+ Set` control
 /// (`OcptBreakdownSetPickerPopover`) both links an existing set and **creates** one under a name
 /// the user may type, a scene whose place the project has never heard of being the ordinary case at
 /// the start of a breakdown pass rather than an edge one. It is where a breakdown sheet names its
-/// décor, which is why it sits at the top rather than among the tagged targets below. Adding a set is **not** tagging a
-/// passage: no tag is created, nothing in the script is highlighted, and removing a set here leaves
-/// every tag pointing at it exactly where it is — the tag and the link are two separate facts, as
-/// `OcptBreakdownService.deleteTag`'s own doc comment spells out from the other side.
+/// décor, which is why it sits at the top rather than among the tagged targets below. Adding a set
+/// is **not** tagging a passage: no tag is created, nothing in the script is highlighted, and
+/// removing a set here leaves every tag pointing at it exactly where it is — the tag and the link
+/// are two separate facts, as `OcptBreakdownService.deleteTag`'s own doc comment spells out from
+/// the other side.
 ///
-/// The "to check" alert ([_buildToCheckAlert]) is the same visual shape as the "to find" one right
+/// The "to check" alert is the same visual shape as the "to find" one right
 /// above it — the warning colour, the same callout — but lists [OcptBreakdownScene.tags] whose
 /// [OcptBreakdownTag.needsCheck] is set, one row per tag: the passage verbatim, and the target it
-/// points at when [targetById] still resolves one (a tombstoned catalogue row still keeps its tag on
-/// the scene — `OcptBreakdownSnapshot.build`'s own doc comment — so a row whose target is gone shows
-/// the passage alone rather than crashing). Each row offers `Mark as checked` (clears the flag alone,
-/// leaving the offsets exactly where they are — the honest answer to "the passage now occurs twice
-/// in the scene so it could not be re-anchored unambiguously, but the one this tag points at is
-/// still right") and `Remove` (tombstones that one tag). Both act **straight away, with no inline
-/// confirmation**: the alert itself is the question, exactly as `OcptRoleAlertBanner`'s own
-/// `Keep as silent` action does in the resources mode.
+/// points at when [targetById] still resolves one (a tombstoned catalogue row still keeps its tag
+/// on the scene — `OcptBreakdownSnapshot.build`'s own doc comment — so a row whose target is gone
+/// shows the passage alone rather than crashing). Each row offers `Mark as checked` (clears the
+/// flag alone, leaving the offsets exactly where they are — the honest answer to "the passage now
+/// occurs twice in the scene so it could not be re-anchored unambiguously, but the one this tag
+/// points at is still right") and `Remove` (tombstones that one tag). Both act **straight away,
+/// with no inline confirmation**: the alert itself is the question, exactly as
+/// `OcptRoleAlertBanner`'s own `Keep as silent` action does in the resources mode.
 ///
 /// Purely presentational, like `OcptShotInspectorPanel`. [isReadOnly] withholds every control that
 /// writes — the status chips, the sets row's own `+ Set` control and chip dismissals, the notes
-/// field and the "to check" alert's two actions — while leaving
-/// every read (the sheet itself, both alerts' own listing, and a click on one of its target rows,
-/// `onTargetSelected`) in place, mirroring `OcptBreakdownTargetInspector`'s own convention: the panel
-/// takes the real callbacks and nulls them out itself, so a control added later cannot be gated in
-/// one place and forgotten in the other. [onTargetSelected] is never withheld: selecting writes
-/// nothing whatever a previewed version's own gating says.
-class OcptBreakdownSceneInspector extends StatelessWidget {
+/// field and the "to check" alert's two actions — while leaving every read (the sheet itself, both
+/// alerts' own listing, and a click on one of its target rows, `onTargetSelected`) in place,
+/// mirroring `OcptBreakdownTargetInspector`'s own convention: the panel takes the real callbacks
+/// and nulls them out itself, so a control added later cannot be gated in one place and forgotten
+/// in the other. [onTargetSelected] is never withheld: selecting writes nothing whatever a
+/// previewed version's own gating says.
+class OcptBreakdownSceneInspector extends StatefulWidget {
   /// The selected scene, or null while nothing at all is selected — the mode's own empty message is
   /// shown then.
   final OcptBreakdownScene? scene;
@@ -149,13 +150,88 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
     this.isReadOnly = false,
   });
 
+  /// Create the [_OcptBreakdownSceneInspectorState] holding the state of the breakdown scene
+  /// inspector.
+  @override
+  State<OcptBreakdownSceneInspector> createState() => _OcptBreakdownSceneInspectorState();
+}
+
+/// What [OcptBreakdownSceneInspector] reads off one scene: its live targets, the ones still to
+/// find, its tags flagged to check, and one group of alphabetised targets per bucket.
+class _OcptBreakdownSceneInspection {
+  /// Every live target of the scene.
+  final List<OcptBreakdownTarget> targets;
+
+  /// The scene's targets whose status is still `toFind`.
+  final List<OcptBreakdownTarget> toFindTargets;
+
+  /// The scene's tags flagged to check.
+  final List<OcptBreakdownTag> flaggedTags;
+
+  /// The scene's buckets, each with its own targets alphabetised by name.
+  final List<({OcptBreakdownSceneBarBucket bucket, List<OcptBreakdownTarget> targets})> groups;
+
+  /// Class constructor
+  const _OcptBreakdownSceneInspection({
+    required this.targets,
+    required this.toFindTargets,
+    required this.flaggedTags,
+    required this.groups,
+  });
+
+  /// Read [scene] against [targetById].
+  factory _OcptBreakdownSceneInspection.of(
+    OcptBreakdownScene scene,
+    OcptBreakdownTargetsById targetById,
+  ) {
+    final targets = ocptBreakdownSceneTargetsOf(scene, targetById);
+
+    return _OcptBreakdownSceneInspection(
+      targets: targets,
+      toFindTargets: targets.where((target) => target.status == OcptElementStatus.toFind).toList(),
+      flaggedTags: scene.tags.where((tag) => tag.needsCheck).toList(),
+      groups: [
+        for (final bucket in ocptBreakdownSceneBarBucketsOf(scene, targetById))
+          (
+            bucket: bucket,
+            targets:
+                targets
+                    .where(
+                      (target) => target.kind == bucket.kind && target.category == bucket.category,
+                    )
+                    .toList()
+                  ..sort((a, b) => a.name.compareTo(b.name)),
+          ),
+      ],
+    );
+  }
+}
+
+/// The state of [OcptBreakdownSceneInspector]: it keeps what is read off the scene, so that a
+/// rebuild which changes neither the scene nor its targets does not read it again.
+class _OcptBreakdownSceneInspectorState extends State<OcptBreakdownSceneInspector> {
+  /// What is read off the scene, or null while no scene is selected.
+  late _OcptBreakdownSceneInspection? _inspection = _inspectionOf(widget);
+
+  /// Read the scene again when it or its targets have changed.
+  @override
+  void didUpdateWidget(covariant OcptBreakdownSceneInspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.scene, widget.scene) ||
+        !identical(oldWidget.targetById, widget.targetById)) {
+      _inspection = _inspectionOf(widget);
+    }
+  }
+
+  /// Build the breakdown scene inspector as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final scene = this.scene;
+    final scene = widget.scene;
+    final derived = _inspection;
 
-    if (scene == null) {
+    if (scene == null || derived == null) {
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
@@ -165,15 +241,30 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
       );
     }
 
-    final targets = ocptBreakdownSceneTargetsOf(scene, targetById);
-    final toFindTargets = targets.where((target) => target.status == OcptElementStatus.toFind);
-    final flaggedTags = scene.tags.where((tag) => tag.needsCheck).toList();
-    final buckets = ocptBreakdownSceneBarBucketsOf(scene, targetById);
+    final targetById = widget.targetById;
+    final sets = widget.sets;
+    final locationNameById = widget.locationNameById;
+    final suggestedSetId = widget.suggestedSetId;
+    final onSetLinked = widget.onSetLinked;
+    final onSetUnlinked = widget.onSetUnlinked;
+    final locations = widget.locations;
+    final newSetName = widget.newSetName;
+    final onSetCreationRequested = widget.onSetCreationRequested;
+    final notesValue = widget.notesValue;
+    final onTargetSelected = widget.onTargetSelected;
+    final onStatusChanged = widget.onStatusChanged;
+    final onNotesChanged = widget.onNotesChanged;
+    final onTagNeedsCheckCleared = widget.onTagNeedsCheckCleared;
+    final onFlaggedTagRemoved = widget.onFlaggedTagRemoved;
+    final isReadOnly = widget.isReadOnly;
+    final targets = derived.targets;
+    final toFindTargets = derived.toFindTargets;
+    final flaggedTags = derived.flaggedTags;
 
     return ListView(
       // Keyed by the scene's own id so switching scenes always resets the scroll offset to the top
       // rather than keeping whatever position the previous scene's sheet was left at — the "to
-      // check" callout sits near the top precisely so the M4 warning-mark path
+      // check" callout sits near the top precisely so the warning-mark path
       // (`OcptBreakdownScenePanel.onWarningTapped`) lands the user on it without a further scroll.
       key: ValueKey(scene.id),
       padding: const EdgeInsets.all(16),
@@ -214,7 +305,10 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
           style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
-        _buildStatusChips(context, scene),
+        _StatusChips(
+          currentStatus: scene.status,
+          onStatusChanged: isReadOnly ? null : onStatusChanged,
+        ),
         const SizedBox(height: 16),
 
         Text(
@@ -222,16 +316,31 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
           style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
-        _buildSetsRow(context, tr, scene),
+        _SetsRow(
+          sceneId: scene.id,
+          sets: sets,
+          locationNameById: locationNameById,
+          suggestedSetId: suggestedSetId,
+          onSetLinked: onSetLinked,
+          onSetUnlinked: onSetUnlinked,
+          locations: locations,
+          newSetName: newSetName,
+          onSetCreationRequested: onSetCreationRequested,
+        ),
         const SizedBox(height: 16),
 
         if (toFindTargets.isNotEmpty) ...[
-          _buildToFindAlert(context, tr, toFindTargets.toList()),
+          _ToFindAlert(toFindTargets: toFindTargets),
           const SizedBox(height: 16),
         ],
 
         if (flaggedTags.isNotEmpty) ...[
-          _buildToCheckAlert(context, tr, flaggedTags),
+          _ToCheckAlert(
+            flaggedTags: flaggedTags,
+            targetById: targetById,
+            onTagNeedsCheckCleared: isReadOnly ? null : onTagNeedsCheckCleared,
+            onFlaggedTagRemoved: isReadOnly ? null : onFlaggedTagRemoved,
+          ),
           const SizedBox(height: 16),
         ],
 
@@ -242,9 +351,15 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
         const SizedBox(height: 8),
 
         if (targets.isEmpty)
-          _buildEmptyHint(context, tr)
+          const _EmptyHint()
         else
-          for (final bucket in buckets) _buildGroup(context, tr, bucket, targets, scene.id),
+          for (final group in derived.groups)
+            _Group(
+              bucket: group.bucket,
+              targets: group.targets,
+              sceneId: scene.id,
+              onTargetSelected: onTargetSelected,
+            ),
         const SizedBox(height: 16),
 
         OcptResourcesSheetField(
@@ -266,34 +381,105 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
     );
   }
 
-  /// The scene's own breakdown status chips, one per [OcptBreakdownSceneStatus], the current one
-  /// filled — the read-out for the fact the third stat tile used to show, [isReadOnly] withholding
-  /// the pick itself while leaving the current one visible.
-  Widget _buildStatusChips(BuildContext context, OcptBreakdownScene scene) => Wrap(
-    spacing: 6,
-    runSpacing: 6,
-    children: [
-      for (final status in OcptBreakdownSceneStatus.values)
-        OcptBreakdownChoiceChip(
-          label: ocptBreakdownSceneStatusLabel(Tr.of(context), status),
-          color: ocptBreakdownSceneStatusColor(context, status),
-          isSelected: scene.status == status,
-          onTap: isReadOnly || onStatusChanged == null ? null : () => onStatusChanged!(status),
-        ),
-    ],
-  );
+  /// Read the scene of [widget], or null while it has none.
+  static _OcptBreakdownSceneInspection? _inspectionOf(OcptBreakdownSceneInspector widget) {
+    final scene = widget.scene;
+    return scene == null ? null : _OcptBreakdownSceneInspection.of(scene, widget.targetById);
+  }
+}
 
-  /// The sets [scene] is shot in, as chips, followed by the picker adding one.
-  ///
-  /// A scene is regularly covered in two sets, so the picker **adds** rather than replaces, exactly
-  /// as the resources mode's own scene picker does from the other side; the sets already linked are
-  /// left out of it, and the suggested one comes first, marked as a suggestion.
-  Widget _buildSetsRow(BuildContext context, Tr tr, OcptBreakdownScene scene) {
+/// The scene's own breakdown status chips, one per [OcptBreakdownSceneStatus], the current one
+/// filled — the read-out for the fact the third stat tile used to show. A null [onStatusChanged]
+/// withholds the pick itself while leaving the current one visible.
+class _StatusChips extends StatelessWidget {
+  /// The status the scene currently has.
+  final OcptBreakdownSceneStatus currentStatus;
+
+  /// Called with the status just picked, or null while it may not be changed.
+  final ValueChanged<OcptBreakdownSceneStatus>? onStatusChanged;
+
+  /// Class constructor
+  const _StatusChips({required this.currentStatus, required this.onStatusChanged});
+
+  /// Build the status chips as a [Wrap].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final onStatusChanged = this.onStatusChanged;
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final status in OcptBreakdownSceneStatus.values)
+          OcptBreakdownChoiceChip(
+            label: ocptBreakdownSceneStatusLabel(tr, status),
+            color: ocptBreakdownSceneStatusColor(context, status),
+            isSelected: currentStatus == status,
+            onTap: onStatusChanged == null ? null : () => onStatusChanged(status),
+          ),
+      ],
+    );
+  }
+}
+
+/// The sets the scene is shot in, as chips, followed by the picker adding one.
+///
+/// A scene is regularly covered in two sets, so the picker **adds** rather than replaces, exactly
+/// as the resources mode's own scene picker does from the other side; the sets already linked are
+/// left out of it, and the suggested one comes first, marked as a suggestion.
+class _SetsRow extends StatelessWidget {
+  /// The id of the scene the row belongs to.
+  final String sceneId;
+
+  /// The whole set catalogue.
+  final List<OcptSet> sets;
+
+  /// The name of every live location, keyed by id.
+  final Map<String, String> locationNameById;
+
+  /// The id of the set the scene's heading suggests, or null.
+  final String? suggestedSetId;
+
+  /// Called with a set's id when it is picked, or null while it may not be written.
+  final ValueChanged<String>? onSetLinked;
+
+  /// Called with a set's id when its chip is dismissed, or null while it may not be written.
+  final ValueChanged<String>? onSetUnlinked;
+
+  /// Every live location of the project, `(id, name)`.
+  final List<(String, String)> locations;
+
+  /// The picker's name field's default text.
+  final String newSetName;
+
+  /// Called when a create-in entry of the picker is clicked, or null while nothing may be written.
+  final void Function(String name, String? locationId)? onSetCreationRequested;
+
+  /// Class constructor
+  const _SetsRow({
+    required this.sceneId,
+    required this.sets,
+    required this.locationNameById,
+    required this.suggestedSetId,
+    required this.onSetLinked,
+    required this.onSetUnlinked,
+    required this.locations,
+    required this.newSetName,
+    required this.onSetCreationRequested,
+  });
+
+  /// Build the sets row as a [Wrap].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final onSetUnlinked = this.onSetUnlinked;
+    final onSetLinked = this.onSetLinked;
+    final onSetCreationRequested = this.onSetCreationRequested;
     final linked = [
       for (final set in sets)
-        if (set.sceneIds.contains(scene.id)) set,
+        if (set.sceneIds.contains(sceneId)) set,
     ];
 
     return Wrap(
@@ -316,27 +502,38 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
             defaultName: newSetName,
             sets: sets,
             locationNameById: locationNameById,
-            sceneId: scene.id,
+            sceneId: sceneId,
             suggestedSetId: suggestedSetId,
             locations: locations,
-            onSetLinked: onSetLinked!,
-            onSetCreationRequested: onSetCreationRequested!,
+            onSetLinked: onSetLinked,
+            onSetCreationRequested: onSetCreationRequested,
           ),
       ],
     );
   }
+}
 
-  /// The warning callout naming [toFindTargets], comma-joined.
-  Widget _buildToFindAlert(BuildContext context, Tr tr, List<OcptBreakdownTarget> toFindTargets) {
+/// The warning callout naming the elements still to find, comma-joined.
+class _ToFindAlert extends StatelessWidget {
+  /// The targets still to find.
+  final List<OcptBreakdownTarget> toFindTargets;
+
+  /// Class constructor
+  const _ToFindAlert({required this.toFindTargets});
+
+  /// Build the to find alert as a [Container].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final color = ocptWarningColor(context);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,19 +563,46 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The warning callout listing [flaggedTags] — this class's own doc comment for what each row
-  /// offers and why both its actions act straight away, with no inline confirmation of their own.
-  Widget _buildToCheckAlert(BuildContext context, Tr tr, List<OcptBreakdownTag> flaggedTags) {
+/// The warning callout listing the flagged tags — `OcptBreakdownSceneInspector`'s own doc comment
+/// for what each row offers and why both its actions act straight away, with no inline
+/// confirmation of their own.
+class _ToCheckAlert extends StatelessWidget {
+  /// The tags whose `needsCheck` is set.
+  final List<OcptBreakdownTag> flaggedTags;
+
+  /// `{(kind, id): target}`, resolving each tag's target.
+  final OcptBreakdownTargetsById targetById;
+
+  /// Called with a tag's id when `Mark as checked` is clicked, or null while it may not be
+  /// answered.
+  final ValueChanged<String>? onTagNeedsCheckCleared;
+
+  /// Called with a tag's id when `Remove` is clicked, or null while it may not be answered.
+  final ValueChanged<String>? onFlaggedTagRemoved;
+
+  /// Class constructor
+  const _ToCheckAlert({
+    required this.flaggedTags,
+    required this.targetById,
+    required this.onTagNeedsCheckCleared,
+    required this.onFlaggedTagRemoved,
+  });
+
+  /// Build the to check alert as a [Container].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final color = ocptWarningColor(context);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,20 +623,54 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
               ),
             ],
           ),
-          for (final tag in flaggedTags) _buildNeedsCheckRow(context, tr, tag),
+          for (final tag in flaggedTags)
+            _NeedsCheckRow(
+              tag: tag,
+              target: targetById[(tag.targetKind, tag.targetId)],
+              onTagNeedsCheckCleared: onTagNeedsCheckCleared,
+              onFlaggedTagRemoved: onFlaggedTagRemoved,
+            ),
         ],
       ),
     );
   }
+}
 
-  /// One row of [_buildToCheckAlert]: [tag]'s own passage, verbatim, and the name of the target it
-  /// points at — [targetById] resolving to nothing (a tombstoned catalogue row, per
-  /// `OcptBreakdownSnapshot.build`'s own doc comment) shows the passage alone rather than crashing —
-  /// then, unless [isReadOnly], its two actions.
-  Widget _buildNeedsCheckRow(BuildContext context, Tr tr, OcptBreakdownTag tag) {
+/// One row of [_ToCheckAlert]: the tag's own passage, verbatim, and the name of the target it
+/// points at — a null target (a tombstoned catalogue row, per `OcptBreakdownSnapshot.build`'s own
+/// doc comment) shows the passage alone rather than crashing — then its two actions, each withheld
+/// while its callback is null.
+class _NeedsCheckRow extends StatelessWidget {
+  /// The flagged tag.
+  final OcptBreakdownTag tag;
+
+  /// The target [tag] points at, or null when it no longer resolves.
+  final OcptBreakdownTarget? target;
+
+  /// Called with the tag's id when `Mark as checked` is clicked, or null while it may not be
+  /// answered.
+  final ValueChanged<String>? onTagNeedsCheckCleared;
+
+  /// Called with the tag's id when `Remove` is clicked, or null while it may not be answered.
+  final ValueChanged<String>? onFlaggedTagRemoved;
+
+  /// Class constructor
+  const _NeedsCheckRow({
+    required this.tag,
+    required this.target,
+    required this.onTagNeedsCheckCleared,
+    required this.onFlaggedTagRemoved,
+  });
+
+  /// Build the needs check row as a [Padding].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final color = ocptWarningColor(context);
-    final target = targetById[(tag.targetKind, tag.targetId)];
+    final target = this.target;
+    final onTagNeedsCheckCleared = this.onTagNeedsCheckCleared;
+    final onFlaggedTagRemoved = this.onFlaggedTagRemoved;
 
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -431,9 +689,9 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
             runSpacing: 2,
             children: [
               TextButton(
-                onPressed: isReadOnly || onTagNeedsCheckCleared == null
+                onPressed: onTagNeedsCheckCleared == null
                     ? null
-                    : () => onTagNeedsCheckCleared!(tag.id),
+                    : () => onTagNeedsCheckCleared(tag.id),
                 style: TextButton.styleFrom(
                   foregroundColor: color,
                   padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -443,9 +701,7 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
                 child: Text(tr.breakdownSceneInspectorNeedsCheckClearAction),
               ),
               TextButton(
-                onPressed: isReadOnly || onFlaggedTagRemoved == null
-                    ? null
-                    : () => onFlaggedTagRemoved!(tag.id),
+                onPressed: onFlaggedTagRemoved == null ? null : () => onFlaggedTagRemoved(tag.id),
                 style: TextButton.styleFrom(
                   foregroundColor: color,
                   padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -460,17 +716,25 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The dashed hint shown while [scene] has no live target at all.
-  Widget _buildEmptyHint(BuildContext context, Tr tr) {
+/// The dashed hint shown while the scene has no live target at all.
+class _EmptyHint extends StatelessWidget {
+  /// Class constructor
+  const _EmptyHint();
+
+  /// Build the empty hint as a [Container].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Text(
         tr.breakdownSceneInspectorEmptyHint,
@@ -478,20 +742,36 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// One category (or role/set) group: [bucket]'s own swatch, label and count, then a clickable row
-  /// per target of [allTargets] falling under it, alphabetised by name.
-  Widget _buildGroup(
-    BuildContext context,
-    Tr tr,
-    OcptBreakdownSceneBarBucket bucket,
-    List<OcptBreakdownTarget> allTargets,
-    String sceneId,
-  ) {
+/// One category (or role/set) group: [bucket]'s own swatch, label and count, then a clickable row
+/// per target of [targets], which are the ones falling under it.
+class _Group extends StatelessWidget {
+  /// The bucket the group shows.
+  final OcptBreakdownSceneBarBucket bucket;
+
+  /// The live targets of the scene under [bucket], alphabetised by name.
+  final List<OcptBreakdownTarget> targets;
+
+  /// The id of the scene the targets are selected under.
+  final String sceneId;
+
+  /// Called with a target's kind, its id and [sceneId] when one of its rows is clicked.
+  final void Function(OcptBreakdownTargetKind kind, String id, String sceneId) onTargetSelected;
+
+  /// Class constructor
+  const _Group({
+    required this.bucket,
+    required this.targets,
+    required this.sceneId,
+    required this.onTargetSelected,
+  });
+
+  /// Build the group as a [Padding].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final groupTargets =
-        allTargets.where((target) => target.kind == bucket.kind && target.category == bucket.category).toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
+    final tr = Tr.of(context);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -519,24 +799,26 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
                 ),
               ),
               Text(
-                "${groupTargets.length}",
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                "${targets.length}",
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          for (final target in groupTargets)
+          for (final target in targets)
             Padding(
               padding: const EdgeInsets.only(bottom: 5),
               child: InkWell(
                 onTap: () => onTargetSelected(target.kind, target.id, sceneId),
-                mouseCursor: ocptClickableCursor,
-                borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                mouseCursor: ocpt_theme.ocptClickableCursor,
+                borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
                   decoration: BoxDecoration(
                     border: Border.all(color: theme.colorScheme.outlineVariant),
-                    borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                    borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                   ),
                   child: Row(
                     children: [
@@ -577,6 +859,7 @@ class _StatTile extends StatelessWidget {
   /// Class constructor
   const _StatTile({required this.label, required this.value, this.color});
 
+  /// Build the stat tile as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -586,7 +869,7 @@ class _StatTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -600,10 +883,7 @@ class _StatTile extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, color: color),
           ),
         ],
       ),
@@ -620,6 +900,7 @@ class _StatusPill extends StatelessWidget {
   /// Class constructor
   const _StatusPill({required this.status});
 
+  /// Build the status pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -628,8 +909,8 @@ class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Text(
         ocptElementStatusLabel(Tr.of(context), status),

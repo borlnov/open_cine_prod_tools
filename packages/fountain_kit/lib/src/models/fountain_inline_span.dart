@@ -3,29 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:fountain_kit/src/models/fountain_inline_style.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
-
-/// The inline emphasis style carried by a [FountainInlineSpan].
-enum FountainInlineStyle {
-  /// Unstyled text, not wrapped in any emphasis marker.
-  plain,
-
-  /// Text wrapped in single asterisks, `*like this*`.
-  italic,
-
-  /// Text wrapped in double asterisks, `**like this**`.
-  bold,
-
-  /// Text wrapped in triple asterisks, `***like this***`.
-  boldItalic,
-
-  /// Text wrapped in underscores, `_like this_`.
-  underline,
-
-  /// Text wrapped in double square brackets, `[[like this]]`, an inline
-  /// authoring note that is not part of the printed screenplay.
-  note,
-}
 
 /// A single run of inline-styled text produced by parsing Fountain emphasis
 /// markers.
@@ -33,13 +12,6 @@ enum FountainInlineStyle {
 /// Emphasis in Fountain never spans a line break, so a [FountainInlineSpan]
 /// always covers text from a single source line.
 class FountainInlineSpan extends Equatable {
-  /// Creates a [FountainInlineSpan].
-  const FountainInlineSpan({
-    required this.text,
-    required this.style,
-    required this.sourceRange,
-  });
-
   /// The rendered text of this span, with any emphasis or note markers
   /// already stripped and escape sequences already resolved.
   final String text;
@@ -51,12 +23,17 @@ class FountainInlineSpan extends Equatable {
   /// parsed from (including its emphasis/note markers).
   final FountainSourceRange sourceRange;
 
-  @override
-  List<Object?> get props => [text, style, sourceRange];
+  /// Create a [FountainInlineSpan].
+  const FountainInlineSpan({required this.text, required this.style, required this.sourceRange});
 
+  /// Describe this [FountainInlineSpan] for debugging and logging.
   @override
   String toString() => 'FountainInlineSpan($style, ${_quote(text)})';
 
-  /// Wraps [value] in double quotes for use in [toString] output.
+  /// Wrap [value] in double quotes for use in [toString] output.
   static String _quote(String value) => '"$value"';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [text, style, sourceRange];
 }

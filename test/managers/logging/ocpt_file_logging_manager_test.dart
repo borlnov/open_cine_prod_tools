@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:act_foundation/act_foundation.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_external_logger_key.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_external_logger.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_logging_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
@@ -17,19 +18,24 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 /// reacts to those two values, not how they get parsed (`ocpt_config_manager_test.dart` covers
 /// that).
 class _FakeConfigManager extends OcptConfigManager {
+  /// Whether the file log is enabled.
+  final bool _fileLogEnabled;
+
+  /// The level of the file log.
+  final LogsLevel _fileLogLevel;
+
+  /// Read whether the file log is enabled.
+  @override
+  bool get fileLogEnabled => _fileLogEnabled;
+
+  /// Read the level of the file log.
+  @override
+  LogsLevel get fileLogLevel => _fileLogLevel;
+
   /// Class constructor
   _FakeConfigManager({required bool fileLogEnabled, LogsLevel fileLogLevel = LogsLevel.info})
     : _fileLogEnabled = fileLogEnabled,
       _fileLogLevel = fileLogLevel;
-
-  final bool _fileLogEnabled;
-  final LogsLevel _fileLogLevel;
-
-  @override
-  bool get fileLogEnabled => _fileLogEnabled;
-
-  @override
-  LogsLevel get fileLogLevel => _fileLogLevel;
 }
 
 /// A [LoggerManager] recording every `addExternalLogger`/`removeExternalLogger` call instead of
@@ -39,6 +45,12 @@ class _FakeConfigManager extends OcptConfigManager {
 /// the [OcptFileExternalLogger] under test starts real timers that must be cancelled before a
 /// test's temporary directory is deleted underneath them.
 class _RecordingLoggerManager extends LoggerManager {
+  /// Every logger added so far, keyed by the key it was added under.
+  final Map<Enum, MixinExternalLogger> added = {};
+
+  /// Every key a logger was removed from.
+  final List<Enum> removed = [];
+
   /// Class constructor
   ///
   /// [loggerConfigGetter] is never actually called: this class overrides every method of
@@ -46,12 +58,7 @@ class _RecordingLoggerManager extends LoggerManager {
   /// fake by these tests).
   _RecordingLoggerManager() : super(loggerConfigGetter: () => throw UnimplementedError());
 
-  /// Every logger added so far, keyed by the key it was added under.
-  final Map<Enum, MixinExternalLogger> added = {};
-
-  /// Every key a logger was removed from.
-  final List<Enum> removed = [];
-
+  /// Replace any logger registered under [loggerKey], initialise [externalLogger] and record it.
   @override
   Future<void> addExternalLogger(Enum loggerKey, MixinExternalLogger externalLogger) async {
     await removeExternalLogger(loggerKey);
@@ -59,6 +66,7 @@ class _RecordingLoggerManager extends LoggerManager {
     added[loggerKey] = externalLogger;
   }
 
+  /// Record the removal of [loggerKey] and dispose the logger it held.
   @override
   Future<void> removeExternalLogger(Enum loggerKey) async {
     removed.add(loggerKey);
@@ -66,6 +74,7 @@ class _RecordingLoggerManager extends LoggerManager {
   }
 }
 
+/// Run the tests of [OcptFileLoggingManager].
 void main() {
   // appLogger() (used on a caught setup failure) requires a global manager instance to exist;
   // merely accessing it creates the (otherwise unused) safe-logger singleton, exactly the pattern
@@ -99,8 +108,7 @@ void main() {
     });
 
     test('the registered logger writes under the resolved directory, at the configured level', () {
-      final fileLogger =
-          loggerManager.added[OcptExternalLoggerKey.file]! as OcptFileExternalLogger;
+      final fileLogger = loggerManager.added[OcptExternalLoggerKey.file]! as OcptFileExternalLogger;
 
       expect(fileLogger.logDirectoryPath, tempDir.path);
       expect(fileLogger.minLevel, LogsLevel.debug);
@@ -137,22 +145,25 @@ void main() {
   });
 
   group('OcptFileLoggingManager, config enabled on a mobile platform', () {
-    test('registers no logger: a phone never writes a log file even where config enables it', () async {
-      final loggerManager = _RecordingLoggerManager();
-      final manager = OcptFileLoggingManager(
-        configManager: _FakeConfigManager(fileLogEnabled: true, fileLogLevel: LogsLevel.debug),
-        loggerManager: loggerManager,
-        resolveLogDirectoryPath: () async => throw StateError('should not be reached'),
-        isDesktopPlatform: () => false,
-      );
+    test(
+      'registers no logger: a phone never writes a log file even where config enables it',
+      () async {
+        final loggerManager = _RecordingLoggerManager();
+        final manager = OcptFileLoggingManager(
+          configManager: _FakeConfigManager(fileLogEnabled: true, fileLogLevel: LogsLevel.debug),
+          loggerManager: loggerManager,
+          resolveLogDirectoryPath: () async => throw StateError('should not be reached'),
+          isDesktopPlatform: () => false,
+        );
 
-      await manager.initLifeCycle();
+        await manager.initLifeCycle();
 
-      expect(loggerManager.added, isEmpty);
-      expect(manager.logFilePath, isNull);
+        expect(loggerManager.added, isEmpty);
+        expect(manager.logFilePath, isNull);
 
-      await manager.disposeLifeCycle();
-    });
+        await manager.disposeLifeCycle();
+      },
+    );
   });
 
   group('OcptFileLoggingManager, log directory resolution failure', () {
@@ -161,7 +172,8 @@ void main() {
       final manager = OcptFileLoggingManager(
         configManager: _FakeConfigManager(fileLogEnabled: true),
         loggerManager: loggerManager,
-        resolveLogDirectoryPath: () async => throw const FileSystemException('read-only file system'),
+        resolveLogDirectoryPath: () async =>
+            throw const FileSystemException('read-only file system'),
       );
 
       await manager.initLifeCycle();

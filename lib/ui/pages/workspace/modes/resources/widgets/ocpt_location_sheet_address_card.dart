@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 /// "Address and access": the location's postal address in the six fields an address is made of, its
 /// GPS coordinates, and who to contact about it.
 ///
-/// The six address fields are `people`'s own (decision 10 of the plan this ships under): an address
+/// The six address fields are `people`'s own: an address
 /// has one shape wherever it appears, and a call sheet prints a location's exactly as it prints a
 /// person's.
 ///
@@ -35,8 +35,7 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
   /// The location's current value for `field`.
   final String Function(OcptLocationField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptLocationField field, String rawValue)? onFieldChanged;
 
   /// Called with the person now to contact, or null to clear it; itself null while the contact may
@@ -59,6 +58,7 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
     required this.onPersonSheetOpenRequested,
   });
 
+  /// Build the location sheet address card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -68,27 +68,37 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _field(context, OcptLocationField.addressLine1, tr.resourcesAddressLine1Label),
+          _LocationTextField(
+            card: this,
+            field: OcptLocationField.addressLine1,
+            label: tr.resourcesAddressLine1Label,
+          ),
           const SizedBox(height: 8),
-          _field(context, OcptLocationField.addressLine2, tr.resourcesAddressLine2Label),
+          _LocationTextField(
+            card: this,
+            field: OcptLocationField.addressLine2,
+            label: tr.resourcesAddressLine2Label,
+          ),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _field(context, OcptLocationField.postalCode, tr.resourcesPostalCodeLabel),
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.postalCode,
+                  label: tr.resourcesPostalCodeLabel,
+                ),
               ),
               const SizedBox(width: 10),
-              Expanded(flex: 2, child: _field(context, OcptLocationField.city, tr.resourcesCityLabel)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _field(context, OcptLocationField.region, tr.resourcesRegionLabel)),
-              const SizedBox(width: 10),
-              Expanded(child: _field(context, OcptLocationField.country, tr.resourcesCountryLabel)),
+              Expanded(
+                flex: 2,
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.city,
+                  label: tr.resourcesCityLabel,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -96,57 +106,72 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _field(
-                  context,
-                  OcptLocationField.latitude,
-                  tr.resourcesLatitudeLabel,
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.region,
+                  label: tr.resourcesRegionLabel,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.country,
+                  label: tr.resourcesCountryLabel,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.latitude,
+                  label: tr.resourcesLatitudeLabel,
                   errorTextOf: (value) => _coordinateErrorOf(tr, value),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _field(
-                  context,
-                  OcptLocationField.longitude,
-                  tr.resourcesLongitudeLabel,
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.longitude,
+                  label: tr.resourcesLongitudeLabel,
                   errorTextOf: (value) => _coordinateErrorOf(tr, value),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          _buildContactPicker(tr),
+          OcptResourcesPersonPicker(
+            people: people,
+            selectedPerson: contact,
+            label: tr.resourcesLocationContactLabel,
+            emptyLabel: tr.resourcesLocationNoContact,
+            onChanged: onContactChanged,
+            onPersonSheetOpenRequested: onPersonSheetOpenRequested,
+          ),
           const SizedBox(height: 8),
-          _field(context, OcptLocationField.contactNotes, tr.resourcesLocationContactNotesLabel),
+          _LocationTextField(
+            card: this,
+            field: OcptLocationField.contactNotes,
+            label: tr.resourcesLocationContactNotesLabel,
+          ),
         ],
       ),
     );
   }
 
-  /// One text field of the card, labelled [label] and writing [field].
-  Widget _field(
-    BuildContext context,
-    OcptLocationField field,
-    String label, {
-    String? Function(String value)? errorTextOf,
-  }) {
-    final onFieldChanged = this.onFieldChanged;
-
-    return OcptResourcesSheetField(
-      ownerId: locationId,
-      label: label,
-      value: fieldValueOf(field),
-      errorTextOf: errorTextOf,
-      onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(field, value),
-    );
-  }
-
-  /// What is wrong with the coordinate [value], or null when there is nothing to say about it.
+  /// Describe what is wrong with the coordinate [value], or null when there is nothing to say about
+  /// it.
   ///
-  /// A **remark, never a gate** (decision 11 of the plan this ships under, the rule the email field
-  /// already follows): the value is written either way — as no coordinate at all, since a location
-  /// half-way through being pinned is not at 45 degrees north of nowhere — and the field says so
-  /// once it loses the focus. An empty field is not an error: most locations are never pinned.
+  /// A **remark, never a gate** (the rule the email field already follows): the value is written
+  /// either way — as no coordinate at all, since a location half-way through being pinned is not at
+  /// 45 degrees north of nowhere — and the field says so once it loses the focus. An empty field is
+  /// not an error: most locations are never pinned.
   String? _coordinateErrorOf(Tr tr, String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty || double.tryParse(trimmed) != null) {
@@ -155,15 +180,42 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
 
     return tr.resourcesCoordinateFormatError;
   }
+}
 
-  /// Builds the contact line: the shared [OcptResourcesPersonPicker] over the whole address book,
-  /// carrying the `↗` that opens the contact's own sheet.
-  Widget _buildContactPicker(Tr tr) => OcptResourcesPersonPicker(
-    people: people,
-    selectedPerson: contact,
-    label: tr.resourcesLocationContactLabel,
-    emptyLabel: tr.resourcesLocationNoContact,
-    onChanged: onContactChanged,
-    onPersonSheetOpenRequested: onPersonSheetOpenRequested,
-  );
+/// One text field of [OcptLocationSheetAddressCard], labelled [label] and writing [field].
+class _LocationTextField extends StatelessWidget {
+  /// The card the field belongs to, which holds the location id and the way its fields are read and
+  /// written.
+  final OcptLocationSheetAddressCard card;
+
+  /// The location field this text field writes.
+  final OcptLocationField field;
+
+  /// The label shown over the field.
+  final String label;
+
+  /// Describe what is wrong with a value, or null for a field that never complains.
+  final String? Function(String value)? errorTextOf;
+
+  /// Class constructor
+  const _LocationTextField({
+    required this.card,
+    required this.field,
+    required this.label,
+    this.errorTextOf,
+  });
+
+  /// Build the location text field as an [OcptResourcesSheetField].
+  @override
+  Widget build(BuildContext context) {
+    final onFieldChanged = card.onFieldChanged;
+
+    return OcptResourcesSheetField(
+      ownerId: card.locationId,
+      label: label,
+      value: card.fieldValueOf(field),
+      errorTextOf: errorTextOf,
+      onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(field, value),
+    );
+  }
 }

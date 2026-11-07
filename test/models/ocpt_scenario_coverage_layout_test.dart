@@ -4,6 +4,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_bar_side.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_tick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
@@ -102,6 +104,18 @@ OcptShot _buildShot({
 /// A screenplay parsed, composed and ready to be laid coverage out over: everything
 /// [OcptScenarioCoverageLayout.of] needs except the shot list itself.
 class _ComposedScreenplay {
+  /// The screenplay's whole Fountain text.
+  final String text;
+
+  /// The parsed document, the scene bounds are read from.
+  final FountainDocument document;
+
+  /// The metrics the screenplay was composed with.
+  final FountainLayoutMetrics metrics;
+
+  /// The composed pages.
+  final FountainScriptLayout script;
+
   /// Creates a [_ComposedScreenplay] by parsing and composing [text].
   factory _ComposedScreenplay(String text) {
     final document = const FountainParser().parse(text);
@@ -121,18 +135,6 @@ class _ComposedScreenplay {
     required this.metrics,
     required this.script,
   });
-
-  /// The screenplay's whole Fountain text.
-  final String text;
-
-  /// The parsed document, the scene bounds are read from.
-  final FountainDocument document;
-
-  /// The metrics the screenplay was composed with.
-  final FountainLayoutMetrics metrics;
-
-  /// The composed pages.
-  final FountainScriptLayout script;
 
   /// Builds the [OcptSceneShotSequence] of the [index]th scene of the screenplay, holding [shots],
   /// with the very character bounds `OcptSceneIndexService` would have stored for it.
@@ -173,6 +175,7 @@ class _ComposedScreenplay {
       );
 }
 
+/// Run the tests of [OcptScenarioCoverageLayout].
 void main() {
   group("OcptScenarioCoverageLayout.of bars", () {
     test("draws one bar on the rows the covered passage was printed on", () {

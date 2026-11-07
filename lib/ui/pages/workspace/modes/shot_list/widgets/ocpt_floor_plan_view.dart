@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_fit.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
@@ -19,21 +20,23 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_focus_strip.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_prop_chip.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_live_override.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_tool_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_tray_sequence_camera.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_viewport_controller.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_fit.dart';
 
 /// The floor plans view's own frame, filling the centre while `OcptShotListCentreView.floorPlans`
 /// is shown: the tool bar across the top, the layer tray down
 /// the left of the canvas, the canvas itself, and the focus strip along the bottom.
 ///
-/// **A `StatefulWidget` (the documented RFL1 exception)**, the very reason `_ShotListViewState`
+/// **A `StatefulWidget` (the documented exception)**, the very reason `_ShotListViewState`
 /// (`shot_list_mode.dart`) is one: this view owns an `OcptFloorPlanViewportController`, whose zoom
 /// and pan are mutated per frame during a gesture with no bloc emission — see that controller's own
-/// doc comment. It is created once, seeded from [initialZoom] (`OcptShotListState.floorPlanZoom`,
-/// the last value the bloc saw settled), and disposed when this view unmounts (switching away from
-/// the floor plans centre view, or leaving the mode): a set tab switch keeps it, since only the
-/// centre view switch remounts this widget.
+/// doc comment. It is created once, seeded from [initialZoom]
+/// (`OcptShotListFloorPlanSetsState.floorPlanZoom`, the last value the bloc saw settled), and
+/// disposed when this view unmounts (switching away from the floor plans centre view, or leaving
+/// the mode): a set tab switch keeps it, since only the centre view switch remounts this widget.
 ///
 /// **`←`/`→` walk the sequence's shots** ([onShotWalkRequested]) and `Escape` cancels the arrow
 /// tool's own pending anchor ([onArrowAnchorCancelled]): both live on a `Focus` wrapping the whole
@@ -68,7 +71,7 @@ class OcptFloorPlanView extends StatefulWidget {
   final String sequenceCode;
 
   /// The id of the currently focused shot, or null for the `Sequence` focus. Derived by the mode
-  /// from `OcptShotListState.selectedShotId` — see `OcptShotListState.isFloorPlanShotFocusActive`.
+  /// from `OcptShotListState.selectedShotId`: no shot selected means the `Sequence` focus.
   final String? focusShotId;
 
   /// The shot immediately before [focusShotId], or null while there is none.
@@ -158,9 +161,9 @@ class OcptFloorPlanView extends StatefulWidget {
   /// itself.
   final ValueChanged<OcptFloorPlanSetElementShape> onSetElementShapeSelected;
 
-  /// Called with the scope just picked alongside a typed set-element entry ([OcptFloorPlanScope.set]
-  /// for the `Set` group's own four, [OcptFloorPlanScope.scene] for the `Sequence` group's own
-  /// furniture/freeform pair) — click-to-arms [activeSetElementScope].
+  /// Called with the scope just picked alongside a typed set-element entry
+  /// ([OcptFloorPlanScope.set] for the `Set` group's own four, [OcptFloorPlanScope.scene] for the
+  /// `Sequence` group's own furniture/freeform pair) — click-to-arms [activeSetElementScope].
   final ValueChanged<OcptFloorPlanScope> onSetElementScopeSelected;
 
   /// Called with a props chip's own label when it is clicked (click-to-arm) — arms
@@ -368,10 +371,12 @@ class OcptFloorPlanView extends StatefulWidget {
     this.onScopeBubbleCancelRequested,
   });
 
+  /// Create the [_OcptFloorPlanViewState] holding the state of the floor plan view.
   @override
   State<OcptFloorPlanView> createState() => _OcptFloorPlanViewState();
 }
 
+/// State of [OcptFloorPlanView]: owns the viewport controller and the keyboard focus node.
 class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   /// The live zoom/pan source of truth for as long as this view stays mounted — see the class doc
   /// comment.
@@ -394,12 +399,63 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   /// button, which calls [_fitToContent] directly, bypassing this guard on purpose) does.
   String? _framedSetId;
 
+  /// Get [OcptFloorPlanView.focusShotId]'s own display code (`12/3`) among
+  /// [OcptFloorPlanView.shots], or null while no shot is focused — the palette's own `Shot <code> —
+  /// this shot only` group header.
+  String? get _focusShotCode {
+    final focusShotId = widget.focusShotId;
+    if (focusShotId == null) {
+      return null;
+    }
+    for (final shot in widget.shots) {
+      if (shot.id == focusShotId) {
+        return shot.code;
+      }
+    }
+    return null;
+  }
+
+  /// Get each `View` group layer's own count of elements the canvas currently draws for the focused
+  /// sequence/shot, before `OcptFloorPlanCanvas._sheetOf`'s own hidden-layers/hidden-cameras
+  /// visibility filter — built the same way that filter's own `full` sheet is, so
+  /// `OcptFloorPlanPalette`'s own counts never depend on the very toggles they sit next to. Empty
+  /// while [OcptFloorPlanView.floorPlanSet] is null (nothing to count yet).
+  Map<OcptFloorPlanLayer, int> get _layerElementCounts {
+    final floorPlanSet = widget.floorPlanSet;
+    if (floorPlanSet == null) {
+      return const {};
+    }
+
+    final sheet = OcptFloorPlanSheet.of(
+      floorPlanSet: floorPlanSet,
+      focusSceneId: widget.focusSceneId,
+      focusShotId: widget.focusShotId,
+      shotRankByShotId: widget.shotRankByShotId,
+      previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
+      nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
+    );
+
+    final counts = <OcptFloorPlanLayer, int>{};
+    for (final symbol in sheet.symbols) {
+      // The faint ghost of an overridden original is the same element as its override, drawn
+      // again at its old place: counting it would count that element twice.
+      if (symbol.isOverriddenOriginalGhost) {
+        continue;
+      }
+      counts[symbol.layer] = (counts[symbol.layer] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  /// Fit the plan to its content after the first frame.
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _fitToContentIfSetChanged());
   }
 
+  /// Sync the viewport with a persisted zoom that changed, and fit the plan again when the set
+  /// changes.
   @override
   void didUpdateWidget(covariant OcptFloorPlanView oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -418,13 +474,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     }
   }
 
-  @override
-  void dispose() {
-    _viewportController.dispose();
-    _keyboardFocusNode.dispose();
-    super.dispose();
-  }
-
+  /// Build the floor plan view as a [Focus].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -483,8 +533,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                       onSetElementShapeSelected: widget.onSetElementShapeSelected,
                       onSetElementScopeSelected: widget.onSetElementScopeSelected,
                       onPropChipSelected: widget.onPropChipSelected,
-                      onOtherPropRequested: () =>
-                          unawaited(_handleOtherPropRequested(context)),
+                      onOtherPropRequested: () => unawaited(_handleOtherPropRequested(context)),
                       onLayerVisibilityToggled: widget.onLayerVisibilityToggled,
                       onCameraVisibilityToggled: widget.onCameraVisibilityToggled,
                       onOnionSkinToggled: widget.onOnionSkinToggled,
@@ -572,55 +621,8 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     );
   }
 
-  /// [OcptFloorPlanView.focusShotId]'s own display code (`12/3`) among
-  /// [OcptFloorPlanView.shots], or null while no shot is focused — the palette's own `Shot <code> —
-  /// this shot only` group header.
-  String? get _focusShotCode {
-    final focusShotId = widget.focusShotId;
-    if (focusShotId == null) {
-      return null;
-    }
-    for (final shot in widget.shots) {
-      if (shot.id == focusShotId) {
-        return shot.code;
-      }
-    }
-    return null;
-  }
-
-  /// Each `View` group layer's own count of elements the canvas currently draws for the focused
-  /// sequence/shot, before `OcptFloorPlanCanvas._sheetOf`'s own hidden-layers/hidden-cameras
-  /// visibility filter — built the same way that filter's own `full` sheet is, so
-  /// `OcptFloorPlanPalette`'s own counts never depend on the very toggles they sit next to. Empty
-  /// while [OcptFloorPlanView.floorPlanSet] is null (nothing to count yet).
-  Map<OcptFloorPlanLayer, int> get _layerElementCounts {
-    final floorPlanSet = widget.floorPlanSet;
-    if (floorPlanSet == null) {
-      return const {};
-    }
-
-    final sheet = OcptFloorPlanSheet.of(
-      floorPlanSet: floorPlanSet,
-      focusSceneId: widget.focusSceneId,
-      focusShotId: widget.focusShotId,
-      shotRankByShotId: widget.shotRankByShotId,
-      previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
-      nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
-    );
-
-    final counts = <OcptFloorPlanLayer, int>{};
-    for (final symbol in sheet.symbols) {
-      // The faint ghost of an overridden original is the same element as its override, drawn
-      // again at its old place: counting it would count that element twice.
-      if (symbol.isOverriddenOriginalGhost) {
-        continue;
-      }
-      counts[symbol.layer] = (counts[symbol.layer] ?? 0) + 1;
-    }
-    return counts;
-  }
-
-  /// `←`/`→` walk the sequence's shots; `Escape` cancels the arrow tool's own pending anchor while
+  /// Handle key presses: `←`/`→` walk the sequence's shots; `Escape` cancels the arrow tool's own
+  /// pending anchor while
   /// one is pending; `Ctrl+D` duplicates the selected symbol — see the class doc comment.
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) {
@@ -652,7 +654,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     return KeyEventResult.ignored;
   }
 
-  /// [_fitToContent]'s own guarded entry point: a no-op while [OcptFloorPlanView.floorPlanSet]
+  /// Guard the call to [_fitToContent]: a no-op while [OcptFloorPlanView.floorPlanSet]
   /// is null (nothing to frame) or already names [_framedSetId] (already framed — an unrelated
   /// rebuild, or the user's own pan/zoom, never re-triggers this), otherwise records it as framed
   /// and fits. Always called after a frame ([initState]/[didUpdateWidget]'s own post-frame
@@ -669,12 +671,13 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     _fitToContent();
   }
 
-  /// Fits the viewport onto [OcptFloorPlanView.floorPlanSet]'s own drawn content
+  /// Fit the viewport onto [OcptFloorPlanView.floorPlanSet]'s own drawn content
   /// (`ocptFloorPlanFitOf`), reporting the fitted zoom through [OcptFloorPlanView.onZoomSettled] so
   /// it becomes the bloc's own persisted value — the same path a tool bar zoom click reports
   /// through — and never fights [OcptFloorPlanViewportController.syncZoomFromPersisted] on the next
-  /// rebuild. A no-op while there is no set, no canvas size yet (the render object isn't resolvable,
-  /// defensive only), or the sheet draws nothing at all (an empty plan keeps the default view).
+  /// rebuild. A no-op while there is no set, no canvas size yet (the render object isn't
+  /// resolvable, defensive only), or the sheet draws nothing at all (an empty plan keeps the
+  /// default view).
   void _fitToContent() {
     final floorPlanSet = widget.floorPlanSet;
     if (floorPlanSet == null) {
@@ -706,11 +709,11 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     widget.onZoomSettled(fit.zoom);
   }
 
-  /// Opens the character name-picker dialog's own pattern for a free-typed prop label (the
-  /// palette's own `Other…` chip, with its own title and field hint — the reused dialog must
-  /// never still hint at a character), then places it at once — at the centre of this view's own
-  /// currently visible canvas area, at scene scope on [OcptFloorPlanView.focusSceneId] — and
-  /// selects it, exactly like every other placement (`OcptShotListBloc._onFloorPlanSymbolPlaced`
+  /// Open the character name-picker dialog's own pattern for a free-typed prop label (the palette's
+  /// own `Other…` chip, with its own title and field hint — the reused dialog must never still hint
+  /// at a character), then place it at once — at the centre of this view's own currently visible
+  /// canvas area, at scene scope on [OcptFloorPlanView.focusSceneId] — and select it, exactly like
+  /// every other placement (`OcptShotListBloc._onFloorPlanSymbolPlaced`
   /// already selects whatever it just placed). Never arms the `prop` tool the way the chips do:
   /// a free-typed label is one-shot, unlike a chip staying usable for several placements.
   ///
@@ -755,5 +758,13 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
       centreMetres.dy,
       label: picked,
     );
+  }
+
+  /// Dispose [_viewportController] and [_keyboardFocusNode].
+  @override
+  void dispose() {
+    _viewportController.dispose();
+    _keyboardFocusNode.dispose();
+    super.dispose();
   }
 }

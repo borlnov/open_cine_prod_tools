@@ -3,74 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
-
-/// The five documents the capture wizard's own step 1 groups its fifteen answers under — the
-/// headings, not states of mind: each names the thing being worked on, exactly as the mode's own
-/// four chips already do for the working surfaces themselves
-/// (`docs/architecture/budget.md`).
-///
-/// [ocptBudgetGestureFamilyOf] is the only way a caller ever asks which heading an
-/// [OcptBudgetGesture] sits under — nothing else in this file switches over the fifteen answers by
-/// hand.
-enum OcptBudgetGestureFamily {
-  /// `Le devis` — what the film is going to cost, poste by poste.
-  quote,
-
-  /// `L'argent qui a bougé` — what has already entered or left the account.
-  cashMovement,
-
-  /// `Le plan de financement` — what is promised, and not yet arrived.
-  financingPlan,
-
-  /// `Les défraiements` — what the production owes the people who advanced money for it.
-  allowances,
-
-  /// `Le partage des recettes` — who touches what of what the film earns.
-  revenueSharing,
-}
-
-/// Which direction money moves under a gesture — what the `+ New` wizard filters by when it opens
-/// from a working view, transverse to the families. See [ocptBudgetGestureFlowsOf].
-enum OcptBudgetGestureFlow {
-  /// The gesture makes money go out, planned or paid — the `Expenses` view's own filter.
-  spends,
-
-  /// The gesture brings money in, planned or received — the `Resources` view's own filter.
-  brings,
-}
-
-/// What the wizard's own step 2 asks for under a gesture, and the reason a gesture takes two steps
-/// or three: a gesture attaching to [none] has nothing to name before its own form, a gesture
-/// attaching to anything else names it first.
-///
-/// [ocptBudgetGestureAttachmentOf] is the only way a caller asks which of these a given
-/// [OcptBudgetGesture] draws step 2 for.
-enum OcptBudgetGestureAttachment {
-  /// Step 2 is skipped outright — the wizard goes straight from step 1 to the form.
-  none,
-
-  /// A quote poste, answered — the wizard offers no `Hors devis` here, unlike [optionalPoste]: the
-  /// gestures naming this attachment always price a real line of the quote.
-  poste,
-
-  /// A quote poste, left unanswered reading `Hors devis` exactly as the poste field of the existing
-  /// entry dialog already does — a real fact an entry may carry on purpose, not an unfinished pick.
-  optionalPoste,
-
-  /// A quote poste and, optionally, one of its own lines — [OcptBudgetGesture.commitSpend] alone: a
-  /// commitment may hang off the poste directly, which the model already allows and the expenses
-  /// table already draws.
-  posteAndLine,
-
-  /// A financing resource — `budget_resources`.
-  financingResource,
-
-  /// A participant in the revenue-sharing split — `budget_shares`.
-  participant,
-
-  /// A person the production owes for having advanced money on its behalf — `people`.
-  person,
-}
+import 'package:open_cine_prod_tools/types/ocpt_budget_gesture_attachment.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_gesture_family.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_gesture_flow.dart';
 
 /// The fifteen answers the capture wizard's own step 1 offers, one card each, grouped under the
 /// five [OcptBudgetGestureFamily] headings — `docs/architecture/budget.md`,
@@ -90,22 +25,22 @@ enum OcptBudgetGesture {
   // `Le devis`
   // ---------------------------------------------------------------------------------------------
 
-  /// Adds one quote line, priced by hand, to a poste.
+  /// Adds one quote line, priced by hand, to an account.
   addQuoteLine,
 
   /// Adds several quote lines at once, one per unpriced breakdown element the wizard offers against
-  /// a poste — the breakdown selector, the one step 2 that creates more than one row.
+  /// an account — the breakdown selector, the one step 2 that creates more than one row.
   addQuoteLinesFromBreakdown,
 
-  /// Promotes a quote line — or a poste directly — into a commitment: a debt now owed, to somebody,
-  /// by some date, rather than merely estimated.
+  /// Promotes a quote line — or an account directly — into a commitment: a debt now owed, to
+  /// somebody, by some date, rather than merely estimated.
   commitSpend,
 
   // ---------------------------------------------------------------------------------------------
   // `L'argent qui a bougé`
   // ---------------------------------------------------------------------------------------------
 
-  /// `J'ai payé quelque chose` — records a debit already paid, against a quote poste.
+  /// `J'ai payé quelque chose` — records a debit already paid, against a quote account.
   recordExpense,
 
   /// `J'ai reçu un financement` — records a credit already received, against a financing resource.
@@ -129,7 +64,7 @@ enum OcptBudgetGesture {
   repayContribution,
 
   /// `Autre mouvement` — records a movement whose direction the wizard still has to ask, against an
-  /// optional quote poste.
+  /// optional quote account.
   recordOtherMovement,
 
   // ---------------------------------------------------------------------------------------------
@@ -160,7 +95,7 @@ enum OcptBudgetGesture {
   addSharingParticipant,
 }
 
-/// Which [OcptBudgetGestureFamily] heading [gesture] is offered under — step 1's own grouping,
+/// Tell which [OcptBudgetGestureFamily] heading [gesture] is offered under — step 1's own grouping,
 /// per the class doc comment's table.
 OcptBudgetGestureFamily ocptBudgetGestureFamilyOf(OcptBudgetGesture gesture) => switch (gesture) {
   OcptBudgetGesture.addQuoteLine => OcptBudgetGestureFamily.quote,
@@ -180,7 +115,8 @@ OcptBudgetGestureFamily ocptBudgetGestureFamilyOf(OcptBudgetGesture gesture) => 
   OcptBudgetGesture.addSharingParticipant => OcptBudgetGestureFamily.revenueSharing,
 };
 
-/// Which direction money moves under [gesture] — the semantic the `+ New` wizard filters by when it
+/// Tell which direction money moves under [gesture] — the semantic the `+ New` wizard filters by
+/// when it
 /// opens from a working view, **transverse to the families**: the `Expenses` view offers everything
 /// that makes money go out whatever family it sits in, the `Resources` view everything that brings
 /// money in. A gesture may do both ([OcptBudgetGesture.recordOtherMovement], whose direction the
@@ -208,16 +144,18 @@ Set<OcptBudgetGestureFlow> ocptBudgetGestureFlowsOf(OcptBudgetGesture gesture) =
   OcptBudgetGesture.addSharingParticipant => const {},
 };
 
-/// What the wizard's own step 2 asks for under [gesture] — every row of this answer is a decision
+/// Get what the wizard's own step 2 asks for under [gesture] — every row of this answer is a
+/// decision
 /// already taken, per the class doc comment's table; none of it is open.
 OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gesture) =>
     switch (gesture) {
-      OcptBudgetGesture.addQuoteLine => OcptBudgetGestureAttachment.poste,
-      // The breakdown selector picks a poste per element on its own step, so nothing is asked ahead
-      // of it: a single poste answered here would be the very question the per-row picker replaces.
+      OcptBudgetGesture.addQuoteLine => OcptBudgetGestureAttachment.account,
+      // The breakdown selector picks an account per element on its own step, so nothing is asked
+      // ahead of it: a single account answered here would be the very question the per-row picker
+      // replaces.
       OcptBudgetGesture.addQuoteLinesFromBreakdown => OcptBudgetGestureAttachment.none,
-      OcptBudgetGesture.commitSpend => OcptBudgetGestureAttachment.posteAndLine,
-      OcptBudgetGesture.recordExpense => OcptBudgetGestureAttachment.optionalPoste,
+      OcptBudgetGesture.commitSpend => OcptBudgetGestureAttachment.accountAndLine,
+      OcptBudgetGesture.recordExpense => OcptBudgetGestureAttachment.optionalAccount,
       OcptBudgetGesture.recordFinancingReceipt => OcptBudgetGestureAttachment.financingResource,
       // A taking just paid is typed once, an amount and a label, and its own row is created from
       // them: the receipt form carries no attachment step, minting the taking behind the credit
@@ -226,7 +164,7 @@ OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gest
       OcptBudgetGesture.reimbursePerson => OcptBudgetGestureAttachment.person,
       OcptBudgetGesture.payParticipantShare => OcptBudgetGestureAttachment.participant,
       OcptBudgetGesture.repayContribution => OcptBudgetGestureAttachment.financingResource,
-      OcptBudgetGesture.recordOtherMovement => OcptBudgetGestureAttachment.optionalPoste,
+      OcptBudgetGesture.recordOtherMovement => OcptBudgetGestureAttachment.optionalAccount,
       OcptBudgetGesture.planSubsidy => OcptBudgetGestureAttachment.none,
       OcptBudgetGesture.planContribution => OcptBudgetGestureAttachment.none,
       OcptBudgetGesture.planTaking => OcptBudgetGestureAttachment.none,
@@ -235,7 +173,8 @@ OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gest
       OcptBudgetGesture.addSharingParticipant => OcptBudgetGestureAttachment.none,
     };
 
-/// How many steps the wizard takes for [gesture]: `2` while [ocptBudgetGestureAttachmentOf] answers
+/// Count how many steps the wizard takes for [gesture]: `2` while [ocptBudgetGestureAttachmentOf]
+/// answers
 /// [OcptBudgetGestureAttachment.none] — step 1, then straight to the form — `3` otherwise — step 1,
 /// step 2 asking the attachment, then the form.
 ///
@@ -244,7 +183,7 @@ OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gest
 int ocptBudgetGestureStepCountOf(OcptBudgetGesture gesture) =>
     ocptBudgetGestureAttachmentOf(gesture) == OcptBudgetGestureAttachment.none ? 2 : 3;
 
-/// The [OcptBudgetEntryNature] [gesture] writes, for the seven
+/// Get the [OcptBudgetEntryNature] [gesture] writes, for the seven
 /// [OcptBudgetGestureFamily.cashMovement] answers, or `null` for the other eight — a gesture that
 /// plans, quotes or creates a record is not a movement, so it has no nature to write.
 OcptBudgetEntryNature? ocptBudgetGestureNatureOf(OcptBudgetGesture gesture) => switch (gesture) {

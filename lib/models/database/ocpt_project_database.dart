@@ -4,20 +4,48 @@
 
 import 'dart:io';
 
-import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_asset_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_breakdown_scene_status_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_breakdown_target_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_budget_allowance_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_budget_commitment_status_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_budget_resource_group_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_budget_resource_status_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_budget_revenue_status_converter.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_day_part_slot_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_element_category_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_element_source_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_element_status_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_floor_plan_arrow_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_floor_plan_layer_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_floor_plan_set_element_shape_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_image_rights_status_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_location_availability_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_page_format_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_permit_status_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_role_candidate_status_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_role_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_screenplay_language_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_shooting_block_kind_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_shooting_day_status_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_shooting_slot_anchor_edge_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_shot_check_reason_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_shot_status_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_snapshot_reason_converter.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_storyboard_annotation_kind_converter.dart';
 import 'package:open_cine_prod_tools/models/database/migrations/ocpt_migration_v3.dart';
 import 'package:open_cine_prod_tools/models/database/migrations/ocpt_migration_v4.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_breakdown_tags_table.dart';
+import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_accounts_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_allowances_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_commitments_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_entries_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_mileage_rates_table.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_postes_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resources_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_revenues_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_shares_table.dart';
@@ -62,6 +90,8 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_storyboard_anno
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_storyboard_panels_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_pairings_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_relay_cursors_table.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
+
 // These are only used through the type converters declared in the table files above
 // (OcptPageFormatConverter, OcptSnapshotReasonConverter, OcptShotStatusConverter,
 // OcptShotCheckReasonConverter, OcptImageRightsStatusConverter, OcptRoleKindConverter,
@@ -108,9 +138,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
-part 'ocpt_project_database.g.dart';
+part '../../generated/models/database/ocpt_project_database.g.dart';
 
 /// The per-project SQLite database backing a single `.ocpt` project file.
 ///
@@ -135,7 +164,7 @@ part 'ocpt_project_database.g.dart';
 /// timetable ([OcptShootingDayBlocksTable]) and its candidacies
 /// ([OcptShootingBlockCandidatesTable]), and what a day does not control, at an absolute hour
 /// ([OcptShootingDayEventsTable]); the budget mode — the seeded-then-editable CNC nomenclature and
-/// its quote lines ([OcptBudgetPostesTable], [OcptBudgetLinesTable]), the cash journal
+/// its quote lines ([OcptBudgetAccountsTable], [OcptBudgetLinesTable]), the cash journal
 /// ([OcptBudgetEntriesTable], [OcptBudgetCommitmentsTable]), the financing plan
 /// ([OcptBudgetMileageRatesTable], [OcptBudgetResourcesTable]), the revenue sharing
 /// ([OcptBudgetRevenuesTable], [OcptBudgetSharesTable]) and the per-diem allowances
@@ -144,9 +173,9 @@ part 'ocpt_project_database.g.dart';
 /// ([OcptProjectVersionsTable]); the per-column version stamps a merge resolves conflicts with
 /// ([OcptRowFieldVersionsTable]); the changeset engine's own delivery state against each relay it
 /// talks to, local to this replica and never synchronised
-/// ([OcptSyncRelayCursorsTable], `docs/plans/collaboration-and-sync.md`, M3); which relay this
+/// ([OcptSyncRelayCursorsTable], `docs/architecture/sync.md`); which relay this
 /// replica's project is paired with, also local and never synchronised
-/// ([OcptSyncPairingsTable], `docs/plans/collaboration-and-sync.md`, M4); and the shot list's
+/// ([OcptSyncPairingsTable], `docs/architecture/sync.md`); and the shot list's
 /// storyboard and floor plans — a shot's ordered panels
 /// ([OcptStoryboardPanelsTable]) and each panel's light annotation marks
 /// ([OcptStoryboardAnnotationsTable]), and a sequence's floor plan sets
@@ -154,17 +183,16 @@ part 'ocpt_project_database.g.dart';
 /// movement and camera-move arrows drawn between them ([OcptFloorPlanArrowsTable]).
 ///
 /// Everything up to [OcptRowFieldVersionsTable] was created by `onCreate` at schema version 1,
-/// which the 0.1.0 release froze per
-/// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`: no earlier release had shipped, so
-/// that version carries no pre-stable migration history of its own. [OcptSyncRelayCursorsTable] and
-/// [OcptSyncPairingsTable] are schema version 2's own addition — the first real `onUpgrade` step,
-/// additive only per `docs/adr/0007-schema-migration-policy.md` — created for an existing v1 file
-/// without touching anything else, and by `onCreate` alongside every other table for a brand-new
-/// one. Schema version 3 reshapes [OcptShotCharactersTable] to key it by `{shotId, roleId}` instead
-/// of `{shotId, characterName}` — the first **non-additive** migration
-/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), carried out by
-/// `ocptMigrateToSchemaV3`. Schema version 4 creates the five storyboard and floor plan tables above
-/// — additive only, carried out by `ocptMigrateToSchemaV4`.
+/// which the 0.1.0 release froze per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`:
+/// no earlier release had shipped, so that version carries no pre-stable migration history of its
+/// own. [OcptSyncRelayCursorsTable] and [OcptSyncPairingsTable] are schema version 2's own addition
+/// — the first real `onUpgrade` step, additive only per `docs/adr/0007-schema-migration-policy.md`
+/// — created for an existing v1 file without touching anything else, and by `onCreate` alongside
+/// every other table for a brand-new one. Schema version 3 reshapes [OcptShotCharactersTable] to
+/// key it by `{shotId, roleId}` instead of `{shotId, characterName}` — the first **non-additive**
+/// migration (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), carried out by
+/// `ocptMigrateToSchemaV3`. Schema version 4 creates the five storyboard and floor plan tables
+/// above — additive only, carried out by `ocptMigrateToSchemaV4`.
 ///
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
@@ -205,7 +233,7 @@ part 'ocpt_project_database.g.dart';
     OcptShootingBlockCandidatesTable,
     OcptShootingDayEventsTable,
     OcptProjectDictionaryWordsTable,
-    OcptBudgetPostesTable,
+    OcptBudgetAccountsTable,
     OcptBudgetLinesTable,
     OcptBudgetEntriesTable,
     OcptBudgetCommitmentsTable,
@@ -224,91 +252,6 @@ part 'ocpt_project_database.g.dart';
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
-  /// Whether this connection holds the read-only state of a project version being previewed,
-  /// rather than the working copy.
-  ///
-  /// Only `OcptProjectsManager.previewVersion` ever opens one: it hydrates an in-memory database
-  /// from a version's payload and hands it to the modes as `OcptOpenProjectModel.database`, while
-  /// the project file stays open, untouched, as `OcptOpenProjectModel.fileDatabase`. Everything
-  /// the user may not do to a version they are only reading is refused by [refusesUserWrite].
-  final bool isPreview;
-
-  /// Opens (creating it if needed) the project database stored at [file].
-  OcptProjectDatabase(File file) : isPreview = false, super(NativeDatabase(file));
-
-  /// Opens the project database stored at [file] while another [OcptProjectDatabase] is still
-  /// open on a different file: the destination of `OcptProjectsManager.moveCurrentProject`, which
-  /// holds both for the instant between verifying the copy and closing the original.
-  ///
-  /// That overlap is what drift's "database class created multiple times" warning looks for, and
-  /// it is a false alarm here for the same reason as the version preview's
-  /// ([OcptProjectDatabase.memory]): the warning is about two databases sharing a [QueryExecutor],
-  /// and these two each own their own [NativeDatabase] on their own file.
-  OcptProjectDatabase.alongsideAnother(File file)
-    : isPreview = false,
-      super(_alongsideExecutor(file));
-
-  /// Opens a project database backed by an in-memory SQLite instance: the connection a version
-  /// preview is hydrated into ([isPreview] true), and the one the tests run against.
-  ///
-  /// Its content is lost as soon as the database is closed, which is precisely what a preview
-  /// wants: it never touches the project file.
-  OcptProjectDatabase.memory({bool isPreview = false})
-    : isPreview = isPreview,
-      super(_memoryExecutor(isPreview: isPreview));
-
-  /// The file executor [OcptProjectDatabase.alongsideAnother] runs on, silencing drift's
-  /// multiple-instances warning first (see that constructor's own doc comment).
-  static QueryExecutor _alongsideExecutor(File file) {
-    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
-    return NativeDatabase(file);
-  }
-
-  /// The in-memory executor [OcptProjectDatabase.memory] runs on.
-  ///
-  /// Opening a preview is the one moment the app holds two [OcptProjectDatabase] at once — the
-  /// project file and the version being read — which is exactly what drift's
-  /// "database class created multiple times" warning looks for. That warning is about two
-  /// databases sharing a [QueryExecutor], and these two never can: this one is a private in-memory
-  /// instance, and the file stays behind `OcptOpenProjectModel.fileDatabase`. So the preview
-  /// silences it, rather than teaching everyone reading a debug log to ignore it.
-  static QueryExecutor _memoryExecutor({required bool isPreview}) {
-    if (isPreview) {
-      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-    }
-
-    return NativeDatabase.memory();
-  }
-
-  /// Whether the user-driven write named [operation] must be refused because it was handed a
-  /// preview connection, logging it when it is.
-  ///
-  /// {@template open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  /// **What this gates, precisely: the user may not edit what is on screen.** It is not a global
-  /// write lock on the project, and the difference matters as soon as the collaboration engine
-  /// exists: a merge applying an incoming changeset is not a user edit, it targets
-  /// `OcptOpenProjectModel.fileDatabase` rather than the previewed connection, and it must go
-  /// through whether or not a preview is up — a gate that swallowed it would silently drop
-  /// somebody else's work. Hence the question asked here is "was this call handed the preview
-  /// database?", never "is this project currently read-only?".
-  /// {@endtemplate}
-  ///
-  /// A refusal is a logged no-op rather than a thrown error: the UI is supposed to have hidden the
-  /// affordance already (a mode gates itself on `OcptOpenProjectModel.isReadOnly`), so reaching
-  /// here is a bug to be seen in the logs, not a failure the user can act on.
-  bool refusesUserWrite(String operation) {
-    if (!isPreview) {
-      return false;
-    }
-
-    appLogger().w(
-      "The write '$operation' was handed the read-only database of a project version "
-      "being previewed: it's ignored, the version on screen isn't editable",
-    );
-    return true;
-  }
-
   /// The schema version this build of the app writes, readable without a database to hand.
   ///
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
@@ -334,11 +277,23 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// constants drive together.
   static const lastStableSchemaVersion = 4;
 
+  /// The category this class logs under.
+  static const _loggerCategory = "project_database";
+
+  /// Whether this connection holds the read-only state of a project version being previewed,
+  /// rather than the working copy.
+  ///
+  /// Only `OcptProjectsManager.previewVersion` ever opens one: it hydrates an in-memory database
+  /// from a version's payload and hands it to the modes as `OcptOpenProjectModel.database`, while
+  /// the project file stays open, untouched, as `OcptOpenProjectModel.fileDatabase`. Everything
+  /// the user may not do to a version they are only reading is refused by [refusesUserWrite].
+  final bool isPreview;
+
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
   int get schemaVersion => currentSchemaVersion;
 
-  /// The database options used by this database.
+  /// Get the database options used by this database.
   ///
   /// `DriftDatabaseOptions.storeDateTimeAsText` is turned on so `dateTime()` columns (e.g.
   /// `screenplay_snapshots.createdAt`) keep full, sub-second precision instead of drift's default
@@ -348,7 +303,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   @override
   DriftDatabaseOptions get options => const DriftDatabaseOptions(storeDateTimeAsText: true);
 
-  /// How an existing `.ocpt` file is brought up to the current [schemaVersion].
+  /// Tell how an existing `.ocpt` file is brought up to the current [schemaVersion].
   ///
   /// Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release had
   /// shipped before schema version 1, so that version itself carries no pre-stable migration
@@ -359,17 +314,17 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// `docs/adr/0007-schema-migration-policy.md` gives, except v3's, called out where it runs.
   ///
   /// From 1 to 2, `onUpgrade` creates [OcptSyncRelayCursorsTable] — the changeset engine's own
-  /// local, never-synchronised delivery-cursor table (`docs/plans/collaboration-and-sync.md`, M3) —
-  /// and [OcptSyncPairingsTable] — this replica's own local, never-synchronised record of which
-  /// relay a project is paired with (`docs/plans/collaboration-and-sync.md`, M4) — and adds
+  /// local, never-synchronised delivery-cursor table (`docs/architecture/sync.md`) — and
+  /// [OcptSyncPairingsTable] — this replica's own local, never-synchronised record of which relay a
+  /// project is paired with (`docs/architecture/sync.md`) — and adds
   /// [OcptBudgetLinesTable.inKindResourceId], naming the in-kind `budget_resources` contribution a
-  /// quote line is the counterpart of (`docs/architecture/budget.md`) — and touches nothing else, so
-  /// a v1 file's existing rows are untouched by the upgrade.
+  /// quote line is the counterpart of (`docs/architecture/budget.md`) — and touches nothing else,
+  /// so a v1 file's existing rows are untouched by the upgrade.
   ///
   /// From 2 to 3, `onUpgrade` delegates to [ocptMigrateToSchemaV3]
   /// (`lib/models/database/migrations/ocpt_migration_v3.dart`): it reshapes `shot_characters` from
-  /// its frozen v2 `{shotId, characterName}` key to `{shotId, roleId}`, referencing `OcptRolesTable`
-  /// — the first non-additive migration this project ships
+  /// its frozen v2 `{shotId, characterName}` key to `{shotId, roleId}`, referencing
+  /// `OcptRolesTable` — the first non-additive migration this project ships
   /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`). See that file's own doc
   /// comment for the full argument, including why it is safe under independent per-replica
   /// migration.
@@ -401,4 +356,86 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// Open (creating it if needed) the project database stored at [file].
+  OcptProjectDatabase(File file) : isPreview = false, super(NativeDatabase(file));
+
+  /// Open the project database stored at [file] while another [OcptProjectDatabase] is still
+  /// open on a different file: the destination of `OcptProjectsManager.moveCurrentProject`, which
+  /// holds both for the instant between verifying the copy and closing the original.
+  ///
+  /// That overlap is what drift's "database class created multiple times" warning looks for, and
+  /// it is a false alarm here for the same reason as the version preview's
+  /// ([OcptProjectDatabase.memory]): the warning is about two databases sharing a [QueryExecutor],
+  /// and these two each own their own [NativeDatabase] on their own file.
+  OcptProjectDatabase.alongsideAnother(File file)
+    : isPreview = false,
+      super(_alongsideExecutor(file));
+
+  /// Open a project database backed by an in-memory SQLite instance: the connection a version
+  /// preview is hydrated into ([isPreview] true), and the one the tests run against.
+  ///
+  /// Its content is lost as soon as the database is closed, which is precisely what a preview
+  /// wants: it never touches the project file.
+  OcptProjectDatabase.memory({bool isPreview = false})
+    : isPreview = isPreview,
+      super(_memoryExecutor(isPreview: isPreview));
+
+  /// Tell whether the user-driven write named [operation] must be refused because it was handed a
+  /// preview connection, logging it when it is.
+  ///
+  /// {@template open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  /// **What this gates, precisely: the user may not edit what is on screen.** It is not a global
+  /// write lock on the project, and the difference matters as soon as the collaboration engine
+  /// exists: a merge applying an incoming changeset is not a user edit, it targets
+  /// `OcptOpenProjectModel.fileDatabase` rather than the previewed connection, and it must go
+  /// through whether or not a preview is up — a gate that swallowed it would silently drop
+  /// somebody else's work. Hence the question asked here is "was this call handed the preview
+  /// database?", never "is this project currently read-only?".
+  /// {@endtemplate}
+  ///
+  /// A refusal is a logged no-op rather than a thrown error: the UI is supposed to have hidden the
+  /// affordance already (a mode gates itself on `OcptOpenProjectModel.isReadOnly`), so reaching
+  /// here is a bug to be seen in the logs, not a failure the user can act on.
+  bool refusesUserWrite(String operation) {
+    if (!isPreview) {
+      return false;
+    }
+
+    _createLogger().w(
+      "The write '$operation' was handed the read-only database of a project version "
+      "being previewed: it's ignored, the version on screen isn't editable",
+    );
+    return true;
+  }
+
+  /// Build the logger this class writes to.
+  ///
+  /// Built on every use rather than held: a database has no life cycle to release a logger with,
+  /// and the global logger it is built over can be replaced.
+  static LogsHelper _createLogger() => LogsHelper(category: _loggerCategory);
+
+  /// Get the file executor [OcptProjectDatabase.alongsideAnother] runs on, silencing drift's
+  /// multiple-instances warning first (see that constructor's own doc comment).
+  static QueryExecutor _alongsideExecutor(File file) {
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+    return NativeDatabase(file);
+  }
+
+  /// Get the in-memory executor [OcptProjectDatabase.memory] runs on.
+  ///
+  /// Opening a preview is the one moment the app holds two [OcptProjectDatabase] at once — the
+  /// project file and the version being read — which is exactly what drift's
+  /// "database class created multiple times" warning looks for. That warning is about two
+  /// databases sharing a [QueryExecutor], and these two never can: this one is a private in-memory
+  /// instance, and the file stays behind `OcptOpenProjectModel.fileDatabase`. So the preview
+  /// silences it, rather than teaching everyone reading a debug log to ignore it.
+  static QueryExecutor _memoryExecutor({required bool isPreview}) {
+    if (isPreview) {
+      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    }
+
+    return NativeDatabase.memory();
+  }
 }

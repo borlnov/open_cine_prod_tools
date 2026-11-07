@@ -29,17 +29,17 @@ class OcptCallSheetExportOptions extends Equatable {
 
   /// The ids of the `OcptShootingDay`s to print, in the order they are printed. Both exports carry
   /// several days: a general export writes one sheet per entry, and a named export writes one sheet
-  /// per (recipient × entry) — a call sheet being a document about a day, so a recipient convoked on
-  /// two of the printed days gets two sheets, one for each.
+  /// per (recipient × entry) — a call sheet being a document about a day, so a recipient convoked
+  /// on two of the printed days gets two sheets, one for each.
   final List<String> dayIds;
 
-  /// For a named export alone: which people or roles are printed, one file per day they are convoked
-  /// on — keyed the same way `OcptDayConvocation` discriminates its own subject, a person's `id` or
-  /// an uncast role's, so a caller can select straight out of the lists
-  /// `OcptSchedulePlanSnapshot.convocationsOfDay` returns. The keys are the **union** over every day
-  /// in [dayIds]: a key naming somebody convoked on only one of those days yields exactly one file,
-  /// not one per day named here. Empty (and unused) for a general export, which always prints every
-  /// day it names in full.
+  /// For a named export alone: which people or roles are printed, one file per day they are
+  /// convoked on — keyed the same way `OcptDayConvocation` discriminates its own subject, a
+  /// person's `id` or an uncast role's, so a caller can select straight out of the lists
+  /// `OcptSchedulePlanSnapshot.convocationsOfDay` returns. The keys are the **union** over every
+  /// day in [dayIds]: a key naming somebody convoked on only one of those days yields exactly one
+  /// file, not one per day named here. Empty (and unused) for a general export, which always prints
+  /// every day it names in full.
   final Set<String> selectedConvocationKeys;
 
   /// Class constructor
@@ -50,13 +50,13 @@ class OcptCallSheetExportOptions extends Equatable {
     this.selectedConvocationKeys = const {},
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptCallSheetExportOptions(format: $format, margins: $margins, "
       "dayIds: $dayIds, selectedConvocationKeys: $selectedConvocationKeys)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, dayIds, selectedConvocationKeys];
 }

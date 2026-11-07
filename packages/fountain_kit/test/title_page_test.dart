@@ -5,28 +5,23 @@
 import 'package:fountain_kit/src/parser/fountain_parser.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of the title page.
 void main() {
   group('absence', () {
     test('a document with no title page has a null titlePage', () {
-      final document = const FountainParser().parse(
-        'INT. HOUSE - DAY\n\nSome action.\n',
-      );
+      final document = const FountainParser().parse('INT. HOUSE - DAY\n\nSome action.\n');
       expect(document.titlePage, isNull);
     });
 
     test('a leading line with no colon is not mistaken for a title page', () {
-      final document = const FountainParser().parse(
-        'Just some action to start with.\n',
-      );
+      final document = const FountainParser().parse('Just some action to start with.\n');
       expect(document.titlePage, isNull);
     });
   });
 
   group('single-line values', () {
     test('a simple key: value pair is read back as a single value', () {
-      final document = const FountainParser().parse(
-        'Title: My Screenplay\n\nINT. HOUSE - DAY\n',
-      );
+      final document = const FountainParser().parse('Title: My Screenplay\n\nINT. HOUSE - DAY\n');
       final titlePage = document.titlePage!;
       expect(titlePage.title, 'My Screenplay');
       expect(titlePage.entry('Title')!.values, ['My Screenplay']);
@@ -77,17 +72,14 @@ void main() {
       expect(titlePage.contact, ['Open Cine Prod Tools', '123 Reel Street']);
     });
 
-    test(
-      'a value that starts on the key line can still continue on indented lines',
-      () {
-        final document = const FountainParser().parse(
-          'Notes: first line\n    second line\n\nINT. HOUSE - DAY\n',
-        );
-        final entry = document.titlePage!.entry('Notes')!;
-        expect(entry.values, ['first line', 'second line']);
-        expect(entry.joinedValue, 'first line second line');
-      },
-    );
+    test('a value that starts on the key line can still continue on indented lines', () {
+      final document = const FountainParser().parse(
+        'Notes: first line\n    second line\n\nINT. HOUSE - DAY\n',
+      );
+      final entry = document.titlePage!.entry('Notes')!;
+      expect(entry.values, ['first line', 'second line']);
+      expect(entry.joinedValue, 'first line second line');
+    });
   });
 
   group('body separation', () {
@@ -98,13 +90,10 @@ void main() {
       expect(document.blocks, hasLength(2));
     });
 
-    test(
-      'a title page that runs to the end of the source has an empty body',
-      () {
-        final document = const FountainParser().parse('Title: My Screenplay\n');
-        expect(document.titlePage!.title, 'My Screenplay');
-        expect(document.blocks, isEmpty);
-      },
-    );
+    test('a title page that runs to the end of the source has an empty body', () {
+      final document = const FountainParser().parse('Title: My Screenplay\n');
+      expect(document.titlePage!.title, 'My Screenplay');
+      expect(document.blocks, isEmpty);
+    });
   });
 }

@@ -4,21 +4,28 @@
 
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_ordered_schedule_entry.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_elements_grid_row.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grid_column.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grid_row.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_plan_xlsx_column.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
-/// Renders the whole shoot's own shooting plan into the bytes of an XLSX workbook: the same four
+/// Render the whole shoot's own shooting plan into the bytes of an XLSX workbook: the same four
 /// summary grids `OcptShootingPlanPdfService` prints as landscape pages — `Locations`, `Sequences`,
 /// `Crew and cast`, `Elements` — as one sheet each, plus a fifth, `Chronology`, one row per block
 /// over the whole printed range in shooting order. The reference document *is* a spreadsheet the
@@ -27,9 +34,9 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 /// The four grid sheets are built from [OcptShootingPlanGrids] (`lib/models/`), the very rows and
 /// columns the PDF service already draws — never a second computation of them, which is exactly how
 /// a printed plan and this workbook would come to disagree about what a production is doing on a
-/// given day. Unlike the PDF's own landscape pages, a sheet is never chunked: [OcptShootingPlanGrids
-/// .slotColumns]/`.dayColumns` are written whole, a spreadsheet running its columns on rather than
-/// paying for a page break.
+/// given day. Unlike the PDF's own landscape pages, a sheet is never chunked:
+/// [OcptShootingPlanGrids .slotColumns]/`.dayColumns` are written whole, a spreadsheet running its
+/// columns on rather than paying for a page break.
 ///
 /// The `Chronology` sheet has no equivalent on the PDF at all: it reads
 /// `ocptOrderedScheduleEntriesOfDay` — the very walk the call sheets, the shooting plan's own day
@@ -39,10 +46,11 @@ import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
-/// the manager rather than through `globalGetIt()` (RFL18), exactly like `OcptBreakdownXlsxExportService`
-/// and its own siblings. It takes no options: the export panel's card goes straight to the day
-/// picker, that dialog's own days being this service's whole `dayIds`.
-class OcptShootingPlanXlsxExportService {
+/// the manager rather than through `globalGetIt()`, exactly like
+/// `OcptBreakdownXlsxExportService` and its own siblings. It takes no options: the export panel's
+/// card goes straight to the day picker, that dialog's own days being this service's whole
+/// `dayIds`.
+class OcptShootingPlanXlsxExportService extends AbsOcptService {
   /// The sheet name used when the caller's own [OcptShootingPlanXlsxLabels.locationsSheetName] is
   /// blank.
   static const fallbackLocationsSheetName = "Locations";
@@ -64,9 +72,9 @@ class OcptShootingPlanXlsxExportService {
   static const fallbackChronologySheetName = "Chronology";
 
   /// Class constructor
-  const OcptShootingPlanXlsxExportService();
+  const OcptShootingPlanXlsxExportService({required super.logger});
 
-  /// The `.xlsx` file name to suggest when exporting the shooting plan of the project named
+  /// Get the `.xlsx` file name to suggest when exporting the shooting plan of the project named
   /// [projectName], with [suffix] appended, mirroring
   /// `OcptResourcesXlsxExportService.xlsxFileName`.
   String xlsxFileName({required String projectName, required String suffix}) {
@@ -78,20 +86,24 @@ class OcptShootingPlanXlsxExportService {
         : "$projectName - $trimmedSuffix.$extension";
   }
 
-  /// Builds the workbook of [plan] over [dayIds], titled and headed with [labels], and returns its
+  /// Build the workbook of [plan] over [dayIds], titled and headed with [labels], and return its
   /// bytes.
   ///
   /// A [dayIds] entry naming no live day of [plan] is silently skipped, exactly as
   /// `OcptShootingPlanPdfService.generate` reads a missing one.
   ///
-  /// Throws a [StateError] if the workbook cannot be encoded, which the caller reports as a failed
-  /// export: `excel_community` returns null there rather than throwing anything of its own.
-  Uint8List generate({
+  /// Answers [OcptXlsxExportStatus.encodingFailed] if the workbook cannot be encoded, which the
+  /// caller reports as a failed export: `excel_community` returns null there rather than throwing
+  /// anything of its own.
+  ResultWithStatus<OcptXlsxExportStatus, Uint8List> generate({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
     required OcptShootingPlanXlsxLabels labels,
   }) {
-    final resolvedDayIds = [for (final id in dayIds) if (plan.schedule.daysById.containsKey(id)) id];
+    final resolvedDayIds = [
+      for (final id in dayIds)
+        if (plan.schedule.daysById.containsKey(id)) id,
+    ];
 
     final excel = Excel.createExcel();
     final locationsSheetName = _sheetNameOr(labels.locationsSheetName, fallbackLocationsSheetName);
@@ -101,7 +113,7 @@ class OcptShootingPlanXlsxExportService {
       plan: plan,
       dayIds: resolvedDayIds,
       presenceMark: labels.presenceMark,
-      persoLabel: labels.persoLabel,
+      peopleLabel: labels.peopleLabel,
       sequenceRowPrefix: labels.sequenceRowPrefix,
       emptyValue: ocptScheduleEmptyValue,
       crewPositionLabelById: labels.crewPositionLabels,
@@ -145,16 +157,16 @@ class OcptShootingPlanXlsxExportService {
 
     final bytes = excel.encode();
     if (bytes == null) {
-      throw StateError("The shooting plan workbook could not be encoded");
+      return const ResultWithStatus(status: OcptXlsxExportStatus.encodingFailed);
     }
 
-    return Uint8List.fromList(bytes);
+    return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
-  /// [name] if it holds anything other than whitespace, [fallback] otherwise.
+  /// Get [name] if it holds anything other than whitespace, [fallback] otherwise.
   String _sheetNameOr(String name, String fallback) => name.trim().isEmpty ? fallback : name;
 
-  /// Renames the sheet [Excel.createExcel] starts from to [sheetName], so the workbook doesn't end
+  /// Rename the sheet [Excel.createExcel] starts from to [sheetName], so the workbook doesn't end
   /// up with the named sheet plus an empty `Sheet1` next to it. A no-op when the default sheet
   /// already carries that name.
   void _renameDefaultSheet(Excel excel, String sheetName) {
@@ -166,19 +178,22 @@ class OcptShootingPlanXlsxExportService {
     excel.rename(defaultSheetName, sheetName);
   }
 
-  /// Emboldens every cell of row [rowIndex], from column 0 up to (but excluding) [columnCount].
+  /// Embolden every cell of row [rowIndex], from column 0 up to (but excluding) [columnCount].
   void _boldRow(Sheet sheet, int rowIndex, int columnCount) {
     for (var columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-      sheet.cell(CellIndex.indexByColumnRow(columnIndex: columnIndex, rowIndex: rowIndex)).cellStyle =
-          CellStyle(bold: true);
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: columnIndex, rowIndex: rowIndex))
+          .cellStyle = CellStyle(
+        bold: true,
+      );
     }
   }
 
-  /// Writes one of the three slot-shaped summary grids (`Locations`, `Sequences`, `Crew and cast`)
+  /// Write one of the three slot-shaped summary grids (`Locations`, `Sequences`, `Crew and cast`)
   /// into [sheet]: a bold day-tag row (a day's tag printed once above the first of its own slot
-  /// columns, mirroring `OcptShootingPlanPdfService._gridPage`'s own header), a bold slot-label row,
-  /// then [rows] — a row's own [OcptShootingPlanGridRow.isIndented] read as a two-space indent on
-  /// its label, since a spreadsheet cell has no visual indent of its own to reach for.
+  /// columns, mirroring `OcptShootingPlanGridSections.gridPage`'s own header), a bold slot-label
+  /// row, then [rows] — a row's own [OcptShootingPlanGridRow.isIndented] read as a two-space indent
+  /// on its label, since a spreadsheet cell has no visual indent of its own to reach for.
   void _appendSlotGridSheet({
     required Sheet sheet,
     required List<OcptShootingPlanGridColumn> columns,
@@ -200,7 +215,9 @@ class OcptShootingPlanXlsxExportService {
     sheet.appendRow([
       TextCellValue(rowHeaderLabel),
       for (final column in columns)
-        TextCellValue(column.slotLabel.trim().isEmpty ? ocptScheduleEmptyValue : column.slotLabel.trim()),
+        TextCellValue(
+          column.slotLabel.trim().isEmpty ? ocptScheduleEmptyValue : column.slotLabel.trim(),
+        ),
     ]);
     _boldRow(sheet, sheet.maxRows - 1, columns.length + 1);
 
@@ -215,7 +232,7 @@ class OcptShootingPlanXlsxExportService {
     }
   }
 
-  /// Writes the elements summary grid into [sheet]: a bold day header row (one column per
+  /// Write the elements summary grid into [sheet]: a bold day header row (one column per
   /// [OcptShootingPlanGrids.dayColumns] entry, unlike the three slot-shaped grids' own two-row
   /// header, this grid having no second, slot-label row to draw), then [rows] — an
   /// [OcptShootingPlanElementsGridCategoryBand] as its own bold, single-cell row and an
@@ -247,7 +264,7 @@ class OcptShootingPlanXlsxExportService {
     }
   }
 
-  /// Writes the `Chronology` sheet into [sheet]: one header row, then one row per block of every
+  /// Write the `Chronology` sheet into [sheet]: one header row, then one row per block of every
   /// live day of [dayIds], in the order given, each day's own blocks in shooting order
   /// (`ocptOrderedScheduleEntriesOfDay`) — see the class doc comment for why that walk is read
   /// rather than reimplemented, and for why a day with no live slot at all contributes no row.
@@ -267,13 +284,19 @@ class OcptShootingPlanXlsxExportService {
       for (final ordered in ocptOrderedScheduleEntriesOfDay(plan: plan, dayId: dayId)) {
         sheet.appendRow([
           for (final column in OcptShootingPlanXlsxColumn.values)
-            _chronologyCellOf(column: column, day: day, ordered: ordered, plan: plan, labels: labels),
+            _chronologyCellOf(
+              column: column,
+              day: day,
+              ordered: ordered,
+              plan: plan,
+              labels: labels,
+            ),
         ]);
       }
     }
   }
 
-  /// Appends [sheet]'s single header row, one cell per value of [columns], and emboldens it —
+  /// Append [sheet]'s single header row, one cell per value of [columns], and embolden it —
   /// mirrors `OcptBreakdownXlsxExportService._appendHeaderRow`.
   void _appendHeaderRow<T>(Sheet sheet, List<T> columns, String Function(T column) headerOf) {
     final headerRowIndex = sheet.maxRows;
@@ -281,7 +304,8 @@ class OcptShootingPlanXlsxExportService {
     _boldRow(sheet, headerRowIndex, columns.length);
   }
 
-  /// The cell [column] holds for [ordered]'s own row of the `Chronology` sheet, scoped to [day].
+  /// Get the cell [column] holds for [ordered]'s own row of the `Chronology` sheet, scoped to
+  /// [day].
   CellValue? _chronologyCellOf({
     required OcptShootingPlanXlsxColumn column,
     required OcptShootingDay day,
@@ -294,19 +318,24 @@ class OcptShootingPlanXlsxExportService {
       OcptShootingPlanXlsxColumn.dayTag => TextCellValue("${labels.dayTagPrefix}${day.dayNumber}"),
       OcptShootingPlanXlsxColumn.date => DateCellValue.fromDateTime(day.date),
       OcptShootingPlanXlsxColumn.slot => _textOrNull(ordered.slot.label),
-      OcptShootingPlanXlsxColumn.start => TextCellValue(ocptFormatDayMinute(ordered.entry.startMinute)),
+      OcptShootingPlanXlsxColumn.start => TextCellValue(
+        ocptFormatDayMinute(ordered.entry.startMinute),
+      ),
       OcptShootingPlanXlsxColumn.end => TextCellValue(ocptFormatDayMinute(ordered.entry.endMinute)),
       OcptShootingPlanXlsxColumn.kind => _textOrNull(labels.blockKindLabelOf(block.kind)),
       OcptShootingPlanXlsxColumn.shot => _textOrNull(_shotCodeOf(block, plan)),
       OcptShootingPlanXlsxColumn.sequence => _textOrNull(_sequenceHeadingOf(block, plan)),
       OcptShootingPlanXlsxColumn.set => _textOrNull(_setNameOf(ordered.slot, plan)),
       OcptShootingPlanXlsxColumn.roles => _textOrNull(_rolesOf(block, plan)),
-      OcptShootingPlanXlsxColumn.durationMinutes => IntCellValue(ordered.entry.endMinute - ordered.entry.startMinute),
+      OcptShootingPlanXlsxColumn.durationMinutes => IntCellValue(
+        ordered.entry.endMinute - ordered.entry.startMinute,
+      ),
       OcptShootingPlanXlsxColumn.crewNote => _textOrNull(block.crewNote),
     };
   }
 
-  /// [block]'s own shot's code, or null while [block] is not a [OcptShootingBlockKind.shot] one, or
+  /// Get [block]'s own shot's code, or null while [block] is not a [OcptShootingBlockKind.shot]
+  /// one, or
   /// names a shot [plan] no longer holds.
   String? _shotCodeOf(OcptShootingDayBlock block, OcptSchedulePlanSnapshot plan) {
     if (block.kind != OcptShootingBlockKind.shot || block.shotId == null) {
@@ -315,28 +344,29 @@ class OcptShootingPlanXlsxExportService {
     return plan.shotById(block.shotId!)?.code;
   }
 
-  /// The heading of the sequence [block] concerns: a [OcptShootingBlockKind.shot] block's own
+  /// Get the heading of the sequence [block] concerns: a [OcptShootingBlockKind.shot] block's own
   /// shot's scene, a [OcptShootingBlockKind.hold] block's own [OcptShootingDayBlock.sceneId] — the
   /// column [ocptScheduleBlockCaptionOf] itself reads for a hold's own caption — or null for every
   /// other kind, which concerns no sequence at all.
   String? _sequenceHeadingOf(OcptShootingDayBlock block, OcptSchedulePlanSnapshot plan) {
     final sceneId = switch (block.kind) {
-      OcptShootingBlockKind.shot => block.shotId == null ? null : plan.shotById(block.shotId!)?.sceneId,
+      OcptShootingBlockKind.shot =>
+        block.shotId == null ? null : plan.shotById(block.shotId!)?.sceneId,
       OcptShootingBlockKind.hold => block.sceneId,
       _ => null,
     };
     return sceneId == null ? null : plan.headingBySceneId[sceneId];
   }
 
-  /// [slot]'s own set name, or null while it names none.
+  /// Get [slot]'s own set name, or null while it names none.
   String? _setNameOf(OcptShootingSlot slot, OcptSchedulePlanSnapshot plan) {
     final setId = slot.setId;
     return setId == null ? null : plan.setById[setId]?.name;
   }
 
-  /// The role names of every one of [block]'s own shot's `characters` matched against
+  /// Get the role names of every one of [block]'s own shot's `characters` matched against
   /// [plan]'s own roles (through `normalizeCharacterName`, the same join
-  /// `OcptShootingPlanPdfService._roleNamesOf` uses for the day agenda's own `Perso.` column), or
+  /// `OcptShootingPlanDaySections.roleNamesOf` uses for the day agenda's own `Perso.` column), or
   /// null for a block that is not a [OcptShootingBlockKind.shot] one or matches no role at all.
   String? _rolesOf(OcptShootingDayBlock block, OcptSchedulePlanSnapshot plan) {
     if (block.kind != OcptShootingBlockKind.shot || block.shotId == null) {
@@ -347,7 +377,9 @@ class OcptShootingPlanXlsxExportService {
       return null;
     }
 
-    final byNormalizedName = {for (final role in plan.roles) normalizeCharacterName(role.name): role};
+    final byNormalizedName = {
+      for (final role in plan.roles) normalizeCharacterName(role.name): role,
+    };
     final matched = <String>{};
     for (final name in shot.characters) {
       if (byNormalizedName[name] case final role?) {
@@ -361,7 +393,7 @@ class OcptShootingPlanXlsxExportService {
     return sorted.join(", ");
   }
 
-  /// A text cell holding [value], or null when it is null or holds nothing but whitespace.
+  /// Get a text cell holding [value], or null when it is null or holds nothing but whitespace.
   CellValue? _textOrNull(String? value) =>
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
 }

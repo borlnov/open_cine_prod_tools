@@ -9,13 +9,13 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_fit.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_view.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_floor_plan_fit.dart';
 
 /// Wraps [child] with the localization delegates so `Tr.of` lookups resolve, and sets the test
 /// surface past the 800 px compact breakpoint (`docs/architecture/foundations.md`).
@@ -61,6 +61,7 @@ OcptFloorPlanSymbol _furnitureSymbol(String setId, String symbolId, double xM, d
       isHidden: false,
     );
 
+/// Build an empty floor plan set with the id [id].
 OcptFloorPlanSet _setOf(String id, List<OcptFloorPlanSymbol> symbols) => OcptFloorPlanSet(
   id: id,
   name: "Set $id",
@@ -75,6 +76,7 @@ OcptFloorPlanSet _setOf(String id, List<OcptFloorPlanSymbol> symbols) => OcptFlo
   arrows: const [],
 );
 
+/// Run the tests of [OcptFloorPlanView].
 void main() {
   /// Builds a minimal [OcptFloorPlanView] over [floorPlanSet], reporting every settled zoom into
   /// [zoomSettledTo] — every write callback a plain no-op, since these tests are about framing
@@ -163,40 +165,40 @@ void main() {
     ).zoom;
   }
 
-  testWidgets(
-    "fits the viewport to content once a set opens, but not on an unrelated rebuild",
-    (tester) async {
-      final setA = _setOf("set-a", [_furnitureSymbol("set-a", "sym-1", 5, 3)]);
-      final zoomSettledTo = <double>[];
+  testWidgets("fits the viewport to content once a set opens, but not on an unrelated rebuild", (
+    tester,
+  ) async {
+    final setA = _setOf("set-a", [_furnitureSymbol("set-a", "sym-1", 5, 3)]);
+    final zoomSettledTo = <double>[];
 
-      await _pumpView(tester, viewOf(floorPlanSet: setA, zoomSettledTo: zoomSettledTo));
-      await tester.pumpAndSettle();
+    await _pumpView(tester, viewOf(floorPlanSet: setA, zoomSettledTo: zoomSettledTo));
+    await tester.pumpAndSettle();
 
-      expect(zoomSettledTo, hasLength(1));
-      final canvasSize = tester.getSize(find.byType(OcptFloorPlanCanvas));
-      expect(zoomSettledTo.single, closeTo(expectedFitZoom(setA, canvasSize), 1e-6));
+    expect(zoomSettledTo, hasLength(1));
+    final canvasSize = tester.getSize(find.byType(OcptFloorPlanCanvas));
+    expect(zoomSettledTo.single, closeTo(expectedFitZoom(setA, canvasSize), 1e-6));
 
-      // An unrelated rebuild of the very same set (its own symbols unchanged, just a fresh equal
-      // instance passed down, mirroring a bloc emission) never refits: the guard tracks the set's
-      // own id, not object identity.
-      await _pumpView(
-        tester,
-        viewOf(
-          floorPlanSet: _setOf("set-a", [_furnitureSymbol("set-a", "sym-1", 5, 3)]),
-          zoomSettledTo: zoomSettledTo,
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(zoomSettledTo, hasLength(1));
+    // An unrelated rebuild of the very same set (its own symbols unchanged, just a fresh equal
+    // instance passed down, mirroring a bloc emission) never refits: the guard tracks the set's
+    // own id, not object identity.
+    await _pumpView(
+      tester,
+      viewOf(
+        floorPlanSet: _setOf("set-a", [_furnitureSymbol("set-a", "sym-1", 5, 3)]),
+        zoomSettledTo: zoomSettledTo,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(zoomSettledTo, hasLength(1));
 
-      // That rebuild still carries the zoom persisted *before* the fit (the bloc's echo has not
-      // arrived): the fitted zoom must survive it, or the plan is drawn off-centre with a pan
-      // computed for a zoom that no longer applies.
-      final controller = tester.widget<OcptFloorPlanCanvas>(find.byType(OcptFloorPlanCanvas))
-          .viewportController;
-      expect(controller.zoom, closeTo(zoomSettledTo.single, 1e-6));
-    },
-  );
+    // That rebuild still carries the zoom persisted *before* the fit (the bloc's echo has not
+    // arrived): the fitted zoom must survive it, or the plan is drawn off-centre with a pan
+    // computed for a zoom that no longer applies.
+    final controller = tester
+        .widget<OcptFloorPlanCanvas>(find.byType(OcptFloorPlanCanvas))
+        .viewportController;
+    expect(controller.zoom, closeTo(zoomSettledTo.single, 1e-6));
+  });
 
   testWidgets("switching to a different set's own tab fits its own content", (tester) async {
     final setA = _setOf("set-a", [_furnitureSymbol("set-a", "sym-1", 5, 3)]);

@@ -13,9 +13,11 @@ import 'package:super_editor/super_editor.dart';
 /// same "first handler that recognises the request wins" path the real editor relies on.
 Editor _editorFor(MutableDocument document) => Editor(
   editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
-  requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)..insert(0, ocptTitlePageGuardRequestHandler),
+  requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+    ..insert(0, ocptTitlePageGuardRequestHandler),
 );
 
+/// Run the tests of [ocptTitlePageGuardRequestHandler].
 void main() {
   group("ocptTitlePageGuardRequestHandler", () {
     test("drops a merge between two different title-page fields (Draft date <- Contact)", () {
@@ -25,7 +27,9 @@ void main() {
       final contact = document.getNodeAt(4)!;
       final editor = _editorFor(document);
 
-      editor.execute([CombineParagraphsRequest(firstNodeId: draftDate.id, secondNodeId: contact.id)]);
+      editor.execute([
+        CombineParagraphsRequest(firstNodeId: draftDate.id, secondNodeId: contact.id),
+      ]);
 
       expect(document.nodeCount, 7);
       expect(document.getNodeById(draftDate.id), isNotNull);
@@ -55,11 +59,16 @@ void main() {
       final contactLine2 = document.getNodeAt(5)! as ParagraphNode;
       final editor = _editorFor(document);
 
-      editor.execute([CombineParagraphsRequest(firstNodeId: contactLine1.id, secondNodeId: contactLine2.id)]);
+      editor.execute([
+        CombineParagraphsRequest(firstNodeId: contactLine1.id, secondNodeId: contactLine2.id),
+      ]);
 
       expect(document.nodeCount, 7);
       expect(document.getNodeById(contactLine2.id), isNull);
-      expect((document.getNodeById(contactLine1.id)! as ParagraphNode).text.toPlainText(), "line oneline two");
+      expect(
+        (document.getNodeById(contactLine1.id)! as ParagraphNode).text.toPlainText(),
+        "line oneline two",
+      );
     });
 
     test("leaves an ordinary body-to-body merge untouched", () {
@@ -69,7 +78,9 @@ void main() {
       final secondBody = document.getNodeAt(7)!;
       final editor = _editorFor(document);
 
-      editor.execute([CombineParagraphsRequest(firstNodeId: firstBody.id, secondNodeId: secondBody.id)]);
+      editor.execute([
+        CombineParagraphsRequest(firstNodeId: firstBody.id, secondNodeId: secondBody.id),
+      ]);
 
       expect(document.nodeCount, 7);
       expect(document.getNodeById(secondBody.id), isNull);
@@ -77,7 +88,13 @@ void main() {
 
     test("ignores every request that isn't a CombineParagraphsRequest", () {
       final decoded = OcptWysiwygCodec.decodeWithTitlePage("INT. HOUSE - DAY");
-      expect(ocptTitlePageGuardRequestHandler(_editorFor(decoded.document), const ClearSelectionRequest()), isNull);
+      expect(
+        ocptTitlePageGuardRequestHandler(
+          _editorFor(decoded.document),
+          const ClearSelectionRequest(),
+        ),
+        isNull,
+      );
     });
   });
 }

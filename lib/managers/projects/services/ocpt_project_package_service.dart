@@ -6,36 +6,22 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:act_dart_result/act_dart_result.dart';
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:archive/archive_io.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_project_file.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
+import 'package:open_cine_prod_tools/models/ocpt_packaged_asset.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_export_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_import_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_skipped_asset.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_erased_person_scrub.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_safe_file_name.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_erased_person_scrub.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_safe_file_name.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
-/// Thrown from inside [OcptProjectPackageService.readPackage]'s unpacking loop the moment an entry
-/// would land outside the destination folder, and caught by the very method that throws it.
-///
-/// A dedicated type rather than reusing a generic exception: the outer `catch` needs to tell this
-/// apart from an ordinary I/O failure so it can report
-/// [OcptProjectPackageStatus.unreadableArchive] (the archive itself is the problem) rather than
-/// [OcptProjectPackageStatus.ioError] (reading or writing failed for a reason outside the app).
-class _OcptZipSlipException implements Exception {
-  /// Class constructor
-  const _OcptZipSlipException(this.entryName);
-
-  /// The archive entry whose path resolved outside the destination folder.
-  final String entryName;
-
-  @override
-  String toString() => "the entry '$entryName' resolves outside the destination folder";
-}
-
-/// Reads and writes the **portable project package**: the project database plus every file it
+/// Read and write the **portable project package**: the project database plus every file it
 /// references, as one archive somebody can send.
 ///
 /// A `.ocpt` holds no bytes — a headshot, a scouting photo, a filming permit and a signed release
@@ -65,7 +51,7 @@ class _OcptZipSlipException implements Exception {
 ///   `local_erasures` is emptied. Shipping the table instead of applying it would leave the phone
 ///   number, the address and the allergies of somebody who asked to be removed one `sqlite3` prompt
 ///   away on the recipient's machine, which is not erasure.
-class OcptProjectPackageService {
+class OcptProjectPackageService extends AbsOcptService {
   /// The `assets` columns this service reads, by the names **SQL** knows them under.
   ///
   /// Watch the two naming worlds this file sits between: drift names a column in `snake_case`
@@ -93,17 +79,18 @@ class OcptProjectPackageService {
       <int, Map<String, dynamic> Function(Map<String, dynamic> json)>{};
 
   /// Class constructor
-  const OcptProjectPackageService();
+  const OcptProjectPackageService({required super.logger});
 
-  /// Stats every file the project at [projectFilePath] references, without writing anything.
+  /// Stat every file the project at [projectFilePath] references, without writing anything.
   ///
   /// The question a package export asks before it writes a byte: continuing is the ordinary answer
   /// and skipping is honest, but it is never silent. Returns null when the file cannot be read as a
   /// project at all — there is nothing to ask about then, and [writePackage] reports the same
   /// failure with a status of its own.
   OcptProjectPackagePreflight? scanAssets({required String projectFilePath}) {
+    OcptProjectPackagePreflight? preflight;
     try {
-      return _withReadOnlyDatabase(projectFilePath, (database) {
+      preflight = _withReadOnlyDatabase(projectFilePath, (database) {
         final rows = _liveAssetRows(database);
 
         return OcptProjectPackagePreflight(
@@ -115,13 +102,19 @@ class OcptProjectPackageService {
           ],
         );
       });
-    } catch (error) {
-      appLogger().e("The assets of the project at $projectFilePath can't be scanned: $error");
-      return null;
+    } catch (error, stackTrace) {
+      logger.e(
+        "The assets of a project can't be scanned: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
     }
+
+    return preflight;
   }
 
-  /// Writes the project at [projectFilePath] as a package at [packageFilePath], and says what
+  /// Write the project at [projectFilePath] as a package at [packageFilePath], and say what
   /// travelled.
   ///
   /// [projectName] is the project's display name, [appVersion] the version of the app writing this,
@@ -139,11 +132,12 @@ class OcptProjectPackageService {
     required DateTime exportedAt,
   }) async {
     if (!File(projectFilePath).existsSync()) {
-      appLogger().e("The project at $projectFilePath can't be packaged: no such file");
+      logger.e("A project can't be packaged: no such file");
       return const ResultWithStatus(status: OcptProjectPackageStatus.sourceNotFound);
     }
 
     Directory? workingDirectory;
+    ResultWithStatus<OcptProjectPackageStatus, OcptProjectPackageExportReport> result;
     try {
       workingDirectory = await Directory.systemTemp.createTemp("ocpt_package_");
       final stagedDatabasePath = p.join(workingDirectory.path, ocptPackageDatabaseEntry);
@@ -184,7 +178,7 @@ class OcptProjectPackageService {
         manifest: manifest,
       );
 
-      return ResultWithStatus(
+      result = ResultWithStatus(
         status: OcptProjectPackageStatus.ok,
         value: OcptProjectPackageExportReport(
           packagePath: packageFilePath,
@@ -192,18 +186,68 @@ class OcptProjectPackageService {
           skippedAssets: skipped,
         ),
       );
-    } catch (error) {
-      appLogger().e(
-        "The project at $projectFilePath can't be packaged into $packageFilePath: "
-        "$error",
-      );
-      return const ResultWithStatus(status: OcptProjectPackageStatus.ioError);
+    } catch (error, stackTrace) {
+      logger.e("A project can't be packaged: ${error.runtimeType}", null, stackTrace);
+      result = const ResultWithStatus(status: OcptProjectPackageStatus.ioError);
     } finally {
       await _deleteQuietly(workingDirectory);
     }
+
+    return result;
   }
 
-  /// Streams [manifest] and the staged database into the zip at [packageFilePath], followed by
+  /// Unpack the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
+  /// say what landed.
+  ///
+  /// This never opens the unpacked `.ocpt` through drift — see this class's own doc comment for
+  /// why — so it never migrates the file it just wrote either. The caller opens it afterwards
+  /// through `OcptProjectsManager.probeProjectFile`/`openProject`, which is what states a migration
+  /// for a package built by an older build; this method's whole job stops at "a project file now
+  /// exists on disk, at whatever schema it travelled in, every reference inside it pointing at a
+  /// real file beside it".
+  ///
+  /// The destination folder is created only once every check that can fail *before* touching disk
+  /// has passed (the archive reads, the manifest parses, the format is one this build knows, the
+  /// folder isn't already there) — and if anything goes wrong once it exists, that folder is
+  /// deleted before this returns [OcptProjectPackageStatus.ioError]: a half-unpacked folder looks
+  /// like a project and is not one, and leaving it behind would be a worse failure than the one
+  /// that caused it.
+  Future<ResultWithStatus<OcptProjectPackageStatus, OcptProjectPackageImportReport>> readPackage({
+    required String packageFilePath,
+    required String parentDirectoryPath,
+  }) async {
+    Archive? archive;
+    try {
+      archive = ZipDecoder().decodeStream(InputFileStream(packageFilePath));
+    } catch (error, stackTrace) {
+      logger.e(
+        "A package can't be read as a zip archive: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
+
+    if (archive == null) {
+      return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
+    }
+
+    try {
+      return await _unpackDecodedPackage(
+        archive: archive,
+        packageFilePath: packageFilePath,
+        parentDirectoryPath: parentDirectoryPath,
+      );
+    } finally {
+      // Decoding a zip does not read it: every entry keeps the `.ocptz` open so its bytes can be
+      // streamed out later, and nothing closes those handles on its own. Left open, the package the
+      // user just imported stays held by the app — which on Windows means a file they cannot move,
+      // rename or delete until they quit it.
+      await archive.clear();
+    }
+  }
+
+  /// Stream [manifest] and the staged database into the zip at [packageFilePath], followed by
   /// every file [OcptProjectPackageManifest.assets] names.
   ///
   /// Each file is added through `ZipFileEncoder.addFile`, which reads it as a stream: the two
@@ -232,50 +276,7 @@ class OcptProjectPackageService {
     }
   }
 
-  /// Unpacks the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
-  /// says what landed.
-  ///
-  /// This never opens the unpacked `.ocpt` through drift — see this class's own doc comment for
-  /// why — so it never migrates the file it just wrote either. The caller opens it afterwards
-  /// through `OcptProjectsManager.probeProjectFile`/`openProject`, which is what states a migration
-  /// for a package built by an older build; this method's whole job stops at "a project file now
-  /// exists on disk, at whatever schema it travelled in, every reference inside it pointing at a
-  /// real file beside it".
-  ///
-  /// The destination folder is created only once every check that can fail *before* touching disk
-  /// has passed (the archive reads, the manifest parses, the format is one this build knows, the
-  /// folder isn't already there) — and if anything goes wrong once it exists, that folder is
-  /// deleted before this returns [OcptProjectPackageStatus.ioError]: a half-unpacked folder looks
-  /// like a project and is not one, and leaving it behind would be a worse failure than the one
-  /// that caused it.
-  Future<ResultWithStatus<OcptProjectPackageStatus, OcptProjectPackageImportReport>> readPackage({
-    required String packageFilePath,
-    required String parentDirectoryPath,
-  }) async {
-    final Archive archive;
-    try {
-      archive = ZipDecoder().decodeStream(InputFileStream(packageFilePath));
-    } catch (error) {
-      appLogger().e("The package at $packageFilePath can't be read as a zip archive: $error");
-      return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
-    }
-
-    try {
-      return await _unpackDecodedPackage(
-        archive: archive,
-        packageFilePath: packageFilePath,
-        parentDirectoryPath: parentDirectoryPath,
-      );
-    } finally {
-      // Decoding a zip does not read it: every entry keeps the `.ocptz` open so its bytes can be
-      // streamed out later, and nothing closes those handles on its own. Left open, the package the
-      // user just imported stays held by the app — which on Windows means a file they cannot move,
-      // rename or delete until they quit it.
-      await archive.clear();
-    }
-  }
-
-  /// Unpacks [archive], already decoded out of the package at [packageFilePath], into a new folder
+  /// Unpack [archive], already decoded out of the package at [packageFilePath], into a new folder
   /// inside [parentDirectoryPath].
   ///
   /// Split out of [readPackage] so that every way out of the unpacking — the four refusals, the
@@ -293,30 +294,30 @@ class OcptProjectPackageService {
 
     final manifest = _readManifest(entriesByName[ocptPackageManifestEntry]);
     if (manifest == null) {
-      appLogger().e("The package at $packageFilePath carries no readable manifest");
+      logger.e("A package carries no readable manifest");
       return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
     }
 
     // An archive without the project database is not a package, whatever else it holds — the
     // manifest alone describes one without being one.
     if (!entriesByName.containsKey(ocptPackageDatabaseEntry)) {
-      appLogger().e("The package at $packageFilePath carries no $ocptPackageDatabaseEntry");
+      logger.e("A package carries no $ocptPackageDatabaseEntry");
       return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
     }
 
     if (manifest.packageFormat <= 0) {
-      appLogger().e(
-        "The package at $packageFilePath states no readable packageFormat: refused rather than "
-        "guessed",
+      logger.e(
+        "A package states no readable packageFormat: "
+        "refused rather than guessed",
       );
       return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
     }
 
     if (manifest.packageFormat > ocptCurrentPackageFormat) {
-      appLogger().w(
-        "The package at $packageFilePath is in format ${manifest.packageFormat}, which this "
-        "build (format $ocptCurrentPackageFormat) doesn't know how to read: refused, nothing "
-        "written",
+      logger.w(
+        "A package is in format "
+        "${manifest.packageFormat}, which this build (format $ocptCurrentPackageFormat) doesn't "
+        "know how to read: refused, nothing written",
       );
       return const ResultWithStatus(status: OcptProjectPackageStatus.unsupportedPackageFormat);
     }
@@ -327,12 +328,11 @@ class OcptProjectPackageService {
     );
     final destinationDirectory = Directory(p.join(parentDirectoryPath, folderName));
     if (destinationDirectory.existsSync()) {
-      appLogger().w(
-        "The import of $packageFilePath is refused: ${destinationDirectory.path} already exists",
-      );
+      logger.w("The import of a package is refused: its destination folder already exists");
       return const ResultWithStatus(status: OcptProjectPackageStatus.destinationExists);
     }
 
+    ResultWithStatus<OcptProjectPackageStatus, OcptProjectPackageImportReport> result;
     try {
       destinationDirectory.createSync(recursive: true);
 
@@ -340,38 +340,50 @@ class OcptProjectPackageService {
         destinationDirectory.path,
         "$folderName.$ocptProjectFileExtension",
       );
-      await _unpackEntries(
+      final escapingEntry = await _unpackEntries(
         archive: archive,
         destinationDirectory: destinationDirectory,
         projectFilePath: projectFilePath,
       );
-      _rewireUnpackedAssetPaths(
-        projectFilePath: projectFilePath,
-        destinationDirectory: destinationDirectory,
-        assets: manifest.assets,
-      );
-
-      return ResultWithStatus(
-        status: OcptProjectPackageStatus.ok,
-        value: OcptProjectPackageImportReport(
+      if (escapingEntry != null) {
+        // The archive itself is the problem, not the I/O: an entry engineered to land outside the
+        // folder the user picked. The entry's name is the archive's own wording, so it isn't
+        // logged.
+        logger.e("A package can't be trusted: an entry resolves outside the destination folder");
+        await _deleteQuietly(destinationDirectory);
+        result = const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
+      } else {
+        _rewireUnpackedAssetPaths(
           projectFilePath: projectFilePath,
-          projectName: manifest.projectName,
-          importedAssetCount: manifest.assets.length,
-          skippedAssets: manifest.skippedAssets,
-        ),
+          destinationDirectory: destinationDirectory,
+          assets: manifest.assets,
+        );
+
+        result = ResultWithStatus(
+          status: OcptProjectPackageStatus.ok,
+          value: OcptProjectPackageImportReport(
+            projectFilePath: projectFilePath,
+            projectName: manifest.projectName,
+            importedAssetCount: manifest.assets.length,
+            skippedAssets: manifest.skippedAssets,
+          ),
+        );
+      }
+    } catch (error, stackTrace) {
+      logger.e(
+        "A package can't be unpacked: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
       );
-    } on _OcptZipSlipException catch (error) {
-      appLogger().e("The package at $packageFilePath can't be trusted: $error");
       await _deleteQuietly(destinationDirectory);
-      return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
-    } catch (error) {
-      appLogger().e("The package at $packageFilePath can't be unpacked: $error");
-      await _deleteQuietly(destinationDirectory);
-      return const ResultWithStatus(status: OcptProjectPackageStatus.ioError);
+      result = const ResultWithStatus(status: OcptProjectPackageStatus.ioError);
     }
+
+    return result;
   }
 
-  /// Reads and parses [entry] as [OcptProjectPackageManifest], or null when it is missing or is not
+  /// Read and parse [entry] as [OcptProjectPackageManifest], or null when it is missing or is not
   /// the JSON object the manifest is always written as.
   ///
   /// [OcptProjectPackageManifest.fromJson] is tolerant of a missing field (it may be reading an
@@ -382,11 +394,11 @@ class OcptProjectPackageService {
       return null;
     }
 
-    final Object? decoded;
+    Object? decoded;
     try {
       decoded = jsonDecode(utf8.decode(entry.readBytes() ?? const []));
     } catch (_) {
-      return null;
+      decoded = null;
     }
 
     if (decoded is! Map<String, dynamic>) {
@@ -401,7 +413,7 @@ class OcptProjectPackageService {
     return OcptProjectPackageManifest.fromJson(upgraded);
   }
 
-  /// [json], a manifest read at [packageFormat], upgraded step by step up to
+  /// Get [json], a manifest read at [packageFormat], upgraded step by step up to
   /// [ocptCurrentPackageFormat] through [_packageManifestUpgrades] — a no-op today, since that map
   /// is still empty (see its own doc comment).
   ///
@@ -421,7 +433,7 @@ class OcptProjectPackageService {
     return upgraded;
   }
 
-  /// Streams every file [archive] holds — except its manifest — onto disk under
+  /// Stream every file [archive] holds — except its manifest — onto disk under
   /// [destinationDirectory], `project.ocpt` landing at [projectFilePath] and every other entry at
   /// its own relative path underneath.
   ///
@@ -430,7 +442,10 @@ class OcptProjectPackageService {
   /// must never be allowed to resolve outside the folder the user picked. `project.ocpt` itself
   /// never goes through that check against its own name — it always lands at [projectFilePath],
   /// which this method computes, never at whatever [ocptPackageDatabaseEntry] states.
-  Future<void> _unpackEntries({
+  ///
+  /// Returns the name of the first entry that would have landed outside [destinationDirectory], and
+  /// stops there, or null once every entry is written.
+  Future<String?> _unpackEntries({
     required Archive archive,
     required Directory destinationDirectory,
     required String projectFilePath,
@@ -445,7 +460,7 @@ class OcptProjectPackageService {
           : _nativePathForEntry(destinationDirectory.path, entry.name);
 
       if (!_isWithinDestination(destinationDirectory.path, targetPath)) {
-        throw _OcptZipSlipException(entry.name);
+        return entry.name;
       }
 
       Directory(p.dirname(targetPath)).createSync(recursive: true);
@@ -456,9 +471,11 @@ class OcptProjectPackageService {
         await output.close();
       }
     }
+
+    return null;
   }
 
-  /// Rewrites the unpacked `.ocpt` at [projectFilePath] so every `assets` row [assets] names points
+  /// Rewrite the unpacked `.ocpt` at [projectFilePath] so every `assets` row [assets] names points
   /// at the absolute path the file now sits at under [destinationDirectory], keyed off `assetId` —
   /// never off a drift schema, exactly as [_planAndRewriteAssets] rewrites the staged copy on the
   /// way out.
@@ -468,7 +485,8 @@ class OcptProjectPackageService {
   /// a side effect of importing it — the compatibility gate the caller runs afterwards is what
   /// states that instead. [_hasTable] is reused for the same reason it exists on the write side: a
   /// package built before the `assets` table existed has nothing to rewrite, and a manifest entry
-  /// naming a row this database doesn't hold is not a failure — the `UPDATE` simply matches nothing.
+  /// naming a row this database doesn't hold is not a failure — the `UPDATE` simply matches
+  /// nothing.
   void _rewireUnpackedAssetPaths({
     required String projectFilePath,
     required Directory destinationDirectory,
@@ -495,7 +513,8 @@ class OcptProjectPackageService {
     }
   }
 
-  /// [entryName] — a `/`-separated path as a zip entry always names one — turned into a path built
+  /// Get [entryName] — a `/`-separated path as a zip entry always names one — turned into a path
+  /// built
   /// with the platform's own separator, under [destinationDirectoryPath].
   ///
   /// A zip entry is `/`-separated on every platform that wrote it, Windows included; joining it
@@ -505,7 +524,7 @@ class OcptProjectPackageService {
   String _nativePathForEntry(String destinationDirectoryPath, String entryName) =>
       p.joinAll([destinationDirectoryPath, ...p.posix.split(entryName)]);
 
-  /// Whether [candidatePath] resolves to somewhere inside [destinationPath] once both are
+  /// Tell whether [candidatePath] resolves to somewhere inside [destinationPath] once both are
   /// canonicalised — the zip-slip guard [_unpackEntries] checks before writing a single byte of
   /// any entry.
   ///
@@ -514,7 +533,7 @@ class OcptProjectPackageService {
   bool _isWithinDestination(String destinationPath, String candidatePath) =>
       p.isWithin(p.canonicalize(destinationPath), p.canonicalize(candidatePath));
 
-  /// Takes every erased person back out of the staged copy's version payloads, and empties
+  /// Take every erased person back out of the staged copy's version payloads, and empty
   /// `local_erasures`.
   ///
   /// A version payload is never rewritten once captured — that rule is about the **project file**,
@@ -566,7 +585,7 @@ class OcptProjectPackageService {
     staged.execute("DELETE FROM local_erasures");
   }
 
-  /// Decides what travels, and rewrites the staged copy's `assets` rows onto their entry inside the
+  /// Decide what travels, and rewrite the staged copy's `assets` rows onto their entry inside the
   /// package.
   ///
   /// A row whose file is gone is left exactly as it was: the import has to be able to report *which
@@ -590,7 +609,7 @@ class OcptProjectPackageService {
     }
   }
 
-  /// Every live `assets` row of [database], or none at all when the table is not part of that
+  /// Get every live `assets` row of [database], or none at all when the table is not part of that
   /// file's schema yet.
   List<({String id, String path, String label})> _liveAssetRows(Database database) {
     if (!_hasTable(database, "assets")) {
@@ -609,13 +628,13 @@ class OcptProjectPackageService {
     ];
   }
 
-  /// Whether the file an `assets` row references is still where the row says.
+  /// Tell whether the file an `assets` row references is still where the row says.
   ///
   /// An empty path is not a file that moved: it is a row an erasure blanked, and there is nothing
   /// there to look for or to report.
   bool _referencedFileExists(String path) => path.isNotEmpty && File(path).existsSync();
 
-  /// Whether [database] holds a table called [name].
+  /// Tell whether [database] holds a table called [name].
   ///
   /// A package can be built from a project file at any schema version, so every table this service
   /// touches beyond `assets` is asked for rather than assumed.
@@ -624,11 +643,11 @@ class OcptProjectPackageService {
     [name],
   ).isNotEmpty;
 
-  /// The `PRAGMA user_version` of [database]: the schema version the file states about itself.
+  /// Get the `PRAGMA user_version` of [database]: the schema version the file states about itself.
   int _userVersion(Database database) =>
       database.select("PRAGMA user_version").first.values.first! as int;
 
-  /// Runs [action] against [path] opened **read-only**, and closes it whatever happens.
+  /// Run [action] against [path] opened **read-only**, and close it whatever happens.
   ///
   /// Read-only is a promise rather than a precaution: an export must never write to the project it
   /// is copying — not a page, not a WAL checkpoint, not a `user_version`. SQLite reads through
@@ -643,7 +662,7 @@ class OcptProjectPackageService {
     }
   }
 
-  /// Deletes [directory] and everything under it, reporting a failure without raising it.
+  /// Delete [directory] and everything under it, reporting a failure without raising it.
   ///
   /// This runs in a `finally`, where throwing would replace whatever actually went wrong with a
   /// complaint about a temporary folder.
@@ -654,8 +673,13 @@ class OcptProjectPackageService {
 
     try {
       await directory.delete(recursive: true);
-    } catch (error) {
-      appLogger().w("The temporary packaging folder ${directory.path} can't be deleted: $error");
+    } catch (error, stackTrace) {
+      logger.w(
+        "A temporary packaging folder can't be deleted: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
     }
   }
 }

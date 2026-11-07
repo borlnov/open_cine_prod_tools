@@ -25,16 +25,6 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// [MixinSetWantedLocaleBloc]'s reaction to [NewLocaleWantedByUserEvent], never the manager's own
 /// persistence or system-locale resolution.
 class _FakeLocalesManager extends LocalesManager {
-  /// Class constructor, [wantedLocale] standing for a locale the user had already picked in a
-  /// previous session.
-  _FakeLocalesManager({Locale? wantedLocale})
-    : _wanted = wantedLocale,
-      super(
-        getSupportedLocales: () => const <Locale>[Locale("en", "GB"), Locale("fr")],
-        propertiesGetter: () => throw UnimplementedError(),
-        configGetter: () => throw UnimplementedError(),
-      );
-
   /// The stream backing [currentLocaleStream]; never emits in this fake since no test exercises a
   /// system-locale change.
   final _currentLocaleCtrl = StreamController<Locale>.broadcast();
@@ -45,17 +35,31 @@ class _FakeLocalesManager extends LocalesManager {
   /// The locale returned by [wantedLocale].
   Locale? _wanted;
 
+  /// Read the locale the double holds.
   @override
   Locale get currentLocale => _current;
 
+  /// Emit the locales the test adds to the controller.
   @override
   Stream<Locale> get currentLocaleStream => _currentLocaleCtrl.stream;
 
+  /// Read the locale that was asked for.
   @override
   Locale? get wantedLocale => _wanted;
 
+  /// Remember the locale asked for.
   @override
   set wantedLocale(Locale? newLocale) => _wanted = newLocale;
+
+  /// Class constructor, [wantedLocale] standing for a locale the user had already picked in a
+  /// previous session.
+  _FakeLocalesManager({Locale? wantedLocale})
+    : _wanted = wantedLocale,
+      super(
+        getSupportedLocales: () => const <Locale>[Locale("en", "GB"), Locale("fr")],
+        propertiesGetter: () => throw UnimplementedError(),
+        configGetter: () => throw UnimplementedError(),
+      );
 
   /// Closes the stream backing this fake, for tidy test teardown.
   Future<void> disposeFake() => _currentLocaleCtrl.close();
@@ -65,16 +69,6 @@ class _FakeLocalesManager extends LocalesManager {
 /// backed by real config/properties managers: this test only exercises
 /// [MixinActThemesBloc]'s reaction to [AskToUpdateBrightnessEvent].
 class _FakeActThemesManager extends ActThemesManager {
-  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
-  /// previous session.
-  _FakeActThemesManager({Brightness? brightness})
-    : _brightness = brightness,
-      super(
-        propertiesGetter: () => throw UnimplementedError(),
-        configGetter: () => throw UnimplementedError(),
-        appThemes: OcptAppTheme.values,
-      );
-
   /// The stream backing [currentThemeStream]; never emits in this fake since no test exercises a
   /// theme change (the app has a single theme).
   final _themeCtrl = StreamController<MixinActThemes>.broadcast();
@@ -88,17 +82,31 @@ class _FakeActThemesManager extends ActThemesManager {
   /// The brightness returned by [brightness].
   Brightness? _brightness;
 
+  /// Read the theme the double holds.
   @override
   MixinActThemes get currentTheme => _theme;
 
+  /// Emit the themes the test adds to the controller.
   @override
   Stream<MixinActThemes> get currentThemeStream => _themeCtrl.stream;
 
+  /// Read the brightness the double holds.
   @override
   Brightness? get brightness => _brightness;
 
+  /// Emit the brightnesses the test adds to the controller.
   @override
   Stream<Brightness?> get brightnessStream => _brightnessCtrl.stream;
+
+  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
+  /// previous session.
+  _FakeActThemesManager({Brightness? brightness})
+    : _brightness = brightness,
+      super(
+        propertiesGetter: () => throw UnimplementedError(),
+        configGetter: () => throw UnimplementedError(),
+        appThemes: OcptAppTheme.values,
+      );
 
   /// Stores [newBrightness] and, like the real manager's value keeper, only notifies the stream
   /// when the value actually changes.
@@ -112,6 +120,7 @@ class _FakeActThemesManager extends ActThemesManager {
     _brightnessCtrl.add(newBrightness);
   }
 
+  /// Keep the theme and emit it.
   @override
   Future<void> setCurrentTheme({required MixinActThemes newTheme}) async {
     _theme = newTheme;
@@ -125,6 +134,7 @@ class _FakeActThemesManager extends ActThemesManager {
   }
 }
 
+/// Run the tests of [OcptSettingsBloc].
 void main() {
   late OcptPropertiesManager propertiesManager;
 
@@ -183,13 +193,16 @@ void main() {
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
 
-  test("carries the injected app version instead of resolving PackageInfo.fromPlatform()", () async {
-    final bloc = OcptSettingsBloc(appVersion: "9.9.9");
+  test(
+    "carries the injected app version instead of resolving PackageInfo.fromPlatform()",
+    () async {
+      final bloc = OcptSettingsBloc(appVersion: "9.9.9");
 
-    expect(bloc.state.appVersion, "9.9.9");
+      expect(bloc.state.appVersion, "9.9.9");
 
-    await bloc.close();
-  });
+      await bloc.close();
+    },
+  );
 
   test("dispatching AskToUpdateBrightnessEvent updates state.brightness", () async {
     final bloc = OcptSettingsBloc(appVersion: "1.0.0");
@@ -252,9 +265,7 @@ void main() {
   test("picking a first weekday stores it and shows it", () async {
     final bloc = OcptSettingsBloc(appVersion: "1.0.0");
 
-    bloc.add(
-      const OcptSettingsFirstWeekdayChangedEvent(firstWeekday: OcptFirstWeekday.sunday),
-    );
+    bloc.add(const OcptSettingsFirstWeekdayChangedEvent(firstWeekday: OcptFirstWeekday.sunday));
     final state = await waitForState(
       bloc,
       (state) => state.firstWeekday == OcptFirstWeekday.sunday,

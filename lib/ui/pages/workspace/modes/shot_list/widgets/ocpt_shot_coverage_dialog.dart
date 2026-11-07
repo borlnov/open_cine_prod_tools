@@ -9,11 +9,14 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_fountain_line_display.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_anchor.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_display.dart';
 
 /// The alpha applied to [ColorScheme.primary] for text covered by the shot being edited: strong
 /// enough to read at a glance, on the simulated paper sheet, as "this shot films this text".
@@ -30,10 +33,6 @@ const double _ocptOtherCoverageAlpha = 0.10;
 /// carries the whitespace that follows it, so two consecutive covered words leave no gap between
 /// their two bands.
 const double _ocptWordVerticalPadding = 2;
-
-/// A pending coverage range anchor, exactly as `OcptShotListState.pendingCoverageAnchor` holds it:
-/// the first word clicked of a range currently being drawn.
-typedef OcptShotCoverageAnchor = ({int wordStartOffset, int wordEndOffset});
 
 /// The dialog a shot's scenario coverage is selected in: the sequence typeset on a simulated paper
 /// sheet, in Courier Prime at its true screenplay indents, every word clickable.
@@ -83,6 +82,10 @@ class OcptShotCoverageDialog extends StatelessWidget {
   /// either of the dialog's own close actions.
   final VoidCallback onAnchorCancelled;
 
+  /// Get the total number of words across every block of [layout], the denominator of the footer's
+  /// `N words covered of M` counter.
+  int get _totalWordCount => layout.blocks.fold(0, (total, block) => total + block.words.length);
+
   /// Class constructor
   const OcptShotCoverageDialog({
     super.key,
@@ -98,21 +101,20 @@ class OcptShotCoverageDialog extends StatelessWidget {
     required this.onAnchorCancelled,
   });
 
-  /// Cancels [pendingAnchor], if one is pending, then closes the dialog through
-  /// `OcptRouterManager` — what the × close button and the footer's own close button both do.
-  void _cancelAnchorAndClose() {
-    if (pendingAnchor != null) {
-      onAnchorCancelled();
-    }
-    globalGetIt().get<OcptRouterManager>().pop();
-  }
-
+  /// Build the shot coverage dialog as a [Focus].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final previewLayout = OcptEditorPreviewLayout(metrics: pageSetup.toMetrics());
     final media = MediaQuery.sizeOf(context);
+    final wordsCovered = tr.shotListCoverageWordsCovered(
+      layout.countCoveredWords(ownRanges),
+      _totalWordCount,
+    );
+    final rangesCount = tr.shotListCoverageRangesCount(
+      layout.rangesInReadingOrder(ownRanges).length,
+    );
 
     return Focus(
       // Nothing in the dialog otherwise requests focus (there is no text field to autofocus, as
@@ -216,8 +218,7 @@ class OcptShotCoverageDialog extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            "${tr.shotListCoverageWordsCovered(layout.countCoveredWords(ownRanges), _totalWordCount)}"
-                            " · ${tr.shotListCoverageRangesCount(layout.rangesInReadingOrder(ownRanges).length)}",
+                            "$wordsCovered · $rangesCount",
                             style: theme.textTheme.bodySmall,
                           ),
                         ),
@@ -242,10 +243,14 @@ class OcptShotCoverageDialog extends StatelessWidget {
     );
   }
 
-  /// The total number of words across every block of [layout], the denominator of the footer's
-  /// `N words covered of M` counter.
-  int get _totalWordCount =>
-      layout.blocks.fold(0, (total, block) => total + block.words.length);
+  /// Cancel [pendingAnchor], if one is pending, then close the dialog through
+  /// `OcptRouterManager` — what the × close button and the footer's own close button both do.
+  void _cancelAnchorAndClose() {
+    if (pendingAnchor != null) {
+      onAnchorCancelled();
+    }
+    globalGetIt().get<OcptRouterManager>().pop();
+  }
 }
 
 /// The simulated paper sheet the sequence is typeset on: white, at the page setup's own width, each
@@ -280,6 +285,7 @@ class _OcptShotCoverageSheet extends StatelessWidget {
     required this.onWordTapped,
   });
 
+  /// Build the shot coverage sheet as a [Material].
   @override
   Widget build(BuildContext context) => Material(
     color: Colors.white,
@@ -289,10 +295,7 @@ class _OcptShotCoverageSheet extends StatelessWidget {
     child: SizedBox(
       width: previewLayout.pageWidth,
       child: Padding(
-        padding: EdgeInsets.only(
-          top: previewLayout.marginTop,
-          bottom: previewLayout.marginBottom,
-        ),
+        padding: EdgeInsets.only(top: previewLayout.marginTop, bottom: previewLayout.marginBottom),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -348,6 +351,36 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
   /// Called with a clicked word's own scene-relative start/end offsets.
   final void Function(int wordStartOffset, int wordEndOffset) onWordTapped;
 
+  /// Get the screenplay layout box [block]'s own line type is typeset in.
+  ///
+  /// The types that are never printed (a section, a synopsis, a page break — and the blank lines
+  /// the layout has no block for at all) have no box of their own: they borrow the action box, so
+  /// a sequence carrying one still reads as a paragraph rather than disappearing.
+  FountainElementLayout get _elementLayout {
+    final metrics = previewLayout.metrics;
+    return switch (block.type) {
+      FountainLineType.sceneHeading => metrics.sceneHeading,
+      FountainLineType.character => metrics.character,
+      FountainLineType.parenthetical => metrics.parenthetical,
+      FountainLineType.dialogue => metrics.dialogue,
+      FountainLineType.transition => metrics.transition,
+      FountainLineType.centeredText => metrics.centeredText,
+      FountainLineType.lyrics => metrics.lyrics,
+      FountainLineType.action ||
+      FountainLineType.section ||
+      FountainLineType.synopsis ||
+      FountainLineType.pageBreak ||
+      FountainLineType.blank => metrics.action,
+    };
+  }
+
+  /// Get the horizontal alignment [block]'s element is typeset with.
+  TextAlign get _textAlign => switch (_elementLayout.alignment) {
+    FountainLayoutAlignment.center => TextAlign.center,
+    FountainLayoutAlignment.right => TextAlign.right,
+    FountainLayoutAlignment.left => TextAlign.left,
+  };
+
   /// Class constructor
   const _OcptShotCoverageSheetBlock({
     required this.layout,
@@ -360,6 +393,7 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
     required this.onWordTapped,
   });
 
+  /// Build the shot coverage sheet block as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -406,10 +440,8 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
                             isUppercase: printStyle.isUppercase,
                             style: baseStyle,
                             state: _stateOf(block.words[i]),
-                            onTap: () => onWordTapped(
-                              block.words[i].startOffset,
-                              block.words[i].endOffset,
-                            ),
+                            onTap: () =>
+                                onWordTapped(block.words[i].startOffset, block.words[i].endOffset),
                           ),
                         ),
                     ],
@@ -430,37 +462,8 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
     );
   }
 
-  /// The screenplay layout box [block]'s own line type is typeset in.
-  ///
-  /// The types that are never printed (a section, a synopsis, a page break — and the blank lines
-  /// the layout has no block for at all) have no box of their own: they borrow the action box, so
-  /// a sequence carrying one still reads as a paragraph rather than disappearing.
-  FountainElementLayout get _elementLayout {
-    final metrics = previewLayout.metrics;
-    return switch (block.type) {
-      FountainLineType.sceneHeading => metrics.sceneHeading,
-      FountainLineType.character => metrics.character,
-      FountainLineType.parenthetical => metrics.parenthetical,
-      FountainLineType.dialogue => metrics.dialogue,
-      FountainLineType.transition => metrics.transition,
-      FountainLineType.centeredText => metrics.centeredText,
-      FountainLineType.lyrics => metrics.lyrics,
-      FountainLineType.action ||
-      FountainLineType.section ||
-      FountainLineType.synopsis ||
-      FountainLineType.pageBreak ||
-      FountainLineType.blank => metrics.action,
-    };
-  }
-
-  /// The horizontal alignment [block]'s element is typeset with.
-  TextAlign get _textAlign => switch (_elementLayout.alignment) {
-    FountainLayoutAlignment.center => TextAlign.center,
-    FountainLayoutAlignment.right => TextAlign.right,
-    FountainLayoutAlignment.left => TextAlign.left,
-  };
-
-  /// How [word] is currently painted: the anchor of a range being drawn wins over every coverage,
+  /// Tell how [word] is currently painted: the anchor of a range being drawn wins over every
+  /// coverage,
   /// and this shot's own coverage wins over another shot's.
   _OcptScriptWordState _stateOf(OcptScriptWord word) {
     if (pendingAnchor?.wordStartOffset == word.startOffset) {
@@ -527,6 +530,7 @@ class _OcptScriptWord extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the script word as a [MouseRegion].
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -567,7 +571,7 @@ class _OcptScriptWord extends StatelessWidget {
     );
   }
 
-  /// Applies a run's own inline emphasis on top of [base], the element's print style having
+  /// Apply a run's own inline emphasis on top of [base], the element's print style having
   /// already set the base weight and slope: an `*italic*` run inside a bold scene heading prints
   /// bold-italic, exactly as it does in the paper preview and in the PDF.
   static TextStyle _styleOf(FountainInlineStyle style, TextStyle base) => switch (style) {

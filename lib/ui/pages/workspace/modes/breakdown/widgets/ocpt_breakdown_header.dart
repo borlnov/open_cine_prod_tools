@@ -3,10 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_view_switch.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_view_switch_segment.dart';
 
 /// The fixed width of the header's own search field, in logical pixels.
 const double _ocptBreakdownSearchFieldWidth = 260;
@@ -62,7 +63,8 @@ class OcptBreakdownHeader extends StatelessWidget {
   /// empty string.
   final ValueChanged<String> onSearchQueryChanged;
 
-  /// The number of distinct targets tagged across the whole screenplay — `snapshot.taggedTargetCount`.
+  /// The number of distinct targets tagged across the whole screenplay —
+  /// `snapshot.taggedTargetCount`.
   final int taggedTargetCount;
 
   /// The number of scenes marked done — `snapshot.doneSceneCount`.
@@ -83,6 +85,7 @@ class OcptBreakdownHeader extends StatelessWidget {
     required this.sceneCount,
   });
 
+  /// Build the breakdown header as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -192,6 +195,7 @@ class _OcptBreakdownSearchField extends StatefulWidget {
   /// Class constructor
   const _OcptBreakdownSearchField({required this.query, required this.onChanged});
 
+  /// Create the [_OcptBreakdownSearchFieldState] holding the state of the breakdown search field.
   @override
   State<_OcptBreakdownSearchField> createState() => _OcptBreakdownSearchFieldState();
 }
@@ -199,10 +203,13 @@ class _OcptBreakdownSearchField extends StatefulWidget {
 /// The state of [_OcptBreakdownSearchField]: owns the controller the class doc comment explains
 /// the reasoning for.
 class _OcptBreakdownSearchFieldState extends State<_OcptBreakdownSearchField> {
+  /// {@template open_cine_prod_tools.fieldTextEditingController}
   /// The field's own text editing controller, seeded from the widget's initial value and kept in
   /// sync with it afterward, see [didUpdateWidget].
+  /// {@endtemplate}
   late final TextEditingController _controller = TextEditingController(text: widget.query);
 
+  /// Show the new query in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant _OcptBreakdownSearchField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -212,12 +219,7 @@ class _OcptBreakdownSearchFieldState extends State<_OcptBreakdownSearchField> {
     }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+  /// Build the breakdown search field as a [TextField].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -241,10 +243,17 @@ class _OcptBreakdownSearchFieldState extends State<_OcptBreakdownSearchField> {
     );
   }
 
-  /// Blanks the field and reports the empty query.
+  /// Blank the field and report the empty query.
   void _handleClear() {
     _controller.clear();
     widget.onChanged("");
+  }
+
+  /// Dispose [_controller].
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
 
@@ -260,6 +269,7 @@ class _OcptBreakdownProgressBar extends StatelessWidget {
   /// Class constructor
   const _OcptBreakdownProgressBar({required this.done, required this.total});
 
+  /// Build the breakdown progress bar as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -270,7 +280,7 @@ class _OcptBreakdownProgressBar extends StatelessWidget {
       height: _ocptBreakdownProgressBarHeight,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
@@ -278,7 +288,7 @@ class _OcptBreakdownProgressBar extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: theme.colorScheme.primary,
-            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           ),
         ),
       ),

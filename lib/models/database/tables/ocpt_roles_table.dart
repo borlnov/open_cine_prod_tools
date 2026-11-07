@@ -3,22 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_role_kind_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
-
-/// Converts a [OcptRoleKind] to and from the text stored in the `roles.kind` column.
-class OcptRoleKindConverter extends TypeConverter<OcptRoleKind, String> {
-  /// Class constructor
-  const OcptRoleKindConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptRoleKind fromSql(String fromDb) => OcptRoleKind.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptRoleKind value) => value.name;
-}
 
 /// A character of the film and the person cast to play them, if any.
 ///
@@ -37,10 +24,10 @@ class OcptRolesTable extends Table {
   @override
   String get tableName => 'roles';
 
-  /// The stable, unique id of this role (a UUID).
+  /// Get the stable, unique id of this role (a UUID).
   TextColumn get id => text()();
 
-  /// The character's name.
+  /// Get the character's name.
   TextColumn get name => text()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -49,31 +36,33 @@ class OcptRolesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// The person cast in this role, or null while it is uncast.
+  /// Get the person cast in this role, or null while it is uncast.
   TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// Whether this is a speaking role, a silent role or an extra. [OcptRoleKind.speaking] is always
+  /// Tell whether this is a speaking role, a silent role or an extra. [OcptRoleKind.speaking] is
+  /// always
   /// reconciled from a dialogue cue; [OcptRoleKind.silent] is reconciled from a character's name
   /// standing in capitals in the action **or** added by hand — the two are told apart by
-  /// [isFromScreenplay], not by this column alone (`ocptRoleIsActionDetected`, `lib/utils/`) — and
-  /// [OcptRoleKind.extra] is always added by hand, since the screenplay has no convention naming a
-  /// group of extras.
+  /// [isFromScreenplay], not by this column alone (`ocptRoleIsActionDetected`, `lib/models/rules/`)
+  /// — and [OcptRoleKind.extra] is always added by hand, since the screenplay has no convention
+  /// naming a group of extras.
   TextColumn get kind => text().map(const OcptRoleKindConverter())();
 
-  /// Whether [name] (and, for a non-speaking [kind], the row's very existence) is owned by the
+  /// Tell whether [name] (and, for a non-speaking [kind], the row's very existence) is owned by the
   /// screenplay reconciliation (`OcptRoleIndexService`) rather than typed by the user: true for a
   /// role created from a cue or from a name standing in the action, false for one added by hand. A
   /// row the user created is never touched by reconciliation, whatever character names later appear
   /// or disappear.
   BoolColumn get isFromScreenplay => boolean().withDefault(const Constant(false))();
 
-  /// The name this character had in the screenplay when it stopped being found there, or null while
+  /// Get the name this character had in the screenplay when it stopped being found there, or null
+  /// while
   /// it is still present. Mirrors `shots.orphanedHeading`: the role, its casting and its notes
   /// survive, and the mode shows a removed-role banner offering to delete it or keep it as a silent
   /// role.
   TextColumn get orphanedName => text().nullable()();
 
-  /// Casting notes for this role, free text.
+  /// Get the casting notes for this role, free text.
   TextColumn get castingNotes => text().withDefault(const Constant(''))();
 
   /// {@macro drift.Table.primaryKey}

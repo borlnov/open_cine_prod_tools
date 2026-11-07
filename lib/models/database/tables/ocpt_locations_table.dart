@@ -3,24 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_permit_status_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
-import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
-
-/// Converts a [OcptPermitStatus] to and from the text stored in the `locations.permitStatus`
-/// column.
-class OcptPermitStatusConverter extends TypeConverter<OcptPermitStatus, String> {
-  /// Class constructor
-  const OcptPermitStatusConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptPermitStatus fromSql(String fromDb) => OcptPermitStatus.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptPermitStatus value) => value.name;
-}
 
 /// A filming location: an address, and everything that decides whether a day there is shootable.
 ///
@@ -38,90 +23,91 @@ class OcptLocationsTable extends Table {
   @override
   String get tableName => 'locations';
 
-  /// The stable, unique id of this location (a UUID).
+  /// Get the stable, unique id of this location (a UUID).
   TextColumn get id => text()();
 
-  /// The location's display name.
+  /// Get the location's display name.
   TextColumn get name => text()();
 
-  /// Indexes `ocptCoveragePalette` (`lib/constants/ocpt_coverage_palette.dart`), so this location
+  /// Index `ocptCoveragePalette` (`lib/constants/ocpt_coverage_palette.dart`), so this location
   /// keeps one colour bar wherever it appears in the UI.
   IntColumn get colorIndex => integer().withDefault(const Constant(0))();
 
-  /// The street part of the location's postal address, free text.
+  /// Get the street part of the location's postal address, free text.
   ///
   /// {@macro open_cine_prod_tools.postalAddress}
   TextColumn get addressLine1 => text().withDefault(const Constant(''))();
 
-  /// The second line of the location's postal address (building, floor, gate), free text.
+  /// Get the second line of the location's postal address (building, floor, gate), free text.
   ///
   /// {@macro open_cine_prod_tools.postalAddress}
   TextColumn get addressLine2 => text().withDefault(const Constant(''))();
 
-  /// The location's postal code, free text.
+  /// Get the location's postal code, free text.
   ///
   /// {@macro open_cine_prod_tools.postalAddress}
   TextColumn get postalCode => text().withDefault(const Constant(''))();
 
-  /// The location's city, free text.
+  /// Get the location's city, free text.
   ///
   /// {@macro open_cine_prod_tools.postalAddress}
   TextColumn get city => text().withDefault(const Constant(''))();
 
-  /// The location's region, state, province or county, free text.
+  /// Get the location's region, state, province or county, free text.
   ///
   /// {@macro open_cine_prod_tools.postalAddress}
   TextColumn get region => text().withDefault(const Constant(''))();
 
-  /// The location's country, free text.
+  /// Get the location's country, free text.
   ///
   /// {@macro open_cine_prod_tools.postalAddress}
   TextColumn get country => text().withDefault(const Constant(''))();
 
-  /// The location's latitude, or null while it hasn't been pinned on a map.
+  /// Get the location's latitude, or null while it hasn't been pinned on a map.
   RealColumn get latitude => real().nullable()();
 
-  /// The location's longitude, or null while it hasn't been pinned on a map.
+  /// Get the location's longitude, or null while it hasn't been pinned on a map.
   RealColumn get longitude => real().nullable()();
 
-  /// The person to contact about this location, or null — the reference address book *does* list
-  /// the owners of a location alongside the cast and crew, which is exactly why a location's contact
-  /// is a link onto [OcptPeopleTable] rather than a name typed a second time.
+  /// Get the person to contact about this location, or null — the reference address book *does*
+  /// list
+  /// the owners of a location alongside the cast and crew, which is exactly why a location's
+  /// contact is a link onto [OcptPeopleTable] rather than a name typed a second time.
   TextColumn get contactPersonId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// Free-text notes about the contact (how to reach them, best times to call).
+  /// Get the free-text notes about the contact (how to reach them, best times to call).
   TextColumn get contactNotes => text().withDefault(const Constant(''))();
 
-  /// Where this location's filming permit stands.
+  /// Tell where this location's filming permit stands.
   // The stored literal must match `OcptPermitStatus.toRequest.name` exactly, for the same reason
   // `shots.status`'s default does: an enum's `.name` getter isn't a compile-time constant
   // expression.
-  TextColumn get permitStatus => text()
-      .map(const OcptPermitStatusConverter())
-      .withDefault(const Constant('toRequest'))();
+  TextColumn get permitStatus =>
+      text().map(const OcptPermitStatusConverter()).withDefault(const Constant('toRequest'))();
 
-  /// The permit's own reference/label as the issuing authority names it, free text.
+  /// Get the permit's own reference/label as the issuing authority names it, free text.
   TextColumn get permitLabel => text().withDefault(const Constant(''))();
 
-  /// The date [permitStatus] last changed (e.g. the date it was granted), or null.
+  /// Get the date [permitStatus] last changed (e.g. the date it was granted), or null.
   DateTimeColumn get permitDate => dateTime().nullable()();
 
-  /// The signed/granted permit document, or null while there is none. → [OcptAssetsTable]
+  /// Get the signed/granted permit document, or null while there is none. → [OcptAssetsTable]
   TextColumn get permitAssetId => text().nullable().references(OcptAssetsTable, #id)();
 
-  /// Where vehicles and the production truck can park, free text.
+  /// Tell where vehicles and the production truck can park, free text.
   TextColumn get parkingNotes => text().withDefault(const Constant(''))();
 
-  /// What electrical power is available (amperage, outlet locations), free text.
+  /// Get what electrical power is available (amperage, outlet locations), free text.
   TextColumn get powerNotes => text().withDefault(const Constant(''))();
 
-  /// Facilities available on site (toilets, running water, shelter), free text.
+  /// Get the facilities available on site (toilets, running water, shelter), free text.
   TextColumn get facilitiesNotes => text().withDefault(const Constant(''))();
 
-  /// Constraints on shooting here: noise limits, allowed hours, neighbour tolerance. Free text.
+  /// Get the constraints on shooting here: noise limits, allowed hours, neighbour tolerance. Free
+  /// text.
   TextColumn get constraintsNotes => text().withDefault(const Constant(''))();
 
-  /// Free-form notes about this location.
+  /// Get free-form notes about this location.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.sortKey}

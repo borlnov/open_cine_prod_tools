@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_import_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_card_choice_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_card_choice_section.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_home_import_kind.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_card_choice_dialog.dart';
@@ -32,13 +33,7 @@ class OcptHomeImportDialog extends StatelessWidget {
   /// Class constructor
   const OcptHomeImportDialog({super.key});
 
-  /// Shows the dialog and returns the kind of import the user picked, or null if they cancelled it
-  /// or picked no card at all.
-  static Future<OcptHomeImportKind?> show(BuildContext context) => showDialog<OcptHomeImportKind>(
-    context: context,
-    builder: (context) => const OcptHomeImportDialog(),
-  );
-
+  /// Build the home import dialog as an [OcptCardChoiceDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -66,4 +61,11 @@ class OcptHomeImportDialog extends StatelessWidget {
       ],
     );
   }
+
+  /// Show the dialog and return the kind of import the user picked, or null if they cancelled it
+  /// or picked no card at all.
+  static Future<OcptHomeImportKind?> show(BuildContext context) => showDialog<OcptHomeImportKind>(
+    context: context,
+    builder: (context) => const OcptHomeImportDialog(),
+  );
 }

@@ -3,8 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_column_input.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_event_input.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_event_placement.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_grid.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_slot_timeline.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.dart';
 
 /// Builds an [OcptShootingSlotTimeline] test double directly, without going through
 /// [ocptComputeSlotTimeline]: these tests are about [OcptShootingDayAgendaGrid.of]'s own reading of
@@ -14,7 +18,12 @@ OcptShootingSlotTimeline _timeline({
   required int startMinute,
   int? endMinute,
   List<OcptShootingTimelineEntry> entries = const [],
-}) => OcptShootingSlotTimeline(entries: entries, overruns: const [], startMinute: startMinute, endMinute: endMinute);
+}) => OcptShootingSlotTimeline(
+  entries: entries,
+  overruns: const [],
+  startMinute: startMinute,
+  endMinute: endMinute,
+);
 
 /// A single-entry timeline: one block running `[startMinute, startMinute + duration)`.
 OcptShootingSlotTimeline _oneBlockTimeline({
@@ -34,6 +43,7 @@ OcptShootingSlotTimeline _oneBlockTimeline({
   ],
 );
 
+/// Run the tests of [OcptShootingDayAgendaGrid].
 void main() {
   group("bounds", () {
     test("a day with no slot is empty and never crashes", () {
@@ -188,12 +198,20 @@ void main() {
           OcptShootingDayAgendaColumnInput(
             slotId: "s1",
             label: "Unit A",
-            timeline: _oneBlockTimeline(blockId: "b1", startMinute: 540, duration: 60), // 09:00-10:00
+            timeline: _oneBlockTimeline(
+              blockId: "b1",
+              startMinute: 540,
+              duration: 60,
+            ), // 09:00-10:00
             captionByBlockId: const {"b1": "Shot 1"},
           ),
         ],
         events: const [
-          OcptShootingDayAgendaEventInput(id: "e1", minute: 1025, label: "Village fireworks"), // 17:05
+          OcptShootingDayAgendaEventInput(
+            id: "e1",
+            minute: 1025,
+            label: "Village fireworks",
+          ), // 17:05
         ],
       );
 
@@ -217,7 +235,9 @@ void main() {
             captionByBlockId: const {"b1": "Shot 1"},
           ),
         ],
-        events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: 480, label: "Early gate opening")],
+        events: const [
+          OcptShootingDayAgendaEventInput(id: "e1", minute: 480, label: "Early gate opening"),
+        ],
       );
 
       expect(grid.startMinute, 540); // untouched by the event
@@ -276,11 +296,17 @@ void main() {
           OcptShootingDayAgendaColumnInput(
             slotId: "s1",
             label: "Unit A",
-            timeline: _oneBlockTimeline(blockId: "b1", startMinute: 540, duration: 60), // 09:00-10:00
+            timeline: _oneBlockTimeline(
+              blockId: "b1",
+              startMinute: 540,
+              duration: 60,
+            ), // 09:00-10:00
             captionByBlockId: const {"b1": "Shot 1"},
           ),
         ],
-        events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: 565, label: "Camera check")],
+        events: const [
+          OcptShootingDayAgendaEventInput(id: "e1", minute: 565, label: "Camera check"),
+        ],
       );
 
       final marker = grid.events.single;
@@ -314,30 +340,33 @@ void main() {
       expect(tile.rowSpan, 24);
     });
 
-    test("a block starting at a negative minute that is not a multiple of ten floors correctly", () {
-      // -125 must floor to -130, not the -120 a truncating `~/` would give (Dart's `~/` truncates
-      // toward zero, which rounds a negative value *up*, one step too late).
-      final grid = OcptShootingDayAgendaGrid.of(
-        columns: [
-          OcptShootingDayAgendaColumnInput(
-            slotId: "s1",
-            label: "Night unit",
-            timeline: _oneBlockTimeline(blockId: "b1", startMinute: -125, duration: 12),
-            captionByBlockId: const {"b1": "Night shoot"},
-          ),
-        ],
-        events: const [],
-      );
+    test(
+      "a block starting at a negative minute that is not a multiple of ten floors correctly",
+      () {
+        // -125 must floor to -130, not the -120 a truncating `~/` would give (Dart's `~/` truncates
+        // toward zero, which rounds a negative value *up*, one step too late).
+        final grid = OcptShootingDayAgendaGrid.of(
+          columns: [
+            OcptShootingDayAgendaColumnInput(
+              slotId: "s1",
+              label: "Night unit",
+              timeline: _oneBlockTimeline(blockId: "b1", startMinute: -125, duration: 12),
+              captionByBlockId: const {"b1": "Night shoot"},
+            ),
+          ],
+          events: const [],
+        );
 
-      expect(grid.startMinute, -130);
-      expect(grid.endMinute, -110); // -113 ceiled up to the next ten
-      expect(grid.rowCount, 2);
-      final tile = grid.tiles.single;
-      expect(tile.startMinute, -125);
-      expect(tile.endMinute, -113);
-      expect(tile.startRow, 0); // -125 falls inside the very first row, [-130, -120)
-      expect(tile.rowSpan, 2); // -113 spills into the second row, [-120, -110)
-    });
+        expect(grid.startMinute, -130);
+        expect(grid.endMinute, -110); // -113 ceiled up to the next ten
+        expect(grid.rowCount, 2);
+        final tile = grid.tiles.single;
+        expect(tile.startMinute, -125);
+        expect(tile.endMinute, -113);
+        expect(tile.startRow, 0); // -125 falls inside the very first row, [-130, -120)
+        expect(tile.rowSpan, 2); // -113 spills into the second row, [-120, -110)
+      },
+    );
 
     test("an event at a negative minute before a band starting at 07:00 is a leading marker", () {
       // The rounding fix must keep working here too: even though this event no longer touches the
@@ -352,7 +381,9 @@ void main() {
             captionByBlockId: const {"b1": "Shot 1"},
           ),
         ],
-        events: const [OcptShootingDayAgendaEventInput(id: "e1", minute: -15, label: "Early crew arrival")],
+        events: const [
+          OcptShootingDayAgendaEventInput(id: "e1", minute: -15, label: "Early crew arrival"),
+        ],
       );
 
       expect(grid.startMinute, 420); // untouched by the event

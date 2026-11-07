@@ -4,373 +4,20 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_bar_segment.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_bar_side.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_gap.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_legend_entry.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_summary_row.dart';
+import 'package:open_cine_prod_tools/models/ocpt_coverage_tick.dart';
+import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_page.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
-
-/// Which margin a coverage bar is drawn in.
-enum OcptCoverageBarSide {
-  /// The left margin, where the innermost lanes are: bars fill this side first.
-  left,
-
-  /// The right margin, where a bar goes once the left margin's lanes are all taken.
-  right,
-}
-
-/// The exact character a coverage range starts or ends at, when that boundary falls inside a
-/// printed line rather than on its first or last column.
-///
-/// This is the short vertical stroke the reference document draws inside the text itself
-/// (`…sérieux.▌A sa gauche…`), telling a reader which half of the line the bar beside it actually
-/// covers.
-class OcptCoverageTick extends Equatable {
-  /// The 0-based row, within its page, of the printed line this tick sits on.
-  final int row;
-
-  /// The 0-based column, within that line's own printed text
-  /// ([FountainScriptLine.plainText]), the tick is drawn before.
-  final int column;
-
-  /// Class constructor
-  const OcptCoverageTick({required this.row, required this.column});
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptCoverageTick(row: $row, column: $column)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [row, column];
-}
-
-/// One coloured bar drawn in a page's margin, alongside the rows a single coverage range was
-/// printed on.
-///
-/// There is one segment per (coverage range × page it appears on), never one per shot: a shot
-/// covering two disjoint passages draws two bars of the same [colorIndex] and [label], and a range
-/// spanning a page break draws one segment per page, its label repeated — both exactly as the
-/// reference document does.
-class OcptCoverageBarSegment extends Equatable {
-  /// The 0-based index, among the composed script pages, of the page this bar is drawn on. See
-  /// [OcptScenarioCoverageLayout] for what that index does *not* count.
-  final int pageIndex;
-
-  /// The 0-based row, within that page, this bar starts on.
-  final int firstRow;
-
-  /// The 0-based row, within that page, this bar ends on (inclusive).
-  final int lastRow;
-
-  /// The 0-based lane this bar sits in, counted outward from the text: lane 0 is the innermost
-  /// lane of its [side]. See [OcptScenarioCoveragePage.laneInsetInches].
-  final int lane;
-
-  /// Which margin this bar is drawn in.
-  final OcptCoverageBarSide side;
-
-  /// The rank, within its own sequence, of the shot this bar belongs to: the index the coverage
-  /// palette is read at (`ocptCoverageColorAt`).
-  final int colorIndex;
-
-  /// The bar's label — the shot's abbreviation followed by its code (`PM1/1`), or its code alone
-  /// when it has no abbreviation yet.
-  final String label;
-
-  /// Whether the covered range no longer agrees with the screenplay's text
-  /// ([OcptShotCoverageRange.isStale]), so the renderer can draw it hollow rather than solid.
-  final bool isStale;
-
-  /// Whether this bar had to share the outermost lane of its page with other bars, because the
-  /// page needs more lanes than its margins can hold even at the smallest lane pitch. See
-  /// [OcptScenarioCoveragePage.hasLaneOverflow].
-  final bool sharesOutermostLane;
-
-  /// Whether [firstRow] is where the covered range really begins, so the renderer can cap the bar
-  /// there.
-  ///
-  /// False on the continuation a range spanning a page break draws on its later pages: that bar's
-  /// top edge is the page's doing, not the range's, and capping it would claim a shot starts where
-  /// the paper merely ran out.
-  final bool startsRange;
-
-  /// Whether [lastRow] is where the covered range really ends, the mirror of [startsRange].
-  final bool endsRange;
-
-  /// Where inside [firstRow]'s text the covered range starts, or null when it starts on that
-  /// line's first column (nothing to mark) or that line could not be resolved precisely.
-  final OcptCoverageTick? startTick;
-
-  /// Where inside [lastRow]'s text the covered range ends, or null when it ends on that line's
-  /// last column.
-  final OcptCoverageTick? endTick;
-
-  /// Class constructor
-  const OcptCoverageBarSegment({
-    required this.pageIndex,
-    required this.firstRow,
-    required this.lastRow,
-    required this.lane,
-    required this.side,
-    required this.colorIndex,
-    required this.label,
-    required this.isStale,
-    required this.sharesOutermostLane,
-    required this.startsRange,
-    required this.endsRange,
-    required this.startTick,
-    required this.endTick,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptCoverageBarSegment(label: $label, page: $pageIndex, rows: $firstRow-$lastRow, "
-      "${side.name} lane $lane)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [
-    pageIndex,
-    firstRow,
-    lastRow,
-    lane,
-    side,
-    colorIndex,
-    label,
-    isStale,
-    sharesOutermostLane,
-    startsRange,
-    endsRange,
-    startTick,
-    endTick,
-  ];
-}
-
-/// A run of printed text no shot covers, as the export washes it to mark it.
-///
-/// Emitted per printed row and per contiguous run of uncovered characters within it, already
-/// trimmed of its surrounding whitespace: a wash is drawn behind words, never behind the blank
-/// columns around them.
-class OcptCoverageGap extends Equatable {
-  /// The 0-based index, among the composed script pages, of the page this run is printed on.
-  final int pageIndex;
-
-  /// The 0-based row, within that page, this run is printed on.
-  final int row;
-
-  /// The 0-based column, within that line's own printed text, the run starts at.
-  final int startColumn;
-
-  /// The column one past the run's last character.
-  final int endColumn;
-
-  /// Class constructor
-  const OcptCoverageGap({
-    required this.pageIndex,
-    required this.row,
-    required this.startColumn,
-    required this.endColumn,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptCoverageGap(page: $pageIndex, row: $row, columns: $startColumn-$endColumn)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [pageIndex, row, startColumn, endColumn];
-}
-
-/// Everything the coverage export draws on top of one composed script page: its bars, its
-/// uncovered runs, and the lane geometry both were laid out against.
-///
-/// One of these exists per composed script page, whether or not it carries any bar at all, so a
-/// renderer walking the script's pages always has the page's own lane pitch at hand.
-class OcptScenarioCoveragePage extends Equatable {
-  /// The 0-based index of this page among the composed script pages.
-  final int pageIndex;
-
-  /// The bars drawn in this page's margins, in the order their lanes were assigned in, i.e. by
-  /// [OcptCoverageBarSegment.firstRow].
-  final List<OcptCoverageBarSegment> segments;
-
-  /// The uncovered runs washed on this page, in reading order.
-  final List<OcptCoverageGap> gaps;
-
-  /// The distance, in inches, between two consecutive lanes of this page.
-  ///
-  /// [OcptScenarioCoverageLayout.defaultLanePitchInches] on an ordinary page; shrunk, down to
-  /// [OcptScenarioCoverageLayout.minimumLanePitchInches], on a page dense enough to need more
-  /// lanes than the margins hold at the default pitch.
-  final double lanePitchInches;
-
-  /// The number of lanes this page's margins hold at [lanePitchInches], both sides together.
-  final int laneCapacity;
-
-  /// Whether this page needed more lanes than [laneCapacity], so its excess bars had to share the
-  /// outermost lane ([OcptCoverageBarSegment.sharesOutermostLane]).
-  ///
-  /// Only ever true where a dozen shots cover the very same lines; the summary page reports it
-  /// when it happens, so a reader knows the margin is not telling the whole story.
-  final bool hasLaneOverflow;
-
-  /// Class constructor
-  const OcptScenarioCoveragePage({
-    required this.pageIndex,
-    required this.segments,
-    required this.gaps,
-    required this.lanePitchInches,
-    required this.laneCapacity,
-    required this.hasLaneOverflow,
-  });
-
-  /// The distance, in inches, from the printable area's edge (the left margin for
-  /// [OcptCoverageBarSide.left], the right margin for [OcptCoverageBarSide.right]) outward to the
-  /// inner edge of [segment]'s own lane band, which is [lanePitchInches] wide.
-  ///
-  /// The renderer draws the bar inside that band — it is the single place both sides' geometry is
-  /// derived from, so a bar and its label can never drift apart from the lane they were assigned.
-  double laneInsetInches(OcptCoverageBarSegment segment) =>
-      OcptScenarioCoverageLayout.sceneNumberGutterInches + segment.lane * lanePitchInches;
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptScenarioCoveragePage(pageIndex: $pageIndex, segments: ${segments.length}, "
-      "gaps: ${gaps.length})";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [
-    pageIndex,
-    segments,
-    gaps,
-    lanePitchInches,
-    laneCapacity,
-    hasLaneOverflow,
-  ];
-}
-
-/// One shot's row on the export's legend page: what its colour means, in the shot list's own
-/// terms.
-class OcptCoverageLegendEntry extends Equatable {
-  /// The id of the shot this row describes.
-  final String shotId;
-
-  /// The id of the sequence the shot belongs to ([OcptShotSequence.id]).
-  final String sequenceId;
-
-  /// The rank, within its sequence, the shot's colour is read at (`ocptCoverageColorAt`).
-  final int colorIndex;
-
-  /// The label the shot's bars carry, see [OcptCoverageBarSegment.label].
-  final String label;
-
-  /// The shot's [OcptShot.shotSize], free text, possibly empty.
-  final String shotSize;
-
-  /// The shot's [OcptShot.framing], free text, possibly empty.
-  final String framing;
-
-  /// The shot's [OcptShot.cameraMove], free text, possibly empty.
-  final String cameraMove;
-
-  /// Class constructor
-  const OcptCoverageLegendEntry({
-    required this.shotId,
-    required this.sequenceId,
-    required this.colorIndex,
-    required this.label,
-    required this.shotSize,
-    required this.framing,
-    required this.cameraMove,
-  });
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptCoverageLegendEntry(shotId: $shotId, label: $label)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [shotId, sequenceId, colorIndex, label, shotSize, framing, cameraMove];
-}
-
-/// One sequence's row on the export's summary page: how much of it is covered, and by how many
-/// shots.
-class OcptCoverageSummaryRow extends Equatable {
-  /// The id of the sequence this row is built from ([OcptShotSequence.id]).
-  final String sequenceId;
-
-  /// The sequence's display scene number, or null for the orphan group (which is no scene).
-  final String? sceneNumber;
-
-  /// The sequence's scene heading, or an empty string for the orphan group.
-  final String heading;
-
-  /// How many shots the sequence holds.
-  final int shotCount;
-
-  /// How many words the scene's text holds at all, as the coverage editor counts them
-  /// ([OcptScriptWordLayout] blocks and words). Always 0 for the orphan group.
-  final int wordCount;
-
-  /// How many of those [wordCount] words at least one shot covers, counted as a union so a word
-  /// covered twice still counts once.
-  final int coveredWordCount;
-
-  /// How many of the sequence's coverage ranges no longer agree with the screenplay's text.
-  final int staleRangeCount;
-
-  /// The uncovered passages of the scene, quoted short and in reading order, capped both in
-  /// number and in length: the summary names what is missing, it does not reprint it.
-  final List<String> uncoveredExtracts;
-
-  /// Whether this row is the orphan group rather than a real scene.
-  ///
-  /// An orphan shot's scene no longer exists, so it covers nothing that can be printed: the group
-  /// is listed to be named, not to be measured.
-  final bool isOrphanGroup;
-
-  /// Class constructor
-  const OcptCoverageSummaryRow({
-    required this.sequenceId,
-    required this.sceneNumber,
-    required this.heading,
-    required this.shotCount,
-    required this.wordCount,
-    required this.coveredWordCount,
-    required this.staleRangeCount,
-    required this.uncoveredExtracts,
-    required this.isOrphanGroup,
-  });
-
-  /// The share of the scene's words at least one shot covers, between 0 and 1; 0 when the scene
-  /// holds no word at all (an empty scene is not "fully covered").
-  double get coveredWordShare => wordCount == 0 ? 0 : coveredWordCount / wordCount;
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptCoverageSummaryRow(sequenceId: $sequenceId, shotCount: $shotCount, "
-      "covered: $coveredWordCount/$wordCount)";
-
-  /// Object properties
-  @override
-  List<Object?> get props => [
-    sequenceId,
-    sceneNumber,
-    heading,
-    shotCount,
-    wordCount,
-    coveredWordCount,
-    staleRangeCount,
-    uncoveredExtracts,
-    isOrphanGroup,
-  ];
-}
 
 /// The whole scenario coverage export, laid out over an already-composed screenplay: which bar
 /// goes in which margin lane of which page, which printed text no shot covers, and the two extra
@@ -429,6 +76,11 @@ class OcptScenarioCoverageLayout extends Equatable {
   /// The summary page's rows: every sequence, in the snapshot's own order, orphan group last.
   final List<OcptCoverageSummaryRow> summary;
 
+  /// Tell whether any page needed more lanes than its margins hold: what the summary page prints
+  /// its
+  /// "some bars share a lane" warning from.
+  bool get hasLaneOverflow => pages.any((page) => page.hasLaneOverflow);
+
   /// Class constructor
   const OcptScenarioCoverageLayout({
     required this.pages,
@@ -436,7 +88,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     required this.summary,
   });
 
-  /// Lays [snapshot]'s coverage ranges out over [script], the screenplay [screenplayText] composed
+  /// Lay [snapshot]'s coverage ranges out over [script], the screenplay [screenplayText] composed
   /// with [metrics].
   ///
   /// [script] must be the layout `FountainScriptComposer` produced from that very text and those
@@ -482,11 +134,18 @@ class OcptScenarioCoverageLayout extends Equatable {
     );
   }
 
-  /// Whether any page needed more lanes than its margins hold: what the summary page prints its
-  /// "some bars share a lane" warning from.
-  bool get hasLaneOverflow => pages.any((page) => page.hasLaneOverflow);
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptScenarioCoverageLayout(pages: ${pages.length}, legend: ${legend.length}, "
+      "summary: ${summary.length})";
 
-  /// Flattens [script]'s pages into one list of printed rows, in reading order, each still
+  /// Get the label [shot]'s bars and legend row carry: its abbreviation followed by its code
+  /// (`PM1/1`), or its code alone (`1/1`) while it has no abbreviation.
+  static String labelOf(OcptShot shot) =>
+      shot.abbreviation.isEmpty ? shot.code : "${shot.abbreviation}${shot.code}";
+
+  /// Flatten [script]'s pages into one list of printed rows, in reading order, each still
   /// knowing which page and which row of it it is.
   ///
   /// Resolving a coverage range against one flat list is what lets a range spanning a page break
@@ -497,7 +156,7 @@ class OcptScenarioCoverageLayout extends Equatable {
         _PrintedRow(pageIndex: pageIndex, rowIndex: row, line: script.pages[pageIndex].lines[row]),
   ];
 
-  /// Turns every coverage range of [snapshot] into the absolute source span it addresses in the
+  /// Turn every coverage range of [snapshot] into the absolute source span it addresses in the
   /// screenplay's text, together with the colour and label the bar drawn for it carries.
   ///
   /// A range is stored relative to its scene's `charStart`, so this is where the two are added
@@ -543,12 +202,8 @@ class OcptScenarioCoverageLayout extends Equatable {
     return resolved;
   }
 
-  /// The label [shot]'s bars and legend row carry: its abbreviation followed by its code
-  /// (`PM1/1`), or its code alone (`1/1`) while it has no abbreviation.
-  static String labelOf(OcptShot shot) =>
-      shot.abbreviation.isEmpty ? shot.code : "${shot.abbreviation}${shot.code}";
-
-  /// The bar segments [range] draws: one per page it reaches, each carrying the rows it spans on
+  /// Get the bar segments [range] draws: one per page it reaches, each carrying the rows it spans
+  /// on
   /// that page.
   ///
   /// The rows come from the first and the last printed line whose own source span [range]
@@ -609,7 +264,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return segments;
   }
 
-  /// The column, in [line]'s own printed text, the absolute source [offset] falls at, or null
+  /// Get the column, in [line]'s own printed text, the absolute source [offset] falls at, or null
   /// when the boundary needs no tick because it lands on the line's first or last column.
   ///
   /// Walks the line's runs rather than its merged source range, so an emphasis marker between two
@@ -626,7 +281,8 @@ class OcptScenarioCoverageLayout extends Equatable {
     return column;
   }
 
-  /// The column [offset] falls at in [line]'s printed text, without [_columnOf]'s "is it worth a
+  /// Get the column [offset] falls at in [line]'s printed text, without [_columnOf]'s "is it worth
+  /// a
   /// tick" filtering, or null when the line carries no anchored run at all.
   static int? _rawColumnOf(FountainScriptLine line, int offset) {
     var cursor = 0;
@@ -651,7 +307,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return anchored ? cursor : null;
   }
 
-  /// Where the absolute source [offset] falls inside a run of [textLength] printed characters
+  /// Tell where the absolute source [offset] falls inside a run of [textLength] printed characters
   /// composed from [source], as a 0-based offset into that run's own text.
   static int _offsetIntoRun(int offset, FountainSourceRange source, int textLength) {
     final sourceLength = source.endOffset - source.startOffset;
@@ -665,7 +321,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return (local * textLength / sourceLength).round().clamp(0, textLength);
   }
 
-  /// The union of every resolved range, merged into disjoint intervals sorted by start offset:
+  /// Get the union of every resolved range, merged into disjoint intervals sorted by start offset:
   /// what an uncovered run is the complement of.
   static List<_Interval> _mergedIntervals(List<_ResolvedRange> ranges) {
     final sorted = ranges.map((range) => _Interval(range.startOffset, range.endOffset)).toList()
@@ -687,7 +343,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return merged;
   }
 
-  /// Builds one [OcptScenarioCoveragePage] per script page: its bars, once their lanes are
+  /// Build one [OcptScenarioCoveragePage] per script page: its bars, once their lanes are
   /// assigned, and the uncovered runs washed on it.
   static List<OcptScenarioCoveragePage> _pagesOf({
     required FountainScriptLayout script,
@@ -720,7 +376,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     ];
   }
 
-  /// Assigns [pending]'s bars to the lanes of page [pageIndex] and freezes the whole page.
+  /// Assign [pending]'s bars to the lanes of page [pageIndex] and freeze the whole page.
   ///
   /// The lanes come from a greedy interval colouring over the segments sorted by their first row:
   /// each bar takes the innermost lane no bar it overlaps already holds. Those lane indexes then
@@ -772,7 +428,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     );
   }
 
-  /// The runs of [row]'s printed text no interval of [covered] covers, trimmed of their
+  /// Get the runs of [row]'s printed text no interval of [covered] covers, trimmed of their
   /// surrounding whitespace and merged where two consecutive runs meet.
   ///
   /// A row with no anchored run of its own is left alone rather than washed whole: a blank spacer
@@ -838,7 +494,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     ];
   }
 
-  /// [gap] with the whitespace at either end of it dropped, or null once nothing but whitespace
+  /// Get [gap] with the whitespace at either end of it dropped, or null once nothing but whitespace
   /// is left: the wash goes behind words, never behind the blank columns around them.
   static OcptCoverageGap? _trimmed(OcptCoverageGap gap, String text) {
     var start = gap.startColumn.clamp(0, text.length);
@@ -862,7 +518,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     );
   }
 
-  /// The parts of `[start, end)` no interval of [covered] (disjoint and sorted) covers.
+  /// Get the parts of `[start, end)` no interval of [covered] (disjoint and sorted) covers.
   static List<_Interval> _complementOf(int start, int end, List<_Interval> covered) {
     final result = <_Interval>[];
     var cursor = start;
@@ -889,7 +545,8 @@ class OcptScenarioCoverageLayout extends Equatable {
     return result;
   }
 
-  /// The legend page's rows: every shot of [snapshot], in sequence then rank order, orphan shots
+  /// Get the legend page's rows: every shot of [snapshot], in sequence then rank order, orphan
+  /// shots
   /// included — an orphan draws no bar, but it is still a shot the reader may be looking for.
   static List<OcptCoverageLegendEntry> _legendOf(OcptShotListSnapshot snapshot) => [
     for (final sequence in snapshot.sequences)
@@ -905,7 +562,7 @@ class OcptScenarioCoverageLayout extends Equatable {
         ),
   ];
 
-  /// The summary page's rows, one per sequence of [snapshot] in its own order.
+  /// Get the summary page's rows, one per sequence of [snapshot] in its own order.
   ///
   /// The word counts go through [OcptScriptWordLayout], the very model the coverage editor lays
   /// a scene out with, so what the summary calls covered is exactly what the editor calls covered.
@@ -930,7 +587,7 @@ class OcptScenarioCoverageLayout extends Equatable {
       },
   ];
 
-  /// The summary row of a real scene [sequence], measured against its own slice of
+  /// Build the summary row of a real scene [sequence], measured against its own slice of
   /// [screenplayText].
   ///
   /// Measured over [_coverableBlocksOf] rather than over the whole scene, so the percentage and the
@@ -973,7 +630,8 @@ class OcptScenarioCoverageLayout extends Equatable {
     );
   }
 
-  /// The blocks of [layout] a shot can meaningfully cover: everything but the scene headings, which
+  /// Get the blocks of [layout] a shot can meaningfully cover: everything but the scene headings,
+  /// which
   /// name the scene rather than play in it and are left out of the whole coverage report — the
   /// washes drawn on the page as much as the figures measuring them.
   static List<OcptScriptWordBlock> _coverableBlocksOf(OcptScriptWordLayout layout) => [
@@ -981,7 +639,8 @@ class OcptScenarioCoverageLayout extends Equatable {
       if (block.type != FountainLineType.sceneHeading) block,
   ];
 
-  /// How many of [sequence]'s shots' coverage ranges no longer agree with the screenplay's text.
+  /// Count how many of [sequence]'s shots' coverage ranges no longer agree with the screenplay's
+  /// text.
   static int _staleRangeCountOf(OcptShotSequence sequence) {
     var count = 0;
     for (final shot in sequence.shots) {
@@ -990,7 +649,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return count;
   }
 
-  /// The uncovered passages of [blocks] — the coverable part of the scene [layout] lays out —
+  /// Get the uncovered passages of [blocks] — the coverable part of the scene [layout] lays out —
   /// quoted in reading order.
   ///
   /// Built from the scene's own words rather than from the printed rows, so an extract reads as
@@ -1036,19 +695,14 @@ class OcptScenarioCoverageLayout extends Equatable {
     return extracts;
   }
 
-  /// [text] cut at [_maxUncoveredExtractLength] characters, ending on [_ellipsis] when it had to
+  /// Get [text] cut at [_maxUncoveredExtractLength] characters, ending on [_ellipsis] when it had
+  /// to
   /// be cut.
   static String _shortened(String text) => text.length <= _maxUncoveredExtractLength
       ? text
       : "${text.substring(0, _maxUncoveredExtractLength).trimRight()}$_ellipsis";
 
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptScenarioCoverageLayout(pages: ${pages.length}, legend: ${legend.length}, "
-      "summary: ${summary.length})";
-
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pages, legend, summary];
 }
@@ -1143,7 +797,7 @@ class _PendingSegment {
     required this.endTick,
   });
 
-  /// This segment, frozen into its final form now that [placement] says which lane it sits in.
+  /// Get this segment, frozen into its final form now that [placement] says which lane it sits in.
   OcptCoverageBarSegment placed(_LanePlacement placement) => OcptCoverageBarSegment(
     pageIndex: pageIndex,
     firstRow: firstRow,
@@ -1231,7 +885,7 @@ class _LaneGeometry {
     );
   }
 
-  /// Where the bar holding the greedy lane [index] is drawn: the left margin's lanes first,
+  /// Tell where the bar holding the greedy lane [index] is drawn: the left margin's lanes first,
   /// innermost to outermost, then the right margin's, and the outermost lane of all for whatever
   /// this page has no room left for.
   _LanePlacement place(int index) {

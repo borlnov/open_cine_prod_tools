@@ -6,13 +6,16 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:uuid/uuid.dart';
 
-/// Adds, removes and clears a shot's scenario coverage ranges, and keeps them honest against the
+/// Add, remove and clear a shot's scenario coverage ranges, and keep them honest against the
 /// screenplay's actual text.
 ///
 /// **Digest.** `coveredTextDigest` columns store [digestOf] a range's exact covered substring: the
@@ -36,17 +39,17 @@ import 'package:uuid/uuid.dart';
 /// digests to the current text, so nothing fires again until a real further change.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
-class OcptShotCoverageService {
+class OcptShotCoverageService extends AbsOcptService {
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter]. [refreshStaleness] never calls it: it writes inside a caller's own
   /// transaction, and takes that caller's own [OcptRowStampService] instead.
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptShotCoverageService({required this.deviceId});
+  const OcptShotCoverageService({required super.logger, required this.deviceId});
 
-  /// Adds a coverage range covering the scene-relative `[startOffset, endOffset)` of scene
-  /// [sceneId] to shot [shotId], **merged with every range of that shot it joins**, and returns
+  /// Add a coverage range covering the scene-relative `[startOffset, endOffset)` of scene [sceneId]
+  /// to shot [shotId], **merged with every range of that shot it joins**, and return
   /// the id of the range that ends up holding it.
   ///
   /// [sceneText] is scene [sceneId]'s own current text, the string the offsets are relative to: it
@@ -64,15 +67,17 @@ class OcptShotCoverageService {
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   ///
-  /// The refusal is what makes the returned id nullable: null means no range was added.
-  Future<String?> addRange({
+  /// The refusal is what makes the returned id null: the call succeeded and no range was added. An
+  /// empty or inverted range is a failure, answered as `databaseError` with nothing written.
+  @useResult
+  Future<OcptDatabaseResult<String>> addRange({
     required OcptProjectDatabase database,
     required String shotId,
     required String sceneId,
     required int startOffset,
     required int endOffset,
     required String sceneText,
-  }) async {
+  }) => guardResult("addRange", () async {
     if (database.refusesUserWrite("addRange")) {
       return null;
     }
@@ -164,50 +169,26 @@ class OcptShotCoverageService {
     });
 
     return id;
-  }
+  });
 
-  /// Whether two scene-relative ranges join: they overlap, they touch end to end, or the only
-  /// thing [sceneText] holds between them is whitespace. See [addRange] for why whitespace alone
-  /// is not worth keeping two ranges apart over.
-  static bool _joins({
-    required int firstStart,
-    required int firstEnd,
-    required int secondStart,
-    required int secondEnd,
-    required String sceneText,
-  }) {
-    if (firstStart < secondEnd && secondStart < firstEnd) {
-      return true;
-    }
-
-    final gapStart = firstEnd < secondStart ? firstEnd : secondEnd;
-    final gapEnd = firstEnd < secondStart ? secondStart : firstStart;
-    if (gapStart < 0 || gapEnd > sceneText.length || gapStart > gapEnd) {
-      return false;
-    }
-
-    return sceneText.substring(gapStart, gapEnd).trim().isEmpty;
-  }
-
-  /// Removes the single coverage range [rangeId].
+  /// Remove the single coverage range [rangeId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeRange({
+  @useResult
+  Future<OcptDatabaseOutcome> removeRange({
     required OcptProjectDatabase database,
     required String rangeId,
-  }) async {
+  }) => guardOutcome("removeRange", () async {
     if (database.refusesUserWrite("removeRange")) {
       return;
     }
 
     await database.transaction(() async {
-      final current =
-          await (database.select(
-                database.ocptShotCoveragesTable,
-              )..where((table) => table.id.equals(rangeId) & table.isDeleted.not()))
-              .getSingleOrNull();
+      final current = await (database.select(
+        database.ocptShotCoveragesTable,
+      )..where((table) => table.id.equals(rangeId) & table.isDeleted.not())).getSingleOrNull();
       if (current == null) {
         return;
       }
@@ -223,27 +204,26 @@ class OcptShotCoverageService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Removes every coverage range of shot [shotId]: the inspector's `Clear all` action.
+  /// Remove every coverage range of shot [shotId]: the inspector's `Clear all` action.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearRangesOfShot({
+  @useResult
+  Future<OcptDatabaseOutcome> clearRangesOfShot({
     required OcptProjectDatabase database,
     required String shotId,
-  }) async {
+  }) => guardOutcome("clearRangesOfShot", () async {
     if (database.refusesUserWrite("clearRangesOfShot")) {
       return;
     }
 
     await database.transaction(() async {
-      final rows =
-          await (database.select(
-                database.ocptShotCoveragesTable,
-              )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not()))
-              .get();
+      final rows = await (database.select(
+        database.ocptShotCoveragesTable,
+      )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get();
       if (rows.isEmpty) {
         return;
       }
@@ -261,9 +241,9 @@ class OcptShotCoverageService {
       }
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Re-checks every coverage range of screenplay [screenplayId] against [currentFountainText] (the
+  /// Re-check every coverage range of screenplay [screenplayId] against [currentFountainText] (the
   /// text just saved, after `OcptSceneIndexService.reconcile` has refreshed the scenes'
   /// `charStart`/`charEnd` from it), flagging the owning shot of any range that disagrees.
   ///
@@ -295,28 +275,22 @@ class OcptShotCoverageService {
       return;
     }
 
-    final shotRows =
-        await (database.select(database.ocptShotsTable)..where(
-              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-            ))
-            .get();
+    final shotRows = await (database.select(
+      database.ocptShotsTable,
+    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
     final shotIds = shotRows.map((row) => row.id).toList(growable: false);
     if (shotIds.isEmpty) {
       return;
     }
 
-    final sceneRows =
-        await (database.select(database.ocptScenesTable)..where(
-              (table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not(),
-            ))
-            .get();
+    final sceneRows = await (database.select(
+      database.ocptScenesTable,
+    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
     final sceneById = {for (final scene in sceneRows) scene.id: scene};
 
-    final coverageRows =
-        await (database.select(database.ocptShotCoveragesTable)..where(
-              (table) => table.shotId.isIn(shotIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final coverageRows = await (database.select(
+      database.ocptShotCoveragesTable,
+    )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not())).get();
 
     // Seeded with what each shot is already flagged for, so this pass can only ever strengthen a
     // pending reason, never weaken one the user has not addressed yet.
@@ -391,15 +365,16 @@ class OcptShotCoverageService {
     });
   }
 
-  /// Clears `needsCheck`/`checkReason` on shot [shotId] and re-stamps every one of its coverage
+  /// Clear `needsCheck`/`checkReason` on shot [shotId] and re-stamp every one of its coverage
   /// ranges' digests to [currentFountainText], so the shot goes quiet until the next real change.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> markAsChecked({
+  @useResult
+  Future<OcptDatabaseOutcome> markAsChecked({
     required OcptProjectDatabase database,
     required String shotId,
     required String currentFountainText,
-  }) async {
+  }) => guardOutcome("markAsChecked", () async {
     if (database.refusesUserWrite("markAsChecked")) {
       return;
     }
@@ -407,18 +382,15 @@ class OcptShotCoverageService {
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final ranges =
-          await (database.select(database.ocptShotCoveragesTable)..where(
-                (table) => table.shotId.equals(shotId) & table.isDeleted.not(),
-              ))
-              .get();
+      final ranges = await (database.select(
+        database.ocptShotCoveragesTable,
+      )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get();
 
       final sceneCache = <String, OcptSceneRow>{};
       for (final range in ranges) {
-        final scene = sceneCache[range.sceneId] ??=
-            await (database.select(database.ocptScenesTable)
-                  ..where((table) => table.id.equals(range.sceneId) & table.isDeleted.not()))
-                .getSingle();
+        final scene = sceneCache[range.sceneId] ??= await (database.select(
+          database.ocptScenesTable,
+        )..where((table) => table.id.equals(range.sceneId) & table.isDeleted.not())).getSingle();
 
         final absoluteStart = scene.charStart + range.startOffset;
         final absoluteEnd = scene.charStart + range.endOffset;
@@ -434,11 +406,9 @@ class OcptShotCoverageService {
         );
       }
 
-      final shot =
-          await (database.select(
-                database.ocptShotsTable,
-              )..where((table) => table.id.equals(shotId)))
-              .getSingleOrNull();
+      final shot = await (database.select(
+        database.ocptShotsTable,
+      )..where((table) => table.id.equals(shotId))).getSingleOrNull();
       if (shot != null) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -452,56 +422,12 @@ class OcptShotCoverageService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// The ids of every shot (other than [excludingShotId], when given) that has a coverage range of
-  /// scene [sceneId] overlapping the scene-relative `[startOffset, endOffset)` range — the
-  /// inspector's "also covered by" set for a block or sub-range of one.
-  Future<List<String>> shotIdsCoveringRange({
-    required OcptProjectDatabase database,
-    required String sceneId,
-    required int startOffset,
-    required int endOffset,
-    String? excludingShotId,
-  }) async {
-    final rows =
-        await (database.select(database.ocptShotCoveragesTable)..where(
-              (table) => table.sceneId.equals(sceneId) & table.isDeleted.not(),
-            ))
-            .get();
-
-    final overlappingShotIds = <String>{};
-    for (final row in rows) {
-      if (row.shotId == excludingShotId) {
-        continue;
-      }
-      final overlaps = row.startOffset < endOffset && row.endOffset > startOffset;
-      if (overlaps) {
-        overlappingShotIds.add(row.shotId);
-      }
-    }
-
-    return overlappingShotIds.toList(growable: false);
-  }
-
-  /// Sets `reasonByShotId[shotId]` to [reason], unless it already holds
-  /// [OcptShotCheckReason.coverageOutOfBounds]: that reason always wins over
-  /// [OcptShotCheckReason.coveredTextChanged] when a shot has ranges disagreeing for both causes.
-  static void _upgradeReason(
-    Map<String, OcptShotCheckReason> reasonByShotId,
-    String shotId,
-    OcptShotCheckReason reason,
-  ) {
-    if (reasonByShotId[shotId] == OcptShotCheckReason.coverageOutOfBounds) {
-      return;
-    }
-    reasonByShotId[shotId] = reason;
-  }
-
-  /// The hex SHA-256 digest of [text]'s UTF-8 bytes.
+  /// Get the hex SHA-256 digest of [text]'s UTF-8 bytes.
   static String digestOf(String text) => sha256.convert(utf8.encode(text)).toString();
 
-  /// Whether [range] disagrees with [sceneText] (its owning scene's current, already-sliced
+  /// Tell whether [range] disagrees with [sceneText] (its owning scene's current, already-sliced
   /// text): either it no longer fits inside `[0, sceneText.length)` at all, or the substring it
   /// covers no longer digests to [OcptShotCoverageRange.coveredTextDigest].
   ///
@@ -518,5 +444,42 @@ class OcptShotCoverageService {
     }
     final coveredSubstring = sceneText.substring(range.startOffset, range.endOffset);
     return digestOf(coveredSubstring) != range.coveredTextDigest;
+  }
+
+  /// Tell whether two scene-relative ranges join: they overlap, they touch end to end, or the only
+  /// thing [sceneText] holds between them is whitespace. See [addRange] for why whitespace alone
+  /// is not worth keeping two ranges apart over.
+  static bool _joins({
+    required int firstStart,
+    required int firstEnd,
+    required int secondStart,
+    required int secondEnd,
+    required String sceneText,
+  }) {
+    if (firstStart < secondEnd && secondStart < firstEnd) {
+      return true;
+    }
+
+    final gapStart = firstEnd < secondStart ? firstEnd : secondEnd;
+    final gapEnd = firstEnd < secondStart ? secondStart : firstStart;
+    if (gapStart < 0 || gapEnd > sceneText.length || gapStart > gapEnd) {
+      return false;
+    }
+
+    return sceneText.substring(gapStart, gapEnd).trim().isEmpty;
+  }
+
+  /// Set `reasonByShotId[shotId]` to [reason], unless it already holds
+  /// [OcptShotCheckReason.coverageOutOfBounds]: that reason always wins over
+  /// [OcptShotCheckReason.coveredTextChanged] when a shot has ranges disagreeing for both causes.
+  static void _upgradeReason(
+    Map<String, OcptShotCheckReason> reasonByShotId,
+    String shotId,
+    OcptShotCheckReason reason,
+  ) {
+    if (reasonByShotId[shotId] == OcptShotCheckReason.coverageOutOfBounds) {
+      return;
+    }
+    reasonByShotId[shotId] = reason;
   }
 }

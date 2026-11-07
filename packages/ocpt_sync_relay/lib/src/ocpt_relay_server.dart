@@ -45,15 +45,14 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 ///   connected, the socket receives one opaque frame (the literal string [_newWorkPing]) every time
 ///   any replica appends a changeset or uploads a snapshot to `<projectId>`, including a write made
 ///   over a different connection to this same server process — nothing about that frame is
-///   meaningful beyond its arrival, exactly as `OcptRemoteStorage.newWorkStream`'s own contract says
-///   a listener should treat it: react by calling `readSince`/`fetchLatestSnapshot` again, never by
-///   parsing it. Any *other* frame a subscriber sends — a peer's opaque presence payload, per
-///   `docs/plans/presence.md` (M5, Phase A) — is rebroadcast verbatim to that same project's other
-///   subscribers only, never back to the sender and never to another project's subscribers; this
-///   relay only moves that frame, exactly as it moves a changeset payload, and never looks inside
-///   it. The subscriber set behind this is in-memory and per server process
-///   ([_eventSubscribersByProject]): fine for the one relay process a project talks to, and
-///   cleared as each socket closes.
+///   meaningful beyond its arrival, exactly as `OcptRemoteStorage.newWorkStream`'s own contract
+///   says a listener should treat it: react by calling `readSince`/`fetchLatestSnapshot` again,
+///   never by parsing it. Any *other* frame a subscriber sends — a peer's opaque presence payload —
+///   is rebroadcast verbatim to that same project's other subscribers only, never back to the
+///   sender and never to another project's subscribers; this relay only moves that frame, exactly
+///   as it moves a changeset payload, and never looks inside it. The subscriber set behind this is
+///   in-memory and per server process ([_eventSubscribersByProject]): fine for the one relay
+///   process a project talks to, and cleared as each socket closes.
 ///
 /// A request this class refuses — a bad body, a bad token, an unknown project, or the rate limiter
 /// tripping — answers with the matching HTTP status and an [OcptSyncError] JSON body
@@ -87,26 +86,22 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 /// persisted, reset by a restart) — it is the cheapest guard against a brute-force or DoS attempt,
 /// not a security boundary on its own.
 class OcptRelayServer {
-  /// Creates a relay server answering requests against [store], accepting [enrolmentSecret] as the
-  /// only credential able to register a brand-new project.
-  ///
-  /// [maxAuthFailuresPerSource] and [authFailureWindow] configure the failed-authentication
-  /// throttle described on this class: defaults are generous enough that ordinary traffic never
-  /// trips them, and a test exercising the throttle passes a small [maxAuthFailuresPerSource] of
-  /// its own so it stays independent of every other test's timing.
-  OcptRelayServer({
-    required this.store,
-    required this.enrolmentSecret,
-    int maxAuthFailuresPerSource = 20,
-    Duration authFailureWindow = const Duration(minutes: 1),
-    this.onEvent,
-  }) : _rateLimiter = _AuthRateLimiter(maxFailures: maxAuthFailuresPerSource, window: authFailureWindow);
-
+  /// The `X-Ocpt-Enrolment-Secret` HTTP header.
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
+
+  /// The prefix of the value of an `Authorization` header carrying a bearer token.
   static const _bearerPrefix = 'Bearer ';
+
+  /// The query parameter `since`.
   static const _sinceParam = 'since';
+
+  /// The JSON key of `sequence`.
   static const _sequenceKey = 'sequence';
+
+  /// The JSON key of `descriptor`.
   static const _descriptorKey = 'descriptor';
+
+  /// The JSON key of `bytes`.
   static const _bytesKey = 'bytes';
 
   /// The opaque frame sent to every `events` subscriber of a project on new work. Its content is
@@ -133,14 +128,16 @@ class OcptRelayServer {
   /// Flutter-free package reads or writes to on its own.
   final void Function(String message)? onEvent;
 
+  /// The throttle over failed authentications.
   final _AuthRateLimiter _rateLimiter;
 
   /// The sockets currently subscribed to each project's `events` route, so a write can be
   /// broadcast to every subscriber of the project it landed in. Per server process only (see this
   /// class's own doc comment) — a project with no subscriber has no entry here at all.
-  final Map<String, Set<WebSocketChannel>> _eventSubscribersByProject = {};
+  final Map<String, Set<WebSocketChannel>> _eventSubscribersByProject;
 
-  /// The assembled request handler for this relay's five routes: mount it under `shelf_io.serve`
+  /// Get the assembled request handler for this relay's five routes: mount it under
+  /// `shelf_io.serve`
   /// or any other shelf adapter that supports request hijacking, which the `events` route needs
   /// for its WebSocket upgrade.
   shelf.Handler get handler {
@@ -154,6 +151,28 @@ class OcptRelayServer {
     return router.call;
   }
 
+  /// Create a relay server answering requests against [store], accepting [enrolmentSecret] as the
+  /// only credential able to register a brand-new project.
+  ///
+  /// [maxAuthFailuresPerSource] and [authFailureWindow] configure the failed-authentication
+  /// throttle described on this class: defaults are generous enough that ordinary traffic never
+  /// trips them, and a test exercising the throttle passes a small [maxAuthFailuresPerSource] of
+  /// its own so it stays independent of every other test's timing.
+  OcptRelayServer({
+    required this.store,
+    required this.enrolmentSecret,
+    int maxAuthFailuresPerSource = 20,
+    Duration authFailureWindow = const Duration(minutes: 1),
+    this.onEvent,
+  }) : _eventSubscribersByProject = {},
+       _rateLimiter = _AuthRateLimiter(
+         maxFailures: maxAuthFailuresPerSource,
+         window: authFailureWindow,
+       );
+
+  /// Handle `POST /projects/<projectId>/changesets`: authenticate, with the right to create the
+  /// project,
+  /// append the envelope sent as body and answer with its sequence number.
   Future<shelf.Response> _postChangesets(shelf.Request request) async {
     final projectId = request.params['projectId']!;
     final rejection = _authenticate(request, projectId: projectId, allowCreate: true);
@@ -161,15 +180,20 @@ class OcptRelayServer {
       return rejection;
     }
 
-    final OcptChangesetEnvelope envelope;
+    // Assigned by the read below whenever no refusal was recorded.
+    late final OcptChangesetEnvelope envelope;
+    shelf.Response? refusal;
     try {
       envelope = OcptChangesetEnvelope.fromJson(_decodeJsonObject(await request.readAsString()));
     } on FormatException catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.malformed, 'bad changeset envelope: $error');
+      refusal = _errorResponse(400, OcptSyncErrorCode.malformed, 'bad changeset envelope: $error');
     } on OcptSyncMalformedDataError catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.malformed, error.reason);
+      refusal = _errorResponse(400, OcptSyncErrorCode.malformed, error.reason);
     } on OcptSyncUnsupportedFormatError catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.unsupportedFormat, error.toString());
+      refusal = _errorResponse(400, OcptSyncErrorCode.unsupportedFormat, error.toString());
+    }
+    if (refusal != null) {
+      return refusal;
     }
 
     final sequence = store.append(projectId, envelope);
@@ -179,6 +203,9 @@ class OcptRelayServer {
     return _jsonResponse(200, {_sequenceKey: sequence.value});
   }
 
+  /// Handle `GET /projects/<projectId>/changesets`: authenticate and answer with the changesets
+  /// after the
+  /// `since` cursor.
   Future<shelf.Response> _getChangesets(shelf.Request request) async {
     final projectId = request.params['projectId']!;
     final rejection = _authenticate(request, projectId: projectId, allowCreate: false);
@@ -201,6 +228,9 @@ class OcptRelayServer {
     return _jsonResponse(200, [for (final changeset in stored) changeset.toJson()]);
   }
 
+  /// Handle `POST /projects/<projectId>/snapshot`: authenticate, decode the descriptor and the
+  /// bytes sent
+  /// as body, store them and tell the subscribers there is new work.
   Future<shelf.Response> _postSnapshot(shelf.Request request) async {
     final projectId = request.params['projectId']!;
     final rejection = _authenticate(request, projectId: projectId, allowCreate: false);
@@ -208,18 +238,23 @@ class OcptRelayServer {
       return rejection;
     }
 
-    final OcptSnapshotDescriptor descriptor;
-    final Uint8List bytes;
+    // Assigned by the read below whenever no refusal was recorded.
+    late final OcptSnapshotDescriptor descriptor;
+    late final Uint8List bytes;
+    shelf.Response? refusal;
     try {
       final json = _decodeJsonObject(await request.readAsString());
       descriptor = OcptSnapshotDescriptor.fromJson(_requireObject(json, _descriptorKey));
       bytes = base64Decode(_requireString(json, _bytesKey));
     } on FormatException catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.malformed, 'bad snapshot upload: $error');
+      refusal = _errorResponse(400, OcptSyncErrorCode.malformed, 'bad snapshot upload: $error');
     } on OcptSyncMalformedDataError catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.malformed, error.reason);
+      refusal = _errorResponse(400, OcptSyncErrorCode.malformed, error.reason);
     } on OcptSyncUnsupportedFormatError catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.unsupportedFormat, error.toString());
+      refusal = _errorResponse(400, OcptSyncErrorCode.unsupportedFormat, error.toString());
+    }
+    if (refusal != null) {
+      return refusal;
     }
 
     store.uploadSnapshot(projectId, descriptor, bytes);
@@ -229,6 +264,9 @@ class OcptRelayServer {
     return shelf.Response(204);
   }
 
+  /// Handle `GET /projects/<projectId>/snapshot`: authenticate and answer with the latest snapshot,
+  /// or
+  /// with a 404 when there is none.
   Future<shelf.Response> _getSnapshot(shelf.Request request) async {
     final projectId = request.params['projectId']!;
     final rejection = _authenticate(request, projectId: projectId, allowCreate: false);
@@ -241,14 +279,21 @@ class OcptRelayServer {
       // OcptSyncErrorCode has no dedicated "nothing uploaded yet" member; this is the closest
       // existing one, and the 404 status is what a caller (`fetchLatestSnapshot` returning null)
       // actually acts on.
-      return _errorResponse(404, OcptSyncErrorCode.unknownProject, 'project $projectId has no snapshot yet');
+      return _errorResponse(
+        404,
+        OcptSyncErrorCode.unknownProject,
+        'project $projectId has no snapshot yet',
+      );
     }
     final (descriptor, bytes) = latest;
 
-    return _jsonResponse(200, {_descriptorKey: descriptor.toJson(), _bytesKey: base64Encode(bytes)});
+    return _jsonResponse(200, {
+      _descriptorKey: descriptor.toJson(),
+      _bytesKey: base64Encode(bytes),
+    });
   }
 
-  /// Upgrades [request] to the `events` WebSocket for `<projectId>`, behind the same bearer check
+  /// Upgrade [request] to the `events` WebSocket for `<projectId>`, behind the same bearer check
   /// every other route makes (`allowCreate: false` — a socket does not create a project). A
   /// rejected request never reaches the upgrade at all: [_authenticate] answers the ordinary HTTP
   /// status (`401`/`404`/`429`) instead, exactly as it would for any other route.
@@ -263,13 +308,15 @@ class OcptRelayServer {
       return rejection;
     }
 
-    final upgrade = shelf_web_socket.webSocketHandler((webSocket, _) => _subscribe(projectId, webSocket));
+    final upgrade = shelf_web_socket.webSocketHandler(
+      (webSocket, _) => _subscribe(projectId, webSocket),
+    );
 
     return upgrade(request);
   }
 
-  /// Adds [webSocket] to [projectId]'s subscriber set, rebroadcasts every frame it sends to that
-  /// project's other subscribers ([_rebroadcastToPeers]), and arranges for [_unsubscribe] to run
+  /// Add [webSocket] to [projectId]'s subscriber set, rebroadcast every frame it sends to that
+  /// project's other subscribers ([_rebroadcastToPeers]), and arrange for [_unsubscribe] to run
   /// the moment the connection closes, from either end.
   void _subscribe(String projectId, WebSocketChannel webSocket) {
     _eventSubscribersByProject.putIfAbsent(projectId, () => {}).add(webSocket);
@@ -282,7 +329,7 @@ class OcptRelayServer {
     );
   }
 
-  /// Removes [webSocket] from [projectId]'s subscriber set, dropping the set entirely once it is
+  /// Remove [webSocket] from [projectId]'s subscriber set, dropping the set entirely once it is
   /// left empty so a project nobody is watching leaves no trace in [_eventSubscribersByProject].
   void _unsubscribe(String projectId, WebSocketChannel webSocket) {
     final subscribers = _eventSubscribersByProject[projectId];
@@ -296,7 +343,7 @@ class OcptRelayServer {
     }
   }
 
-  /// Sends the opaque [_newWorkPing] frame to every socket currently subscribed to [projectId]'s
+  /// Send the opaque [_newWorkPing] frame to every socket currently subscribed to [projectId]'s
   /// `events` route — called once a changeset append or a snapshot upload for that project has
   /// actually landed in [store]. A project with no subscriber does nothing.
   void _notifyNewWork(String projectId) {
@@ -309,13 +356,17 @@ class OcptRelayServer {
     }
   }
 
-  /// Forwards [frame] — an opaque presence payload one replica sent over its own `events` socket —
+  /// Forward [frame] — an opaque presence payload one replica sent over its own `events` socket —
   /// to every *other* subscriber of [projectId], never back to [sender] and never to another
   /// project's subscribers. Distinct from [_notifyNewWork], which is relay-generated and goes to
   /// every subscriber including whichever socket triggered it: this method only ever moves a frame
   /// a client itself sent, and never inspects it — [frame] passes through exactly as received,
   /// keeping this class domain-blind.
-  void _rebroadcastToPeers(String projectId, {required WebSocketChannel sender, required Object? frame}) {
+  void _rebroadcastToPeers(
+    String projectId, {
+    required WebSocketChannel sender,
+    required Object? frame,
+  }) {
     final subscribers = _eventSubscribersByProject[projectId];
     if (subscribers == null) {
       return;
@@ -328,10 +379,14 @@ class OcptRelayServer {
     }
   }
 
-  /// Authenticates [request] for [projectId], creating the project first when [allowCreate] is
+  /// Authenticate [request] for [projectId], creating the project first when [allowCreate] is
   /// true and every condition in this class's own doc comment is met. Returns null when the
   /// request may proceed, or the [shelf.Response] to send instead.
-  shelf.Response? _authenticate(shelf.Request request, {required String projectId, required bool allowCreate}) {
+  shelf.Response? _authenticate(
+    shelf.Request request, {
+    required String projectId,
+    required bool allowCreate,
+  }) {
     final source = _sourceKeyFor(request);
     if (_rateLimiter.isBlocked(source)) {
       onEvent?.call('auth rejected: project=$projectId status=429');
@@ -347,7 +402,9 @@ class OcptRelayServer {
     final project = store.findProject(projectId);
 
     if (project == null) {
-      if (allowCreate && token != null && request.headers[_enrolmentSecretHeader] == enrolmentSecret) {
+      if (allowCreate &&
+          token != null &&
+          request.headers[_enrolmentSecretHeader] == enrolmentSecret) {
         store.createProject(projectId: projectId, tokenHash: _hashToken(token));
         onEvent?.call('project created: project=$projectId');
 
@@ -373,7 +430,8 @@ class OcptRelayServer {
     return null;
   }
 
-  /// The bearer token [request] carries, or null when it carries none (a missing header, a header
+  /// Get the bearer token [request] carries, or null when it carries none (a missing header, a
+  /// header
   /// not shaped as `Bearer <token>`, or an empty token).
   String? _bearerToken(shelf.Request request) {
     final header = request.headers['authorization'];
@@ -385,7 +443,8 @@ class OcptRelayServer {
     return token.isEmpty ? null : token;
   }
 
-  /// A coarse "where did this request come from" key for the failed-authentication throttle: the
+  /// Get a coarse "where did this request come from" key for the failed-authentication throttle:
+  /// the
   /// remote address a real socket adapter (`shelf_io`) attaches to [request]'s context, falling
   /// back to a single shared key when nothing of the sort is present — as it is not when this
   /// handler is driven directly in a test, or behind an adapter that never sets it.
@@ -398,20 +457,23 @@ class OcptRelayServer {
     return 'unknown';
   }
 
-  /// The sha256 hex digest of [token] — the only form of a bearer token [OcptRelayStore] ever
+  /// Get the sha256 hex digest of [token] — the only form of a bearer token [OcptRelayStore] ever
   /// stores or compares against.
   String _hashToken(String token) => sha256.convert(utf8.encode(token)).toString();
 
+  /// Build a response with [statusCode] and [body] encoded as JSON.
   shelf.Response _jsonResponse(int statusCode, Object body) => shelf.Response(
     statusCode,
     body: jsonEncode(body),
     headers: {'content-type': 'application/json'},
   );
 
+  /// Build a JSON response with [statusCode] carrying an [OcptSyncError] made of [code] and
+  /// [message].
   shelf.Response _errorResponse(int statusCode, OcptSyncErrorCode code, String message) =>
       _jsonResponse(statusCode, OcptSyncError(code: code, message: message).toJson());
 
-  /// Decodes [body] as JSON, throwing [OcptSyncMalformedDataError] (never a raw [TypeError]) when
+  /// Decode [body] as JSON, throwing [OcptSyncMalformedDataError] (never a raw [TypeError]) when
   /// it parses to anything but a JSON object — mirrors what `ocpt_sync_protocol`'s own `fromJson`
   /// constructors do for a single field, one level up, for the request body as a whole.
   Map<String, dynamic> _decodeJsonObject(String body) {
@@ -423,7 +485,7 @@ class OcptRelayServer {
     return decoded;
   }
 
-  /// Reads the [String] at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
+  /// Read the [String] at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
   /// missing or not a string.
   String _requireString(Map<String, dynamic> json, String key) {
     final value = json[key];
@@ -434,7 +496,7 @@ class OcptRelayServer {
     return value;
   }
 
-  /// Reads the JSON object at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
+  /// Read the JSON object at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
   /// missing or not an object.
   Map<String, dynamic> _requireObject(Map<String, dynamic> json, String key) {
     final value = json[key];
@@ -452,13 +514,19 @@ class OcptRelayServer {
 /// cheapest guard against a brute-force or denial-of-service attempt, not a security boundary of
 /// its own.
 class _AuthRateLimiter {
-  _AuthRateLimiter({required this.maxFailures, required this.window});
-
+  /// How many failures a source may make within [window] before it is blocked.
   final int maxFailures;
-  final Duration window;
-  final Map<String, _FailureWindow> _failuresBySource = {};
 
-  /// True when [source] has already failed authentication [maxFailures] times or more within the
+  /// How long a source's failures are counted before the count starts again.
+  final Duration window;
+
+  /// The current failure window of each source.
+  final Map<String, _FailureWindow> _failuresBySource;
+
+  /// Class constructor
+  _AuthRateLimiter({required this.maxFailures, required this.window}) : _failuresBySource = {};
+
+  /// Tell whether [source] has already failed authentication [maxFailures] times or more within the
   /// current window, and every further request from it should be rejected without even looking at
   /// its credentials.
   bool isBlocked(String source) {
@@ -475,7 +543,7 @@ class _AuthRateLimiter {
     return record.count >= maxFailures;
   }
 
-  /// Records one failed authentication attempt from [source], starting a fresh window when none
+  /// Record one failed authentication attempt from [source], starting a fresh window when none
   /// is open yet or the previous one has expired.
   void recordFailure(String source) {
     final now = DateTime.now();
@@ -490,8 +558,12 @@ class _AuthRateLimiter {
 
 /// One source's failure count within its current window, as tracked by [_AuthRateLimiter].
 class _FailureWindow {
-  _FailureWindow({required this.windowStart, required this.count});
-
+  /// When the window opened, at the first failure.
   final DateTime windowStart;
+
+  /// How many failures happened since the window opened.
   int count;
+
+  /// Class constructor
+  _FailureWindow({required this.windowStart, required this.count});
 }

@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -12,18 +13,24 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import '../../../ocpt_result_expectations.dart';
 
+/// Run the tests of [OcptPeopleService].
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
   Future<String> testDeviceId() async => "test-device";
-  final assetsService = OcptAssetsService(deviceId: testDeviceId);
+  final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: testDeviceId);
   final peopleService = OcptPeopleService(
+    logger: const SilentLogger(),
     deviceId: testDeviceId,
     assetsService: assetsService,
-    roleCandidatesService: OcptRoleCandidatesService(deviceId: testDeviceId),
+    roleCandidatesService: OcptRoleCandidatesService(
+      logger: const SilentLogger(),
+      deviceId: testDeviceId,
+    ),
   );
 
   late OcptProjectDatabase database;
@@ -63,35 +70,41 @@ void main() {
 
   group("people CRUD and ordering", () {
     test("createPerson appends at the end and loadPeople reads it back", () async {
-      final firstId = (await peopleService.createPerson(database: database))!;
-      final secondId = (await peopleService.createPerson(database: database))!;
+      final firstId = (await peopleService.createPerson(database: database).valueOrFail);
+      final secondId = (await peopleService.createPerson(database: database).valueOrFail);
 
-      final people = await peopleService.loadPeople(database: database);
+      final people = await peopleService.loadPeople(database: database).valueOrFail;
       expect(people.map((person) => person.id), [firstId, secondId]);
     });
 
     test("createPerson in the middle keeps sortKey ordering", () async {
-      final firstId = (await peopleService.createPerson(database: database))!;
-      final secondId = (await peopleService.createPerson(database: database))!;
+      final firstId = (await peopleService.createPerson(database: database).valueOrFail);
+      final secondId = (await peopleService.createPerson(database: database).valueOrFail);
 
-      await peopleService.reorderPerson(database: database, personId: secondId, newPosition: 0);
-      final thirdId = (await peopleService.createPerson(database: database))!;
-      await peopleService.reorderPerson(database: database, personId: thirdId, newPosition: 1);
+      await peopleService
+          .reorderPerson(database: database, personId: secondId, newPosition: 0)
+          .okOrFail;
+      final thirdId = (await peopleService.createPerson(database: database).valueOrFail);
+      await peopleService
+          .reorderPerson(database: database, personId: thirdId, newPosition: 1)
+          .okOrFail;
 
       final rows = await readPeople();
       expect(rows.map((row) => row.id), [secondId, thirdId, firstId]);
     });
 
     test("updatePerson only touches the fields it's given a Value for", () async {
-      final id = (await peopleService.createPerson(database: database))!;
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
 
-      await peopleService.updatePerson(
-        database: database,
-        personId: id,
-        firstName: const Value("Clara"),
-        lastName: const Value("Martin"),
-        email: const Value("clara@example.com"),
-      );
+      await peopleService
+          .updatePerson(
+            database: database,
+            personId: id,
+            firstName: const Value("Clara"),
+            lastName: const Value("Martin"),
+            email: const Value("clara@example.com"),
+          )
+          .okOrFail;
 
       final row = await readPerson(id);
       expect(row.firstName, "Clara");
@@ -101,12 +114,14 @@ void main() {
     });
 
     test("reorderPerson moves a person by writing exactly one row", () async {
-      final firstId = (await peopleService.createPerson(database: database))!;
-      final secondId = (await peopleService.createPerson(database: database))!;
-      final thirdId = (await peopleService.createPerson(database: database))!;
+      final firstId = (await peopleService.createPerson(database: database).valueOrFail);
+      final secondId = (await peopleService.createPerson(database: database).valueOrFail);
+      final thirdId = (await peopleService.createPerson(database: database).valueOrFail);
 
       final keysBefore = {for (final row in await readPeople()) row.id: row.sortKey};
-      await peopleService.reorderPerson(database: database, personId: firstId, newPosition: 2);
+      await peopleService
+          .reorderPerson(database: database, personId: firstId, newPosition: 2)
+          .okOrFail;
       final keysAfter = {for (final row in await readPeople()) row.id: row.sortKey};
 
       expect((await readPeople()).map((row) => row.id), [secondId, thirdId, firstId]);
@@ -114,12 +129,12 @@ void main() {
     });
 
     test("a delete writes a tombstone and the row disappears from every read", () async {
-      final firstId = (await peopleService.createPerson(database: database))!;
-      final secondId = (await peopleService.createPerson(database: database))!;
+      final firstId = (await peopleService.createPerson(database: database).valueOrFail);
+      final secondId = (await peopleService.createPerson(database: database).valueOrFail);
 
-      await peopleService.deletePerson(database: database, personId: firstId);
+      await peopleService.deletePerson(database: database, personId: firstId).okOrFail;
 
-      final people = await peopleService.loadPeople(database: database);
+      final people = await peopleService.loadPeople(database: database).valueOrFail;
       expect(people.map((person) => person.id), [secondId]);
 
       final tombstoned = await readPerson(firstId);
@@ -129,41 +144,43 @@ void main() {
 
   group("erasure", () {
     test("deletePerson blanks every personal column and keeps id/sortKey/colorIndex", () async {
-      final id = (await peopleService.createPerson(database: database))!;
-      await peopleService.updatePerson(
-        database: database,
-        personId: id,
-        firstName: const Value("Clara"),
-        lastName: const Value("Martin"),
-        email: const Value("clara@example.com"),
-        phone: const Value("0600000000"),
-        addressLine1: const Value("1 rue de la Paix"),
-        addressLine2: const Value("3e étage"),
-        postalCode: const Value("75002"),
-        city: const Value("Paris"),
-        region: const Value("Île-de-France"),
-        country: const Value("France"),
-        colorIndex: const Value(3),
-        birthDate: Value(DateTime(2000)),
-        minorNotes: const Value("n/a"),
-        maxDailyPresenceMinutes: const Value(480),
-        isTransportAutonomous: const Value(true),
-        accommodationNotes: const Value("Chez Camille"),
-        travelNotes: const Value("Carte de fidélité 1234"),
-        dietaryNotes: const Value("Végétarienne"),
-        allergies: const Value("Arachides"),
-        sizeTop: const Value("38"),
-        sizeBottom: const Value("38"),
-        sizeShoes: const Value("39"),
-        hmcNotes: const Value("Cicatrice au menton"),
-        imageRightsStatus: const Value(OcptImageRightsStatus.signed),
-        imageRightsDate: Value(DateTime(2026)),
-        notes: const Value("Ponctuelle"),
-      );
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
+      await peopleService
+          .updatePerson(
+            database: database,
+            personId: id,
+            firstName: const Value("Clara"),
+            lastName: const Value("Martin"),
+            email: const Value("clara@example.com"),
+            phone: const Value("0600000000"),
+            addressLine1: const Value("1 rue de la Paix"),
+            addressLine2: const Value("3e étage"),
+            postalCode: const Value("75002"),
+            city: const Value("Paris"),
+            region: const Value("Île-de-France"),
+            country: const Value("France"),
+            colorIndex: const Value(3),
+            birthDate: Value(DateTime(2000)),
+            minorNotes: const Value("n/a"),
+            maxDailyPresenceMinutes: const Value(480),
+            isTransportAutonomous: const Value(true),
+            accommodationNotes: const Value("Chez Camille"),
+            travelNotes: const Value("Carte de fidélité 1234"),
+            dietaryNotes: const Value("Végétarienne"),
+            allergies: const Value("Arachides"),
+            sizeTop: const Value("38"),
+            sizeBottom: const Value("38"),
+            sizeShoes: const Value("39"),
+            hmcNotes: const Value("Cicatrice au menton"),
+            imageRightsStatus: const Value(OcptImageRightsStatus.signed),
+            imageRightsDate: Value(DateTime(2026)),
+            notes: const Value("Ponctuelle"),
+          )
+          .okOrFail;
 
       final sortKeyBefore = (await readPerson(id)).sortKey;
 
-      await peopleService.deletePerson(database: database, personId: id);
+      await peopleService.deletePerson(database: database, personId: id).okOrFail;
 
       final row = await readPerson(id);
       expect(row.isDeleted, isTrue);
@@ -202,24 +219,30 @@ void main() {
     });
 
     test("deletePerson erases the free text of the rows hanging off the person", () async {
-      final id = (await peopleService.createPerson(database: database))!;
-      await peopleService.addPosition(
-        database: database,
-        personId: id,
-        positionId: "soundEngineer",
-        customLabel: "",
-      );
-      await peopleService.addSkill(database: database, personId: id, label: "Permis B, allemand");
-      await peopleService.addUnavailability(
-        database: database,
-        personId: id,
-        startDate: DateTime(2026, 8, 14),
-        endDate: DateTime(2026, 8, 14),
-        slot: OcptDayPartSlot.fullDay,
-        reason: "Mariage de sa sœur",
-      );
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
+      await peopleService
+          .addPosition(
+            database: database,
+            personId: id,
+            positionId: "soundEngineer",
+            customLabel: "",
+          )
+          .maybeValueOrFail;
+      await peopleService
+          .addSkill(database: database, personId: id, label: "Permis B, allemand")
+          .maybeValueOrFail;
+      await peopleService
+          .addUnavailability(
+            database: database,
+            personId: id,
+            startDate: DateTime(2026, 8, 14),
+            endDate: DateTime(2026, 8, 14),
+            slot: OcptDayPartSlot.fullDay,
+            reason: "Mariage de sa sœur",
+          )
+          .maybeValueOrFail;
 
-      await peopleService.deletePerson(database: database, personId: id);
+      await peopleService.deletePerson(database: database, personId: id).okOrFail;
 
       // Tombstoned along with the person they hang off: they describe somebody who is gone.
       final positions = await (database.select(
@@ -247,9 +270,9 @@ void main() {
     });
 
     test("deletePerson records the erasure in local_erasures", () async {
-      final id = (await peopleService.createPerson(database: database))!;
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
 
-      await peopleService.deletePerson(database: database, personId: id);
+      await peopleService.deletePerson(database: database, personId: id).okOrFail;
 
       final erasure = await (database.select(
         database.ocptLocalErasuresTable,
@@ -258,10 +281,10 @@ void main() {
     });
 
     test("deletePerson twice is idempotent: one erasure row, no error", () async {
-      final id = (await peopleService.createPerson(database: database))!;
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
 
-      await peopleService.deletePerson(database: database, personId: id);
-      await peopleService.deletePerson(database: database, personId: id);
+      await peopleService.deletePerson(database: database, personId: id).okOrFail;
+      await peopleService.deletePerson(database: database, personId: id).okOrFail;
 
       final erasures = await (database.select(
         database.ocptLocalErasuresTable,
@@ -270,73 +293,64 @@ void main() {
     });
   });
 
-
   group("referenced files", () {
     test("setPersonPhoto references the file and points the person at it", () async {
-      final id = (await peopleService.createPerson(database: database))!;
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
 
-      final assetId = (await peopleService.setPersonPhoto(
-        database: database,
-        personId: id,
-        path: "/photos/clara.jpg",
-      ))!;
+      final assetId = (await peopleService
+          .setPersonPhoto(database: database, personId: id, path: "/photos/clara.jpg")
+          .valueOrFail);
 
       expect((await readPerson(id)).photoAssetId, assetId);
 
-      final people = await peopleService.loadPeople(database: database);
+      final people = await peopleService.loadPeople(database: database).valueOrFail;
       expect(people.single.photo?.path, "/photos/clara.jpg");
       expect(people.single.photo?.kind, OcptAssetKind.personPhoto);
     });
 
     test("referencing a second photo tombstones the first, an orphan being no history", () async {
-      final id = (await peopleService.createPerson(database: database))!;
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
 
-      final firstId = (await peopleService.setPersonPhoto(
-        database: database,
-        personId: id,
-        path: "/photos/first.jpg",
-      ))!;
-      final secondId = (await peopleService.setPersonPhoto(
-        database: database,
-        personId: id,
-        path: "/photos/second.jpg",
-      ))!;
+      final firstId = (await peopleService
+          .setPersonPhoto(database: database, personId: id, path: "/photos/first.jpg")
+          .valueOrFail);
+      final secondId = (await peopleService
+          .setPersonPhoto(database: database, personId: id, path: "/photos/second.jpg")
+          .valueOrFail);
 
       expect(await readAssetIsDeleted(firstId), isTrue);
       expect(await readAssetIsDeleted(secondId), isFalse);
 
-      final people = await peopleService.loadPeople(database: database);
+      final people = await peopleService.loadPeople(database: database).valueOrFail;
       expect(people.single.photo?.path, "/photos/second.jpg");
     });
 
     test("clearPersonPhoto tombstones the row and nulls the column", () async {
-      final id = (await peopleService.createPerson(database: database))!;
-      final assetId = (await peopleService.setPersonPhoto(
-        database: database,
-        personId: id,
-        path: "/photos/clara.jpg",
-      ))!;
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
+      final assetId = (await peopleService
+          .setPersonPhoto(database: database, personId: id, path: "/photos/clara.jpg")
+          .valueOrFail);
 
-      await peopleService.clearPersonPhoto(database: database, personId: id);
+      await peopleService.clearPersonPhoto(database: database, personId: id).okOrFail;
 
       expect(await readAssetIsDeleted(assetId), isTrue);
       expect((await readPerson(id)).photoAssetId, isNull);
-      expect((await peopleService.loadPeople(database: database)).single.photo, isNull);
+      expect((await peopleService.loadPeople(database: database).valueOrFail).single.photo, isNull);
     });
 
     test("setImageRightsDocument never touches the status a release stands at", () async {
-      final id = (await peopleService.createPerson(database: database))!;
-      await peopleService.updatePerson(
-        database: database,
-        personId: id,
-        imageRightsStatus: const Value(OcptImageRightsStatus.toGenerate),
-      );
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
+      await peopleService
+          .updatePerson(
+            database: database,
+            personId: id,
+            imageRightsStatus: const Value(OcptImageRightsStatus.toGenerate),
+          )
+          .okOrFail;
 
-      await peopleService.setImageRightsDocument(
-        database: database,
-        personId: id,
-        path: "/documents/cession.pdf",
-      );
+      await peopleService
+          .setImageRightsDocument(database: database, personId: id, path: "/documents/cession.pdf")
+          .maybeValueOrFail;
 
       // Filing a draft is not the same claim as filing a signature: the badge stays the only thing
       // that says where the release stands.
@@ -344,60 +358,54 @@ void main() {
       expect(row.imageRightsStatus, OcptImageRightsStatus.toGenerate);
       expect(row.imageRightsAssetId, isNotNull);
 
-      final people = await peopleService.loadPeople(database: database);
+      final people = await peopleService.loadPeople(database: database).valueOrFail;
       expect(people.single.imageRightsDocument?.path, "/documents/cession.pdf");
     });
 
     test("a person's photo and release are two references, not one", () async {
-      final id = (await peopleService.createPerson(database: database))!;
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
 
-      await peopleService.setPersonPhoto(
-        database: database,
-        personId: id,
-        path: "/photos/clara.jpg",
-      );
-      await peopleService.setImageRightsDocument(
-        database: database,
-        personId: id,
-        path: "/documents/cession.pdf",
-      );
+      await peopleService
+          .setPersonPhoto(database: database, personId: id, path: "/photos/clara.jpg")
+          .maybeValueOrFail;
+      await peopleService
+          .setImageRightsDocument(database: database, personId: id, path: "/documents/cession.pdf")
+          .maybeValueOrFail;
 
       // Referencing one must not tombstone the other: they are different columns of one row, and
       // the replacement rule is per column.
-      final person = (await peopleService.loadPeople(database: database)).single;
+      final person = (await peopleService.loadPeople(database: database).valueOrFail).single;
       expect(person.photo?.path, "/photos/clara.jpg");
       expect(person.imageRightsDocument?.path, "/documents/cession.pdf");
     });
 
     test("a photo whose row was tombstoned behind its column resolves to null", () async {
-      final id = (await peopleService.createPerson(database: database))!;
-      final assetId = (await peopleService.setPersonPhoto(
-        database: database,
-        personId: id,
-        path: "/photos/clara.jpg",
-      ))!;
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
+      final assetId = (await peopleService
+          .setPersonPhoto(database: database, personId: id, path: "/photos/clara.jpg")
+          .valueOrFail);
 
-      await assetsService.removeAsset(database: database, assetId: assetId);
+      await assetsService.removeAsset(database: database, assetId: assetId).okOrFail;
 
       // The column still names the row; the row is gone, and "no photo" is what that means.
       expect((await readPerson(id)).photoAssetId, assetId);
-      expect((await peopleService.loadPeople(database: database)).single.photo, isNull);
+      expect((await peopleService.loadPeople(database: database).valueOrFail).single.photo, isNull);
     });
 
     test("deletePerson blanks the path of every file the person referenced", () async {
-      final id = (await peopleService.createPerson(database: database))!;
-      final photoId = (await peopleService.setPersonPhoto(
-        database: database,
-        personId: id,
-        path: "/photos/clara-martin.jpg",
-      ))!;
-      final documentId = (await peopleService.setImageRightsDocument(
-        database: database,
-        personId: id,
-        path: "/documents/cession-clara-martin.pdf",
-      ))!;
+      final id = (await peopleService.createPerson(database: database).valueOrFail);
+      final photoId = (await peopleService
+          .setPersonPhoto(database: database, personId: id, path: "/photos/clara-martin.jpg")
+          .valueOrFail);
+      final documentId = (await peopleService
+          .setImageRightsDocument(
+            database: database,
+            personId: id,
+            path: "/documents/cession-clara-martin.pdf",
+          )
+          .valueOrFail);
 
-      await peopleService.deletePerson(database: database, personId: id);
+      await peopleService.deletePerson(database: database, personId: id).okOrFail;
 
       // A tombstone alone would leave the person's name, and where their photograph sits, written
       // in the file — an erasure is about what the `.ocpt` stops holding.
@@ -412,116 +420,121 @@ void main() {
 
   group("positions, skills and unavailabilities", () {
     test("addPosition appends and loadPeople reads it back in order", () async {
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
 
-      await peopleService.addPosition(
-        database: database,
-        personId: personId,
-        positionId: "director",
-        customLabel: "",
-      );
-      await peopleService.addPosition(
-        database: database,
-        personId: personId,
-        positionId: "",
-        customLabel: "Régie",
-      );
+      await peopleService
+          .addPosition(
+            database: database,
+            personId: personId,
+            positionId: "director",
+            customLabel: "",
+          )
+          .maybeValueOrFail;
+      await peopleService
+          .addPosition(database: database, personId: personId, positionId: "", customLabel: "Régie")
+          .maybeValueOrFail;
 
-      final people = await peopleService.loadPeople(database: database);
+      final people = await peopleService.loadPeople(database: database).valueOrFail;
       final positions = people.single.positions;
       expect(positions.map((position) => position.positionId), ["director", ""]);
       expect(positions.map((position) => position.customLabel), ["", "Régie"]);
     });
 
     test("removePosition tombstones it and it disappears from loadPeople", () async {
-      final personId = (await peopleService.createPerson(database: database))!;
-      final positionId = (await peopleService.addPosition(
-        database: database,
-        personId: personId,
-        positionId: "director",
-        customLabel: "",
-      ))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
+      final positionId = (await peopleService
+          .addPosition(
+            database: database,
+            personId: personId,
+            positionId: "director",
+            customLabel: "",
+          )
+          .valueOrFail);
 
-      await peopleService.removePosition(database: database, id: positionId);
+      await peopleService.removePosition(database: database, id: positionId).okOrFail;
 
-      final people = await peopleService.loadPeople(database: database);
+      final people = await peopleService.loadPeople(database: database).valueOrFail;
       expect(people.single.positions, isEmpty);
     });
 
     test("reorderPositions moves one by writing exactly one row", () async {
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       final ids = [
         for (var i = 0; i < 3; i++)
-          (await peopleService.addPosition(
-            database: database,
-            personId: personId,
-            positionId: "position$i",
-            customLabel: "",
-              ))!,
+          (await peopleService
+              .addPosition(
+                database: database,
+                personId: personId,
+                positionId: "position$i",
+                customLabel: "",
+              )
+              .valueOrFail),
       ];
 
-      await peopleService.reorderPositions(
-        database: database,
-        personId: personId,
-        orderedIds: [ids[1], ids[2], ids[0]],
-      );
+      await peopleService
+          .reorderPositions(
+            database: database,
+            personId: personId,
+            orderedIds: [ids[1], ids[2], ids[0]],
+          )
+          .okOrFail;
 
-      final people = await peopleService.loadPeople(database: database);
+      final people = await peopleService.loadPeople(database: database).valueOrFail;
       expect(people.single.positions.map((position) => position.id), [ids[1], ids[2], ids[0]]);
     });
 
     test("skills round trip: add, update, reorder, remove", () async {
-      final personId = (await peopleService.createPerson(database: database))!;
-      final firstId = (await peopleService.addSkill(
-        database: database,
-        personId: personId,
-        label: "Permis B",
-      ))!;
-      final secondId = (await peopleService.addSkill(
-        database: database,
-        personId: personId,
-        label: "Anglais",
-      ))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
+      final firstId = (await peopleService
+          .addSkill(database: database, personId: personId, label: "Permis B")
+          .valueOrFail);
+      final secondId = (await peopleService
+          .addSkill(database: database, personId: personId, label: "Anglais")
+          .valueOrFail);
 
-      await peopleService.updateSkill(database: database, id: firstId, label: "Permis B et C1");
-      await peopleService.reorderSkills(
-        database: database,
-        personId: personId,
-        orderedIds: [secondId, firstId],
-      );
+      await peopleService
+          .updateSkill(database: database, id: firstId, label: "Permis B et C1")
+          .okOrFail;
+      await peopleService
+          .reorderSkills(database: database, personId: personId, orderedIds: [secondId, firstId])
+          .okOrFail;
 
-      var people = await peopleService.loadPeople(database: database);
+      var people = await peopleService.loadPeople(database: database).valueOrFail;
       expect(people.single.skills.map((skill) => skill.id), [secondId, firstId]);
       expect(
         people.single.skills.singleWhere((skill) => skill.id == firstId).label,
         "Permis B et C1",
       );
 
-      await peopleService.removeSkill(database: database, id: secondId);
-      people = await peopleService.loadPeople(database: database);
+      await peopleService.removeSkill(database: database, id: secondId).okOrFail;
+      people = await peopleService.loadPeople(database: database).valueOrFail;
       expect(people.single.skills.map((skill) => skill.id), [firstId]);
     });
 
     test("unavailabilities round trip: add, update, remove", () async {
-      final personId = (await peopleService.createPerson(database: database))!;
-      final id = (await peopleService.addUnavailability(
-        database: database,
-        personId: personId,
-        startDate: DateTime(2026, 8, 10),
-        endDate: DateTime(2026, 8, 12),
-        slot: OcptDayPartSlot.fullDay,
-        reason: "Tournage d'un autre film",
-      ))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
+      final id = (await peopleService
+          .addUnavailability(
+            database: database,
+            personId: personId,
+            startDate: DateTime(2026, 8, 10),
+            endDate: DateTime(2026, 8, 12),
+            slot: OcptDayPartSlot.fullDay,
+            reason: "Tournage d'un autre film",
+          )
+          .valueOrFail);
 
-      await peopleService.updateUnavailability(
-        database: database,
-        id: id,
-        slot: const Value(OcptDayPartSlot.custom),
-        startMinute: const Value(14 * 60),
-        endMinute: const Value(17 * 60 + 30),
-      );
+      await peopleService
+          .updateUnavailability(
+            database: database,
+            id: id,
+            slot: const Value(OcptDayPartSlot.custom),
+            startMinute: const Value(14 * 60),
+            endMinute: const Value(17 * 60 + 30),
+          )
+          .okOrFail;
 
-      var people = await peopleService.loadPeople(database: database);
+      var people = await peopleService.loadPeople(database: database).valueOrFail;
       final unavailability = people.single.unavailabilities.single;
       expect(unavailability.startDate, DateTime(2026, 8, 10));
       expect(unavailability.endDate, DateTime(2026, 8, 12));
@@ -530,15 +543,15 @@ void main() {
       expect(unavailability.endMinute, 17 * 60 + 30);
       expect(unavailability.reason, "Tournage d'un autre film");
 
-      await peopleService.removeUnavailability(database: database, id: id);
-      people = await peopleService.loadPeople(database: database);
+      await peopleService.removeUnavailability(database: database, id: id).okOrFail;
+      people = await peopleService.loadPeople(database: database).valueOrFail;
       expect(people.single.unavailabilities, isEmpty);
     });
   });
 
   group("row-field-version stamps", () {
     test("createPerson stamps every column of the new row", () async {
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
 
       final stamps = await readStamps();
       final person = await readPerson(personId);
@@ -556,16 +569,18 @@ void main() {
     });
 
     test("updatePerson stamps only the columns that actually changed", () async {
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       // Clears what `createPerson` itself stamped, so only `updatePerson`'s own stamps remain.
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await peopleService.updatePerson(
-        database: database,
-        personId: personId,
-        firstName: const Value("Camille"),
-        lastName: const Value("Ferrand"),
-      );
+      await peopleService
+          .updatePerson(
+            database: database,
+            personId: personId,
+            firstName: const Value("Camille"),
+            lastName: const Value("Ferrand"),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("people/$personId/")).toSet();
@@ -574,25 +589,25 @@ void main() {
       expect(stamps["people/$personId/lastName"]!.version, 1);
 
       // Writing the same values again touches nothing: there is nothing left to stamp.
-      await peopleService.updatePerson(
-        database: database,
-        personId: personId,
-        firstName: const Value("Camille"),
-      );
+      await peopleService
+          .updatePerson(database: database, personId: personId, firstName: const Value("Camille"))
+          .okOrFail;
       expect(await readStamps(), stamps);
     });
 
     test("deletePerson stamps isDeleted along with every blanked column", () async {
-      final personId = (await peopleService.createPerson(database: database))!;
-      await peopleService.updatePerson(
-        database: database,
-        personId: personId,
-        firstName: const Value("Camille"),
-        email: const Value("camille@example.com"),
-      );
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
+      await peopleService
+          .updatePerson(
+            database: database,
+            personId: personId,
+            firstName: const Value("Camille"),
+            email: const Value("camille@example.com"),
+          )
+          .okOrFail;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await peopleService.deletePerson(database: database, personId: personId);
+      await peopleService.deletePerson(database: database, personId: personId).okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("people/$personId/")).toSet();
@@ -603,15 +618,17 @@ void main() {
     });
 
     test("addPosition stamps every column of the new row", () async {
-      final personId = (await peopleService.createPerson(database: database))!;
+      final personId = (await peopleService.createPerson(database: database).valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      final positionId = (await peopleService.addPosition(
-        database: database,
-        personId: personId,
-        positionId: "director",
-        customLabel: "",
-      ))!;
+      final positionId = (await peopleService
+          .addPosition(
+            database: database,
+            personId: personId,
+            positionId: "director",
+            customLabel: "",
+          )
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(

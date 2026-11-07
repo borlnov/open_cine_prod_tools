@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:fountain_kit/src/layout/fountain_element_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 import 'package:fountain_kit/src/layout/fountain_scene_statistics.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
@@ -52,6 +54,7 @@ FountainLayoutMetrics _metrics({required int linesPerPage}) => FountainLayoutMet
   lyrics: _box(30),
 );
 
+/// Build a scene heading reading [headingText].
 FountainSceneHeading _sceneHeading(String headingText) => FountainSceneHeading(
   sourceRange: _range,
   rawText: headingText,
@@ -59,14 +62,19 @@ FountainSceneHeading _sceneHeading(String headingText) => FountainSceneHeading(
   forcedMarker: false,
 );
 
+/// Build an action block of [lines].
 FountainActionBlock _action(List<String> lines) =>
     FountainActionBlock(sourceRange: _range, lines: lines, forced: false);
 
+/// Build a character cue named [name].
 FountainCharacter _character(String name, {bool isDualDialogue = false}) =>
     FountainCharacter(sourceRange: _range, name: name, isDualDialogue: isDualDialogue);
 
-FountainDialogueLine _dialogueLine(String text) => FountainDialogueLine(sourceRange: _range, text: text);
+/// Build a line of dialogue saying [text].
+FountainDialogueLine _dialogueLine(String text) =>
+    FountainDialogueLine(sourceRange: _range, text: text);
 
+/// Build a dialogue group of [children] spoken by [name].
 FountainDialogueGroup _dialogueGroup(
   String name,
   List<FountainBlock> children, {
@@ -78,9 +86,11 @@ FountainDialogueGroup _dialogueGroup(
   isDualDialogue: isDualDialogue,
 );
 
+/// Build a document of [blocks], with no title page.
 FountainDocument _document(List<FountainBlock> blocks) =>
     FountainDocument(titlePage: null, blocks: blocks, sourceText: '');
 
+/// Run the tests of [FountainSceneStatistics.of].
 void main() {
   group('FountainSceneStatistics.of', () {
     test('no scene: an out-of-range index is rejected', () {

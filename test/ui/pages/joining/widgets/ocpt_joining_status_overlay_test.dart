@@ -5,9 +5,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/join_step.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_status_overlay.dart';
 
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve,
@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_statu
 /// pumped directly here, no `OcptJoiningBloc` or `OcptJoiningView` involved at all, since it takes
 /// everything it needs as plain constructor parameters.
 Widget _wrap(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -27,6 +27,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: Stack(children: [child])),
 );
 
+/// Run the tests of [OcptJoiningStatusOverlay].
 void main() {
   testWidgets("the busy state shows a spinner, the current step's own label and Annuler", (
     tester,
@@ -79,9 +80,7 @@ void main() {
     }
   });
 
-  testWidgets("the success state shows a check mark, the success title and Ouvrir", (
-    tester,
-  ) async {
+  testWidgets("the success state shows a check mark, the success title and Ouvrir", (tester) async {
     var opened = false;
 
     await tester.pumpWidget(
@@ -89,7 +88,8 @@ void main() {
         OcptJoiningStatusOverlay(
           step: null,
           succeeded: true,
-          onCancelRequested: () => fail("onCancelRequested must not be called in the success state"),
+          onCancelRequested: () =>
+              fail("onCancelRequested must not be called in the success state"),
           onOpenRequested: () => opened = true,
         ),
       ),

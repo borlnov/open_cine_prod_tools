@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/home_recent_project_entry.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:path/path.dart' as p;
@@ -35,8 +36,8 @@ import 'package:path/path.dart' as p;
 /// ([OcptProjectsManager.freeNewProjectFilePath] — `file_selector`'s `getSaveLocation` has no
 /// Android/iOS implementation); "Open…" shows the native open-file dialog through
 /// [FileSelectorManager], and every one of them delegates the actual create/open work to
-/// [OcptProjectsManager] and navigates to the workspace through [OcptRouterManager] (RFL31:
-/// navigation only via the router manager) once it succeeds.
+/// [OcptProjectsManager] and navigates to the workspace through [OcptRouterManager]
+/// (navigation only via the router manager) once it succeeds.
 ///
 /// It is also where the app's **compatibility gate** stands: every path that opens a project file
 /// runs through here, so every one of them is probed before it is opened, and a file from another
@@ -53,7 +54,7 @@ import 'package:path/path.dart' as p;
 /// unpacked `.ocpt` through the very same compatibility gate this bloc puts every other project
 /// file through.
 class OcptHomeBloc extends BlocForMixin<OcptHomeState>
-    with MixinOcptProjectPackageBloc<OcptHomeState> {
+    with MixinOcptProjectPackageBloc<OcptHomeState>, MixinAsyncInitBloc<OcptHomeState> {
   /// The properties manager used to read/update the recent projects list.
   final OcptPropertiesManager _propertiesManager;
 
@@ -84,6 +85,16 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   /// reacting to that write is what puts its card on the grid.
   StreamSubscription<dynamic>? _recentProjectsSubscription;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
+
   /// Class constructor
   OcptHomeBloc({
     OcptPropertiesManager? propertiesManager,
@@ -96,18 +107,12 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
-       super(const OcptHomeState.init()) {
-    add(const OcptHomeRefreshRequestedEvent());
-    _recentProjectsSubscription = _propertiesManager.recentProjects.updateStream.listen(
-      (_) => add(const OcptHomeRefreshRequestedEvent()),
-    );
-  }
+       super(const OcptHomeState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptHomeRefreshRequestedEvent>(_onRefreshRequested);
     on<OcptHomeCreateProjectRequestedEvent>(_onCreateProjectRequested);
     on<OcptHomeOpenProjectRequestedEvent>(_onOpenProjectRequested);
     on<OcptHomeShareProjectRequestedEvent>(_onShareProjectRequested);
@@ -120,32 +125,29 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     on<OcptHomeProjectPackageImportErrorDismissedEvent>(_onProjectPackageImportErrorDismissed);
     on<OcptHomeProjectPackageImportReportDismissedEvent>(_onProjectPackageImportReportDismissed);
     on<OcptHomeScreenplayImportErrorDismissedEvent>(_onScreenplayImportErrorDismissed);
+    _recentProjectsSubscription = _propertiesManager.recentProjects.updateStream.listen(
+      (_) => add(const AsyncInitEvent()),
+    );
   }
 
-  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
-  @protected
-  @override
-  OcptProjectsManager get projectsManager => _projectsManager;
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  @protected
-  @override
-  OcptExportManager get exportManager => _exportManager;
-
-  /// Does nothing: no project is open from the home page, so there is no debounced field edit or
+  /// Do nothing: no project is open from the home page, so there is no debounced field edit or
   /// pending autosave a mode would otherwise still be holding outside the database.
   @protected
   @override
-  Future<void> flushPendingProjectWrites(Emitter<OcptHomeState> emitter) async {}
+  Future<bool> flushPendingProjectWrites(Emitter<OcptHomeState> emitter) async => true;
 
-  /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
+  /// Loads the recent projects list for the first time, see [_refreshRecentProjects]; adding an
+  /// [AsyncInitEvent] again reloads it.
+  @protected
   @override
-  Future<void> disposeLifeCycle() async {
-    await _recentProjectsSubscription?.cancel();
-    return super.disposeLifeCycle();
+  Future<void> initAsyncBloc({required Emitter<OcptHomeState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+    await _refreshRecentProjects(emit);
   }
 
-  /// Reloads the recent projects list, recomputes which of them still exist on disk, and probes
+  /// Reload the recent projects list, recompute which of them still exist on disk, and probe
   /// the format of every one that does.
   ///
   /// The probe is the same read-only header check [_stopsOnFileFormat] runs before an open — see
@@ -153,10 +155,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   /// two verdicts an open would refuse outright ([OcptProjectFileVerdict.newer] and
   /// [OcptProjectFileVerdict.foreignDevBuild]); a migratable [OcptProjectFileVerdict.older] file is
   /// not a problem to flag ahead of time, and is left to the open flow to offer as it always has.
-  Future<void> _onRefreshRequested(
-    OcptHomeRefreshRequestedEvent event,
-    Emitter<OcptHomeState> emitter,
-  ) async {
+  Future<void> _refreshRecentProjects(Emitter<OcptHomeState> emitter) async {
     final projects = await _propertiesManager.recentProjects.load() ?? const [];
     final entries = [
       for (final project in projects)
@@ -170,11 +169,11 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
           OcptHomeRecentProjectEntry(project: project, exists: false),
     ];
 
-    emitter(state.copyWith(recentProjects: entries));
+    emitter(state.copyWithRecentProjects(recentProjects: entries));
   }
 
-  /// Navigates to [route] (the workspace or the Partager screen, both reached with a project
-  /// already open), then reloads the recent projects list once it pops back here.
+  /// Navigate to [route] (the workspace or the Partager screen, both reached with a project already
+  /// open), then reload the recent projects list once it pops back here.
   ///
   /// The push only completes when the user leaves [route], and what they did there is exactly
   /// what this page shows: leaving the workspace closes the current project, and
@@ -194,17 +193,17 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       return;
     }
 
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+    await _refreshRecentProjects(emitter);
   }
 
-  /// Shows the native save-file dialog on desktop (or resolves a free file path with no dialog on
-  /// mobile — see this class's own doc comment), creates the project there, then navigates to the
+  /// Show the native save-file dialog on desktop (or resolves a free file path with no dialog on
+  /// mobile — see this class's own doc comment), create the project there, then navigate to the
   /// editor. A cancelled desktop dialog is a silent no-op: nothing is created.
   Future<void> _onCreateProjectRequested(
     OcptHomeCreateProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true));
+    emitter(state.copyWithBusy());
 
     final filePath = await _resolveNewProjectFilePath(
       name: event.name,
@@ -212,22 +211,22 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     );
     if (filePath == null) {
       // The user cancelled the desktop save-file dialog.
-      emitter(state.copyWith(isBusy: false));
+      emitter(state.copyWithIdle());
       return;
     }
 
     final result = await _projectsManager.createProject(name: event.name, filePath: filePath);
     if (!result.status.isSuccess) {
-      emitter(state.copyWith(isBusy: false, error: result.status));
+      emitter(state.copyWithFailure(error: result.status));
       return;
     }
 
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
-    emitter(state.copyWith(isBusy: false));
+    await _refreshRecentProjects(emitter);
+    emitter(state.copyWithIdle());
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
-  /// Resolves the file path a fresh project named [name] is created at: the native save-file
+  /// Resolve the file path a fresh project named [name] is created at: the native save-file
   /// dialog's own pick on desktop, suggested `<name>.ocpt` inside
   /// [OcptProjectsManager.suggestedProjectsDirectory] and labelled [fileTypeLabel] — or null when
   /// the user cancelled it — or [OcptProjectsManager.freeNewProjectFilePath], with no dialog at
@@ -249,8 +248,8 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     );
   }
 
-  /// Opens [OcptHomeOpenProjectRequestedEvent.filePath], or shows an open-file dialog first if
-  /// it's null, then navigates to the editor.
+  /// Open [OcptHomeOpenProjectRequestedEvent.filePath], or show an open-file dialog first if it's
+  /// null, then navigate to the editor.
   ///
   /// Every project file this page opens goes through the compatibility gate first, the picked one
   /// and the tapped card alike: a file from another build stops here, and what the probe found is
@@ -261,7 +260,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeOpenProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true));
+    emitter(state.copyWithBusy());
 
     var filePath = event.filePath;
     if (filePath == null) {
@@ -274,7 +273,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       if (!selection.status.isSuccess || selectedFile == null) {
         // The user cancelled the dialog, or the selection failed; the latter is a soft failure
         // deliberately not surfaced as an error, since the OS dialog itself already reported it.
-        emitter(state.copyWith(isBusy: false));
+        emitter(state.copyWithIdle());
         return;
       }
 
@@ -290,16 +289,16 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       allowMigration: event.allowMigration,
     );
     if (!result.status.isSuccess) {
-      emitter(state.copyWith(isBusy: false, error: result.status));
+      emitter(state.copyWithFailure(error: result.status));
       return;
     }
 
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
-    emitter(state.copyWith(isBusy: false));
+    await _refreshRecentProjects(emitter);
+    emitter(state.copyWithIdle());
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
-  /// Opens the project at [OcptHomeShareProjectRequestedEvent.filePath], then navigates to its
+  /// Open the project at [OcptHomeShareProjectRequestedEvent.filePath], then navigate to its
   /// Partager screen instead of the workspace — a project card's own "Partager / Synchroniser…"
   /// overflow menu action.
   ///
@@ -311,20 +310,20 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeShareProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true));
+    emitter(state.copyWithBusy());
 
     final result = await _projectsManager.openProject(filePath: event.filePath);
     if (!result.status.isSuccess) {
-      emitter(state.copyWith(isBusy: false, error: result.status));
+      emitter(state.copyWithFailure(error: result.status));
       return;
     }
 
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
-    emitter(state.copyWith(isBusy: false));
+    await _refreshRecentProjects(emitter);
+    emitter(state.copyWithIdle());
     await _pushRouteAndRefreshOnReturn(OcptRoute.sharing, emitter);
   }
 
-  /// Navigates to the "Rejoindre un projet partagé" screen, then reloads the recent projects list
+  /// Navigate to the "Rejoindre un projet partagé" screen, then reload the recent projects list
   /// once it pops back here — joining creates a new project card that was not there before.
   ///
   /// Opens no project first, unlike [_onShareProjectRequested]: joining is how a project comes to
@@ -336,7 +335,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _pushRouteAndRefreshOnReturn(OcptRoute.joining, emitter);
   }
 
-  /// Whether opening [filePath] has to stop and be stated to the user first, raising what the
+  /// Tell whether opening [filePath] has to stop and be stated to the user first, raising what the
   /// probe found through the state when it does.
   ///
   /// The manager refuses these two verdicts on its own as well, and would report them as statuses:
@@ -350,7 +349,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       case OcptProjectFileVerdict.older:
       case OcptProjectFileVerdict.newer:
       case OcptProjectFileVerdict.foreignDevBuild:
-        emitter(state.copyWith(isBusy: false, pendingFileCompatibility: compatibility));
+        emitter(state.copyWithPendingFileCompatibility(compatibility: compatibility));
         return true;
       case OcptProjectFileVerdict.current:
       case OcptProjectFileVerdict.unreadable:
@@ -358,45 +357,45 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     }
   }
 
-  /// Clears the compatibility verdict the page has just stated, if any.
+  /// Clear the compatibility verdict the page has just stated, if any.
   Future<void> _onFileCompatibilityStated(
     OcptHomeFileCompatibilityStatedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(clearPendingFileCompatibility: true));
+    emitter(state.copyWithFileCompatibilityStated());
   }
 
-  /// Removes a recent project from the list and refreshes it.
+  /// Remove a recent project from the list and refresh it.
   Future<void> _onRemoveRecentProjectRequested(
     OcptHomeRemoveRecentProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
     await _propertiesManager.removeRecentProject(event.path);
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+    await _refreshRecentProjects(emitter);
   }
 
-  /// Clears the transient error currently shown, if any.
+  /// Clear the transient error currently shown, if any.
   Future<void> _onErrorDismissed(
     OcptHomeErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(clearError: true));
+    emitter(state.copyWithErrorDismissed());
   }
 
-  /// Picks a screenplay file, creates a new project for it, imports its text, then navigates to
+  /// Pick a screenplay file, create a new project for it, import its text, then navigate to
   /// the editor.
   ///
   /// Mirrors [_onCreateProjectRequested] step for step, with two differences: resolving the new
   /// project's file path is preceded by an open-file dialog picking the screenplay (its title page,
-  /// or else its file name, suggesting the new project's own name), and the new project's screenplay
-  /// is seeded with the picked file's text instead of staying empty. The picked file may be a
-  /// `.fountain`, an `.fdx` or a `.celtx`; the conversion happens as it is read, so what is seeded is
-  /// Fountain either way.
+  /// or else its file name, suggesting the new project's own name), and the new project's
+  /// screenplay is seeded with the picked file's text instead of staying empty. The picked file may
+  /// be a `.fountain`, an `.fdx` or a `.celtx`; the conversion happens as it is read, so what is
+  /// seeded is Fountain either way.
   ///
   /// On desktop, the project's own name is taken from whichever file name the save-file dialog was
   /// actually given — `p.basenameWithoutExtension`, since the user may have renamed it there —
-  /// rather than the screenplay's own suggested name; on mobile, where there is no such dialog, that
-  /// suggested name is used directly.
+  /// rather than the screenplay's own suggested name; on mobile, where there is no such dialog,
+  /// that suggested name is used directly.
   ///
   /// A file that cannot be read as a screenplay stops the flow right there — no project is
   /// created — and lands in [OcptHomeState.screenplayImportError] for the page to word.
@@ -404,7 +403,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeImportScreenplayRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true, clearScreenplayImportError: true));
+    emitter(state.copyWithScreenplayImportStarted());
 
     final read = await _exportManager.pickAndReadScreenplay(
       fileTypeLabel: event.screenplayFileTypeLabel,
@@ -415,8 +414,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       // already reported the latter. A file that could not be read as a screenplay is the one
       // outcome worth stating.
       emitter(
-        state.copyWith(
-          isBusy: false,
+        state.copyWithScreenplayImportRead(
           screenplayImportError: read.status == OcptScreenplayImportStatus.cancelled
               ? null
               : read.status,
@@ -445,7 +443,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       );
       if (pickedPath == null) {
         // The user cancelled the desktop save-file dialog.
-        emitter(state.copyWith(isBusy: false));
+        emitter(state.copyWithIdle());
         return;
       }
       filePath = pickedPath;
@@ -454,31 +452,28 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
 
     final result = await _projectsManager.createProject(name: projectName, filePath: filePath);
     if (!result.status.isSuccess) {
-      emitter(state.copyWith(isBusy: false, error: result.status));
+      emitter(state.copyWithFailure(error: result.status));
       return;
     }
 
-    try {
-      final project = result.value!;
-      await _projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: imported.fountainText,
-        snapshotReason: OcptSnapshotReason.import,
-      );
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to import a fountain file into the project at "
-          "$filePath: $error");
-      emitter(state.copyWith(isBusy: false, error: OcptProjectStatus.ioError));
+    final project = result.value!;
+    final saved = await _projectsManager.screenplayService.saveScreenplayText(
+      database: project.database,
+      screenplayId: project.primaryScreenplayId,
+      fountainText: imported.fountainText,
+      snapshotReason: OcptSnapshotReason.import,
+    );
+    if (saved.isError) {
+      emitter(state.copyWithFailure(error: OcptProjectStatus.ioError));
       return;
     }
 
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
-    emitter(state.copyWith(isBusy: false));
+    await _refreshRecentProjects(emitter);
+    emitter(state.copyWithIdle());
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
-  /// Picks a `.ocptz` file, then a parent folder to unpack it into, and raises what landed through
+  /// Pick a `.ocptz` file, then a parent folder to unpack it into, and raise what landed through
   /// the state.
   ///
   /// A cancelled open dialog or a cancelled folder picker are both silent no-ops, exactly as every
@@ -490,7 +485,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeImportProjectPackageRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, clearError: true, clearProjectPackageImportError: true));
+    emitter(state.copyWithProjectPackageImportStarted());
 
     final selection = await _fileSelectorManager.openSelector(
       allowedExtensions: [ocptPackageFileExtension],
@@ -501,7 +496,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     if (!selection.status.isSuccess || selectedFile == null) {
       // The user cancelled the dialog, or the selection failed; the latter is a soft failure
       // deliberately not surfaced as an error, since the OS dialog itself already reported it.
-      emitter(state.copyWith(isBusy: false));
+      emitter(state.copyWithIdle());
       return;
     }
 
@@ -510,7 +505,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     );
     if (parentDirectoryPath == null) {
       // The user cancelled the folder picker.
-      emitter(state.copyWith(isBusy: false));
+      emitter(state.copyWithIdle());
       return;
     }
 
@@ -521,34 +516,41 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
 
     final report = result.value;
     if (!result.status.isSuccess || report == null) {
-      emitter(state.copyWith(isBusy: false, projectPackageImportError: result.status));
+      emitter(state.copyWithProjectPackageImportFailed(projectPackageImportError: result.status));
       return;
     }
 
-    emitter(state.copyWith(isBusy: false, projectPackageImportReport: report));
+    emitter(state.copyWithProjectPackageImported(projectPackageImportReport: report));
   }
 
-  /// Clears the transient project package import error currently shown, if any.
+  /// Clear the transient project package import error currently shown, if any.
   Future<void> _onProjectPackageImportErrorDismissed(
     OcptHomeProjectPackageImportErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(clearProjectPackageImportError: true));
+    emitter(state.copyWithProjectPackageImportErrorDismissed());
   }
 
-  /// Clears the project package import report the page has just read, if any.
+  /// Clear the project package import report the page has just read, if any.
   Future<void> _onProjectPackageImportReportDismissed(
     OcptHomeProjectPackageImportReportDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(clearProjectPackageImportReport: true));
+    emitter(state.copyWithProjectPackageImportReportDismissed());
   }
 
-  /// Clears the transient screenplay import error currently shown, if any.
+  /// Clear the transient screenplay import error currently shown, if any.
   Future<void> _onScreenplayImportErrorDismissed(
     OcptHomeScreenplayImportErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(clearScreenplayImportError: true));
+    emitter(state.copyWithScreenplayImportErrorDismissed());
+  }
+
+  /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _recentProjectsSubscription?.cancel();
+    return super.disposeLifeCycle();
   }
 }

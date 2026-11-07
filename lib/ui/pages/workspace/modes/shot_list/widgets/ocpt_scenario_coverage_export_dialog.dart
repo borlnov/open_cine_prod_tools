@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -21,8 +21,8 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 /// page.
 ///
 /// Shows a page format dropdown (prefilled from [current], but never persisted: it only changes the
-/// document being exported now) and four checkboxes, all defaulting on. The margins of [current] are
-/// always carried through unchanged: this dialog never lets the user edit them. Use [show] to
+/// document being exported now) and four checkboxes, all defaulting on. The margins of [current]
+/// are always carried through unchanged: this dialog never lets the user edit them. Use [show] to
 /// display it and get back the resulting [OcptScenarioCoverageExportOptions], or null if the user
 /// cancelled.
 class OcptScenarioCoverageExportDialog extends StatefulWidget {
@@ -33,7 +33,12 @@ class OcptScenarioCoverageExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptScenarioCoverageExportDialog({required this.current, super.key});
 
-  /// Shows the dialog and returns the [OcptScenarioCoverageExportOptions] the user applied, or null
+  /// Create the [_OcptScenarioCoverageExportDialogState] holding the state of the scenario coverage
+  /// export dialog.
+  @override
+  State<OcptScenarioCoverageExportDialog> createState() => _OcptScenarioCoverageExportDialogState();
+
+  /// Show the dialog and return the [OcptScenarioCoverageExportOptions] the user applied, or null
   /// if they cancelled it.
   static Future<OcptScenarioCoverageExportOptions?> show(
     BuildContext context, {
@@ -42,9 +47,6 @@ class OcptScenarioCoverageExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptScenarioCoverageExportDialog(current: current),
   );
-
-  @override
-  State<OcptScenarioCoverageExportDialog> createState() => _OcptScenarioCoverageExportDialogState();
 }
 
 /// The state of [OcptScenarioCoverageExportDialog].
@@ -64,12 +66,14 @@ class _OcptScenarioCoverageExportDialogState extends State<OcptScenarioCoverageE
   /// Whether the coverage summary page will be included in the exported document.
   bool _includeSummaryPage = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedFormat = widget.current.format;
   }
 
+  /// Build the scenario coverage export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -84,7 +88,7 @@ class _OcptScenarioCoverageExportDialogState extends State<OcptScenarioCoverageE
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -133,15 +137,15 @@ class _OcptScenarioCoverageExportDialogState extends State<OcptScenarioCoverageE
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptScenarioCoverageExportOptions].
+  /// Pop the dialog returning the resulting [OcptScenarioCoverageExportOptions].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptScenarioCoverageExportDialog.show] caller.
   void _submit() {

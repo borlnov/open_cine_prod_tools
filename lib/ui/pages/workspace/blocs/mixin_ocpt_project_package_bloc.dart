@@ -4,15 +4,17 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_export_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_manifest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
-import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
@@ -46,8 +48,22 @@ import 'package:path/path.dart' as p;
 /// the same manager call serve a project open in a mode and a project card on the home page where
 /// no project is open at all.
 mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on BlocForMixin<S> {
+  /// The logger category linked to this mixin.
+  static const _loggerCategory = "project_package_bloc";
+
+  /// The logger this mixin writes to.
+  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
+  /// Whether a package is being written right now, which is what keeps a second `Export` from
+  /// starting one over it.
+  ///
+  /// A write streams a whole project and everything it references to disk: it can take long enough
+  /// for the user to reopen the panel, and two of them running against one save location is not a
+  /// thing this has to make sense of.
+  bool _isWritingProjectPackage = false;
+
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
-  /// The manager owning the open project and the package service behind it.
+  /// Get the manager owning the open project and the package service behind it.
   ///
   /// Declared here and implemented by each mode's bloc, rather than resolved through [globalGetIt]
   /// by the mixin itself, so a bloc built with an explicitly injected manager (which is what every
@@ -57,7 +73,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   OcptProjectsManager get projectsManager;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  /// The manager whose [OcptExportManager.saveLocationService] shows the native save dialog on
+  /// Get the manager whose [OcptExportManager.saveLocationService] shows the native save dialog on
   /// desktop, and whose [OcptExportManager.shareService] hands the package to the OS share sheet on
   /// [OcptExportManager.isMobile] instead — `file_selector`'s `getSaveLocation` has no Android or
   /// iOS implementation.
@@ -70,40 +86,13 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   @protected
   OcptExportManager get exportManager;
 
-  /// Writes whatever the mode still holds outside the database — a pending autosave, a debounced
+  /// Write whatever the mode still holds outside the database — a pending autosave, a debounced
   /// field edit — before the project file is copied into a package.
   ///
   /// The same hook `MixinOcptProjectVersionsBloc` declares, with the same signature, so a mode
-  /// answers it once for both.
+  /// answers it once for both. Answers whether the export may go on: false writes no package.
   @protected
-  Future<void> flushPendingProjectWrites(Emitter<S> emitter);
-
-  /// Whether a package is being written right now, which is what keeps a second `Export` from
-  /// starting one over it.
-  ///
-  /// A write streams a whole project and everything it references to disk: it can take long enough
-  /// for the user to reopen the panel, and two of them running against one save location is not a
-  /// thing this has to make sense of.
-  bool _isWritingProjectPackage = false;
-
-  /// The target the pre-flight question is currently about, from the moment it found a missing
-  /// file until [OcptProjectPackageExportConfirmedEvent] uses it — null the rest of the time.
-  ///
-  /// [OcptProjectPackageExportConfirmedEvent] deliberately does not carry the target again: the
-  /// mode or the page resolves it from the very question it just showed, and a bloc holding a
-  /// **resolved word** across that wait (the way the confirmed event still carries `fileTypeLabel`
-  /// fresh, rather than reusing what the request brought) would be holding something that could
-  /// have changed under it — a locale can flip mid-dialog, a save dialog's own label with it. A
-  /// file path is not that: it is a fact about which project this export is for, settled the
-  /// moment the question was raised, so remembering it here rather than re-resolving it is safe in
-  /// a way re-resolving `fileTypeLabel` would not be.
-  ///
-  /// Cleared once [_onExportConfirmed] has read it (the question answered) and, defensively,
-  /// whenever a notice is emitted (the question reported on) — never by
-  /// [_onMissingFilesAskDismissed], which the mode/page dispatches the instant the pending state is
-  /// read, well before the user has actually answered the dialog it is about to open: clearing the
-  /// target there would lose it before [_onExportConfirmed] ever gets to use it.
-  OcptProjectPackageTarget? _pendingProjectPackageExportTarget;
+  Future<bool> flushPendingProjectWrites(Emitter<S> emitter);
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -116,8 +105,8 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     on<OcptProjectPackageNoticeDismissedEvent>(_onNoticeDismissed);
   }
 
-  /// Resolves what this export is about, flushes whatever the caller still holds, scans the files
-  /// the project references, and either asks about the missing ones or writes the package straight
+  /// Resolve what this export is about, flush whatever the caller still holds, scan the files the
+  /// project references, and either ask about the missing ones or write the package straight
   /// away.
   ///
   /// [OcptProjectPackageExportRequestedEvent.target] wins when the caller named one (the home
@@ -142,17 +131,23 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     }
 
     if (event.target == null && openProject!.isReadOnly) {
-      appLogger().w("A project package can't be written while a version is being previewed: it "
-          "would carry the working copy rather than what is on screen");
+      _logger.w(
+        "A project package can't be written while a version is being previewed: it would carry "
+        "the working copy rather than what is on screen",
+      );
       return;
     }
 
-    await flushPendingProjectWrites(emitter);
+    if (!await flushPendingProjectWrites(emitter)) {
+      return;
+    }
 
     final preflight = projectsManager.scanProjectPackageAssets(projectFilePath: target.filePath);
     if (preflight == null) {
-      appLogger().e("The files referenced by the project at ${target.filePath} can't be scanned, "
-          "so no package can be written");
+      _logger.e(
+        "The files referenced by a project can't be scanned, "
+        "so no package can be written",
+      );
       _emitNotice(
         emitter,
         const OcptProjectPackageNotice(kind: OcptProjectPackageNoticeKind.exportFailed),
@@ -161,34 +156,33 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     }
 
     if (!preflight.isComplete) {
-      _pendingProjectPackageExportTarget = target;
-      emitter(state.copyProjectPackageState(projectPackagePendingExport: preflight));
+      emitter(state.copyWithPackagePreflightAsked(preflight: preflight, target: target));
       return;
     }
 
     await _writePackage(emitter, fileTypeLabel: event.fileTypeLabel, target: target);
   }
 
-  /// The target an export defaults to when the request names none: the project currently open, or
+  /// Get the target an export defaults to when the request names none: the project currently open,
+  /// or
   /// null while none is.
-  OcptProjectPackageTarget? _openProjectTarget(OcptOpenProjectModel? project) => project == null
-      ? null
-      : OcptProjectPackageTarget(filePath: project.path, name: project.name);
+  OcptProjectPackageTarget? _openProjectTarget(OcptOpenProjectModel? project) =>
+      project == null ? null : OcptProjectPackageTarget(filePath: project.path, name: project.name);
 
-  /// Clears the missing-files question from the state, the mode having opened it.
+  /// Clear the missing-files question from the state, the mode having opened it.
   Future<void> _onMissingFilesAskDismissed(
     OcptProjectPackageMissingFilesAskDismissedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectPackageState(clearProjectPackagePendingExport: true));
+    emitter(state.copyWithPackagePreflightDismissed());
   }
 
-  /// Writes the package the user asked for despite the missing files.
+  /// Write the package the user asked for despite the missing files.
   ///
   /// The pre-flight is not run again: it was run a moment ago and answered, and a file that
   /// vanished in between is reported by the write itself, whose own report is what the manifest
   /// carries to the other machine. The target it writes is the one [_onExportRequested] stored for
-  /// this very question — see [_pendingProjectPackageExportTarget].
+  /// this very question — see [MixinOcptProjectPackageState.projectPackagePendingExportTarget].
   Future<void> _onExportConfirmed(
     OcptProjectPackageExportConfirmedEvent event,
     Emitter<S> emitter,
@@ -197,24 +191,25 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
       return;
     }
 
-    final target = _pendingProjectPackageExportTarget;
-    _pendingProjectPackageExportTarget = null;
+    final target = state.projectPackagePendingExportTarget;
     if (target == null) {
       return;
     }
 
+    emitter(state.copyWithPackageExportTargetConsumed());
+
     await _writePackage(emitter, fileTypeLabel: event.fileTypeLabel, target: target);
   }
 
-  /// Clears the transient package notice currently shown, if any.
+  /// Clear the transient package notice currently shown, if any.
   Future<void> _onNoticeDismissed(
     OcptProjectPackageNoticeDismissedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectPackageState(clearProjectPackageNotice: true));
+    emitter(state.copyWithPackageNoticeDismissed());
   }
 
-  /// Writes the package and reports what travelled — on desktop through the native save dialog
+  /// Write the package and report what travelled — on desktop through the native save dialog
   /// ([_writeAndSavePackage]), on mobile through the OS share sheet ([_writeAndSharePackage]),
   /// [OcptExportManager.isMobile] telling the two apart exactly as every other export of this app's
   /// write funnel does: `file_selector`'s `getSaveLocation` has no Android or iOS implementation at
@@ -234,9 +229,13 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
       } else {
         await _writeAndSavePackage(emitter, fileTypeLabel: fileTypeLabel, target: target);
       }
-    } catch (error) {
-      appLogger().e("A problem occurred when tried to package the project at ${target.filePath}: "
-          "$error");
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to package a project: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
       _emitNotice(
         emitter,
         const OcptProjectPackageNotice(kind: OcptProjectPackageNoticeKind.exportFailed),
@@ -246,8 +245,8 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     }
   }
 
-  /// Desktop: asks where to write the package through the native save dialog, writes it there, and
-  /// reports what travelled.
+  /// On desktop, ask where to write the package through the native save dialog, write it there, and
+  /// report what travelled.
   ///
   /// A cancelled save dialog is a silent no-op, exactly as it is for every other export of this
   /// app: the user closed a dialog they opened. A failure raises the transient notice, and a
@@ -285,7 +284,8 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     );
   }
 
-  /// Mobile: there is no save dialog to show at all, so this writes the package into a
+  /// Share the package on mobile: there is no save dialog to show at all, so this writes the
+  /// package into a
   /// `path_provider` temporary directory and hands it to [OcptExportManager.shareService]'s OS
   /// share sheet instead — the very same door [OcptExportManager]'s own write funnel already takes
   /// for every other export on mobile.
@@ -321,8 +321,8 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     );
   }
 
-  /// Writes the package at [packagePath] through [OcptProjectsManager.exportProjectPackage] and
-  /// returns its report, or emits [OcptProjectPackageNoticeKind.exportFailed] and returns null on
+  /// Write the package at [packagePath] through [OcptProjectsManager.exportProjectPackage] and
+  /// return its report, or emit [OcptProjectPackageNoticeKind.exportFailed] and return null on
   /// failure — the one write both [_writeAndSavePackage] and [_writeAndSharePackage] share, so a
   /// package failing to build is reported the same sentence whichever door it was asked through.
   Future<OcptProjectPackageExportReport?> _writePackageAt(
@@ -338,8 +338,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
 
     final report = result.value;
     if (!result.status.isSuccess || report == null) {
-      appLogger().e("The project at ${target.filePath} can't be packaged into $packagePath: "
-          "${result.status}");
+      _logger.e("A project can't be packaged: ${result.status}");
       _emitNotice(
         emitter,
         const OcptProjectPackageNotice(kind: OcptProjectPackageNoticeKind.exportFailed),
@@ -350,20 +349,14 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     return report;
   }
 
-  /// Emits [notice], and clears any question left hanging along with it.
+  /// Emit [notice], and clear any question left hanging along with it.
   ///
   /// The two always move together: whatever the outcome, the pre-flight's question has been
   /// answered by the time there is something to report, and a question outliving its own export
-  /// would reopen on the next state change. [_pendingProjectPackageExportTarget] is cleared here
-  /// too, defensively — by the time this runs it is already null on every path that ever set it,
+  /// would reopen on the next state change. The pending export target is cleared here too,
+  /// defensively — by the time this runs it is already null on every path that ever set it,
   /// [_onExportConfirmed] having consumed it first.
   void _emitNotice(Emitter<S> emitter, OcptProjectPackageNotice notice) {
-    _pendingProjectPackageExportTarget = null;
-    emitter(
-      state.copyProjectPackageState(
-        projectPackageNotice: notice,
-        clearProjectPackagePendingExport: true,
-      ),
-    );
+    emitter(state.copyWithPackageNoticed(notice: notice));
   }
 }

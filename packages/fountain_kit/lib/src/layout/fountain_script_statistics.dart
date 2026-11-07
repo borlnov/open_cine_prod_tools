@@ -20,17 +20,6 @@ import 'package:fountain_kit/src/models/fountain_document.dart';
 /// are excluded, along with the title page (which is not part of
 /// [FountainDocument.blocks] to begin with).
 class FountainScriptStatistics extends Equatable {
-  /// Creates a [FountainScriptStatistics] with every counter given
-  /// explicitly. Prefer [FountainScriptStatistics.of] to compute one from a
-  /// parsed document.
-  const FountainScriptStatistics({
-    required this.pageCount,
-    required this.sceneCount,
-    required this.speakingCharacterCount,
-    required this.wordCount,
-    required this.signCount,
-  });
-
   /// The all-zero statistics for the no-document-loaded-yet state.
   static const FountainScriptStatistics empty = FountainScriptStatistics(
     pageCount: 0,
@@ -64,11 +53,19 @@ class FountainScriptStatistics extends Equatable {
   /// with [speakingCharacterCount]'s sense of the word.
   final int signCount;
 
-  /// Computes the statistics of [document] when laid out at [metrics].
-  factory FountainScriptStatistics.of(
-    FountainDocument document,
-    FountainLayoutMetrics metrics,
-  ) {
+  /// Create a [FountainScriptStatistics] with every counter given
+  /// explicitly. Prefer [FountainScriptStatistics.of] to compute one from a
+  /// parsed document.
+  const FountainScriptStatistics({
+    required this.pageCount,
+    required this.sceneCount,
+    required this.speakingCharacterCount,
+    required this.wordCount,
+    required this.signCount,
+  });
+
+  /// Compute the statistics of [document] when laid out at [metrics].
+  factory FountainScriptStatistics.of(FountainDocument document, FountainLayoutMetrics metrics) {
     var words = 0;
     var signs = 0;
     for (final block in document.blocks) {
@@ -90,18 +87,14 @@ class FountainScriptStatistics extends Equatable {
     );
   }
 
-  @override
-  List<Object?> get props => [
-    pageCount,
-    sceneCount,
-    speakingCharacterCount,
-    wordCount,
-    signCount,
-  ];
-
+  /// Describe this [FountainScriptStatistics] for debugging and logging.
   @override
   String toString() =>
       'FountainScriptStatistics($pageCount pages, $sceneCount scenes, '
       '$speakingCharacterCount characters, $wordCount words, '
       '$signCount signs)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [pageCount, sceneCount, speakingCharacterCount, wordCount, signCount];
 }

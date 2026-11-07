@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_sheets_export_options.dart';
@@ -34,7 +34,12 @@ class OcptBreakdownSheetsExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptBreakdownSheetsExportDialog({required this.current, super.key});
 
-  /// Shows the dialog and returns the [OcptBreakdownSheetsExportOptions] the user applied, or null
+  /// Create the [_OcptBreakdownSheetsExportDialogState] holding the state of the breakdown sheets
+  /// export dialog.
+  @override
+  State<OcptBreakdownSheetsExportDialog> createState() => _OcptBreakdownSheetsExportDialogState();
+
+  /// Show the dialog and return the [OcptBreakdownSheetsExportOptions] the user applied, or null
   /// if they cancelled it.
   static Future<OcptBreakdownSheetsExportOptions?> show(
     BuildContext context, {
@@ -43,9 +48,6 @@ class OcptBreakdownSheetsExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptBreakdownSheetsExportDialog(current: current),
   );
-
-  @override
-  State<OcptBreakdownSheetsExportDialog> createState() => _OcptBreakdownSheetsExportDialogState();
 }
 
 /// The state of [OcptBreakdownSheetsExportDialog].
@@ -62,12 +64,14 @@ class _OcptBreakdownSheetsExportDialogState extends State<OcptBreakdownSheetsExp
   /// Whether each sheet closes on the list of what the scene still has to find.
   bool _includeToFindList = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedFormat = widget.current.format;
   }
 
+  /// Build the breakdown sheets export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -82,7 +86,7 @@ class _OcptBreakdownSheetsExportDialogState extends State<OcptBreakdownSheetsExp
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -125,15 +129,15 @@ class _OcptBreakdownSheetsExportDialogState extends State<OcptBreakdownSheetsExp
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptBreakdownSheetsExportOptions].
+  /// Pop the dialog returning the resulting [OcptBreakdownSheetsExportOptions].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptBreakdownSheetsExportDialog.show] caller.
   void _submit() {

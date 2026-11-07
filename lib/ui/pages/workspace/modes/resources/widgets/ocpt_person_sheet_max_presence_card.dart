@@ -4,10 +4,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_max_daily_presence.dart';
 
 /// The person sheet's "Maximum daily presence" card: `OcptPerson.maxDailyPresenceMinutes`, a single
 /// field typed in minutes.
@@ -36,6 +36,7 @@ class OcptPersonSheetMaxPresenceCard extends StatelessWidget {
     required this.onFieldChanged,
   });
 
+  /// Build the person sheet max presence card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -58,7 +59,7 @@ class OcptPersonSheetMaxPresenceCard extends StatelessWidget {
     );
   }
 
-  /// What is wrong with the typed [value], or null when there is nothing to say about it.
+  /// Describe what is wrong with the typed [value], or null when there is nothing to say about it.
   ///
   /// A **remark, never a gate**, exactly as `OcptElementSheetSourcingCard._costErrorOf` is for the
   /// cost field: the value is written either way, since a maximum nobody finished typing is not the

@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_table.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 
 /// The `OcptSpecificColors` these tests theme the table with: recognisable, deliberately
 /// non-Material colours, so an assertion on a cell's colour can only pass by reading the
@@ -82,6 +82,7 @@ OcptShot _buildShot({
   averageDifficulty: difficulty.toDouble(),
 );
 
+/// Run the tests of [OcptShotListTable].
 void main() {
   /// Pumps the table, recording every shot selection it reports.
   Future<List<String>> pumpTable(
@@ -111,7 +112,10 @@ void main() {
   }
 
   testWidgets("shows the always-visible columns and the default optional ones", (tester) async {
-    await pumpTable(tester, shots: [_buildShot(id: "shot-1", code: "1/1")]);
+    await pumpTable(
+      tester,
+      shots: [_buildShot(id: "shot-1", code: "1/1")],
+    );
 
     for (final header in const [
       "SHOT",
@@ -147,8 +151,9 @@ void main() {
     expect(find.text("STATUS"), findsNothing);
   });
 
-  testWidgets("renders each cell's value, dashing the ones a shot has no value for",
-      (tester) async {
+  testWidgets("renders each cell's value, dashing the ones a shot has no value for", (
+    tester,
+  ) async {
     await pumpTable(
       tester,
       shots: [
@@ -178,42 +183,45 @@ void main() {
   });
 
   testWidgets(
-      "the shooting day column reads a shot's placement in the schedule, dashing an unplaced one",
-      (tester) async {
-    await pumpTable(
-      tester,
-      shots: [
-        _buildShot(id: "shot-1", code: "1/1"),
-        _buildShot(id: "shot-2", code: "1/2"),
-      ],
-      visibleColumns: {OcptShotListColumn.shootingDay},
-      placementsByShotId: {
-        "shot-1": [
-          OcptShotPlacement(
-            shotId: "shot-1",
-            dayId: "day-3",
-            dayNumber: 3,
-            date: DateTime(2026, 8, 4),
-          ),
+    "the shooting day column reads a shot's placement in the schedule, dashing an unplaced one",
+    (tester) async {
+      await pumpTable(
+        tester,
+        shots: [
+          _buildShot(id: "shot-1", code: "1/1"),
+          _buildShot(id: "shot-2", code: "1/2"),
         ],
-      },
-    );
+        visibleColumns: {OcptShotListColumn.shootingDay},
+        placementsByShotId: {
+          "shot-1": [
+            OcptShotPlacement(
+              shotId: "shot-1",
+              dayId: "day-3",
+              dayNumber: 3,
+              date: DateTime(2026, 8, 4),
+            ),
+          ],
+        },
+      );
 
-    // Tuesday 4 August 2026, in the app's own en_GB locale.
-    expect(find.text("D3 · Tue 4 Aug"), findsOneWidget);
-    // shot-2 has no entry in placementsByShotId at all: not yet planned.
-    expect(find.text(ocptShotListEmptyValue), findsOneWidget);
-  });
+      // Tuesday 4 August 2026, in the app's own en_GB locale.
+      expect(find.text("D3 · Tue 4 Aug"), findsOneWidget);
+      // shot-2 has no entry in placementsByShotId at all: not yet planned.
+      expect(find.text(ocptShotListEmptyValue), findsOneWidget);
+    },
+  );
 
   testWidgets("the shot code is typeset in the screenplay's fixed-pitch family", (tester) async {
-    await pumpTable(tester, shots: [_buildShot(id: "shot-1", code: "1/1")]);
+    await pumpTable(
+      tester,
+      shots: [_buildShot(id: "shot-1", code: "1/1")],
+    );
 
     final codeCell = tester.widget<Text>(find.text("1/1"));
-    expect(codeCell.style?.fontFamily, ocptMonospaceFontFamily);
+    expect(codeCell.style?.fontFamily, ocpt_theme.ocptMonospaceFontFamily);
   });
 
-  testWidgets("a difficulty at or above the warning threshold is warning-coloured",
-      (tester) async {
+  testWidgets("a difficulty at or above the warning threshold is warning-coloured", (tester) async {
     await pumpTable(
       tester,
       shots: [
@@ -240,14 +248,8 @@ void main() {
       visibleColumns: {OcptShotListColumn.status},
     );
 
-    expect(
-      tester.widget<Text>(find.text("Shot")).style?.color,
-      _specificColors.shotStatusShot,
-    );
-    expect(
-      tester.widget<Text>(find.text("Retake")).style?.color,
-      _specificColors.shotStatusRetake,
-    );
+    expect(tester.widget<Text>(find.text("Shot")).style?.color, _specificColors.shotStatusShot);
+    expect(tester.widget<Text>(find.text("Retake")).style?.color, _specificColors.shotStatusRetake);
   });
 
   testWidgets("a shot needing checking carries the gutter marker", (tester) async {

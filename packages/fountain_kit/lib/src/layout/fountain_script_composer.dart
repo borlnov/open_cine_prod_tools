@@ -2,15 +2,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:equatable/equatable.dart';
+import 'package:fountain_kit/src/layout/fountain_element_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 import 'package:fountain_kit/src/layout/fountain_print_style.dart';
+import 'package:fountain_kit/src/layout/fountain_script_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_script_line.dart';
+import 'package:fountain_kit/src/layout/fountain_script_page.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
 import 'package:fountain_kit/src/models/fountain_styled_run.dart';
 import 'package:fountain_kit/src/parser/fountain_inline_parser.dart';
-import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
 /// The literal token appended as its own line when a dialogue group is
 /// split across a page boundary, at the parenthetical's indent.
@@ -19,151 +23,7 @@ import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 /// English constant rather than something routed through localization.
 const String _moreToken = '(MORE)';
 
-/// One line of a paginated screenplay, already wrapped to its element's
-/// column width and positioned in the page.
-///
-/// This is the line-level unit [FountainScriptComposer] emits: unlike the
-/// source [FountainBlock]s (one per structural element, which may span
-/// several printed lines once wrapped), every [FountainScriptLine] renders
-/// as exactly one line of 12-point Courier. [leftIndentInches] and
-/// [alignment] are copied from the owning element's
-/// [FountainElementLayout] so a renderer never needs to look the element
-/// type back up in [FountainLayoutMetrics]; [leftIndentInches] is kept in
-/// inches (not columns) because the PDF renderer's own math is in
-/// inches-to-points.
-class FountainScriptLine extends Equatable {
-  /// Creates a [FountainScriptLine].
-  const FountainScriptLine({
-    required this.runs,
-    required this.lineType,
-    required this.leftIndentInches,
-    required this.alignment,
-    required this.isSceneHeading,
-    this.sceneNumber,
-    this.isSynthetic = false,
-  });
-
-  /// The line's text, already split into inline-styled runs. Empty for a
-  /// blank spacer line or a preserved blank dialogue line (both are real,
-  /// distinct lines that still occupy one row of the page).
-  final List<FountainStyledRun> runs;
-
-  /// The structural role of the element this line belongs to, for a
-  /// renderer that wants to special-case, for example, transitions or
-  /// centered text beyond what [alignment] already conveys. A blank spacer
-  /// line inserted between two blocks carries [FountainLineType.blank].
-  final FountainLineType lineType;
-
-  /// The distance from the page's left edge to where this line starts, in
-  /// inches, copied from the owning element's
-  /// [FountainElementLayout.leftIndentInches].
-  final double leftIndentInches;
-
-  /// How this line is aligned within its element's box, copied from the
-  /// owning element's [FountainElementLayout.alignment].
-  final FountainLayoutAlignment alignment;
-
-  /// Whether this line is (part of) a scene heading, so a renderer can
-  /// place a scene number in both margins opposite it when the option to
-  /// print scene numbers is on.
-  final bool isSceneHeading;
-
-  /// The scene number to print in the margins opposite this line, or
-  /// `null` if [isSceneHeading] is `false` or the heading had no explicit
-  /// `#...#` scene number in the source. Never auto-generated here: a
-  /// heading with no explicit number stays unnumbered, by design.
-  final String? sceneNumber;
-
-  /// Whether this line is composed text with no source behind it: the
-  /// `(MORE)` token closing a split dialogue group, and the `NAME (CONT'D)`
-  /// cue repeated at the top of the page it continues onto.
-  ///
-  /// A synthetic line never carries a [sourceRange], but the converse does
-  /// not hold — a blank spacer line has no range either and is not synthetic.
-  /// A consumer mapping source offsets onto printed rows needs to tell the
-  /// two apart: both are bridged over rather than resolved, but only a
-  /// synthetic line renders text that the source never contained.
-  final bool isSynthetic;
-
-  /// This line's text with its inline styling discarded, i.e. the
-  /// concatenation of every run's [FountainStyledRun.text] in order.
-  String get plainText => runs.map((run) => run.text).join();
-
-  /// The span of source text this printed line was composed from, or `null`
-  /// when it has none: a blank spacer line, a preserved blank dialogue line,
-  /// a synthetic line, or a line the composer could not anchor in the
-  /// document's source text (see [FountainScriptComposer.compose]).
-  ///
-  /// It is the union of this line's runs' own
-  /// [FountainStyledRun.sourceRange]s. Since no run's range covers its own
-  /// emphasis markers, a marker *between* two runs of a line is part of that
-  /// line's range while one sitting at either end of it is not — nothing on
-  /// the line renders it. Consecutive printed lines of one wrapped paragraph
-  /// have adjacent, non-overlapping ranges: the space a line breaks at
-  /// belongs to neither of them, exactly as it belongs to neither line's
-  /// text.
-  FountainSourceRange? get sourceRange {
-    FountainSourceRange? result;
-    for (final run in runs) {
-      final range = run.sourceRange;
-      if (range == null) {
-        continue;
-      }
-      result = result == null ? range : result.merge(range);
-    }
-    return result;
-  }
-
-  @override
-  List<Object?> get props => [
-    runs,
-    lineType,
-    leftIndentInches,
-    alignment,
-    isSceneHeading,
-    sceneNumber,
-    isSynthetic,
-  ];
-
-  @override
-  String toString() =>
-      'FountainScriptLine($lineType, "${plainText}", '
-      'indent: ${leftIndentInches}in)';
-}
-
-/// One printed page of a paginated screenplay: an ordered list of
-/// positioned lines, already fitted to [FountainLayoutMetrics.linesPerPage].
-class FountainScriptPage extends Equatable {
-  /// Creates a [FountainScriptPage].
-  const FountainScriptPage({required this.lines});
-
-  /// This page's lines, top to bottom.
-  final List<FountainScriptLine> lines;
-
-  @override
-  List<Object?> get props => [lines];
-
-  @override
-  String toString() => 'FountainScriptPage(${lines.length} lines)';
-}
-
-/// A whole screenplay laid out into printed pages by
-/// [FountainScriptComposer.compose].
-class FountainScriptLayout extends Equatable {
-  /// Creates a [FountainScriptLayout].
-  const FountainScriptLayout({required this.pages});
-
-  /// The screenplay's pages, in reading order.
-  final List<FountainScriptPage> pages;
-
-  @override
-  List<Object?> get props => [pages];
-
-  @override
-  String toString() => 'FountainScriptLayout(${pages.length} pages)';
-}
-
-/// Turns a parsed [FountainDocument] into a [FountainScriptLayout] applying
+/// Turn a parsed [FountainDocument] into a [FountainScriptLayout] applying
 /// the professional US screenplay pagination conventions: a forced page
 /// break always starts a fresh page (without ever emitting a blank page); a
 /// blank spacer line separates two consecutive top-level blocks that land
@@ -183,14 +43,14 @@ class FountainScriptLayout extends Equatable {
 /// knows how it wrapped the text, which is why that mapping is produced here
 /// rather than recomputed by a caller.
 class FountainScriptComposer {
-  /// Creates a [FountainScriptComposer].
-  const FountainScriptComposer();
-
   /// The inline parser used to resolve bold/italic/underline/note runs
   /// before wrapping. Stateless, so one instance is shared.
   static const FountainInlineParser _inlineParser = FountainInlineParser();
 
-  /// Lays out every printable block of [document] into pages sized by
+  /// Create a [FountainScriptComposer].
+  const FountainScriptComposer();
+
+  /// Lay out every printable block of [document] into pages sized by
   /// [metrics].
   ///
   /// The lines it produces are anchored back into [document]'s own
@@ -214,8 +74,7 @@ class FountainScriptComposer {
           builder.forcePageBreak();
         case FountainSceneHeading():
           final hasFollowingContent =
-              index + 1 < blocks.length &&
-              blocks[index + 1] is! FountainPageBreak;
+              index + 1 < blocks.length && blocks[index + 1] is! FountainPageBreak;
           builder.placeSceneHeading(
             _sceneHeadingLines(block, metrics, anchors),
             hasFollowingContent: hasFollowingContent,
@@ -234,25 +93,24 @@ class FountainScriptComposer {
     return builder.finish();
   }
 
-  /// Returns the blocks of [document] that are part of the printed
+  /// Return the blocks of [document] that are part of the printed
   /// screenplay, in source order: sections, synopses, notes and boneyard
   /// comments are editor-only constructs, never printed. Mirrors
   /// `OcptEditorPreviewLayout.printableBlocks`'s filter without depending on
   /// it, since this package must stay Flutter-free.
-  static List<FountainBlock> _printableBlocks(FountainDocument document) =>
-      document.blocks
-          .where(
-            (block) => switch (block) {
-              FountainSection() ||
-              FountainSynopsis() ||
-              FountainNoteBlock() ||
-              FountainBoneyard() => false,
-              _ => true,
-            },
-          )
-          .toList(growable: false);
+  static List<FountainBlock> _printableBlocks(FountainDocument document) => document.blocks
+      .where(
+        (block) => switch (block) {
+          FountainSection() ||
+          FountainSynopsis() ||
+          FountainNoteBlock() ||
+          FountainBoneyard() => false,
+          _ => true,
+        },
+      )
+      .toList(growable: false);
 
-  /// Wraps [heading]'s text into the wrapped lines of a
+  /// Wrap [heading]'s text into the wrapped lines of a
   /// [FountainLineType.sceneHeading] element.
   ///
   /// The scene number is never prefixed into the printed text here (unlike
@@ -274,7 +132,7 @@ class FountainScriptComposer {
     sceneNumber: heading.sceneNumber,
   );
 
-  /// Wraps [character]'s cue text (name plus its parenthetical extension,
+  /// Wrap [character]'s cue text (name plus its parenthetical extension,
   /// if any) into the wrapped lines of a [FountainLineType.character]
   /// element, upper-cased per [FountainPrintStyle.of]'s print-time rule for
   /// [FountainLineType.character].
@@ -295,7 +153,7 @@ class FountainScriptComposer {
     );
   }
 
-  /// Wraps a dialogue group's children (parentheticals and dialogue lines,
+  /// Wrap a dialogue group's children (parentheticals and dialogue lines,
   /// in source order) into a flat list of lines, each tagged with its own
   /// element type. A parenthetical's text is wrapped with its enclosing
   /// parentheses included, exactly as it is printed.
@@ -335,7 +193,7 @@ class FountainScriptComposer {
     return result;
   }
 
-  /// Wraps every other printable top-level block kind (action, transition,
+  /// Wrap every other printable top-level block kind (action, transition,
   /// centered text, lyrics) into its lines. Scene headings, dialogue groups
   /// and page breaks are handled separately by [compose], since each needs
   /// its own placement rule rather than plain line wrapping.
@@ -371,7 +229,7 @@ class FountainScriptComposer {
     _ => const [],
   };
 
-  /// Applies [FountainPrintStyle.of]'s print-time letter case to [text] for
+  /// Apply [FountainPrintStyle.of]'s print-time letter case to [text] for
   /// a line of [lineType], upper-casing it when that type's print style
   /// says so. Routed through the shared table (rather than a literal
   /// `.toUpperCase()` at each call site) so every renderer that prints a
@@ -380,7 +238,7 @@ class FountainScriptComposer {
   static String _printed(String text, FountainLineType lineType) =>
       FountainPrintStyle.of(lineType).isUppercase ? text.toUpperCase() : text;
 
-  /// Wraps each of [sourceLines] independently at [layout]'s width (a
+  /// Wrap each of [sourceLines] independently at [layout]'s width (a
   /// block like action or lyrics keeps its source line breaks as real line
   /// breaks, rather than reflowing them into one paragraph), concatenating
   /// every source line's own wrapped output.
@@ -397,7 +255,7 @@ class FountainScriptComposer {
       ..._wrapToLines(sourceLines[index], layout, lineType, anchors[index]),
   ];
 
-  /// Wraps [text] at [layout]'s column width into one [FountainScriptLine]
+  /// Wrap [text] at [layout]'s column width into one [FountainScriptLine]
   /// per output line, each carrying [layout]'s indent/alignment, [lineType],
   /// and its own slice of [text]'s inline-styled runs.
   ///
@@ -423,7 +281,7 @@ class FountainScriptComposer {
       ),
   ];
 
-  /// Wraps [text]'s inline-styled runs into the lines a box [maxColumns]
+  /// Wrap [text]'s inline-styled runs into the lines a box [maxColumns]
   /// columns wide breaks it into, using the same greedy, word-by-word
   /// wrapping decisions as the preview's `wrappedLineCount` (place words on
   /// the current line while they fit; hard-wrap mid-word only when a
@@ -443,11 +301,7 @@ class FountainScriptComposer {
     int maxColumns,
     _SourceAnchor? anchor,
   ) {
-    final runs = _inlineParser.parseRuns(
-      text,
-      line: anchor?.line,
-      startOffset: anchor?.offset,
-    );
+    final runs = _inlineParser.parseRuns(text, line: anchor?.line, startOffset: anchor?.offset);
 
     final runRanges = <_LineRange>[];
     var cursor = 0;
@@ -458,12 +312,11 @@ class FountainScriptComposer {
     final plain = runs.map((run) => run.text).join();
 
     return [
-      for (final boundary in _wrapRanges(plain, maxColumns))
-        _sliceRuns(runs, runRanges, boundary),
+      for (final boundary in _wrapRanges(plain, maxColumns)) _sliceRuns(runs, runRanges, boundary),
     ];
   }
 
-  /// Returns the [FountainStyledRun]s of [runs] (whose offsets into the
+  /// Return the [FountainStyledRun]s of [runs] (whose offsets into the
   /// concatenated rendered text are [runRanges]) that fall within
   /// [boundary], splitting a run into a shorter one when [boundary] only
   /// partially overlaps it so each flag combination (bold/italic/
@@ -480,12 +333,8 @@ class FountainScriptComposer {
     final result = <FountainStyledRun>[];
     for (var index = 0; index < runs.length; index++) {
       final runRange = runRanges[index];
-      final overlapStart = boundary.start > runRange.start
-          ? boundary.start
-          : runRange.start;
-      final overlapEnd = boundary.end < runRange.end
-          ? boundary.end
-          : runRange.end;
+      final overlapStart = boundary.start > runRange.start ? boundary.start : runRange.start;
+      final overlapEnd = boundary.end < runRange.end ? boundary.end : runRange.end;
       if (overlapStart >= overlapEnd) {
         continue;
       }
@@ -499,19 +348,14 @@ class FountainScriptComposer {
           isItalic: run.isItalic,
           isUnderline: run.isUnderline,
           isNote: run.isNote,
-          sourceRange: _sliceSourceRange(
-            run.sourceRange,
-            run.text.length,
-            localStart,
-            localEnd,
-          ),
+          sourceRange: _sliceSourceRange(run.sourceRange, run.text.length, localStart, localEnd),
         ),
       );
     }
     return result;
   }
 
-  /// Narrows [range] — the source range of a run [textLength] characters
+  /// Narrow [range] — the source range of a run [textLength] characters
   /// long — to the part of that run covering `[localStart, localEnd)`.
   ///
   /// The two scales are the same whenever the run's rendered text is as long
@@ -544,7 +388,7 @@ class FountainScriptComposer {
     );
   }
 
-  /// Computes the `[start, end)` ranges of [text] a greedy word wrap at
+  /// Compute the `[start, end)` ranges of [text] a greedy word wrap at
   /// [maxColumns] columns places on each output line. The space at which a
   /// line breaks belongs to neither the line before nor the line after it,
   /// exactly like ordinary text wrapping (and like `wrappedLineCount`'s own
@@ -616,18 +460,18 @@ class FountainScriptComposer {
 /// wrapping — everything downstream (run slicing, line ranges) follows from
 /// it mechanically.
 class _SourceAnchor {
-  /// Creates a [_SourceAnchor].
-  const _SourceAnchor({required this.line, required this.offset});
-
   /// The 0-based source line the anchored text was taken from.
   final int line;
 
   /// The character offset, in the document source, of the anchored text's
   /// first character.
   final int offset;
+
+  /// Create a [_SourceAnchor].
+  const _SourceAnchor({required this.line, required this.offset});
 }
 
-/// Resolves the [_SourceAnchor] of each piece of text the composer prints,
+/// Resolve the [_SourceAnchor] of each piece of text the composer prints,
 /// against the source string the document was parsed from.
 ///
 /// A block's own [FountainBlock.sourceRange] covers its **raw** source lines,
@@ -646,13 +490,13 @@ class _SourceAnchor {
 /// has since been edited out from under it) yields no anchors rather than
 /// wrong ones.
 class _SourceAnchors {
-  /// Creates a [_SourceAnchors] resolving against [_sourceText].
-  const _SourceAnchors(this._sourceText);
-
   /// The document source every anchor points into.
   final String _sourceText;
 
-  /// The anchor of [printedText], a single-line block [block]'s whole
+  /// Create a [_SourceAnchors] resolving against [_sourceText].
+  const _SourceAnchors(this._sourceText);
+
+  /// Get the anchor of [printedText], a single-line block [block]'s whole
   /// printed text, or `null` when [block]'s range does not address
   /// [_sourceText].
   _SourceAnchor? ofBlock(FountainBlock block, String printedText) {
@@ -661,15 +505,11 @@ class _SourceAnchors {
       return null;
     }
     final found = _sourceText.indexOf(printedText, range.startOffset);
-    final isWithinBlock =
-        found >= 0 && found + printedText.length <= range.endOffset;
-    return _SourceAnchor(
-      line: range.startLine,
-      offset: isWithinBlock ? found : range.startOffset,
-    );
+    final isWithinBlock = found >= 0 && found + printedText.length <= range.endOffset;
+    return _SourceAnchor(line: range.startLine, offset: isWithinBlock ? found : range.startOffset);
   }
 
-  /// The anchors of a multi-line block [block]'s [lines], one entry per line
+  /// Get the anchors of a multi-line block [block]'s [lines], one entry per line
   /// in the same order.
   ///
   /// A multi-line block holds exactly one entry in [lines] per source line it
@@ -699,15 +539,14 @@ class _SourceAnchors {
     return anchors;
   }
 
-  /// Whether [range] genuinely addresses [_sourceText], i.e. covers at least
+  /// Tell whether [range] genuinely addresses [_sourceText], i.e. covers at least
   /// one character of it and stays within its bounds. A document built by
   /// hand (as a test's fixtures are) carries no source text, and its blocks'
   /// ranges must not be read as if it did.
   bool _addressesSource(FountainSourceRange range) =>
-      range.endOffset > range.startOffset &&
-      range.endOffset <= _sourceText.length;
+      range.endOffset > range.startOffset && range.endOffset <= _sourceText.length;
 
-  /// The offset of the end of the source line starting at [lineStart],
+  /// Get the offset of the end of the source line starting at [lineStart],
   /// clamped to [limit] so the search for one line's text never wanders past
   /// the block it belongs to.
   int _endOfLine(int lineStart, int limit) {
@@ -720,14 +559,14 @@ class _SourceAnchors {
 /// line's span and for a run's span within the same text, so the two can
 /// be intersected directly.
 class _LineRange {
-  /// Creates a [_LineRange].
-  const _LineRange(this.start, this.end);
-
   /// The range's inclusive start offset.
   final int start;
 
   /// The range's exclusive end offset.
   final int end;
+
+  /// Create a [_LineRange].
+  const _LineRange(this.start, this.end);
 }
 
 /// The mutable page-building state behind [FountainScriptComposer.compose]:
@@ -738,29 +577,23 @@ class _LineRange {
 /// several times for one input group, which reads far more clearly as a
 /// small state machine than as a recursive local function.
 class _PageBuilder {
-  /// Creates a [_PageBuilder] laying out pages of [_metrics.linesPerPage]
-  /// lines.
-  _PageBuilder(this._metrics);
-
   /// The metrics every placement decision is measured against.
   final FountainLayoutMetrics _metrics;
 
   /// The pages already closed, in order.
-  final List<FountainScriptPage> _pages = [];
+  final List<FountainScriptPage> _pages;
 
   /// The lines placed so far on the page still being filled.
-  final List<FountainScriptLine> _current = [];
+  final List<FountainScriptLine> _current;
 
-  /// How many more lines fit on the page currently being filled.
+  /// Count how many more lines fit on the page currently being filled.
   int get _capacity => _metrics.linesPerPage - _current.length;
 
-  /// Closes the page currently being filled and starts a fresh one.
-  void _closePage() {
-    _pages.add(FountainScriptPage(lines: List.unmodifiable(_current)));
-    _current.clear();
-  }
+  /// Create a [_PageBuilder] laying out pages of `_metrics.linesPerPage`
+  /// lines.
+  _PageBuilder(this._metrics) : _pages = [], _current = [];
 
-  /// Handles a source [FountainPageBreak]: starts a fresh page, unless the
+  /// Handle a source [FountainPageBreak]: starts a fresh page, unless the
   /// current one is already empty (two consecutive breaks, or a break as
   /// the very first block, must never produce a blank page).
   void forcePageBreak() {
@@ -769,7 +602,7 @@ class _PageBuilder {
     }
   }
 
-  /// Places a plain block's [lines] (action, transition, lyrics, centered
+  /// Place a plain block's [lines] (action, transition, lyrics, centered
   /// text): a lone spacer line first if another block already occupies
   /// this page, then the block's own lines, silently continuing onto a
   /// fresh page (no special marker, no spacer) if the block outgrows the
@@ -791,16 +624,13 @@ class _PageBuilder {
     }
   }
 
-  /// Places a scene heading's [lines], pushing the whole heading to a
+  /// Place a scene heading's [lines], pushing the whole heading to a
   /// fresh page instead of letting it land as the current page's last
   /// content, whenever [hasFollowingContent] says more printable material
   /// still follows it in the document (so the push is actually meaningful
   /// rather than moving an already-empty page's content to another
   /// equally-empty page).
-  void placeSceneHeading(
-    List<FountainScriptLine> lines, {
-    required bool hasFollowingContent,
-  }) {
+  void placeSceneHeading(List<FountainScriptLine> lines, {required bool hasFollowingContent}) {
     if (_current.isNotEmpty && _capacity == 0) {
       _closePage();
     }
@@ -822,7 +652,7 @@ class _PageBuilder {
     _current.addAll(lines);
   }
 
-  /// Places a dialogue group's [cueLines] and [childLines] (its
+  /// Place a dialogue group's [cueLines] and [childLines] (its
   /// parentheticals and dialogue lines, already flattened in source
   /// order), applying both the no-orphan-cue rule and the `(MORE)`/
   /// `CONT'D` split when the group doesn't fit on the current page.
@@ -841,9 +671,7 @@ class _PageBuilder {
     var isFirst = true;
 
     while (true) {
-      final currentCue = isFirst
-          ? cueLines
-          : [_contdCueLine(character, _metrics)];
+      final currentCue = isFirst ? cueLines : [_contdCueLine(character, _metrics)];
       final needsSpacer = isFirst && _current.isNotEmpty;
       final spacerCost = needsSpacer ? 1 : 0;
       final capacity = _capacity;
@@ -875,9 +703,7 @@ class _PageBuilder {
 
       final placeCount = childCapacity <= 0
           ? 0
-          : (childCapacity < remaining.length
-                ? childCapacity
-                : remaining.length);
+          : (childCapacity < remaining.length ? childCapacity : remaining.length);
 
       if (needsSpacer) {
         _current.add(_spacerLine());
@@ -891,7 +717,7 @@ class _PageBuilder {
     }
   }
 
-  /// Closes the page still being filled, if any, and returns the finished
+  /// Close the page still being filled, if any, and return the finished
   /// [FountainScriptLayout].
   FountainScriptLayout finish() {
     if (_current.isNotEmpty) {
@@ -900,7 +726,13 @@ class _PageBuilder {
     return FountainScriptLayout(pages: List.unmodifiable(_pages));
   }
 
-  /// A single blank line inserted between two consecutive top-level blocks
+  /// Close the page currently being filled and start a fresh one.
+  void _closePage() {
+    _pages.add(FountainScriptPage(lines: List.unmodifiable(_current)));
+    _current.clear();
+  }
+
+  /// Get a single blank line inserted between two consecutive top-level blocks
   /// that land on the same page.
   static FountainScriptLine _spacerLine() => const FountainScriptLine(
     runs: [],
@@ -910,20 +742,19 @@ class _PageBuilder {
     isSceneHeading: false,
   );
 
-  /// The `(MORE)` line appended at the bottom of a page when a dialogue
+  /// Get the `(MORE)` line appended at the bottom of a page when a dialogue
   /// group is split across a page boundary, set at the parenthetical's
   /// indent and alignment.
-  static FountainScriptLine _moreLine(FountainLayoutMetrics metrics) =>
-      FountainScriptLine(
-        runs: const [FountainStyledRun(text: _moreToken)],
-        lineType: FountainLineType.parenthetical,
-        leftIndentInches: metrics.parenthetical.leftIndentInches,
-        alignment: metrics.parenthetical.alignment,
-        isSceneHeading: false,
-        isSynthetic: true,
-      );
+  static FountainScriptLine _moreLine(FountainLayoutMetrics metrics) => FountainScriptLine(
+    runs: const [FountainStyledRun(text: _moreToken)],
+    lineType: FountainLineType.parenthetical,
+    leftIndentInches: metrics.parenthetical.leftIndentInches,
+    alignment: metrics.parenthetical.alignment,
+    isSceneHeading: false,
+    isSynthetic: true,
+  );
 
-  /// The repeated `NAME (CONT'D)` cue placed at the top of the page a
+  /// Get the repeated `NAME (CONT'D)` cue placed at the top of the page a
   /// split dialogue group continues onto, set at the character's indent
   /// and alignment. The original cue's `extension` is deliberately ignored
   /// here: a continued cue always reads `(CONT'D)`, never the original

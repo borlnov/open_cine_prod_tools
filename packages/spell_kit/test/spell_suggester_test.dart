@@ -11,12 +11,8 @@ import 'package:test/test.dart';
 /// [SpellSuggester] over it.
 SpellSuggester _suggesterFor(String name) {
   final affix = File('test/fixtures/$name/index.aff').readAsStringSync();
-  final dictionary = File(
-    'test/fixtures/$name/index.dic',
-  ).readAsStringSync();
-  final checker = SpellChecker(
-    SpellDictionary.parse(affix: affix, dictionary: dictionary),
-  );
+  final dictionary = File('test/fixtures/$name/index.dic').readAsStringSync();
+  final checker = SpellChecker(SpellDictionary.parse(affix: affix, dictionary: dictionary));
   return SpellSuggester(checker);
 }
 
@@ -24,15 +20,12 @@ SpellSuggester _suggesterFor(String name) {
 /// over it, for the MAP (accent) tier test.
 SpellSuggester _frenchSuggester() {
   final affix = File('../../assets/dictionaries/fr/index.aff').readAsStringSync();
-  final dictionary = File(
-    '../../assets/dictionaries/fr/index.dic',
-  ).readAsStringSync();
-  final checker = SpellChecker(
-    SpellDictionary.parse(affix: affix, dictionary: dictionary),
-  );
+  final dictionary = File('../../assets/dictionaries/fr/index.dic').readAsStringSync();
+  final checker = SpellChecker(SpellDictionary.parse(affix: affix, dictionary: dictionary));
   return SpellSuggester(checker);
 }
 
+/// Run the tests of [SpellSuggester].
 void main() {
   group('the suggestions fixture', () {
     late SpellSuggester suggester;

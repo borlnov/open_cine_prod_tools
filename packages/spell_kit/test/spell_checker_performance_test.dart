@@ -11,29 +11,67 @@ import 'package:test/test.dart';
 /// suffix rules), so the memo's effect is measurable.
 SpellChecker _frenchChecker() {
   final affix = File('../../assets/dictionaries/fr/index.aff').readAsStringSync();
-  final dictionary = File(
-    '../../assets/dictionaries/fr/index.dic',
-  ).readAsStringSync();
-  return SpellChecker(
-    SpellDictionary.parse(affix: affix, dictionary: dictionary),
-  );
+  final dictionary = File('../../assets/dictionaries/fr/index.dic').readAsStringSync();
+  return SpellChecker(SpellDictionary.parse(affix: affix, dictionary: dictionary));
 }
 
 /// Fifty distinct French words: enough that neither pass is a single
 /// sample, and all of them known, so the cold pass pays the full affix
 /// lookup rather than failing out early.
 List<String> _sampleWords() => const [
-  'crépuscule', 'fondu', 'travelling', 'silhouette', 'ruelle', 'pluie',
-  'murmure', 'escalier', 'fenêtre', 'cigarette', 'chuchotèrent',
-  'aperçoive', 'irions', 'eussent', "l'homme", "aujourd'hui", "qu'elle",
-  "presqu'île", "s'approche", 'arrière-plan', 'contre-jour', 'peut-être',
-  'regarde', 'lentement', 'tourne', 'obscurité', 'visage', 'comptoir',
-  'trottoir', 'réveille', 'maison', 'jardin', 'lumière', 'ombre', 'porte',
-  'chemin', 'rivière', 'montagne', 'ciel', 'nuage', 'arbre', 'feuille',
-  'pierre', 'sable', 'vague', 'orage', 'tonnerre', 'éclair', 'brouillard',
+  'crépuscule',
+  'fondu',
+  'travelling',
+  'silhouette',
+  'ruelle',
+  'pluie',
+  'murmure',
+  'escalier',
+  'fenêtre',
+  'cigarette',
+  'chuchotèrent',
+  'aperçoive',
+  'irions',
+  'eussent',
+  "l'homme",
+  "aujourd'hui",
+  "qu'elle",
+  "presqu'île",
+  "s'approche",
+  'arrière-plan',
+  'contre-jour',
+  'peut-être',
+  'regarde',
+  'lentement',
+  'tourne',
+  'obscurité',
+  'visage',
+  'comptoir',
+  'trottoir',
+  'réveille',
+  'maison',
+  'jardin',
+  'lumière',
+  'ombre',
+  'porte',
+  'chemin',
+  'rivière',
+  'montagne',
+  'ciel',
+  'nuage',
+  'arbre',
+  'feuille',
+  'pierre',
+  'sable',
+  'vague',
+  'orage',
+  'tonnerre',
+  'éclair',
+  'brouillard',
   'neige',
 ];
 
+/// Run the tests of the spell checker performance.
 void main() {
   group('the affix rule index', () {
     late SpellChecker checker;
@@ -89,39 +127,35 @@ void main() {
     });
   });
 
-  test(
-    'a warm pass is an order of magnitude cheaper than a cold one',
-    () {
-      final checker = _frenchChecker();
-      final words = _sampleWords();
+  test('a warm pass is an order of magnitude cheaper than a cold one', () {
+    final checker = _frenchChecker();
+    final words = _sampleWords();
 
-      final cold = Stopwatch()..start();
-      for (final word in words) {
-        checker.isKnown(word);
-      }
-      cold.stop();
+    final cold = Stopwatch()..start();
+    for (final word in words) {
+      checker.isKnown(word);
+    }
+    cold.stop();
 
-      final warm = Stopwatch()..start();
-      for (final word in words) {
-        checker.isKnown(word);
-      }
-      warm.stop();
+    final warm = Stopwatch()..start();
+    for (final word in words) {
+      checker.isKnown(word);
+    }
+    warm.stop();
 
-      // A shape assertion, never a wall-clock threshold: a CI runner's
-      // timing is not a specification, but a memoized pass over words
-      // already seen must be dramatically cheaper than the first pass.
-      // The order of magnitude §2.3 asks for is asserted literally, at
-      // 10x: the warm pass is a map read per word and measures three
-      // orders of magnitude cheaper here, so 10x leaves ample room for a
-      // slow or loaded runner without weakening into a truism.
-      expect(
-        warm.elapsedMicroseconds * 10,
-        lessThan(cold.elapsedMicroseconds),
-        reason:
-            'warm=${warm.elapsedMicroseconds}us cold=${cold.elapsedMicroseconds}us',
-      );
-    },
-  );
+    // A shape assertion, never a wall-clock threshold: a CI runner's
+    // timing is not a specification, but a memoized pass over words
+    // already seen must be dramatically cheaper than the first pass.
+    // The order of magnitude expected is asserted literally, at
+    // 10x: the warm pass is a map read per word and measures three
+    // orders of magnitude cheaper here, so 10x leaves ample room for a
+    // slow or loaded runner without weakening into a truism.
+    expect(
+      warm.elapsedMicroseconds * 10,
+      lessThan(cold.elapsedMicroseconds),
+      reason: 'warm=${warm.elapsedMicroseconds}us cold=${cold.elapsedMicroseconds}us',
+    );
+  });
 
   test('clearing the extra words drops the memo, making the pass cold again', () {
     final checker = _frenchChecker();

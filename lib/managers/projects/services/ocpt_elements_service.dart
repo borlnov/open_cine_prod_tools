@@ -3,7 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_role_link_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_scene_link_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
@@ -11,12 +15,13 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_prop_summary.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_element_code.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_element_code.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over the `elements` catalogue and the two kinds of link onto it: the `scene_elements` ones
@@ -40,19 +45,31 @@ import 'package:uuid/uuid.dart';
 /// Neither link table carries a `sortKey`: a scene's elements, like a role's things, are a set the
 /// user adds to and removes from rather than a list they reorder (see `OcptSceneElementsTable`'s
 /// own doc comment).
-class OcptElementsService {
+class OcptElementsService extends AbsOcptService {
   /// The service minting and tombstoning the `assets` row an element's photo is. Held rather than
   /// reached for, exactly as `OcptPeopleService` and `OcptLocationsService` hold their own.
   final OcptAssetsService assetsService;
 
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
+  /// {@macro open_cine_prod_tools.serviceDeviceIdGetter}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
-  const OcptElementsService({required this.assetsService, required this.deviceId});
+  const OcptElementsService({
+    required super.logger,
+    required this.assetsService,
+    required this.deviceId,
+  });
 
-  /// Loads every live element of [database], in `sortKey` order, each joined with the live
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await assetsService.initLifeCycle();
+  }
+
+  /// Load every live element of [database], in `sortKey` order, each joined with the live
   /// `scene_elements` links pointing at it (themselves in the screenplay's own scene order), the
   /// live `role_elements` ones (in the cast's own `sortKey` order) and with the photo it
   /// references.
@@ -62,7 +79,10 @@ class OcptElementsService {
   /// on its own if the scene does — `OcptSceneIndexService` reuses a scene's id for as long as it
   /// can match it. That is `OcptLocationsService.loadLocations`' own rule for a set's scenes, and
   /// the two must not disagree about what a link onto a vanished scene means.
-  Future<List<OcptElement>> loadElements({required OcptProjectDatabase database}) async {
+  @useResult
+  Future<OcptDatabaseResult<List<OcptElement>>> loadElements({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadElements", () async {
     final rows = await _liveElementRows(database);
     final elementIds = rows.map((row) => row.id).toList(growable: false);
 
@@ -78,9 +98,9 @@ class OcptElementsService {
 
     final assetRows = elementIds.isEmpty
         ? const <OcptAssetRow>[]
-        : await (database.select(database.ocptAssetsTable)
-                ..where((table) => table.elementId.isIn(elementIds) & table.isDeleted.not()))
-              .get();
+        : await (database.select(
+            database.ocptAssetsTable,
+          )..where((table) => table.elementId.isIn(elementIds) & table.isDeleted.not())).get();
 
     final assetsById = {for (final row in assetRows) row.id: OcptAssetRef.fromRow(row)};
 
@@ -93,10 +113,10 @@ class OcptElementsService {
           photo: assetsById[row.photoAssetId],
         ),
     ];
-  }
+  });
 
-  /// Creates a new element named [name], of [category] and [sourceKind], in [database], appended
-  /// at the end of the catalogue, and returns its freshly generated id.
+  /// Create a new element named [name], of [category] and [sourceKind], in [database], appended at
+  /// the end of the catalogue, and return its freshly generated id.
   ///
   /// The element's code is generated here rather than left empty (`ocptElementCodeOf`, numbered
   /// within [category] from the codes the catalogue already carries): every element gets one
@@ -105,12 +125,13 @@ class OcptElementsService {
   /// decision: the sheet's own field overwrites it.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createElement({
+  @useResult
+  Future<OcptDatabaseResult<String>> createElement({
     required OcptProjectDatabase database,
     required String name,
     required OcptElementCategory category,
     required OcptElementSourceKind sourceKind,
-  }) async {
+  }) => guardResult("createElement", () async {
     if (database.refusesUserWrite("createElement")) {
       return null;
     }
@@ -127,12 +148,17 @@ class OcptElementsService {
         current: null,
         next: OcptElementRow(
           id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
+          sortKey: ocptFractionalKeyBetween(
+            before: existing.isEmpty ? null : existing.last.sortKey,
+          ),
           isDeleted: false,
           category: category,
           subCategory: '',
           name: name,
-          code: ocptElementCodeOf(category: category, existingCodes: existing.map((row) => row.code)),
+          code: ocptElementCodeOf(
+            category: category,
+            existingCodes: existing.map((row) => row.code),
+          ),
           quantity: '',
           sourceKind: sourceKind,
           ownerNotes: '',
@@ -150,14 +176,14 @@ class OcptElementsService {
     });
 
     return id;
-  }
+  });
 
-  /// Updates the fields of element [elementId] in [database] that are passed as something other
+  /// Update the fields of element [elementId] in [database] that are passed as something other
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderElement] and [deleteElement].
   ///
-  /// `code` is not among the arguments: it is the app's own, minted by [createElement] and rewritten
-  /// **here and nowhere else**, whenever [category] genuinely changes (see
+  /// `code` is not among the arguments: it is the app's own, minted by [createElement] and
+  /// rewritten **here and nowhere else**, whenever [category] genuinely changes (see
   /// [_codeAfterCategoryChangeOf]). A code says which department an item comes from, and nobody can
   /// type one, so an element that moves from props to vehicles and keeps `PRP-4` would be lying
   /// about itself with no way for the user to correct it. Owning that rule here rather than in a
@@ -165,7 +191,8 @@ class OcptElementsService {
   /// knowing it exists.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateElement({
+  @useResult
+  Future<OcptDatabaseOutcome> updateElement({
     required OcptProjectDatabase database,
     required String elementId,
     Value<OcptElementCategory> category = const Value.absent(),
@@ -185,7 +212,7 @@ class OcptElementsService {
     Value<String> purposeNotes = const Value.absent(),
     Value<String> notes = const Value.absent(),
     Value<String?> photoAssetId = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateElement", () async {
     if (database.refusesUserWrite("updateElement")) {
       return;
     }
@@ -237,56 +264,19 @@ class OcptElementsService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// The code element [elementId] is given as [category] is written onto it: a freshly generated
-  /// one (`ocptElementCodeOf`, numbered within the category it is joining), or [Value.absent] when
-  /// there is nothing to rewrite.
-  ///
-  /// Nothing is rewritten when [category] is absent (the caller is changing something else
-  /// entirely), when the element has disappeared underneath (a stale write), or when the category
-  /// written is the one the element already had — the last of the three being the one that matters:
-  /// [ocptElementCodeOf] answers "the first free number", so regenerating `PRP-2` inside props would
-  /// hand it `PRP-4` for no reason at all.
-  Future<Value<String>> _codeAfterCategoryChangeOf({
-    required OcptProjectDatabase database,
-    required String elementId,
-    required Value<OcptElementCategory> category,
-  }) async {
-    if (!category.present) {
-      return const Value.absent();
-    }
-
-    final rows = await _liveElementRows(database);
-    final current = rows.where((row) => row.id == elementId).firstOrNull;
-    if (current == null || current.category == category.value) {
-      return const Value.absent();
-    }
-
-    return Value(
-      ocptElementCodeOf(
-        category: category.value,
-        // The element's own code is left out: it is about to stop belonging to the category it is
-        // numbered in, so it must not reserve a number there — and it can never collide with the
-        // numbers of the category it is joining.
-        existingCodes: [
-          for (final row in rows)
-            if (row.id != elementId) row.code,
-        ],
-      ),
-    );
-  }
-
-  /// Tombstones element [elementId] in [database] and both kinds of link onto it — the
+  /// Tombstone element [elementId] in [database] and both kinds of link onto it — the
   /// `scene_elements` ones and the `role_elements` ones — along with it.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteElement({
+  @useResult
+  Future<OcptDatabaseOutcome> deleteElement({
     required OcptProjectDatabase database,
     required String elementId,
-  }) async {
+  }) => guardOutcome("deleteElement", () async {
     if (database.refusesUserWrite("deleteElement")) {
       return;
     }
@@ -294,11 +284,9 @@ class OcptElementsService {
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final sceneElementRows =
-          await (database.select(
-                database.ocptSceneElementsTable,
-              )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not()))
-              .get();
+      final sceneElementRows = await (database.select(
+        database.ocptSceneElementsTable,
+      )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not())).get();
       for (final row in sceneElementRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -310,11 +298,9 @@ class OcptElementsService {
         );
       }
 
-      final roleElementRows =
-          await (database.select(
-                database.ocptRoleElementsTable,
-              )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not()))
-              .get();
+      final roleElementRows = await (database.select(
+        database.ocptRoleElementsTable,
+      )..where((table) => table.elementId.equals(elementId) & table.isDeleted.not())).get();
       for (final row in roleElementRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -347,10 +333,10 @@ class OcptElementsService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// References the file at [path] as element [elementId]'s photo, replacing whichever file it
-  /// referenced before, and returns the freshly generated id of the `assets` row.
+  /// Reference the file at [path] as element [elementId]'s photo, replacing whichever file it
+  /// referenced before, and return the freshly generated id of the `assets` row.
   ///
   /// The replaced photo's row is tombstoned in the same transaction, for the reason
   /// `OcptPeopleService.setPersonPhoto` gives: an element has one photo, so a row nothing points at
@@ -358,12 +344,13 @@ class OcptElementsService {
   /// — see `docs/adr/0013-binary-assets-referenced-by-path.md`.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> setElementPhoto({
+  @useResult
+  Future<OcptDatabaseResult<String>> setElementPhoto({
     required OcptProjectDatabase database,
     required String elementId,
     required String path,
     String label = "",
-  }) async {
+  }) => guardResult("setElementPhoto", () async {
     if (database.refusesUserWrite("setElementPhoto")) {
       return null;
     }
@@ -400,18 +387,19 @@ class OcptElementsService {
 
       return id;
     });
-  }
+  });
 
-  /// Drops element [elementId]'s reference to its photo: the `assets` row is tombstoned and
+  /// Drop element [elementId]'s reference to its photo: the `assets` row is tombstoned and
   /// `photoAssetId` goes back to null. The file itself is never touched.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearElementPhoto({
+  @useResult
+  Future<OcptDatabaseOutcome> clearElementPhoto({
     required OcptProjectDatabase database,
     required String elementId,
-  }) async {
+  }) => guardOutcome("clearElementPhoto", () async {
     if (database.refusesUserWrite("clearElementPhoto")) {
       return;
     }
@@ -437,38 +425,19 @@ class OcptElementsService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Tombstones whichever `assets` row element [elementId] currently names as its photo, if any.
-  /// Leaves `photoAssetId` alone: both callers write it themselves. Stamps through [stamps] — the
-  /// caller's own instance.
-  Future<void> _tombstoneElementPhoto({
-    required OcptProjectDatabase database,
-    required String elementId,
-    required OcptRowStampService? stamps,
-  }) async {
-    final row = await (database.select(
-      database.ocptElementsTable,
-    )..where((table) => table.id.equals(elementId))).getSingleOrNull();
-
-    final photoAssetId = row?.photoAssetId;
-    if (photoAssetId == null) {
-      return;
-    }
-
-    await assetsService.tombstoneAsset(database: database, assetId: photoAssetId, stamps: stamps);
-  }
-
-  /// Moves element [elementId] to [newPosition] (0-based) within the catalogue's flat `sortKey`
+  /// Move element [elementId] to [newPosition] (0-based) within the catalogue's flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two elements it lands between. Writes
   /// **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderElement({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderElement({
     required OcptProjectDatabase database,
     required String elementId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderElement", () async {
     if (database.refusesUserWrite("reorderElement")) {
       return;
     }
@@ -502,422 +471,203 @@ class OcptElementsService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Links scene [sceneId] to element [elementId], with an optional per-scene [quantity] override
-  /// and [notes], and returns the id of the link — the one that already said so when there was one,
-  /// a freshly generated one otherwise.
-  ///
-  /// Adding a scene the element already carries is a no-op rather than a second row, and a link
-  /// that was removed earlier is **revived** rather than duplicated, exactly as
-  /// `OcptLocationsService.assignSceneToSet` revives a dropped `scene_sets` row: a tombstone is how
-  /// this app deletes, so the pair `(scene, element)` may well have a row already, saying it is
-  /// gone. A revived link keeps the quantity and the notes it held — the answer the user gave the
-  /// first time is the one they get back — so [quantity] and [notes] only ever seed a row that is
-  /// genuinely being inserted.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addSceneElement({
+  /// Forward to [OcptElementsSceneLinkOps.addSceneElement].
+  @useResult
+  Future<OcptDatabaseResult<String>> addSceneElement({
     required OcptProjectDatabase database,
     required String sceneId,
     required String elementId,
     String quantity = "",
     String notes = "",
-  }) async {
-    if (database.refusesUserWrite("addSceneElement")) {
-      return null;
-    }
+  }) => guardResult(
+    "addSceneElement",
+    () => OcptElementsSceneLinkOps.addSceneElement(
+      database: database,
+      sceneId: sceneId,
+      elementId: elementId,
+      quantity: quantity,
+      notes: notes,
+      deviceId: deviceId,
+    ),
+  );
 
-    return database.transaction(() async {
-      final existingLinks =
-          await (database.select(database.ocptSceneElementsTable)..where(
-                (table) => table.sceneId.equals(sceneId) & table.elementId.equals(elementId),
-              ))
-              .get();
-
-      OcptSceneElementRow? droppedLink;
-      for (final link in existingLinks) {
-        if (!link.isDeleted) {
-          return link.id;
-        }
-
-        droppedLink ??= link;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      if (droppedLink != null) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptSceneElementsTable,
-          rowId: droppedLink.id,
-          current: droppedLink,
-          next: droppedLink.copyWith(isDeleted: false),
-          stamps: stamps,
-        );
-        await stamps.flush(database);
-
-        return droppedLink.id;
-      }
-
-      final id = const Uuid().v4();
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSceneElementsTable,
-        rowId: id,
-        current: null,
-        next: OcptSceneElementRow(
-          id: id,
-          sceneId: sceneId,
-          elementId: elementId,
-          quantity: quantity,
-          notes: notes,
-          isDeleted: false,
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-
-      return id;
-    });
-  }
-
-  /// Updates the fields of scene ↔ element link [id] in [database] that are passed as something
-  /// other than [Value.absent].
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateSceneElement({
+  /// Forward to [OcptElementsSceneLinkOps.updateSceneElement].
+  @useResult
+  Future<OcptDatabaseOutcome> updateSceneElement({
     required OcptProjectDatabase database,
     required String id,
     Value<String> quantity = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async {
-    if (database.refusesUserWrite("updateSceneElement")) {
-      return;
-    }
+  }) => guardOutcome(
+    "updateSceneElement",
+    () => OcptElementsSceneLinkOps.updateSceneElement(
+      database: database,
+      id: id,
+      quantity: quantity,
+      notes: notes,
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptSceneElementsTable,
-      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSceneElementsTable,
-        rowId: id,
-        current: current,
-        next: current.copyWithCompanion(
-          OcptSceneElementsTableCompanion(quantity: quantity, notes: notes),
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Removes the scene ↔ element link [id].
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeSceneElement({
+  /// Forward to [OcptElementsSceneLinkOps.removeSceneElement].
+  @useResult
+  Future<OcptDatabaseOutcome> removeSceneElement({
     required OcptProjectDatabase database,
     required String id,
-  }) async {
-    if (database.refusesUserWrite("removeSceneElement")) {
-      return;
-    }
+  }) => guardOutcome(
+    "removeSceneElement",
+    () =>
+        OcptElementsSceneLinkOps.removeSceneElement(database: database, id: id, deviceId: deviceId),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptSceneElementsTable,
-      )..where((table) => table.id.equals(id))).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSceneElementsTable,
-        rowId: id,
-        current: current,
-        next: current.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Links role [roleId] to element [elementId], with optional [notes], and returns the id of the
-  /// link — the one that already said so when there was one, a freshly generated one otherwise.
-  ///
-  /// [addSceneElement]'s sibling and follows exactly its rules: a pair the role already carries is
-  /// a no-op rather than a second row, a link removed earlier is **revived** rather than
-  /// duplicated, and a revived link keeps the note it held — so [notes] only ever seeds a row that
-  /// is genuinely being inserted.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addRoleElement({
+  /// Forward to [OcptElementsRoleLinkOps.addRoleElement].
+  @useResult
+  Future<OcptDatabaseResult<String>> addRoleElement({
     required OcptProjectDatabase database,
     required String roleId,
     required String elementId,
     String notes = "",
-  }) async {
-    if (database.refusesUserWrite("addRoleElement")) {
-      return null;
-    }
+  }) => guardResult(
+    "addRoleElement",
+    () => OcptElementsRoleLinkOps.addRoleElement(
+      database: database,
+      roleId: roleId,
+      elementId: elementId,
+      notes: notes,
+      deviceId: deviceId,
+    ),
+  );
 
-    return database.transaction(() async {
-      final existingLinks =
-          await (database.select(database.ocptRoleElementsTable)..where(
-                (table) => table.roleId.equals(roleId) & table.elementId.equals(elementId),
-              ))
-              .get();
-
-      OcptRoleElementRow? droppedLink;
-      for (final link in existingLinks) {
-        if (!link.isDeleted) {
-          return link.id;
-        }
-
-        droppedLink ??= link;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      if (droppedLink != null) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptRoleElementsTable,
-          rowId: droppedLink.id,
-          current: droppedLink,
-          next: droppedLink.copyWith(isDeleted: false),
-          stamps: stamps,
-        );
-        await stamps.flush(database);
-
-        return droppedLink.id;
-      }
-
-      final id = const Uuid().v4();
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptRoleElementsTable,
-        rowId: id,
-        current: null,
-        next: OcptRoleElementRow(
-          id: id,
-          roleId: roleId,
-          elementId: elementId,
-          notes: notes,
-          isDeleted: false,
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-
-      return id;
-    });
-  }
-
-  /// Updates the notes of role ↔ element link [id] in [database].
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateRoleElement({
+  /// Forward to [OcptElementsRoleLinkOps.updateRoleElement].
+  @useResult
+  Future<OcptDatabaseOutcome> updateRoleElement({
     required OcptProjectDatabase database,
     required String id,
     required String notes,
-  }) async {
-    if (database.refusesUserWrite("updateRoleElement")) {
-      return;
-    }
+  }) => guardOutcome(
+    "updateRoleElement",
+    () => OcptElementsRoleLinkOps.updateRoleElement(
+      database: database,
+      id: id,
+      notes: notes,
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptRoleElementsTable,
-      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptRoleElementsTable,
-        rowId: id,
-        current: current,
-        next: current.copyWith(notes: notes),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Removes the role ↔ element link [id].
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeRoleElement({
+  /// Forward to [OcptElementsRoleLinkOps.removeRoleElement].
+  @useResult
+  Future<OcptDatabaseOutcome> removeRoleElement({
     required OcptProjectDatabase database,
     required String id,
-  }) async {
-    if (database.refusesUserWrite("removeRoleElement")) {
-      return;
-    }
+  }) => guardOutcome(
+    "removeRoleElement",
+    () => OcptElementsRoleLinkOps.removeRoleElement(database: database, id: id, deviceId: deviceId),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptRoleElementsTable,
-      )..where((table) => table.id.equals(id))).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptRoleElementsTable,
-        rowId: id,
-        current: current,
-        next: current.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Tombstones every `role_elements` row naming role [roleId], the cascade
-  /// `OcptRoleIndexService.deleteRole` reaches for once it has decided the role goes.
-  ///
-  /// **Unguarded**, exactly as `OcptAssetsService`'s own cascades are: its only caller has already
-  /// refused the write on a preview connection and is already inside the transaction removing the
-  /// role, so a second guard here would only be able to disagree with the first. Stamps through
-  /// [stamps] — that caller's own instance — rather than resolving a device id of its own.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
+  /// Forward to [OcptElementsRoleLinkOps.tombstoneRoleLinksOfRole].
   Future<void> tombstoneRoleLinksOfRole({
     required OcptProjectDatabase database,
     required String roleId,
     required OcptRowStampService? stamps,
-  }) async {
-    final rows =
-        await (database.select(
-              database.ocptRoleElementsTable,
-            )..where((table) => table.roleId.equals(roleId) & table.isDeleted.not()))
-            .get();
+  }) => OcptElementsRoleLinkOps.tombstoneRoleLinksOfRole(
+    database: database,
+    roleId: roleId,
+    stamps: stamps,
+  );
 
-    for (final row in rows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptRoleElementsTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
-  }
-
-  /// Tombstones every live `scene_elements` row naming any of [sceneIds]: `scene_elements` is this
-  /// service's table, not `OcptBreakdownService`'s, so its own cascade
-  /// (`OcptBreakdownService.tombstoneBreakdownOfScenes`) reaches for this narrow helper rather than
-  /// writing the table itself — the element these links point at is, of course, untouched.
-  ///
-  /// **Unguarded**, exactly as [tombstoneRoleLinksOfRole] is: its only caller has already refused
-  /// the write on a preview connection and is already inside the transaction removing the episode,
-  /// so a second guard here would only be able to disagree with the first. Stamps through [stamps]
-  /// — that caller's own instance — rather than resolving a device id of its own.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
+  /// Forward to [OcptElementsSceneLinkOps.tombstoneSceneElementsOfScenes].
   Future<void> tombstoneSceneElementsOfScenes({
     required OcptProjectDatabase database,
     required List<String> sceneIds,
     required OcptRowStampService? stamps,
+  }) => OcptElementsSceneLinkOps.tombstoneSceneElementsOfScenes(
+    database: database,
+    sceneIds: sceneIds,
+    stamps: stamps,
+  );
+
+  /// Forward to [OcptElementsSceneLinkOps.sceneElementsOfScene].
+  @useResult
+  Future<OcptDatabaseResult<List<OcptSceneElementRow>>> sceneElementsOfScene({
+    required OcptProjectDatabase database,
+    required String sceneId,
+  }) => guardResult(
+    "sceneElementsOfScene",
+    () => OcptElementsSceneLinkOps.sceneElementsOfScene(database: database, sceneId: sceneId),
+  );
+
+  /// Forward to [OcptElementsSceneLinkOps.propsOfScene].
+  @useResult
+  Future<OcptDatabaseResult<List<OcptScenePropSummary>>> propsOfScene({
+    required OcptProjectDatabase database,
+    required String sceneId,
+  }) => guardResult(
+    "propsOfScene",
+    () => OcptElementsSceneLinkOps.propsOfScene(database: database, sceneId: sceneId),
+  );
+
+  /// Get the code element [elementId] is given as [category] is written onto it: a freshly
+  /// generated
+  /// one (`ocptElementCodeOf`, numbered within the category it is joining), or [Value.absent] when
+  /// there is nothing to rewrite.
+  ///
+  /// Nothing is rewritten when [category] is absent (the caller is changing something else
+  /// entirely), when the element has disappeared underneath (a stale write), or when the category
+  /// written is the one the element already had — the last of the three being the one that matters:
+  /// [ocptElementCodeOf] answers "the first free number", so regenerating `PRP-2` inside props
+  /// would hand it `PRP-4` for no reason at all.
+  Future<Value<String>> _codeAfterCategoryChangeOf({
+    required OcptProjectDatabase database,
+    required String elementId,
+    required Value<OcptElementCategory> category,
   }) async {
-    if (sceneIds.isEmpty) {
+    if (!category.present) {
+      return const Value.absent();
+    }
+
+    final rows = await _liveElementRows(database);
+    final current = rows.where((row) => row.id == elementId).firstOrNull;
+    if (current == null || current.category == category.value) {
+      return const Value.absent();
+    }
+
+    return Value(
+      ocptElementCodeOf(
+        category: category.value,
+        // The element's own code is left out: it is about to stop belonging to the category it is
+        // numbered in, so it must not reserve a number there — and it can never collide with the
+        // numbers of the category it is joining.
+        existingCodes: [
+          for (final row in rows)
+            if (row.id != elementId) row.code,
+        ],
+      ),
+    );
+  }
+
+  /// Tombstone whichever `assets` row element [elementId] currently names as its photo, if any.
+  /// Leaves `photoAssetId` alone: both callers write it themselves. Stamps through [stamps] — the
+  /// caller's own instance.
+  Future<void> _tombstoneElementPhoto({
+    required OcptProjectDatabase database,
+    required String elementId,
+    required OcptRowStampService? stamps,
+  }) async {
+    final row = await (database.select(
+      database.ocptElementsTable,
+    )..where((table) => table.id.equals(elementId))).getSingleOrNull();
+
+    final photoAssetId = row?.photoAssetId;
+    if (photoAssetId == null) {
       return;
     }
 
-    final rows =
-        await (database.select(
-              database.ocptSceneElementsTable,
-            )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not()))
-            .get();
-
-    for (final row in rows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptSceneElementsTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
+    await assetsService.tombstoneAsset(database: database, assetId: photoAssetId, stamps: stamps);
   }
 
-  /// Every live `scene_elements` row of scene [sceneId].
-  Future<List<OcptSceneElementRow>> sceneElementsOfScene({
-    required OcptProjectDatabase database,
-    required String sceneId,
-  }) => (database.select(database.ocptSceneElementsTable)..where(
-        (table) => table.sceneId.equals(sceneId) & table.isDeleted.not(),
-      ))
-      .get();
-
-  /// Scene [sceneId]'s own breakdown props (category [OcptElementCategory.prop] alone), each
-  /// carrying its own effective quantity — the floor plans palette's own `Sequence` group chips. In
-  /// the catalogue's own `sortKey` order.
-  Future<List<OcptScenePropSummary>> propsOfScene({
-    required OcptProjectDatabase database,
-    required String sceneId,
-  }) async {
-    final query = database.select(database.ocptSceneElementsTable).join([
-      innerJoin(
-        database.ocptElementsTable,
-        database.ocptElementsTable.id.equalsExp(database.ocptSceneElementsTable.elementId),
-      ),
-    ])
-      ..where(
-        database.ocptSceneElementsTable.sceneId.equals(sceneId) &
-            database.ocptSceneElementsTable.isDeleted.not() &
-            database.ocptElementsTable.isDeleted.not() &
-            database.ocptElementsTable.category.equalsValue(OcptElementCategory.prop),
-      )
-      ..orderBy([OrderingTerm.asc(database.ocptElementsTable.sortKey)]);
-
-    final rows = await query.get();
-    return [
-      for (final row in rows)
-        _scenePropSummaryOf(
-          sceneElementRow: row.readTable(database.ocptSceneElementsTable),
-          elementRow: row.readTable(database.ocptElementsTable),
-        ),
-    ];
-  }
-
-  /// One [OcptScenePropSummary], resolving its own effective quantity: [sceneElementRow]'s own
-  /// override when it isn't empty, [elementRow]'s own catalogue quantity otherwise.
-  OcptScenePropSummary _scenePropSummaryOf({
-    required OcptSceneElementRow sceneElementRow,
-    required OcptElementRow elementRow,
-  }) => OcptScenePropSummary(
-    elementId: elementRow.id,
-    name: elementRow.name,
-    quantity: sceneElementRow.quantity.isNotEmpty ? sceneElementRow.quantity : elementRow.quantity,
-  );
-
-  /// The live `scene_elements` links of every element of [elementIds], keyed by element id and
+  /// Get the live `scene_elements` links of every element of [elementIds], keyed by element id and
   /// ordered by the screenplay's own scene order.
   ///
   /// Ordered by the scene rather than by anything the link carries: `scene_elements` has no
@@ -932,11 +682,9 @@ class OcptElementsService {
       return const {};
     }
 
-    final linkRows =
-        await (database.select(database.ocptSceneElementsTable)..where(
-              (table) => table.elementId.isIn(elementIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final linkRows = await (database.select(
+      database.ocptSceneElementsTable,
+    )..where((table) => table.elementId.isIn(elementIds) & table.isDeleted.not())).get();
     if (linkRows.isEmpty) {
       return const {};
     }
@@ -961,15 +709,13 @@ class OcptElementsService {
     }
 
     for (final links in linksByElementId.values) {
-      links.sort(
-        (a, b) => positionBySceneId[a.sceneId]!.compareTo(positionBySceneId[b.sceneId]!),
-      );
+      links.sort((a, b) => positionBySceneId[a.sceneId]!.compareTo(positionBySceneId[b.sceneId]!));
     }
 
     return linksByElementId;
   }
 
-  /// The live `role_elements` links of every element of [elementIds], keyed by element id and
+  /// Get the live `role_elements` links of every element of [elementIds], keyed by element id and
   /// ordered by the cast's own `sortKey` order.
   ///
   /// Ordered by the role rather than by anything the link carries, for the reason
@@ -986,11 +732,9 @@ class OcptElementsService {
       return const {};
     }
 
-    final linkRows =
-        await (database.select(database.ocptRoleElementsTable)..where(
-              (table) => table.elementId.isIn(elementIds) & table.isDeleted.not(),
-            ))
-            .get();
+    final linkRows = await (database.select(
+      database.ocptRoleElementsTable,
+    )..where((table) => table.elementId.isIn(elementIds) & table.isDeleted.not())).get();
     if (linkRows.isEmpty) {
       return const {};
     }
@@ -1021,10 +765,20 @@ class OcptElementsService {
     return linksByElementId;
   }
 
-  /// Every live element row of [database], ordered by `sortKey`.
+  /// Get every live element row of [database], ordered by `sortKey`.
   Future<List<OcptElementRow>> _liveElementRows(OcptProjectDatabase database) =>
       (database.select(database.ocptElementsTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
 }

@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_shot_list_xlsx_export_service.dart';
@@ -91,9 +92,7 @@ OcptShotListXlsxLabels _buildLabels({
   String dayTagPrefix = "D",
 }) => OcptShotListXlsxLabels(
   sheetName: sheetName,
-  columnHeaders: {
-    for (final column in OcptShotListXlsxColumn.values) column: column.name,
-  },
+  columnHeaders: {for (final column in OcptShotListXlsxColumn.values) column: column.name},
   statusLabels: const {
     OcptShotStatus.toShoot: "To shoot",
     OcptShotStatus.shot: "Shot",
@@ -134,8 +133,9 @@ Object? _valueOf(Data? cell) => switch (cell?.value) {
 Object? _cellOf(List<Object?> row, OcptShotListXlsxColumn column) =>
     column.index < row.length ? row[column.index] : null;
 
+/// Run the tests of [OcptShotListXlsxExportService].
 void main() {
-  const service = OcptShotListXlsxExportService();
+  const service = OcptShotListXlsxExportService(logger: SilentLogger());
 
   group('xlsxFileName', () {
     test('appends the .xlsx extension to the project name', () {
@@ -172,19 +172,18 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(
-          snapshot: snapshot,
-          labels: _buildLabels(
-            sequenceTitles: const {"scene-1": "Sequence 1", "scene-2": "Sequence 2"},
-          ),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              labels: _buildLabels(
+                sequenceTitles: const {"scene-1": "Sequence 1", "scene-2": "Sequence 2"},
+              ),
+            )
+            .value!,
       );
 
       expect(rows, hasLength(6));
-      expect(
-        rows.first,
-        [for (final column in OcptShotListXlsxColumn.values) column.name],
-      );
+      expect(rows.first, [for (final column in OcptShotListXlsxColumn.values) column.name]);
       expect(rows[1].first, "Sequence 1");
       expect(_cellOf(rows[2], OcptShotListXlsxColumn.shot), "1/1");
       expect(_cellOf(rows[3], OcptShotListXlsxColumn.shot), "1/2");
@@ -234,10 +233,12 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(
-          snapshot: snapshot,
-          labels: _buildLabels(sequenceTitles: const {"scene-1": "Sequence 1"}),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              labels: _buildLabels(sequenceTitles: const {"scene-1": "Sequence 1"}),
+            )
+            .value!,
       );
       final shotRow = rows[2];
 
@@ -283,7 +284,12 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(snapshot: snapshot, labels: _buildLabels(dayTagPrefix: "J")),
+        service
+            .generate(
+              snapshot: snapshot,
+              labels: _buildLabels(dayTagPrefix: "J"),
+            )
+            .value!,
       );
       final shotRow = rows[2];
 
@@ -303,10 +309,12 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(
-          snapshot: snapshot,
-          labels: _buildLabels(sequenceTitles: const {"scene-1": "Sequence 1"}),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              labels: _buildLabels(sequenceTitles: const {"scene-1": "Sequence 1"}),
+            )
+            .value!,
       );
       final shotRow = rows[2];
 
@@ -329,23 +337,23 @@ void main() {
             shots: [_buildShot(id: "shot-1", code: "1/1")],
           ),
           OcptOrphanShotSequence(
-            shots: [
-              _buildShot(id: "shot-2", code: "—/1", orphanedHeading: "INT. CELLAR - DAY"),
-            ],
+            shots: [_buildShot(id: "shot-2", code: "—/1", orphanedHeading: "INT. CELLAR - DAY")],
           ),
         ],
       );
 
       final rows = _rowsOf(
-        service.generate(
-          snapshot: snapshot,
-          labels: _buildLabels(
-            sequenceTitles: const {
-              "scene-1": "Sequence 1",
-              OcptOrphanShotSequence.sequenceId: "Orphaned shots",
-            },
-          ),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              labels: _buildLabels(
+                sequenceTitles: const {
+                  "scene-1": "Sequence 1",
+                  OcptOrphanShotSequence.sequenceId: "Orphaned shots",
+                },
+              ),
+            )
+            .value!,
       );
 
       expect(rows[3].first, "Orphaned shots");
@@ -362,10 +370,12 @@ void main() {
       );
 
       final rows = _rowsOf(
-        service.generate(
-          snapshot: snapshot,
-          labels: _buildLabels(sequenceTitles: const {"scene-1": "Sequence 1"}),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              labels: _buildLabels(sequenceTitles: const {"scene-1": "Sequence 1"}),
+            )
+            .value!,
       );
 
       expect(rows, hasLength(2));
@@ -375,7 +385,7 @@ void main() {
     test('writes the header row alone for a screenplay with no sequence at all', () {
       final snapshot = OcptShotListSnapshot.build(screenplayId: "screenplay", sequences: const []);
 
-      final rows = _rowsOf(service.generate(snapshot: snapshot, labels: _buildLabels()));
+      final rows = _rowsOf(service.generate(snapshot: snapshot, labels: _buildLabels()).value!);
 
       expect(rows, hasLength(1));
       expect(rows.first.first, OcptShotListXlsxColumn.shot.name);
@@ -385,10 +395,12 @@ void main() {
       final snapshot = OcptShotListSnapshot.build(screenplayId: "screenplay", sequences: const []);
 
       final excel = Excel.decodeBytes(
-        service.generate(
-          snapshot: snapshot,
-          labels: _buildLabels(sheetName: "Découpage technique"),
-        ),
+        service
+            .generate(
+              snapshot: snapshot,
+              labels: _buildLabels(sheetName: "Découpage technique"),
+            )
+            .value!,
       );
 
       expect(excel.tables.keys, ["Découpage technique"]);
@@ -398,7 +410,12 @@ void main() {
       final snapshot = OcptShotListSnapshot.build(screenplayId: "screenplay", sequences: const []);
 
       final excel = Excel.decodeBytes(
-        service.generate(snapshot: snapshot, labels: _buildLabels(sheetName: "   ")),
+        service
+            .generate(
+              snapshot: snapshot,
+              labels: _buildLabels(sheetName: "   "),
+            )
+            .value!,
       );
 
       expect(excel.tables.keys, [OcptShotListXlsxExportService.fallbackSheetName]);

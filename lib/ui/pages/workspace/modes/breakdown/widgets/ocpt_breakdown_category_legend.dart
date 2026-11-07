@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_breakdown_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_breakdown_legend.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_breakdown_labels.dart';
 
 /// The opacity a hidden legend row is dimmed to: faint enough to read as "off", never so faint the
 /// row stops being legible — hiding a category is a reading aid the user must be able to find and
@@ -51,6 +51,7 @@ class OcptBreakdownCategoryLegend extends StatelessWidget {
     required this.onShowAllRequested,
   });
 
+  /// Build the breakdown category legend as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -64,14 +65,12 @@ class OcptBreakdownCategoryLegend extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Row(
             children: [
-              Expanded(
-                child: Text(tr.breakdownLegendTitle, style: theme.textTheme.titleSmall),
-              ),
+              Expanded(child: Text(tr.breakdownLegendTitle, style: theme.textTheme.titleSmall)),
               if (hiddenKeys.isNotEmpty)
                 InkWell(
                   onTap: onShowAllRequested,
-                  mouseCursor: ocptClickableCursor,
-                  borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
+                  borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     child: Text(
@@ -118,6 +117,7 @@ class _OcptBreakdownLegendRow extends StatelessWidget {
   /// Class constructor
   const _OcptBreakdownLegendRow({required this.entry, required this.isHidden, required this.onTap});
 
+  /// Build the breakdown legend row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -125,7 +125,7 @@ class _OcptBreakdownLegendRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: Opacity(
         opacity: isHidden ? _ocptBreakdownLegendHiddenOpacity : 1,
         child: Padding(

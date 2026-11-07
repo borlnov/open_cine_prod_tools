@@ -7,13 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_anchor.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_dialog.dart';
 
 /// A router manager whose [pop] only records that it was called: this dialog is pumped directly,
@@ -23,6 +24,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// Whether [pop] was called.
   bool popped = false;
 
+  /// Record that a pop happened, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -30,10 +32,10 @@ class _RecordingRouterManager extends OcptRouterManager {
 }
 
 /// Wraps [child] in the app's own light theme — the dialog paints its backdrop from the
-/// `OcptSpecificColors` extension, which only a theme built from [ocptTheme] carries — plus the
-/// localization delegates so [Tr.of] lookups resolve.
+/// `OcptSpecificColors` extension, which only a theme built from [ocpt_theme.ocptTheme] carries —
+/// plus the localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -55,6 +57,8 @@ Future<void> _useLargeSurface(WidgetTester tester) async {
 /// A realistic scene: heading, an action line, a character cue, a parenthetical and a dialogue
 /// line, matching the fixture `OcptScriptWordLayout.of`'s own tests use.
 const _sceneId = "scene-1";
+
+/// A short scene: a heading, an action line and a line of dialogue.
 const _sceneText = 'INT. HOUSE - DAY\n\nJohn walks in.\n\nJOHN\n(whispering)\nHello there.';
 
 /// Builds the layout every test in this file lays its scene out from.
@@ -118,6 +122,7 @@ Color? _backgroundOfWord(WidgetTester tester, String text) {
   return container.color;
 }
 
+/// Run the tests of [OcptShotCoverageDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 
@@ -202,10 +207,8 @@ void main() {
       _wrapInApp(
         _buildDialog(
           layout: layout,
-          onWordTapped: (wordStartOffset, wordEndOffset) => reported = (
-            wordStartOffset,
-            wordEndOffset,
-          ),
+          onWordTapped: (wordStartOffset, wordEndOffset) =>
+              reported = (wordStartOffset, wordEndOffset),
         ),
       ),
     );
@@ -226,10 +229,8 @@ void main() {
       _wrapInApp(
         _buildDialog(
           layout: layout,
-          onWordTapped: (wordStartOffset, wordEndOffset) => reported = (
-            wordStartOffset,
-            wordEndOffset,
-          ),
+          onWordTapped: (wordStartOffset, wordEndOffset) =>
+              reported = (wordStartOffset, wordEndOffset),
         ),
       ),
     );
@@ -339,11 +340,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _wrapInApp(
-        _buildDialog(
-          pendingAnchor: (wordStartOffset: 0, wordEndOffset: 4),
-        ),
-      ),
+      _wrapInApp(_buildDialog(pendingAnchor: (wordStartOffset: 0, wordEndOffset: 4))),
     );
 
     expect(

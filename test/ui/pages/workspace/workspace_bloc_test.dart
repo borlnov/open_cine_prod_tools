@@ -4,6 +4,8 @@
 
 import 'dart:io';
 
+import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
@@ -15,13 +17,16 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/sync/ocpt_relay_host_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_presence_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
@@ -30,12 +35,14 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// The method channel `flutter_secure_storage` talks over — mirrors
 /// `ocpt_sync_manager_pairing_test.dart`'s own mock, which this file's [OcptPairingService] needs
 /// the exact same wiring for.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -68,26 +75,42 @@ void _mockSecureStorage(Map<String, String> store) {
 
 /// An in-memory [OcptRemoteStorage] carrying no network at all.
 class _FakeRemoteStorage implements OcptRemoteStorage {
-  @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async => OcptSequenceNumber.zero;
-
-  @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async => const [];
-
-  @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {}
-
-  @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async => null;
-
+  /// Emit nothing.
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
-  @override
-  void sendPresence(String opaquePayload) {}
-
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
+
+  /// Accept the envelope, answering with sequence zero.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) async =>
+      const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
+
+  /// Answer with an empty log.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
+
+  /// Accept the snapshot without keeping it.
+  @override
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
+
+  /// Answer that no snapshot was ever uploaded.
+  @override
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
+
+  /// Drop the payload.
+  @override
+  void sendPresence(String opaquePayload) {}
 }
 
 /// An [OcptSyncManager] recording whether/how [startSyncSession] was called, instead of actually
@@ -96,13 +119,29 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// itself — have no reason to drive. `ocpt_sync_manager_pairing_test.dart` and
 /// `ocpt_sync_manager_snapshot_test.dart` already cover the session's real behaviour.
 class _RecordingSyncManager extends OcptSyncManager {
-  _RecordingSyncManager({required OcptPairingService pairingService})
-    : super(pairingService: pairingService, changesetService: const OcptChangesetService());
-
+  /// Whether a sync session was started.
   bool startSyncSessionCalled = false;
+
+  /// Whether [startSyncSession] throws once it has recorded its call.
+  bool isStartFailing = false;
+
+  /// Whether a sync session was stopped.
   bool stopSyncSessionCalled = false;
+
+  /// The id of the project the session was started for.
   String? startedProjectId;
 
+  /// Class constructor
+  _RecordingSyncManager({required OcptPairingService pairingService})
+    : super(
+        pairingService: pairingService,
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
+
+  /// Open a storage that accepts everything and holds nothing.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -110,6 +149,7 @@ class _RecordingSyncManager extends OcptSyncManager {
     String? enrolmentSecret,
   }) => _FakeRemoteStorage();
 
+  /// Record the start and the project, and fail as an unreachable relay does when told to.
   @override
   Future<void> startSyncSession({
     required String projectId,
@@ -123,8 +163,12 @@ class _RecordingSyncManager extends OcptSyncManager {
   }) async {
     startSyncSessionCalled = true;
     startedProjectId = projectId;
+    if (isStartFailing) {
+      throw StateError('the relay is unreachable');
+    }
   }
 
+  /// Record that the session was stopped.
   @override
   Future<void> stopSyncSession() async {
     stopSyncSessionCalled = true;
@@ -137,8 +181,7 @@ class _RecordingSyncManager extends OcptSyncManager {
 /// `ocpt_relay_host_manager_test.dart` — this file's tests are about the workspace's own wiring to
 /// them, not their behaviour.
 class _RecordingHostManager extends OcptRelayHostManager {
-  _RecordingHostManager({required this.stateToReport, this.stateAfterAutoStart});
-
+  /// The state the double reports.
   OcptRelayHostState stateToReport;
 
   /// The state [maybeAutoStartHosting] transitions [state] to, modelling a fresh host start coming
@@ -146,12 +189,23 @@ class _RecordingHostManager extends OcptRelayHostManager {
   /// reopened while its relay was already up (`online` throughout).
   final OcptRelayHostState? stateAfterAutoStart;
 
+  /// Whether the auto start was attempted.
   bool maybeAutoStartCalled = false;
+
+  /// Whether [maybeAutoStartHosting] throws once it has recorded its call.
+  bool isAutoStartFailing = false;
+
+  /// Whether hosting was stopped.
   bool stopHostingCalled = false;
 
+  /// Read the state to report.
   @override
   OcptRelayHostState get state => stateToReport;
 
+  /// Class constructor
+  _RecordingHostManager({required this.stateToReport, this.stateAfterAutoStart});
+
+  /// Record the attempt, fail when told to, and move to the state to report after an auto start.
   @override
   Future<void> maybeAutoStartHosting({
     required OcptProjectDatabase database,
@@ -161,17 +215,22 @@ class _RecordingHostManager extends OcptRelayHostManager {
     required String deviceId,
   }) async {
     maybeAutoStartCalled = true;
+    if (isAutoStartFailing) {
+      throw StateError('the relay cannot be bound');
+    }
     if (stateAfterAutoStart != null) {
       stateToReport = stateAfterAutoStart!;
     }
   }
 
+  /// Record that hosting was stopped.
   @override
   Future<void> stopHosting() async {
     stopHostingCalled = true;
   }
 }
 
+/// Run the tests of [OcptWorkspaceBloc].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -200,7 +259,10 @@ void main() {
     );
     await secretsManager.initLifeCycle();
 
-    pairingService = OcptPairingService(secretsManager: secretsManager);
+    pairingService = OcptPairingService(
+      logger: const SilentLogger(),
+      secretsManager: secretsManager,
+    );
   });
 
   setUp(() async {
@@ -260,23 +322,20 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    'a fresh workspace bloc starts on the screenplay mode even after an earlier one switched '
-    'away from it — switching project resets the mode, nothing restores it',
-    () async {
-      final firstBloc = buildBloc();
-      await waitForState(firstBloc, (state) => !state.isLoading);
-      firstBloc.add(const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.budget));
-      await waitForState(firstBloc, (state) => state.mode == OcptWorkspaceMode.budget);
-      await firstBloc.close();
+  test('a fresh workspace bloc starts on the screenplay mode even after an earlier one switched '
+      'away from it — switching project resets the mode, nothing restores it', () async {
+    final firstBloc = buildBloc();
+    await waitForState(firstBloc, (state) => !state.isLoading);
+    firstBloc.add(const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.budget));
+    await waitForState(firstBloc, (state) => state.mode == OcptWorkspaceMode.budget);
+    await firstBloc.close();
 
-      final secondBloc = buildBloc();
-      final state = await waitForState(secondBloc, (state) => !state.isLoading);
+    final secondBloc = buildBloc();
+    final state = await waitForState(secondBloc, (state) => !state.isLoading);
 
-      expect(state.mode, OcptWorkspaceMode.screenplay);
-      await secondBloc.close();
-    },
-  );
+    expect(state.mode, OcptWorkspaceMode.screenplay);
+    await secondBloc.close();
+  });
 
   test('selecting a mode updates the state without persisting it anywhere', () async {
     final bloc = buildBloc();
@@ -361,29 +420,24 @@ void main() {
   test('loads every episode in their sortKey order, still landing on the first', () async {
     final project = projectsManager.currentProject!;
     final firstEpisodeId = project.primaryScreenplayId;
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-      title: "Episode two",
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database, title: "Episode two")
+        .maybeValueOrFail;
     expect(secondEpisodeId, isNotNull);
 
     final bloc = buildBloc();
     final state = await waitForState(bloc, (state) => !state.isLoading);
 
-    expect(state.episodes.map((episode) => episode.id).toList(), [
-      firstEpisodeId,
-      secondEpisodeId,
-    ]);
+    expect(state.episodes.map((episode) => episode.id).toList(), [firstEpisodeId, secondEpisodeId]);
     expect(state.selectedEpisodeId, firstEpisodeId);
     await bloc.close();
   });
 
   test('selecting an episode changes nothing else', () async {
     final project = projectsManager.currentProject!;
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-      title: "Episode two",
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database, title: "Episode two")
+        .maybeValueOrFail;
     expect(secondEpisodeId, isNotNull);
 
     final bloc = buildBloc();
@@ -391,10 +445,7 @@ void main() {
     expect(loaded.mode, OcptWorkspaceMode.screenplay);
 
     bloc.add(OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!));
-    final state = await waitForState(
-      bloc,
-      (state) => state.selectedEpisodeId == secondEpisodeId,
-    );
+    final state = await waitForState(bloc, (state) => state.selectedEpisodeId == secondEpisodeId);
 
     expect(state.selectedEpisodeId, secondEpisodeId);
     expect(state.mode, OcptWorkspaceMode.screenplay);
@@ -404,10 +455,9 @@ void main() {
 
   test('selecting an episode leaves whichever mode was already active untouched', () async {
     final project = projectsManager.currentProject!;
-    final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-      database: project.database,
-      title: "Episode two",
-    );
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database, title: "Episode two")
+        .maybeValueOrFail;
     expect(secondEpisodeId, isNotNull);
 
     final bloc = buildBloc();
@@ -428,16 +478,14 @@ void main() {
     'a currentProjectStream reload keeps the selection when it still names a live episode',
     () async {
       final project = projectsManager.currentProject!;
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-        title: "Episode two",
-      );
+      final secondEpisodeId = await projectsManager.screenplayService
+          .createEpisode(database: project.database, title: "Episode two")
+          .maybeValueOrFail;
       expect(secondEpisodeId, isNotNull);
 
-      final version = await projectsManager.createProjectVersion(
-        name: "Both episodes",
-        note: "",
-      );
+      final version = await projectsManager
+          .createProjectVersion(name: "Both episodes", note: "")
+          .maybeValueOrFail;
       expect(version, isNotNull);
 
       final bloc = buildBloc();
@@ -461,81 +509,113 @@ void main() {
     },
   );
 
-  test(
-    'a currentProjectStream reload falls back to the first episode when the selection no longer '
-    'names one',
-    () async {
-      final project = projectsManager.currentProject!;
-      final firstEpisodeId = project.primaryScreenplayId;
+  test('a currentProjectStream reload falls back to the first episode when the selection no longer '
+      'names one', () async {
+    final project = projectsManager.currentProject!;
+    final firstEpisodeId = project.primaryScreenplayId;
 
-      final version = await projectsManager.createProjectVersion(
-        name: "One episode only",
-        note: "",
-      );
-      expect(version, isNotNull);
+    final version = await projectsManager
+        .createProjectVersion(name: "One episode only", note: "")
+        .maybeValueOrFail;
+    expect(version, isNotNull);
 
-      final secondEpisodeId = await projectsManager.screenplayService.createEpisode(
-        database: project.database,
-        title: "Episode two",
-      );
-      expect(secondEpisodeId, isNotNull);
+    final secondEpisodeId = await projectsManager.screenplayService
+        .createEpisode(database: project.database, title: "Episode two")
+        .maybeValueOrFail;
+    expect(secondEpisodeId, isNotNull);
 
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!));
-      await waitForState(bloc, (state) => state.selectedEpisodeId == secondEpisodeId);
+    bloc.add(OcptWorkspaceEpisodeSelectedEvent(episodeId: secondEpisodeId!));
+    await waitForState(bloc, (state) => state.selectedEpisodeId == secondEpisodeId);
 
-      final previewResult = await projectsManager.previewVersion(version!.id);
-      expect(previewResult.status.isSuccess, isTrue);
+    final previewResult = await projectsManager.previewVersion(version!.id);
+    expect(previewResult.status.isSuccess, isTrue);
 
-      final state = await waitForState(
-        bloc,
-        (state) => state.episodes.length == 1 && state.selectedEpisodeId == firstEpisodeId,
-      );
+    final state = await waitForState(
+      bloc,
+      (state) => state.episodes.length == 1 && state.selectedEpisodeId == firstEpisodeId,
+    );
 
-      expect(state.selectedEpisodeId, firstEpisodeId);
-      expect(state.episodes.map((episode) => episode.id).toList(), [firstEpisodeId]);
-      await bloc.close();
-    },
-  );
+    expect(state.selectedEpisodeId, firstEpisodeId);
+    expect(state.episodes.map((episode) => episode.id).toList(), [firstEpisodeId]);
+    await bloc.close();
+  });
 
-  test(
-    'a paired project starts its sync session once the workspace opens',
-    () async {
-      final project = projectsManager.currentProject!;
-      await pairingService.savePairing(
-        database: project.fileDatabase,
-        projectId: "project-abc",
-        relayBaseUri: Uri.parse("https://relay.example.org/"),
-        token: "token-1",
-      );
+  test('a paired project starts its sync session once the workspace opens', () async {
+    final project = projectsManager.currentProject!;
+    await pairingService.savePairing(
+      database: project.fileDatabase,
+      projectId: "project-abc",
+      relayBaseUri: Uri.parse("https://relay.example.org/"),
+      token: "token-1",
+    );
 
-      final syncManager = _RecordingSyncManager(pairingService: pairingService);
-      final bloc = buildBloc(syncManager: syncManager);
+    final syncManager = _RecordingSyncManager(pairingService: pairingService);
+    final bloc = buildBloc(syncManager: syncManager);
 
-      await waitForState(bloc, (state) => !state.isLoading);
-      await pumpEventQueue();
+    await waitForState(bloc, (state) => !state.isLoading);
+    await pumpEventQueue();
 
-      expect(syncManager.startSyncSessionCalled, isTrue);
-      expect(syncManager.startedProjectId, "project-abc");
-      await bloc.close();
-    },
-  );
+    expect(syncManager.startSyncSessionCalled, isTrue);
+    expect(syncManager.startedProjectId, "project-abc");
+    await bloc.close();
+  });
 
-  test(
-    'an unpaired project starts no sync session at all',
-    () async {
-      final syncManager = _RecordingSyncManager(pairingService: pairingService);
-      final bloc = buildBloc(syncManager: syncManager);
+  test('a sync session that fails to start leaves the workspace loaded', () async {
+    final project = projectsManager.currentProject!;
+    await pairingService.savePairing(
+      database: project.fileDatabase,
+      projectId: "project-abc",
+      relayBaseUri: Uri.parse("https://relay.example.org/"),
+      token: "token-1",
+    );
 
-      await waitForState(bloc, (state) => !state.isLoading);
-      await pumpEventQueue();
+    final syncManager = _RecordingSyncManager(pairingService: pairingService)
+      ..isStartFailing = true;
+    final bloc = buildBloc(syncManager: syncManager);
 
-      expect(syncManager.startSyncSessionCalled, isFalse);
-      await bloc.close();
-    },
-  );
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+    await pumpEventQueue();
+
+    expect(syncManager.startSyncSessionCalled, isTrue);
+    expect(state.isLoading, isFalse);
+    await bloc.close();
+  });
+
+  test('hosting that fails to auto-start leaves the ordinary session start to run', () async {
+    final project = projectsManager.currentProject!;
+    await pairingService.savePairing(
+      database: project.fileDatabase,
+      projectId: "project-abc",
+      relayBaseUri: Uri.parse("https://relay.example.org/"),
+      token: "token-1",
+    );
+
+    final syncManager = _RecordingSyncManager(pairingService: pairingService);
+    final hostManager = _RecordingHostManager(stateToReport: const OcptRelayHostStopped())
+      ..isAutoStartFailing = true;
+    final bloc = buildBloc(syncManager: syncManager, hostManager: hostManager);
+
+    await waitForState(bloc, (state) => !state.isLoading);
+    await pumpEventQueue();
+
+    expect(hostManager.maybeAutoStartCalled, isTrue);
+    expect(syncManager.startSyncSessionCalled, isTrue);
+    await bloc.close();
+  });
+
+  test('an unpaired project starts no sync session at all', () async {
+    final syncManager = _RecordingSyncManager(pairingService: pairingService);
+    final bloc = buildBloc(syncManager: syncManager);
+
+    await waitForState(bloc, (state) => !state.isLoading);
+    await pumpEventQueue();
+
+    expect(syncManager.startSyncSessionCalled, isFalse);
+    await bloc.close();
+  });
 
   test(
     'a project re-hosted on launch comes up hosting and skips the ordinary session start',
@@ -601,29 +681,26 @@ void main() {
     },
   );
 
-  test(
-    'a project that does not re-host still starts its ordinary paired session',
-    () async {
-      final project = projectsManager.currentProject!;
-      await pairingService.savePairing(
-        database: project.fileDatabase,
-        projectId: "project-abc",
-        relayBaseUri: Uri.parse("https://relay.example.org/"),
-        token: "token-1",
-      );
+  test('a project that does not re-host still starts its ordinary paired session', () async {
+    final project = projectsManager.currentProject!;
+    await pairingService.savePairing(
+      database: project.fileDatabase,
+      projectId: "project-abc",
+      relayBaseUri: Uri.parse("https://relay.example.org/"),
+      token: "token-1",
+    );
 
-      final syncManager = _RecordingSyncManager(pairingService: pairingService);
-      final hostManager = _RecordingHostManager(stateToReport: const OcptRelayHostStopped());
-      final bloc = buildBloc(syncManager: syncManager, hostManager: hostManager);
+    final syncManager = _RecordingSyncManager(pairingService: pairingService);
+    final hostManager = _RecordingHostManager(stateToReport: const OcptRelayHostStopped());
+    final bloc = buildBloc(syncManager: syncManager, hostManager: hostManager);
 
-      await waitForState(bloc, (state) => !state.isLoading);
-      await pumpEventQueue();
+    await waitForState(bloc, (state) => !state.isLoading);
+    await pumpEventQueue();
 
-      expect(hostManager.maybeAutoStartCalled, isTrue);
-      expect(syncManager.startSyncSessionCalled, isTrue);
-      await bloc.close();
-    },
-  );
+    expect(hostManager.maybeAutoStartCalled, isTrue);
+    expect(syncManager.startSyncSessionCalled, isTrue);
+    await bloc.close();
+  });
 
   test(
     'closing the workspace does not stop hosting (a navigation must not rebind the relay)',

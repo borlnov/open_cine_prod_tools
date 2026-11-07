@@ -3,23 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/models/database/converters/ocpt_breakdown_scene_status_converter.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_scenes_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
-
-/// Converts a [OcptBreakdownSceneStatus] to and from the text stored in the
-/// `scene_breakdowns.status` column.
-class OcptBreakdownSceneStatusConverter extends TypeConverter<OcptBreakdownSceneStatus, String> {
-  /// Class constructor
-  const OcptBreakdownSceneStatusConverter();
-
-  /// {@macro drift.TypeConverter.fromSql}
-  @override
-  OcptBreakdownSceneStatus fromSql(String fromDb) => OcptBreakdownSceneStatus.values.byName(fromDb);
-
-  /// {@macro drift.TypeConverter.toSql}
-  @override
-  String toSql(OcptBreakdownSceneStatus value) => value.name;
-}
 
 /// How far the breakdown pass has got on one scene: its status, held by hand, and its notes.
 ///
@@ -36,19 +22,19 @@ class OcptSceneBreakdownsTable extends Table {
   @override
   String get tableName => 'scene_breakdowns';
 
-  /// The stable, unique id of this row (a UUID).
+  /// Get the stable, unique id of this row (a UUID).
   TextColumn get id => text()();
 
-  /// The scene this breakdown status is about.
+  /// Get the scene this breakdown status is about.
   TextColumn get sceneId => text().references(OcptScenesTable, #id)();
 
-  /// How far the breakdown pass has got on this scene.
+  /// Tell how far the breakdown pass has got on this scene.
   // The stored literal below must match `OcptBreakdownSceneStatus.toDo.name` exactly, for the
   // reason `person_unavailabilities.slot`'s default spells out.
   TextColumn get status =>
       text().map(const OcptBreakdownSceneStatusConverter()).withDefault(const Constant('toDo'))();
 
-  /// Free-form breakdown notes for this scene.
+  /// Get free-form breakdown notes for this scene.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

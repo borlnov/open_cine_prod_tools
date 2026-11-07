@@ -5,13 +5,16 @@
 import 'dart:typed_data';
 
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime_fonts_loader.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_painter.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_sides_layout.dart';
+import 'package:open_cine_prod_tools/models/ocpt_script_sides_page.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
+import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -46,27 +49,20 @@ const double _pageIdentityWidthInches = 1.2;
 /// schedule PDF export prints its own small labels in.
 const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 
-/// Renders a day's own sides: the pages of the screenplay it plays, extracted from the composed
+/// Render a day's own sides: the pages of the screenplay it plays, extracted from the composed
 /// script and reprinted through the real screenplay layout — a side is only useful if it looks
 /// like the script, so it is a slice of the very typeset the crew already knows, never a
 /// re-typeset excerpt.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
-/// through `globalGetIt()` (RFL18), exactly like its siblings. It draws nothing it decides itself:
+/// through `globalGetIt()`, exactly like its siblings. It draws nothing it decides itself:
 /// [OcptScriptSidesLayout] says which rows land on which page, [OcptScriptPagePainter] draws the
 /// screenplay itself (the same drawing `OcptPdfExportService` and `OcptScenarioCoveragePdfService`
 /// produce, from the same composer call and the same metrics, so a side can never disagree with the
 /// full script about how a page is laid out), and this service only wraps that drawing in the
 /// running head and foot a torn-off booklet page needs to say who and what it is.
-class OcptSidesPdfService {
-  /// Creates an [OcptSidesPdfService].
-  ///
-  /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
-  /// a service built without one gets a loader of its own.
-  OcptSidesPdfService({OcptCourierPrimeFontsLoader? fontsLoader})
-    : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
+class OcptSidesPdfService extends AbsOcptService {
   /// The Fountain-to-page-layout engine, stateless so one instance is shared across every
   /// [generate] call.
   ///
@@ -78,7 +74,14 @@ class OcptSidesPdfService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// The `.pdf` file name to suggest when exporting the sides of [dayId], within [plan].
+  /// Create an [OcptSidesPdfService].
+  ///
+  /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
+  /// a service built without one gets a loader of its own.
+  OcptSidesPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
+    : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
+
+  /// Get the `.pdf` file name to suggest when exporting the sides of [dayId], within [plan].
   ///
   /// `"<project> - <suffix> - <dayTag>.pdf"`, e.g. `My Movie - sides - D3.pdf`; a blank [labels]'
   /// own [OcptSidesLabels.fileNameSuffix] drops that segment, exactly as its siblings' own suffix
@@ -106,7 +109,7 @@ class OcptSidesPdfService {
     return "${parts.join(" - ")}.pdf";
   }
 
-  /// Renders [dayId]'s own sides booklet, returning the PDF's bytes.
+  /// Render [dayId]'s own sides booklet, returning the PDF's bytes.
   ///
   /// [documents] is one composed run per episode, **in the order the booklet chains them in**: a
   /// screenplay may only ever be composed against its own text, so there is one
@@ -184,12 +187,20 @@ class OcptSidesPdfService {
       runs.add((screenplayId: pair.screenplayId, layout: layout));
     }
 
-    final versionLine = "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
+    final versionLine =
+        "${labels.versionLabel} ${ocptScheduleGeneratedAtStamp(exportDate ?? DateTime.now())}";
     final pdfDocument = pw.Document();
 
     if (runs.isEmpty) {
       pdfDocument.addPage(
-        _notePage(painter: painter, labels: labels, plan: plan, dayId: dayId, projectName: projectName, versionLine: versionLine),
+        _notePage(
+          painter: painter,
+          labels: labels,
+          plan: plan,
+          dayId: dayId,
+          projectName: projectName,
+          versionLine: versionLine,
+        ),
       );
       return pdfDocument.save();
     }
@@ -207,9 +218,9 @@ class OcptSidesPdfService {
           // annotation (only ever drawn from its 2nd script page onward): that number counts script
           // pages of the document *it* is building, which a booklet's own pages are not — a packed
           // page in particular reproduces no single one at all. This service prints the page's own
-          // identity itself, in its own running head, so a reader of either presentation has exactly
-          // one place to look for it rather than the painter's own count in one and a made-up one in
-          // the other.
+          // identity itself, in its own running head, so a reader of either presentation has
+          // exactly one place to look for it rather than the painter's own count in one and a
+          // made-up one in the other.
           painter.buildScriptPage(
             page: FountainScriptPage(lines: sidesPage.lines),
             pageNumber: 0,
@@ -235,7 +246,8 @@ class OcptSidesPdfService {
     return pdfDocument.save();
   }
 
-  /// The running head and running foot drawn over one script page, in the page's own coordinate
+  /// Build the running head and running foot drawn over one script page, in the page's own
+  /// coordinate
   /// system (points from its top-left corner, which is what every geometry accessor of
   /// [OcptScriptPagePainter] returns) — the two lines every torn-off page of this booklet needs to
   /// say which day it belongs to and which issue of it this is.
@@ -260,7 +272,12 @@ class OcptSidesPdfService {
     _rightAlignedRunningText(
       painter: painter,
       topPt: _runningHeadTopInches * ocptPdfPointsPerInch,
-      text: _pageIdentityOf(labels: labels, sidesPage: sidesPage, pageIndex: pageIndex, pageCount: pageCount),
+      text: _pageIdentityOf(
+        labels: labels,
+        sidesPage: sidesPage,
+        pageIndex: pageIndex,
+        pageCount: pageCount,
+      ),
     ),
     _leftAlignedRunningText(
       painter: painter,
@@ -269,7 +286,7 @@ class OcptSidesPdfService {
     ),
   ];
 
-  /// A running-head/running-foot line starting at [painter]'s own left margin, bounded to the
+  /// Build a running-head/running-foot line starting at [painter]'s own left margin, bounded to the
   /// printable width less [reservedRightInches], so a long line wraps inside the page rather than
   /// spilling under whatever else its own row carries.
   ///
@@ -293,7 +310,8 @@ class OcptSidesPdfService {
     ),
   );
 
-  /// A running-head line ending at [painter]'s own right margin — the same band the painter's own
+  /// Build a running-head line ending at [painter]'s own right margin — the same band the painter's
+  /// own
   /// page-number annotation is right-aligned into.
   pw.Widget _rightAlignedRunningText({
     required OcptScriptPagePainter painter,
@@ -308,7 +326,8 @@ class OcptSidesPdfService {
     ),
   );
 
-  /// The running head's own left-hand line: the document's own title, then the printed day's tag
+  /// Get the running head's own left-hand line: the document's own title, then the printed day's
+  /// tag
   /// and — while [OcptSidesLabels.dayTitle] is non-empty — its own title, `" — "`-joined, and
   /// finally — while [screenplayId] resolves a non-empty label through
   /// [OcptSidesLabels.episodeLabelOf] — that episode's own name, `" · "`-joined onto whatever came
@@ -331,14 +350,16 @@ class OcptSidesPdfService {
     } else {
       final tag = "${labels.dayTagPrefix}${day.dayNumber}";
       final title = labels.dayTitle.trim();
-      base = title.isEmpty ? "${labels.documentTitle} · $tag" : "${labels.documentTitle} · $tag — $title";
+      base = title.isEmpty
+          ? "${labels.documentTitle} · $tag"
+          : "${labels.documentTitle} · $tag — $title";
     }
 
     final episodeLabel = screenplayId == null ? "" : labels.episodeLabelOf(screenplayId).trim();
     return episodeLabel.isEmpty ? base : "$base · $episodeLabel";
   }
 
-  /// The running head's own right-hand line: [sidesPage]'s identity. A
+  /// Get the running head's own right-hand line: [sidesPage]'s identity. A
   /// [OcptSidesPresentation.scriptPages] page prints the **screenplay's own page number** — the
   /// whole point of a side, since a reader holding one can find the same page in the full script —
   /// and a [OcptSidesPresentation.packed] page, which reproduces no single script page, prints its
@@ -357,11 +378,15 @@ class OcptSidesPdfService {
     return "${pageIndex + 1} / $pageCount";
   }
 
-  /// The shared text style every running-head and running-foot line is drawn with.
-  pw.TextStyle _runningStyle(OcptScriptPagePainter painter) =>
-      pw.TextStyle(font: painter.fonts.regular, fontSize: _runningTextFontSizePt, color: _mutedColor);
+  /// Build the shared text style every running-head and running-foot line is drawn with.
+  pw.TextStyle _runningStyle(OcptScriptPagePainter painter) => pw.TextStyle(
+    font: painter.fonts.regular,
+    fontSize: _runningTextFontSizePt,
+    color: _mutedColor,
+  );
 
-  /// A single portrait note page: the running head and foot exactly as every other page carries
+  /// Build a single portrait note page: the running head and foot exactly as every other page
+  /// carries
   /// them, then [OcptSidesLabels.emptyDayNote] alone — what a day whose scenes fold down to no page
   /// at all prints in place of the whole booklet, so a readable document still comes out of the
   /// export rather than an empty file nobody can open.

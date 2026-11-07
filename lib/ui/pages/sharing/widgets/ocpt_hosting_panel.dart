@@ -11,8 +11,9 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_reconcile_outcome.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_host_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_qr_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_presence_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_presence_color.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_qr_code.dart';
 
 /// The maximum width of the hosting panel's own column, matching `OcptSharingConfigureView`'s own
@@ -70,6 +71,7 @@ class OcptHostingPanel extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptHostingPanelState] holding the state of the hosting panel.
   @override
   State<OcptHostingPanel> createState() => _OcptHostingPanelState();
 }
@@ -78,12 +80,18 @@ class OcptHostingPanel extends StatefulWidget {
 /// field controller — neither is project data, exactly the reasoning
 /// `OcptSharingConfigureView`/`OcptSharingInviteView`'s own throwaway form state already follows.
 class _OcptHostingPanelState extends State<OcptHostingPanel> {
+  /// Whether the form that reconciles an invite is open.
   bool _isReconcileFormOpen = false;
+
+  /// The controller of the invite field of the reconcile form.
   final _inviteController = TextEditingController();
+
+  /// The controller of the port field, filled with the port the host is bound to.
   late final TextEditingController _portController = TextEditingController(
     text: widget.state.boundPort?.toString() ?? '',
   );
 
+  /// Show the newly bound port in the port field.
   @override
   void didUpdateWidget(covariant OcptHostingPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -92,13 +100,7 @@ class _OcptHostingPanelState extends State<OcptHostingPanel> {
     }
   }
 
-  @override
-  void dispose() {
-    _inviteController.dispose();
-    _portController.dispose();
-    super.dispose();
-  }
-
+  /// Build the hosting panel as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -188,9 +190,17 @@ class _OcptHostingPanelState extends State<OcptHostingPanel> {
       ),
     );
   }
+
+  /// Dispose [_inviteController] and [_portController].
+  @override
+  void dispose() {
+    _inviteController.dispose();
+    _portController.dispose();
+    super.dispose();
+  }
 }
 
-/// [hostState]'s own status subtitle, shown under [OcptHostingPanel]'s own switch label.
+/// Get [hostState]'s own status subtitle, shown under [OcptHostingPanel]'s own switch label.
 String _statusLabel(Tr tr, OcptRelayHostState hostState) => switch (hostState) {
   OcptRelayHostStopped() => tr.hostingStatusStopped,
   OcptRelayHostStarting() => tr.hostingStatusStarting,
@@ -205,14 +215,6 @@ String _statusLabel(Tr tr, OcptRelayHostState hostState) => switch (hostState) {
 /// host, and the port field re-binds the socket itself through [onPortChangeRequested] once
 /// "Appliquer" is pressed or the field is submitted — an invalid or empty port is silently ignored.
 class _OcptHostingAddressPortCard extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingAddressPortCard({
-    required this.state,
-    required this.portController,
-    required this.onAdvertisedAddressChanged,
-    required this.onPortChangeRequested,
-  });
-
   /// The state this card reads its own address/port facts off.
   final OcptHostingState state;
 
@@ -226,13 +228,15 @@ class _OcptHostingAddressPortCard extends StatelessWidget {
   /// Called when the port field is applied, with the parsed port.
   final ValueChanged<int> onPortChangeRequested;
 
-  void _applyPort() {
-    final parsed = int.tryParse(portController.text.trim());
-    if (parsed != null) {
-      onPortChangeRequested(parsed);
-    }
-  }
+  /// Class constructor
+  const _OcptHostingAddressPortCard({
+    required this.state,
+    required this.portController,
+    required this.onAdvertisedAddressChanged,
+    required this.onPortChangeRequested,
+  });
 
+  /// Build the hosting address port card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -293,6 +297,14 @@ class _OcptHostingAddressPortCard extends StatelessWidget {
       ),
     );
   }
+
+  /// Report the typed port when it parses as a number.
+  void _applyPort() {
+    final parsed = int.tryParse(portController.text.trim());
+    if (parsed != null) {
+      onPortChangeRequested(parsed);
+    }
+  }
 }
 
 /// The hosting panel's own QR-kind segmented button and the one QR it currently shows: a "join"
@@ -302,15 +314,16 @@ class _OcptHostingAddressPortCard extends StatelessWidget {
 /// pointing here — each with its own caption clarifying which is which, and a copy-link button
 /// copying the very same string the QR encodes.
 class _OcptHostingQrCard extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingQrCard({required this.state, required this.onQrKindChanged});
-
   /// The state this card reads its own QR facts off.
   final OcptHostingState state;
 
   /// Called when the segmented button picks a different QR kind.
   final ValueChanged<OcptHostingQrKind> onQrKindChanged;
 
+  /// Class constructor
+  const _OcptHostingQrCard({required this.state, required this.onQrKindChanged});
+
+  /// Build the hosting QR card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -373,14 +386,16 @@ class _OcptHostingQrCard extends StatelessWidget {
 
 /// The hosting panel's own connected-peers card: [roster]'s own participants, each a small
 /// [ocptPresenceColor] dot and a neutral `platform · <id fragment>` label — never a name, exactly
-/// `OcptPresenceIndicator`'s own reasoning — or [Tr.hostingNoPeers] while [roster] is null or empty.
+/// `OcptPresenceIndicator`'s own reasoning — or [Tr.hostingNoPeers] while [roster] is null or
+/// empty.
 class _OcptHostingPeersCard extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingPeersCard({required this.roster});
-
   /// The roster this card draws, or null while none is known yet.
   final OcptPresenceRoster? roster;
 
+  /// Class constructor
+  const _OcptHostingPeersCard({required this.roster});
+
+  /// Build the hosting peers card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -418,12 +433,13 @@ class _OcptHostingPeersCard extends StatelessWidget {
 /// One connected-peer chip: [ocptPresenceColor]'s own deterministic dot, and [frame]'s own neutral
 /// `platform · <id fragment>` label.
 class _OcptHostingPeerChip extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingPeerChip({required this.frame});
-
   /// The frame this chip represents.
   final OcptPresenceFrame frame;
 
+  /// Class constructor
+  const _OcptHostingPeerChip({required this.frame});
+
+  /// Build the hosting peer chip as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -434,7 +450,10 @@ class _OcptHostingPeerChip extends StatelessWidget {
         Container(
           width: 8,
           height: 8,
-          decoration: BoxDecoration(color: ocptPresenceColor(frame.deviceId), shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: ocptPresenceColor(frame.deviceId),
+            shape: BoxShape.circle,
+          ),
         ),
         const SizedBox(width: 6),
         Text(_peerLabel(frame), style: theme.textTheme.bodySmall),
@@ -442,7 +461,7 @@ class _OcptHostingPeerChip extends StatelessWidget {
     );
   }
 
-  /// [frame]'s own neutral label: its platform, capitalised, then a short, stable slice of its
+  /// Get [frame]'s own neutral label: its platform, capitalised, then a short, stable slice of its
   /// `deviceId` — `OcptPresenceIndicator._participantLabel`'s own shape, replicated here since that
   /// one is private to its own file.
   static String _peerLabel(OcptPresenceFrame frame) {
@@ -461,15 +480,6 @@ class _OcptHostingPeerChip extends StatelessWidget {
 /// opened ([isFormOpen]), it reveals an inline text field for the upstream `ocpt://join` invite and
 /// the "Réconcilier" button that runs it, plus [state]'s own result line once one exists.
 class _OcptHostingReconcileCard extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingReconcileCard({
-    required this.state,
-    required this.isFormOpen,
-    required this.controller,
-    required this.onOpenForm,
-    required this.onReconcileRequested,
-  });
-
   /// The state this card reads its own reconcile facts off.
   final OcptHostingState state;
 
@@ -485,6 +495,16 @@ class _OcptHostingReconcileCard extends StatelessWidget {
   /// Called when "Réconcilier" is pressed, with the field's own current text.
   final ValueChanged<String> onReconcileRequested;
 
+  /// Class constructor
+  const _OcptHostingReconcileCard({
+    required this.state,
+    required this.isFormOpen,
+    required this.controller,
+    required this.onOpenForm,
+    required this.onReconcileRequested,
+  });
+
+  /// Build the hosting reconcile card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -551,12 +571,13 @@ class _OcptHostingReconcileCard extends StatelessWidget {
 /// line otherwise — [OcptReconcileFailed.message] is never shown directly, exactly
 /// `OcptSharingState.pairingFailed`'s own reasoning (no `Tr` at the bloc layer to word it with).
 class _OcptHostingReconcileResultLine extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingReconcileResultLine({required this.outcome});
-
   /// The outcome this line renders.
   final OcptReconcileOutcome outcome;
 
+  /// Class constructor
+  const _OcptHostingReconcileResultLine({required this.outcome});
+
+  /// Build the hosting reconcile result line.
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

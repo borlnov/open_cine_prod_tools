@@ -3,17 +3,23 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_asset_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_detail_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
-import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_skill.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_unavailability.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_fractional_key.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over the address book: `people`, and its `person_positions`/`person_skills`/
@@ -26,32 +32,9 @@ import 'package:uuid/uuid.dart';
 /// (`person_unavailabilities` carries no `sortKey`: it is an unordered set of constraints, not a
 /// list a user reorders — see `OcptPersonUnavailabilitiesTable`'s own doc comment).
 ///
-/// **[deletePerson] is an erasure, not a plain tombstone** — decision 6 of the plan this service
-/// ships under. See its own doc comment for exactly which columns are blanked.
-class OcptPeopleService {
-  /// The service minting and tombstoning the `assets` rows a person owns — their photo and their
-  /// signed image rights release. Held rather than reached for, exactly as
-  /// `OcptLocationsService` holds its own.
-  final OcptAssetsService assetsService;
-
-  /// The service owning the `role_candidates` rows, held so [deletePerson] can carry this person's
-  /// candidacies — and what was written about them at an audition — off with them.
-  ///
-  /// Held for the same reason [assetsService] is, and the edge runs the same way: that service
-  /// never reads `people`, so nothing here closes a circle.
-  final OcptRoleCandidatesService roleCandidatesService;
-
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
-  final OcptDeviceIdGetter deviceId;
-
-  /// Class constructor
-  const OcptPeopleService({
-    required this.deviceId,
-    required this.assetsService,
-    required this.roleCandidatesService,
-  });
-
+/// **[deletePerson] is an erasure, not a plain tombstone**. See its own doc comment for exactly
+/// which columns are blanked.
+class OcptPeopleService extends AbsOcptService {
   /// The write [deletePerson] uses to blank a person's personal columns.
   ///
   /// **Every column of `people` is blanked, except the four that are not personal data**: `id`
@@ -105,7 +88,40 @@ class OcptPeopleService {
     mileageRateId: Value(null),
   );
 
-  /// Loads every live person of [database], in `sortKey` order, each joined with its live
+  /// The service minting and tombstoning the `assets` rows a person owns — their photo and their
+  /// signed image rights release. Held rather than reached for, exactly as
+  /// `OcptLocationsService` holds its own.
+  final OcptAssetsService assetsService;
+
+  /// The service owning the `role_candidates` rows, held so [deletePerson] can carry this person's
+  /// candidacies — and what was written about them at an audition — off with them.
+  ///
+  /// Held for the same reason [assetsService] is, and the edge runs the same way: that service
+  /// never reads `people`, so nothing here closes a circle.
+  final OcptRoleCandidatesService roleCandidatesService;
+
+  /// {@macro open_cine_prod_tools.serviceDeviceIdGetter}
+  final OcptDeviceIdGetter deviceId;
+
+  /// Class constructor
+  const OcptPeopleService({
+    required super.logger,
+    required this.deviceId,
+    required this.assetsService,
+    required this.roleCandidatesService,
+  });
+
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await assetsService.initLifeCycle();
+    await roleCandidatesService.initLifeCycle();
+  }
+
+  /// Load every live person of [database], in `sortKey` order, each joined with its live
   /// [OcptPersonPosition]s, [OcptPersonSkill]s and [OcptPersonUnavailability]s, and with the two
   /// files it references — the photo and the signed image rights release.
   ///
@@ -117,15 +133,18 @@ class OcptPeopleService {
   /// vanished scene is skipped: the reference is gone, and "no photo" is what that means. A path
   /// resolving to no file on disk is a different question entirely, and not this layer's — see
   /// `docs/adr/0013-binary-assets-referenced-by-path.md`.
-  Future<List<OcptPerson>> loadPeople({required OcptProjectDatabase database}) async {
+  @useResult
+  Future<OcptDatabaseResult<List<OcptPerson>>> loadPeople({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadPeople", () async {
     final personRows = await _liveRows(database);
     final personIds = personRows.map((row) => row.id).toList(growable: false);
 
     final assetRows = personIds.isEmpty
         ? const <OcptAssetRow>[]
-        : await (database.select(database.ocptAssetsTable)
-                ..where((table) => table.personId.isIn(personIds) & table.isDeleted.not()))
-              .get();
+        : await (database.select(
+            database.ocptAssetsTable,
+          )..where((table) => table.personId.isIn(personIds) & table.isDeleted.not())).get();
 
     final assetsById = {for (final row in assetRows) row.id: OcptAssetRef.fromRow(row)};
 
@@ -178,72 +197,80 @@ class OcptPeopleService {
           imageRightsDocument: assetsById[row.imageRightsAssetId],
         ),
     ];
-  }
+  });
 
-  /// Creates a new, blank person in [database], appended at the end of the address book, and
-  /// returns its freshly generated id.
+  /// Create a new, blank person in [database], appended at the end of the address book, and return
+  /// its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createPerson({required OcptProjectDatabase database}) async {
-    if (database.refusesUserWrite("createPerson")) {
-      return null;
-    }
+  @useResult
+  Future<OcptDatabaseResult<String>> createPerson({required OcptProjectDatabase database}) =>
+      guardResult("createPerson", () async {
+        if (database.refusesUserWrite("createPerson")) {
+          return null;
+        }
 
-    final existing = await _liveRows(database);
-    final id = const Uuid().v4();
+        final existing = await _liveRows(database);
+        final id = const Uuid().v4();
 
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPeopleTable,
-        rowId: id,
-        current: null,
-        next: OcptPersonRow(
-          id: id,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-          isDeleted: false,
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          addressLine1: '',
-          addressLine2: '',
-          postalCode: '',
-          city: '',
-          region: '',
-          country: '',
-          colorIndex: 0,
-          minorNotes: '',
-          accommodationNotes: '',
-          travelNotes: '',
-          dietaryNotes: '',
-          allergies: '',
-          measurementHeight: '',
-          measurementChest: '',
-          measurementWaist: '',
-          measurementHips: '',
-          sizeTop: '',
-          sizeBottom: '',
-          sizeShoes: '',
-          hmcNotes: '',
-          imageRightsStatus: OcptImageRightsStatus.notApplicable,
-          notes: '',
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
+        await database.transaction(() async {
+          final stamps = await OcptRowStampService.seed(
+            database: database,
+            deviceId: await deviceId(),
+          );
+          await OcptRowStampService.writeAndStamp(
+            database: database,
+            table: database.ocptPeopleTable,
+            rowId: id,
+            current: null,
+            next: OcptPersonRow(
+              id: id,
+              sortKey: ocptFractionalKeyBetween(
+                before: existing.isEmpty ? null : existing.last.sortKey,
+              ),
+              isDeleted: false,
+              firstName: '',
+              lastName: '',
+              email: '',
+              phone: '',
+              addressLine1: '',
+              addressLine2: '',
+              postalCode: '',
+              city: '',
+              region: '',
+              country: '',
+              colorIndex: 0,
+              minorNotes: '',
+              accommodationNotes: '',
+              travelNotes: '',
+              dietaryNotes: '',
+              allergies: '',
+              measurementHeight: '',
+              measurementChest: '',
+              measurementWaist: '',
+              measurementHips: '',
+              sizeTop: '',
+              sizeBottom: '',
+              sizeShoes: '',
+              hmcNotes: '',
+              imageRightsStatus: OcptImageRightsStatus.notApplicable,
+              notes: '',
+            ),
+            stamps: stamps,
+          );
+          await stamps.flush(database);
+        });
 
-    return id;
-  }
+        return id;
+      });
 
-  /// Updates the fields of person [personId] in [database] that are passed as something other than
+  /// Update the fields of person [personId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderPerson] and [deletePerson].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updatePerson({
+  @useResult
+  Future<OcptDatabaseOutcome> updatePerson({
     required OcptProjectDatabase database,
     required String personId,
     Value<String> firstName = const Value.absent(),
@@ -280,7 +307,7 @@ class OcptPeopleService {
     Value<String> notes = const Value.absent(),
     Value<int?> commuteKmMilli = const Value.absent(),
     Value<String?> mileageRateId = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updatePerson", () async {
     if (database.refusesUserWrite("updatePerson")) {
       return;
     }
@@ -342,13 +369,13 @@ class OcptPeopleService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Erases person [personId] from [database] (decision 6 of the plan this service ships under):
+  /// Erase person [personId] from [database]:
   /// tombstones the row and blanks its personal columns in the same write — see
   /// [_erasureCompanion] for exactly which ones — then records the erasure in `local_erasures`, the
   /// local, never-synchronised table that lets a later version restore refuse to resurrect this
-  /// person (§4.9 of the plan; the restore side is other work, this only writes the row).
+  /// person (the restore side is `OcptProjectVersionsService`'s; this only writes the row).
   ///
   /// Does nothing if [personId] doesn't exist or is already erased: an erasure only ever happens
   /// once, so a second call is a no-op rather than a second `local_erasures` row or a second write
@@ -380,10 +407,11 @@ class OcptPeopleService {
   /// resolves, and a part is not uncast by the address book losing a name.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deletePerson({
+  @useResult
+  Future<OcptDatabaseOutcome> deletePerson({
     required OcptProjectDatabase database,
     required String personId,
-  }) async {
+  }) => guardOutcome("deletePerson", () async {
     if (database.refusesUserWrite("deletePerson")) {
       return;
     }
@@ -408,11 +436,9 @@ class OcptPeopleService {
         stamps: stamps,
       );
 
-      final positionRows =
-          await (database.select(
-                database.ocptPersonPositionsTable,
-              )..where((table) => table.personId.equals(personId) & table.isDeleted.not()))
-              .get();
+      final positionRows = await (database.select(
+        database.ocptPersonPositionsTable,
+      )..where((table) => table.personId.equals(personId) & table.isDeleted.not())).get();
       for (final positionRow in positionRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -424,11 +450,9 @@ class OcptPeopleService {
         );
       }
 
-      final skillRows =
-          await (database.select(
-                database.ocptPersonSkillsTable,
-              )..where((table) => table.personId.equals(personId) & table.isDeleted.not()))
-              .get();
+      final skillRows = await (database.select(
+        database.ocptPersonSkillsTable,
+      )..where((table) => table.personId.equals(personId) & table.isDeleted.not())).get();
       for (final skillRow in skillRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -440,11 +464,9 @@ class OcptPeopleService {
         );
       }
 
-      final unavailabilityRows =
-          await (database.select(
-                database.ocptPersonUnavailabilitiesTable,
-              )..where((table) => table.personId.equals(personId) & table.isDeleted.not()))
-              .get();
+      final unavailabilityRows = await (database.select(
+        database.ocptPersonUnavailabilitiesTable,
+      )..where((table) => table.personId.equals(personId) & table.isDeleted.not())).get();
       for (final unavailabilityRow in unavailabilityRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -472,227 +494,86 @@ class OcptPeopleService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// References the file at [path] as person [personId]'s photo, replacing whichever file they
-  /// referenced before, and returns the freshly generated id of the `assets` row.
-  ///
-  /// The replaced photo's row is tombstoned in the same transaction: a person has one photo, so a
-  /// row nothing points at any more is not history worth keeping — it is an orphan. That is
-  /// `OcptLocationsService.setPermitDocument`'s rule, and this is the same shape for the same
-  /// reason. **No byte of the file is read, copied or written** — see
-  /// `docs/adr/0013-binary-assets-referenced-by-path.md`.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> setPersonPhoto({
+  /// Forward to [OcptPeopleAssetOps.setPersonPhoto].
+  @useResult
+  Future<OcptDatabaseResult<String>> setPersonPhoto({
     required OcptProjectDatabase database,
     required String personId,
     required String path,
     String label = "",
-  }) => _setPersonAsset(
-    database: database,
-    logContext: "setPersonPhoto",
-    personId: personId,
-    path: path,
-    label: label,
-    kind: OcptAssetKind.personPhoto,
-    currentAssetIdOf: (row) => row.photoAssetId,
-    companionOf: (assetId) => OcptPeopleTableCompanion(photoAssetId: Value(assetId)),
+  }) => guardResult(
+    "setPersonPhoto",
+    () => OcptPeopleAssetOps.setPersonPhoto(
+      database: database,
+      personId: personId,
+      path: path,
+      label: label,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
   );
 
-  /// Drops person [personId]'s reference to their photo: the `assets` row is tombstoned and
-  /// `photoAssetId` goes back to null. The file itself is never touched.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearPersonPhoto({
+  /// Forward to [OcptPeopleAssetOps.clearPersonPhoto].
+  @useResult
+  Future<OcptDatabaseOutcome> clearPersonPhoto({
     required OcptProjectDatabase database,
     required String personId,
-  }) => _clearPersonAsset(
-    database: database,
-    logContext: "clearPersonPhoto",
-    personId: personId,
-    currentAssetIdOf: (row) => row.photoAssetId,
-    companionOf: (assetId) => OcptPeopleTableCompanion(photoAssetId: Value(assetId)),
+  }) => guardOutcome(
+    "clearPersonPhoto",
+    () => OcptPeopleAssetOps.clearPersonPhoto(
+      database: database,
+      personId: personId,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
   );
 
-  /// References the file at [path] as person [personId]'s signed image rights release, replacing
-  /// whichever document they referenced before, and returns the freshly generated id of the
-  /// `assets` row.
-  ///
-  /// **This writes the reference alone and never `imageRightsStatus`.** Attaching a scan is not the
-  /// same claim as saying the release is signed — a production routinely files a draft before it
-  /// comes back signed — and deducing the status from the presence of a file would put a claim in
-  /// the project nobody made. The status stays the sheet's own control.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> setImageRightsDocument({
+  /// Forward to [OcptPeopleAssetOps.setImageRightsDocument].
+  @useResult
+  Future<OcptDatabaseResult<String>> setImageRightsDocument({
     required OcptProjectDatabase database,
     required String personId,
     required String path,
     String label = "",
-  }) => _setPersonAsset(
-    database: database,
-    logContext: "setImageRightsDocument",
-    personId: personId,
-    path: path,
-    label: label,
-    kind: OcptAssetKind.document,
-    currentAssetIdOf: (row) => row.imageRightsAssetId,
-    companionOf: (assetId) => OcptPeopleTableCompanion(imageRightsAssetId: Value(assetId)),
+  }) => guardResult(
+    "setImageRightsDocument",
+    () => OcptPeopleAssetOps.setImageRightsDocument(
+      database: database,
+      personId: personId,
+      path: path,
+      label: label,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
   );
 
-  /// Drops person [personId]'s reference to their signed image rights release: the `assets` row is
-  /// tombstoned and `imageRightsAssetId` goes back to null. The file itself is never touched, and
-  /// neither is `imageRightsStatus` — see [setImageRightsDocument].
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearImageRightsDocument({
+  /// Forward to [OcptPeopleAssetOps.clearImageRightsDocument].
+  @useResult
+  Future<OcptDatabaseOutcome> clearImageRightsDocument({
     required OcptProjectDatabase database,
     required String personId,
-  }) => _clearPersonAsset(
-    database: database,
-    logContext: "clearImageRightsDocument",
-    personId: personId,
-    currentAssetIdOf: (row) => row.imageRightsAssetId,
-    companionOf: (assetId) => OcptPeopleTableCompanion(imageRightsAssetId: Value(assetId)),
+  }) => guardOutcome(
+    "clearImageRightsDocument",
+    () => OcptPeopleAssetOps.clearImageRightsDocument(
+      database: database,
+      personId: personId,
+      deviceId: deviceId,
+      assetsService: assetsService,
+    ),
   );
 
-  /// The body [setPersonPhoto] and [setImageRightsDocument] share: tombstone whichever row the
-  /// column named, mint a new one of [kind], and point the column at it, all in one transaction.
-  ///
-  /// [currentAssetIdOf] reads the column out of the person's row and [companionOf] writes it back;
-  /// the pair is what makes the two columns one method rather than two copies that could drift on
-  /// the ordering the paragraph above depends on.
-  Future<String?> _setPersonAsset({
-    required OcptProjectDatabase database,
-    required String logContext,
-    required String personId,
-    required String path,
-    required String label,
-    required OcptAssetKind kind,
-    required String? Function(OcptPersonRow row) currentAssetIdOf,
-    required OcptPeopleTableCompanion Function(String? assetId) companionOf,
-  }) async {
-    if (database.refusesUserWrite(logContext)) {
-      return null;
-    }
-
-    return database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      await _tombstonePersonAsset(
-        database: database,
-        personId: personId,
-        currentAssetIdOf: currentAssetIdOf,
-        stamps: stamps,
-      );
-
-      final id = await assetsService.insertAsset(
-        database: database,
-        kind: kind,
-        personId: personId,
-        path: path,
-        label: label,
-        stamps: stamps,
-      );
-
-      final current = await (database.select(
-        database.ocptPeopleTable,
-      )..where((table) => table.id.equals(personId))).getSingleOrNull();
-
-      if (current != null) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptPeopleTable,
-          rowId: personId,
-          current: current,
-          next: current.copyWithCompanion(companionOf(id)),
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-
-      return id;
-    });
-  }
-
-  /// The body [clearPersonPhoto] and [clearImageRightsDocument] share. See [_setPersonAsset] for
-  /// what [currentAssetIdOf] and [companionOf] are.
-  Future<void> _clearPersonAsset({
-    required OcptProjectDatabase database,
-    required String logContext,
-    required String personId,
-    required String? Function(OcptPersonRow row) currentAssetIdOf,
-    required OcptPeopleTableCompanion Function(String? assetId) companionOf,
-  }) async {
-    if (database.refusesUserWrite(logContext)) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      await _tombstonePersonAsset(
-        database: database,
-        personId: personId,
-        currentAssetIdOf: currentAssetIdOf,
-        stamps: stamps,
-      );
-
-      final current = await (database.select(
-        database.ocptPeopleTable,
-      )..where((table) => table.id.equals(personId))).getSingleOrNull();
-
-      if (current != null) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptPeopleTable,
-          rowId: personId,
-          current: current,
-          next: current.copyWithCompanion(companionOf(null)),
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-    });
-  }
-
-  /// Tombstones whichever `assets` row [currentAssetIdOf] reads off person [personId], if any.
-  /// Leaves the column alone: both callers write it themselves. Stamps through [stamps] — the
-  /// caller's own instance.
-  Future<void> _tombstonePersonAsset({
-    required OcptProjectDatabase database,
-    required String personId,
-    required String? Function(OcptPersonRow row) currentAssetIdOf,
-    required OcptRowStampService? stamps,
-  }) async {
-    final row = await (database.select(
-      database.ocptPeopleTable,
-    )..where((table) => table.id.equals(personId))).getSingleOrNull();
-
-    final assetId = row == null ? null : currentAssetIdOf(row);
-    if (assetId == null) {
-      return;
-    }
-
-    await assetsService.tombstoneAsset(database: database, assetId: assetId, stamps: stamps);
-  }
-
-  /// Moves person [personId] to [newPosition] (0-based) within the address book, by giving it a
+  /// Move person [personId] to [newPosition] (0-based) within the address book, by giving it a
   /// `sortKey` sitting between the two people it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderPerson({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderPerson({
     required OcptProjectDatabase database,
     required String personId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderPerson", () async {
     if (database.refusesUserWrite("reorderPerson")) {
       return;
     }
@@ -726,310 +607,131 @@ class OcptPeopleService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
-  /// Adds a crew position assignment to person [personId], appended after their current positions,
-  /// and returns its freshly generated id.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addPosition({
+  /// Forward to [OcptPeopleDetailOps.addPosition].
+  @useResult
+  Future<OcptDatabaseResult<String>> addPosition({
     required OcptProjectDatabase database,
     required String personId,
     required String positionId,
     required String customLabel,
-  }) async {
-    if (database.refusesUserWrite("addPosition")) {
-      return null;
-    }
+  }) => guardResult(
+    "addPosition",
+    () => OcptPeopleDetailOps.addPosition(
+      database: database,
+      personId: personId,
+      positionId: positionId,
+      customLabel: customLabel,
+      deviceId: deviceId,
+    ),
+  );
 
-    final existing = await _positionRowsOfPerson(database: database, personId: personId);
-    final id = const Uuid().v4();
-
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPersonPositionsTable,
-        rowId: id,
-        current: null,
-        next: OcptPersonPositionRow(
-          id: id,
-          personId: personId,
-          positionId: positionId,
-          customLabel: customLabel,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-          isDeleted: false,
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-
-    return id;
-  }
-
-  /// Updates the fields of position assignment [id] in [database] that are passed as something
-  /// other than [Value.absent].
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updatePosition({
+  /// Forward to [OcptPeopleDetailOps.updatePosition].
+  @useResult
+  Future<OcptDatabaseOutcome> updatePosition({
     required OcptProjectDatabase database,
     required String id,
     Value<String> positionId = const Value.absent(),
     Value<String> customLabel = const Value.absent(),
-  }) async {
-    if (database.refusesUserWrite("updatePosition")) {
-      return;
-    }
-
-    final companion = OcptPersonPositionsTableCompanion(
+  }) => guardOutcome(
+    "updatePosition",
+    () => OcptPeopleDetailOps.updatePosition(
+      database: database,
+      id: id,
       positionId: positionId,
       customLabel: customLabel,
-    );
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptPersonPositionsTable,
-      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
+  /// Forward to [OcptPeopleDetailOps.removePosition].
+  @useResult
+  Future<OcptDatabaseOutcome> removePosition({
+    required OcptProjectDatabase database,
+    required String id,
+  }) => guardOutcome(
+    "removePosition",
+    () => OcptPeopleDetailOps.removePosition(database: database, id: id, deviceId: deviceId),
+  );
 
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPersonPositionsTable,
-        rowId: id,
-        current: current,
-        next: current.copyWithCompanion(companion),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Removes position assignment [id].
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removePosition({required OcptProjectDatabase database, required String id}) async {
-    if (database.refusesUserWrite("removePosition")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptPersonPositionsTable,
-      )..where((table) => table.id.equals(id))).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPersonPositionsTable,
-        rowId: id,
-        current: current,
-        next: current.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Reorders person [personId]'s positions to [orderedIds], which must be a permutation of their
-  /// currently attached positions' ids. Only the ones that actually have to move are written.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderPositions({
+  /// Forward to [OcptPeopleDetailOps.reorderPositions].
+  @useResult
+  Future<OcptDatabaseOutcome> reorderPositions({
     required OcptProjectDatabase database,
     required String personId,
     required List<String> orderedIds,
-  }) async {
-    if (database.refusesUserWrite("reorderPositions")) {
-      return;
-    }
+  }) => guardOutcome(
+    "reorderPositions",
+    () => OcptPeopleDetailOps.reorderPositions(
+      database: database,
+      personId: personId,
+      orderedIds: orderedIds,
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final rows = await _positionRowsOfPerson(database: database, personId: personId);
-      final rowById = {for (final row in rows) row.id: row};
-      final ids = orderedIds.where(rowById.containsKey).toList(growable: false);
-
-      final plan = ocptFractionalKeyRekeyPlan([for (final id in ids) rowById[id]!.sortKey]);
-      if (plan.isEmpty) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      for (final entry in plan.entries) {
-        final current = rowById[ids[entry.key]]!;
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptPersonPositionsTable,
-          rowId: current.id,
-          current: current,
-          next: current.copyWith(sortKey: entry.value),
-          stamps: stamps,
-        );
-      }
-      await stamps.flush(database);
-    });
-  }
-
-  /// Adds a skill to person [personId], appended after their current skills, and returns its
-  /// freshly generated id.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addSkill({
+  /// Forward to [OcptPeopleDetailOps.addSkill].
+  @useResult
+  Future<OcptDatabaseResult<String>> addSkill({
     required OcptProjectDatabase database,
     required String personId,
     required String label,
-  }) async {
-    if (database.refusesUserWrite("addSkill")) {
-      return null;
-    }
+  }) => guardResult(
+    "addSkill",
+    () => OcptPeopleDetailOps.addSkill(
+      database: database,
+      personId: personId,
+      label: label,
+      deviceId: deviceId,
+    ),
+  );
 
-    final existing = await _skillRowsOfPerson(database: database, personId: personId);
-    final id = const Uuid().v4();
-
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPersonSkillsTable,
-        rowId: id,
-        current: null,
-        next: OcptPersonSkillRow(
-          id: id,
-          personId: personId,
-          label: label,
-          sortKey: ocptFractionalKeyBetween(before: existing.isEmpty ? null : existing.last.sortKey),
-          isDeleted: false,
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-
-    return id;
-  }
-
-  /// Updates skill [id]'s label.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateSkill({
+  /// Forward to [OcptPeopleDetailOps.updateSkill].
+  @useResult
+  Future<OcptDatabaseOutcome> updateSkill({
     required OcptProjectDatabase database,
     required String id,
     required String label,
-  }) async {
-    if (database.refusesUserWrite("updateSkill")) {
-      return;
-    }
+  }) => guardOutcome(
+    "updateSkill",
+    () => OcptPeopleDetailOps.updateSkill(
+      database: database,
+      id: id,
+      label: label,
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptPersonSkillsTable,
-      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
+  /// Forward to [OcptPeopleDetailOps.removeSkill].
+  @useResult
+  Future<OcptDatabaseOutcome> removeSkill({
+    required OcptProjectDatabase database,
+    required String id,
+  }) => guardOutcome(
+    "removeSkill",
+    () => OcptPeopleDetailOps.removeSkill(database: database, id: id, deviceId: deviceId),
+  );
 
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPersonSkillsTable,
-        rowId: id,
-        current: current,
-        next: current.copyWith(label: label),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Removes skill [id].
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeSkill({required OcptProjectDatabase database, required String id}) async {
-    if (database.refusesUserWrite("removeSkill")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptPersonSkillsTable,
-      )..where((table) => table.id.equals(id))).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPersonSkillsTable,
-        rowId: id,
-        current: current,
-        next: current.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Reorders person [personId]'s skills to [orderedIds], which must be a permutation of their
-  /// currently attached skills' ids. Only the ones that actually have to move are written.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderSkills({
+  /// Forward to [OcptPeopleDetailOps.reorderSkills].
+  @useResult
+  Future<OcptDatabaseOutcome> reorderSkills({
     required OcptProjectDatabase database,
     required String personId,
     required List<String> orderedIds,
-  }) async {
-    if (database.refusesUserWrite("reorderSkills")) {
-      return;
-    }
+  }) => guardOutcome(
+    "reorderSkills",
+    () => OcptPeopleDetailOps.reorderSkills(
+      database: database,
+      personId: personId,
+      orderedIds: orderedIds,
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final rows = await _skillRowsOfPerson(database: database, personId: personId);
-      final rowById = {for (final row in rows) row.id: row};
-      final ids = orderedIds.where(rowById.containsKey).toList(growable: false);
-
-      final plan = ocptFractionalKeyRekeyPlan([for (final id in ids) rowById[id]!.sortKey]);
-      if (plan.isEmpty) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      for (final entry in plan.entries) {
-        final current = rowById[ids[entry.key]]!;
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptPersonSkillsTable,
-          rowId: current.id,
-          current: current,
-          next: current.copyWith(sortKey: entry.value),
-          stamps: stamps,
-        );
-      }
-      await stamps.flush(database);
-    });
-  }
-
-  /// Adds an unavailability to person [personId], and returns its freshly generated id.
-  ///
-  /// [endDate] is clamped up to [startDate] rather than refused: a range that ends before it
-  /// starts is a slip of a date picker, and the caller has nothing useful to do with an error.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addUnavailability({
+  /// Forward to [OcptPeopleDetailOps.addUnavailability].
+  @useResult
+  Future<OcptDatabaseResult<String>> addUnavailability({
     required OcptProjectDatabase database,
     required String personId,
     required DateTime startDate,
@@ -1038,44 +740,24 @@ class OcptPeopleService {
     int? startMinute,
     int? endMinute,
     required String reason,
-  }) async {
-    if (database.refusesUserWrite("addUnavailability")) {
-      return null;
-    }
+  }) => guardResult(
+    "addUnavailability",
+    () => OcptPeopleDetailOps.addUnavailability(
+      database: database,
+      personId: personId,
+      startDate: startDate,
+      endDate: endDate,
+      slot: slot,
+      startMinute: startMinute,
+      endMinute: endMinute,
+      reason: reason,
+      deviceId: deviceId,
+    ),
+  );
 
-    final id = const Uuid().v4();
-
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPersonUnavailabilitiesTable,
-        rowId: id,
-        current: null,
-        next: OcptPersonUnavailabilityRow(
-          id: id,
-          personId: personId,
-          startDate: startDate,
-          endDate: endDate.isBefore(startDate) ? startDate : endDate,
-          slot: slot,
-          startMinute: startMinute,
-          endMinute: endMinute,
-          reason: reason,
-          isDeleted: false,
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-
-    return id;
-  }
-
-  /// Updates the fields of unavailability [id] that are passed as something other than
-  /// [Value.absent].
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateUnavailability({
+  /// Forward to [OcptPeopleDetailOps.updateUnavailability].
+  @useResult
+  Future<OcptDatabaseOutcome> updateUnavailability({
     required OcptProjectDatabase database,
     required String id,
     Value<DateTime> startDate = const Value.absent(),
@@ -1084,99 +766,46 @@ class OcptPeopleService {
     Value<int?> startMinute = const Value.absent(),
     Value<int?> endMinute = const Value.absent(),
     Value<String> reason = const Value.absent(),
-  }) async {
-    if (database.refusesUserWrite("updateUnavailability")) {
-      return;
-    }
-
-    final companion = OcptPersonUnavailabilitiesTableCompanion(
+  }) => guardOutcome(
+    "updateUnavailability",
+    () => OcptPeopleDetailOps.updateUnavailability(
+      database: database,
+      id: id,
       startDate: startDate,
       endDate: endDate,
       slot: slot,
       startMinute: startMinute,
       endMinute: endMinute,
       reason: reason,
-    );
+      deviceId: deviceId,
+    ),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptPersonUnavailabilitiesTable,
-      )..where((table) => table.id.equals(id) & table.isDeleted.not())).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPersonUnavailabilitiesTable,
-        rowId: id,
-        current: current,
-        next: current.copyWithCompanion(companion),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Removes unavailability [id].
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> removeUnavailability({
+  /// Forward to [OcptPeopleDetailOps.removeUnavailability].
+  @useResult
+  Future<OcptDatabaseOutcome> removeUnavailability({
     required OcptProjectDatabase database,
     required String id,
-  }) async {
-    if (database.refusesUserWrite("removeUnavailability")) {
-      return;
-    }
+  }) => guardOutcome(
+    "removeUnavailability",
+    () => OcptPeopleDetailOps.removeUnavailability(database: database, id: id, deviceId: deviceId),
+  );
 
-    await database.transaction(() async {
-      final current = await (database.select(
-        database.ocptPersonUnavailabilitiesTable,
-      )..where((table) => table.id.equals(id))).getSingleOrNull();
-
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptPersonUnavailabilitiesTable,
-        rowId: id,
-        current: current,
-        next: current.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Every live person row of [database], ordered by `sortKey`.
+  /// Get every live person row of [database], ordered by `sortKey`.
   Future<List<OcptPersonRow>> _liveRows(OcptProjectDatabase database) =>
       (database.select(database.ocptPeopleTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live position row of person [personId], ordered by `sortKey`.
-  Future<List<OcptPersonPositionRow>> _positionRowsOfPerson({
-    required OcptProjectDatabase database,
-    required String personId,
-  }) => (database.select(database.ocptPersonPositionsTable)
-        ..where((table) => table.personId.equals(personId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await roleCandidatesService.disposeLifeCycle();
+    await assetsService.disposeLifeCycle();
 
-  /// Every live skill row of person [personId], ordered by `sortKey`.
-  Future<List<OcptPersonSkillRow>> _skillRowsOfPerson({
-    required OcptProjectDatabase database,
-    required String personId,
-  }) => (database.select(database.ocptPersonSkillsTable)
-        ..where((table) => table.personId.equals(personId) & table.isDeleted.not())
-        ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-      .get();
+    return super.disposeLifeCycle();
+  }
 }

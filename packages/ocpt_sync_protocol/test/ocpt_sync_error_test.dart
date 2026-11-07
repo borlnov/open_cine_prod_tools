@@ -5,6 +5,7 @@
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of [OcptSyncError].
 void main() {
   group('OcptSyncError', () {
     test('round-trips through JSON', () {
@@ -27,8 +28,14 @@ void main() {
     });
 
     test('two errors with the same fields are equal', () {
-      const first = OcptSyncError(code: OcptSyncErrorCode.sequenceConflict, message: 'stale cursor');
-      const second = OcptSyncError(code: OcptSyncErrorCode.sequenceConflict, message: 'stale cursor');
+      const first = OcptSyncError(
+        code: OcptSyncErrorCode.sequenceConflict,
+        message: 'stale cursor',
+      );
+      const second = OcptSyncError(
+        code: OcptSyncErrorCode.sequenceConflict,
+        message: 'stale cursor',
+      );
 
       expect(first, second);
     });

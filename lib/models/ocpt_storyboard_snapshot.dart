@@ -24,17 +24,17 @@ class OcptStoryboardSnapshot extends Equatable {
   /// Class constructor
   const OcptStoryboardSnapshot({required this.screenplayId, required this.panelsByShotId});
 
-  /// [shotId]'s panels, in order, or an empty list if it has none.
+  /// Get [shotId]'s panels, in order, or an empty list if it has none.
   List<OcptStoryboardPanel> panelsOfShot(String shotId) =>
       panelsByShotId[shotId] ?? const <OcptStoryboardPanel>[];
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptStoryboardSnapshot(screenplayId: $screenplayId, shotsWithPanels: "
       "${panelsByShotId.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [screenplayId, panelsByShotId];
 }

@@ -9,13 +9,13 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_episode_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_left_dock.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the `OcptWorkspaceDock` the panel fills in the app.
@@ -77,6 +77,7 @@ OcptShot _buildShot({required String id, required String code}) => OcptShot(
   averageDifficulty: 0,
 );
 
+/// Run the tests of [OcptScheduleLeftDock].
 void main() {
   final dayOne = _buildDay(id: "day-1", dayNumber: 1);
   final dayThree = _buildDay(id: "day-3", dayNumber: 3, status: OcptShootingDayStatus.shot);
@@ -226,9 +227,7 @@ void main() {
     expect(find.text("D1"), findsOneWidget);
   });
 
-  testWidgets("the day card's ⋮ menu offers to change the date, first in the menu", (
-    tester,
-  ) async {
+  testWidgets("the day card's ⋮ menu offers to change the date, first in the menu", (tester) async {
     final dateChangeRequests = <(String, DateTime)>[];
 
     await tester.pumpWidget(

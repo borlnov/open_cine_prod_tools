@@ -4,9 +4,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_current_scene_index.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index.dart';
 
 /// The collapsible left panel listing the screenplay's scenes.
 ///
@@ -35,6 +35,7 @@ class OcptEditorScenePanel extends StatelessWidget {
     required this.onSceneSelected,
   });
 
+  /// Build the editor scene panel as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -102,6 +103,7 @@ class _SceneEntry extends StatelessWidget {
   /// Class constructor
   const _SceneEntry({required this.scene, required this.isCurrent, required this.onTap});
 
+  /// Build the scene entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -109,7 +111,7 @@ class _SceneEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isCurrent ? theme.colorScheme.primary.withValues(alpha: 0.14) : Colors.transparent,
         child: Padding(
@@ -134,7 +136,9 @@ class _SceneEntry extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: isCurrent ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+                    color: isCurrent
+                        ? theme.colorScheme.onSurface
+                        : theme.colorScheme.onSurfaceVariant,
                     fontWeight: isCurrent ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),

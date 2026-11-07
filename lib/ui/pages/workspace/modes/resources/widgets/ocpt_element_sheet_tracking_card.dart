@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
@@ -30,8 +30,7 @@ class OcptElementSheetTrackingCard extends StatelessWidget {
   /// The element's current value for `field`.
   final String Function(OcptElementField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptElementField field, String rawValue)? onFieldChanged;
 
   /// Called with the flag ticked or unticked and what it now holds, or null while they may not be
@@ -47,6 +46,7 @@ class OcptElementSheetTrackingCard extends StatelessWidget {
     required this.onTrackingFlagChanged,
   });
 
+  /// Build the element sheet tracking card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -57,23 +57,23 @@ class OcptElementSheetTrackingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildFlag(
-            context,
+          _Flag(
             label: tr.resourcesElementSecuredLabel,
             flag: OcptElementTrackingFlag.secured,
             value: element.isSecured,
+            onTrackingFlagChanged: onTrackingFlagChanged,
           ),
-          _buildFlag(
-            context,
+          _Flag(
             label: tr.resourcesElementReadyLabel,
             flag: OcptElementTrackingFlag.readyForShoot,
             value: element.isReadyForShoot,
+            onTrackingFlagChanged: onTrackingFlagChanged,
           ),
-          _buildFlag(
-            context,
+          _Flag(
             label: tr.resourcesElementReturnedLabel,
             flag: OcptElementTrackingFlag.returned,
             value: element.isReturned,
+            onTrackingFlagChanged: onTrackingFlagChanged,
           ),
           const SizedBox(height: 8),
           OcptResourcesSheetField(
@@ -88,14 +88,33 @@ class OcptElementSheetTrackingCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// One tick of the card: the box and its label, the whole row being what toggles it.
-  Widget _buildFlag(
-    BuildContext context, {
-    required String label,
-    required OcptElementTrackingFlag flag,
-    required bool value,
-  }) {
+/// One tick of the card: the box and its label, the whole row being what toggles it.
+class _Flag extends StatelessWidget {
+  /// The tick's label.
+  final String label;
+
+  /// The flag this tick toggles.
+  final OcptElementTrackingFlag flag;
+
+  /// What the flag currently holds.
+  final bool value;
+
+  /// Called with the flag and what it now holds, or null while it may not be changed.
+  final void Function(OcptElementTrackingFlag flag, {required bool value})? onTrackingFlagChanged;
+
+  /// Class constructor
+  const _Flag({
+    required this.label,
+    required this.flag,
+    required this.value,
+    required this.onTrackingFlagChanged,
+  });
+
+  /// Build the flag as an [InkWell].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final onTrackingFlagChanged = this.onTrackingFlagChanged;
     final onToggled = onTrackingFlagChanged == null
@@ -104,8 +123,8 @@ class OcptElementSheetTrackingCard extends StatelessWidget {
 
     return InkWell(
       onTap: onToggled,
-      mouseCursor: onToggled == null ? MouseCursor.defer : ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: onToggled == null ? MouseCursor.defer : ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Row(
         children: [
           Checkbox(

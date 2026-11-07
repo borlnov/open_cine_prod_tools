@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet_header.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// Builds a minimal [OcptPerson] for these tests.
 OcptPerson _person({required String id, String firstName = "", String lastName = ""}) => OcptPerson(
@@ -217,7 +217,8 @@ Widget _buildSheet({
     onPersonSheetOpenRequested: onPersonSheetOpenRequested ?? (personId) {},
     onCandidateAdded: onCandidateAdded ?? (personId) {},
     onCandidateStatusChanged: onCandidateStatusChanged ?? (candidateId, status) {},
-    onCandidateAuditionDateChanged: onCandidateAuditionDateChanged ?? (candidateId, auditionedOn) {},
+    onCandidateAuditionDateChanged:
+        onCandidateAuditionDateChanged ?? (candidateId, auditionedOn) {},
     onCandidateNotesChanged: onCandidateNotesChanged ?? (candidateId, rawValue) {},
     onCandidateRemoveRequested: onCandidateRemoveRequested ?? (candidateId) {},
     onElementLinked: onElementLinked ?? (elementId) {},
@@ -227,6 +228,7 @@ Widget _buildSheet({
   ),
 );
 
+/// Run the tests of [OcptRoleSheet].
 void main() {
   testWidgets("the header names the role, its rank and its cast member", (tester) async {
     await tester.pumpWidget(
@@ -338,9 +340,7 @@ void main() {
   testWidgets("the header picks the role's kind", (tester) async {
     final kinds = <OcptRoleKind>[];
 
-    await tester.pumpWidget(
-      _buildSheet(role: _role(), onKindChanged: kinds.add),
-    );
+    await tester.pumpWidget(_buildSheet(role: _role(), onKindChanged: kinds.add));
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptRoleSheet)));
@@ -449,17 +449,14 @@ void main() {
     expect(deleted, 1);
   });
 
-  testWidgets("an orphaned role's merge chips report (sourceRoleId, targetRoleId)", (
-    tester,
-  ) async {
+  testWidgets("an orphaned role's merge chips report (sourceRoleId, targetRoleId)", (tester) async {
     final merges = <(String, String)>[];
 
     await tester.pumpWidget(
       _buildSheet(
         role: _role(orphanedName: "LE CLIENT"),
         mergeTargets: [_role(id: "r-target", name: "La Voisine", number: 2)],
-        onMergeRequested: (sourceRoleId, targetRoleId) =>
-            merges.add((sourceRoleId, targetRoleId)),
+        onMergeRequested: (sourceRoleId, targetRoleId) => merges.add((sourceRoleId, targetRoleId)),
       ),
     );
     await tester.pumpAndSettle();
@@ -483,8 +480,7 @@ void main() {
           screenplayRoleId: "r1",
           handAddedRoleId: "r-hand",
         ),
-        onMergeRequested: (sourceRoleId, targetRoleId) =>
-            merges.add((sourceRoleId, targetRoleId)),
+        onMergeRequested: (sourceRoleId, targetRoleId) => merges.add((sourceRoleId, targetRoleId)),
       ),
     );
     await tester.pumpAndSettle();
@@ -571,9 +567,7 @@ void main() {
             name: "Manteau rouge",
             code: "COS-1",
             category: OcptElementCategory.costume,
-            roleLinks: const [
-              OcptRoleElementLink(id: "l1", roleId: "r1", notes: "Taché"),
-            ],
+            roleLinks: const [OcptRoleElementLink(id: "l1", roleId: "r1", notes: "Taché")],
           ),
           _element(
             id: "e2",
@@ -719,7 +713,10 @@ void main() {
 
   testWidgets("a from-screenplay role's chips are present and not tappable", (tester) async {
     await tester.pumpWidget(
-      _buildSheet(role: _role(episodeIds: const ["ep-1"]), episodes: _episodes),
+      _buildSheet(
+        role: _role(episodeIds: const ["ep-1"]),
+        episodes: _episodes,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -794,7 +791,11 @@ void main() {
       _buildSheet(
         role: _role(episodeIds: const ["ep-1"]),
         candidates: [
-          _candidate(id: "c1", roleId: "r1", person: _person(id: "p1", firstName: "Léa")),
+          _candidate(
+            id: "c1",
+            roleId: "r1",
+            person: _person(id: "p1", firstName: "Léa"),
+          ),
         ],
         episodes: _episodes,
         elements: [

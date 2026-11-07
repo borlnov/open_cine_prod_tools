@@ -29,13 +29,13 @@ class OcptRoleEpisodesTable extends Table {
   @override
   String get tableName => 'role_episodes';
 
-  /// The stable, unique id of this link (a UUID).
+  /// Get the stable, unique id of this link (a UUID).
   TextColumn get id => text()();
 
-  /// The role named in the episode.
+  /// Get the role named in the episode.
   TextColumn get roleId => text().references(OcptRolesTable, #id)();
 
-  /// The episode (a `screenplays` row) the role is named in.
+  /// Get the episode (a `screenplays` row) the role is named in.
   TextColumn get screenplayId => text().references(OcptScreenplaysTable, #id)();
 
   /// {@macro open_cine_prod_tools.isDeleted}

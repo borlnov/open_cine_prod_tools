@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -23,50 +24,74 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// The fixed device id every stamp this file's writes carry.
 const _deviceId = "device-1";
 
+/// Answer with the fixed device id.
 Future<String> _testDeviceId() async => _deviceId;
 
+/// Run the tests of [OcptStoryboardService].
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
   setUpAll(() => OcptGlobalManager.instance);
 
-  const assetsService = OcptAssetsService(deviceId: _testDeviceId);
+  const assetsService = OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId);
   const storyboardService = OcptStoryboardService(
+    logger: SilentLogger(),
     assetsService: assetsService,
     deviceId: _testDeviceId,
   );
-  const elementsService = OcptElementsService(assetsService: assetsService, deviceId: _testDeviceId);
-  const locationsService = OcptLocationsService(
+  const elementsService = OcptElementsService(
+    logger: SilentLogger(),
     assetsService: assetsService,
-    floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: _testDeviceId),
+    deviceId: _testDeviceId,
+  );
+  const locationsService = OcptLocationsService(
+    logger: SilentLogger(),
+    assetsService: assetsService,
+    floorPlanService: OcptFloorPlanService(
+      logger: SilentLogger(),
+      assetsService: assetsService,
+      deviceId: _testDeviceId,
+    ),
     deviceId: _testDeviceId,
   );
   const roleIndexService = OcptRoleIndexService(
+    logger: SilentLogger(),
     elementsService: elementsService,
-    roleCandidatesService: OcptRoleCandidatesService(deviceId: _testDeviceId),
+    roleCandidatesService: OcptRoleCandidatesService(
+      logger: SilentLogger(),
+      deviceId: _testDeviceId,
+    ),
     deviceId: _testDeviceId,
   );
   const shotListService = OcptShotListService(
+    logger: SilentLogger(),
     roleIndexService: roleIndexService,
     storyboardService: storyboardService,
-    floorPlanService: OcptFloorPlanService(assetsService: assetsService, deviceId: _testDeviceId),
+    floorPlanService: OcptFloorPlanService(
+      logger: SilentLogger(),
+      assetsService: assetsService,
+      deviceId: _testDeviceId,
+    ),
     deviceId: _testDeviceId,
   );
   const screenplayService = OcptScreenplayService(
-    sceneIndexService: OcptSceneIndexService(),
+    logger: SilentLogger(),
+    sceneIndexService: OcptSceneIndexService(logger: SilentLogger()),
     shotListService: shotListService,
-    shotCoverageService: OcptShotCoverageService(deviceId: _testDeviceId),
+    shotCoverageService: OcptShotCoverageService(logger: SilentLogger(), deviceId: _testDeviceId),
     roleIndexService: roleIndexService,
     breakdownService: OcptBreakdownService(
+      logger: SilentLogger(),
       elementsService: elementsService,
       locationsService: locationsService,
       deviceId: _testDeviceId,
     ),
-    scheduleService: OcptScheduleService(deviceId: _testDeviceId),
+    scheduleService: OcptScheduleService(logger: SilentLogger(), deviceId: _testDeviceId),
     deviceId: _testDeviceId,
   );
   const screenplayId = "screenplay-1";
@@ -93,25 +118,25 @@ void main() {
   /// Saves a one-scene screenplay and returns the fresh shot id created inside it, ready for a
   /// panel to be attached to.
   Future<String> seedShot() async {
-    await screenplayService.saveScreenplayText(
-      database: database,
-      screenplayId: screenplayId,
-      fountainText: '''
+    await screenplayService
+        .saveScreenplayText(
+          database: database,
+          screenplayId: screenplayId,
+          fountainText: '''
 INT. HOUSE - DAY
 
 Action.
 ''',
-      snapshotReason: OcptSnapshotReason.manual,
-    );
+          snapshotReason: OcptSnapshotReason.manual,
+        )
+        .okOrFail;
     final scene = await (database.select(
       database.ocptScenesTable,
     )..where((row) => row.isDeleted.equals(false))).getSingle();
 
-    return (await shotListService.createShot(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: scene.id,
-    ))!;
+    return shotListService
+        .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
+        .valueOrFail;
   }
 
   Future<List<OcptStoryboardPanelRow>> readPanels() => (database.select(
@@ -125,36 +150,41 @@ Action.
     database.ocptStoryboardAnnotationsTable,
   )..where((row) => row.isDeleted.equals(false))).get();
 
-  Future<List<OcptAssetRow>> readLiveAssets() =>
-      (database.select(database.ocptAssetsTable)..where((row) => row.isDeleted.equals(false))).get();
+  Future<List<OcptAssetRow>> readLiveAssets() => (database.select(
+    database.ocptAssetsTable,
+  )..where((row) => row.isDeleted.equals(false))).get();
 
   group("loadStoryboard", () {
     test("returns an empty snapshot for a screenplay with no shots", () async {
-      final snapshot = await storyboardService.loadStoryboard(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final snapshot = await storyboardService
+          .loadStoryboard(database: database, screenplayId: screenplayId)
+          .valueOrFail;
 
       expect(snapshot.panelsByShotId, isEmpty);
     });
 
     test("groups live panels by shot, in sortKey order, with their annotations attached", () async {
       final shotId = await seedShot();
-      final firstId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final secondId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      await storyboardService.addAnnotation(
-        database: database,
-        panelId: firstId,
-        kind: OcptStoryboardAnnotationKind.label,
-        x1: 0.5,
-        y1: 0.5,
-        text: "note",
-      );
+      final firstId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final secondId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: firstId,
+            kind: OcptStoryboardAnnotationKind.label,
+            x1: 0.5,
+            y1: 0.5,
+            text: "note",
+          )
+          .maybeValueOrFail;
 
-      final snapshot = await storyboardService.loadStoryboard(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final snapshot = await storyboardService
+          .loadStoryboard(database: database, screenplayId: screenplayId)
+          .valueOrFail;
 
       final panels = snapshot.panelsOfShot(shotId);
       expect(panels.map((panel) => panel.id), [firstId, secondId]);
@@ -165,24 +195,22 @@ Action.
 
     test("resolves a panel's image path off its asset row, null while it has none", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
 
-      final beforeImport = await storyboardService.loadStoryboard(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final beforeImport = await storyboardService
+          .loadStoryboard(database: database, screenplayId: screenplayId)
+          .valueOrFail;
       expect(beforeImport.panelsOfShot(shotId).single.imagePath, isNull);
 
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame.jpg",
-      );
+      await storyboardService
+          .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame.jpg")
+          .okOrFail;
 
-      final afterImport = await storyboardService.loadStoryboard(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final afterImport = await storyboardService
+          .loadStoryboard(database: database, screenplayId: screenplayId)
+          .valueOrFail;
       expect(afterImport.panelsOfShot(shotId).single.imagePath, "/tmp/frame.jpg");
     });
   });
@@ -190,12 +218,16 @@ Action.
   group("addPanel", () {
     test("appends a panel after the shot's current last one", () async {
       final shotId = await seedShot();
-      final firstId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final secondId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+      final firstId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final secondId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
 
-      final panels = await (database.select(database.ocptStoryboardPanelsTable)
-            ..orderBy([(row) => OrderingTerm.asc(row.sortKey)]))
-          .get();
+      final panels = await (database.select(
+        database.ocptStoryboardPanelsTable,
+      )..orderBy([(row) => OrderingTerm.asc(row.sortKey)])).get();
       expect(panels.map((row) => row.id), [firstId, secondId]);
       expect(panels.every((row) => row.imageAssetId == null), isTrue);
     });
@@ -204,13 +236,13 @@ Action.
   group("replacePanelImage", () {
     test("mints a fresh asset on first import and re-points imageAssetId", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
 
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame-1.jpg",
-      );
+      await storyboardService
+          .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame-1.jpg")
+          .okOrFail;
 
       final panel = (await readPanels()).single;
       expect(panel.imageAssetId, isNotNull);
@@ -222,49 +254,56 @@ Action.
       expect(assets.single.kind, OcptAssetKind.storyboardPanelImage);
     });
 
-    test("tombstones the previous image asset and mints a new one, keeping the panel's own id", () async {
-      final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+    test(
+      "tombstones the previous image asset and mints a new one, keeping the panel's own id",
+      () async {
+        final shotId = await seedShot();
+        final panelId = (await storyboardService
+            .addPanel(database: database, shotId: shotId)
+            .valueOrFail);
 
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame-1.jpg",
-      );
-      final firstAssetId = (await readPanels()).single.imageAssetId!;
+        await storyboardService
+            .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame-1.jpg")
+            .okOrFail;
+        final firstAssetId = (await readPanels()).single.imageAssetId!;
 
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame-2.jpg",
-      );
+        await storyboardService
+            .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame-2.jpg")
+            .okOrFail;
 
-      final panel = (await readPanels()).single;
-      expect(panel.id, panelId);
-      expect(panel.imageAssetId, isNot(firstAssetId));
+        final panel = (await readPanels()).single;
+        expect(panel.id, panelId);
+        expect(panel.imageAssetId, isNot(firstAssetId));
 
-      final liveAssets = await readLiveAssets();
-      expect(liveAssets, hasLength(1));
-      expect(liveAssets.single.path, "/tmp/frame-2.jpg");
+        final liveAssets = await readLiveAssets();
+        expect(liveAssets, hasLength(1));
+        expect(liveAssets.single.path, "/tmp/frame-2.jpg");
 
-      final allAssets = await database.select(database.ocptAssetsTable).get();
-      final tombstoned = allAssets.singleWhere((row) => row.id == firstAssetId);
-      expect(tombstoned.isDeleted, isTrue);
-    });
+        final allAssets = await database.select(database.ocptAssetsTable).get();
+        final tombstoned = allAssets.singleWhere((row) => row.id == firstAssetId);
+        expect(tombstoned.isDeleted, isTrue);
+      },
+    );
   });
 
   group("reorderPanel", () {
     test("moves a panel by writing exactly one row", () async {
       final shotId = await seedShot();
-      final firstId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final secondId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final thirdId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+      final firstId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final secondId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final thirdId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
 
-      final sortKeysBefore = {
-        for (final row in await readPanels()) row.id: row.sortKey,
-      };
+      final sortKeysBefore = {for (final row in await readPanels()) row.id: row.sortKey};
 
-      await storyboardService.reorderPanel(database: database, panelId: thirdId, newPosition: 0);
+      await storyboardService
+          .reorderPanel(database: database, panelId: thirdId, newPosition: 0)
+          .okOrFail;
 
       final panels = await readPanels();
       final sortKeysAfter = {for (final row in panels) row.id: row.sortKey};
@@ -273,8 +312,9 @@ Action.
       expect(sortKeysAfter[secondId], sortKeysBefore[secondId]);
       expect(sortKeysAfter[thirdId], isNot(sortKeysBefore[thirdId]));
 
-      final orderedIds = (panels..sort((a, b) => a.sortKey.compareTo(b.sortKey)))
-          .map((row) => row.id);
+      final orderedIds = (panels..sort((a, b) => a.sortKey.compareTo(b.sortKey))).map(
+        (row) => row.id,
+      );
       expect(orderedIds, [thirdId, firstId, secondId]);
     });
   });
@@ -282,13 +322,13 @@ Action.
   group("updatePanelComment", () {
     test("updates only the comment", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
 
-      await storyboardService.updatePanelComment(
-        database: database,
-        panelId: panelId,
-        comment: "dolly in slowly",
-      );
+      await storyboardService
+          .updatePanelComment(database: database, panelId: panelId, comment: "dolly in slowly")
+          .okOrFail;
 
       final panel = (await readPanels()).single;
       expect(panel.comment, "dolly in slowly");
@@ -298,23 +338,25 @@ Action.
   group("deletePanel", () {
     test("tombstones the panel, its annotations and its image asset in one go", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame.jpg",
-      );
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      await storyboardService
+          .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame.jpg")
+          .okOrFail;
       final assetId = (await readPanels()).single.imageAssetId!;
-      await storyboardService.addAnnotation(
-        database: database,
-        panelId: panelId,
-        kind: OcptStoryboardAnnotationKind.label,
-        x1: 0.2,
-        y1: 0.2,
-        text: "note",
-      );
+      await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: panelId,
+            kind: OcptStoryboardAnnotationKind.label,
+            x1: 0.2,
+            y1: 0.2,
+            text: "note",
+          )
+          .maybeValueOrFail;
 
-      await storyboardService.deletePanel(database: database, panelId: panelId);
+      await storyboardService.deletePanel(database: database, panelId: panelId).okOrFail;
 
       expect(await readPanels(), isEmpty);
       expect(await readAnnotations(), isEmpty);
@@ -332,23 +374,29 @@ Action.
   group("annotations", () {
     test("addAnnotation appends and updateAnnotation changes geometry/text", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final annotationId = (await storyboardService.addAnnotation(
-        database: database,
-        panelId: panelId,
-        kind: OcptStoryboardAnnotationKind.movementArrow,
-        x1: 0.1,
-        y1: 0.1,
-        x2: 0.4,
-        y2: 0.4,
-      ))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final annotationId = (await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: panelId,
+            kind: OcptStoryboardAnnotationKind.movementArrow,
+            x1: 0.1,
+            y1: 0.1,
+            x2: 0.4,
+            y2: 0.4,
+          )
+          .valueOrFail);
 
-      await storyboardService.updateAnnotation(
-        database: database,
-        annotationId: annotationId,
-        x2: const Value(0.9),
-        text: const Value("dolly in"),
-      );
+      await storyboardService
+          .updateAnnotation(
+            database: database,
+            annotationId: annotationId,
+            x2: const Value(0.9),
+            text: const Value("dolly in"),
+          )
+          .okOrFail;
 
       final annotation = (await readAnnotations()).single;
       expect(annotation.x1, 0.1);
@@ -358,17 +406,23 @@ Action.
 
     test("deleteAnnotation tombstones it", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final annotationId = (await storyboardService.addAnnotation(
-        database: database,
-        panelId: panelId,
-        kind: OcptStoryboardAnnotationKind.label,
-        x1: 0.5,
-        y1: 0.5,
-        text: "note",
-      ))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final annotationId = (await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: panelId,
+            kind: OcptStoryboardAnnotationKind.label,
+            x1: 0.5,
+            y1: 0.5,
+            text: "note",
+          )
+          .valueOrFail);
 
-      await storyboardService.deleteAnnotation(database: database, annotationId: annotationId);
+      await storyboardService
+          .deleteAnnotation(database: database, annotationId: annotationId)
+          .okOrFail;
 
       expect(await readAnnotations(), isEmpty);
     });
@@ -377,21 +431,23 @@ Action.
   group("tombstonePanelsOfShot", () {
     test("tombstones every panel of the shot, its annotations and its image asset", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame.jpg",
-      );
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      await storyboardService
+          .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame.jpg")
+          .okOrFail;
       final assetId = (await readPanels()).single.imageAssetId!;
-      await storyboardService.addAnnotation(
-        database: database,
-        panelId: panelId,
-        kind: OcptStoryboardAnnotationKind.label,
-        x1: 0.5,
-        y1: 0.5,
-        text: "note",
-      );
+      await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: panelId,
+            kind: OcptStoryboardAnnotationKind.label,
+            x1: 0.5,
+            y1: 0.5,
+            text: "note",
+          )
+          .maybeValueOrFail;
 
       await database.transaction(() async {
         final stamps = await OcptRowStampService.seed(database: database, deviceId: _deviceId);

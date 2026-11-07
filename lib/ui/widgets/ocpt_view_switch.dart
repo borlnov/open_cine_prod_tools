@@ -3,30 +3,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_view_switch_segment.dart';
 
 /// The horizontal padding of [OcptViewSwitch]'s own segments, in logical pixels.
 const double _ocptViewSwitchSegmentPadding = 14;
-
-/// One segment of [OcptViewSwitch]: the value it selects and its own label.
-class OcptViewSwitchSegment<T> {
-  /// The value this segment selects when clicked.
-  final T value;
-
-  /// The segment's own label.
-  final String label;
-
-  /// Class constructor
-  const OcptViewSwitchSegment({required this.value, required this.label});
-}
 
 /// A small bordered, rounded segmented control switching a centre view — the active segment filled
 /// `primary` and bolder, the others `onSurfaceVariant`.
 ///
 /// Lifted out of the breakdown mode's own private `Script`/`Recap` switch so the shot list mode's
-/// `Table`/`Board` one is built from the very same widget rather than a second copy that could drift
-/// from it: purely presentational, generic over the value type
-/// [T], reporting every click upward through [onChanged] rather than knowing what a segment means.
+/// `Table`/`Board` one is built from the very same widget rather than a second copy that could
+/// drift from it: purely presentational, generic over the value type [T], reporting every click
+/// upward through [onChanged] rather than knowing what a segment means.
 class OcptViewSwitch<T> extends StatelessWidget {
   /// The switch's own segments, in display order.
   final List<OcptViewSwitchSegment<T>> segments;
@@ -38,8 +27,14 @@ class OcptViewSwitch<T> extends StatelessWidget {
   final ValueChanged<T> onChanged;
 
   /// Class constructor
-  const OcptViewSwitch({super.key, required this.segments, required this.value, required this.onChanged});
+  const OcptViewSwitch({
+    super.key,
+    required this.segments,
+    required this.value,
+    required this.onChanged,
+  });
 
+  /// Build the view switch as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -48,34 +43,57 @@ class OcptViewSwitch<T> extends StatelessWidget {
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [for (final segment in segments) _buildSegment(context, segment)],
+        children: [
+          for (final segment in segments)
+            _OcptViewSwitchSegmentButton<T>(
+              segment: segment,
+              isActive: value == segment.value,
+              onChanged: onChanged,
+            ),
+        ],
       ),
     );
   }
+}
 
-  /// One of the switch's own segments.
-  Widget _buildSegment(BuildContext context, OcptViewSwitchSegment<T> segment) {
+/// One of the switch's own segments.
+class _OcptViewSwitchSegmentButton<T> extends StatelessWidget {
+  /// The segment drawn.
+  final OcptViewSwitchSegment<T> segment;
+
+  /// Whether the segment is the one selected.
+  final bool isActive;
+
+  /// Called with the segment's value when it is tapped while inactive.
+  final ValueChanged<T> onChanged;
+
+  /// Class constructor
+  const _OcptViewSwitchSegmentButton({
+    required this.segment,
+    required this.isActive,
+    required this.onChanged,
+  });
+
+  /// Build the view switch segment button as an [InkWell].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isActive = value == segment.value;
 
     return InkWell(
       onTap: isActive ? null : () => onChanged(segment.value),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: _ocptViewSwitchSegmentPadding,
-          vertical: 6,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: _ocptViewSwitchSegmentPadding, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Text(
           segment.label,

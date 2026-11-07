@@ -7,10 +7,9 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 
 /// The state of `OcptSharingBloc`.
 ///
-/// The page's two states (`docs/plans/relay.md`, Phase C, commit 3) are one screen reading a
-/// single fact: whether [invite] is null. Null is ① Configure — the project has never been paired,
-/// or was unpaired since — and non-null is ② Invite, everything the QR and the connection card
-/// render coming straight off it.
+/// The page's two states are one screen reading a single fact: whether [invite] is null. Null is ①
+/// Configure — the project has never been paired, or was unpaired since — and non-null is ② Invite,
+/// everything the QR and the connection card render coming straight off it.
 class OcptSharingState extends BlocStateForMixin<OcptSharingState> {
   /// Whether the project's own pairing is still being loaded from the database and secure storage.
   final bool isLoading;
@@ -53,24 +52,50 @@ class OcptSharingState extends BlocStateForMixin<OcptSharingState> {
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [invite] legitimately goes back to null once the project is unpaired, so it has its own
-  /// [clearInvite] flag rather than a bare nullable parameter, which could never tell "leave it
-  /// alone" apart from "clear it" — exactly the reasoning `OcptProjectSettingsState`'s own
-  /// `clearScreenplayLanguage` already follows.
+  /// [forceInviteValue] flag rather than a bare nullable parameter, which could never tell "leave
+  /// it alone" apart from "clear it" — exactly the reasoning `OcptProjectSettingsState`'s own
+  /// `forceScreenplayLanguageValue` already follows.
   @override
   OcptSharingState copyWith({
     bool? isLoading,
     String? projectName,
     OcptRelayInvite? invite,
-    bool clearInvite = false,
+    bool forceInviteValue = false,
     bool? isPairing,
     bool? pairingFailed,
   }) => OcptSharingState(
     isLoading: isLoading ?? this.isLoading,
     projectName: projectName ?? this.projectName,
-    invite: clearInvite ? null : (invite ?? this.invite),
+    invite: invite ?? (forceInviteValue ? null : this.invite),
     isPairing: isPairing ?? this.isPairing,
     pairingFailed: pairingFailed ?? this.pairingFailed,
   );
+
+  /// Copy this state as loaded for the project called [projectName], with the [invite] already
+  /// held, if any.
+  OcptSharingState copyToLoaded({required String projectName, required OcptRelayInvite? invite}) =>
+      copyWith(
+        isLoading: false,
+        projectName: projectName,
+        invite: invite,
+        forceInviteValue: invite == null,
+      );
+
+  /// Copy this state with a pairing under way and the previous failure forgotten.
+  OcptSharingState copyWithPairing() => copyWith(isPairing: true, pairingFailed: false);
+
+  /// Copy this state with the pairing ended on a failure.
+  OcptSharingState copyWithPairingFailed() => copyWith(isPairing: false, pairingFailed: true);
+
+  /// Copy this state with the pairing done, [invite] being what it produced.
+  OcptSharingState copyWithPaired({required OcptRelayInvite? invite}) =>
+      copyWith(isPairing: false, invite: invite);
+
+  /// Copy this state with the invite cleared.
+  OcptSharingState copyWithInviteCleared() => copyWith(forceInviteValue: true);
+
+  /// Copy this state with the failure dismissed.
+  OcptSharingState copyWithFailureDismissed() => copyWith(pairingFailed: false);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override

@@ -22,6 +22,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptRoleAlertCompactBanner].
 void main() {
   const orphaned = OcptRemovedRoleAlert(roleId: "r1", characterName: "LE CLIENT");
   const collision = OcptRoleCollisionAlert(

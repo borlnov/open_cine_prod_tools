@@ -13,6 +13,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// and the generated class would only ever show the same strings back with no way to name the key
 /// that carries one.
 const _englishArbPath = 'lib/l10n/intl_en_GB.arb';
+
+/// The path of the French ARB file the wording is checked in.
 const _frenchArbPath = 'lib/l10n/intl_fr.arb';
 
 /// Matches every floor-plan key, including its own `@key` metadata entry on the English side.
@@ -25,33 +27,32 @@ final RegExp _caseWord = RegExp(r'\bcases?\b', caseSensitive: false);
 
 /// Matches "porté"/"portés" — the old « accessoires portés » (worn props) wording, replaced by the
 /// bare « Accessoires » per the maintainer's own rename.
-final RegExp _porteWord = RegExp(r'\bportés?\b', caseSensitive: false);
+final RegExp _carriedWord = RegExp(r'\bportés?\b', caseSensitive: false);
 
+/// Run the tests of the floor plan case wording.
 void main() {
-  test(
-    'no floor-plan key name or English string says "case" — the model is a Set',
-    () {
-      // The floor plan's own room used to be called a "case", renamed to "Set" in the store; this
-      // pins the same rename in the ARB, which a later chrome pass missed for a handful of
-      // strings.
-      final arb = jsonDecode(File(_englishArbPath).readAsStringSync()) as Map<String, dynamic>;
+  test('no floor-plan key name or English string says "case" — the model is a Set', () {
+    // The floor plan's own room used to be called a "case", renamed to "Set" in the store; this
+    // pins the same rename in the ARB, which a later chrome pass missed for a handful of
+    // strings.
+    final arb = jsonDecode(File(_englishArbPath).readAsStringSync()) as Map<String, dynamic>;
 
-      final offenders = [
-        for (final entry in arb.entries)
-          if (_isFloorPlanEntry(entry.key))
-            if (_caseWord.hasMatch(entry.key) ||
-                (entry.value is String && _caseWord.hasMatch(entry.value as String)))
-              '${entry.key}: ${entry.value}',
-      ];
+    final offenders = [
+      for (final entry in arb.entries)
+        if (_isFloorPlanEntry(entry.key))
+          if (_caseWord.hasMatch(entry.key) ||
+              (entry.value is String && _caseWord.hasMatch(entry.value as String)))
+            '${entry.key}: ${entry.value}',
+    ];
 
-      expect(
-        offenders,
-        isEmpty,
-        reason: 'these floor-plan ARB entries still say "case" (or "cases") — the floor plan '
-            'model is a Set, never a case',
-      );
-    },
-  );
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'these floor-plan ARB entries still say "case" (or "cases") — the floor plan '
+          'model is a Set, never a case',
+    );
+  });
 
   test('no French floor-plan string says « case » or « portés »', () {
     final arb = jsonDecode(File(_frenchArbPath).readAsStringSync()) as Map<String, dynamic>;
@@ -68,14 +69,14 @@ void main() {
       reason: 'these French floor-plan strings still say « case » — the model is a « décor »',
     );
 
-    final porteOffenders = [
+    final carriedOffenders = [
       for (final entry in arb.entries)
         if (_isFloorPlanEntry(entry.key))
-          if (entry.value case final String value when _porteWord.hasMatch(value))
+          if (entry.value case final String value when _carriedWord.hasMatch(value))
             '${entry.key}: "$value"',
     ];
     expect(
-      porteOffenders,
+      carriedOffenders,
       isEmpty,
       reason: 'these French floor-plan strings still say « porté(s) » — renamed to « Accessoires »',
     );

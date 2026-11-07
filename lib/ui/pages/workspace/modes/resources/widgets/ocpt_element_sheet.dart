@@ -125,6 +125,18 @@ class OcptElementSheet extends StatelessWidget {
   /// [onPersonSheetOpenRequested], which is handed over unconditionally for the same reason.
   final ValueChanged<String> onRoleSheetOpenRequested;
 
+  /// Get the roles wearing, carrying or made up with this element, in the order its links came in —
+  /// the cast's own. A link naming a role the cast no longer holds is left out by
+  /// `OcptElementsService.loadElements` already, so nothing here has to guard against one.
+  List<OcptRole> get _rolesConcerned {
+    final roleById = {for (final role in roles) role.id: role};
+
+    return [
+      for (final link in element.roleLinks)
+        if (roleById[link.roleId] case final role?) role,
+    ];
+  }
+
   /// Class constructor
   const OcptElementSheet({
     super.key,
@@ -153,6 +165,7 @@ class OcptElementSheet extends StatelessWidget {
     required this.onRoleSheetOpenRequested,
   });
 
+  /// Build the element sheet as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -210,7 +223,10 @@ class OcptElementSheet extends StatelessWidget {
           ),
           if (_rolesConcerned case final rolesConcerned when rolesConcerned.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _buildRolesConcernedCard(context, tr, rolesConcerned),
+            _RolesConcernedCard(
+              rolesConcerned: rolesConcerned,
+              onRoleSheetOpenRequested: onRoleSheetOpenRequested,
+            ),
           ],
           const SizedBox(height: 12),
           OcptResourcesSheetCard(
@@ -230,9 +246,7 @@ class OcptElementSheet extends StatelessWidget {
             title: tr.resourcesNotesTitle,
             ownerId: element.id,
             value: fieldValueOf(OcptElementField.notes),
-            onChanged: isReadOnly
-                ? null
-                : (value) => onFieldChanged(OcptElementField.notes, value),
+            onChanged: isReadOnly ? null : (value) => onFieldChanged(OcptElementField.notes, value),
           ),
           if (!isReadOnly) ...[
             const SizedBox(height: 20),
@@ -245,40 +259,44 @@ class OcptElementSheet extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The roles wearing, carrying or made up with this element, in the order its links came in —
-  /// the cast's own. A link naming a role the cast no longer holds is left out by
-  /// `OcptElementsService.loadElements` already, so nothing here has to guard against one.
-  List<OcptRole> get _rolesConcerned {
-    final roleById = {for (final role in roles) role.id: role};
+/// The `Roles concerned` card: one chip per role, clicked to land on that role's own sheet.
+///
+/// **Read-only, whatever the sheet's own state.** A role's things are added and removed from the
+/// role's sheet, which is where that question belongs; this card is the answer read from the
+/// other side, and offering the same edit twice would only invite the two to disagree. It is
+/// therefore rendered identically under a version preview — there is nothing here to withhold —
+/// and it is absent altogether while no role names this element, an empty card saying nothing a
+/// missing one doesn't.
+class _RolesConcernedCard extends StatelessWidget {
+  /// The roles that name the element.
+  final List<OcptRole> rolesConcerned;
 
-    return [
-      for (final link in element.roleLinks)
-        if (roleById[link.roleId] case final role?) role,
-    ];
+  /// Called with the id of the role whose sheet the user asked to open.
+  final ValueChanged<String> onRoleSheetOpenRequested;
+
+  /// Class constructor
+  const _RolesConcernedCard({required this.rolesConcerned, required this.onRoleSheetOpenRequested});
+
+  /// Build the roles concerned card as an [OcptResourcesSheetCard].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return OcptResourcesSheetCard(
+      title: tr.resourcesElementRolesCardTitle,
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final role in rolesConcerned)
+            ActionChip(
+              label: Text(role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name),
+              onPressed: () => onRoleSheetOpenRequested(role.id),
+            ),
+        ],
+      ),
+    );
   }
-
-  /// The `Roles concerned` card: one chip per role, clicked to land on that role's own sheet.
-  ///
-  /// **Read-only, whatever the sheet's own state.** A role's things are added and removed from the
-  /// role's sheet, which is where that question belongs; this card is the answer read from the
-  /// other side, and offering the same edit twice would only invite the two to disagree. It is
-  /// therefore rendered identically under a version preview — there is nothing here to withhold —
-  /// and it is absent altogether while no role names this element, an empty card saying nothing a
-  /// missing one doesn't.
-  Widget _buildRolesConcernedCard(BuildContext context, Tr tr, List<OcptRole> rolesConcerned) =>
-      OcptResourcesSheetCard(
-        title: tr.resourcesElementRolesCardTitle,
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final role in rolesConcerned)
-              ActionChip(
-                label: Text(role.name.isEmpty ? tr.resourcesRoleUnnamed : role.name),
-                onPressed: () => onRoleSheetOpenRequested(role.id),
-              ),
-          ],
-        ),
-      );
 }

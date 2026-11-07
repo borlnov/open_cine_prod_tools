@@ -8,7 +8,10 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Status
 
-Accepted
+Superseded by [ADR-0033](0033-generated-code-under-the-generated-folder.md): committing generated
+code was never what the ACT guidelines expect (they exclude it from version control, as this record
+did), and they also want it under a single `generated/` folder, which drift's output now is. The
+reasoning below holds for the period it applied.
 
 ## Context
 

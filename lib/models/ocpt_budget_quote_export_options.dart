@@ -20,15 +20,14 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 /// the reader.
 ///
 /// Deliberately its own class rather than one of its siblings with fields added, for the reason
-/// `OcptDayOutOfDaysExportOptions`'s own doc comment already gives: each export is dispatched by its
-/// own event, and a shared options class would let one dialog produce something another service
+/// `OcptDayOutOfDaysExportOptions`'s own doc comment already gives: each export is dispatched by
+/// its own event, and a shared options class would let one dialog produce something another service
 /// silently ignores.
 class OcptBudgetQuoteExportOptions extends Equatable {
   /// The physical page format to typeset the exported document with.
   final OcptPageFormat format;
 
-  /// The page margins to typeset the exported document with, carried through unedited from the page
-  /// setup the export dialog was opened with.
+  /// {@macro open_cine_prod_tools.exportOptionsPageMargins}
   final FountainPageMargins margins;
 
   /// Whether the title page (the document's own name and the moment it was produced) is printed
@@ -46,13 +45,13 @@ class OcptBudgetQuoteExportOptions extends Equatable {
     required this.taxBasis,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetQuoteExportOptions(format: $format, margins: $margins, "
       "includeTitlePage: $includeTitlePage, taxBasis: $taxBasis)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, includeTitlePage, taxBasis];
 }

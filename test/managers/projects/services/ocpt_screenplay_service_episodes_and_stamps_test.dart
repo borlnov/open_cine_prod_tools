@@ -1,0 +1,761 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:act_test_utility/act_test_utility.dart';
+import 'package:drift/drift.dart' show BooleanExpressionOperators, OrderingTerm, Value;
+import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
+
+/// Run the tests of the screenplay service episodes and stamps.
+void main() {
+  // Refusing a write on a previewed version logs through appLogger(), which requires a global
+  // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
+  setUpAll(() => OcptGlobalManager.instance);
+
+  const screenplayId = "screenplay-1";
+
+  Future<String> testDeviceId() async => "test-device";
+
+  final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: testDeviceId);
+
+  final roleCandidatesService = OcptRoleCandidatesService(
+    logger: const SilentLogger(),
+    deviceId: testDeviceId,
+  );
+
+  final elementsService = OcptElementsService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
+
+  final locationsService = OcptLocationsService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    floorPlanService: OcptFloorPlanService(
+      logger: const SilentLogger(),
+      assetsService: assetsService,
+      deviceId: testDeviceId,
+    ),
+    deviceId: testDeviceId,
+  );
+
+  final roleIndexService = OcptRoleIndexService(
+    logger: const SilentLogger(),
+    elementsService: elementsService,
+    roleCandidatesService: roleCandidatesService,
+    deviceId: testDeviceId,
+  );
+
+  final breakdownService = OcptBreakdownService(
+    logger: const SilentLogger(),
+    elementsService: elementsService,
+    locationsService: locationsService,
+    deviceId: testDeviceId,
+  );
+
+  final scheduleService = OcptScheduleService(logger: const SilentLogger(), deviceId: testDeviceId);
+
+  const sceneIndexService = OcptSceneIndexService(logger: SilentLogger());
+
+  final shotListService = OcptShotListService(
+    logger: const SilentLogger(),
+    roleIndexService: roleIndexService,
+    storyboardService: OcptStoryboardService(
+      logger: const SilentLogger(),
+      assetsService: assetsService,
+      deviceId: testDeviceId,
+    ),
+    floorPlanService: OcptFloorPlanService(
+      logger: const SilentLogger(),
+      assetsService: assetsService,
+      deviceId: testDeviceId,
+    ),
+    deviceId: testDeviceId,
+  );
+
+  final shotCoverageService = OcptShotCoverageService(
+    logger: const SilentLogger(),
+    deviceId: testDeviceId,
+  );
+
+  final service = OcptScreenplayService(
+    logger: const SilentLogger(),
+    sceneIndexService: sceneIndexService,
+    shotListService: shotListService,
+    shotCoverageService: shotCoverageService,
+    roleIndexService: roleIndexService,
+    breakdownService: breakdownService,
+    scheduleService: scheduleService,
+    deviceId: testDeviceId,
+  );
+
+  late OcptProjectDatabase database;
+
+  setUp(() async {
+    database = OcptProjectDatabase.memory();
+    await database
+        .into(database.ocptScreenplaysTable)
+        .insert(
+          OcptScreenplaysTableCompanion.insert(
+            id: screenplayId,
+            title: "Draft",
+            updatedAt: DateTime.now(),
+          ),
+        );
+  });
+
+  tearDown(() async {
+    await database.close();
+  });
+
+  Future<List<OcptScreenplaySnapshotRow>> readSnapshots() =>
+      (database.select(database.ocptScreenplaySnapshotsTable)
+            ..where((row) => row.isDeleted.equals(false))
+            ..orderBy([(row) => OrderingTerm.asc(row.createdAt)]))
+          .get();
+
+  /// Reads back every snapshot row, tombstones included, oldest first.
+  Future<List<OcptScreenplaySnapshotRow>> readSnapshotsIncludingTombstones() => (database.select(
+    database.ocptScreenplaySnapshotsTable,
+  )..orderBy([(row) => OrderingTerm.asc(row.createdAt)])).get();
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
+
+  group('episodes', () {
+    // The outer setUp inserts `screenplayId` with the `sortKey` column's raw default (the empty
+    // string), never having gone through `ocptFractionalKeyBetween` the way a real project's first
+    // episode does (schema v18's migration allocates it a real key). An empty string is a valid
+    // lower bound but not a valid upper one — nothing sorts below it — so a reorder landing an
+    // episode ahead of it would find no key to allocate. Giving it a real key here is what the
+    // migration already guarantees in production; it is not this method's concern.
+    setUp(() async {
+      await (database.update(database.ocptScreenplaysTable)
+            ..where((table) => table.id.equals(screenplayId)))
+          .write(OcptScreenplaysTableCompanion(sortKey: Value(ocptFractionalKeyBetween())));
+    });
+
+    Future<OcptScreenplayRow> readEpisode(String id) => (database.select(
+      database.ocptScreenplaysTable,
+    )..where((table) => table.id.equals(id))).getSingle();
+
+    test(
+      'loadEpisodes returns live episodes in sortKey order, leaving tombstoned ones out',
+      () async {
+        final secondId = (await service
+            .createEpisode(database: database, title: "Ep 2")
+            .maybeValueOrFail)!;
+        final thirdId = (await service
+            .createEpisode(database: database, title: "Ep 3")
+            .maybeValueOrFail)!;
+
+        // A middle episode removed some other way is still a tombstone `loadEpisodes` must filter.
+        await (database.update(database.ocptScreenplaysTable)
+              ..where((table) => table.id.equals(secondId)))
+            .write(const OcptScreenplaysTableCompanion(isDeleted: Value(true)));
+
+        final episodes = await service.loadEpisodes(database: database).valueOrFail;
+
+        expect(episodes.map((episode) => episode.id), [screenplayId, thirdId]);
+      },
+    );
+
+    test('createEpisode appends after the last live episode and numbers it last + 1, and honours '
+        'an explicit number', () async {
+      final secondId = (await service
+          .createEpisode(database: database, title: "Ep 2")
+          .maybeValueOrFail)!;
+
+      final afterSecond = await service.loadEpisodes(database: database).valueOrFail;
+      expect(afterSecond.map((episode) => episode.id), [screenplayId, secondId]);
+      final second = afterSecond.firstWhere((episode) => episode.id == secondId);
+      expect(second.number, 2);
+      expect(second.title, "Ep 2");
+
+      final explicitId = (await service
+          .createEpisode(database: database, number: 99)
+          .maybeValueOrFail)!;
+
+      final afterExplicit = await service.loadEpisodes(database: database).valueOrFail;
+      // Appended at the tail, whatever its own printed number turned out to be.
+      expect(afterExplicit.last.id, explicitId);
+      expect(afterExplicit.firstWhere((episode) => episode.id == explicitId).number, 99);
+    });
+
+    test('updateEpisode writes only what it is given, touching neither sortKey, fountainText '
+        'nor updatedAt', () async {
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
+      final before = await readEpisode(screenplayId);
+
+      await service
+          .updateEpisode(
+            database: database,
+            screenplayId: screenplayId,
+            title: const Value("Pilot"),
+            number: const Value(7),
+          )
+          .okOrFail;
+
+      final after = await readEpisode(screenplayId);
+      expect(after.title, "Pilot");
+      expect(after.number, 7);
+      expect(after.sortKey, before.sortKey);
+      expect(after.fountainText, before.fountainText);
+      expect(after.updatedAt, before.updatedAt);
+    });
+
+    test(
+      'reorderEpisode moves an episode and writes exactly one row, leaving every number alone',
+      () async {
+        final secondId = (await service
+            .createEpisode(database: database, title: "Ep 2")
+            .maybeValueOrFail)!;
+        final thirdId = (await service
+            .createEpisode(database: database, title: "Ep 3")
+            .maybeValueOrFail)!;
+
+        final before = {
+          for (final row in await database.select(database.ocptScreenplaysTable).get()) row.id: row,
+        };
+
+        // The third episode moves to the front.
+        await service
+            .reorderEpisode(database: database, screenplayId: thirdId, newPosition: 0)
+            .okOrFail;
+
+        final after = await database.select(database.ocptScreenplaysTable).get();
+        final order = (await service.loadEpisodes(database: database).valueOrFail)
+            .map((episode) => episode.id)
+            .toList();
+        expect(order, [thirdId, screenplayId, secondId]);
+
+        final rowsWithChangedSortKey = after
+            .where((row) => row.sortKey != before[row.id]!.sortKey)
+            .toList(growable: false);
+        expect(rowsWithChangedSortKey, hasLength(1));
+        expect(rowsWithChangedSortKey.single.id, thirdId);
+
+        for (final row in after) {
+          expect(row.number, before[row.id]!.number);
+        }
+      },
+    );
+
+    test(
+      "deleteEpisode refuses to remove the project's last live episode, writing nothing",
+      () async {
+        final result = await service
+            .deleteEpisode(database: database, screenplayId: screenplayId)
+            .valueOrFail;
+
+        expect(result, isFalse);
+        final row = await readEpisode(screenplayId);
+        expect(row.isDeleted, isFalse);
+      },
+    );
+
+    test(
+      'a deleteEpisode handed the read-only database of a previewed version is refused',
+      () async {
+        final preview = OcptProjectDatabase.memory(isPreview: true);
+        addTearDown(preview.close);
+
+        await preview
+            .into(preview.ocptScreenplaysTable)
+            .insert(
+              OcptScreenplaysTableCompanion.insert(
+                id: screenplayId,
+                title: "Draft",
+                updatedAt: DateTime.now(),
+              ),
+            );
+        await preview
+            .into(preview.ocptScreenplaysTable)
+            .insert(
+              OcptScreenplaysTableCompanion.insert(
+                id: "screenplay-2",
+                title: "Second",
+                updatedAt: DateTime.now(),
+                sortKey: const Value("A"),
+              ),
+            );
+
+        final result = await service
+            .deleteEpisode(database: preview, screenplayId: screenplayId)
+            .valueOrFail;
+
+        expect(result, isFalse);
+        final row = await (preview.select(
+          preview.ocptScreenplaysTable,
+        )..where((table) => table.id.equals(screenplayId))).getSingle();
+        expect(row.isDeleted, isFalse);
+      },
+    );
+
+    test(
+      'deleteEpisode tombstones everything the deleted episode owns, and leaves everything else',
+      () async {
+        final otherScreenplayId = (await service
+            .createEpisode(database: database, title: "Episode 2")
+            .maybeValueOrFail)!;
+
+        // The deleted episode's own text: JOHN speaks only here, MARY speaks here and elsewhere.
+        await service
+            .saveScreenplayText(
+              database: database,
+              screenplayId: screenplayId,
+              fountainText: 'INT. HOUSE - DAY\n\nJOHN\nHello.\n\nMARY\nHi back.\n',
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
+        // The surviving episode's own text: MARY also speaks here.
+        await service
+            .saveScreenplayText(
+              database: database,
+              screenplayId: otherScreenplayId,
+              fountainText: 'INT. GARDEN - DAY\n\nMARY\nStill here.\n',
+              snapshotReason: OcptSnapshotReason.manual,
+            )
+            .okOrFail;
+
+        final scene = await (database.select(
+          database.ocptScenesTable,
+        )..where((table) => table.screenplayId.equals(screenplayId))).getSingle();
+        final otherScene = await (database.select(
+          database.ocptScenesTable,
+        )..where((table) => table.screenplayId.equals(otherScreenplayId))).getSingle();
+
+        final roles = await roleIndexService.loadRoles(database: database).valueOrFail;
+        final johnRole = roles.firstWhere((role) => role.name == "JOHN");
+        final maryRole = roles.firstWhere((role) => role.name == "MARY");
+
+        // A shot of the deleted episode's scene, carrying a character and a coverage range.
+        final shotId = (await shotListService
+            .createShot(database: database, screenplayId: screenplayId, sceneId: scene.id)
+            .valueOrFail);
+        await shotListService
+            .attachCharacter(database: database, shotId: shotId, roleId: johnRole.id)
+            .okOrFail;
+        final screenplayText = await service
+            .loadScreenplayText(database: database, screenplayId: screenplayId)
+            .valueOrFail;
+        final sceneText = screenplayText.substring(scene.charStart, scene.charEnd);
+        final coverageStart = sceneText.indexOf("Hello");
+        await shotCoverageService
+            .addRange(
+              database: database,
+              shotId: shotId,
+              sceneId: scene.id,
+              startOffset: coverageStart,
+              endOffset: coverageStart + "Hello".length,
+              sceneText: sceneText,
+            )
+            .maybeValueOrFail;
+
+        // A shot of the surviving episode's own scene, untouched by anything below.
+        final otherShotId = (await shotListService
+            .createShot(database: database, screenplayId: otherScreenplayId, sceneId: otherScene.id)
+            .valueOrFail);
+
+        // A breakdown tag of the deleted episode's scene, pointing at the role speaking only there.
+        final tagId = (await breakdownService
+            .createTag(
+              database: database,
+              sceneId: scene.id,
+              startOffset: 0,
+              endOffset: 4,
+              taggedText: "JOHN",
+              targetKind: OcptBreakdownTargetKind.role,
+              targetId: johnRole.id,
+            )
+            .valueOrFail);
+
+        // A scene breakdown status on the deleted episode's scene.
+        await breakdownService
+            .updateSceneBreakdown(
+              database: database,
+              sceneId: scene.id,
+              status: const Value(OcptBreakdownSceneStatus.done),
+            )
+            .okOrFail;
+
+        // A scene_elements link and a scene_sets link on the deleted episode's scene, neither one
+        // created through a tag — the plain links the resources mode itself writes.
+        final elementId = (await elementsService
+            .createElement(
+              database: database,
+              name: "Lampe",
+              category: OcptElementCategory.prop,
+              sourceKind: OcptElementSourceKind.owned,
+            )
+            .valueOrFail);
+        final sceneElementId = (await elementsService
+            .addSceneElement(database: database, sceneId: scene.id, elementId: elementId)
+            .valueOrFail);
+        final locationId = (await locationsService
+            .createLocation(database: database, name: "La maison")
+            .valueOrFail);
+        final setId = (await locationsService
+            .createSet(database: database, locationId: locationId, name: "Salon")
+            .valueOrFail);
+        final sceneSetId = (await locationsService
+            .assignSceneToSet(database: database, sceneId: scene.id, setId: setId)
+            .valueOrFail);
+
+        // A shooting day whose one slot holds a block placing the deleted episode's shot, plus a
+        // milestone block that places nothing.
+        final dayId = (await scheduleService
+            .createDay(database: database, date: DateTime(2026))
+            .valueOrFail);
+        final scheduleBefore = await scheduleService.loadSchedule(database: database).valueOrFail;
+        final slotId = scheduleBefore.slotsByDayId[dayId]!.single.id;
+        final shotBlockId = (await scheduleService
+            .placeShot(database: database, slotId: slotId, shotId: shotId)
+            .valueOrFail);
+        final milestoneBlockId = (await scheduleService
+            .createBlock(
+              database: database,
+              slotId: slotId,
+              kind: OcptShootingBlockKind.preparation,
+              label: "Prep",
+            )
+            .valueOrFail);
+
+        final deleted = await service
+            .deleteEpisode(database: database, screenplayId: screenplayId)
+            .valueOrFail;
+        expect(deleted, isTrue);
+
+        // The episode itself, and everything keyed to it or its scenes, is gone.
+        expect((await readEpisode(screenplayId)).isDeleted, isTrue);
+        expect(
+          (await (database.select(
+            database.ocptScenesTable,
+          )..where((table) => table.id.equals(scene.id))).getSingle()).isDeleted,
+          isTrue,
+        );
+        expect(
+          (await (database.select(
+            database.ocptShotsTable,
+          )..where((table) => table.id.equals(shotId))).getSingle()).isDeleted,
+          isTrue,
+        );
+        expect(
+          await (database.select(
+            database.ocptShotCharactersTable,
+          )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get(),
+          isEmpty,
+        );
+        expect(
+          await (database.select(
+            database.ocptShotCoveragesTable,
+          )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get(),
+          isEmpty,
+        );
+        expect(
+          (await (database.select(
+            database.ocptBreakdownTagsTable,
+          )..where((table) => table.id.equals(tagId))).getSingle()).isDeleted,
+          isTrue,
+        );
+        expect(
+          await (database.select(
+            database.ocptSceneBreakdownsTable,
+          )..where((table) => table.sceneId.equals(scene.id) & table.isDeleted.not())).get(),
+          isEmpty,
+        );
+        expect(
+          (await (database.select(
+            database.ocptSceneElementsTable,
+          )..where((table) => table.id.equals(sceneElementId))).getSingle()).isDeleted,
+          isTrue,
+        );
+        expect(
+          (await (database.select(
+            database.ocptSceneSetsTable,
+          )..where((table) => table.id.equals(sceneSetId))).getSingle()).isDeleted,
+          isTrue,
+        );
+        expect(
+          await (database.select(database.ocptScreenplaySnapshotsTable)
+                ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not()))
+              .get(),
+          isEmpty,
+        );
+        expect(
+          await (database.select(database.ocptRoleEpisodesTable)
+                ..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not()))
+              .get(),
+          isEmpty,
+        );
+        expect(
+          (await (database.select(
+            database.ocptShootingDayBlocksTable,
+          )..where((table) => table.id.equals(shotBlockId))).getSingle()).isDeleted,
+          isTrue,
+        );
+
+        // Everything the deleted episode never owned is exactly as it was.
+        final otherEpisode = await readEpisode(otherScreenplayId);
+        expect(otherEpisode.isDeleted, isFalse);
+        expect(
+          (await (database.select(
+            database.ocptScenesTable,
+          )..where((table) => table.id.equals(otherScene.id))).getSingle()).isDeleted,
+          isFalse,
+        );
+        expect(
+          (await (database.select(
+            database.ocptShotsTable,
+          )..where((table) => table.id.equals(otherShotId))).getSingle()).isDeleted,
+          isFalse,
+        );
+
+        final day = await (database.select(
+          database.ocptShootingDaysTable,
+        )..where((table) => table.id.equals(dayId))).getSingle();
+        expect(day.isDeleted, isFalse);
+        final slot = await (database.select(
+          database.ocptShootingSlotsTable,
+        )..where((table) => table.id.equals(slotId))).getSingle();
+        expect(slot.isDeleted, isFalse);
+        final milestoneBlock = await (database.select(
+          database.ocptShootingDayBlocksTable,
+        )..where((table) => table.id.equals(milestoneBlockId))).getSingle();
+        expect(milestoneBlock.isDeleted, isFalse);
+
+        final element = await (database.select(
+          database.ocptElementsTable,
+        )..where((table) => table.id.equals(elementId))).getSingle();
+        expect(element.isDeleted, isFalse);
+        final location = await (database.select(
+          database.ocptLocationsTable,
+        )..where((table) => table.id.equals(locationId))).getSingle();
+        expect(location.isDeleted, isFalse);
+        final set = await (database.select(
+          database.ocptSetsTable,
+        )..where((table) => table.id.equals(setId))).getSingle();
+        expect(set.isDeleted, isFalse);
+
+        // JOHN spoke only in the deleted episode: the role itself survives, un-orphaned, simply
+        // named in no episode any more.
+        final johnRow = await (database.select(
+          database.ocptRolesTable,
+        )..where((table) => table.id.equals(johnRole.id))).getSingle();
+        expect(johnRow.isDeleted, isFalse);
+        expect(johnRow.orphanedName, isNull);
+        expect(
+          await (database.select(
+            database.ocptRoleEpisodesTable,
+          )..where((table) => table.roleId.equals(johnRole.id) & table.isDeleted.not())).get(),
+          isEmpty,
+        );
+
+        // MARY spoke in both episodes: she keeps her link to the surviving one.
+        final maryRow = await (database.select(
+          database.ocptRolesTable,
+        )..where((table) => table.id.equals(maryRole.id))).getSingle();
+        expect(maryRow.isDeleted, isFalse);
+        final maryLinks = await (database.select(
+          database.ocptRoleEpisodesTable,
+        )..where((table) => table.roleId.equals(maryRole.id) & table.isDeleted.not())).get();
+        expect(maryLinks.map((link) => link.screenplayId), [otherScreenplayId]);
+      },
+    );
+  });
+
+  group('stamping', () {
+    // Same fix-up as the `episodes` group's own `setUp`, needed here too by `reorderEpisode`'s own
+    // stamping test: the outer `setUp`'s raw default sortKey (the empty string) is a valid lower
+    // bound but not a valid upper one.
+    setUp(() async {
+      await (database.update(database.ocptScreenplaysTable)
+            ..where((table) => table.id.equals(screenplayId)))
+          .write(OcptScreenplaysTableCompanion(sortKey: Value(ocptFractionalKeyBetween())));
+    });
+
+    test('saveScreenplayText stamps fountainText and updatedAt of the screenplay row', () async {
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
+
+      final stamps = await readStamps();
+      expect(stamps["screenplays/$screenplayId/fountainText"]!.version, 1);
+      expect(stamps["screenplays/$screenplayId/updatedAt"]!.version, 1);
+    });
+
+    test('saveScreenplayText stamps every column of the pre-save snapshot it inserts', () async {
+      await service
+          .saveScreenplayText(
+            database: database,
+            screenplayId: screenplayId,
+            fountainText: "first version",
+            snapshotReason: OcptSnapshotReason.manual,
+          )
+          .okOrFail;
+
+      final snapshotId = (await readSnapshots()).single.id;
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptScreenplaySnapshotsTable,
+      )..where((table) => table.id.equals(snapshotId))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("screenplay_snapshots/$snapshotId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["screenplay_snapshots/$snapshotId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test('a pruned snapshot has its isDeleted and fountainText columns stamped', () async {
+      for (var i = 0; i < 35; i++) {
+        await service
+            .saveScreenplayText(
+              database: database,
+              screenplayId: screenplayId,
+              fountainText: "version $i",
+              snapshotReason: OcptSnapshotReason.timer,
+            )
+            .okOrFail;
+      }
+
+      final pruned = (await readSnapshotsIncludingTombstones()).where((row) => row.isDeleted).first;
+
+      final stamps = await readStamps();
+      expect(stamps["screenplay_snapshots/${pruned.id}/isDeleted"], isNotNull);
+      expect(stamps["screenplay_snapshots/${pruned.id}/fountainText"], isNotNull);
+    });
+
+    test('snapshotOnProjectOpen stamps every column of the snapshot it takes', () async {
+      await service.snapshotOnProjectOpen(database: database, screenplayId: screenplayId).okOrFail;
+
+      final snapshotId = (await readSnapshots()).single.id;
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys
+          .where((key) => key.startsWith("screenplay_snapshots/$snapshotId/"))
+          .toSet();
+      final row = await (database.select(
+        database.ocptScreenplaySnapshotsTable,
+      )..where((table) => table.id.equals(snapshotId))).getSingle();
+      expect(ownKeys, hasLength(row.toJson().length));
+    });
+
+    test('createEpisode stamps every column of the new episode', () async {
+      final id = (await service.createEpisode(database: database, title: "Ep 2").maybeValueOrFail)!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptScreenplaysTable,
+      )..where((table) => table.id.equals(id))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("screenplays/$id/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        final stamp = ownStamps["screenplays/$id/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test('updateEpisode stamps only the columns that actually changed', () async {
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service
+          .updateEpisode(
+            database: database,
+            screenplayId: screenplayId,
+            title: const Value("Pilot"),
+          )
+          .okOrFail;
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys
+          .where((key) => key.startsWith("screenplays/$screenplayId/"))
+          .toSet();
+      expect(ownKeys, {"screenplays/$screenplayId/title"});
+    });
+
+    test('reorderEpisode stamps only sortKey', () async {
+      final secondId = (await service
+          .createEpisode(database: database, title: "Ep 2")
+          .maybeValueOrFail)!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await service
+          .reorderEpisode(database: database, screenplayId: secondId, newPosition: 0)
+          .okOrFail;
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("screenplays/$secondId/")).toSet();
+      expect(ownKeys, {"screenplays/$secondId/sortKey"});
+    });
+
+    test('deleteEpisode stamps isDeleted on the screenplay and its snapshots', () async {
+      final otherScreenplayId = (await service
+          .createEpisode(database: database, title: "Episode 2")
+          .maybeValueOrFail)!;
+      await service.snapshotOnProjectOpen(database: database, screenplayId: screenplayId).okOrFail;
+      final snapshotId = (await readSnapshots()).single.id;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final deleted = await service
+          .deleteEpisode(database: database, screenplayId: screenplayId)
+          .valueOrFail;
+      expect(deleted, isTrue);
+
+      final stamps = await readStamps();
+      expect(stamps["screenplays/$screenplayId/isDeleted"]!.version, 1);
+      expect(stamps["screenplay_snapshots/$snapshotId/isDeleted"]!.version, 1);
+      // The surviving episode is left alone.
+      expect(stamps.containsKey("screenplays/$otherScreenplayId/isDeleted"), isFalse);
+    });
+  });
+}

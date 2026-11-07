@@ -6,20 +6,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_budget_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a wide, tall
 /// enough band that the whole tree, the footer and the coverage band lay out with no scroll needed
@@ -85,7 +85,7 @@ OcptBudgetEntry _entry({
   id: id,
   date: DateTime(2026, 4),
   label: label,
-  posteId: null,
+  accountId: null,
   debitCents: 0,
   creditCents: creditCents,
   isTaxInclusive: isTaxInclusive,
@@ -99,9 +99,9 @@ OcptBudgetEntry _entry({
   personId: null,
 );
 
-/// A poste priced at [amountCents], tax-inclusive — read tax-inclusive always by the coverage
+/// An account priced at [amountCents], tax-inclusive — read tax-inclusive always by the coverage
 /// band's own `needs` reading, so no VAT rate is needed for it to read as complete.
-OcptBudgetPoste _poste({required String id, int amountCents = 100000}) => OcptBudgetPoste(
+OcptBudgetAccount _account({required String id, int amountCents = 100000}) => OcptBudgetAccount(
   id: id,
   code: "1",
   label: "Technical equipment",
@@ -111,11 +111,15 @@ OcptBudgetPoste _poste({required String id, int amountCents = 100000}) => OcptBu
   lines: [
     OcptBudgetLine(
       id: "$id-line",
-      posteId: id,
+      accountId: id,
       label: "",
       quantityMilli: 1000,
       unit: "u",
-      unitPrice: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
+      unitPrice: OcptMoney(
+        amountCents: amountCents,
+        isTaxInclusive: true,
+        vatRateBasisPoints: null,
+      ),
       elementId: null,
       inKindResourceId: null,
       provisionKey: null,
@@ -126,6 +130,7 @@ OcptBudgetPoste _poste({required String id, int amountCents = 100000}) => OcptBu
   ],
 );
 
+/// Run the tests of [OcptBudgetFinancing].
 void main() {
   /// Pumps [OcptBudgetFinancing] with every callback a no-op unless overridden.
   Future<void> pumpView(
@@ -133,7 +138,7 @@ void main() {
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetEntry> entries = const [],
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     int? defaultVatRateBasisPoints,
     Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
     int Function(String resourceId)? receivedCentsOf,
@@ -166,7 +171,7 @@ void main() {
           resources: resources,
           revenues: revenues,
           entries: entries,
-          postes: postes,
+          accounts: accounts,
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
           receivedByResourceId: receivedByResourceId,
           receivedCentsOf: receivedCentsOf ?? (id) => receivedByResourceId[id]?.amountCents ?? 0,
@@ -205,13 +210,18 @@ void main() {
   testWidgets("the three families draw in order, an empty family drawn not at all", (tester) async {
     await pumpView(
       tester,
-      resources: [_resource(id: "r1"), _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.cash)],
+      resources: [
+        _resource(id: "r1"),
+        _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.cash),
+      ],
       revenues: [_revenue(id: "v1")],
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
     final subsidiesY = tester.getTopLeft(find.text(tr.budgetFinancingFamilySubsidiesLabel)).dy;
-    final contributionsY = tester.getTopLeft(find.text(tr.budgetFinancingFamilyContributionsLabel)).dy;
+    final contributionsY = tester
+        .getTopLeft(find.text(tr.budgetFinancingFamilyContributionsLabel))
+        .dy;
     final takingsY = tester.getTopLeft(find.text(tr.budgetFinancingFamilyTakingsLabel)).dy;
 
     expect(subsidiesY, lessThan(contributionsY));
@@ -287,7 +297,12 @@ void main() {
     tester,
   ) async {
     final resource = _resource(id: "r1", label: "Regional grant");
-    final receipt = _entry(id: "e1", resourceId: "r1", creditCents: 4000, label: "First instalment");
+    final receipt = _entry(
+      id: "e1",
+      resourceId: "r1",
+      creditCents: 4000,
+      label: "First instalment",
+    );
 
     await pumpView(
       tester,
@@ -329,29 +344,33 @@ void main() {
     },
   );
 
-  testWidgets("the same in-kind resource reads real figures once an entry names it, zero included", (
+  testWidgets(
+    "the same in-kind resource reads real figures once an entry names it, zero included",
+    (tester) async {
+      final resource = _resource(
+        id: "r1",
+        groupKind: OcptBudgetResourceGroupKind.inKind,
+        amountCents: 5000,
+      );
+
+      await pumpView(
+        tester,
+        resources: [resource],
+        receivedByResourceId: {
+          "r1": const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 1, lineCount: 1),
+        },
+        expandedNodeIds: const {"contributions"},
+      );
+
+      expect(find.text(ocptBudgetAmountLabel(0, "EUR")), findsWidgets);
+      expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
+    },
+  );
+
+  testWidgets("the Dossier badge reads the shipped word for a resource's own group", (
     tester,
   ) async {
-    final resource = _resource(id: "r1", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 5000);
-
-    await pumpView(
-      tester,
-      resources: [resource],
-      receivedByResourceId: {
-        "r1": const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 1, lineCount: 1),
-      },
-      expandedNodeIds: const {"contributions"},
-    );
-
-    expect(find.text(ocptBudgetAmountLabel(0, "EUR")), findsWidgets);
-    expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
-  });
-
-  testWidgets("the Dossier badge reads the shipped word for a resource's own group", (tester) async {
-    final resource = _resource(
-      id: "r1",
-      status: OcptBudgetResourceStatus.agreed,
-    );
+    final resource = _resource(id: "r1", status: OcptBudgetResourceStatus.agreed);
 
     await pumpView(tester, resources: [resource], expandedNodeIds: const {"subsidies"});
 
@@ -371,7 +390,10 @@ void main() {
   testWidgets("the total row states the family count and the three totals", (tester) async {
     await pumpView(
       tester,
-      resources: [_resource(id: "r1"), _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.cash, amountCents: 5000)],
+      resources: [
+        _resource(id: "r1"),
+        _resource(id: "r2", groupKind: OcptBudgetResourceGroupKind.cash, amountCents: 5000),
+      ],
       revenues: [_revenue(id: "v1", amountCents: 2000)],
     );
 
@@ -381,19 +403,27 @@ void main() {
     expect(find.text(ocptBudgetAmountLabel(17000, "EUR")), findsOneWidget);
   });
 
-  testWidgets("the total row's own valued caption shows while the project holds an in-kind resource", (
+  testWidgets(
+    "the total row's own valued caption shows while the project holds an in-kind resource",
+    (tester) async {
+      await pumpView(
+        tester,
+        resources: [
+          _resource(id: "r1", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 3000),
+        ],
+      );
+
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
+      expect(
+        find.text(tr.budgetFinancingValuedCaption(ocptBudgetAmountLabel(3000, "EUR"))),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets("the valued caption is absent while the project holds no in-kind resource", (
     tester,
   ) async {
-    await pumpView(
-      tester,
-      resources: [_resource(id: "r1", groupKind: OcptBudgetResourceGroupKind.inKind, amountCents: 3000)],
-    );
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetFinancing)));
-    expect(find.text(tr.budgetFinancingValuedCaption(ocptBudgetAmountLabel(3000, "EUR"))), findsOneWidget);
-  });
-
-  testWidgets("the valued caption is absent while the project holds no in-kind resource", (tester) async {
     await pumpView(tester, resources: [_resource(id: "r1")]);
 
     // "valued" (lower case) appears in no other financing string — `Valued` (the in-kind status
@@ -406,7 +436,7 @@ void main() {
   ) async {
     await pumpView(
       tester,
-      postes: [_poste(id: "p1")],
+      accounts: [_account(id: "p1")],
       resources: [_resource(id: "r1", amountCents: 40000)],
       receivedByResourceId: {
         "r1": const OcptBudgetCoveredTotal(amountCents: 30000, coveredLineCount: 1, lineCount: 1),
@@ -427,7 +457,9 @@ void main() {
     );
     // Promised (40000) plus received already counted once — missing is 100000 - 40000 = 60000.
     expect(
-      find.textContaining(tr.budgetFinancingCoverageMissingReadOut(ocptBudgetAmountLabel(60000, "EUR"))),
+      find.textContaining(
+        tr.budgetFinancingCoverageMissingReadOut(ocptBudgetAmountLabel(60000, "EUR")),
+      ),
       findsOneWidget,
     );
   });
@@ -435,7 +467,7 @@ void main() {
   testWidgets("the coverage band states the plan covers the quote once it does", (tester) async {
     await pumpView(
       tester,
-      postes: [_poste(id: "p1", amountCents: 40000)],
+      accounts: [_account(id: "p1", amountCents: 40000)],
       resources: [_resource(id: "r1", amountCents: 40000)],
       receivedByResourceId: {
         "r1": const OcptBudgetCoveredTotal(amountCents: 40000, coveredLineCount: 1, lineCount: 1),
@@ -518,7 +550,9 @@ void main() {
     );
 
     final coloredBox = tester.widget<ColoredBox>(
-      find.ancestor(of: find.textContaining("Wire transfer"), matching: find.byType(ColoredBox)).first,
+      find
+          .ancestor(of: find.textContaining("Wire transfer"), matching: find.byType(ColoredBox))
+          .first,
     );
     expect(coloredBox.color, isNot(Colors.transparent));
   });
@@ -606,9 +640,9 @@ void main() {
     // The first taking's own menu offers no Move up at all.
     await tester.tap(find.byIcon(Icons.more_vert).first);
     await tester.pumpAndSettle();
-    expect(find.text(tr.budgetPosteMoveUpAction), findsNothing);
-    expect(find.text(tr.budgetPosteMoveDownAction), findsOneWidget);
-    await tester.tap(find.text(tr.budgetPosteMoveDownAction));
+    expect(find.text(tr.budgetAccountMoveUpAction), findsNothing);
+    expect(find.text(tr.budgetAccountMoveDownAction), findsOneWidget);
+    await tester.tap(find.text(tr.budgetAccountMoveDownAction));
     await tester.pumpAndSettle();
     expect(moved, "v1");
     expect(movedUp, isFalse);

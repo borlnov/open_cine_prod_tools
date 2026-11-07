@@ -24,7 +24,7 @@ class OcptBudgetMileageRatesTable extends Table {
   @override
   String get tableName => 'budget_mileage_rates';
 
-  /// The stable, unique id of this rate (a UUID).
+  /// Get the stable, unique id of this rate (a UUID).
   TextColumn get id => text()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -33,10 +33,11 @@ class OcptBudgetMileageRatesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// This rate's display name, e.g. "Voiture personnelle".
+  /// Get this rate's display name, e.g. "Voiture personnelle".
   TextColumn get label => text()();
 
-  /// The reimbursement rate, in **thousandths of a cent per kilometre** — `0.529 €/km` is `52900`.
+  /// Get the reimbursement rate, in **thousandths of a cent per kilometre** — `0.529 €/km` is
+  /// `52900`.
   ///
   /// A deliberate deviation from the whole-cent `ratePerKmCents` first sketched for it, taken with
   /// the plan owner's agreement: a real mileage scale is quoted to **three decimals** — 0.529,

@@ -4,12 +4,14 @@
 
 import 'dart:async';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
+import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_presence_indicator.dart';
@@ -20,18 +22,28 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_presence_in
 /// frames through [emit], mirroring `presenceRosterChanges` (the lifecycle-spanning stream the
 /// indicator listens to).
 class _FakePresenceSyncManager extends OcptSyncManager {
-  _FakePresenceSyncManager(this.roster) : super(changesetService: const OcptChangesetService());
-
   /// What [presenceRoster] returns — the seed a fresh listener reads before the stream ever emits.
   OcptPresenceRoster? roster;
 
+  /// The controller behind [presenceRosterChanges].
   final _controller = StreamController<OcptPresenceRoster?>.broadcast();
 
+  /// Read the roster the double was given.
   @override
   OcptPresenceRoster? get presenceRoster => roster;
 
+  /// Emit the rosters the test adds to the controller.
   @override
   Stream<OcptPresenceRoster?> get presenceRosterChanges => _controller.stream;
+
+  /// Class constructor
+  _FakePresenceSyncManager(this.roster)
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
   /// Pushes [next] onto [presenceRosterChanges], as a presence service starting or a heartbeat run
   /// would; a null is the session stopping.
@@ -40,6 +52,7 @@ class _FakePresenceSyncManager extends OcptSyncManager {
     _controller.add(next);
   }
 
+  /// Close the controller behind the stream.
   Future<void> disposeStream() => _controller.close();
 }
 
@@ -48,6 +61,7 @@ class _FakePresenceSyncManager extends OcptSyncManager {
 OcptPresenceFrame _frame({required String deviceId, required String platform, String? modeKey}) =>
     OcptPresenceFrame(deviceId: deviceId, platform: platform, modeKey: modeKey, heartbeat: 0);
 
+/// Wrap [child] in a localized app, so the widget under test finds its theme and its words.
 Widget _wrap(Widget child) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
@@ -56,9 +70,12 @@ Widget _wrap(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: Align(alignment: Alignment.topLeft, child: child)),
+  home: Scaffold(
+    body: Align(alignment: Alignment.topLeft, child: child),
+  ),
 );
 
+/// Run the tests of [OcptPresenceIndicator].
 void main() {
   /// Widens the test surface well past the default 800px (`compact-breakpoint-vs-default-test
   /// -surface.md`'s own pitfall) and pumps [indicator].
@@ -144,10 +161,7 @@ void main() {
     final peerB = _frame(deviceId: "peer-b", platform: "linux");
     final peerC = _frame(deviceId: "peer-c", platform: "android");
     final syncManager = _FakePresenceSyncManager(
-      OcptPresenceRoster(
-        participants: [self, peerA, peerB, peerC],
-        selfDeviceId: self.deviceId,
-      ),
+      OcptPresenceRoster(participants: [self, peerA, peerB, peerC], selfDeviceId: self.deviceId),
     );
     addTearDown(syncManager.disposeStream);
 
@@ -251,9 +265,7 @@ void main() {
     expect(find.text("M"), findsNothing);
 
     final peer = _frame(deviceId: "peer-a", platform: "macos");
-    syncManager.emit(
-      OcptPresenceRoster(participants: [self, peer], selfDeviceId: self.deviceId),
-    );
+    syncManager.emit(OcptPresenceRoster(participants: [self, peer], selfDeviceId: self.deviceId));
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.text("W"), findsOneWidget);

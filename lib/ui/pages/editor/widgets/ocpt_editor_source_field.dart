@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 /// preview's simulated paper).
 ///
 /// The [controller], [scrollController], [focusNode] and [undoController] are owned by the page's
-/// State (the documented RFL1 exception: an editing surface is exactly what StatefulWidget-held
+/// State (the documented exception: an editing surface is exactly what StatefulWidget-held
 /// controllers are for), which is also where text and caret changes are turned into bloc events.
 class OcptEditorSourceField extends StatelessWidget {
   /// The editor's font size, in logical pixels.
@@ -47,6 +47,7 @@ class OcptEditorSourceField extends StatelessWidget {
     required this.undoController,
   });
 
+  /// Build the editor source field as a [TextField].
   @override
   Widget build(BuildContext context) => TextField(
     controller: controller,

@@ -28,7 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 /// narrow for the full page, the whole page is scaled down to fit instead of being cropped by a
 /// horizontal scroll (which would otherwise leave the right margin permanently out of view): the
 /// left AND right margins always stay visible, at the wide panel's own scale or smaller. The block
-/// list is lazy (RFL38) and the whole preview sits behind a [RepaintBoundary] (RFL37) so typing in
+/// list is lazy and the whole preview sits behind a [RepaintBoundary] so typing in
 /// the source editor doesn't repaint it needlessly.
 ///
 /// When the editor caret changes line, the preview scrolls so the block containing that line is
@@ -59,6 +59,7 @@ class OcptEditorPreview extends StatefulWidget {
     required this.isPageSimulationEnabled,
   });
 
+  /// Create the [_OcptEditorPreviewState] holding the state of the editor preview.
   @override
   State<OcptEditorPreview> createState() => _OcptEditorPreviewState();
 }
@@ -97,6 +98,10 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   /// scroll view's content (i.e. already including every margin/gap above it).
   List<double> _blockOffsets = const [];
 
+  /// Get the layout metrics matching the project's page setup.
+  FountainLayoutMetrics get _metrics => widget.pageSetup.toMetrics();
+
+  /// Scroll the preview to the current line after the frame when the line or the document changes.
   @override
   void didUpdateWidget(OcptEditorPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -105,12 +110,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     }
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
+  /// Build the editor preview as a [ColoredBox].
   @override
   Widget build(BuildContext context) {
     final layout = OcptEditorPreviewLayout(metrics: _metrics);
@@ -138,6 +138,14 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
       );
     }
 
+    final content = _OcptEditorPreviewContent(
+      layout: layout,
+      isPageSimulationEnabled: widget.isPageSimulationEnabled,
+      blocks: _blocks,
+      pages: _pages,
+      scrollController: _scrollController,
+    );
+
     return ColoredBox(
       color: backdropColor,
       child: RepaintBoundary(
@@ -149,27 +157,28 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
                 width: constraints.maxWidth,
                 height: constraints.maxHeight,
                 child: Center(
-                  child: SizedBox(width: layout.pageWidth, child: _content(layout)),
+                  child: SizedBox(width: layout.pageWidth, child: content),
                 ),
               );
             }
 
             // The panel is narrower than the full page: scale the whole page down to fit it, rather
-            // than crop it with horizontal scroll. `height` is inflated by the inverse of `scale` so
-            // the scaled-down viewport exactly fills the panel: `_scrollController`'s viewport/target
-            // math, entirely computed in this unscaled space (see `_syncScrollToCurrentLine`), stays
-            // valid without any adjustment.
+            // than crop it with horizontal scroll. `height` is inflated by the inverse of `scale`
+            // so the scaled-down viewport exactly fills the panel: `_scrollController`'s
+            // viewport/target math, entirely computed in this unscaled space (see
+            // `_syncScrollToCurrentLine`), stays valid without any adjustment.
             //
-            // This must be a `FittedBox`, not a `Transform.scale` wrapping a merely wide `SizedBox`:
-            // this whole subtree already sits under a *tight* incoming width constraint (an
-            // `Expanded` panel gives one), and a plain `SizedBox` cannot exceed a tight constraint —
-            // it silently clamps back down to `constraints.maxWidth`, one level too late for
-            // `Transform.scale` to notice, which then scales down and anchors against that wrong
-            // (already-narrow) box instead of the true, wider page — visibly displacing the left
-            // margin while the vertical margins (unaffected by this) still line up. `FittedBox`
-            // sidesteps this: it always lays its child out with fully unconstrained constraints, so
-            // the inner `SizedBox` genuinely achieves `unscaledWidth`, and `FittedBox` itself then
-            // measures that real size to compute the correct scale and centering.
+            // This must be a `FittedBox`, not a `Transform.scale` wrapping a merely wide
+            // `SizedBox`: this whole subtree already sits under a *tight* incoming width constraint
+            // (an `Expanded` panel gives one), and a plain `SizedBox` cannot exceed a tight
+            // constraint — it silently clamps back down to `constraints.maxWidth`, one level too
+            // late for `Transform.scale` to notice, which then scales down and anchors against that
+            // wrong (already-narrow) box instead of the true, wider page — visibly displacing the
+            // left margin while the vertical margins (unaffected by this) still line up.
+            // `FittedBox` sidesteps this: it always lays its child out with fully unconstrained
+            // constraints, so the inner `SizedBox` genuinely achieves `unscaledWidth`, and
+            // `FittedBox` itself then measures that real size to compute the correct scale and
+            // centering.
             final scale = constraints.maxWidth / unscaledWidth;
             return FittedBox(
               alignment: Alignment.topCenter,
@@ -177,7 +186,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
                 width: unscaledWidth,
                 height: constraints.maxHeight / scale,
                 child: Center(
-                  child: SizedBox(width: layout.pageWidth, child: _content(layout)),
+                  child: SizedBox(width: layout.pageWidth, child: content),
                 ),
               ),
             );
@@ -187,74 +196,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     );
   }
 
-  /// The preview's content: paginated paper sheets, or the single continuous sheet, depending on
-  /// [OcptEditorPreview.isPageSimulationEnabled].
-  Widget _content(OcptEditorPreviewLayout layout) =>
-      widget.isPageSimulationEnabled ? _paginatedPages(layout) : _paperPage(layout);
-
-  /// The simulated paper sheet: white, slightly elevated and rounded, always black-on-white
-  /// regardless of the app theme, with the lazy block list scrolling inside it.
-  Widget _paperPage(OcptEditorPreviewLayout layout) => Material(
-    color: Colors.white,
-    elevation: 2,
-    borderRadius: BorderRadius.circular(3),
-    clipBehavior: Clip.antiAlias,
-    child: ListView.builder(
-      controller: _scrollController,
-      padding: EdgeInsets.only(top: layout.marginTop, bottom: layout.marginBottom),
-      itemCount: _blocks.length,
-      itemBuilder: (context, index) =>
-          OcptEditorPreviewBlock(block: _blocks[index], layout: layout),
-    ),
-  );
-
-  /// Distinct paper sheets, one per page in [_pages], separated by a gap: the preview panel's own
-  /// backdrop (painted by [build], white in both themes) shows through the gap, while each sheet
-  /// stays white regardless of theme.
-  ///
-  /// A sheet is a fixed-size white [Material] behind its blocks, laid out in a plain [Column] (not
-  /// lazily: a single page's block count is always small). A block taller than a page is simply
-  /// allowed to render past the sheet's nominal height (no clipping) rather than splitting it —
-  /// true intra-block pagination is the PDF exporter's job later.
-  Widget _paginatedPages(OcptEditorPreviewLayout layout) => ListView.builder(
-    controller: _scrollController,
-    itemCount: _pages.length,
-    itemBuilder: (context, index) => Padding(
-      padding: EdgeInsets.only(bottom: index == _pages.length - 1 ? 0 : _pageGap),
-      child: Stack(
-        children: [
-          // Width is explicit, not left to the `Stack`'s loose constraints: this `Material` has no
-          // child of its own, so a childless `Material` under `StackFit.loose` sizes itself to
-          // `constraints.smallest`, i.e. zero width (only the `SizedBox`'s height is tight). Without
-          // it the sheet collapses to a 0 px-wide sliver and paints nothing.
-          SizedBox(
-            width: layout.pageWidth,
-            height: layout.pageHeight,
-            child: Material(
-              color: Colors.white,
-              elevation: 2,
-              borderRadius: BorderRadius.circular(3),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.only(top: layout.marginTop, bottom: layout.marginBottom),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final block in _pages[index])
-                  OcptEditorPreviewBlock(block: block, layout: layout),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  /// The layout metrics matching the project's page setup.
-  FountainLayoutMetrics get _metrics => widget.pageSetup.toMetrics();
-
-  /// Recomputes [_blocks], [_pages] and [_blockOffsets] if the document or the page-simulation
+  /// Recompute [_blocks], [_pages] and [_blockOffsets] if the document or the page-simulation
   /// flag changed since the last build.
   void _refreshCaches(OcptEditorPreviewLayout layout) {
     final document = widget.document;
@@ -280,7 +222,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     }
   }
 
-  /// Computes [_blockOffsets] for the single-continuous-sheet rendering: a plain running sum of
+  /// Compute [_blockOffsets] for the single-continuous-sheet rendering: a plain running sum of
   /// each block's estimated height, starting after the page's top margin.
   void _refreshContinuousCaches(OcptEditorPreviewLayout layout) {
     _pages = const [];
@@ -294,7 +236,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     _blockOffsets = offsets;
   }
 
-  /// Splits [_blocks] into [_pages] and computes [_blockOffsets] for the paginated rendering.
+  /// Split [_blocks] into [_pages] and compute [_blockOffsets] for the paginated rendering.
   ///
   /// Blocks are greedily packed onto the current page while the running sum of
   /// [OcptEditorPreviewLayout.estimatedLineCount] — **plus the blank line that separates two
@@ -339,7 +281,8 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
       // The blank line separating this block from the one above it, which only exists once the
       // page already holds something.
       var separatorLines = currentPage.isEmpty ? 0 : 1;
-      if (currentPage.isNotEmpty && currentLines + separatorLines + lines > layout.metrics.linesPerPage) {
+      if (currentPage.isNotEmpty &&
+          currentLines + separatorLines + lines > layout.metrics.linesPerPage) {
         pages.add(currentPage);
         currentPage = [];
         currentLines = 0;
@@ -360,7 +303,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     _blockOffsets = offsets;
   }
 
-  /// Scrolls the page so the block containing the caret's line is visible.
+  /// Scroll the page so the block containing the caret's line is visible.
   ///
   /// If the target offset is already comfortably within the viewport, nothing moves (so plain
   /// typing doesn't make the preview twitch); otherwise the page animates to put the block near
@@ -398,7 +341,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     );
   }
 
-  /// Returns the index, in [_blocks], of the block containing the source [line] (or the closest
+  /// Return the index, in [_blocks], of the block containing the source [line] (or the closest
   /// block above it), or null if [line] precedes every block.
   int? _blockIndexForLine(int line) {
     int? candidate;
@@ -412,4 +355,153 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
 
     return candidate;
   }
+
+  /// Dispose [_scrollController].
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+}
+
+/// The preview's content: paginated paper sheets, or the single continuous sheet, depending on
+/// [isPageSimulationEnabled].
+class _OcptEditorPreviewContent extends StatelessWidget {
+  /// The geometry the sheets are typeset with.
+  final OcptEditorPreviewLayout layout;
+
+  /// Whether the preview shows one sheet per page rather than a single continuous one.
+  final bool isPageSimulationEnabled;
+
+  /// Every block of the document, in source order.
+  final List<FountainBlock> blocks;
+
+  /// [blocks] split by page, read only while [isPageSimulationEnabled].
+  final List<List<FountainBlock>> pages;
+
+  /// The controller of the list scrolling the sheets, which the state keeps across rebuilds.
+  final ScrollController scrollController;
+
+  /// Class constructor
+  const _OcptEditorPreviewContent({
+    required this.layout,
+    required this.isPageSimulationEnabled,
+    required this.blocks,
+    required this.pages,
+    required this.scrollController,
+  });
+
+  /// Build the preview content as the paper sheet or the paginated sheets.
+  @override
+  Widget build(BuildContext context) => isPageSimulationEnabled
+      ? _OcptEditorPreviewPaginatedPages(
+          layout: layout,
+          pages: pages,
+          scrollController: scrollController,
+        )
+      : _OcptEditorPreviewPaperPage(
+          layout: layout,
+          blocks: blocks,
+          scrollController: scrollController,
+        );
+}
+
+/// The simulated paper sheet: white, slightly elevated and rounded, always black-on-white
+/// regardless of the app theme, with the lazy block list scrolling inside it.
+class _OcptEditorPreviewPaperPage extends StatelessWidget {
+  /// The geometry the sheet is typeset with.
+  final OcptEditorPreviewLayout layout;
+
+  /// Every block of the document, in source order.
+  final List<FountainBlock> blocks;
+
+  /// The controller of the list scrolling the sheet.
+  final ScrollController scrollController;
+
+  /// Class constructor
+  const _OcptEditorPreviewPaperPage({
+    required this.layout,
+    required this.blocks,
+    required this.scrollController,
+  });
+
+  /// Build the paper page as a [Material].
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.white,
+    elevation: 2,
+    borderRadius: BorderRadius.circular(3),
+    clipBehavior: Clip.antiAlias,
+    child: ListView.builder(
+      controller: scrollController,
+      padding: EdgeInsets.only(top: layout.marginTop, bottom: layout.marginBottom),
+      itemCount: blocks.length,
+      itemBuilder: (context, index) => OcptEditorPreviewBlock(block: blocks[index], layout: layout),
+    ),
+  );
+}
+
+/// Distinct paper sheets, one per page in [pages], separated by a gap: the preview panel's own
+/// backdrop (white in both themes) shows through the gap, while each sheet stays white regardless
+/// of theme.
+///
+/// A sheet is a fixed-size white [Material] behind its blocks, laid out in a plain [Column] (not
+/// lazily: a single page's block count is always small). A block taller than a page is simply
+/// allowed to render past the sheet's nominal height (no clipping) rather than splitting it —
+/// true intra-block pagination is the PDF exporter's job later.
+class _OcptEditorPreviewPaginatedPages extends StatelessWidget {
+  /// The geometry the sheets are typeset with.
+  final OcptEditorPreviewLayout layout;
+
+  /// The blocks of each page.
+  final List<List<FountainBlock>> pages;
+
+  /// The controller of the list scrolling the sheets.
+  final ScrollController scrollController;
+
+  /// Class constructor
+  const _OcptEditorPreviewPaginatedPages({
+    required this.layout,
+    required this.pages,
+    required this.scrollController,
+  });
+
+  /// Build the paginated pages as a [ListView].
+  @override
+  Widget build(BuildContext context) => ListView.builder(
+    controller: scrollController,
+    itemCount: pages.length,
+    itemBuilder: (context, index) => Padding(
+      padding: EdgeInsets.only(
+        bottom: index == pages.length - 1 ? 0 : OcptEditorPreviewLayout.pageGap,
+      ),
+      child: Stack(
+        children: [
+          // Width is explicit, not left to the `Stack`'s loose constraints: this `Material` has no
+          // child of its own, so a childless `Material` under `StackFit.loose` sizes itself to
+          // `constraints.smallest`, i.e. zero width (only the `SizedBox`'s height is tight).
+          // Without it the sheet collapses to a 0 px-wide sliver and paints nothing.
+          SizedBox(
+            width: layout.pageWidth,
+            height: layout.pageHeight,
+            child: Material(
+              color: Colors.white,
+              elevation: 2,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(top: layout.marginTop, bottom: layout.marginBottom),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final block in pages[index])
+                  OcptEditorPreviewBlock(block: block, layout: layout),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

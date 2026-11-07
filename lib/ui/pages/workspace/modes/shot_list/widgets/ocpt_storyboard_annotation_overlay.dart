@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_annotation.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool_behaviour.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_annotation_painter.dart';
 
 /// The distance, in logical pixels, a drag must travel before [OcptStoryboardAnnotationOverlay]
@@ -41,7 +42,13 @@ class OcptStoryboardAnnotationOverlay extends StatefulWidget {
 
   /// Called with the new mark's kind and its normalised tail/head once a drag finishes drawing an
   /// arrow, or null while withheld.
-  final void Function(OcptStoryboardAnnotationKind kind, double x1, double y1, double x2, double y2)?
+  final void Function(
+    OcptStoryboardAnnotationKind kind,
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+  )?
   onArrowDrawn;
 
   /// Called with the normalised point a label was just clicked into place at, or null while
@@ -63,10 +70,14 @@ class OcptStoryboardAnnotationOverlay extends StatefulWidget {
     required this.onAnnotationSelected,
   });
 
+  /// Create the [_OcptStoryboardAnnotationOverlayState] holding the state of the storyboard
+  /// annotation overlay.
   @override
   State<OcptStoryboardAnnotationOverlay> createState() => _OcptStoryboardAnnotationOverlayState();
 }
 
+/// State of [OcptStoryboardAnnotationOverlay]: holds the start and current points of the drag in
+/// progress.
 class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotationOverlay> {
   /// The in-progress drag's own start point, in this widget's own local pixel space, or null while
   /// no drag is in progress.
@@ -75,6 +86,7 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
   /// The in-progress drag's own current point. See [_dragStart].
   Offset? _dragCurrent;
 
+  /// Drop the draft of an in-progress drag when the active tool changes.
   @override
   void didUpdateWidget(covariant OcptStoryboardAnnotationOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -87,6 +99,7 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     }
   }
 
+  /// Build the storyboard annotation overlay as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -98,24 +111,27 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
         final dragStart = _dragStart;
         final dragCurrent = _dragCurrent;
 
-        final paint = CustomPaint(
-          size: size,
-          painter: OcptStoryboardAnnotationOverlayPainter(
-            annotations: widget.annotations,
-            selectedId: widget.selectedAnnotationId,
-            movementArrowColor: theme.colorScheme.primary,
-            cameraMoveArrowColor: theme.colorScheme.tertiary,
-            labelColor: theme.colorScheme.secondary,
-            selectedColor: theme.colorScheme.onSurface,
-            labelTextColor: theme.colorScheme.onSurface,
-            labelBackgroundColor: theme.colorScheme.surface.withValues(alpha: 0.85),
-            draftKind: dragStart != null && dragCurrent != null ? activeTool?.kind : null,
-            draftStart: dragStart == null || size.isEmpty
-                ? null
-                : Offset(dragStart.dx / size.width, dragStart.dy / size.height),
-            draftEnd: dragCurrent == null || size.isEmpty
-                ? null
-                : Offset(dragCurrent.dx / size.width, dragCurrent.dy / size.height),
+        // Its own layer: a draft drawn under the pointer repaints this annotation layer only.
+        final paint = RepaintBoundary(
+          child: CustomPaint(
+            size: size,
+            painter: OcptStoryboardAnnotationOverlayPainter(
+              annotations: widget.annotations,
+              selectedId: widget.selectedAnnotationId,
+              movementArrowColor: theme.colorScheme.primary,
+              cameraMoveArrowColor: theme.colorScheme.tertiary,
+              labelColor: theme.colorScheme.secondary,
+              selectedColor: theme.colorScheme.onSurface,
+              labelTextColor: theme.colorScheme.onSurface,
+              labelBackgroundColor: theme.colorScheme.surface.withValues(alpha: 0.85),
+              draftKind: dragStart != null && dragCurrent != null ? activeTool?.kind : null,
+              draftStart: dragStart == null || size.isEmpty
+                  ? null
+                  : Offset(dragStart.dx / size.width, dragStart.dy / size.height),
+              draftEnd: dragCurrent == null || size.isEmpty
+                  ? null
+                  : Offset(dragCurrent.dx / size.width, dragCurrent.dy / size.height),
+            ),
           ),
         );
 
@@ -149,7 +165,7 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     );
   }
 
-  /// Records the pointer's down point as the drag's own start, but only for a drag-shaped tool
+  /// Record the pointer's down point as the drag's own start, but only for a drag-shaped tool
   /// ([OcptStoryboardAnnotationToolBehaviour.isDrag]): the label tool never drags, so it never
   /// shows a draft.
   void _handlePointerDown(Offset local, OcptStoryboardAnnotationTool activeTool) {
@@ -162,7 +178,7 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     });
   }
 
-  /// Updates the drag's own current point, redrawing the live draft arrow.
+  /// Update the drag's own current point, redrawing the live draft arrow.
   void _handlePointerMove(Offset local) {
     if (_dragStart == null) {
       return;
@@ -170,7 +186,8 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     setState(() => _dragCurrent = local);
   }
 
-  /// The pointer lifted: if it travelled at least [_minDragDistance] under an arrow tool, reports
+  /// Handle the pointer lifted: if it travelled at least [_minDragDistance] under an arrow tool,
+  /// reports
   /// [OcptStoryboardAnnotationOverlay.onArrowDrawn] with the normalised tail/head; otherwise treats
   /// the whole gesture as a tap ([_handleTap]) — selecting a mark under the point, or (label tool
   /// only) placing a new one there.
@@ -199,7 +216,8 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     _handleTap(local, size, activeTool);
   }
 
-  /// A tap (no drag, or one that never travelled far enough to count as one): selects the mark
+  /// Handle a tap (no drag, or one that never travelled far enough to count as one): selects the
+  /// mark
   /// under [local] if there is one, otherwise — only with the label tool — places a new label
   /// there.
   void _handleTap(Offset local, Size size, OcptStoryboardAnnotationTool activeTool) {
@@ -217,7 +235,8 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     }
   }
 
-  /// The id of the topmost (last-drawn) mark within [_hitTestRadius] of [local], or null when none
+  /// Get the id of the topmost (last-drawn) mark within [_hitTestRadius] of [local], or null when
+  /// none
   /// is that close — a label is tested against its own anchor point, an arrow against its whole
   /// shaft (the closest point of the tail-head segment).
   String? _hitTestAnnotation(Offset local, Size size) {
@@ -238,7 +257,7 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     return null;
   }
 
-  /// The shortest distance from [point] to the segment [a]-[b].
+  /// Get the shortest distance from [point] to the segment [a]-[b].
   double _distanceToSegment(Offset point, Offset a, Offset b) {
     final segment = b - a;
     final lengthSquared = segment.dx * segment.dx + segment.dy * segment.dy;

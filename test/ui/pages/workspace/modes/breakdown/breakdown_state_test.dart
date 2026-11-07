@@ -113,6 +113,7 @@ OcptBreakdownState _loadedState() => OcptBreakdownState.init().copyWith(
   selectedTargetRef: (OcptBreakdownTargetKind.element, _elementId),
 );
 
+/// Run the tests of [OcptBreakdownState].
 void main() {
   group("OcptBreakdownState.selectedTargetSuggestions", () {
     test("is empty while no target is selected", () {
@@ -141,7 +142,8 @@ void main() {
       expect(
         identical(next.selectedTargetSuggestions, state.selectedTargetSuggestions),
         isTrue,
-        reason: "an edit touching neither the snapshot, the text nor the selection must not pay "
+        reason:
+            "an edit touching neither the snapshot, the text nor the selection must not pay "
             "the cost of folding the screenplay again",
       );
     });
@@ -158,7 +160,7 @@ void main() {
     test("is recomputed when the selected target changes", () {
       final state = _loadedState();
 
-      final next = state.copyWith(clearSelectedTargetRef: true);
+      final next = state.copyWith(forceSelectedTargetRefValue: true);
 
       expect(next.selectedTargetSuggestions, isEmpty);
     });

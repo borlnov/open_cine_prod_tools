@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_mileage_rate_amount.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_mileage_rate_amount.dart';
 
 /// The project settings page's "Mileage rates" section card, beside
 /// `OcptProjectSettingsBudgetSection`: the per-kilometre reimbursement rates
@@ -52,6 +52,7 @@ class OcptProjectSettingsMileageRatesSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings mileage rates section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -132,6 +133,8 @@ class _OcptProjectSettingsMileageRateRow extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptProjectSettingsMileageRateRowState] holding the state of the project settings
+  /// mileage rate row.
   @override
   State<_OcptProjectSettingsMileageRateRow> createState() =>
       _OcptProjectSettingsMileageRateRowState();
@@ -164,9 +167,12 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
   /// [_lastReportedLabel] is.
   late int _lastReportedRatePerKmMilliCents = widget.rate.ratePerKmMilliCents;
 
-  /// [_OcptProjectSettingsMileageRateRow.rate]'s own rate written through [ocptMileageRateTextOf].
+  /// Get [_OcptProjectSettingsMileageRateRow.rate]'s own rate written through
+  /// [ocptMileageRateTextOf].
   String get _formattedRate => ocptMileageRateTextOf(widget.rate.ratePerKmMilliCents);
 
+  /// Register [_onLabelFocusChanged] as a listener of [_labelFocusNode] and [_onRateFocusChanged]
+  /// as a listener of [_rateFocusNode].
   @override
   void initState() {
     super.initState();
@@ -174,6 +180,7 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
     _rateFocusNode.addListener(_onRateFocusChanged);
   }
 
+  /// Show the new label or rate in its field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant _OcptProjectSettingsMileageRateRow oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -192,61 +199,7 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
     }
   }
 
-  @override
-  void dispose() {
-    _labelFocusNode
-      ..removeListener(_onLabelFocusChanged)
-      ..dispose();
-    _rateFocusNode
-      ..removeListener(_onRateFocusChanged)
-      ..dispose();
-    _labelController.dispose();
-    _rateController.dispose();
-    super.dispose();
-  }
-
-  /// Commits the label field's current text once it loses focus.
-  void _onLabelFocusChanged() {
-    if (!_labelFocusNode.hasFocus) {
-      _commitLabel();
-    }
-  }
-
-  /// Commits the rate field's current text once it loses focus.
-  void _onRateFocusChanged() {
-    if (!_rateFocusNode.hasFocus) {
-      _commitRate();
-    }
-  }
-
-  /// Reports the label field's current text: any string is legal, the empty one included, exactly
-  /// as an episode's title is.
-  void _commitLabel() {
-    final text = _labelController.text;
-    if (text != _lastReportedLabel) {
-      _lastReportedLabel = text;
-      widget.onLabelChanged(text);
-    }
-  }
-
-  /// Parses the rate field's current text and reports it, in thousandths of a cent: an empty or
-  /// unparseable text reverts the field to whatever was last committed —
-  /// `ratePerKmMilliCents` is never nullable, so there is no "clear" gesture here, only "not typed
-  /// yet" reverting to the figure already stored.
-  void _commitRate() {
-    final parsed = ocptMileageRateMilliCentsOf(_rateController.text.trim());
-    if (parsed == null) {
-      _rateController.text = _formattedRate;
-      return;
-    }
-
-    _rateController.text = ocptMileageRateTextOf(parsed);
-    if (parsed != _lastReportedRatePerKmMilliCents) {
-      _lastReportedRatePerKmMilliCents = parsed;
-      widget.onAmountChanged(parsed);
-    }
-  }
-
+  /// Build the project settings mileage rate row as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -286,5 +239,63 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
         ),
       ],
     );
+  }
+
+  /// Commit the label field's current text once it loses focus.
+  void _onLabelFocusChanged() {
+    if (!_labelFocusNode.hasFocus) {
+      _commitLabel();
+    }
+  }
+
+  /// Commit the rate field's current text once it loses focus.
+  void _onRateFocusChanged() {
+    if (!_rateFocusNode.hasFocus) {
+      _commitRate();
+    }
+  }
+
+  /// Report the label field's current text: any string is legal, the empty one included, exactly
+  /// as an episode's title is.
+  void _commitLabel() {
+    final text = _labelController.text;
+    if (text != _lastReportedLabel) {
+      _lastReportedLabel = text;
+      widget.onLabelChanged(text);
+    }
+  }
+
+  /// Parse the rate field's current text and report it, in thousandths of a cent: an empty or
+  /// unparseable text reverts the field to whatever was last committed —
+  /// `ratePerKmMilliCents` is never nullable, so there is no "clear" gesture here, only "not typed
+  /// yet" reverting to the figure already stored.
+  void _commitRate() {
+    final parsed = ocptMileageRateMilliCentsOf(_rateController.text.trim());
+    if (parsed == null) {
+      _rateController.text = _formattedRate;
+      return;
+    }
+
+    _rateController.text = ocptMileageRateTextOf(parsed);
+    if (parsed != _lastReportedRatePerKmMilliCents) {
+      _lastReportedRatePerKmMilliCents = parsed;
+      widget.onAmountChanged(parsed);
+    }
+  }
+
+  /// Detach [_onLabelFocusChanged] from [_labelFocusNode], dispose [_labelFocusNode], detach
+  /// [_onRateFocusChanged] from [_rateFocusNode], then dispose [_rateFocusNode], [_labelController]
+  /// and [_rateController].
+  @override
+  void dispose() {
+    _labelFocusNode
+      ..removeListener(_onLabelFocusChanged)
+      ..dispose();
+    _rateFocusNode
+      ..removeListener(_onRateFocusChanged)
+      ..dispose();
+    _labelController.dispose();
+    _rateController.dispose();
+    super.dispose();
   }
 }

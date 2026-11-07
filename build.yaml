@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Drift's output is written under `lib/generated/`, next to the localization code, instead of
+# beside the file that declares the database: `lib/<path>.dart` -> `lib/generated/<path>.g.dart`.
+# The `part` directive of such a file points at that location.
+targets:
+  $default:
+    builders:
+      source_gen:combining_builder:
+        options:
+          build_extensions:
+            '^lib/{{}}.dart': 'lib/generated/{{}}.g.dart'

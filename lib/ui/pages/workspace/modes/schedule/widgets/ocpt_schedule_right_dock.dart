@@ -3,9 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_right_dock_frame.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_right_dock_tab_label.dart';
 
 /// The chrome of the schedule mode's right dock: a compact tab row, a trailing × close button, and
 /// the active tab's body below — the exact mirror of `OcptBreakdownRightDock`, reduced to the
@@ -47,100 +48,34 @@ class OcptScheduleRightDock extends StatelessWidget {
     required this.onClose,
   });
 
+  /// Build the schedule right dock as a [Column].
+  /// Build the schedule right dock as an [OcptRightDockFrame].
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final tr = Tr.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final tab in OcptScheduleRightDockTab.values)
-                      _OcptScheduleRightDockTabLabel(
-                        label: switch (tab) {
-                          OcptScheduleRightDockTab.inspector => tr.scheduleRightDockInspectorTabLabel,
-                          OcptScheduleRightDockTab.convocations =>
-                            tr.scheduleRightDockConvocationsTabLabel,
-                          OcptScheduleRightDockTab.alerts => tr.scheduleRightDockAlertsTabLabel,
-                          OcptScheduleRightDockTab.versions => tr.scheduleRightDockVersionsTabLabel,
-                        },
-                        isActive: activeTab == tab,
-                        onTap: () => onTabSelected(tab),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close, size: 18),
-              tooltip: tr.scheduleRightDockCloseTooltip,
-              visualDensity: VisualDensity.compact,
-              onPressed: onClose,
-            ),
-          ],
-        ),
-        Divider(height: 1, thickness: 1, color: theme.colorScheme.outlineVariant),
-        Expanded(
-          child: switch (activeTab) {
-            OcptScheduleRightDockTab.inspector => inspectorChild,
-            OcptScheduleRightDockTab.convocations => convocationsChild,
-            OcptScheduleRightDockTab.alerts => alertsChild,
-            OcptScheduleRightDockTab.versions => versionsChild,
-          },
-        ),
+    return OcptRightDockFrame(
+      tabs: [
+        for (final tab in OcptScheduleRightDockTab.values)
+          OcptRightDockTabLabel(
+            label: switch (tab) {
+              OcptScheduleRightDockTab.inspector => tr.scheduleRightDockInspectorTabLabel,
+              OcptScheduleRightDockTab.convocations => tr.scheduleRightDockConvocationsTabLabel,
+              OcptScheduleRightDockTab.alerts => tr.scheduleRightDockAlertsTabLabel,
+              OcptScheduleRightDockTab.versions => tr.scheduleRightDockVersionsTabLabel,
+            },
+            isActive: activeTab == tab,
+            onTap: () => onTabSelected(tab),
+          ),
       ],
-    );
-  }
-}
-
-/// One clickable label of the tab row, mirroring `OcptBreakdownRightDock`'s own private label.
-class _OcptScheduleRightDockTabLabel extends StatelessWidget {
-  /// The tab's display name.
-  final String label;
-
-  /// Whether this is the currently active tab.
-  final bool isActive;
-
-  /// Called when this label is clicked.
-  final VoidCallback onTap;
-
-  /// Class constructor
-  const _OcptScheduleRightDockTabLabel({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
-
-    return InkWell(
-      onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label, style: theme.textTheme.labelSmall?.copyWith(color: color)),
-            const SizedBox(height: 4),
-            Container(
-              height: 2,
-              width: 32,
-              color: isActive ? theme.colorScheme.primary : Colors.transparent,
-            ),
-          ],
-        ),
-      ),
+      closeTooltip: tr.scheduleRightDockCloseTooltip,
+      onClose: onClose,
+      body: switch (activeTab) {
+        OcptScheduleRightDockTab.inspector => inspectorChild,
+        OcptScheduleRightDockTab.convocations => convocationsChild,
+        OcptScheduleRightDockTab.alerts => alertsChild,
+        OcptScheduleRightDockTab.versions => versionsChild,
+      },
     );
   }
 }

@@ -5,12 +5,13 @@
 import 'dart:typed_data';
 
 import 'package:script_import_kit/src/models/script_import_exception.dart';
+import 'package:script_import_kit/src/models/script_import_failure.dart';
 import 'package:script_import_kit/src/models/script_import_format.dart';
 import 'package:script_import_kit/src/models/script_import_result.dart';
 import 'package:script_import_kit/src/readers/celtx_script_reader.dart';
 import 'package:script_import_kit/src/readers/fdx_script_reader.dart';
 
-/// Reads a foreign screenplay file and converts it to Fountain.
+/// Read a foreign screenplay file and convert it to Fountain.
 ///
 /// The one door into this package: it picks the reader a file's extension
 /// names and hands back the screenplay as Fountain source text. A file it
@@ -22,28 +23,25 @@ import 'package:script_import_kit/src/readers/fdx_script_reader.dart';
 /// ([ScriptImportFormat.fountain] only exists so that a caller can name
 /// that case).
 class ScriptImporter {
-  /// Creates a [ScriptImporter].
-  const ScriptImporter({
-    this.finalDraftReader = const FdxScriptReader(),
-    this.celtxReader = const CeltxScriptReader(),
-  });
-
   /// The reader used for a Final Draft file.
   final FdxScriptReader finalDraftReader;
 
   /// The reader used for a Celtx project.
   final CeltxScriptReader celtxReader;
 
-  /// Reads the screenplay held in [bytes], picking the reader from
+  /// Create a [ScriptImporter].
+  const ScriptImporter({
+    this.finalDraftReader = const FdxScriptReader(),
+    this.celtxReader = const CeltxScriptReader(),
+  });
+
+  /// Read the screenplay held in [bytes], picking the reader from
   /// [fileName]'s extension.
   ///
   /// [fileName] is only ever read for its extension: nothing here touches
   /// the file system, so a caller that already holds the bytes can pass
   /// whatever name they came under.
-  ScriptImportResult read({
-    required Uint8List bytes,
-    required String fileName,
-  }) {
+  ScriptImportResult read({required Uint8List bytes, required String fileName}) {
     final extension = _extensionOf(fileName);
     return switch (extension) {
       'fdx' => ScriptImportResult(
@@ -63,7 +61,7 @@ class ScriptImporter {
     };
   }
 
-  /// [fileName]'s extension, lower-cased and without its dot, or an empty
+  /// Get [fileName]'s extension, lower-cased and without its dot, or an empty
   /// string when the name carries none.
   String _extensionOf(String fileName) {
     final dotIndex = fileName.lastIndexOf('.');

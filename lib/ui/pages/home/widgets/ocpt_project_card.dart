@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
-import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_relative_time.dart';
+import 'package:open_cine_prod_tools/ui/pages/home/home_recent_project_entry.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_relative_time.dart';
 
 /// A single project tile in the home page's project grid.
 ///
@@ -69,6 +69,7 @@ class OcptProjectCard extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project card as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -90,7 +91,7 @@ class OcptProjectCard extends StatelessWidget {
       child: InkWell(
         key: ValueKey(entry.project.path),
         onTap: exists ? onTap : null,
-        mouseCursor: ocptClickableCursor,
+        mouseCursor: ocpt_theme.ocptClickableCursor,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -205,7 +206,7 @@ class OcptProjectCard extends StatelessWidget {
   }
 }
 
-/// Hashes [path] into a non-negative integer that is stable across app runs, Dart versions and
+/// Hash [path] into a non-negative integer that is stable across app runs, Dart versions and
 /// machines, unlike [Object.hashCode] (used here to pick a poster tint that must stay the same
 /// for a given project everywhere).
 int _stablePathHash(String path) {
@@ -232,6 +233,7 @@ class _OcptProjectCardEpisodeBadge extends StatelessWidget {
   /// Class constructor
   const _OcptProjectCardEpisodeBadge({required this.count, required this.color});
 
+  /// Build the project card episode badge as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -239,8 +241,8 @@ class _OcptProjectCardEpisodeBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Text(
         Tr.of(context).homeProjectEpisodeCount(count),
@@ -268,14 +270,15 @@ class _OcptProjectCardCompatibilityBadge extends StatelessWidget {
   /// Class constructor
   const _OcptProjectCardCompatibilityBadge({required this.color});
 
+  /// Build the project card compatibility badge as a [Tooltip].
   @override
   Widget build(BuildContext context) => Tooltip(
     message: Tr.of(context).homeIncompatibleProjectTooltip,
     child: Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Icon(Icons.warning_amber_rounded, size: 14, color: color),
     ),

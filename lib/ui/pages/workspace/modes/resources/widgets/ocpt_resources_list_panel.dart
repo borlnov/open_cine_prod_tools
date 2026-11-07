@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_role_casting_progress.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -19,8 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_search_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_tab_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_roles_list.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_role_casting_progress.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// The separator joining the roles tab header's two counts, `N roles · M cast`.
 const _rolesHeaderStatsSeparator = " · ";
@@ -53,7 +53,8 @@ class OcptResourcesListPanel extends StatelessWidget {
   final List<OcptRole> roles;
 
   /// Every live candidacy of the project, grouped by `roleId` — read regardless of [activeTab] for
-  /// the same reason [people] is: the roles tab's own header count and each row's pill both read it.
+  /// the same reason [people] is: the roles tab's own header count and each row's pill both read
+  /// it.
   final Map<String, List<OcptRoleCandidate>> candidatesByRoleId;
 
   /// The id of the selected role, or null if none is.
@@ -147,6 +148,7 @@ class OcptResourcesListPanel extends StatelessWidget {
     required this.onAddElementRequested,
   });
 
+  /// Build the resources list panel as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -167,7 +169,10 @@ class OcptResourcesListPanel extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(ocptResourcesTabLabel(tr, activeTab), style: theme.textTheme.titleSmall),
+                child: Text(
+                  ocptResourcesTabLabel(tr, activeTab),
+                  style: theme.textTheme.titleSmall,
+                ),
               ),
               if (isPeopleTab)
                 Text(
@@ -210,7 +215,7 @@ class OcptResourcesListPanel extends StatelessWidget {
             ],
           ),
         ),
-        Expanded(child: _buildBody(tr)),
+        Expanded(child: _Body(panel: this)),
         if (isPeopleTab && onAddPersonRequested != null) ...[
           Divider(height: 1, thickness: 1, color: theme.colorScheme.outlineVariant),
           Padding(
@@ -246,7 +251,7 @@ class OcptResourcesListPanel extends StatelessWidget {
     );
   }
 
-  /// The roles tab header's own two counts, `N roles · M cast`: both read off the **filtered**
+  /// Get the roles tab header's own two counts, `N roles · M cast`: both read off the **filtered**
   /// list, so the header always reports what [OcptRolesList] shows under it, rather than the whole
   /// cast.
   String _rolesHeaderStats(Tr tr) {
@@ -260,47 +265,6 @@ class OcptResourcesListPanel extends StatelessWidget {
     return tr.resourcesStatsRoles(filteredRoles.length) +
         _rolesHeaderStatsSeparator +
         tr.resourcesStatsRolesCast(ocptCastRoleCount(filteredRoles));
-  }
-
-  /// The list area: [OcptPeopleList] on the people tab, [OcptRolesList] on the roles tab,
-  /// [OcptLocationsList] on the locations tab and [OcptElementsList] on the elements tab.
-  Widget _buildBody(Tr tr) {
-    if (activeTab == OcptResourcesTab.people) {
-      return OcptPeopleList(
-        people: people,
-        selectedPersonId: selectedPersonId,
-        searchQuery: searchQuery,
-        onPersonSelected: onPersonSelected,
-      );
-    }
-
-    if (activeTab == OcptResourcesTab.roles) {
-      return OcptRolesList(
-        roles: roles,
-        people: people,
-        candidatesByRoleId: candidatesByRoleId,
-        episodes: episodes,
-        selectedRoleId: selectedRoleId,
-        searchQuery: searchQuery,
-        onRoleSelected: onRoleSelected,
-      );
-    }
-
-    if (activeTab == OcptResourcesTab.locations) {
-      return OcptLocationsList(
-        locations: locations,
-        selectedLocationId: selectedLocationId,
-        searchQuery: searchQuery,
-        onLocationSelected: onLocationSelected,
-      );
-    }
-
-    return OcptElementsList(
-      elements: elements,
-      selectedElementId: selectedElementId,
-      searchQuery: searchQuery,
-      onElementSelected: onElementSelected,
-    );
   }
 }
 
@@ -317,6 +281,7 @@ class _OcptAddRoleButton extends StatelessWidget {
   /// Class constructor
   const _OcptAddRoleButton({required this.onKindPicked});
 
+  /// Build the add role button as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -359,6 +324,7 @@ class _OcptAddElementButton extends StatelessWidget {
   /// Class constructor
   const _OcptAddElementButton({required this.onCategoryPicked});
 
+  /// Build the add element button as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -378,6 +344,57 @@ class _OcptAddElementButton extends StatelessWidget {
           child: Text(tr.resourcesAddElementAction),
         ),
       ),
+    );
+  }
+}
+
+/// The list area: [OcptPeopleList] on the people tab, [OcptRolesList] on the roles tab,
+/// [OcptLocationsList] on the locations tab and [OcptElementsList] on the elements tab.
+class _Body extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptResourcesListPanel panel;
+
+  /// Class constructor
+  const _Body({required this.panel});
+
+  /// Build the body as an [OcptElementsList].
+  @override
+  Widget build(BuildContext context) {
+    if (panel.activeTab == OcptResourcesTab.people) {
+      return OcptPeopleList(
+        people: panel.people,
+        selectedPersonId: panel.selectedPersonId,
+        searchQuery: panel.searchQuery,
+        onPersonSelected: panel.onPersonSelected,
+      );
+    }
+
+    if (panel.activeTab == OcptResourcesTab.roles) {
+      return OcptRolesList(
+        roles: panel.roles,
+        people: panel.people,
+        candidatesByRoleId: panel.candidatesByRoleId,
+        episodes: panel.episodes,
+        selectedRoleId: panel.selectedRoleId,
+        searchQuery: panel.searchQuery,
+        onRoleSelected: panel.onRoleSelected,
+      );
+    }
+
+    if (panel.activeTab == OcptResourcesTab.locations) {
+      return OcptLocationsList(
+        locations: panel.locations,
+        selectedLocationId: panel.selectedLocationId,
+        searchQuery: panel.searchQuery,
+        onLocationSelected: panel.onLocationSelected,
+      );
+    }
+
+    return OcptElementsList(
+      elements: panel.elements,
+      selectedElementId: panel.selectedElementId,
+      searchQuery: panel.searchQuery,
+      onElementSelected: panel.onElementSelected,
     );
   }
 }

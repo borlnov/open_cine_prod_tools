@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_project_version_summary_line.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_summary_line.dart';
 
 /// The `Versions` dock tab's first entry: not a sealed version but the working copy itself, the
 /// present the sealed history underneath is measured against.
@@ -44,6 +44,7 @@ class OcptProjectWorkingCopyCard extends StatelessWidget {
     required this.onCreateRequested,
   });
 
+  /// Build the project working copy card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -82,14 +83,14 @@ class OcptProjectWorkingCopyCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               ocptProjectVersionSummaryLine(context, summary: workingCopy.summary),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 6),
             Text(
               _stateLine(tr),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 8),
             Align(
@@ -106,7 +107,8 @@ class OcptProjectWorkingCopyCard extends StatelessWidget {
     );
   }
 
-  /// The state line under the counters: whether the working copy still matches [baseVersionName],
+  /// Get the state line under the counters: whether the working copy still matches
+  /// [baseVersionName],
   /// or that it has none to compare against at all.
   String _stateLine(Tr tr) {
     final baseVersionName = this.baseVersionName;

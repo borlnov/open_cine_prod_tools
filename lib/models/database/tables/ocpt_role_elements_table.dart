@@ -30,16 +30,16 @@ class OcptRoleElementsTable extends Table {
   @override
   String get tableName => 'role_elements';
 
-  /// The stable, unique id of this link (a UUID).
+  /// Get the stable, unique id of this link (a UUID).
   TextColumn get id => text()();
 
-  /// The role needing the element.
+  /// Get the role needing the element.
   TextColumn get roleId => text().references(OcptRolesTable, #id)();
 
-  /// The element the role needs.
+  /// Get the element the role needs.
   TextColumn get elementId => text().references(OcptElementsTable, #id)();
 
-  /// Free-form notes about this role's use of the element.
+  /// Get free-form notes about this role's use of the element.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

@@ -5,8 +5,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_fountain_syntax_entry.dart';
+import 'package:open_cine_prod_tools/types/ocpt_fountain_syntax_section.dart';
 import 'package:open_cine_prod_tools/types/ocpt_fountain_syntax_topic.dart';
 
+/// Run the tests of the fountain syntax entry.
 void main() {
   group('ocptFountainSyntaxEntries table completeness', () {
     test('has exactly one entry per OcptFountainSyntaxTopic, each non-empty', () {

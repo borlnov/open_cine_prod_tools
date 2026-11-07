@@ -10,7 +10,7 @@
 enum OcptFloorPlanLayer {
   /// The set's own walls, furniture and every other fixed piece of geometry — set scope (shared by
   /// every sequence the set is linked to) or scene scope (re-dressed for one sequence, through a
-  /// `floor_plan_symbols.overridesSymbolId` override). Collapses the earlier `decor`,
+  /// `floor_plan_symbols.overridesSymbolId` override). Collapses the earlier `shootingSet`,
   /// `furniture` and `fixedProps` layers into one — a set-element symbol's own type (a wall, a
   /// door, a piece of furniture, a free-hand shape) is already carried by
   /// `floor_plan_symbols.setElementShape`, so the layer itself no longer needs to distinguish them.

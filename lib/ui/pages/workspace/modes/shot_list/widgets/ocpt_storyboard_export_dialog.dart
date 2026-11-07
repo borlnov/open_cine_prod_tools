@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -32,7 +32,12 @@ class OcptStoryboardExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptStoryboardExportDialog({required this.current, super.key});
 
-  /// Shows the dialog and returns the [OcptStoryboardExportOptions] the user applied, or null if
+  /// Create the [_OcptStoryboardExportDialogState] holding the state of the storyboard export
+  /// dialog.
+  @override
+  State<OcptStoryboardExportDialog> createState() => _OcptStoryboardExportDialogState();
+
+  /// Show the dialog and return the [OcptStoryboardExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptStoryboardExportOptions?> show(
     BuildContext context, {
@@ -41,9 +46,6 @@ class OcptStoryboardExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptStoryboardExportDialog(current: current),
   );
-
-  @override
-  State<OcptStoryboardExportDialog> createState() => _OcptStoryboardExportDialogState();
 }
 
 /// The state of [OcptStoryboardExportDialog].
@@ -57,12 +59,14 @@ class _OcptStoryboardExportDialogState extends State<OcptStoryboardExportDialog>
   /// Whether the floor plan sheets are appended after each sequence.
   bool _includeFloorPlansAfterEachSequence = false;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedFormat = widget.current.format;
   }
 
+  /// Build the storyboard export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -77,7 +81,7 @@ class _OcptStoryboardExportDialogState extends State<OcptStoryboardExportDialog>
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -93,7 +97,7 @@ class _OcptStoryboardExportDialogState extends State<OcptStoryboardExportDialog>
             DropdownButtonFormField<int>(
               initialValue: _shotsPerPage,
               decoration: InputDecoration(labelText: tr.shotListExportStoryboardShotsPerPageLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final choice in _shotsPerPageChoices)
                   DropdownMenuItem(value: choice, child: Text("$choice")),
@@ -125,15 +129,15 @@ class _OcptStoryboardExportDialogState extends State<OcptStoryboardExportDialog>
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptStoryboardExportOptions].
+  /// Pop the dialog returning the resulting [OcptStoryboardExportOptions].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptStoryboardExportDialog.show] caller.
   void _submit() {

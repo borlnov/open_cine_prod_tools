@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The warning-tinted "Legal hours" callout shown on the person sheet whenever the selected
 /// person is a minor: `OcptPerson.minorNotes` (hours, guardian presence, authorisation),
@@ -30,6 +30,7 @@ class OcptPersonSheetMinorCallout extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the person sheet minor callout as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -42,7 +43,7 @@ class OcptPersonSheetMinorCallout extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         border: Border.all(color: color.withValues(alpha: 0.35)),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

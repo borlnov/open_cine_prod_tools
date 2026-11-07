@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -13,14 +13,15 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_severity.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
 /// The right dock's own `Alerts` tab: every [OcptScheduleAlert] the eleven rules of
-/// `lib/utils/ocpt_schedule_alerts.dart` raise over the **whole shoot**, in the order that pure
-/// function already returns them (hard before soft, then day order, then kind order — this widget
-/// never re-sorts).
+/// `lib/models/rules/ocpt_schedule_alerts.dart` raise over the **whole shoot**, in the order that
+/// pure function already returns them (hard before soft, then day order, then kind order — this
+/// widget never re-sorts).
 ///
 /// A card reads as the mock's own alert cards do: a severity-coloured title naming the kind of
 /// problem ([ocptScheduleAlertKindLabel]), then a sentence naming the people, roles, positions,
@@ -92,6 +93,7 @@ class OcptScheduleAlertsPanel extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the schedule alerts panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -110,7 +112,9 @@ class OcptScheduleAlertsPanel extends StatelessWidget {
       );
     }
 
-    final hardCount = alerts.where((alert) => alert.severity == OcptScheduleAlertSeverity.hard).length;
+    final hardCount = alerts
+        .where((alert) => alert.severity == OcptScheduleAlertSeverity.hard)
+        .length;
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -121,7 +125,9 @@ class OcptScheduleAlertsPanel extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               tr.scheduleAlertsSummary(alerts.length, hardCount),
-              style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           );
         }
@@ -176,6 +182,7 @@ class _OcptScheduleAlertCard extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the schedule alert card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -225,19 +232,25 @@ class _OcptScheduleAlertDayControl extends StatelessWidget {
   final Tr tr;
 
   /// Class constructor
-  const _OcptScheduleAlertDayControl({required this.day, required this.onPressed, required this.tr});
+  const _OcptScheduleAlertDayControl({
+    required this.day,
+    required this.onPressed,
+    required this.tr,
+  });
 
+  /// Build the schedule alert day control as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final locale = Localizations.localeOf(context).toString();
     final label =
-        "${ocptScheduleDayTagLabel(tr, day.dayNumber)} · ${DateFormat.MMMEd(locale).format(day.date)}";
+        "${ocptScheduleDayTagLabel(tr, day.dayNumber)} · "
+        "${DateFormat.MMMEd(locale).format(day.date)}";
 
     return InkWell(
       onTap: onPressed,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusLarge),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(

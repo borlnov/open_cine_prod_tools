@@ -4,7 +4,6 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 
 /// One movement of the cash journal: money that actually left or entered the account. See
 /// `OcptBudgetEntriesTable`'s own doc comment for the money and nullability representation this
@@ -19,10 +18,10 @@ class OcptBudgetEntry extends Equatable {
   /// This entry's free-text wording.
   final String label;
 
-  /// The poste this entry is priced against, or null — see `OcptBudgetEntriesTable.posteId`'s own
-  /// doc comment: null is money that moved without pricing any one poste, most often cash coming
-  /// in.
-  final String? posteId;
+  /// The account this entry is priced against, or null — see `OcptBudgetEntriesTable.accountId`'s
+  /// own doc comment: null is money that moved without pricing any one account, most often cash
+  /// coming in.
+  final String? accountId;
 
   /// What left the account, exactly as typed, in cents.
   final int debitCents;
@@ -66,25 +65,12 @@ class OcptBudgetEntry extends Equatable {
   /// own doc comment: null is the normal case, a movement that reimburses nobody.
   final String? personId;
 
-  /// This entry's tax triple ([debitCents], [creditCents], [isTaxInclusive],
-  /// [vatRateBasisPoints]), read as a single signed cash figure: [OcptMoney.amountCents] is
-  /// [creditCents] minus [debitCents], negative when this entry is, on balance, a cost.
-  ///
-  /// A helper reading over [debitCents] and [creditCents] rather than a stored field of its own —
-  /// both plain fields stay on this model too, since `lib/utils/ocpt_budget_projection.dart` (the
-  /// journal's running balance) needs to tell a debit from a credit apart, not only their sum.
-  OcptMoney get signedAmount => OcptMoney(
-    amountCents: creditCents - debitCents,
-    isTaxInclusive: isTaxInclusive,
-    vatRateBasisPoints: vatRateBasisPoints,
-  );
-
   /// Class constructor
   const OcptBudgetEntry({
     required this.id,
     required this.date,
     required this.label,
-    required this.posteId,
+    required this.accountId,
     required this.debitCents,
     required this.creditCents,
     required this.isTaxInclusive,
@@ -98,12 +84,12 @@ class OcptBudgetEntry extends Equatable {
     required this.personId,
   });
 
-  /// Builds an [OcptBudgetEntry] from its stored [row].
+  /// Build an [OcptBudgetEntry] from its stored [row].
   factory OcptBudgetEntry.fromRow(OcptBudgetEntryRow row) => OcptBudgetEntry(
     id: row.id,
     date: row.date,
     label: row.label,
-    posteId: row.posteId,
+    accountId: row.accountId,
     debitCents: row.debitCents,
     creditCents: row.creditCents,
     isTaxInclusive: row.isTaxInclusive,
@@ -117,18 +103,19 @@ class OcptBudgetEntry extends Equatable {
     personId: row.personId,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
-  String toString() => "OcptBudgetEntry(id: $id, date: $date, label: $label, "
+  String toString() =>
+      "OcptBudgetEntry(id: $id, date: $date, label: $label, "
       "voucherNumber: $voucherNumber)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,
     date,
     label,
-    posteId,
+    accountId,
     debitCents,
     creditCents,
     isTaxInclusive,

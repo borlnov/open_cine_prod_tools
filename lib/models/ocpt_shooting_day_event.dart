@@ -9,8 +9,8 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 ///
 /// [minute] is an offset from the day's own midnight and may exceed 1440 — see
 /// `OcptShootingDayEventsTable`'s own doc comment for why this is deliberately not a
-/// `shooting_day_blocks` row: it takes no part in any slot's chain, and moving one is typing another
-/// hour, never dragging it.
+/// `shooting_day_blocks` row: it takes no part in any slot's chain, and moving one is typing
+/// another hour, never dragging it.
 class OcptShootingDayEvent extends Equatable {
   /// The stable, unique id of this event (a UUID).
   final String id;
@@ -36,7 +36,7 @@ class OcptShootingDayEvent extends Equatable {
     required this.notes,
   });
 
-  /// Builds an [OcptShootingDayEvent] from its stored [row].
+  /// Build an [OcptShootingDayEvent] from its stored [row].
   factory OcptShootingDayEvent.fromRow(OcptShootingDayEventRow row) => OcptShootingDayEvent(
     id: row.id,
     shootingDayId: row.shootingDayId,
@@ -45,13 +45,13 @@ class OcptShootingDayEvent extends Equatable {
     notes: row.notes,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingDayEvent(id: $id, shootingDayId: $shootingDayId, minute: $minute, "
       "label: $label)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, shootingDayId, minute, label, notes];
 }

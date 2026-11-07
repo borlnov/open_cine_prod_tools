@@ -13,11 +13,11 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 /// absent while nothing has been drawn on it yet (`OcptFloorPlanService.ensurePlan`'s lazy
 /// creation), read the same as a plan with no underlay and no placements.
 ///
-/// A sequence's floor-plan tabs are its live `scene_sets` links, so the very same [OcptFloorPlanSet]
-/// (same [symbols], same [arrows]) can show up under two different sequences' tabs at once — this
-/// is what lets a set-scope symbol moved on one of them show on the other too. [symbols] holds
-/// every scope's rows at once (set, every linked sequence's own scene-scope, every shot's own
-/// shot-scope); `OcptFloorPlanSheet.of` is what narrows them down to one focus.
+/// A sequence's floor-plan tabs are its live `scene_sets` links, so the very same
+/// [OcptFloorPlanSet] (same [symbols], same [arrows]) can show up under two different sequences'
+/// tabs at once — this is what lets a set-scope symbol moved on one of them show on the other too.
+/// [symbols] holds every scope's rows at once (set, every linked sequence's own scene-scope, every
+/// shot's own shot-scope); `OcptFloorPlanSheet.of` is what narrows them down to one focus.
 class OcptFloorPlanSet extends Equatable {
   /// The stable, unique id of this set — the Resources set's own (`sets.id`).
   final String id;
@@ -69,7 +69,7 @@ class OcptFloorPlanSet extends Equatable {
     required this.arrows,
   });
 
-  /// Builds an [OcptFloorPlanSet] from its Resources [setRow] (name), its own [planRow] — null
+  /// Build an [OcptFloorPlanSet] from its Resources [setRow] (name), its own [planRow] — null
   /// while nothing has been drawn on it yet — the resolved [underlayPath] of its underlay asset (or
   /// null), and its live [symbols] and [arrows].
   factory OcptFloorPlanSet.fromRows({
@@ -92,12 +92,13 @@ class OcptFloorPlanSet extends Equatable {
     arrows: arrows,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptFloorPlanSet(id: $id, name: $name, symbols: ${symbols.length}, arrows: ${arrows.length})";
+      "OcptFloorPlanSet(id: $id, name: $name, symbols: ${symbols.length}, arrows: "
+      "${arrows.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

@@ -1,0 +1,91 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+/// The service methods that do not answer through the boundary yet, which
+/// `service_result_test.dart` holds the project to.
+///
+/// An entry is `<Class>.<method>` for a public method that returns a `Future` without being
+/// converted. Converting a service removes its entries: the guard fails on an entry that no longer
+/// holds, so the list only ever shrinks, and it ends empty. What stays as it is for good is in
+/// [permanentServiceExceptions], not here.
+const pendingServiceMethods = <String>{};
+
+/// What stays as it is for good, each with the reason it is allowed to.
+///
+/// An entry is `<Class>.<method>` for a public method that is not converted, and
+/// `catch:<Class>.<member>` for a member of a service, an `Ops` class or the version codec that
+/// holds a `try` with a `catch`: a service does not catch what the database raises outside the
+/// boundary, so every other catch is named here. The guard fails on an entry that no longer holds.
+const permanentServiceExceptions = <String, String>{
+  'OcptProjectVersionsService.restoreVersion':
+      'Answers its own restore status, which tells a failed write from a refused restore.',
+  'OcptProjectPackageService.readPackage':
+      'Answers its own package status, which tells an unreadable archive from a newer format.',
+  'OcptProjectPackageService.writePackage':
+      'Answers its own package status, which tells an unwritable destination from a missing file.',
+  'OcptMergeService.applyChangeset':
+      "Answers the merge's own status, which tells a refused changeset from an applied one; a "
+      'failure of the database itself still raises, for the sync session to settle.',
+  'catch:OcptMergeService.applyChangeset':
+      'Catches its own refusal, thrown inside the transaction to roll it back, and answers it.',
+  'catch:OcptBreakdownService.createElementAndTag':
+      'Throws a private refusal inside the transaction to roll it back and catches it in the same '
+      'method: it never reaches the caller.',
+  'catch:OcptBreakdownService.createSetAndTag':
+      'Throws a private refusal inside the transaction to roll it back and catches it in the same '
+      'method: it never reaches the caller.',
+  'catch:OcptProjectVersionsService.restoreVersion':
+      'Answers its own restore status, which tells a failed write from a refused restore.',
+  'catch:OcptProjectPackageService.readPackage':
+      'Answers its own package status, which tells an unreadable archive from a newer format.',
+  'catch:OcptProjectPackageService.writePackage':
+      'Answers its own package status, which tells an unwritable destination from a missing file.',
+  'catch:OcptProjectPackageService._unpackDecodedPackage':
+      'Part of readPackage: answers its package status and cleans up its temporary folder.',
+  'catch:OcptProjectPackageService._readManifest':
+      'Reads a JSON file that may not be one: a manifest that cannot be parsed is not a manifest.',
+  'catch:OcptProjectPackageService._deleteQuietly':
+      'Runs in a finally, where raising would hide what actually went wrong.',
+  'catch:OcptProjectPackageService.scanAssets':
+      'Reads a project file with sqlite3 directly, not through a project database: a file that '
+      'cannot be read as a project answers null.',
+  'catch:OcptProjectFileCompatibilityService.probe':
+      'Reads a project file with sqlite3 before any project database exists: a file that cannot be '
+      'read as a project is a verdict, not a failure.',
+  'catch:OcptProjectFileCompatibilityService.writeBackup':
+      'Copies a project file with sqlite3 before its migration and answers whether it did.',
+  'catch:OcptProjectVersionCodec.decode':
+      'Decodes a JSON payload and answers its own payload status: it reads no database.',
+};
+
+/// The methods that take the caller's `stamps`, so run inside the caller's transaction and stay
+/// raising: the transaction rolls back on an exception, and a status answered instead would let it
+/// commit.
+///
+/// The list is frozen. The guard fails on a method that takes `stamps` and is not here, and on an
+/// entry that no longer takes it, so a new participant is a decision made here and not a parameter
+/// name that happens to fit. None of them is called from `lib/ui`.
+const serviceStampParticipants = <String>{
+  'OcptAssetsService.erasePersonAssets',
+  'OcptAssetsService.insertAsset',
+  'OcptAssetsService.tombstoneAsset',
+  'OcptBreakdownService.reconcileTags',
+  'OcptBreakdownService.tombstoneBreakdownOfScenes',
+  'OcptElementsService.tombstoneRoleLinksOfRole',
+  'OcptElementsService.tombstoneSceneElementsOfScenes',
+  'OcptFloorPlanService.tombstoneFloorPlanRowsOfSet',
+  'OcptFloorPlanService.tombstoneFloorPlanRowsOfShot',
+  'OcptLocationsService.tombstoneSceneSetsOfScenes',
+  'OcptRoleCandidatesService.eraseCandidaciesOfPerson',
+  'OcptRoleCandidatesService.tombstoneCandidatesOfRole',
+  'OcptRoleIndexService.reconcile',
+  'OcptRoleIndexService.tombstoneEpisodeLinks',
+  'OcptScheduleService.tombstoneShotBlocks',
+  'OcptScreenplayService.reconcileScreenplayText',
+  'OcptScreenplayService.snapshotBeforeRestore',
+  'OcptShotCoverageService.refreshStaleness',
+  'OcptShotListService.detachShotsFromDeletedScenes',
+  'OcptShotListService.tombstoneShotsOfScreenplay',
+  'OcptStoryboardService.tombstonePanelsOfShot',
+};

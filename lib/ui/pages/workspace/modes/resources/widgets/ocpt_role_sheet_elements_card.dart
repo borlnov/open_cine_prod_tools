@@ -6,13 +6,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_breakdown_palette.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_card.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
 /// How long a row waits after the last keystroke before reporting what was typed into it.
 const Duration _localFieldDebounce = Duration(milliseconds: 600);
@@ -55,17 +55,7 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
   /// Called with a link's id when its remove control is clicked, or null while it may not be used.
   final ValueChanged<String>? onLinkRemoved;
 
-  /// Class constructor
-  const OcptRoleSheetElementsCard({
-    super.key,
-    required this.roleId,
-    required this.elements,
-    required this.onElementLinked,
-    required this.onLinkUpdated,
-    required this.onLinkRemoved,
-  });
-
-  /// The elements this role is linked to, paired with the id of the link saying so, in the
+  /// Get the elements this role is linked to, paired with the id of the link saying so, in the
   /// catalogue's own order.
   ///
   /// A role never holds two live links onto one element (`OcptElementsService.addRoleElement`
@@ -76,6 +66,17 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
         if (link.roleId == roleId) (element, link.id),
   ];
 
+  /// Class constructor
+  const OcptRoleSheetElementsCard({
+    super.key,
+    required this.roleId,
+    required this.elements,
+    required this.onElementLinked,
+    required this.onLinkUpdated,
+    required this.onLinkRemoved,
+  });
+
+  /// Build the role sheet elements card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -97,7 +98,7 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
             ),
           for (final category in OcptElementCategory.values)
             if (_ofCategory(linked, category) case final rows when rows.isNotEmpty) ...[
-              _buildCategoryHeading(context, tr, category),
+              _CategoryHeading(category: category),
               for (final (element, linkId) in rows) ...[
                 _OcptRoleElementRow(
                   key: ValueKey(linkId),
@@ -111,13 +112,13 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
             ],
-          if (onElementLinked != null) _buildElementPicker(context, tr, linked),
+          if (onElementLinked != null) _ElementPicker(card: this, linked: linked),
         ],
       ),
     );
   }
 
-  /// The entries of [linked] whose element belongs to [category], in the order they came in.
+  /// Get the entries of [linked] whose element belongs to [category], in the order they came in.
   List<(OcptElement, String)> _ofCategory(
     List<(OcptElement, String)> linked,
     OcptElementCategory category,
@@ -126,94 +127,11 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
       if (entry.$1.category == category) entry,
   ];
 
-  /// The note link [linkId] carries on [element].
+  /// Get the note link [linkId] carries on [element].
   String _notesOf(OcptElement element, String linkId) =>
       element.roleLinks.firstWhere((link) => link.id == linkId).notes;
 
-  /// A category's heading: its own colour, then its localized name — the same colour the breakdown
-  /// mode gives that category, since a category must read the same in every view.
-  Widget _buildCategoryHeading(BuildContext context, Tr tr, OcptElementCategory category) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 6),
-      child: Row(
-        children: [
-          Container(
-            width: _categoryDotSide,
-            height: _categoryDotSide,
-            decoration: BoxDecoration(
-              color: Color(
-                ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: category),
-              ),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            ocptElementCategoryLabel(tr, category).toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// The `Element` picker: every element this role is not already linked to, grouped by category
-  /// the way the left dock's own list heads it. Renders nothing at all once there is none left to
-  /// offer.
-  Widget _buildElementPicker(
-    BuildContext context,
-    Tr tr,
-    List<(OcptElement, String)> linked,
-  ) {
-    final onElementLinked = this.onElementLinked!;
-    final linkedIds = {for (final (element, _) in linked) element.id};
-    final offered = [
-      for (final element in elements)
-        if (!linkedIds.contains(element.id)) element,
-    ];
-
-    if (offered.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: PopupMenuButton<String>(
-        tooltip: "",
-        onSelected: onElementLinked,
-        itemBuilder: (context) => [
-          for (final category in OcptElementCategory.values)
-            if (offered.where((element) => element.category == category).toList()
-                case final categoryElements when categoryElements.isNotEmpty) ...[
-              PopupMenuItem<String>(
-                enabled: false,
-                height: 28,
-                child: Text(
-                  ocptElementCategoryLabel(tr, category).toUpperCase(),
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
-              for (final element in categoryElements)
-                PopupMenuItem<String>(
-                  value: element.id,
-                  child: Text(_elementLabel(element)),
-                ),
-            ],
-        ],
-        child: Chip(
-          avatar: const Icon(Icons.add, size: 14),
-          label: Text(tr.resourcesAddElementToRoleAction),
-        ),
-      ),
-    );
-  }
-
-  /// How an element reads in this card and its picker: its name, prefixed by the code the app
+  /// Tell how an element reads in this card and its picker: its name, prefixed by the code the app
   /// minted for it when it has one.
   static String _elementLabel(OcptElement element) =>
       element.code.isEmpty ? element.name : "${element.code} · ${element.name}";
@@ -244,6 +162,7 @@ class _OcptRoleElementRow extends StatefulWidget {
     required this.onRemoved,
   });
 
+  /// Create the [_OcptRoleElementRowState] holding the state of the role element row.
   @override
   State<_OcptRoleElementRow> createState() => _OcptRoleElementRowState();
 }
@@ -269,45 +188,14 @@ class _OcptRoleElementRowState extends State<_OcptRoleElementRow> {
   /// Whether a local edit is waiting to be flushed.
   bool _isDirty = false;
 
+  /// Register [_flushOnFocusLost] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_flushOnFocusLost);
   }
 
-  @override
-  void dispose() {
-    _flushIfDirty();
-    _debounce?.cancel();
-    _focusNode.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  /// Flushes a pending edit the moment the row loses focus.
-  void _flushOnFocusLost() {
-    if (!_focusNode.hasFocus) {
-      _flushIfDirty();
-    }
-  }
-
-  /// Records that the note changed and (re)starts the debounce.
-  void _onFieldChanged(String text) {
-    _isDirty = true;
-    _debounce?.cancel();
-    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
-  }
-
-  /// Reports the row's current note, if a local edit is actually waiting.
-  void _flushIfDirty() {
-    _debounce?.cancel();
-    if (!_isDirty) {
-      return;
-    }
-    _isDirty = false;
-    widget.onUpdated?.call(_notesController.text);
-  }
-
+  /// Build the role element row as a [Focus].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -325,7 +213,7 @@ class _OcptRoleElementRowState extends State<_OcptRoleElementRow> {
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(ocptRadiusLarge),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,6 +252,144 @@ class _OcptRoleElementRowState extends State<_OcptRoleElementRow> {
               decoration: const InputDecoration(isDense: true),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Flush a pending edit the moment the row loses focus.
+  void _flushOnFocusLost() {
+    if (!_focusNode.hasFocus) {
+      _flushIfDirty();
+    }
+  }
+
+  /// Record that the note changed and (re)starts the debounce.
+  void _onFieldChanged(String text) {
+    _isDirty = true;
+    _debounce?.cancel();
+    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
+  }
+
+  /// Report the row's current note, if a local edit is actually waiting.
+  void _flushIfDirty() {
+    _debounce?.cancel();
+    if (!_isDirty) {
+      return;
+    }
+    _isDirty = false;
+    widget.onUpdated?.call(_notesController.text);
+  }
+
+  /// Flush the pending edit, cancel [_debounce], then dispose [_focusNode] and [_notesController].
+  @override
+  void dispose() {
+    _flushIfDirty();
+    _debounce?.cancel();
+    _focusNode.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+}
+
+/// A category's heading: its own colour, then its localized name — the same colour the breakdown
+/// mode gives that category, since a category must read the same in every view.
+class _CategoryHeading extends StatelessWidget {
+  /// The category the heading names.
+  final OcptElementCategory category;
+
+  /// Class constructor
+  const _CategoryHeading({required this.category});
+
+  /// Build the category heading as a [Padding].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 6),
+      child: Row(
+        children: [
+          Container(
+            width: _categoryDotSide,
+            height: _categoryDotSide,
+            decoration: BoxDecoration(
+              color: Color(
+                ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: category),
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            ocptElementCategoryLabel(tr, category).toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The `Element` picker: every element this role is not already linked to, grouped by category
+/// the way the left dock's own list heads it. Renders nothing at all once there is none left to
+/// offer.
+class _ElementPicker extends StatelessWidget {
+  /// The widget this one belongs to.
+  final OcptRoleSheetElementsCard card;
+
+  /// The elements already linked to the role, each with its link id.
+  final List<(OcptElement, String)> linked;
+
+  /// Class constructor
+  const _ElementPicker({required this.card, required this.linked});
+
+  /// Build the element picker as an [Align].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final onElementLinked = card.onElementLinked!;
+    final linkedIds = {for (final (element, _) in linked) element.id};
+    final offered = [
+      for (final element in card.elements)
+        if (!linkedIds.contains(element.id)) element,
+    ];
+
+    if (offered.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: PopupMenuButton<String>(
+        tooltip: "",
+        onSelected: onElementLinked,
+        itemBuilder: (context) => [
+          for (final category in OcptElementCategory.values)
+            if (offered.where((element) => element.category == category).toList()
+                case final categoryElements when categoryElements.isNotEmpty) ...[
+              PopupMenuItem<String>(
+                enabled: false,
+                height: 28,
+                child: Text(
+                  ocptElementCategoryLabel(tr, category).toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+              for (final element in categoryElements)
+                PopupMenuItem<String>(
+                  value: element.id,
+                  child: Text(OcptRoleSheetElementsCard._elementLabel(element)),
+                ),
+            ],
+        ],
+        child: Chip(
+          avatar: const Icon(Icons.add, size: 14),
+          label: Text(tr.resourcesAddElementToRoleAction),
         ),
       ),
     );

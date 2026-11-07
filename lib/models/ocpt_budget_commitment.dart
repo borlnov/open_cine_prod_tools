@@ -7,8 +7,8 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 
-/// Money committed to a poste but not yet paid. See `OcptBudgetCommitmentsTable`'s own doc comment
-/// for the money and status representation this mirrors.
+/// Money committed to an account but not yet paid. See `OcptBudgetCommitmentsTable`'s own doc
+/// comment for the money and status representation this mirrors.
 class OcptBudgetCommitment extends Equatable {
   /// The stable, unique id of this commitment (a UUID).
   final String id;
@@ -20,8 +20,8 @@ class OcptBudgetCommitment extends Equatable {
   /// This commitment's free-text wording.
   final String label;
 
-  /// The poste this commitment is priced against.
-  final String posteId;
+  /// The account this commitment is priced against.
+  final String accountId;
 
   /// The amount committed, and the tax basis and rate it carries.
   final OcptMoney amount;
@@ -42,19 +42,19 @@ class OcptBudgetCommitment extends Equatable {
     required this.id,
     required this.dueDate,
     required this.label,
-    required this.posteId,
+    required this.accountId,
     required this.amount,
     required this.status,
     required this.lineId,
     required this.sortKey,
   });
 
-  /// Builds an [OcptBudgetCommitment] from its stored [row].
+  /// Build an [OcptBudgetCommitment] from its stored [row].
   factory OcptBudgetCommitment.fromRow(OcptBudgetCommitmentRow row) => OcptBudgetCommitment(
     id: row.id,
     dueDate: row.dueDate,
     label: row.label,
-    posteId: row.posteId,
+    accountId: row.accountId,
     amount: OcptMoney(
       amountCents: row.amountCents,
       isTaxInclusive: row.isTaxInclusive,
@@ -65,12 +65,13 @@ class OcptBudgetCommitment extends Equatable {
     sortKey: row.sortKey,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
-  String toString() => "OcptBudgetCommitment(id: $id, label: $label, posteId: $posteId, "
+  String toString() =>
+      "OcptBudgetCommitment(id: $id, label: $label, accountId: $accountId, "
       "status: $status)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
-  List<Object?> get props => [id, dueDate, label, posteId, amount, status, lineId, sortKey];
+  List<Object?> get props => [id, dueDate, label, accountId, amount, status, lineId, sortKey];
 }

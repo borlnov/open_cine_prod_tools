@@ -15,17 +15,7 @@ sealed class OcptSettingsEvent extends BlocEventForMixin {
   const OcptSettingsEvent();
 }
 
-/// Requests reading the preferences `OcptPropertiesManager` holds into the state.
-///
-/// Dispatched once by the bloc's own constructor: unlike the locale and the theme, which their
-/// managers already hold in memory and the bloc's factory reads synchronously, a stored preference
-/// is loaded asynchronously, so the page opens on the default and corrects itself a frame later.
-class OcptSettingsPreferencesLoadRequestedEvent extends OcptSettingsEvent {
-  /// Class constructor
-  const OcptSettingsPreferencesLoadRequestedEvent();
-}
-
-/// Requests storing [firstWeekday] as the app-wide day a week starts on.
+/// Request storing [firstWeekday] as the app-wide day a week starts on.
 class OcptSettingsFirstWeekdayChangedEvent extends OcptSettingsEvent {
   /// The day a week is to start on from now on.
   final OcptFirstWeekday firstWeekday;
@@ -33,7 +23,7 @@ class OcptSettingsFirstWeekdayChangedEvent extends OcptSettingsEvent {
   /// Class constructor
   const OcptSettingsFirstWeekdayChangedEvent({required this.firstWeekday});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, firstWeekday];
 }

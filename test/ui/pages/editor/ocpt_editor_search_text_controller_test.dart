@@ -4,9 +4,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search_text_controller.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 import 'package:spell_kit/spell_kit.dart';
 
 /// Depth-first search for the first [TextSpan] (in [root]'s own tree) whose own [TextSpan.text] is
@@ -44,6 +44,7 @@ bool _anySpanIsUnderlined(InlineSpan root) {
   return false;
 }
 
+/// Run the tests of [OcptEditorSearchTextController].
 void main() {
   /// Builds a widget tree and hands back a [BuildContext] from inside it — [buildTextSpan] takes
   /// one, but never actually reads anything from it (the search/spell colours are fixed constants,
@@ -130,7 +131,7 @@ void main() {
       const text = 'Short text.';
 
       final controller = OcptEditorSearchTextController(text: text);
-      // Computed against a longer text this controller has since moved past (the plan's own M3
+      // Computed against a longer text this controller has since moved past (a known
       // trap: a spelling range arrives one isolate round trip later than a search match does, so
       // it is more exposed to this than a match is).
       controller.updateSpellCheckRanges([const SpellRange(0, text.length + 50)]);
@@ -148,26 +149,22 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a spelling range starting past the current text end is dropped the same way',
-    (tester) async {
-      final context = await pumpContext(tester);
-      const text = 'Short text.';
+  testWidgets('a spelling range starting past the current text end is dropped the same way', (
+    tester,
+  ) async {
+    final context = await pumpContext(tester);
+    const text = 'Short text.';
 
-      final controller = OcptEditorSearchTextController(text: text);
-      controller.updateSpellCheckRanges([const SpellRange(text.length + 5, text.length + 10)]);
+    final controller = OcptEditorSearchTextController(text: text);
+    controller.updateSpellCheckRanges([const SpellRange(text.length + 5, text.length + 10)]);
 
-      expect(
-        () => controller.buildTextSpan(context: context, withComposing: false),
-        returnsNormally,
-      );
+    expect(() => controller.buildTextSpan(context: context, withComposing: false), returnsNormally);
 
-      final span = controller.buildTextSpan(context: context, withComposing: false);
-      expect(_anySpanIsUnderlined(span), isFalse);
+    final span = controller.buildTextSpan(context: context, withComposing: false);
+    expect(_anySpanIsUnderlined(span), isFalse);
 
-      controller.dispose();
-    },
-  );
+    controller.dispose();
+  });
 
   test('updateSpellCheckRanges is a no-op, and notifies no listener, when given the ranges '
       'already held', () {

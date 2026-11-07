@@ -23,11 +23,12 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 420, height: 1400, child: child)),
 );
 
+/// Run the tests of [OcptBudgetHelp].
 void main() {
   /// Pumps [OcptBudgetHelp] for the given route and returns its own [Tr], resolved from its own
-  /// element — mirrors `ocpt_budget_fiche_test.dart`'s own `pumpFiche`. [toolsView] is read only
-  /// while [view] is [OcptBudgetView.tools], defaulting to `cashFlow` since most tests below name
-  /// a route outside the drawer.
+  /// element — mirrors `ocpt_budget_detail_test_doubles.dart`'s own `pumpDetail`. [toolsView] is
+  /// read only while [view] is [OcptBudgetView.tools], defaulting to `cashFlow` since most tests
+  /// below name a route outside the drawer.
   Future<Tr> pumpHelp(
     WidgetTester tester, {
     required OcptBudgetView view,
@@ -42,7 +43,7 @@ void main() {
   testWidgets("draws the expenses chain: Estimated, Committed, Paid", (tester) async {
     final tr = await pumpHelp(tester, view: OcptBudgetView.expenses);
 
-    expect(find.text(tr.budgetFicheStepEstimatedLabel), findsOneWidget);
+    expect(find.text(tr.budgetDetailStepEstimatedLabel), findsOneWidget);
     expect(find.text(tr.budgetInspectorFigureCommitted), findsOneWidget);
     expect(find.text(tr.budgetInspectorFigurePaid), findsOneWidget);
     expect(find.text(tr.budgetHelpChainExpensesEstimatedCaption), findsOneWidget);
@@ -54,7 +55,7 @@ void main() {
   testWidgets("draws the resources chain: Promised, Received", (tester) async {
     final tr = await pumpHelp(tester, view: OcptBudgetView.resources);
 
-    expect(find.text(tr.budgetFicheStepPromisedLabel), findsOneWidget);
+    expect(find.text(tr.budgetDetailStepPromisedLabel), findsOneWidget);
     expect(find.text(tr.budgetFinancingColumnReceived), findsOneWidget);
     expect(find.text(tr.budgetHelpChainResourcesPromisedCaption), findsOneWidget);
     expect(find.text(tr.budgetHelpChainResourcesReceivedCaption), findsOneWidget);
@@ -82,7 +83,7 @@ void main() {
   ) async {
     final tr = await pumpHelp(tester, view: OcptBudgetView.tools);
 
-    expect(find.text(tr.budgetFicheStepEstimatedLabel), findsOneWidget);
+    expect(find.text(tr.budgetDetailStepEstimatedLabel), findsOneWidget);
     expect(find.text(tr.budgetInspectorFigureCommitted), findsOneWidget);
     expect(find.text(tr.budgetInspectorFigurePaid), findsOneWidget);
   });
@@ -106,20 +107,20 @@ void main() {
     final tr = await pumpHelp(
       tester,
       view: OcptBudgetView.tools,
-      toolsView: OcptBudgetToolsView.regie,
+      toolsView: OcptBudgetToolsView.logistics,
     );
 
     // No chain of any of the three documents' own steps is drawn.
-    expect(find.text(tr.budgetFicheStepEstimatedLabel), findsNothing);
-    expect(find.text(tr.budgetFicheStepPromisedLabel), findsNothing);
+    expect(find.text(tr.budgetDetailStepEstimatedLabel), findsNothing);
+    expect(find.text(tr.budgetDetailStepPromisedLabel), findsNothing);
     expect(find.text(tr.budgetSharingLeftToShareLabel), findsNothing);
     expect(find.byType(Table), findsNothing);
 
     // Its own first paragraph says why: it is not all typing or all reading, one column computed
     // and the other typed row by row.
-    expect(find.text(tr.budgetHelpRegieBody1), findsOneWidget);
+    expect(find.text(tr.budgetHelpLogisticsBody1), findsOneWidget);
     expect(
-      find.text(tr.budgetHelpRegieBody5(tr.budgetHeaderExpensesSegmentLabel)),
+      find.text(tr.budgetHelpLogisticsBody5(tr.budgetHeaderExpensesSegmentLabel)),
       findsOneWidget,
     );
   });
@@ -192,26 +193,13 @@ void main() {
     // All three name the header's own single New button, so a reader looking for the control the
     // paragraph talks about finds the same word above the panel on every page.
     var tr = await pumpHelp(tester, view: OcptBudgetView.expenses);
-    expect(
-      find.text(tr.budgetHelpExpensesBody3(tr.budgetHeaderNewAction)),
-      findsOneWidget,
-    );
+    expect(find.text(tr.budgetHelpExpensesBody3(tr.budgetHeaderNewAction)), findsOneWidget);
 
     tr = await pumpHelp(tester, view: OcptBudgetView.resources);
-    expect(
-      find.text(tr.budgetHelpResourcesBody3(tr.budgetHeaderNewAction)),
-      findsOneWidget,
-    );
+    expect(find.text(tr.budgetHelpResourcesBody3(tr.budgetHeaderNewAction)), findsOneWidget);
 
-    tr = await pumpHelp(
-      tester,
-      view: OcptBudgetView.tools,
-      toolsView: OcptBudgetToolsView.sharing,
-    );
-    expect(
-      find.text(tr.budgetHelpSharingBody3(tr.budgetHeaderNewAction)),
-      findsOneWidget,
-    );
+    tr = await pumpHelp(tester, view: OcptBudgetView.tools, toolsView: OcptBudgetToolsView.sharing);
+    expect(find.text(tr.budgetHelpSharingBody3(tr.budgetHeaderNewAction)), findsOneWidget);
   });
 
   testWidgets("the cash flow page says the statement is only read, and why", (tester) async {

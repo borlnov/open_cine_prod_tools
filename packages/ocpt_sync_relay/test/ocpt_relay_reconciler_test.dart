@@ -12,9 +12,13 @@ import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
+/// The enrolment secret the tests pair with.
 const _enrolmentSecret = 'enrolment-secret';
+
+/// The time a test waits before it gives up.
 const _timeout = Timeout(Duration(seconds: 5));
 
+/// Build an envelope with [changesetId] and [lamport], from a fixed device.
 OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptChangesetEnvelope(
   changesetId: changesetId,
   originDeviceId: 'device-1',
@@ -23,6 +27,7 @@ OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptCh
   payload: Uint8List.fromList([1, 2, 3]),
 );
 
+/// Run the tests of [OcptRelayReconciler].
 void main() {
   group('OcptRelayReconciler', () {
     late OcptRelayStore upstreamStore;
@@ -50,113 +55,111 @@ void main() {
       setRelayStore.close();
     });
 
-    test(
-      'a fresh push moves every local changeset to an upstream that has none yet',
-      () async {
-        setRelayStore.append('project-1', _envelope('changeset-1'));
-        setRelayStore.append('project-1', _envelope('changeset-2'));
-        setRelayStore.append('project-1', _envelope('changeset-3'));
+    test('a fresh push moves every local changeset to an upstream that has none yet', () async {
+      setRelayStore.append('project-1', _envelope('changeset-1'));
+      setRelayStore.append('project-1', _envelope('changeset-2'));
+      setRelayStore.append('project-1', _envelope('changeset-3'));
 
-        final result = await reconciler.reconcileProject(projectId: 'project-1', enrolmentSecret: _enrolmentSecret);
+      final result = await reconciler.reconcileProject(
+        projectId: 'project-1',
+        enrolmentSecret: _enrolmentSecret,
+      );
 
-        expect(result.pushed, 3);
-        expect(result.pulled, 0);
-        final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
-        expect(onUpstream.map((changeset) => changeset.envelope.changesetId), [
-          'changeset-1',
-          'changeset-2',
-          'changeset-3',
-        ]);
-      },
-      timeout: _timeout,
-    );
+      expect(result.pushed, 3);
+      expect(result.pulled, 0);
+      final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onUpstream.map((changeset) => changeset.envelope.changesetId), [
+        'changeset-1',
+        'changeset-2',
+        'changeset-3',
+      ]);
+    }, timeout: _timeout);
 
-    test(
-      'bidirectional reconciliation converges both stores when each holds changesets the other lacks',
-      () async {
-        setRelayStore.append('project-1', _envelope('set-1'));
-        setRelayStore.append('project-1', _envelope('set-2'));
-        setRelayStore.append('project-1', _envelope('set-3'));
-        upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        upstreamStore.append('project-1', _envelope('upstream-1'));
-        upstreamStore.append('project-1', _envelope('upstream-2'));
+    test('bidirectional reconciliation converges both stores when each holds changesets the other '
+        'lacks', () async {
+      setRelayStore.append('project-1', _envelope('set-1'));
+      setRelayStore.append('project-1', _envelope('set-2'));
+      setRelayStore.append('project-1', _envelope('set-3'));
+      upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      upstreamStore.append('project-1', _envelope('upstream-1'));
+      upstreamStore.append('project-1', _envelope('upstream-2'));
 
-        final result = await reconciler.reconcileProject(projectId: 'project-1');
+      final result = await reconciler.reconcileProject(projectId: 'project-1');
 
-        expect(result.pushed, 3);
-        expect(result.pulled, 2);
-        final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
-        expect(onUpstream.map((changeset) => changeset.envelope.changesetId).toSet(), {
-          'set-1',
-          'set-2',
-          'set-3',
-          'upstream-1',
-          'upstream-2',
-        });
-        final onSetRelay = setRelayStore.readSince('project-1', OcptSequenceNumber.zero);
-        expect(onSetRelay.map((changeset) => changeset.envelope.changesetId).toSet(), {
-          'set-1',
-          'set-2',
-          'set-3',
-          'upstream-1',
-          'upstream-2',
-        });
-      },
-      timeout: _timeout,
-    );
+      expect(result.pushed, 3);
+      expect(result.pulled, 2);
+      final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onUpstream.map((changeset) => changeset.envelope.changesetId).toSet(), {
+        'set-1',
+        'set-2',
+        'set-3',
+        'upstream-1',
+        'upstream-2',
+      });
+      final onSetRelay = setRelayStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onSetRelay.map((changeset) => changeset.envelope.changesetId).toSet(), {
+        'set-1',
+        'set-2',
+        'set-3',
+        'upstream-1',
+        'upstream-2',
+      });
+    }, timeout: _timeout);
 
-    test(
-      'a second run right after the first pushes and pulls nothing new',
-      () async {
-        setRelayStore.append('project-1', _envelope('set-1'));
-        upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        upstreamStore.append('project-1', _envelope('upstream-1'));
-        await reconciler.reconcileProject(projectId: 'project-1');
-        final upstreamLengthAfterFirst = upstreamStore.readSince('project-1', OcptSequenceNumber.zero).length;
-        final setRelayLengthAfterFirst = setRelayStore.readSince('project-1', OcptSequenceNumber.zero).length;
+    test('a second run right after the first pushes and pulls nothing new', () async {
+      setRelayStore.append('project-1', _envelope('set-1'));
+      upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      upstreamStore.append('project-1', _envelope('upstream-1'));
+      await reconciler.reconcileProject(projectId: 'project-1');
+      final upstreamLengthAfterFirst = upstreamStore
+          .readSince('project-1', OcptSequenceNumber.zero)
+          .length;
+      final setRelayLengthAfterFirst = setRelayStore
+          .readSince('project-1', OcptSequenceNumber.zero)
+          .length;
 
-        final second = await reconciler.reconcileProject(projectId: 'project-1');
+      final second = await reconciler.reconcileProject(projectId: 'project-1');
 
-        expect(second.pushed, 0);
-        expect(second.pulled, 0);
-        expect(upstreamStore.readSince('project-1', OcptSequenceNumber.zero).length, upstreamLengthAfterFirst);
-        expect(setRelayStore.readSince('project-1', OcptSequenceNumber.zero).length, setRelayLengthAfterFirst);
-      },
-      timeout: _timeout,
-    );
+      expect(second.pushed, 0);
+      expect(second.pulled, 0);
+      expect(
+        upstreamStore.readSince('project-1', OcptSequenceNumber.zero).length,
+        upstreamLengthAfterFirst,
+      );
+      expect(
+        setRelayStore.readSince('project-1', OcptSequenceNumber.zero).length,
+        setRelayLengthAfterFirst,
+      );
+    }, timeout: _timeout);
 
-    test(
-      'a later divergence on each side is picked up by a following reconcile',
-      () async {
-        setRelayStore.append('project-1', _envelope('set-1'));
-        upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        upstreamStore.append('project-1', _envelope('upstream-1'));
-        await reconciler.reconcileProject(projectId: 'project-1');
+    test('a later divergence on each side is picked up by a following reconcile', () async {
+      setRelayStore.append('project-1', _envelope('set-1'));
+      upstreamStore.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      upstreamStore.append('project-1', _envelope('upstream-1'));
+      await reconciler.reconcileProject(projectId: 'project-1');
 
-        setRelayStore.append('project-1', _envelope('set-2'));
-        upstreamStore.append('project-1', _envelope('upstream-2'));
+      setRelayStore.append('project-1', _envelope('set-2'));
+      upstreamStore.append('project-1', _envelope('upstream-2'));
 
-        final result = await reconciler.reconcileProject(projectId: 'project-1');
+      final result = await reconciler.reconcileProject(projectId: 'project-1');
 
-        expect(result.pushed, 1);
-        expect(result.pulled, 1);
-        final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
-        expect(onUpstream.map((changeset) => changeset.envelope.changesetId).toSet(), {
-          'set-1',
-          'set-2',
-          'upstream-1',
-          'upstream-2',
-        });
-        final onSetRelay = setRelayStore.readSince('project-1', OcptSequenceNumber.zero);
-        expect(onSetRelay.map((changeset) => changeset.envelope.changesetId).toSet(), {
-          'set-1',
-          'set-2',
-          'upstream-1',
-          'upstream-2',
-        });
-      },
-      timeout: _timeout,
-    );
+      expect(result.pushed, 1);
+      expect(result.pulled, 1);
+      final onUpstream = upstreamStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onUpstream.map((changeset) => changeset.envelope.changesetId).toSet(), {
+        'set-1',
+        'set-2',
+        'upstream-1',
+        'upstream-2',
+      });
+      final onSetRelay = setRelayStore.readSince('project-1', OcptSequenceNumber.zero);
+      expect(onSetRelay.map((changeset) => changeset.envelope.changesetId).toSet(), {
+        'set-1',
+        'set-2',
+        'upstream-1',
+        'upstream-2',
+      });
+    }, timeout: _timeout);
   });
 }
 

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
@@ -17,9 +17,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_summary.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_difficulty_rating.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_read_only_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_status_pill.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_shot_list_labels.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_section_title.dart';
 
 /// The width of the abbreviation field's own box, sitting right under the shot size it abbreviates:
 /// enough for the three or four characters an abbreviation ever holds (`PM`, `GP`, `TGP`), so the
@@ -145,6 +147,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
     this.isReadOnly = false,
   });
 
+  /// Build the shot inspector panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -169,7 +172,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
             Text(
               tr.shotListInspectorHeaderTitle(shot.code),
               style: theme.textTheme.titleSmall?.copyWith(
-                fontFamily: ocptMonospaceFontFamily,
+                fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -194,7 +197,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
 
         if (leadingGroup != null) ...[leadingGroup!, const SizedBox(height: 16)],
 
-        _sectionTitle(context, tr.shotListInspectorCharactersSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorCharactersSectionTitle),
         const SizedBox(height: 8),
         OcptShotCharacterChips(
           roles: roles,
@@ -204,7 +207,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        _sectionTitle(context, tr.shotListInspectorCoverageSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorCoverageSectionTitle),
         const SizedBox(height: 8),
         OcptShotCoverageSummary(
           layout: coverageLayout,
@@ -216,7 +219,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        _sectionTitle(context, tr.shotListInspectorImageSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorImageSectionTitle),
         const SizedBox(height: 8),
         OcptShotInspectorField(
           shotId: shot.id,
@@ -264,9 +267,8 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        _sectionTitle(
-          context,
-          tr.shotListInspectorDifficultySectionTitle(
+        OcptSectionTitle(
+          title: tr.shotListInspectorDifficultySectionTitle(
             ocptFormatShotDifficulty(context, shot.averageDifficulty),
           ),
         ),
@@ -293,9 +295,13 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        _sectionTitle(context, tr.shotListInspectorProductionSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorProductionSectionTitle),
         const SizedBox(height: 8),
-        _buildEstimatedDurationField(tr, shot),
+        _EstimatedDurationField(
+          shot: shot,
+          value: fieldValueOf(OcptShotListEditableField.estimatedDuration),
+          onChanged: _onFieldChangedOrNull(OcptShotListEditableField.estimatedDuration),
+        ),
         OcptShotInspectorField(
           shotId: shot.id,
           label: tr.shotListColumnSound,
@@ -310,7 +316,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        _sectionTitle(context, tr.shotListInspectorNotesSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorNotesSectionTitle),
         const SizedBox(height: 8),
         OcptShotInspectorField(
           shotId: shot.id,
@@ -321,7 +327,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        _sectionTitle(context, tr.shotListInspectorLocationSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorLocationSectionTitle),
         const SizedBox(height: 8),
         OcptShotInspectorField(
           shotId: shot.id,
@@ -345,49 +351,55 @@ class OcptShotInspectorPanel extends StatelessWidget {
     );
   }
 
-  /// The `onChanged` an editable field of [field] is given: the one reporting to [onFieldChanged],
+  /// Get the `onChanged` an editable field of [field] is given: the one reporting to
+  /// [onFieldChanged],
   /// or null while [isReadOnly], which is what makes the field read out its value instead of
   /// accepting a new one.
   ValueChanged<String>? _onFieldChangedOrNull(OcptShotListEditableField field) =>
       isReadOnly ? null : (value) => onFieldChanged(field, value);
 
-  /// The `onChanged` a difficulty row of [axis] is given, null under the same condition as
+  /// Get the `onChanged` a difficulty row of [axis] is given, null under the same condition as
   /// [_onFieldChangedOrNull] and with the same effect: the dots then only read the axis out.
   ValueChanged<int>? _onDifficultyChangedOrNull(OcptShotDifficultyAxis axis) =>
       isReadOnly ? null : (value) => onDifficultyChanged(axis, value);
+}
 
-  /// The estimated duration field of [shot]: the one field of the panel whose value is not free
-  /// text but a `mm:ss` duration, so it is the one built here rather than inline.
-  ///
-  /// Nothing but digits and the `:` separator can be typed into it
-  /// ([ocptShotDurationInputFormatters]), its label and its placeholder both state the format, and
-  /// a badly shaped duration (`1:75`, `1:2:3`) is marked in error under the field — matching what
-  /// the bloc does with it, which is to leave the shot's stored duration alone until what was
-  /// typed parses.
-  Widget _buildEstimatedDurationField(Tr tr, OcptShot shot) {
-    final value = fieldValueOf(OcptShotListEditableField.estimatedDuration);
+/// The estimated duration field of a shot: the one field of the panel whose value is not free text
+/// but a `mm:ss` duration, so it is the one with a widget of its own.
+///
+/// Nothing but digits and the `:` separator can be typed into it
+/// ([ocptShotDurationInputFormatters]), its label and its placeholder both state the format, and a
+/// badly shaped duration (`1:75`, `1:2:3`) is marked in error under the field — matching what the
+/// bloc does with it, which is to leave the shot's stored duration alone until what was typed
+/// parses.
+class _EstimatedDurationField extends StatelessWidget {
+  /// The shot whose duration is edited.
+  final OcptShot shot;
+
+  /// The field's current value: what is still pending in the debounce, or the shot's own.
+  final String value;
+
+  /// Called with the field's raw text on every keystroke, or null while withheld.
+  final ValueChanged<String>? onChanged;
+
+  /// Class constructor
+  const _EstimatedDurationField({required this.shot, required this.value, required this.onChanged});
+
+  /// Build the estimated duration field as an [OcptShotInspectorField].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
 
     return OcptShotInspectorField(
       shotId: shot.id,
       label: tr.shotListInspectorEstimatedDurationLabel,
       value: value,
       hintText: tr.shotListInspectorEstimatedDurationHint,
-      errorText: ocptIsShotDurationValid(value)
-          ? null
-          : tr.shotListInspectorEstimatedDurationError,
+      errorText: ocptIsShotDurationValid(value) ? null : tr.shotListInspectorEstimatedDurationError,
       inputFormatters: ocptShotDurationInputFormatters,
-      onChanged: _onFieldChangedOrNull(OcptShotListEditableField.estimatedDuration),
+      onChanged: onChanged,
     );
   }
-
-  /// One section title, the accent-coloured header the mock-up uses to separate the panel's
-  /// sections (Image, Difficulty, Production, …).
-  Widget _sectionTitle(BuildContext context, String title) => Text(
-    title,
-    style: Theme.of(
-      context,
-    ).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
-  );
 }
 
 /// The `Needs checking` callout shown at the top of [OcptShotInspectorPanel] whenever the selected
@@ -406,6 +418,7 @@ class _OcptShotNeedsCheckCallout extends StatelessWidget {
   /// Class constructor
   const _OcptShotNeedsCheckCallout({required this.reason, required this.onMarkAsChecked});
 
+  /// Build the shot needs check callout as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -416,8 +429,8 @@ class _OcptShotNeedsCheckCallout extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,7 +469,7 @@ class _OcptShotNeedsCheckCallout extends StatelessWidget {
     );
   }
 
-  /// The localised label of [reason].
+  /// Get the localised label of [reason].
   String _reasonLabel(Tr tr) => switch (reason) {
     OcptShotCheckReason.coveredTextChanged => tr.shotListNeedsCheckReasonCoveredTextChanged,
     OcptShotCheckReason.coverageOutOfBounds => tr.shotListNeedsCheckReasonCoverageOutOfBounds,

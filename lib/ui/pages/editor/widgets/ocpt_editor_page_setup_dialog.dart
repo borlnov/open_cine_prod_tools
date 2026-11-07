@@ -5,7 +5,7 @@
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -24,16 +24,18 @@ class OcptEditorPageSetupDialog extends StatefulWidget {
   /// Class constructor
   const OcptEditorPageSetupDialog({required this.current, super.key});
 
-  /// Shows the dialog and returns the [OcptPageSetup] the user applied, or null if they cancelled
+  /// Create the [_OcptEditorPageSetupDialogState] holding the state of the editor page setup
+  /// dialog.
+  @override
+  State<OcptEditorPageSetupDialog> createState() => _OcptEditorPageSetupDialogState();
+
+  /// Show the dialog and return the [OcptPageSetup] the user applied, or null if they cancelled
   /// it.
   static Future<OcptPageSetup?> show(BuildContext context, {required OcptPageSetup current}) =>
       showDialog<OcptPageSetup>(
         context: context,
         builder: (context) => OcptEditorPageSetupDialog(current: current),
       );
-
-  @override
-  State<OcptEditorPageSetupDialog> createState() => _OcptEditorPageSetupDialogState();
 }
 
 /// The state of [OcptEditorPageSetupDialog].
@@ -56,6 +58,7 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
   /// The controller of the bottom margin text field.
   final _bottomController = TextEditingController();
 
+  /// Fill the format and the four margin fields from the page setup the dialog opened with.
   @override
   void initState() {
     super.initState();
@@ -67,15 +70,7 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     _bottomController.text = margins.bottomInches.toString();
   }
 
-  @override
-  void dispose() {
-    _leftController.dispose();
-    _rightController.dispose();
-    _topController.dispose();
-    _bottomController.dispose();
-    super.dispose();
-  }
-
+  /// Build the editor page setup dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -92,7 +87,7 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
               DropdownButtonFormField<OcptPageFormat>(
                 initialValue: _selectedFormat,
                 decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-                mouseCursor: ocptClickableCursor,
+                mouseCursor: ocpt_theme.ocptClickableCursor,
                 items: [
                   for (final format in OcptPageFormat.values)
                     DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -106,7 +101,10 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              Text(tr.editorPageSetupMarginsSectionLabel, style: Theme.of(context).textTheme.labelLarge),
+              Text(
+                tr.editorPageSetupMarginsSectionLabel,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -205,13 +203,13 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Validates one margin field: rejects a non-numeric or negative value, then, once every field
+  /// Validate one margin field: rejects a non-numeric or negative value, then, once every field
   /// parses, rejects a combination that leaves a non-positive printable width or height for
   /// [_selectedFormat].
   ///
@@ -257,7 +255,7 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     return null;
   }
 
-  /// The physical page width, in inches, of [format], read from the format's own layout metrics
+  /// Get the physical page width, in inches, of [format], read from the format's own layout metrics
   /// (built with their default standard margins, which is always safe/non-asserting) rather than
   /// hardcoding it a second time here.
   double _pageWidthInches(OcptPageFormat format) => switch (format) {
@@ -265,13 +263,13 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     OcptPageFormat.a4 => FountainLayoutMetrics.a4().pageWidthInches,
   };
 
-  /// The physical page height, in inches, of [format]; see [_pageWidthInches].
+  /// Get the physical page height, in inches, of [format]; see [_pageWidthInches].
   double _pageHeightInches(OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => FountainLayoutMetrics.usLetter().pageHeightInches,
     OcptPageFormat.a4 => FountainLayoutMetrics.a4().pageHeightInches,
   };
 
-  /// Overwrites every margin field with the standard margins, then re-validates the form.
+  /// Overwrite every margin field with the standard margins, then re-validate the form.
   void _resetToStandardMargins() {
     const standard = FountainPageMargins.standard();
     setState(() {
@@ -283,10 +281,10 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     _formKey.currentState?.validate();
   }
 
-  /// Validates the entered margins and, if they're valid, pops the dialog returning the resulting
+  /// Validate the entered margins and, if they're valid, pop the dialog returning the resulting
   /// [OcptPageSetup].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new page setup back to the [OcptEditorPageSetupDialog.show]
   /// caller.
   void _submit() {
@@ -304,5 +302,15 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
       ),
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptPageSetup>(setup);
+  }
+
+  /// Dispose [_leftController], [_rightController], [_topController] and [_bottomController].
+  @override
+  void dispose() {
+    _leftController.dispose();
+    _rightController.dispose();
+    _topController.dispose();
+    _bottomController.dispose();
+    super.dispose();
   }
 }

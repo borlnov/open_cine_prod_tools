@@ -23,7 +23,7 @@ enum OcptFloorPlanScope {
   shot,
 }
 
-/// Derives a `floor_plan_symbols` row's [OcptFloorPlanScope] from its own `sceneId`/`shotId`.
+/// Derive a `floor_plan_symbols` row's [OcptFloorPlanScope] from its own `sceneId`/`shotId`.
 OcptFloorPlanScope ocptFloorPlanScopeOf({required String? sceneId, required String? shotId}) {
   if (shotId != null) {
     return OcptFloorPlanScope.shot;

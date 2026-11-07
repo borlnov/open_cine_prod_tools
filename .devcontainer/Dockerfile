@@ -8,7 +8,7 @@
 # Multi-stage build for Flutter Linux desktop development
 # =============================================================================
 
-FROM debian:trixie AS base
+FROM debian:trixie@sha256:2dc419c6d7fe3dad0a2f9fd469c34cc90b0f9ba642d8fde837fe3d7d34a0e7f1 AS base
 
 # Avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -57,6 +57,8 @@ RUN apt-get update && apt-get install -y \
     xdotool \
     x11-utils \
     imagemagick \
+    # Lints the repository's shell scripts (same check as the shell_lint workflow).
+    shellcheck \
     && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================

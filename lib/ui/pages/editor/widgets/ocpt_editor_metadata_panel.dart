@@ -16,7 +16,7 @@ const String _dash = '—';
 /// in the editor's status bar. A missing title-page field shows a dash rather than an empty row.
 ///
 /// Editing stays the existing title-page dialog's job: [onEditTitlePage] opens it, through
-/// `EditorPage`'s own router-manager call, exactly like the toolbar's "Title page…" overflow
+/// `OcptEditorPage`'s own router-manager call, exactly like the toolbar's "Title page…" overflow
 /// entry does. A null [onEditTitlePage] renders no "Edit…" button at all: what this panel reads out
 /// is worth showing whether or not it may be changed, which is what makes it usable as-is while a
 /// project version is being previewed read-only.
@@ -31,6 +31,18 @@ class OcptEditorMetadataPanel extends StatelessWidget {
   /// the button is then not rendered at all.
   final VoidCallback? onEditTitlePage;
 
+  /// Get the Author field's display value: the `Author` entry, falling back to the `Authors`
+  /// spelling
+  /// (both accepted on parse), or a dash when neither is present.
+  String get _authorValue {
+    final author = _rawValueOf('Author');
+    if (author.isNotEmpty) {
+      return author;
+    }
+    final authors = _rawValueOf('Authors');
+    return authors.isEmpty ? _dash : authors;
+  }
+
   /// Class constructor
   const OcptEditorMetadataPanel({
     super.key,
@@ -39,6 +51,7 @@ class OcptEditorMetadataPanel extends StatelessWidget {
     required this.onEditTitlePage,
   });
 
+  /// Build the editor metadata panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -62,7 +75,10 @@ class OcptEditorMetadataPanel extends StatelessWidget {
           label: tr.editorTitlePageDraftDateLabel,
           value: _displayValueOf('Draft date'),
         ),
-        OcptEditorDockField(label: tr.editorTitlePageContactLabel, value: _displayValueOf('Contact')),
+        OcptEditorDockField(
+          label: tr.editorTitlePageContactLabel,
+          value: _displayValueOf('Contact'),
+        ),
         Padding(
           padding: const EdgeInsets.only(top: 8, bottom: 12),
           child: Text(
@@ -96,25 +112,14 @@ class OcptEditorMetadataPanel extends StatelessWidget {
     );
   }
 
-  /// [titlePage]'s entry for [key], as its raw joined value (not `FountainTitlePage`'s semantic
+  /// Get [titlePage]'s entry for [key], as its raw joined value (not `FountainTitlePage`'s semantic
   /// getters, which re-split and re-join their source text) — empty when the entry is absent or
   /// itself empty.
   String _rawValueOf(String key) => titlePage?.entry(key)?.joinedValue ?? '';
 
-  /// [key]'s display value: its raw joined value, or a dash when that's empty.
+  /// Get [key]'s display value: its raw joined value, or a dash when that's empty.
   String _displayValueOf(String key) {
     final value = _rawValueOf(key);
     return value.isEmpty ? _dash : value;
-  }
-
-  /// The Author field's display value: the `Author` entry, falling back to the `Authors` spelling
-  /// (both accepted on parse), or a dash when neither is present.
-  String get _authorValue {
-    final author = _rawValueOf('Author');
-    if (author.isNotEmpty) {
-      return author;
-    }
-    final authors = _rawValueOf('Authors');
-    return authors.isEmpty ? _dash : authors;
   }
 }

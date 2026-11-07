@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// The number of lines a [OcptShotInspectorField.multiline] field is tall before it grows with
 /// what is typed into it.
@@ -99,6 +99,7 @@ class OcptShotInspectorField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptShotInspectorFieldState] holding the state of the shot inspector field.
   @override
   State<OcptShotInspectorField> createState() => _OcptShotInspectorFieldState();
 }
@@ -106,8 +107,7 @@ class OcptShotInspectorField extends StatefulWidget {
 /// The state of [OcptShotInspectorField]: owns the controller and focus node the class doc
 /// comment explains the reasoning for.
 class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
   /// The field's own focus node, so [RawAutocomplete] never has to create (and therefore churn) one
@@ -118,6 +118,7 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
   /// is detected even when the two shots happen to share the same field value.
   late String _trackedShotId = widget.shotId;
 
+  /// Show the new value when the shot or its value differs from the text in the field.
   @override
   void didUpdateWidget(covariant OcptShotInspectorField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -128,13 +129,7 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
     }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
+  /// Build the shot inspector field as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -148,42 +143,109 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
           if (label.isNotEmpty) ...[
             Text(
               label.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
           ],
-          _buildSizedField(context),
+          _OcptShotInspectorFieldInput(
+            field: widget,
+            controller: _controller,
+            focusNode: _focusNode,
+          ),
         ],
       ),
     );
   }
 
-  /// [_buildField], kept to [OcptShotInspectorField.fieldWidth] and aligned to the left of the
-  /// panel when the caller asked for a narrow box, left to fill the dock's width otherwise.
-  Widget _buildSizedField(BuildContext context) {
-    final fieldWidth = widget.fieldWidth;
+  /// Dispose [_controller] and [_focusNode].
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+}
+
+/// The input of an [OcptShotInspectorField], kept to its [OcptShotInspectorField.fieldWidth] and
+/// aligned to the left of the panel when the caller asked for a narrow box, left to fill the dock's
+/// width otherwise.
+///
+/// It is given the controller and the focus node by the field's state, which owns them: this
+/// widget rebuilding never touches either.
+class _OcptShotInspectorFieldInput extends StatelessWidget {
+  /// The field whose input this draws.
+  final OcptShotInspectorField field;
+
+  /// The field's own text editing controller.
+  final TextEditingController controller;
+
+  /// The field's own focus node.
+  final FocusNode focusNode;
+
+  /// Class constructor
+  const _OcptShotInspectorFieldInput({
+    required this.field,
+    required this.controller,
+    required this.focusNode,
+  });
+
+  /// Build the shot inspector field input as an [Align].
+  @override
+  Widget build(BuildContext context) {
+    final fieldWidth = field.fieldWidth;
+    final input = _OcptShotInspectorFieldSuggesting(
+      field: field,
+      controller: controller,
+      focusNode: focusNode,
+    );
     if (fieldWidth == null) {
-      return _buildField(context);
+      return input;
     }
 
     return Align(
       alignment: Alignment.centerLeft,
-      child: SizedBox(width: fieldWidth, child: _buildField(context)),
+      child: SizedBox(width: fieldWidth, child: input),
     );
   }
+}
 
-  /// Builds the field itself: a plain [TextField] when there is nothing to suggest (or nothing to
-  /// type at all), or one bound through [RawAutocomplete] otherwise.
-  Widget _buildField(BuildContext context) {
-    final suggestions = widget.suggestions;
-    final onChanged = widget.onChanged;
+/// The field itself: a plain [TextField] when there is nothing to suggest (or nothing to type at
+/// all), or one bound through [RawAutocomplete] otherwise.
+class _OcptShotInspectorFieldSuggesting extends StatelessWidget {
+  /// The field whose input this draws.
+  final OcptShotInspectorField field;
+
+  /// The field's own text editing controller.
+  final TextEditingController controller;
+
+  /// The field's own focus node.
+  final FocusNode focusNode;
+
+  /// Class constructor
+  const _OcptShotInspectorFieldSuggesting({
+    required this.field,
+    required this.controller,
+    required this.focusNode,
+  });
+
+  /// Build the shot inspector field suggesting as a [RawAutocomplete].
+  @override
+  Widget build(BuildContext context) {
+    final suggestions = field.suggestions;
+    final onChanged = field.onChanged;
     if (onChanged == null || suggestions == null || suggestions.isEmpty) {
-      return _textField(_controller, _focusNode);
+      return _OcptShotInspectorFieldText(
+        field: field,
+        controller: controller,
+        focusNode: focusNode,
+      );
     }
 
     return RawAutocomplete<String>(
-      textEditingController: _controller,
-      focusNode: _focusNode,
+      textEditingController: controller,
+      focusNode: focusNode,
       optionsBuilder: (textEditingValue) {
         final query = textEditingValue.text.trim().toLowerCase();
         if (query.isEmpty) {
@@ -193,34 +255,52 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
       },
       onSelected: onChanged,
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) =>
-          _textField(controller, focusNode),
-      optionsViewBuilder: (context, onSelected, options) => _OcptShotInspectorFieldOptions(
-        options: options,
-        onSelected: onSelected,
-      ),
+          _OcptShotInspectorFieldText(field: field, controller: controller, focusNode: focusNode),
+      optionsViewBuilder: (context, onSelected, options) =>
+          _OcptShotInspectorFieldOptions(options: options, onSelected: onSelected),
     );
   }
+}
 
-  /// The text field itself, given the controller and focus node to bind it to: this widget's own
-  /// ones when there is nothing to suggest, the very same ones handed back by [RawAutocomplete]
-  /// otherwise (it is given them, see the class doc comment).
-  ///
-  /// A [OcptShotInspectorField.multiline] field grows from [_multilineMinLines] lines upwards
-  /// instead of scrolling a single line sideways, which is what makes the fields written as a
-  /// sentence readable in a dock this narrow.
-  Widget _textField(TextEditingController controller, FocusNode focusNode) => TextField(
+/// The text field itself, given the controller and focus node to bind it to: the field's own ones
+/// when there is nothing to suggest, the very same ones handed back by [RawAutocomplete] otherwise
+/// (it is given them, see [OcptShotInspectorField]'s class doc comment).
+///
+/// A [OcptShotInspectorField.multiline] field grows from [_multilineMinLines] lines upwards
+/// instead of scrolling a single line sideways, which is what makes the fields written as a
+/// sentence readable in a dock this narrow.
+class _OcptShotInspectorFieldText extends StatelessWidget {
+  /// The field whose text field this draws.
+  final OcptShotInspectorField field;
+
+  /// The controller to bind the text field to.
+  final TextEditingController controller;
+
+  /// The focus node to bind the text field to.
+  final FocusNode focusNode;
+
+  /// Class constructor
+  const _OcptShotInspectorFieldText({
+    required this.field,
+    required this.controller,
+    required this.focusNode,
+  });
+
+  /// Build the shot inspector field text as a [TextField].
+  @override
+  Widget build(BuildContext context) => TextField(
     controller: controller,
     focusNode: focusNode,
-    readOnly: widget.onChanged == null,
-    onChanged: widget.onChanged,
-    maxLines: widget.multiline ? null : 1,
-    minLines: widget.multiline ? _multilineMinLines : 1,
+    readOnly: field.onChanged == null,
+    onChanged: field.onChanged,
+    maxLines: field.multiline ? null : 1,
+    minLines: field.multiline ? _multilineMinLines : 1,
     style: Theme.of(context).textTheme.bodySmall,
-    inputFormatters: widget.inputFormatters,
+    inputFormatters: field.inputFormatters,
     decoration: InputDecoration(
       isDense: true,
-      hintText: widget.hintText,
-      errorText: widget.errorText,
+      hintText: field.hintText,
+      errorText: field.errorText,
     ),
   );
 }
@@ -239,79 +319,38 @@ class _OcptShotInspectorFieldOptions extends StatelessWidget {
   /// Class constructor
   const _OcptShotInspectorFieldOptions({required this.options, required this.onSelected});
 
+  /// Build the shot inspector field options as an [Align].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final optionList = options.toList();
 
     return Align(
       alignment: Alignment.topLeft,
       child: Material(
         elevation: 3,
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 280, maxHeight: 220),
-          child: ListView(
+          child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 6),
             shrinkWrap: true,
-            children: [
-              for (final option in options)
-                InkWell(
-                  onTap: () => onSelected(option),
-                  mouseCursor: ocptClickableCursor,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Text(option, style: theme.textTheme.bodySmall),
-                  ),
+            itemCount: optionList.length,
+            itemBuilder: (context, index) {
+              final option = optionList[index];
+
+              return InkWell(
+                onTap: () => onSelected(option),
+                mouseCursor: ocpt_theme.ocptClickableCursor,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Text(option, style: theme.textTheme.bodySmall),
                 ),
-            ],
+              );
+            },
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// One read-only field row of the shot inspector and metadata panels: an uppercase,
-/// `onSurfaceVariant` label over a rounded `surfaceContainer` value box.
-///
-/// Deliberately not imported from the screenplay editor's own `OcptEditorDockField`, which
-/// follows the exact same idiom: the two production modes stay independent of one another.
-class OcptShotInspectorReadOnlyField extends StatelessWidget {
-  /// The field's label, upper-cased for display.
-  final String label;
-
-  /// The field's value, already formatted for display (a dash for a missing value, not an empty
-  /// string).
-  final String value;
-
-  /// Class constructor
-  const OcptShotInspectorReadOnlyField({super.key, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(ocptRadiusSmall),
-            ),
-            child: Text(value, style: theme.textTheme.bodySmall),
-          ),
-        ],
       ),
     );
   }

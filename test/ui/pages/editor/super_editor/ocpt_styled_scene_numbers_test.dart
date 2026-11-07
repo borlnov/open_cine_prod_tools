@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_numbers.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// Applies [requests] (as computed by `sceneNumberNormalizationRequests`, only ever
@@ -25,6 +25,7 @@ String? _sceneNumberAt(Document document, int index) {
   return value is String ? value : null;
 }
 
+/// Run the tests of [sceneNumberNormalizationRequests].
 void main() {
   group("sceneNumberNormalizationRequests", () {
     test("numbers every unnumbered heading sequentially, starting at 1", () {
@@ -74,9 +75,7 @@ void main() {
     test("corrects a lettered number that does not follow the scene right before it", () {
       // "3A" only makes sense right after scene 3; here it comes first, so it must be corrected
       // to a plain sequential number instead.
-      final decoded = OcptWysiwygCodec.decode(
-        "INT. HOUSE - DAY #3A#\n\nEXT. GARDEN - NIGHT",
-      );
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #3A#\n\nEXT. GARDEN - NIGHT");
       final document = decoded.document;
 
       _apply(document, sceneNumberNormalizationRequests(document));
@@ -92,9 +91,7 @@ void main() {
     });
 
     test("is idempotent: running it again on an already-normalized document changes nothing", () {
-      final decoded = OcptWysiwygCodec.decode(
-        "INT. HOUSE - DAY #9#\n\nEXT. GARDEN - NIGHT #2#",
-      );
+      final decoded = OcptWysiwygCodec.decode("INT. HOUSE - DAY #9#\n\nEXT. GARDEN - NIGHT #2#");
       final document = decoded.document;
 
       _apply(document, sceneNumberNormalizationRequests(document));

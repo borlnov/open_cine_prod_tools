@@ -7,10 +7,10 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 
 /// The state of `OcptRepointingBloc`.
 ///
-/// The page's two states (`docs/plans/on-set-server.md`, Phase E) are one screen reading a single
-/// fact: whether [enrolment] is null. Null is ① Configure — the relay address and enrolment secret
-/// form, shown every time the page opens, even for a project already paired elsewhere — and
-/// non-null is ② QR code, the enrolment QR the next crew member scans, drawn straight off it.
+/// The page's two states are one screen reading a single fact: whether [enrolment] is null. Null is
+/// ① Configure — the relay address and enrolment secret form, shown every time the page opens, even
+/// for a project already paired elsewhere — and non-null is ② QR code, the enrolment QR the next
+/// crew member scans, drawn straight off it.
 class OcptRepointingState extends BlocStateForMixin<OcptRepointingState> {
   /// Whether the current project's own name is still being loaded from the projects manager.
   final bool isLoading;
@@ -53,8 +53,9 @@ class OcptRepointingState extends BlocStateForMixin<OcptRepointingState> {
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [enrolment] legitimately goes back to null every time the page is re-entered, so it has its
-  /// own [clearEnrolment] flag rather than a bare nullable parameter, which could never tell "leave
-  /// it alone" apart from "clear it" — exactly `OcptSharingState.clearInvite`'s own reasoning.
+  /// own [forceEnrolmentValue] flag rather than a bare nullable parameter, which could never tell
+  /// "leave it alone" apart from "clear it" — exactly `OcptSharingState.forceInviteValue`'s own
+  /// reasoning.
   @override
   OcptRepointingState copyWith({
     bool? isLoading,
@@ -62,14 +63,31 @@ class OcptRepointingState extends BlocStateForMixin<OcptRepointingState> {
     bool? isRepointing,
     bool? repointFailed,
     OcptRelayEnrolment? enrolment,
-    bool clearEnrolment = false,
+    bool forceEnrolmentValue = false,
   }) => OcptRepointingState(
     isLoading: isLoading ?? this.isLoading,
     projectName: projectName ?? this.projectName,
     isRepointing: isRepointing ?? this.isRepointing,
     repointFailed: repointFailed ?? this.repointFailed,
-    enrolment: clearEnrolment ? null : (enrolment ?? this.enrolment),
+    enrolment: enrolment ?? (forceEnrolmentValue ? null : this.enrolment),
   );
+
+  /// Copy this state as loaded for the project called [projectName].
+  OcptRepointingState copyToLoaded({required String projectName}) =>
+      copyWith(isLoading: false, projectName: projectName);
+
+  /// Copy this state with a switch of relay under way and the previous failure forgotten.
+  OcptRepointingState copyWithRepointing() => copyWith(isRepointing: true, repointFailed: false);
+
+  /// Copy this state with the switch of relay ended on a failure.
+  OcptRepointingState copyWithRepointFailed() => copyWith(isRepointing: false, repointFailed: true);
+
+  /// Copy this state with the switch of relay done, the project now enrolled through [enrolment].
+  OcptRepointingState copyWithRepointed({required OcptRelayEnrolment enrolment}) =>
+      copyWith(isRepointing: false, enrolment: enrolment);
+
+  /// Copy this state with the failure dismissed.
+  OcptRepointingState copyWithErrorDismissed() => copyWith(repointFailed: false);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override

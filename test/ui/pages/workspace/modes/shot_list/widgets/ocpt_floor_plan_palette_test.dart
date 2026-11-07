@@ -6,15 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_palette_drag_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_prop_chip.dart';
 
 /// Wraps [child] with the localization delegates so `Tr.of` lookups resolve, and sets the test
 /// surface past the 800 px compact breakpoint (`docs/architecture/foundations.md`), matching every
-/// other shot list widget test of this milestone.
+/// other shot list widget test.
 Future<void> _pump(WidgetTester tester, Widget child) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
@@ -35,6 +37,7 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
   );
 }
 
+/// Build a palette with the given tool, element shape and scope.
 OcptFloorPlanPalette _buildPalette({
   required String setName,
   String sequenceCode = "7",
@@ -89,6 +92,7 @@ OcptFloorPlanPalette _buildPalette({
   onUnderlayClearRequested: null,
 );
 
+/// Run the tests of [OcptFloorPlanPalette].
 void main() {
   testWidgets("shows the Set group header naming the set, and no Shot group without a focused "
       "shot", (tester) async {
@@ -116,11 +120,7 @@ void main() {
     OcptFloorPlanTool? armed;
     await _pump(
       tester,
-      _buildPalette(
-        setName: "Kitchen",
-        shotCode: "12/3",
-        onToolSelected: (tool) => armed = tool,
-      ),
+      _buildPalette(setName: "Kitchen", shotCode: "12/3", onToolSelected: (tool) => armed = tool),
     );
     final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
@@ -181,10 +181,7 @@ void main() {
   );
 
   testWidgets("under a read-only preview, entries are no longer drag sources", (tester) async {
-    await _pump(
-      tester,
-      _buildPalette(setName: "Kitchen", shotCode: "12/3", isReadOnly: true),
-    );
+    await _pump(tester, _buildPalette(setName: "Kitchen", shotCode: "12/3", isReadOnly: true));
 
     expect(find.byType(Draggable<OcptFloorPlanPaletteDragPayload>), findsNothing);
   });
@@ -203,79 +200,73 @@ void main() {
     },
   );
 
-  testWidgets(
-    "clicking a typed set-element entry arms the setElement tool and its own shape",
-    (tester) async {
-      OcptFloorPlanTool? armedTool;
-      OcptFloorPlanSetElementShape? armedShape;
-      await _pump(
-        tester,
-        _buildPalette(
-          setName: "Kitchen",
-          onToolSelected: (tool) => armedTool = tool,
-          onSetElementShapeSelected: (shape) => armedShape = shape,
-        ),
-      );
-      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+  testWidgets("clicking a typed set-element entry arms the setElement tool and its own shape", (
+    tester,
+  ) async {
+    OcptFloorPlanTool? armedTool;
+    OcptFloorPlanSetElementShape? armedShape;
+    await _pump(
+      tester,
+      _buildPalette(
+        setName: "Kitchen",
+        onToolSelected: (tool) => armedTool = tool,
+        onSetElementShapeSelected: (shape) => armedShape = shape,
+      ),
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
-      await tester.tap(find.text(tr.shotListFloorPlanToolDoorAction));
-      await tester.pump();
+    await tester.tap(find.text(tr.shotListFloorPlanToolDoorAction));
+    await tester.pump();
 
-      expect(armedTool, OcptFloorPlanTool.setElement);
-      expect(armedShape, OcptFloorPlanSetElementShape.door);
-    },
-  );
+    expect(armedTool, OcptFloorPlanTool.setElement);
+    expect(armedShape, OcptFloorPlanSetElementShape.door);
+  });
 
-  testWidgets(
-    "a typed set-element entry is a drag source carrying its own shape once dropped",
-    (tester) async {
-      OcptFloorPlanPaletteDragPayload? dropped;
+  testWidgets("a typed set-element entry is a drag source carrying its own shape once dropped", (
+    tester,
+  ) async {
+    OcptFloorPlanPaletteDragPayload? dropped;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: const [
-            Tr.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: Tr.delegate.supportedLocales,
-          home: Scaffold(
-            body: Row(
-              children: [
-                SizedBox(
-                  width: 220,
-                  height: 700,
-                  child: _buildPalette(setName: "Kitchen"),
-                ),
-                DragTarget<OcptFloorPlanPaletteDragPayload>(
-                  onAcceptWithDetails: (details) => dropped = details.data,
-                  builder: (context, candidateData, rejectedData) =>
-                      const SizedBox(key: Key("drop-target"), width: 200, height: 200),
-                ),
-              ],
-            ),
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [
+          Tr.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: Tr.delegate.supportedLocales,
+        home: Scaffold(
+          body: Row(
+            children: [
+              SizedBox(width: 220, height: 700, child: _buildPalette(setName: "Kitchen")),
+              DragTarget<OcptFloorPlanPaletteDragPayload>(
+                onAcceptWithDetails: (details) => dropped = details.data,
+                builder: (context, candidateData, rejectedData) =>
+                    const SizedBox(key: Key("drop-target"), width: 200, height: 200),
+              ),
+            ],
           ),
         ),
-      );
-      final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
+      ),
+    );
+    final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
-      final source = tester.getCenter(find.text(tr.shotListFloorPlanToolWallAction));
-      final target = tester.getCenter(find.byKey(const Key("drop-target")));
+    final source = tester.getCenter(find.text(tr.shotListFloorPlanToolWallAction));
+    final target = tester.getCenter(find.byKey(const Key("drop-target")));
 
-      final gesture = await tester.startGesture(source);
-      await tester.pump(const Duration(milliseconds: 50));
-      await gesture.moveBy(const Offset(0, 20));
-      await tester.pump(const Duration(milliseconds: 50));
-      await gesture.moveTo(target);
-      await tester.pump(const Duration(milliseconds: 50));
-      await gesture.up();
-      await tester.pumpAndSettle();
+    final gesture = await tester.startGesture(source);
+    await tester.pump(const Duration(milliseconds: 50));
+    await gesture.moveBy(const Offset(0, 20));
+    await tester.pump(const Duration(milliseconds: 50));
+    await gesture.moveTo(target);
+    await tester.pump(const Duration(milliseconds: 50));
+    await gesture.up();
+    await tester.pumpAndSettle();
 
-      expect(dropped?.tool, OcptFloorPlanTool.setElement);
-      expect(dropped?.setElementShape, OcptFloorPlanSetElementShape.wall);
-    },
-  );
+    expect(dropped?.tool, OcptFloorPlanTool.setElement);
+    expect(dropped?.setElementShape, OcptFloorPlanSetElementShape.wall);
+  });
 
   testWidgets(
     "the metrics toggle's own help button shows its explanation on press, and hides it again",
@@ -322,7 +313,7 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
     expect(
-      find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerDecorLabel, 0)),
+      find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerSetLabel, 0)),
       findsOneWidget,
     );
     expect(
@@ -332,7 +323,9 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerLightsLabel, 0)),
+      find.text(
+        tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerLightsLabel, 0),
+      ),
       findsOneWidget,
     );
     expect(
@@ -347,16 +340,15 @@ void main() {
         tester,
         _buildPalette(
           setName: "Kitchen",
-          layerElementCounts: const {
-            OcptFloorPlanLayer.props: 3,
-            OcptFloorPlanLayer.characters: 1,
-          },
+          layerElementCounts: const {OcptFloorPlanLayer.props: 3, OcptFloorPlanLayer.characters: 1},
         ),
       );
       final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
       expect(
-        find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 3)),
+        find.text(
+          tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 3),
+        ),
         findsOneWidget,
       );
       expect(
@@ -367,7 +359,9 @@ void main() {
       );
       // Lights carries none of its own — reads as 0, not absent.
       expect(
-        find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerLightsLabel, 0)),
+        find.text(
+          tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerLightsLabel, 0),
+        ),
         findsOneWidget,
       );
     });
@@ -376,10 +370,14 @@ void main() {
       await _pump(tester, _buildPalette(setName: "Kitchen"));
       final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
-      final row = find.ancestor(
-        of: find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 0)),
-        matching: find.byType(Row),
-      ).first;
+      final row = find
+          .ancestor(
+            of: find.text(
+              tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 0),
+            ),
+            matching: find.byType(Row),
+          )
+          .first;
       final eye = find.descendant(of: row, matching: find.byType(IconButton));
 
       expect(tester.widget<IconButton>(eye).onPressed, isNull);
@@ -388,17 +386,18 @@ void main() {
     testWidgets("a layer's own eye is enabled once it carries an element", (tester) async {
       await _pump(
         tester,
-        _buildPalette(
-          setName: "Kitchen",
-          layerElementCounts: const {OcptFloorPlanLayer.props: 1},
-        ),
+        _buildPalette(setName: "Kitchen", layerElementCounts: const {OcptFloorPlanLayer.props: 1}),
       );
       final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
-      final row = find.ancestor(
-        of: find.text(tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 1)),
-        matching: find.byType(Row),
-      ).first;
+      final row = find
+          .ancestor(
+            of: find.text(
+              tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 1),
+            ),
+            matching: find.byType(Row),
+          )
+          .first;
       final eye = find.descendant(of: row, matching: find.byType(IconButton));
 
       expect(tester.widget<IconButton>(eye).onPressed, isNotNull);
@@ -418,12 +417,14 @@ void main() {
         );
         final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
-        final row = find.ancestor(
-          of: find.text(
-            tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 0),
-          ),
-          matching: find.byType(Row),
-        ).first;
+        final row = find
+            .ancestor(
+              of: find.text(
+                tr.shotListFloorPlanLayerRowWithCountLabel(tr.shotListFloorPlanLayerPropsLabel, 0),
+              ),
+              matching: find.byType(Row),
+            )
+            .first;
         final eye = tester.widget<IconButton>(
           find.descendant(of: row, matching: find.byType(IconButton)),
         );
@@ -454,10 +455,7 @@ void main() {
         final armedScopes = <OcptFloorPlanScope>[];
         await _pump(
           tester,
-          _buildPalette(
-            setName: "Kitchen",
-            onSetElementScopeSelected: armedScopes.add,
-          ),
+          _buildPalette(setName: "Kitchen", onSetElementScopeSelected: armedScopes.add),
         );
         final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
 
@@ -512,9 +510,7 @@ void main() {
           ),
         );
         final tr = Tr.of(tester.element(find.byType(OcptFloorPlanPalette)));
-        final chip = find.text(
-          tr.shotListFloorPlanPropChipWithQuantityLabel("Candles", "12"),
-        );
+        final chip = find.text(tr.shotListFloorPlanPropChipWithQuantityLabel("Candles", "12"));
 
         await tester.tap(chip);
         await tester.pump();
@@ -618,7 +614,9 @@ void main() {
       },
     );
 
-    testWidgets("under a read-only preview, a prop chip is no longer a drag source", (tester) async {
+    testWidgets("under a read-only preview, a prop chip is no longer a drag source", (
+      tester,
+    ) async {
       await _pump(
         tester,
         _buildPalette(

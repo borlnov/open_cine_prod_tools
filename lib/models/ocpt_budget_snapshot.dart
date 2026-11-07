@@ -4,10 +4,10 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
@@ -15,31 +15,39 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_financing.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_projection.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_regie.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_reimbursements.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_shares.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_budget_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_cash_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_financing.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_day.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_totals.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_reimbursements.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_repayment_line.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_share_split.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_shares.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_sharing_pot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 
-/// The whole budget mode's read, in one object: the [postes] with their lines, the cash journal's
-/// own [entries] and [commitments], the financing plan's own [resources], the catering-and-defrayals
-/// pass's own [regieDays] and [allowances], the project's own [defaultVatRateBasisPoints] and
-/// [currencyCode], and the counts the status bar and the mode's own reads need.
+/// The whole budget mode's read, in one object: the [accounts] with their lines, the cash journal's
+/// own [entries] and [commitments], the financing plan's own [resources], the
+/// catering-and-defrayals pass's own [logisticsDays] and [allowances], the project's own
+/// [defaultVatRateBasisPoints] and [currencyCode], and the counts the status bar and the mode's own
+/// reads need.
 ///
 /// Built the same way `OcptResourcesSnapshot.build` is: a pure function of already-loaded lists,
-/// with no database access of its own. `OcptBudgetQuoteService.loadPostes` is what loads [postes],
-/// `OcptBudgetJournalService.loadEntries`/`loadCommitments` are what load [entries] and
+/// with no database access of its own. `OcptBudgetQuoteService.loadAccounts` is what loads
+/// [accounts], `OcptBudgetJournalService.loadEntries`/`loadCommitments` are what load [entries] and
 /// [commitments], `OcptBudgetFinancingService.loadResources`/`loadMileageRates` are what load
 /// [resources], `OcptBudgetAllowancesService.loadAllowances` is what loads [allowances], and
 /// `OcptScheduleService.loadSchedule` and `OcptRoleIndexService.loadRoles` are what load the
-/// schedule and the roles [regieDays] is built from; combining those reads with the project's own
-/// settings into this one object is the mode's job.
+/// schedule and the roles [logisticsDays] is built from; combining those reads with the project's
+/// own settings into this one object is the mode's job.
 class OcptBudgetSnapshot extends Equatable {
-  /// Every poste of the project, in display order, each with its own quote lines.
-  final List<OcptBudgetPoste> postes;
+  /// Every account of the project, in display order, each with its own quote lines.
+  final List<OcptBudgetAccount> accounts;
 
   /// Every live journal entry, in the chronological order `OcptBudgetJournalService.loadEntries`
   /// gives them — never reordered here.
@@ -60,25 +68,25 @@ class OcptBudgetSnapshot extends Equatable {
   final int? defaultVatRateBasisPoints;
 
   /// The project's own meal price, in cents, or null meaning "nobody has recorded one" —
-  /// `OcptProjectInfoTable.mealPriceCents`, the same price [regieDays]' own cost is priced from.
-  /// Carried here too, raw, for `OcptBudgetRegie`'s own caption naming the two unit prices in
-  /// force.
+  /// `OcptProjectInfoTable.mealPriceCents`, the same price [logisticsDays]' own cost is priced
+  /// from. Carried here too, raw, for `OcptBudgetLogistics`'s own caption naming the two unit
+  /// prices in force.
   final int? mealPriceCents;
 
   /// The project's own buffet price, in cents, or null — [mealPriceCents]'s sibling.
   /// `OcptProjectInfoTable.snackPriceCents` under its user-facing name: the column keeps the name
   /// the schema gave it, but what it prices was never a snack in the trade's own words — it is
-  /// craft services (`buffet` in French), the permanently available table `OcptBudgetRegie`'s own
-  /// caption now names it as.
+  /// craft services (`buffet` in French), the permanently available table `OcptBudgetLogistics`'s
+  /// own caption now names it as.
   final int? buffetPriceCents;
 
   /// The ISO 4217 code of the currency the project counts its costs in.
   final String currencyCode;
 
-  /// `postes.length`.
-  final int posteCount;
+  /// `accounts.length`.
+  final int accountCount;
 
-  /// The total number of quote lines across every poste.
+  /// The total number of quote lines across every account.
   final int lineCount;
 
   /// `entries.length`.
@@ -90,31 +98,31 @@ class OcptBudgetSnapshot extends Equatable {
   /// `resources.length`.
   final int resourceCount;
 
-  /// What has actually been paid against each poste, keyed by `OcptBudgetPoste.id` — a poste with
-  /// no key here has had nothing move against it at all, which is different from a key present
-  /// whose own amount is zero (`ocptBudgetPaidCentsByPosteId`'s own doc comment). [paidCentsOf] is
-  /// what the mode reads instead of this map directly.
-  final Map<String, OcptBudgetCoveredTotal> paidByPosteId;
+  /// What has actually been paid against each account, keyed by `OcptBudgetAccount.id` — an account
+  /// with no key here has had nothing move against it at all, which is different from a key present
+  /// whose own amount is zero (`ocptBudgetPaidCentsByAccountId`'s own doc comment). [paidCentsOf]
+  /// is what the mode reads instead of this map directly.
+  final Map<String, OcptBudgetCoveredTotal> paidByAccountId;
 
-  /// The total of every debit that names no poste at all — spending that happened but sits outside
-  /// the quote — `ocptBudgetOffQuotePaidTotalOf`. Zero and complete while [entries] carries no such
-  /// debit. The cost-tracking table's own total row folds this in alongside [paidByPosteId], since
-  /// together they are what actually left the account; `ocptComputeBudgetAlerts` never reads it —
-  /// a poste's own strain against its own quote is a different question from money that prices no
-  /// poste at all.
+  /// The total of every debit that names no account at all — spending that happened but sits
+  /// outside the quote — `ocptBudgetOffQuotePaidTotalOf`. Zero and complete while [entries] carries
+  /// no such debit. The cost-tracking table's own total row folds this in alongside
+  /// [paidByAccountId], since together they are what actually left the account;
+  /// `ocptComputeBudgetAlerts` never reads it — an account's own strain against its own quote is a
+  /// different question from money that prices no account at all.
   final OcptBudgetCoveredTotal offQuotePaidTotal;
 
-  /// What is committed against each poste, keyed by `OcptBudgetPoste.id`, settled commitments
-  /// excluded outright (`ocptBudgetCommittedCentsByPosteId`'s own doc comment). [committedCentsOf]
-  /// is what the mode reads instead of this map directly.
-  final Map<String, OcptBudgetCoveredTotal> committedByPosteId;
+  /// What is committed against each account, keyed by `OcptBudgetAccount.id`, settled commitments
+  /// excluded outright (`ocptBudgetCommittedCentsByAccountId`'s own doc comment).
+  /// [committedCentsOf] is what the mode reads instead of this map directly.
+  final Map<String, OcptBudgetCoveredTotal> committedByAccountId;
 
-  /// What each poste has settled **in kind**, keyed by `OcptBudgetPoste.id` —
-  /// `ocptBudgetInKindCoveredCentsByPosteId`, the sum of a poste's own counterpart quote lines
-  /// (`OcptBudgetLine.inKindResourceId` not null). A poste with no such line has no key here,
-  /// mirroring [paidByPosteId]'s own "no key for nothing" discipline. [inKindCoveredCentsOf] is what
-  /// the mode reads instead of this map directly.
-  final Map<String, int> inKindCoveredByPosteId;
+  /// What each account has settled **in kind**, keyed by `OcptBudgetAccount.id` —
+  /// `ocptBudgetInKindCoveredCentsByAccountId`, the sum of an account's own counterpart quote lines
+  /// (`OcptBudgetLine.inKindResourceId` not null). An account with no such line has no key here,
+  /// mirroring [paidByAccountId]'s own "no key for nothing" discipline. [inKindCoveredCentsOf] is
+  /// what the mode reads instead of this map directly.
+  final Map<String, int> inKindCoveredByAccountId;
 
   /// The cash journal's own debit, credit and balance, over [entries].
   final OcptBudgetCashTotals cashTotals;
@@ -122,13 +130,13 @@ class OcptBudgetSnapshot extends Equatable {
   /// What has actually come in against each financing resource, keyed by `OcptBudgetResource.id` —
   /// a resource with no key here has had no entry name it at all, which is different from a key
   /// present whose own amount is zero (`ocptBudgetReceivedByResourceId`'s own doc comment, the same
-  /// discipline [paidByPosteId] already keeps). [receivedCentsOf] is what the mode reads instead of
-  /// this map directly for the ordinary reading; the financing view reads this map itself too, for
-  /// the one reading that needs to tell the two facts apart — see [receivedCentsOf]'s own doc
+  /// discipline [paidByAccountId] already keeps). [receivedCentsOf] is what the mode reads instead
+  /// of this map directly for the ordinary reading; the financing view reads this map itself too,
+  /// for the one reading that needs to tell the two facts apart — see [receivedCentsOf]'s own doc
   /// comment.
   final Map<String, OcptBudgetCoveredTotal> receivedByResourceId;
 
-  /// The header's own two alerts — a poste over its quote, the cash projection going negative —
+  /// The header's own two alerts — an account over its quote, the cash projection going negative —
   /// computed once, here, by [ocptComputeBudgetAlerts] over this snapshot's own already-loaded
   /// data: **both computed, neither configured** (ADR 0027).
   final List<OcptBudgetAlert> alerts;
@@ -139,28 +147,30 @@ class OcptBudgetSnapshot extends Equatable {
   final Map<String, OcptAssetRef> receiptsByEntryId;
 
   /// Every live shooting day's own catering reading, in the schedule's own day-number order —
-  /// `ocptBudgetRegieDaysOf` (`lib/utils/ocpt_budget_regie.dart`), read over the schedule's own
-  /// days, slots and meal blocks, every role's own kind and person, and the project's own meal and
-  /// buffet prices. Empty for every caller unconcerned with the catering-and-travel pass, exactly
-  /// as [resources] already defaults for a caller unconcerned with the financing plan.
-  final List<OcptBudgetRegieDay> regieDays;
+  /// `ocptBudgetLogisticsDaysOf` (`lib/models/rules/ocpt_budget_logistics.dart`), read over the
+  /// schedule's own days, slots and meal blocks, every role's own kind and person, and the
+  /// project's own meal and buffet prices. Empty for every caller unconcerned with the
+  /// catering-and-travel pass, exactly as [resources] already defaults for a caller unconcerned
+  /// with the financing plan.
+  final List<OcptBudgetLogisticsDay> logisticsDays;
 
-  /// [regieDays] folded into one total — `ocptBudgetRegieTotalsOf`.
-  final OcptBudgetRegieTotals regieTotals;
+  /// [logisticsDays] folded into one total — `ocptBudgetLogisticsTotalsOf`.
+  final OcptBudgetLogisticsTotals logisticsTotals;
 
-  /// Every live defrayal of the project, in the list's own `sortKey` order — `OcptBudgetRegie`'s
-  /// own right column, and one half of what the provisioning writes into the quote.
+  /// Every live defrayal of the project, in the list's own `sortKey` order —
+  /// `OcptBudgetLogistics`'s own right column, and one half of what the provisioning writes into
+  /// the quote.
   ///
-  /// **Typed, never derived**, unlike [regieDays] beside it: what a production pays somebody back
-  /// is not derivable from their presence on a day, which is the whole of the argument
+  /// **Typed, never derived**, unlike [logisticsDays] beside it: what a production pays somebody
+  /// back is not derivable from their presence on a day, which is the whole of the argument
   /// `OcptBudgetAllowancesTable`'s own doc comment makes. This snapshot therefore carries the rows
   /// themselves rather than a computed reading of them.
   final List<OcptBudgetAllowance> allowances;
 
   /// What has actually been reimbursed against each defrayed person, keyed by their own id —
-  /// `ocptBudgetReimbursedByPersonId` (`lib/utils/ocpt_budget_reimbursements.dart`), the régie's own
-  /// running account for the person tree, mirroring [receivedByResourceId]. A person with no key
-  /// here has been reimbursed nothing at all.
+  /// `ocptBudgetReimbursedByPersonId` (`lib/models/rules/ocpt_budget_reimbursements.dart`), the
+  /// logistics's own running account for the person tree, mirroring [receivedByResourceId]. A
+  /// person with no key here has been reimbursed nothing at all.
   final Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId;
 
   /// Every live taking of the revenue sharing, in the `sortKey` order `OcptBudgetSharingService
@@ -204,7 +214,7 @@ class OcptBudgetSnapshot extends Equatable {
 
   /// Class constructor
   const OcptBudgetSnapshot({
-    required this.postes,
+    required this.accounts,
     required this.entries,
     required this.commitments,
     required this.resources,
@@ -212,21 +222,21 @@ class OcptBudgetSnapshot extends Equatable {
     required this.mealPriceCents,
     required this.buffetPriceCents,
     required this.currencyCode,
-    required this.posteCount,
+    required this.accountCount,
     required this.lineCount,
     required this.entryCount,
     required this.commitmentCount,
     required this.resourceCount,
-    required this.paidByPosteId,
+    required this.paidByAccountId,
     required this.offQuotePaidTotal,
-    required this.committedByPosteId,
-    required this.inKindCoveredByPosteId,
+    required this.committedByAccountId,
+    required this.inKindCoveredByAccountId,
     required this.cashTotals,
     required this.receivedByResourceId,
     required this.alerts,
     required this.receiptsByEntryId,
-    required this.regieDays,
-    required this.regieTotals,
+    required this.logisticsDays,
+    required this.logisticsTotals,
     required this.allowances,
     required this.reimbursedByPersonId,
     required this.revenues,
@@ -240,34 +250,33 @@ class OcptBudgetSnapshot extends Equatable {
     required this.shareCount,
   });
 
-  /// Builds an [OcptBudgetSnapshot] from [postes], [entries], [commitments] and [resources], the
+  /// Build an [OcptBudgetSnapshot] from [accounts], [entries], [commitments] and [resources], the
   /// project's [defaultVatRateBasisPoints] and [currencyCode], deriving every count and every map
   /// from them. [receiptsByEntryId] is loaded the same way everything else here is
   /// (`OcptBudgetJournalService.loadReceipts`) and simply carried through — defaulted to empty for
-  /// every caller unconcerned with vouchers, exactly as every one of this snapshot's own callers
-  /// before this milestone still may be; [resources] is defaulted the same way, for every caller
-  /// unconcerned with the financing plan.
+  /// every caller unconcerned with vouchers; [resources] is defaulted the same way, for every
+  /// caller unconcerned with the financing plan.
   ///
-  /// [paidByPosteId], [offQuotePaidTotal], [committedByPosteId], [cashTotals],
-  /// [receivedByResourceId] and [alerts] are derived here exactly as [posteCount]/[lineCount] are:
-  /// a pure function of the lists already
+  /// [paidByAccountId], [offQuotePaidTotal], [committedByAccountId], [cashTotals],
+  /// [receivedByResourceId] and [alerts] are derived here exactly as [accountCount]/[lineCount]
+  /// are: a pure function of the lists already
   /// loaded, reading them under [defaultVatRateBasisPoints] — the project's own rate, which moves
   /// the whole reading with it exactly as every silent line already does — with no database access
   /// of its own.
   ///
-  /// [regieDays] is derived over
+  /// [logisticsDays] is derived over
   /// [scheduleDays]/[slotsByDayId]/[blocksByDayId] — `OcptScheduleService.loadSchedule`'s own
   /// `OcptScheduleSnapshot.days`/`.slotsByDayId`/`.blocksByDayId`, **never** an
   /// `OcptSchedulePlanSnapshot`: a head count needs no shot list and no episode list, which is
   /// everything else that type joins in, and building one here would make this mode load the whole
-  /// découpage to count meals. [roles] is turned into the id-keyed maps `ocptBudgetRegieDaysOf`
+  /// découpage to count meals. [roles] is turned into the id-keyed maps `ocptBudgetLogisticsDaysOf`
   /// reads — its own `personId` resolved once, into the very map that function reads to cross a
   /// cast role with the person playing it —
   /// [mealPriceCents]/[buffetPriceCents] passed straight through — every one of the seven defaults
   /// empty/null for every caller unconcerned with the catering-and-travel pass, exactly as
   /// [resources] already does for the financing plan.
   factory OcptBudgetSnapshot.build({
-    required List<OcptBudgetPoste> postes,
+    required List<OcptBudgetAccount> accounts,
     required List<OcptBudgetEntry> entries,
     required List<OcptBudgetCommitment> commitments,
     List<OcptBudgetResource> resources = const [],
@@ -284,16 +293,16 @@ class OcptBudgetSnapshot extends Equatable {
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
   }) {
-    final paidByPosteId = ocptBudgetPaidCentsByPosteId(
+    final paidByAccountId = ocptBudgetPaidCentsByAccountId(
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    final committedByPosteId = ocptBudgetCommittedCentsByPosteId(
+    final committedByAccountId = ocptBudgetCommittedCentsByAccountId(
       commitments,
       entries: entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    final inKindCoveredByPosteId = ocptBudgetInKindCoveredCentsByPosteId(postes);
+    final inKindCoveredByAccountId = ocptBudgetInKindCoveredCentsByAccountId(accounts);
     final cashTotals = ocptBudgetCashTotalsOf(
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
@@ -343,7 +352,7 @@ class OcptBudgetSnapshot extends Equatable {
     );
 
     final personIdByRoleId = {for (final role in roles) role.id: role.personId};
-    final regieDays = ocptBudgetRegieDaysOf(
+    final logisticsDays = ocptBudgetLogisticsDaysOf(
       days: scheduleDays,
       slotsByDayId: slotsByDayId,
       blocksByDayId: blocksByDayId,
@@ -353,7 +362,7 @@ class OcptBudgetSnapshot extends Equatable {
       buffetPriceCents: buffetPriceCents,
     );
     return OcptBudgetSnapshot(
-      postes: postes,
+      accounts: accounts,
       entries: entries,
       commitments: commitments,
       resources: resources,
@@ -361,30 +370,30 @@ class OcptBudgetSnapshot extends Equatable {
       mealPriceCents: mealPriceCents,
       buffetPriceCents: buffetPriceCents,
       currencyCode: currencyCode,
-      posteCount: postes.length,
-      lineCount: postes.fold(0, (sum, poste) => sum + poste.lines.length),
+      accountCount: accounts.length,
+      lineCount: accounts.fold(0, (sum, account) => sum + account.lines.length),
       entryCount: entries.length,
       commitmentCount: commitments.length,
       resourceCount: resources.length,
-      paidByPosteId: paidByPosteId,
+      paidByAccountId: paidByAccountId,
       offQuotePaidTotal: offQuotePaidTotal,
-      committedByPosteId: committedByPosteId,
-      inKindCoveredByPosteId: inKindCoveredByPosteId,
+      committedByAccountId: committedByAccountId,
+      inKindCoveredByAccountId: inKindCoveredByAccountId,
       cashTotals: cashTotals,
       receivedByResourceId: receivedByResourceId,
       alerts: ocptComputeBudgetAlerts(
-        postes: postes,
-        paidCentsOf: (posteId) => paidByPosteId[posteId]?.amountCents ?? 0,
-        committedCentsOf: (posteId) => committedByPosteId[posteId]?.amountCents ?? 0,
-        inKindCoveredCentsOf: (posteId) => inKindCoveredByPosteId[posteId] ?? 0,
+        accounts: accounts,
+        paidCentsOf: (accountId) => paidByAccountId[accountId]?.amountCents ?? 0,
+        committedCentsOf: (accountId) => committedByAccountId[accountId]?.amountCents ?? 0,
+        inKindCoveredCentsOf: (accountId) => inKindCoveredByAccountId[accountId] ?? 0,
         commitments: commitments,
         entries: entries,
         cashTotals: cashTotals,
         projectVatRateBasisPoints: defaultVatRateBasisPoints,
       ),
       receiptsByEntryId: receiptsByEntryId,
-      regieDays: regieDays,
-      regieTotals: ocptBudgetRegieTotalsOf(regieDays),
+      logisticsDays: logisticsDays,
+      logisticsTotals: ocptBudgetLogisticsTotalsOf(logisticsDays),
       allowances: allowances,
       reimbursedByPersonId: reimbursedByPersonId,
       revenues: revenues,
@@ -399,60 +408,63 @@ class OcptBudgetSnapshot extends Equatable {
     );
   }
 
-  /// [posteId]'s own paid total, in cents, tax-inclusive — [paidByPosteId]'s own entry for
-  /// [posteId], or **0** while it carries none.
+  /// Get [accountId]'s own paid total, in cents, tax-inclusive — [paidByAccountId]'s own entry for
+  /// [accountId], or **0** while it carries none.
   ///
-  /// This `?? 0` is honest where M1's own zero was not: at M1 the app could not know what had
-  /// moved against a poste at all, so printing `0 €` would have claimed a figure the data did not
-  /// support. The journal exists now and is kept, so a poste with no entry against it genuinely has
-  /// had nothing move against it — zero is the true answer here, not a stand-in for one.
-  int paidCentsOf(String posteId) => paidByPosteId[posteId]?.amountCents ?? 0;
+  /// This `?? 0` is honest because the journal is kept: an account with no entry against it
+  /// genuinely has had nothing move against it — zero is the true answer here, not a stand-in for
+  /// one.
+  int paidCentsOf(String accountId) => paidByAccountId[accountId]?.amountCents ?? 0;
 
-  /// [posteId]'s own committed total, in cents, tax-inclusive — [committedByPosteId]'s own entry
-  /// for [posteId], or **0** while it carries none. See [paidCentsOf]'s own doc comment for why
+  /// Get [accountId]'s own committed total, in cents, tax-inclusive — [committedByAccountId]'s own
+  /// entry
+  /// for [accountId], or **0** while it carries none. See [paidCentsOf]'s own doc comment for why
   /// `?? 0` is the honest reading now that the journal exists.
-  int committedCentsOf(String posteId) => committedByPosteId[posteId]?.amountCents ?? 0;
+  int committedCentsOf(String accountId) => committedByAccountId[accountId]?.amountCents ?? 0;
 
-  /// [posteId]'s own in-kind covered total, in cents — [inKindCoveredByPosteId]'s own entry for
-  /// [posteId], or **0** while it carries none. See [paidCentsOf]'s own doc comment for why `?? 0`
-  /// is the honest reading: a poste with no counterpart line genuinely has settled nothing in kind.
-  int inKindCoveredCentsOf(String posteId) => inKindCoveredByPosteId[posteId] ?? 0;
+  /// Get [accountId]'s own in-kind covered total, in cents — [inKindCoveredByAccountId]'s own entry
+  /// for [accountId], or **0** while it carries none. See [paidCentsOf]'s own doc comment for why
+  /// `?? 0` is the honest reading: an account with no counterpart line genuinely has settled
+  /// nothing in kind.
+  int inKindCoveredCentsOf(String accountId) => inKindCoveredByAccountId[accountId] ?? 0;
 
-  /// [resourceId]'s own received total, in cents, tax-inclusive — [receivedByResourceId]'s own
+  /// Get [resourceId]'s own received total, in cents, tax-inclusive — [receivedByResourceId]'s own
   /// entry for [resourceId], or **0** while it carries none.
   ///
   /// **This `?? 0` is the ordinary reading, not the one an in-kind resource's own row needs.** A
   /// subsidy or a cash contribution with no entry naming it genuinely has had nothing come in yet —
-  /// zero is the true answer, the same honesty [paidCentsOf]'s own doc comment argues for a poste
-  /// with no entry against it. An in-kind contribution is different: it is valued, not collected,
-  /// so "how much has come in" is not a question with an answer until an entry actually names it —
-  /// which is exactly why the financing view reads [receivedByResourceId] itself, raw, for that one
-  /// row kind, rather than through this method (`OcptBudgetFinancing`'s own class doc comment).
+  /// zero is the true answer, the same honesty [paidCentsOf]'s own doc comment argues for an
+  /// account with no entry against it. An in-kind contribution is different: it is valued, not
+  /// collected, so "how much has come in" is not a question with an answer until an entry actually
+  /// names it — which is exactly why the financing view reads [receivedByResourceId] itself, raw,
+  /// for that one row kind, rather than through this method (`OcptBudgetFinancing`'s own class doc
+  /// comment).
   int receivedCentsOf(String resourceId) => receivedByResourceId[resourceId]?.amountCents ?? 0;
 
-  /// [revenueId]'s own received total, in cents, tax-inclusive — [receivedByRevenueId]'s own entry
+  /// Get [revenueId]'s own received total, in cents, tax-inclusive — [receivedByRevenueId]'s own
+  /// entry
   /// for [revenueId], or **0** while it carries none. Mirrors [receivedCentsOf]'s own honest-zero
   /// reading: a taking with no entry naming it genuinely has had nothing come in yet.
   int receivedRevenueCentsOf(String revenueId) => receivedByRevenueId[revenueId]?.amountCents ?? 0;
 
-  /// [shareId]'s own paid total, in cents, tax-inclusive — [paidByShareId]'s own entry for
+  /// Get [shareId]'s own paid total, in cents, tax-inclusive — [paidByShareId]'s own entry for
   /// [shareId], or **0** while it carries none. Mirrors [receivedCentsOf]'s own honest-zero
   /// reading: a share nobody has been paid against genuinely has had nothing move against it yet.
   int paidShareCentsOf(String shareId) => paidByShareId[shareId]?.amountCents ?? 0;
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptBudgetSnapshot(posteCount: $posteCount, lineCount: $lineCount, "
+      "OcptBudgetSnapshot(accountCount: $accountCount, lineCount: $lineCount, "
       "entryCount: $entryCount, commitmentCount: $commitmentCount, resourceCount: $resourceCount, "
       "defaultVatRateBasisPoints: $defaultVatRateBasisPoints, currencyCode: $currencyCode, "
-      "regieDayCount: ${regieDays.length}, allowanceCount: ${allowances.length}, "
+      "logisticsDayCount: ${logisticsDays.length}, allowanceCount: ${allowances.length}, "
       "revenueCount: $revenueCount, shareCount: $shareCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
-    postes,
+    accounts,
     entries,
     commitments,
     resources,
@@ -460,21 +472,21 @@ class OcptBudgetSnapshot extends Equatable {
     mealPriceCents,
     buffetPriceCents,
     currencyCode,
-    posteCount,
+    accountCount,
     lineCount,
     entryCount,
     commitmentCount,
     resourceCount,
-    paidByPosteId,
+    paidByAccountId,
     offQuotePaidTotal,
-    committedByPosteId,
-    inKindCoveredByPosteId,
+    committedByAccountId,
+    inKindCoveredByAccountId,
     cashTotals,
     receivedByResourceId,
     alerts,
     receiptsByEntryId,
-    regieDays,
-    regieTotals,
+    logisticsDays,
+    logisticsTotals,
     allowances,
     reimbursedByPersonId,
     revenues,

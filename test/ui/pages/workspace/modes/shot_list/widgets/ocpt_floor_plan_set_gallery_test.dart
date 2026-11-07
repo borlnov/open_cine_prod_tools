@@ -45,15 +45,11 @@ OcptLocation _location({required String id, required String name, List<OcptSet> 
       availabilities: const [],
     );
 
-OcptSet _set({required String id, required String name, String code = ""}) => OcptSet(
-  id: id,
-  locationId: "loc",
-  code: code,
-  name: name,
-  notes: "",
-  sceneIds: const [],
-);
+/// Build a set with the given id, code and name.
+OcptSet _set({required String id, required String name, String code = ""}) =>
+    OcptSet(id: id, locationId: "loc", code: code, name: name, notes: "", sceneIds: const []);
 
+/// Pump the gallery on a surface of [size].
 Future<void> _pump(WidgetTester tester, Widget child, {Size size = const Size(1400, 900)}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -74,13 +70,22 @@ Future<void> _pump(WidgetTester tester, Widget child, {Size size = const Size(14
   );
 }
 
+/// Run the tests of [OcptFloorPlanSetGallery].
 void main() {
   testWidgets("shows the gallery's own title and one card per set, across every location", (
     tester,
   ) async {
     final locations = [
-      _location(id: "loc-1", name: "Maison", sets: [_set(id: "set-a", name: "Cuisine")]),
-      _location(id: "loc-2", name: "Hangar", sets: [_set(id: "set-b", name: "Salon")]),
+      _location(
+        id: "loc-1",
+        name: "Maison",
+        sets: [_set(id: "set-a", name: "Cuisine")],
+      ),
+      _location(
+        id: "loc-2",
+        name: "Hangar",
+        sets: [_set(id: "set-b", name: "Salon")],
+      ),
     ];
 
     await _pump(
@@ -107,7 +112,10 @@ void main() {
       _location(
         id: "loc-1",
         name: "Maison",
-        sets: [_set(id: "set-a", name: "Cuisine"), _set(id: "set-b", name: "Salon")],
+        sets: [
+          _set(id: "set-a", name: "Cuisine"),
+          _set(id: "set-b", name: "Salon"),
+        ],
       ),
     ];
 
@@ -137,7 +145,11 @@ void main() {
   testWidgets("clicking a card links its own set", (tester) async {
     String? linked;
     final locations = [
-      _location(id: "loc-1", name: "Maison", sets: [_set(id: "set-a", name: "Cuisine")]),
+      _location(
+        id: "loc-1",
+        name: "Maison",
+        sets: [_set(id: "set-a", name: "Cuisine")],
+      ),
     ];
 
     await _pump(
@@ -161,7 +173,11 @@ void main() {
     tester,
   ) async {
     final locations = [
-      _location(id: "loc-1", name: "Maison", sets: [_set(id: "set-a", name: "Cuisine")]),
+      _location(
+        id: "loc-1",
+        name: "Maison",
+        sets: [_set(id: "set-a", name: "Cuisine")],
+      ),
     ];
     const symbol = OcptFloorPlanSymbol(
       id: "symbol-1",
@@ -187,7 +203,9 @@ void main() {
       tester,
       OcptFloorPlanSetGallery(
         locations: locations,
-        symbolsBySetId: {"set-a": [symbol]},
+        symbolsBySetId: {
+          "set-a": [symbol],
+        },
         suggestedSetId: null,
         onSetLinkRequested: (_) {},
         onSetCreationRequested: (_) {},
@@ -203,7 +221,11 @@ void main() {
     tester,
   ) async {
     final locations = [
-      _location(id: "loc-1", name: "Maison", sets: [_set(id: "set-a", name: "Cuisine")]),
+      _location(
+        id: "loc-1",
+        name: "Maison",
+        sets: [_set(id: "set-a", name: "Cuisine")],
+      ),
     ];
 
     await _pump(

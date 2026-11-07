@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_text_search.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The attribution [OcptSearchMatchStyler] adds over every find/replace match's own range, painted
@@ -16,9 +16,11 @@ const NamedAttribution ocptSearchMatchAttribution = NamedAttribution("ocptSearch
 
 /// The stronger variant of [ocptSearchMatchAttribution] marking the *current* match, painted as
 /// [ocptEditorSearchCurrentMatchColor].
-const NamedAttribution ocptSearchCurrentMatchAttribution = NamedAttribution("ocptSearchCurrentMatch");
+const NamedAttribution ocptSearchCurrentMatchAttribution = NamedAttribution(
+  "ocptSearchCurrentMatch",
+);
 
-/// The styled mode's own half of the find/replace bar's highlight (the plan's M4 decision, §6):
+/// The styled mode's own half of the find/replace bar's highlight:
 /// raw mode paints its matches by overriding `TextEditingController.buildTextSpan`
 /// (`OcptEditorSearchTextController`); the styled block editor has no such single field to
 /// override, so this is a `SingleColumnLayoutStylePhase` handed to `SuperEditor`'s
@@ -45,7 +47,7 @@ const NamedAttribution ocptSearchCurrentMatchAttribution = NamedAttribution("ocp
 /// presenter pipeline on its own.
 class OcptSearchMatchStyler extends SingleColumnLayoutStylePhase {
   /// The matches currently painted, keyed by the id of the node they were found in.
-  Map<String, List<OcptTextMatch>> _matchesByNodeId = const {};
+  Map<String, List<OcptTextMatch>> _matchesByNodeId;
 
   /// The id of the node holding the current match, or null while there is none.
   String? _currentMatchNodeId;
@@ -54,7 +56,10 @@ class OcptSearchMatchStyler extends SingleColumnLayoutStylePhase {
   /// different nodes can hold an equal `OcptTextMatch` by pure coincidence of offsets).
   OcptTextMatch? _currentMatch;
 
-  /// Replaces the matches this styler paints and marks the phase dirty so `SuperEditor`
+  /// Class constructor
+  OcptSearchMatchStyler() : _matchesByNodeId = const {};
+
+  /// Replace the matches this styler paints and mark the phase dirty so `SuperEditor`
   /// re-runs it — unconditionally: `OcptStyledScreenplayEditor` only calls this when it has
   /// something new to report (a fresh recompute after an edit, or an explicit navigation), so
   /// there is no stale-call case worth guarding against here.
@@ -69,7 +74,7 @@ class OcptSearchMatchStyler extends SingleColumnLayoutStylePhase {
     markDirty();
   }
 
-  /// Styles [viewModel] by replacing every component that carries at least one match with a
+  /// Style [viewModel] by replacing every component that carries at least one match with a
   /// highlighted copy, through [_applyMatches]; every other component is left untouched (not even
   /// copied), matching `SpellingAndGrammarStyler`'s own pattern.
   @override
@@ -81,15 +86,18 @@ class OcptSearchMatchStyler extends SingleColumnLayoutStylePhase {
     return SingleColumnLayoutViewModel(
       padding: viewModel.padding,
       componentViewModels: [
-        for (final previousViewModel in viewModel.componentViewModels) _applyMatches(previousViewModel),
+        for (final previousViewModel in viewModel.componentViewModels)
+          _applyMatches(previousViewModel),
       ],
     );
   }
 
-  /// Returns [previousViewModel] unchanged when it carries no match or isn't a text component
+  /// Return [previousViewModel] unchanged when it carries no match or isn't a text component
   /// (e.g. the title page's own field components, which do mix in [TextComponentViewModel], are
   /// still handled the same way as every other text block); otherwise returns a highlighted copy.
-  SingleColumnLayoutComponentViewModel _applyMatches(SingleColumnLayoutComponentViewModel previousViewModel) {
+  SingleColumnLayoutComponentViewModel _applyMatches(
+    SingleColumnLayoutComponentViewModel previousViewModel,
+  ) {
     final matches = _matchesByNodeId[previousViewModel.nodeId];
     if (matches == null || matches.isEmpty || previousViewModel is! TextComponentViewModel) {
       return previousViewModel;

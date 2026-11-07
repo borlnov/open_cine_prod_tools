@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/ocpt_packaged_asset.dart';
+import 'package:open_cine_prod_tools/models/ocpt_skipped_asset.dart';
 
 /// The `packageFormat` this build writes, and the highest one it knows how to read.
 ///
@@ -29,88 +31,6 @@ const ocptPackageManifestEntry = "manifest.json";
 /// The project file's own extension plus a `z`: what it holds is a project, zipped with everything
 /// that project points at.
 const ocptPackageFileExtension = "ocptz";
-
-/// One file that travelled inside the package, and the `assets` row it belongs to.
-class OcptPackagedAsset extends Equatable {
-  /// The id of the `assets` row this file is referenced by.
-  final String assetId;
-
-  /// Where this file sits inside the archive, relative to its root.
-  final String entry;
-
-  /// The absolute path this file was referenced by on the machine that exported it.
-  ///
-  /// Kept for the record alone: the import rewrites the row onto what it just unpacked, and never
-  /// tries this path. It is what lets a report say *which* file a row used to name.
-  final String originalPath;
-
-  /// Class constructor
-  const OcptPackagedAsset({
-    required this.assetId,
-    required this.entry,
-    required this.originalPath,
-  });
-
-  /// Parses one packaged asset out of the JSON the manifest stores it as.
-  factory OcptPackagedAsset.fromJson(Map<String, dynamic> json) => OcptPackagedAsset(
-    assetId: json["assetId"] as String? ?? "",
-    entry: json["entry"] as String? ?? "",
-    originalPath: json["originalPath"] as String? ?? "",
-  );
-
-  /// This asset, as the manifest stores it.
-  Map<String, dynamic> toJson() => {
-    "assetId": assetId,
-    "entry": entry,
-    "originalPath": originalPath,
-  };
-
-  /// Object properties
-  @override
-  List<Object?> get props => [assetId, entry, originalPath];
-}
-
-/// One file the export could **not** carry, because it was no longer where its `assets` row said.
-///
-/// A dangling reference is a normal state (`docs/adr/0013-binary-assets-referenced-by-path.md`),
-/// so it never blocks an export — but it is stated twice: to whoever exports, before a single byte
-/// is written, and to whoever imports, as the project lands. An export that silently shipped fewer
-/// files than the project references would be a lie both ends could act on.
-class OcptSkippedAsset extends Equatable {
-  /// The id of the `assets` row whose file was missing.
-  final String assetId;
-
-  /// The row's own label, which is how the user knows *what* is missing.
-  final String label;
-
-  /// The absolute path the row names, and where nothing was found.
-  final String originalPath;
-
-  /// Class constructor
-  const OcptSkippedAsset({
-    required this.assetId,
-    required this.label,
-    required this.originalPath,
-  });
-
-  /// Parses one skipped asset out of the JSON the manifest stores it as.
-  factory OcptSkippedAsset.fromJson(Map<String, dynamic> json) => OcptSkippedAsset(
-    assetId: json["assetId"] as String? ?? "",
-    label: json["label"] as String? ?? "",
-    originalPath: json["originalPath"] as String? ?? "",
-  );
-
-  /// This asset, as the manifest stores it.
-  Map<String, dynamic> toJson() => {
-    "assetId": assetId,
-    "label": label,
-    "originalPath": originalPath,
-  };
-
-  /// Object properties
-  @override
-  List<Object?> get props => [assetId, label, originalPath];
-}
 
 /// What a package says about itself: its own format, what wrote it, and what it carries.
 ///
@@ -153,7 +73,7 @@ class OcptProjectPackageManifest extends Equatable {
     required this.skippedAssets,
   });
 
-  /// Parses a manifest out of the JSON a package stores it as.
+  /// Parse a manifest out of the JSON a package stores it as.
   ///
   /// Tolerant on every field but [packageFormat]: a manifest whose format this build knows is one
   /// it wrote the shape of, and a field missing from it is likelier to be an older format than a
@@ -177,7 +97,7 @@ class OcptProjectPackageManifest extends Equatable {
         ],
       );
 
-  /// This manifest, as the package stores it.
+  /// Serialize this manifest, as the package stores it.
   Map<String, dynamic> toJson() => {
     "packageFormat": packageFormat,
     "appVersion": appVersion,
@@ -188,7 +108,14 @@ class OcptProjectPackageManifest extends Equatable {
     "skippedAssets": [for (final asset in skippedAssets) asset.toJson()],
   };
 
-  /// Object properties
+  /// Get a string representation of the object, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptProjectPackageManifest(packageFormat: $packageFormat, appVersion: $appVersion, "
+      "schemaVersion: $schemaVersion, projectName: $projectName, exportedAt: $exportedAt, "
+      "assetCount: ${assets.length}, skippedAssetCount: ${skippedAssets.length})";
+
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     packageFormat,

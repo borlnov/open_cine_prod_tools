@@ -5,6 +5,7 @@
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of [OcptSnapshotDescriptor].
 void main() {
   group('OcptSnapshotDescriptor', () {
     const descriptor = OcptSnapshotDescriptor(
@@ -48,7 +49,8 @@ void main() {
     test('accepts a snapshot format at or below the current one', () {
       final atCurrent = descriptor.toJson()
         ..['snapshotFormat'] = OcptSnapshotDescriptor.currentSnapshotFormat;
-      final older = descriptor.toJson()..['snapshotFormat'] = OcptSnapshotDescriptor.currentSnapshotFormat - 1;
+      final older = descriptor.toJson()
+        ..['snapshotFormat'] = OcptSnapshotDescriptor.currentSnapshotFormat - 1;
 
       expect(() => OcptSnapshotDescriptor.fromJson(atCurrent), returnsNormally);
       expect(() => OcptSnapshotDescriptor.fromJson(older), returnsNormally);

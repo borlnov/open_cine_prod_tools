@@ -6,12 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_frame.dart';
+import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_status.dart';
 
 /// The Rejoindre screen's camera-scan tab, mobile only — `MobileScanner` is instantiated **only**
-/// while this widget is actually mounted, which the page itself gates on `PlatformManager.isMobile`
-/// (`docs/plans/relay.md`, Phase C, commit 4): a desktop build never reaches this widget at all,
-/// keeping it — and its tests — off the camera plugin entirely. `mobile_scanner` surfaces the OS
-/// camera-permission prompt itself, so there is no permission plumbing to build here.
+/// while this widget is actually mounted, which the page itself gates on
+/// `PlatformManager.isMobile`: a desktop build never reaches this widget at all, keeping it — and
+/// its tests — off the camera plugin entirely. `mobile_scanner` surfaces the OS camera-permission
+/// prompt itself, so there is no permission plumbing to build here.
 ///
 /// [status] paints [OcptJoiningScanFrame]'s own border around the camera preview — driven by the
 /// page off `OcptJoiningBloc`'s state, not by this widget, which has no opinion of its own on
@@ -27,6 +28,7 @@ class OcptJoiningScannerView extends StatefulWidget {
   /// Class constructor
   const OcptJoiningScannerView({required this.onScanned, required this.status, super.key});
 
+  /// Create the [_OcptJoiningScannerViewState] holding the state of the joining scanner view.
   @override
   State<OcptJoiningScannerView> createState() => _OcptJoiningScannerViewState();
 }
@@ -40,6 +42,7 @@ class _OcptJoiningScannerViewState extends State<OcptJoiningScannerView> {
   /// by hand, framing a *different* code is enough to report it.
   String? _lastReportedValue;
 
+  /// Build the joining scanner view as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -69,7 +72,7 @@ class _OcptJoiningScannerViewState extends State<OcptJoiningScannerView> {
     );
   }
 
-  /// Reports a newly detected barcode's raw value to [OcptJoiningScannerView.onScanned], ignoring a
+  /// Report a newly detected barcode's raw value to [OcptJoiningScannerView.onScanned], ignoring a
   /// repeat of [_lastReportedValue] — see that field's own doc comment for why this is also what
   /// re-arms the camera for a fresh attempt.
   void _onDetect(BarcodeCapture capture) {

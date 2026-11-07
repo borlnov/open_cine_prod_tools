@@ -17,8 +17,8 @@ import 'package:equatable/equatable.dart';
 ///
 /// **A partial failure is never hidden as a success**: a write failure is logged (this app's usual
 /// soft-failure convention) and the file's own name is recorded in [failedFileNames] rather than
-/// silently dropped, so [isComplete] is the one place a caller asks "did every file make it" without
-/// having to compare the two lists' lengths by hand.
+/// silently dropped, so [isComplete] is the one place a caller asks "did every file make it"
+/// without having to compare the two lists' lengths by hand.
 ///
 /// [folderPath] is a temporary directory rather than one the user picked when [wasShared] is true:
 /// on mobile there is no "choose a folder" dialog to show at all (`file_selector`'s
@@ -39,6 +39,9 @@ class OcptCallSheetExportResult extends Equatable {
   /// for the user to find — mobile's own outcome, `false` everywhere else.
   final bool wasShared;
 
+  /// Tell whether every file this run attempted was written successfully.
+  bool get isComplete => failedFileNames.isEmpty;
+
   /// Class constructor
   const OcptCallSheetExportResult({
     required this.folderPath,
@@ -47,17 +50,14 @@ class OcptCallSheetExportResult extends Equatable {
     this.wasShared = false,
   });
 
-  /// Whether every file this run attempted was written successfully.
-  bool get isComplete => failedFileNames.isEmpty;
-
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptCallSheetExportResult(folderPath: $folderPath, "
       "writtenCount: ${writtenFileNames.length}, failedCount: ${failedFileNames.length}, "
       "wasShared: $wasShared)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [folderPath, writtenFileNames, failedFileNames, wasShared];
 }

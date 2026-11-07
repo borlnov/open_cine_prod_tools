@@ -3,18 +3,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timelines.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_sun_times.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
-import 'package:open_cine_prod_tools/ui/utils/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_minute.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_shooting_day_timeline.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_sun_times.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
 /// The number of week rows the grid always draws — six covers every month regardless of which
 /// weekday it starts or ends on, so the grid's own shape never changes from one month to the next.
@@ -56,8 +56,8 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   final Map<String, OcptLocation?> firstLocationByDayId;
 
   /// A day's own resolved tint, under whichever `OcptScheduleAgendaColorMode` is currently active —
-  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this widget
-  /// stays ignorant of which fact a day is coloured by.
+  /// `ocptScheduleDayLocationTint`/`ocptScheduleDayEffectTint` applied by the caller, so this
+  /// widget stays ignorant of which fact a day is coloured by.
   final Color Function(String dayId) dayTintOf;
 
   /// Resolves a day id to its own computed timetable, or null while it has nothing placed.
@@ -93,6 +93,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the schedule month grid as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -103,7 +104,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       clipBehavior: Clip.antiAlias,
       // Wrapped in a scroll view, unlike a plain `Column` of the six week rows: each row's own
@@ -111,7 +112,8 @@ class OcptScheduleMonthGrid extends StatelessWidget {
       // regardless of how much room the caller actually has, and a short window would otherwise
       // overflow past the bottom of whatever laid this out (the strip and week agendas already
       // scroll for the very same reason). A tall window still shows every week at once, with
-      // nothing to scroll — the scroll view adds no chrome of its own when there is nothing to hide.
+      // nothing to scroll — the scroll view adds no chrome of its own when there is nothing to
+      // hide.
       child: SingleChildScrollView(
         child: Column(
           children: [
@@ -154,7 +156,8 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   }
 }
 
-/// [date] with its time component dropped, so it can key a `Map` alongside `OcptShootingDay.date`.
+/// Get [date] with its time component dropped, so it can key a `Map` alongside
+/// `OcptShootingDay.date`.
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
 /// One cell of the month grid.
@@ -211,6 +214,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
     required this.onOpenRequested,
   });
 
+  /// Build the schedule month cell as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -226,7 +230,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
 
     return InkWell(
       onTap: onOpenRequested,
-      mouseCursor: onOpenRequested == null ? MouseCursor.defer : ocptClickableCursor,
+      mouseCursor: onOpenRequested == null ? MouseCursor.defer : ocpt_theme.ocptClickableCursor,
       child: Container(
         constraints: const BoxConstraints(minHeight: 82),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
@@ -241,7 +245,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
           ),
           color: day == null
               ? Colors.transparent
-              : theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha / 2),
+              : theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha / 2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,8 +293,8 @@ class _OcptScheduleMonthCell extends StatelessWidget {
                   ),
                   // A day running more than one slot at once — two units shooting in parallel — has
                   // no single "the call" any more, which is exactly what this badge exists to flag:
-                  // a producer scanning the month sees it before wondering why the range below looks
-                  // odd for that day.
+                  // a producer scanning the month sees it before wondering why the range below
+                  // looks odd for that day.
                   if (slots.length > 1)
                     Tooltip(
                       message: tr.scheduleMonthCellSlotCountTooltip(slots.length),
@@ -339,7 +343,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
     );
   }
 
-  /// `☀ 06:12 / 21:04`, the cell's own compact sun line.
+  /// Get `☀ 06:12 / 21:04`, the cell's own compact sun line.
   String _sunLine(OcptSunTimes sunTimes) {
     final sunrise = sunTimes.sunriseMinute;
     final sunset = sunTimes.sunsetMinute;

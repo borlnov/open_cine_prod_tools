@@ -6,12 +6,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:path/path.dart' as p;
 
-/// An [OcptRemoteStorage] over a plain directory, usable with no network at all and, per
-/// `docs/plans/collaboration-and-sync.md` (M3), over any file-sync client on desktop afterwards.
+/// An [OcptRemoteStorage] over a plain directory, usable with no network at all and, on desktop,
+/// over any file-sync client.
 ///
 /// [directory] holds two subdirectories this transport creates as needed:
 ///
@@ -25,30 +28,59 @@ import 'package:path/path.dart' as p;
 /// boundary [OcptRemoteStorage] itself draws, kept here so this class can be exercised, and used,
 /// from a plain Dart isolate.
 class OcptFolderRemoteStorage implements OcptRemoteStorage {
-  /// Creates a transport rooted at [directory]. Neither [directory] nor its two subdirectories
-  /// need to exist yet — every method that writes creates what it needs first.
-  OcptFolderRemoteStorage(this.directory);
-
-  /// The directory this transport reads and writes `changesets/` and `snapshots/` under.
-  final Directory directory;
-
   /// The zero-padding width of a changeset file's name — wide enough that a project's whole
   /// history, appended one changeset at a time, never runs out of digits.
   static const _sequenceNumberWidth = 10;
 
+  /// The name of the subdirectory holding the changeset files.
   static const _changesetsDirName = 'changesets';
+
+  /// The extension of a changeset file.
   static const _changesetFileExtension = '.json';
+
+  /// The name of the subdirectory holding the snapshot files.
   static const _snapshotsDirName = 'snapshots';
+
+  /// The extension of a snapshot descriptor file.
   static const _snapshotDescriptorExtension = '.json';
+
+  /// The extension of a snapshot bytes file.
   static const _snapshotBytesExtension = '.bin';
+
+  /// The name of the file holding the id of the latest snapshot.
   static const _latestSnapshotMarkerFileName = 'LATEST';
 
+  /// The directory this transport reads and writes `changesets/` and `snapshots/` under.
+  final Directory directory;
+
+  // No network and no other process to watch for on the common case of a plain local directory;
+  // a directory reached through a file-sync client only ever changes between app launches, which
+  // every replica already re-reads on `readSince`/`fetchLatestSnapshot` at startup. A relay's
+  // WebSocket route is what actually drives this stream once it exists.
+  /// Emit nothing: a plain directory has no peer to push work.
+  @override
+  Stream<void> get newWorkStream => const Stream.empty();
+
+  // Mirrors newWorkStream above: no peer, nothing to receive.
+  /// Emit nothing: a plain directory has no peer to send frames.
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  /// Get the subdirectory holding the changeset files.
   Directory get _changesetsDir => Directory(p.join(directory.path, _changesetsDirName));
 
+  /// Get the subdirectory holding the snapshot files.
   Directory get _snapshotsDir => Directory(p.join(directory.path, _snapshotsDirName));
 
+  /// Create a transport rooted at [directory]. Neither [directory] nor its two subdirectories
+  /// need to exist yet — every method that writes creates what it needs first.
+  OcptFolderRemoteStorage(this.directory);
+
+  /// Write [envelope] to a new changeset file named after the next free sequence number.
   @override
-  Future<OcptSequenceNumber> append(OcptChangesetEnvelope envelope) async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
+    OcptChangesetEnvelope envelope,
+  ) => _guarded(() async {
     final changesetsDir = _changesetsDir;
     await changesetsDir.create(recursive: true);
 
@@ -56,14 +88,17 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     final file = File(p.join(changesetsDir.path, _changesetFileName(sequence)));
     await file.writeAsString(jsonEncode(envelope.toJson()), flush: true);
 
-    return sequence;
-  }
+    return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: sequence);
+  });
 
+  /// Read the changeset files whose sequence number is after [cursor], oldest first.
   @override
-  Future<List<OcptStoredChangeset>> readSince(OcptSequenceNumber cursor) async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
+    OcptSequenceNumber cursor,
+  ) => _guarded(() async {
     final changesetsDir = _changesetsDir;
     if (!changesetsDir.existsSync()) {
-      return const [];
+      return const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
     }
 
     final stored = <OcptStoredChangeset>[];
@@ -74,14 +109,23 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
       }
 
       final json = jsonDecode(await entry.readAsString()) as Map<String, dynamic>;
-      stored.add(OcptStoredChangeset(sequenceNumber: sequence, envelope: OcptChangesetEnvelope.fromJson(json)));
+      stored.add(
+        OcptStoredChangeset(
+          sequenceNumber: sequence,
+          envelope: OcptChangesetEnvelope.fromJson(json),
+        ),
+      );
     }
 
-    return stored;
-  }
+    return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: stored);
+  });
 
+  /// Write the descriptor and the bytes of the snapshot, then point the latest marker at it.
   @override
-  Future<void> uploadSnapshot(OcptSnapshotDescriptor descriptor, Uint8List bytes) async {
+  Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
+    OcptSnapshotDescriptor descriptor,
+    Uint8List bytes,
+  ) => _guarded<Object>(() async {
     final snapshotsDir = _snapshotsDir;
     await snapshotsDir.create(recursive: true);
 
@@ -94,48 +138,63 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     await File(
       p.join(snapshotsDir.path, _latestSnapshotMarkerFileName),
     ).writeAsString(descriptor.snapshotId, flush: true);
-  }
 
+    return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
+  });
+
+  /// Read the snapshot the latest marker names, or answer without value when there is none.
   @override
-  Future<(OcptSnapshotDescriptor, Uint8List)?> fetchLatestSnapshot() async {
+  Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
+  fetchLatestSnapshot() => _guarded(() async {
     final marker = File(p.join(_snapshotsDir.path, _latestSnapshotMarkerFileName));
     if (!marker.existsSync()) {
-      return null;
+      return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
     }
 
     final snapshotId = (await marker.readAsString()).trim();
-    final descriptorFile = File(p.join(_snapshotsDir.path, '$snapshotId$_snapshotDescriptorExtension'));
+    final descriptorFile = File(
+      p.join(_snapshotsDir.path, '$snapshotId$_snapshotDescriptorExtension'),
+    );
     final bytesFile = File(p.join(_snapshotsDir.path, '$snapshotId$_snapshotBytesExtension'));
     if (!descriptorFile.existsSync() || !bytesFile.existsSync()) {
-      return null;
+      return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
     }
 
     final descriptorJson = jsonDecode(await descriptorFile.readAsString()) as Map<String, dynamic>;
     final descriptor = OcptSnapshotDescriptor.fromJson(descriptorJson);
     final bytes = await bytesFile.readAsBytes();
 
-    return (descriptor, bytes);
-  }
-
-  // No network and no other process to watch for on the common case of a plain local directory;
-  // a directory reached through a file-sync client only ever changes between app launches, which
-  // every replica already re-reads on `readSince`/`fetchLatestSnapshot` at startup. A relay's
-  // WebSocket route is what actually drives this stream once it exists.
-  @override
-  Stream<void> get newWorkStream => const Stream.empty();
+    return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: (descriptor, bytes));
+  });
 
   // A plain directory has no live peer to reach — sharing it is always through a file-sync client
   // that only converges between launches, never a socket a presence heartbeat could ride. The call
   // is accepted and dropped rather than refused: a caller of the shared `OcptRemoteStorage` seam
   // never has to special-case this transport.
+  /// Drop [opaquePayload]: a plain directory has no peer to reach.
   @override
   void sendPresence(String opaquePayload) {}
 
-  // Mirrors newWorkStream above: no peer, nothing to receive.
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
+  /// Run [call], answering [OcptRemoteStorageStatus.unreachable] with the failure it caught when
+  /// it throws anything at all: the file system and `dart:convert` are third-party boundaries, and
+  /// a directory that cannot be read is the same thing to a caller as a relay that cannot be heard.
+  Future<ResultWithStatus<OcptRemoteStorageStatus, T>> _guarded<T>(
+    Future<ResultWithStatus<OcptRemoteStorageStatus, T>> Function() call,
+  ) async {
+    ResultWithStatus<OcptRemoteStorageStatus, T> result;
+    try {
+      result = await call();
+    } catch (error, stackTrace) {
+      result = ResultWithStatus(
+        status: OcptRemoteStorageStatus.unreachable,
+        extraInfo: OcptSyncTransportFailure(error: error, stackTrace: stackTrace),
+      );
+    }
 
-  /// The highest sequence number already written under [changesetsDir], or
+    return result;
+  }
+
+  /// Get the highest sequence number already written under [changesetsDir], or
   /// [OcptSequenceNumber.zero] when it holds none — so that [append] always has a value to call
   /// `next()` on.
   Future<OcptSequenceNumber> _highestSequenceNumber(Directory changesetsDir) async {
@@ -150,25 +209,25 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     return highest;
   }
 
-  /// Every changeset file directly under [changesetsDir], sorted by name — which, given
+  /// Get every changeset file directly under [changesetsDir], sorted by name — which, given
   /// [_changesetFileName]'s fixed-width zero-padding, is the same order as by sequence number.
   Future<List<File>> _sortedChangesetFiles(Directory changesetsDir) async {
-    final entries =
-        await changesetsDir
-            .list()
-            .where((entry) => entry is File && p.extension(entry.path) == _changesetFileExtension)
-            .cast<File>()
-            .toList();
+    final entries = await changesetsDir
+        .list()
+        .where((entry) => entry is File && p.extension(entry.path) == _changesetFileExtension)
+        .cast<File>()
+        .toList();
     entries.sort((a, b) => a.path.compareTo(b.path));
 
     return entries;
   }
 
-  /// The file name a changeset at [sequence] is written under.
+  /// Get the file name a changeset at [sequence] is written under.
   String _changesetFileName(OcptSequenceNumber sequence) =>
       '${sequence.value.toString().padLeft(_sequenceNumberWidth, '0')}$_changesetFileExtension';
 
-  /// The sequence number [file]'s own name encodes, or null when it does not parse as one — which
+  /// Get the sequence number [file]'s own name encodes, or null when it does not parse as one —
+  /// which
   /// a well-formed transport directory never produces, but a hand-edited or foreign one might.
   OcptSequenceNumber? _sequenceNumberOfChangesetFile(File file) {
     final value = int.tryParse(p.basenameWithoutExtension(file.path));

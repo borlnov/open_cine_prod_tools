@@ -24,8 +24,7 @@ class OcptScenarioCoverageExportOptions extends Equatable {
   /// The physical page format to typeset the exported document with.
   final OcptPageFormat format;
 
-  /// The page margins to typeset the exported document with, carried through unedited from the page
-  /// setup the export dialog was opened with.
+  /// {@macro open_cine_prod_tools.exportOptionsPageMargins}
   final FountainPageMargins margins;
 
   /// Whether scene numbers are printed in both margins opposite each scene heading.
@@ -52,14 +51,14 @@ class OcptScenarioCoverageExportOptions extends Equatable {
     required this.includeSummaryPage,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptScenarioCoverageExportOptions(format: $format, margins: $margins, "
       "includeSceneNumbers: $includeSceneNumbers, includeTitlePage: $includeTitlePage, "
       "includeLegendPage: $includeLegendPage, includeSummaryPage: $includeSummaryPage)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     format,

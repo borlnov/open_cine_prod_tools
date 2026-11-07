@@ -60,7 +60,7 @@ class OcptBreakdownTag extends Equatable {
     required this.needsCheck,
   });
 
-  /// Builds an [OcptBreakdownTag] from its stored [row], resolving [targetId] out of whichever of
+  /// Build an [OcptBreakdownTag] from its stored [row], resolving [targetId] out of whichever of
   /// [OcptBreakdownTagRow.elementId]/[OcptBreakdownTagRow.roleId]/[OcptBreakdownTagRow.setId]
   /// [OcptBreakdownTagRow.targetKind] names.
   ///
@@ -91,12 +91,12 @@ class OcptBreakdownTag extends Equatable {
     );
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBreakdownTag(id: $id, sceneId: $sceneId, targetKind: $targetKind, targetId: $targetId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

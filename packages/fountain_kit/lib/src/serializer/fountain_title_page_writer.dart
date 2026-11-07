@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
-import 'package:fountain_kit/src/models/fountain_title_page.dart';
+import 'package:fountain_kit/src/models/fountain_title_page_entry.dart';
 
-/// Splices a title page's `key: value` entries into (or out of) a Fountain
+/// Splice a title page's `key: value` entries into (or out of) a Fountain
 /// source string, without touching anything else in the source.
 ///
 /// Unlike `FountainSerializer.write`, which re-normalizes an entire parsed
@@ -16,10 +16,10 @@ import 'package:fountain_kit/src/models/fountain_title_page.dart';
 /// must never re-format a screenplay's body just because a title-page field
 /// changed.
 class FountainTitlePageWriter {
-  /// Creates a [FountainTitlePageWriter].
+  /// Create a [FountainTitlePageWriter].
   const FountainTitlePageWriter();
 
-  /// Returns [source] with its title page replaced by [entries].
+  /// Return [source] with its title page replaced by [entries].
   ///
   /// [existingRange] is the parsed title page's `sourceRange` currently found
   /// in [source] (`FountainTitlePage.sourceRange`), or null if [source] has
@@ -52,13 +52,13 @@ class FountainTitlePageWriter {
         source.substring(existingRange.endOffset);
   }
 
-  /// Renders [entries] as one block of `key: value` lines, in the exact same
+  /// Render [entries] as one block of `key: value` lines, in the exact same
   /// format `FountainSerializer` writes a title page in (duplicated here
   /// rather than shared, since it's 5 lines of formatting logic that isn't
   /// worth coupling the serializer and this writer over).
   String _renderBlock(List<FountainTitlePageEntry> entries) => entries.map(_renderEntry).join('\n');
 
-  /// Renders a single title page entry.
+  /// Render a single title page entry.
   String _renderEntry(FountainTitlePageEntry entry) {
     if (entry.values.length == 1) {
       return '${entry.key}: ${entry.values.single}';
@@ -67,7 +67,7 @@ class FountainTitlePageWriter {
     return '${entry.key}:\n$continuationLines';
   }
 
-  /// Removes the title page spanned by [range] from [source], together with
+  /// Remove the title page spanned by [range] from [source], together with
   /// the single blank line that separated it from the body, so the result
   /// doesn't start with a spurious leading blank line before the first real
   /// content.
@@ -78,7 +78,7 @@ class FountainTitlePageWriter {
   /// source always holds: that trailing newline, then the blank separator
   /// line (the parser always consumes one, even when it coincides with the
   /// very end of the source), then the body. This walks past both of those,
-  /// then drops everything from [range.startOffset] up to wherever the body
+  /// then drops everything from `range.startOffset` up to wherever the body
   /// actually starts.
   String _dropTitlePage(String source, FountainSourceRange range) {
     var bodyStart = range.endOffset;

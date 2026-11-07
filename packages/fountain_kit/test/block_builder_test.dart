@@ -28,6 +28,7 @@ List<FountainBlock> _build(String source) {
   );
 }
 
+/// Run the tests of the block builder.
 void main() {
   group('dialogue grouping', () {
     test('a character cue and its dialogue line form one group', () {
@@ -36,11 +37,7 @@ void main() {
       final group = blocks.single as FountainDialogueGroup;
       expect(group.character.name, 'SARAH');
       expect(group.children, [
-        isA<FountainDialogueLine>().having(
-          (line) => line.text,
-          'text',
-          'Hello there.',
-        ),
+        isA<FountainDialogueLine>().having((line) => line.text, 'text', 'Hello there.'),
       ]);
     });
 
@@ -48,16 +45,8 @@ void main() {
       final blocks = _build('\nSARAH\n(beat)\nHello there.\n');
       final group = blocks.single as FountainDialogueGroup;
       expect(group.children, [
-        isA<FountainParenthetical>().having(
-          (paren) => paren.text,
-          'text',
-          'beat',
-        ),
-        isA<FountainDialogueLine>().having(
-          (line) => line.text,
-          'text',
-          'Hello there.',
-        ),
+        isA<FountainParenthetical>().having((paren) => paren.text, 'text', 'beat'),
+        isA<FountainDialogueLine>().having((line) => line.text, 'text', 'Hello there.'),
       ]);
     });
 
@@ -129,23 +118,16 @@ void main() {
   // classification runs), so they are exercised here through the full
   // parser rather than through FountainBlockBuilder in isolation.
   group('notes', () {
-    test(
-      'a "[[note]]" alone on its own line becomes a standalone note block',
-      () {
-        final document = const FountainParser().parse(
-          'Some action.\n\n[[a standalone note]]\n\nMore action.\n',
-        );
-        expect(document.blocks, [
-          isA<FountainActionBlock>(),
-          isA<FountainNoteBlock>().having(
-            (note) => note.text,
-            'text',
-            'a standalone note',
-          ),
-          isA<FountainActionBlock>(),
-        ]);
-      },
-    );
+    test('a "[[note]]" alone on its own line becomes a standalone note block', () {
+      final document = const FountainParser().parse(
+        'Some action.\n\n[[a standalone note]]\n\nMore action.\n',
+      );
+      expect(document.blocks, [
+        isA<FountainActionBlock>(),
+        isA<FountainNoteBlock>().having((note) => note.text, 'text', 'a standalone note'),
+        isA<FountainActionBlock>(),
+      ]);
+    });
 
     test('a "[[note]]" sharing a line with other text stays inline', () {
       final document = const FountainParser().parse(
@@ -158,23 +140,20 @@ void main() {
   });
 
   group('boneyard', () {
-    test(
-      'a "/* */" comment spanning several lines becomes one boneyard block',
-      () {
-        final document = const FountainParser().parse(
-          'Some action.\n\n/*\ncut for pacing\nkeep for reference\n*/\n\nMore action.\n',
-        );
-        expect(document.blocks, [
-          isA<FountainActionBlock>(),
-          isA<FountainBoneyard>().having(
-            (boneyard) => boneyard.text.trim(),
-            'text',
-            'cut for pacing\nkeep for reference',
-          ),
-          isA<FountainActionBlock>(),
-        ]);
-      },
-    );
+    test('a "/* */" comment spanning several lines becomes one boneyard block', () {
+      final document = const FountainParser().parse(
+        'Some action.\n\n/*\ncut for pacing\nkeep for reference\n*/\n\nMore action.\n',
+      );
+      expect(document.blocks, [
+        isA<FountainActionBlock>(),
+        isA<FountainBoneyard>().having(
+          (boneyard) => boneyard.text.trim(),
+          'text',
+          'cut for pacing\nkeep for reference',
+        ),
+        isA<FountainActionBlock>(),
+      ]);
+    });
 
     test('a boneyard comment sits between the blocks it separated', () {
       final document = const FountainParser().parse(

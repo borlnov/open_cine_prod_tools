@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /// One of the four ways a scene heading's own EFFET reading classifies under `ocptSceneEffectOf`
-/// (`lib/utils/ocpt_scene_effect.dart`) — its interior/exterior half crossed with its day/night
-/// half — plus [mixed]: a day whose placed shots classify into more than one of the four
+/// (`lib/models/rules/ocpt_scene_effect.dart`) — its interior/exterior half crossed with its
+/// day/night half — plus [mixed]: a day whose placed shots classify into more than one of the four
 /// (`ocptSceneEffectCategoryOf`), read by the schedule agenda's own "Colour by" control
 /// (`OcptScheduleAgendaColorMode.effect`).
 ///

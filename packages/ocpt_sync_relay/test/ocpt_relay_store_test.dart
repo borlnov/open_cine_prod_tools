@@ -10,6 +10,7 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:test/test.dart';
 
+/// Build an envelope with [changesetId] and [lamport], from a fixed device.
 OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptChangesetEnvelope(
   changesetId: changesetId,
   originDeviceId: 'device-1',
@@ -31,6 +32,7 @@ OcptSnapshotDescriptor _descriptor({
   contentDigest: sha256.convert(bytes).toString(),
 );
 
+/// Run the tests of [OcptRelayStore].
 void main() {
   group('OcptRelayStore', () {
     late OcptRelayStore store;
@@ -91,7 +93,10 @@ void main() {
 
       final stored = store.readSince('project-1', const OcptSequenceNumber(1));
 
-      expect(stored.map((changeset) => changeset.envelope.changesetId), ['changeset-2', 'changeset-3']);
+      expect(stored.map((changeset) => changeset.envelope.changesetId), [
+        'changeset-2',
+        'changeset-3',
+      ]);
     });
 
     test('appending the same changesetId twice is idempotent', () {
@@ -112,7 +117,10 @@ void main() {
       expect(first, const OcptSequenceNumber(1));
       expect(second, const OcptSequenceNumber(2));
       final stored = store.readSince('project-1', OcptSequenceNumber.zero);
-      expect(stored.map((changeset) => changeset.envelope.changesetId), ['changeset-1', 'changeset-2']);
+      expect(stored.map((changeset) => changeset.envelope.changesetId), [
+        'changeset-1',
+        'changeset-2',
+      ]);
     });
 
     test('a duplicate append after other appends still returns its original sequence', () {
@@ -124,7 +132,11 @@ void main() {
 
       expect(duplicate, first);
       final stored = store.readSince('project-1', OcptSequenceNumber.zero);
-      expect(stored.map((changeset) => changeset.envelope.changesetId), ['changeset-1', 'changeset-2', 'changeset-3']);
+      expect(stored.map((changeset) => changeset.envelope.changesetId), [
+        'changeset-1',
+        'changeset-2',
+        'changeset-3',
+      ]);
     });
 
     test('project lookup returns the stored tokenHash', () {
@@ -199,11 +211,17 @@ void main() {
 
       // (a) the changesets at/below the snapshot's sequence are pruned from the log.
       final sinceZero = store.readSince('project-1', OcptSequenceNumber.zero);
-      expect(sinceZero.map((changeset) => changeset.envelope.changesetId), ['changeset-4', 'changeset-5']);
+      expect(sinceZero.map((changeset) => changeset.envelope.changesetId), [
+        'changeset-4',
+        'changeset-5',
+      ]);
 
       // (b) reading since the snapshot's own position returns exactly what is above it.
       final sinceSnapshot = store.readSince('project-1', const OcptSequenceNumber(3));
-      expect(sinceSnapshot.map((changeset) => changeset.envelope.changesetId), ['changeset-4', 'changeset-5']);
+      expect(sinceSnapshot.map((changeset) => changeset.envelope.changesetId), [
+        'changeset-4',
+        'changeset-5',
+      ]);
 
       // (c) a replica at a cursor behind the snapshot still converges: fetching the snapshot jumps
       // it to sequence 3, and reading since 3 hands it everything above — nothing lost.
@@ -212,7 +230,10 @@ void main() {
       expect(fetched.$1.sequenceUpTo, const OcptSequenceNumber(3));
       expect(replicaCursor < fetched.$1.sequenceUpTo, isTrue);
       final replicaCatchUp = store.readSince('project-1', fetched.$1.sequenceUpTo);
-      expect(replicaCatchUp.map((changeset) => changeset.envelope.changesetId), ['changeset-4', 'changeset-5']);
+      expect(replicaCatchUp.map((changeset) => changeset.envelope.changesetId), [
+        'changeset-4',
+        'changeset-5',
+      ]);
     });
 
     test('pruning is per-project', () {
@@ -235,7 +256,10 @@ void main() {
     });
 
     test('reconcileCursors returns zero/zero when no row has ever been saved', () {
-      final cursors = store.reconcileCursors(upstream: 'https://relay.example.org/', projectId: 'project-1');
+      final cursors = store.reconcileCursors(
+        upstream: 'https://relay.example.org/',
+        projectId: 'project-1',
+      );
 
       expect(cursors.push, OcptSequenceNumber.zero);
       expect(cursors.pull, OcptSequenceNumber.zero);
@@ -249,7 +273,10 @@ void main() {
         pull: const OcptSequenceNumber(5),
       );
 
-      final cursors = store.reconcileCursors(upstream: 'https://relay.example.org/', projectId: 'project-1');
+      final cursors = store.reconcileCursors(
+        upstream: 'https://relay.example.org/',
+        projectId: 'project-1',
+      );
 
       expect(cursors.push, const OcptSequenceNumber(3));
       expect(cursors.pull, const OcptSequenceNumber(5));
@@ -269,7 +296,10 @@ void main() {
         pull: const OcptSequenceNumber(2),
       );
 
-      final cursors = store.reconcileCursors(upstream: 'https://relay.example.org/', projectId: 'project-1');
+      final cursors = store.reconcileCursors(
+        upstream: 'https://relay.example.org/',
+        projectId: 'project-1',
+      );
 
       expect(cursors.push, const OcptSequenceNumber(4));
       expect(cursors.pull, const OcptSequenceNumber(2));
@@ -295,9 +325,18 @@ void main() {
         pull: const OcptSequenceNumber(6),
       );
 
-      final onRelayAProjectOne = store.reconcileCursors(upstream: 'https://relay-a.example.org/', projectId: 'project-1');
-      final onRelayBProjectOne = store.reconcileCursors(upstream: 'https://relay-b.example.org/', projectId: 'project-1');
-      final onRelayAProjectTwo = store.reconcileCursors(upstream: 'https://relay-a.example.org/', projectId: 'project-2');
+      final onRelayAProjectOne = store.reconcileCursors(
+        upstream: 'https://relay-a.example.org/',
+        projectId: 'project-1',
+      );
+      final onRelayBProjectOne = store.reconcileCursors(
+        upstream: 'https://relay-b.example.org/',
+        projectId: 'project-1',
+      );
+      final onRelayAProjectTwo = store.reconcileCursors(
+        upstream: 'https://relay-a.example.org/',
+        projectId: 'project-2',
+      );
 
       expect(onRelayAProjectOne.push, const OcptSequenceNumber(1));
       expect(onRelayAProjectOne.pull, const OcptSequenceNumber(2));

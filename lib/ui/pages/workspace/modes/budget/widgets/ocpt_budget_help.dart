@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
@@ -17,13 +17,13 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 /// the matrix answered a navigation of sibling pages that no longer exists. What a route's own
 /// rows actually do is pass through a small **chain of states** — an estimate becomes a
 /// commitment becomes a payment, a promise becomes a receipt — so every route but the tools
-/// drawer's own `Régie` page now opens on that chain ([_OcptBudgetHelpChain]) instead: one cell per
-/// state, left to right, each carrying the state's own word and, under it, a short caption naming
-/// where that figure comes from. `Régie` draws no chain — it is not a stage of anything, and its
-/// own first paragraph says so. Under the chain, one sentence says how a step
+/// drawer's own `Logistics` page now opens on that chain ([_OcptBudgetHelpChain]) instead: one cell
+/// per state, left to right, each carrying the state's own word and, under it, a short caption
+/// naming where that figure comes from. `Logistics` draws no chain — it is not a stage of anything,
+/// and its own first paragraph says so. Under the chain, one sentence says how a step
 /// becomes the next; the page below it is the detail. **This widget writes nothing** — like
-/// `OcptBudgetRegie` (`docs/architecture/budget.md`), it carries no `isReadOnly` flag at all, and
-/// is offered identically under a previewed version.
+/// `OcptBudgetLogistics` (`docs/architecture/budget.md`), it carries no `isReadOnly` flag at all,
+/// and is offered identically under a previewed version.
 ///
 /// **[view] and [toolsView] together answer every question this file asks**, the mode's six routes
 /// being a chip and, under `Tools`, one of the drawer's own three pages. Each route's own strings
@@ -42,6 +42,7 @@ class OcptBudgetHelp extends StatelessWidget {
   /// Class constructor
   const OcptBudgetHelp({super.key, required this.view, required this.toolsView});
 
+  /// Build the budget help as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -87,66 +88,72 @@ class OcptBudgetHelp extends StatelessWidget {
     );
   }
 
-  /// The chain [_OcptBudgetHelpChain] draws for the current route, or empty on `tools › regie` —
-  /// see the class doc comment for why régie draws none.
+  /// Get the chain [_OcptBudgetHelpChain] draws for the current route, or empty on `tools › regie`
+  /// —
+  /// see the class doc comment for why logistics draws none.
   ///
   /// `tools › cashFlow` reads the very same chain as `expenses`: it is that document's own middle
   /// state, seen on its own page, never a chain of its own. **[OcptBudgetView.dashboard] reads it
   /// too, for the same reason**: its KPI tiles are that very chain's own figures, read at the
-  /// whole-project level rather than poste by poste, so the chain that explains them is the very
-  /// one that already explains the other two.
+  /// whole-project level rather than account by account, so the chain that explains them is the
+  /// very one that already explains the other two.
   List<(String label, String caption)> _chainStepsOf(Tr tr) => switch ((view, toolsView)) {
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => const [],
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => const [],
     (OcptBudgetView.dashboard, _) || (OcptBudgetView.expenses, _) => _expensesChainSteps(tr),
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => _expensesChainSteps(tr),
     (OcptBudgetView.resources, _) => _resourcesChainSteps(tr),
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => _sharingChainSteps(tr),
   };
 
-  /// The expenses chain: a quote line, resolved as [Tr.budgetFicheStepEstimatedLabel] — the very
-  /// word the fiche's own stepper already shows for it — becomes a commitment
+  /// Get the expenses chain: a quote line, resolved as [Tr.budgetDetailStepEstimatedLabel] — the
+  /// very
+  /// word the detail panel's own stepper already shows for it — becomes a commitment
   /// ([Tr.budgetInspectorFigureCommitted]), settled by an entry ([Tr.budgetInspectorFigurePaid]).
   List<(String, String)> _expensesChainSteps(Tr tr) => [
-    (tr.budgetFicheStepEstimatedLabel, tr.budgetHelpChainExpensesEstimatedCaption),
+    (tr.budgetDetailStepEstimatedLabel, tr.budgetHelpChainExpensesEstimatedCaption),
     (tr.budgetInspectorFigureCommitted, tr.budgetHelpChainExpensesCommittedCaption),
     (tr.budgetInspectorFigurePaid, tr.budgetHelpChainExpensesPaidCaption),
   ];
 
-  /// [OcptBudgetView.resources]' own chain: a resource or a taking is promised
-  /// ([Tr.budgetFicheStepPromisedLabel]), and becomes received ([Tr.budgetFinancingColumnReceived])
-  /// the moment a journal entry names it — no hand-typed step in between, unlike the expenses
-  /// chain's own commitment.
+  /// Get [OcptBudgetView.resources]' own chain: a resource or a taking is promised
+  /// ([Tr.budgetDetailStepPromisedLabel]), and becomes received
+  /// ([Tr.budgetFinancingColumnReceived]) the moment a journal entry names it — no hand-typed step
+  /// in between, unlike the expenses chain's own commitment.
   List<(String, String)> _resourcesChainSteps(Tr tr) => [
-    (tr.budgetFicheStepPromisedLabel, tr.budgetHelpChainResourcesPromisedCaption),
+    (tr.budgetDetailStepPromisedLabel, tr.budgetHelpChainResourcesPromisedCaption),
     (tr.budgetFinancingColumnReceived, tr.budgetHelpChainResourcesReceivedCaption),
   ];
 
-  /// `tools › sharing`'s own chain: the takings received ([Tr.budgetFinancingColumnReceived]
-  /// — read from [OcptBudgetView.resources], not typed here) become what has already been repaid
-  /// ([Tr.budgetSharingRepaidLabel]) and what is left to share ([Tr.budgetSharingLeftToShareLabel]).
+  /// Get `tools › sharing`'s own chain: the takings received ([Tr.budgetFinancingColumnReceived] —
+  /// read
+  /// from [OcptBudgetView.resources], not typed here) become what has already been repaid
+  /// ([Tr.budgetSharingRepaidLabel]) and what is left to share
+  /// ([Tr.budgetSharingLeftToShareLabel]).
   List<(String, String)> _sharingChainSteps(Tr tr) => [
     (tr.budgetFinancingColumnReceived, tr.budgetHelpChainSharingReceivedCaption),
     (tr.budgetSharingRepaidLabel, tr.budgetHelpChainSharingRepaidCaption),
     (tr.budgetSharingLeftToShareLabel, tr.budgetHelpChainSharingLeftToShareCaption),
   ];
 
-  /// The sentence printed under the chain, or null on `tools › regie` where [_chainStepsOf] is
+  /// Get the sentence printed under the chain, or null on `tools › regie` where [_chainStepsOf] is
   /// already empty and nothing is printed at all.
   String? _chainSentenceOf(Tr tr) => switch ((view, toolsView)) {
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => null,
-    (OcptBudgetView.dashboard, _) || (OcptBudgetView.expenses, _) => tr.budgetHelpChainExpensesSentence,
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => null,
+    (OcptBudgetView.dashboard, _) ||
+    (OcptBudgetView.expenses, _) => tr.budgetHelpChainExpensesSentence,
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHelpChainExpensesSentence,
     (OcptBudgetView.resources, _) => tr.budgetHelpChainResourcesSentence,
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHelpChainSharingSentence,
   };
 
-  /// Which of [_chainStepsOf]'s own steps is the current route's own — "you are here" — or null
+  /// Tell which of [_chainStepsOf]'s own steps is the current route's own — "you are here" — or
+  /// null
   /// where none stands for it in particular.
   ///
   /// **`expenses` and [OcptBudgetView.resources] both highlight nothing.** Each reads every one of
-  /// its own columns at once — the cost report a poste's estimate, commitment and payment side by
-  /// side, the resources tree a row's promise and its receipt side by side — so no single step of
-  /// the chain is the one it stands in, unlike `tools › cashFlow` (a payment, the chain's own
+  /// its own columns at once — the cost report an account's estimate, commitment and payment side
+  /// by side, the resources tree a row's promise and its receipt side by side — so no single step
+  /// of the chain is the one it stands in, unlike `tools › cashFlow` (a payment, the chain's own
   /// `Paid` step). Saying so a second time under the chain would only restate what "nothing
   /// highlighted" already says; the sentence there is left to state how a step becomes the next
   /// instead, exactly as every other route's does. `tools › sharing` highlights nothing for the
@@ -159,11 +166,11 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.dashboard, _) ||
     (OcptBudgetView.expenses, _) ||
     (OcptBudgetView.resources, _) ||
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) ||
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) ||
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => null,
   };
 
-  /// The current route's own heading — the very word its band shows above the centre, so the
+  /// Get the current route's own heading — the very word its band shows above the centre, so the
   /// reader finds the same name here as on screen (`OcptBudgetHeader._titleOf`'s own reasoning,
   /// reimplemented here rather than shared, since that method is private to that widget).
   String _titleOf(Tr tr) => switch ((view, toolsView)) {
@@ -171,31 +178,32 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.expenses, _) => tr.budgetHeaderTitle,
     (OcptBudgetView.resources, _) => tr.budgetHeaderResourcesTitle,
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHeaderCashJournalTitle,
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => tr.budgetHeaderRegieTitle,
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => tr.budgetHeaderLogisticsTitle,
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHeaderSharingTitle,
   };
 
-  /// The current route's own one-line subtitle, exactly as the header band prints it.
+  /// Get the current route's own one-line subtitle, exactly as the header band prints it.
   String _subtitleOf(Tr tr) => switch ((view, toolsView)) {
     (OcptBudgetView.dashboard, _) => tr.budgetHeaderDashboardSubtitle,
     (OcptBudgetView.expenses, _) => tr.budgetHeaderSubtitle,
     (OcptBudgetView.resources, _) => tr.budgetHeaderFinancingSubtitle,
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => tr.budgetHeaderCashJournalSubtitle,
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => tr.budgetHeaderRegieSubtitle,
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => tr.budgetHeaderLogisticsSubtitle,
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHeaderSharingSubtitle,
   };
 
-  /// The current route's own explanation, one short paragraph per entry — the substance
+  /// Get the current route's own explanation, one short paragraph per entry — the substance
   /// `docs/architecture/budget.md` states, in plain language, with every cross-reference to a
   /// figure or another route worded exactly as its own label or chip already reads.
   ///
   /// **No route opens on a shared capture-band paragraph any more.** The band that used to sit atop
   /// three views is gone, and each route says for itself how a movement is recorded on it:
   /// `expenses`, `resources` and `tools › sharing` each name the header's own single `New` button
-  /// and the wizard behind it, differing only in which answer that page promotes; `tools › cashFlow`
-  /// says the statement itself is only read, beside the `À venir` section it now carries. Each of
-  /// those three paragraphs is handed the very same [Tr.budgetHeaderNewAction] label the band above
-  /// draws, so the help never names a control by a word the screen does not use.
+  /// and the wizard behind it, differing only in which answer that page promotes;
+  /// `tools › cashFlow` says the statement itself is only read, beside the `À venir` section it now
+  /// carries. Each of those three paragraphs is handed the very same [Tr.budgetHeaderNewAction]
+  /// label the band above draws, so the help never names a control by a word the screen does not
+  /// use.
   ///
   /// [OcptBudgetView.dashboard]'s own four paragraphs work through what the chain above already
   /// introduces — the tiles, the needs/resources balance band and the standing alerts, each in the
@@ -209,12 +217,12 @@ class OcptBudgetHelp extends StatelessWidget {
       tr.budgetHelpDashboardBody3,
       tr.budgetHelpDashboardBody4(tr.budgetHeaderDashboardSegmentLabel),
     ],
-    (OcptBudgetView.tools, OcptBudgetToolsView.regie) => [
-      tr.budgetHelpRegieBody1,
-      tr.budgetHelpRegieBody2,
-      tr.budgetHelpRegieBody3,
-      tr.budgetHelpRegieBody4,
-      tr.budgetHelpRegieBody5(tr.budgetHeaderExpensesSegmentLabel),
+    (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => [
+      tr.budgetHelpLogisticsBody1,
+      tr.budgetHelpLogisticsBody2,
+      tr.budgetHelpLogisticsBody3,
+      tr.budgetHelpLogisticsBody4,
+      tr.budgetHelpLogisticsBody5(tr.budgetHeaderExpensesSegmentLabel),
     ],
     (OcptBudgetView.tools, OcptBudgetToolsView.cashFlow) => [
       tr.budgetHelpCashFlowIntro(tr.budgetHeaderExpensesSegmentLabel),
@@ -226,18 +234,24 @@ class OcptBudgetHelp extends StatelessWidget {
     ],
     (OcptBudgetView.expenses, _) => [
       tr.budgetHelpExpensesBody1(tr.budgetCostTrackingColumnQuote),
-      tr.budgetHelpExpensesBody2(tr.budgetCostTrackingColumnPaid, tr.budgetCostTrackingColumnCommitted),
+      tr.budgetHelpExpensesBody2(
+        tr.budgetCostTrackingColumnPaid,
+        tr.budgetCostTrackingColumnCommitted,
+      ),
       tr.budgetHelpExpensesBody3(tr.budgetHeaderNewAction),
-      tr.budgetHelpExpensesBody4(tr.budgetCostTrackingOffQuoteLabel, tr.budgetCostTrackingColumnPaid),
+      tr.budgetHelpExpensesBody4(
+        tr.budgetCostTrackingOffQuoteLabel,
+        tr.budgetCostTrackingColumnPaid,
+      ),
       tr.budgetHelpExpensesBody5,
       tr.budgetHelpExpensesBody6(
         tr.budgetCostTrackingColumnFinalCost,
         tr.budgetCostTrackingColumnPaid,
         tr.budgetCostTrackingColumnCommitted,
-        // The fiche's own field label, not the table's retired column of the same name: the
+        // The detail panel's own field label, not the table's retired column of the same name: the
         // estimate to complete is typed there and nowhere else.
-        tr.budgetInspectorPosteEstimateToCompleteFieldLabel,
-        tr.budgetInspectorPosteEstimateToCompleteDeriveAction,
+        tr.budgetInspectorAccountEstimateToCompleteFieldLabel,
+        tr.budgetInspectorAccountEstimateToCompleteDeriveAction,
       ),
       tr.budgetHelpExpensesBody7(
         tr.budgetCostTrackingColumnVariance,
@@ -248,7 +262,10 @@ class OcptBudgetHelp extends StatelessWidget {
     ],
     (OcptBudgetView.resources, _) => [
       tr.budgetHelpResourcesBody1,
-      tr.budgetHelpResourcesBody2(tr.budgetFinancingColumnDossier, tr.budgetFinancingRecordReceiptAction),
+      tr.budgetHelpResourcesBody2(
+        tr.budgetFinancingColumnDossier,
+        tr.budgetFinancingRecordReceiptAction,
+      ),
       tr.budgetHelpResourcesBody3(tr.budgetHeaderNewAction),
       tr.budgetHelpResourcesBody4,
       tr.budgetHelpResourcesBody5(
@@ -257,7 +274,7 @@ class OcptBudgetHelp extends StatelessWidget {
       ),
       tr.budgetHelpResourcesBody6(
         tr.budgetFinancingColumnReceived,
-        tr.budgetFicheStepPromisedLabel,
+        tr.budgetDetailStepPromisedLabel,
       ),
     ],
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => [
@@ -289,6 +306,7 @@ class _OcptBudgetHelpChain extends StatelessWidget {
     required this.currentStepBadge,
   });
 
+  /// Build the budget help chain as a [Table].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -296,7 +314,7 @@ class _OcptBudgetHelpChain extends StatelessWidget {
     return Table(
       border: TableBorder.all(
         color: theme.colorScheme.outlineVariant,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       children: [
         TableRow(
@@ -324,9 +342,9 @@ class _OcptBudgetHelpChain extends StatelessWidget {
 /// table is not improved by a sentence repeating what its own highlight says. [currentStepBadge] is
 /// therefore announced rather than drawn: it rides the cell's [Semantics] label, so a screen reader
 /// still hears which step the reader stands on, and the wash never has to carry the meaning alone —
-/// colour by itself would say nothing in high contrast, nothing to a colour-blind reader and nothing
-/// at all to a screen reader (`_OcptBudgetHelpMapDataCell`'s own reasoning before this milestone,
-/// carried over unchanged).
+/// colour by itself would say nothing in high contrast, nothing to a colour-blind reader and
+/// nothing at all to a screen reader (`_OcptBudgetHelpMapDataCell`'s own reasoning applies here as
+/// well).
 class _OcptBudgetHelpChainCell extends StatelessWidget {
   /// The step's own word — the very ARB key the screen itself draws for it.
   final String label;
@@ -348,6 +366,7 @@ class _OcptBudgetHelpChainCell extends StatelessWidget {
     required this.currentStepBadge,
   });
 
+  /// Build the budget help chain cell as a [Semantics].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -357,7 +376,7 @@ class _OcptBudgetHelpChainCell extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         color: isHighlighted
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : null,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -374,7 +393,9 @@ class _OcptBudgetHelpChainCell extends StatelessWidget {
             Text(
               caption,
               textAlign: TextAlign.center,
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),

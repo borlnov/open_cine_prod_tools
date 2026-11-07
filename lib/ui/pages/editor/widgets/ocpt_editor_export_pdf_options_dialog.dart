@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
@@ -26,16 +26,20 @@ class OcptEditorExportPdfOptionsDialog extends StatefulWidget {
   /// Class constructor
   const OcptEditorExportPdfOptionsDialog({required this.current, super.key});
 
-  /// Shows the dialog and returns the [OcptPdfExportOptions] the user applied, or null if they
-  /// cancelled it.
-  static Future<OcptPdfExportOptions?> show(BuildContext context, {required OcptPageSetup current}) =>
-      showDialog<OcptPdfExportOptions>(
-        context: context,
-        builder: (context) => OcptEditorExportPdfOptionsDialog(current: current),
-      );
-
+  /// Create the [_OcptEditorExportPdfOptionsDialogState] holding the state of the editor export PDF
+  /// options dialog.
   @override
   State<OcptEditorExportPdfOptionsDialog> createState() => _OcptEditorExportPdfOptionsDialogState();
+
+  /// Show the dialog and return the [OcptPdfExportOptions] the user applied, or null if they
+  /// cancelled it.
+  static Future<OcptPdfExportOptions?> show(
+    BuildContext context, {
+    required OcptPageSetup current,
+  }) => showDialog<OcptPdfExportOptions>(
+    context: context,
+    builder: (context) => OcptEditorExportPdfOptionsDialog(current: current),
+  );
 }
 
 /// The state of [OcptEditorExportPdfOptionsDialog].
@@ -49,12 +53,14 @@ class _OcptEditorExportPdfOptionsDialogState extends State<OcptEditorExportPdfOp
   /// Whether a title page will be included in the exported PDF.
   bool _includeTitlePage = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedFormat = widget.current.format;
   }
 
+  /// Build the editor export PDF options dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -69,7 +75,7 @@ class _OcptEditorExportPdfOptionsDialogState extends State<OcptEditorExportPdfOp
             DropdownButtonFormField<OcptPageFormat>(
               initialValue: _selectedFormat,
               decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               items: [
                 for (final format in OcptPageFormat.values)
                   DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
@@ -106,15 +112,15 @@ class _OcptEditorExportPdfOptionsDialogState extends State<OcptEditorExportPdfOp
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptPdfExportOptions].
+  /// Pop the dialog returning the resulting [OcptPdfExportOptions].
   ///
-  /// The dialog is dismissed through the router manager (RFL31: navigation only via the router
+  /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the
   /// [OcptEditorExportPdfOptionsDialog.show] caller.
   void _submit() {

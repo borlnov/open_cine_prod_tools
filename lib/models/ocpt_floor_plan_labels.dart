@@ -69,23 +69,24 @@ class OcptFloorPlanLabels extends Equatable {
     required this.scaleBarUnitLabel,
   });
 
-  /// The title of the sequence [sequenceId], or an empty string if [sequenceTitles] holds none for
+  /// Get the title of the sequence [sequenceId], or an empty string if [sequenceTitles] holds none
+  /// for
   /// it.
   String titleOfSequence(String sequenceId) => sequenceTitles[sequenceId] ?? "";
 
-  /// The display label of [status], or the status's own name as a last resort — see
+  /// Get the display label of [status], or the status's own name as a last resort — see
   /// `OcptStoryboardLabels.labelOfStatus`'s own doc comment.
   String labelOfStatus(OcptShotStatus status) => statusLabels[status] ?? status.name;
 
-  /// The scale bar's own printed text, [lengthText] (`ocptFloorPlanScaleBarLengthLabelOf`'s own
+  /// Get the scale bar's own printed text, [lengthText] (`ocptFloorPlanScaleBarLengthLabelOf`'s own
   /// plain number) followed by [scaleBarUnitLabel].
   String scaleBarLabelOf(String lengthText) => "$lengthText $scaleBarUnitLabel";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptFloorPlanLabels(documentTitle: $documentTitle)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

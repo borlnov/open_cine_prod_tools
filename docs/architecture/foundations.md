@@ -14,6 +14,96 @@ the persistence, the project versions, the sync-ready data model and the read-on
 - `OcptGlobalManager extends AbsUiGlobalManager` owns every manager; managers are
   `AbsWithLifeCycle` classes registered with builder factories (`dependsOn` ordering) and
   resolved via `globalGetIt()`.
+- Services: every `Ocpt…Service` (`lib/managers/{projects,export,sync}/services/`) extends
+  `AbsOcptService` (`lib/managers/abs_ocpt_service.dart`), an `AbsWithLifeCycle` with a `const`
+  constructor taking the service's logger (see Logging, below) whose `initLifeCycle()` and
+  `disposeLifeCycle()` do nothing, so a service holding nothing to set up or release stays `const`
+  and a test building one directly never has to call either. A service is built by its owner,
+  never by the UI and never registered in `globalGetIt()`,
+  and its life cycle is its owner's, not a project's: `OcptProjectsManager` initialises its 23
+  services in `initLifeCycle()` and disposes them in reverse after closing the open project (they
+  are built by `OcptProjectsServices`, and the manager's create, open, move, preview, close and
+  project-settings operations are `OcptProject*Ops` classes it forwards to), and
+  `OcptExportManager` and `OcptSyncManager` do the same for theirs. A service that builds services
+  of its own (`OcptScreenplayService`, `OcptShotListService`, `OcptPeopleService`…) owns them and
+  drives theirs the same way; one it is only handed (the screenplay service
+  `OcptScreenplayMergeService` borrows from the projects manager) is left to its real owner. A
+  service created per session (`OcptPresenceService`) is initialised and disposed by whoever starts
+  and stops that session, and `OcptRowStampService`, created by the dozen inside one transaction
+  through `seed`, holds only an in-memory list `flush` writes out, so its life cycle is not driven
+  and it is not an `AbsOcptService`: it extends `AbsWithLifeCycle` directly, with no logger, having
+  nothing to log.
+- **A service answers a result, and a call site reads it.** A public method of a project service
+  (and of the projects manager's operations) that touches the project database hands its whole body
+  to `guardResult` or `guardOutcome` (`AbsOcptService`) and answers an `OcptDatabaseResult<T>` or an
+  `OcptDatabaseOutcome`: `ok` with its value (null for a write the read-only preview refuses, which
+  is a logged no-op, not a failure), or `databaseError` with **the type** of what failed as its
+  `extraInfo`, never the exception. The exception's text stays out of every log and out of every
+  answer. Every method carries `@useResult`, and `unused_result` is an error in the analyser, so a
+  dropped answer does not compile. The rule for a call site is one: `if (result.isError)` leaves
+  **exactly where the exception used to leave, with exactly the action of the `catch` that covered
+  it, or nothing if none did** — it does not read again, emit, log or improve. The exit is read in
+  the code as it stood, never from the idiom. Each private helper an exception used to cross now
+  carries the stop to its caller (a result, a status or a `bool`, with `@useResult`), because a
+  `Future<void>` helper that merely returns is a bug no tool sees.
+  - **Inside the boundary a failure still throws**, so that a transaction rolls back: a method
+    taking the caller's `stamps` runs in the caller's transaction, and `OcptRowStampService`, the
+    `stamps` participants, the static `Ops` and `Rows` and the private abort exceptions raise. A
+    converted service called from inside a `transaction` is wrapped by `okOrAbort` or
+    `valueOrAbort`, which raise `OcptDatabaseAbort`; only the boundary catches it, and answers its
+    failure as a `databaseError` without logging it again, since whoever answered it has logged it.
+    A transaction is never opened just to carry a failure out.
+  - **What stays as it is is listed**, with its reason, in `permanentServiceExceptions`
+    (`restoreVersion` and the package read and write answer their own status, the merge answers
+    its own status and lets a failure of the database itself raise for the sync session to settle).
+    The sync services that still raise on a database failure and leave their caller to settle —
+    `OcptChangesetService`'s reads and cursor writes, `OcptPairingService`, `OcptSyncManager`'s
+    relay pairing — are the other half.
+  - **The guard is `test/service_result_*`.** It parses `lib/` and fails on a public service
+    method that returns a `Future` without a result, a call whose answer is dropped, read before
+    `isError` was, returned by an expression closure or torn off, a call in a `transaction` that is
+    not wrapped by an abort helper, a `catch` outside the permanent list, and a double that throws
+    in place of a failure status. An abort wrapped outside a transaction is accepted only in the
+    methods `abortInGuardBodyMethods` names, each with its reason. The helpers that carry a stop
+    without declaring a result in their type are listed in `_stopCarriers` and must say
+    `@useResult`.
+
+- Logging (`act_logger_manager`). **Who owns a logger**: a manager, a BLoC, a project mixin or any
+  other class with a `catch` owns exactly one `LogsHelper`, built by `buildOcptLogsHelper`
+  (`lib/managers/logging/ocpt_logs_helper_builder.dart`) from its own `static const
+  _loggerCategory`; a manager's builder lists `LoggerManager` in `dependsOn()`. A service never
+  builds one: its owner hands it a sub-logger (`createSubLogger`) through the constructor
+  `AbsOcptService` requires, so a line reads `projects / assets`. `OcptConfigManager` (which the
+  logger manager itself depends on) and `OcptSecretsManager` (nothing to log) own none, and
+  `lib/models/` may not import the manager layer, so a model that must log builds a `LogsHelper`
+  under its own category on each use.
+  **Which level**: `e` for a failure a `catch` handles, `w` for a recoverable or unexpected
+  situation (another `catch`, or a silent fall-back), `i` for a life-cycle event at a human
+  frequency (a manager started or disposed, a project opened or closed, a version captured or
+  restored, an export saved, a sync session started or stopped), `d` for detail that helps a
+  developer. Every `catch` logs unless it is a deliberate control-flow exit (a parse that answers
+  `null`, a field edit the user mistyped), which says so in a comment. A log call never changes
+  what its `catch` returns and never throws. **What never gets logged**: a secret, a token, an
+  enrolment secret or the contents of an invite; screenplay text or any other content a user
+  wrote; a person's data (name, email, phone, address, notes); a project's, a version's or a
+  character's title or name; a network address; a full path, and an export's or a package's file
+  name, which holds the user's name or a project's title (a named call sheet's holds a person's
+  full name), so a project is named by its screenplay's id (or by a generic word where none is
+  known) and a file by nothing. An exception's `toString` can quote any of these (a file error the
+  path, a JSON error the text around the fault, a network error the host), so a `catch` logs the
+  error's `runtimeType` and passes the stack trace, never `$error`; and a shared helper that logs
+  the text it parsed is not handed the logger when that text can hold any of the above. Nothing is
+  logged per keystroke, frame, row, drag step or sync ping, and nothing in `build()`.
+  **A failure of the project database is logged once, at `e`, in the service that met it** (the
+  boundary of `guardResult` and `guardOutcome`: the operation's name and the type of what failed,
+  with the stack trace): the bloc or manager that gets the failed answer logs nothing more, or the
+  same failure would be written twice. A caller that acts on the failure with something worth
+  saying that the service cannot know (a version creation that failed, a project that cannot be
+  closed) logs its own line, by type.
+  `OcptDiagnosticsManager` keeps the in-app buffer, which its
+  own user reads, intact and forwards each entry to its logger: an entry whose text carries one of
+  the above passes a `logMessage` without it, and an entry repeating on a timer is `isRoutine`,
+  forwarded at debug.
 
 - Routes: `enum OcptRoute with MixinRoute { home, workspace, settings, licenses }` +
   `OcptRouterManager extends AbstractRouterManager<OcptRoute>` (go_router underneath).
@@ -22,20 +112,174 @@ the persistence, the project versions, the sync-ready data model and the read-on
   route is guarded: it redirects to home when no project is open.
 
 - BLoC: ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
-  `registerMixinEvents()` / `on<>`), one bloc per page, pages split UI/bloc/state/event files.
+  `registerMixinEvents()` / `on<>`), pages split UI/bloc/state/event files. A page owns one bloc; a
+  production mode owns a **mode bloc and one bloc per view** (below, ADR 0034).
+- **A bloc that loads when it is built loads in `initAsyncBloc`.** It mixes in `MixinAsyncInitBloc`
+  (last in the `with` list, so the other mixins' first events keep their order) and overrides
+  `initAsyncBloc({required emit})`, calling `super.initAsyncBloc(emit: emit)` first: the mixin
+  adds `AsyncInitEvent` itself, and the `await` on `super` lets the constructor finish before the
+  first read. A reload is `add(const AsyncInitEvent())`; a hook that already holds an emitter (a
+  version preview, `reloadFromProjectDatabase`) calls the private load method the init calls. A
+  load that carries a parameter, or reacts to the mode's state rather than initialises the bloc,
+  stays a named event (`OcptShotListFloorPlanPropsLoadRequestedEvent`, the versions mixin's
+  refresh). A bloc with nothing asynchronous to read at startup does not mix it in.
 
-- Workspace shell (`lib/ui/pages/workspace/`): `WorkspacePage` mounts `OcptWorkspaceBloc`, whose
+- **A production mode is one mode bloc and one bloc per view** (ADR 0034;
+  `lib/ui/pages/workspace/blocs/` holds the shared machinery, and its doc comments are the rules for
+  writing the next bloc). A *view* is a surface with its own selection or its own writes: a central
+  view, a dock tab, a group of the inspector, the export panel, a function that cuts across views.
+  A rendering of the same data with neither (a recap, a read-only table) has no bloc, and a mode
+  whose surfaces are cut by function rather than by central view follows the same definition. The
+  shot list is the reference (`shot-list.md`); the schedule, the resources, the breakdown, the
+  budget and the screenplay editor are split the same way (`schedule.md`, `resources.md`,
+  `breakdown.md`, `budget.md`, `screenplay.md`), so no mode owns a single bloc any more.
+  - **The mode bloc** (`OcptShotListBloc`, mixing in `MixinOcptModeBloc<State, Scope>` beside the
+    two project mixins) owns **all the data** — every snapshot, the title, the page setup, the
+    catalogues — and loads it; the **shared selection** (the chain a sequence, a shot and a set
+    form); the **chrome** (docks, tabs, columns, the centre view); and the pending-writes contract.
+    It answers `MixinOcptProjectVersionsBloc`'s and `MixinOcptProjectPackageBloc`'s hooks, which
+    are therefore hosted by the mode bloc alone: `flushPendingProjectWrites` is
+    `flushAllPendingWrites`, and `reloadFromProjectDatabase` is the full load.
+  - **A view bloc** (`AbsOcptViewBloc<State, ModeState, ModeBloc>`) takes the mode bloc as a
+    constructor dependency and holds only its view's own state: its selection, tool, preferences,
+    the question it is waiting for an answer to, the edits typed into it and its `hasWriteError`.
+    It reads the shared data from `modeBloc.state` at the moment it needs it and never copies it.
+    **It never references a sibling, and the mode bloc never references a view bloc** except as the
+    `OcptPendingWritesFlusher` the view registered. If two views need to coordinate, the mode's
+    state carries it (a selection cause, an epoch), never one view reading the other.
+  - **The epochs.** `MixinOcptModeState` makes the mode's state carry `reloadEpoch`, moved by every
+    emit that replaces data a view can read, and `selectionEpoch`, moved by every emit that
+    changes the selection **even to the same row** (selecting the shown sequence again must still
+    clear what is scoped to it), with a cause (`OcptShotListSelectionCause`: `sequence`,
+    `sequenceReselected`, `shot`, `shotCreated`, `shotDeleted`, `set`, `setAdded`, `setRemoved`,
+    `load`, and the three that name a row, `symbolRemoved`, `symbolHidden`, `arrowRemoved`, with
+    `selectionTargetId`). The base view bloc subscribes to the mode's stream in its constructor,
+    **seeded with the mode's current epochs** (a state stream does not replay), and dispatches
+    `OcptViewModeStateChangedEvent` to itself when one of them *rises*; `onModeStateChanged` is
+    where a view clears what was scoped to the previous selection (read the cause in
+    `event.modeState`) and prunes the typed edits whose row is gone from the new data
+    (`modeBloc.state`). That handler **waits for nothing before it emits**, so the mode's change
+    and the view's reaction land in the same turn of the event loop and no frame is drawn between
+    them. Each view decides its reaction from what the code did before the split: read what the old
+    selection handler cleared or kept, do not invent it.
+  - **Writes.** The service, then `await modeBloc.reload({OcptShotListReloadScope…})`, then the
+    view's own emit, in that order, so the mode's state already holds the row the view is about to
+    select. The scope is a value of the mode's own enum, named by the view and read by an
+    exhaustive `switch` in the mode's `reloadScopesIn` hook — a scope nobody reads, or a part of
+    the data nobody can ask for, does not compile. `reload` completes once the mode's state holds
+    what was read, and answers whether it did: a view stops on false, before it selects or
+    forgets anything (`MixinOcptAwaitedEvent`, a completer carried by the event and excluded from
+    its `props`). A write that moves the shared selection asks the mode through
+    `addToModeAndWait` for an event the mode registered with `onAwaited`, and emits its own
+    selection **after**: a plain `add` would land the view's emit before the mode started, and the
+    view's reaction to the move would then clear it. Everything else the view asks of the mode
+    goes through `addToMode`, which is safe on a mode that is closing.
+  - **The serial queue.** Every read of the shared data that ends in an emit — a view's reload,
+    the read half of a flush, the full load — goes through `runSerially`, one at a time: two writers
+    finishing together each read, and a slower read finishing after a newer one would put older
+    data in the state. Queue only the read-and-emit half of a flush, never the flush as a whole,
+    which waits on the views' own reloads.
+  - **Flush.** A view holding typed edits keeps them as a pending map, starts its debounce with
+    `restartDebounce` (never a `Timer` of its own: the base class owns and cancels it) and
+    overrides `onFlushRequested` (write, empty the map, emit) and `flushPendingWritesWithoutState`
+    (the same write with nothing to emit, for a widget leaving the tree or a bloc closing; a failure
+    is logged by the service that failed and goes no further). After a write it forgets only the
+    keys whose value still equals what was written (`ocptPendingEditsAfterWrite`): emitting an
+    empty map loses the keystroke typed during the write. The mode asks every registered flusher,
+    in order, before anything that needs the database up to date — a selection, a creation, the
+    way back, an export, a version preview — and reads the data again if any of them wrote. **Each
+    view has its own debounce**: two edits typed in two views a second apart are written two
+    seconds after each one.
+  - **A flush can fail, and each mode decides what that stops.** `flushPendingWrites` answers
+    an `OcptPendingWritesStatus`, `ok`, `nothingToWrite` or `failed`, and answers `failed` when its
+    write failed,
+    keeping the edit pending: an answer of "nothing to write" would let a preview, a restore or an
+    export go on over a database missing the edit, and the reload that follows would drop it.
+    `runPendingWritesFlushers` asks every flusher even after one failed and answers
+    `(hasWritten, hasFailed)`;
+    `flushAllPendingWritesIn` turns that into the answer of `flushAllPendingWrites`, and
+    `flushPendingProjectWrites` into whether the version or package action may go on. The two
+    modes differ because their old code did. The schedule and the budget had no `catch`, so a failed
+    write stopped the handler, and the answer now carries that stop: their hooks answer false on
+    `hasFailed`, and the preview, the
+    restore, a saved version, the package export, the dock tab change and each of the exports (and,
+    in the budget, every selection or view change that flushes) stop with the edit still pending.
+    The same goes for a write that landed whose re-read failed: the old handlers stopped there
+    too, so those two modes' views answer `failed` when `reload` answers false
+    after their write, rather than answering that all went well over a snapshot from before it.
+    The edit stays pending, and the next flush writes it again.
+    The shot list's views catch their own failure (`hasWriteError`, the edit dropped) and carry
+    on: its hooks always answer true, and the action goes ahead on the value the database still
+    holds. A new mode copies whichever of the two its old handlers did, and a
+    view that wants the action to go on catches its failure itself. The other modes' hooks answer
+    true, unchanged.
+  - **A stateless flush is written once.** The flush without state leaves the pending map full, as
+    it cannot emit, so the close that follows it would write the same edits again: two
+    transactions and two row stamps, which sync sees as two changes. A view writes through
+    `flushEditsWithoutState`, whose callback answers an `OcptDatabaseOutcome` (so that a write
+    answering nothing cannot be handed in and marked as written) and which hands it only the
+    entries not already written with
+    the same value; an edit changed in between, a write that failed, and every edit once the mode
+    read its data again or flushed the view with state, are written again. The widget leaving the
+    tree and the bloc closing come in the same frame, so the second call starts while the first
+    write is still running: the entries are remembered **before** the write runs and forgotten
+    only if it fails, and a call that finds a write in flight waits for it. A test of this
+    starts the flush, closes the view, and only then awaits the flush: awaiting the flush first is
+    a sequence the widget tree never produces. The old shot list wrote twice here too; the old
+    schedule did not flush at close at all.
+  - **What flushes is each mode's own.** The shot list flushes on every selection move; the
+    schedule flushes on none (a day or block selection, a centre view switch, going back) and only
+    ahead of a dock tab change, a version preview, a package export and an export. The flush sites
+    are read off the old handlers, never assumed from the idiom. A mode whose every write must
+    refresh the `Versions` card does it once, in its reload hook, rather than in every view.
+  - **Never `state.copyWithX(y: await …)`**: Dart evaluates the receiver before the `await`, so a
+    reload landing meanwhile is overwritten with the old state, epochs included. Await into a
+    local first. A view never reads `modeBloc.state` across an `await` and trusts it afterwards.
+  - **A bloc never calls `copyWith`, nor a state mixin's generic copy.** It calls a named method
+    of the state, `copyWith<Intent>` or `copyTo<WantedState>`, which takes the change's values as
+    `required` parameters and sets every field the change affects, `force…Value` flags included.
+    The two state mixins that serve every mode (versions and package) declare their named methods
+    themselves, built on the generic copy each mode's state implements. A state whose file would
+    grow too long keeps its named methods in an extension beside it, as the schedule does in
+    `schedule_state_copies.dart`. The rule holds for every bloc of the app, not for the modes
+    alone: `mode_copy_method_test.dart` scans each `*_bloc.dart` and `mixin_*bloc*.dart` under
+    `lib/` and fails on a direct call.
+  - **The widgets.** The mode builds the mode bloc, then every view bloc with `lazy: false`
+    (`create: (context) => OcptShotListStoryboardBloc(modeBloc: context.read<OcptShotListBloc>())`):
+    a view bloc registers its flusher when it is built, so one that no widget has read yet would
+    lose a typed edit. The children are closed before the parent, so the subscription is gone
+    before the mode's stream ends. A `MultiBlocListener` shows each bloc's `hasWriteError` and
+    notices as a SnackBar. A widget of a view reads the mode and its view (`context.watch` on both,
+    in the widget that draws that view, never wider) and its confirmation dialogs stay the mode's:
+    the widget only *asks*, through a nullable `on…Requested` callback. Typing in a field must
+    never rebuild a wider tree than it did, or the field loses its focus and its caret.
+  - **How to split a mode.** (1) Write a suite of scenarios that drives the mode widget from the
+    outside, over the real blocs and the real services on a temporary project, and keep it green
+    and untouched through every step — it is the contract. (2) Give the mode bloc the epochs, the
+    cause, the reload scopes and their hook, and the flush contract, and nothing else moves. (3)
+    Extract the views one at a time, the least coupled first (the exports, then the simplest
+    central view, then the inspector, then the rest), one commit each: the events of its
+    hierarchy, its state with `.init`, its bloc with a handler for every event, its tests moved with
+    it. (4) For each, list what the old selection and load handlers cleared and kept, and write the
+    reaction from that list. (5) Give every new bloc a test dispatching every event of its
+    hierarchy (a dispatched event no handler registered is ignored silently) and two hand-made
+    mutations proving its tests can fail. (6) Last, split the mode's widget file by view, a public
+    widget per view in its own file under `widgets/`, a private widget for what is used once; a
+    `_buildX` method returning a widget becomes a widget.
+
+- Workspace shell (`lib/ui/pages/workspace/`): `OcptWorkspacePage` mounts `OcptWorkspaceBloc`, whose
   state is `{ OcptWorkspaceMode mode, bool isLoading, OcptWorkspaceRevealRequest? revealRequest,
   List<OcptEpisode> episodes, String? selectedEpisodeId }` — it owns *which* production mode is
   active and *which episode* it shows, nothing about that mode's own content.
   `OcptWorkspaceMode { screenplay, breakdown, shotList, resources, schedule, budget }` is ordered by
   the order the work happens in (write, break down, shoot-list, resource, schedule) with `budget`
   last since it is the one mode that reads every other mode's own figures rather than one anybody
-  starts from, and is persisted through `OcptPropertiesManager.workspaceMode` by **name** rather
-  than by index (modelled on `editorMode`), so opening a project restores the last mode used and
-  reordering the enum is safe. The modes are `EditorPage` (screenplay, under `lib/ui/pages/editor/`),
+  starts from, and is never persisted: a fresh `OcptWorkspaceBloc` is built each time a project
+  opens and always starts on `screenplay`. The modes are `OcptEditorPage` (screenplay, under `lib/ui/pages/editor/`),
   `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode`, `OcptScheduleMode` and
-  `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc) —
+  `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc, which
+  is a mode bloc and its view blocs once the mode is split, ADR 0034; the shot list, the schedule,
+  the resources, the breakdown and the budget are) —
   `OcptWorkspaceMode.isImplemented` is true of all six today, kept as an explicit list rather than a
   bare `true` so a mode shipped ahead of its own content (the way `budget` itself once sat here,
   rendering the shared "coming in a future version" empty state) has a single, obvious place to be
@@ -75,10 +319,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
   is no `episodes` table, which would be a 1:1 indirection nothing reads. `OcptEpisode`
   (`lib/models/`, pure: `id`, `number`, `title`) is how the UI reads one, an **untitled** episode
   being ordinary — a series is numbered long before it is titled, and `ocptWorkspaceEpisodeLabelOf`
-  (`lib/ui/utils/`) is the single place `Episode 3` is worded from. `OcptScreenplayService` owns the
-  CRUD (`loadEpisodes`, `createEpisode`, `updateEpisode`, `reorderEpisode`, `deleteEpisode`): a
-  screenplay *is* an episode, so no service of its own was added for one.
-  The **selector** is built by `OcptWorkspaceShell` itself from `episodes`/`selectedEpisodeId`/
+  (`lib/ui/widgets/helpers/`) is the single place `Episode 3` is worded from.
+  `OcptScreenplayService` owns the CRUD (`loadEpisodes`, `createEpisode`, `updateEpisode`,
+  `reorderEpisode`, `deleteEpisode`): a screenplay *is* an episode, so no service of its own was
+  added for one. The **selector** is built by `OcptWorkspaceShell` itself from `episodes`/`selectedEpisodeId`/
   `onEpisodeSelected`, so the gesture cannot drift from one mode to the next, and its nullable
   callback is the whole of its conditional behaviour: **no control is drawn at all** — never a
   disabled one, the very idiom the toolbar's own slots already carry (`onExportRequested`, the two
@@ -98,14 +342,14 @@ the persistence, the project versions, the sync-ready data model and the read-on
   number and the title are set in the same gesture, and a misclick writes nothing.
   **On a phone both reduce to a fixed icon-only chrome trigger**, their label carried by the
   tooltip alone rather than a `Flexible` label the phone toolbar has no room to ellipsize cleanly
-  beside the mode's own controls (`OcptWorkspaceShell._buildEpisodeIconTrigger`); wider windows are
+  beside the mode's own controls (`OcptWorkspaceShellToolbar`); wider windows are
   unchanged.
   **The selection is not persisted**:
   opening a project lands on the first episode, a reading preference costing nothing to lose where a
   per-project key would have to live either in `OcptPropertiesManager` (keyed by a path that moves)
   or in `project_info` (which versions capture and hash).
   **Switching episode remounts the mode**: the selection lives in `OcptWorkspaceBloc` and
-  `WorkspacePage` keys the mode widget on it, so a fresh mode bloc loads from scratch. This is
+  `OcptWorkspacePage` keys the mode widget on it, so a fresh mode bloc loads from scratch. This is
   deliberate — a mode's state is full of things scoped to what it was showing (a selected shot, an
   open tag anchor, a scroll position, a debounced field edit), and it reuses unchanged the
   flush-on-leaving-the-tree path each mode already has for the version preview, so a pending write
@@ -116,8 +360,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   screenplay, which the home page's "import a screenplay" path needs when it creates a project — and
   is no longer what a mode reaches for. The schedule reads them all.
   **The sequence prefix is one rule with one implementation**: `ocptSceneDisplayNumberOf`
-  (`lib/utils/`, pure and tested) renders `<episode>.<scene>` as soon as the project holds more than
-  one episode, and a **null `episodeNumber` means "this project has one episode"**, returning
+  (`lib/models/rules/`, pure and tested) renders `<episode>.<scene>` as soon as the project holds
+  more than one episode, and a **null `episodeNumber` means "this project has one episode"**, returning
   `sceneNumber ?? "${position + 1}"` verbatim. Every reader calls it rather than restating it
   (`OcptSceneRef`, `OcptBreakdownScene`, `OcptShotListService` and
   `OcptSchedulePlanSnapshot.sceneNumberBySceneId`), and a shot's `<sceneNumber>/<rank>` code follows
@@ -152,9 +396,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `Open in Resources`, meaning "this very element, over there") attaches an
   `OcptWorkspaceRevealRequest` (`lib/models/`, sealed, today `OcptResourcesRevealRequest { tab,
   recordId? }`) to `OcptWorkspaceModeSelectedEvent`; the workspace bloc transports it and **never
-  reads inside it**, `WorkspacePage` hands it to the mode that recognizes its own subtype and to no
-  other, and the opened mode reports back with `OcptWorkspaceRevealRequestConsumedEvent`. It is
-  **one-shot** by construction: the destination bloc takes it as a *constructor* argument (an event
+  reads inside it**, `OcptWorkspacePage` hands it to the mode that recognizes its own subtype and to
+  no other, and the opened mode reports back with `OcptWorkspaceRevealRequestConsumedEvent`. It is
+  **one-shot** by construction: the destination **mode** bloc takes it as a *constructor* argument
+  (an event
   would race the load, which clears every selection) and nulls it in that first load, so entering or
   leaving a version preview — which reloads through the same handler — doesn't yank the user back; a
   plain switch from the mode switcher carries none and clears whatever an earlier one left. A
@@ -239,7 +484,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `.sp`/`.w`/`.r` behind `buildOcptThemeModel`, active only on `PlatformManager.isMobile` — is
   described next, beside the app's width-breakpoint seam.
 
-- The mobile responsive theme foundation (M2): `flutter_screenutil` scales sizes on mobile only —
+- The mobile responsive theme foundation: `flutter_screenutil` scales sizes on mobile only —
   `.sp` for fonts, `.w`/`.h` for dimensions — neutralised to the identity function on desktop, the
   running platform read from `PlatformManager` (`act_platform_manager`, `isMobile`/`isDesktop`),
   registered in `OcptGlobalManager` beside `OcptConfigManager`. `ActThemeModel` builds and caches
@@ -248,13 +493,15 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `ocpt_theme.dart` therefore parametrises `_buildTextTheme`/`_buildThemeData` with three
   `OcptSizeScaler` functions (`sp`/`w`/`r`, each defaulting to the identity function) behind a
   single `buildOcptThemeModel({sp, w, r})`, and keeps `ocptTheme = buildOcptThemeModel()` for every
-  desktop call site — byte-identical to a theme with no scaling concept at all. `MainAppUi` wraps
+  desktop call site — byte-identical to a theme with no scaling concept at all. `OcptMainAppUi` wraps
   the whole app in `ScreenUtilInit` (design size 375×812, `minTextAdapt`) and, only on
   `PlatformManager.isMobile`, rebuilds the theme in the tree with the `.sp`/`.w`/`.r` scalers
   (`buildOcptThemeModel(sp: (v) => v.sp, w: (v) => v.w, r: (v) => v.r)`); desktop keeps the bloc
   state's own theme model — the global `ocptTheme` — and never calls a scaler at all.
+  Every file that imports `ocpt_theme.dart` does so `as ocpt_theme` and prefixes what it takes from
+  it (`ocpt_theme.ocptRadiusSmall`), so a call site says where a theme constant comes from.
 
-- The app's first width-breakpoint seam lives in `lib/utils/ocpt_responsive.dart`, deliberately
+- The app's first width-breakpoint seam lives in `lib/models/rules/ocpt_responsive.dart`, deliberately
   kept apart from the platform-keyed scaling above: `ocptCompactWidthBreakpoint` (816 px — below it
   the left dock's 180 px floor, the right dock's 300 px floor, the centre's 320 px floor and the two
   12 px dividers between them no longer coexist as columns) and `ocptPhoneWidthBreakpoint` (600 px),
@@ -267,10 +514,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
 
 - The workspace shell's own compact-width reductions, all width-keyed rather than platform-keyed:
   below `ocptCompactWidthBreakpoint` the two side docks present as edge drawers over a full-width
-  centre (`OcptWorkspaceShell._buildCompactDrawers`) — summoned by the very same toolbar dock
-  toggles that open a persistent column above the breakpoint, dismissed by tapping the scrim beside
-  the open drawer, full-width on a phone (`ocptIsPhoneWidth`) and, above that (a tablet in portrait),
-  a resizable drawer opened to its dock's own fraction and carrying the same
+  centre (`OcptWorkspaceShell`, in `_OcptWorkspaceCompactDrawers`) — summoned by the very same
+  toolbar dock toggles that open a persistent column above the breakpoint, dismissed by tapping
+  the scrim beside the open drawer, full-width on a phone (`ocptIsPhoneWidth`) and, above that (a
+  tablet in portrait), a resizable drawer opened to its dock's own fraction and carrying the same
   `OcptWorkspaceDockDivider` a persistent column has on its centre-facing edge, so its width is
   dragged by touch and reuses the very same `OcptWorkspaceDockLayoutController` fraction the landscape
   columns do. That divider is a 1 px seam carrying a small three-dot grip that reads as grabbable on
@@ -305,11 +552,11 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `.github/actions/flutter-debian`, which installs the 512 px and scalable icons plus a `.desktop`
   entry named after the package (the icon name `linux/runner/my_application.cc` asks the window to
   wear). A **non-production build rebrands every launcher icon** with a blue `QUALIF` corner flag:
-  the generator also emits `ocpt_icon_qualif_*` masters — a small blue triangle (the same
+  the generator also emits `ocpt_icon_qualification_*` masters — a small blue triangle (the same
   `Colors.blue` the environment banner paints in qualification) tucked into the mark's bottom-left
-  corner — and `.github/actions/qualif-icons` swaps those over the plain masters, turns the Android
-  adaptive background blue, and reruns `icons_launcher:create` before packaging, all gated on the
-  `get-version` job's `env` output. A stable release keeps the plain icons, so an alpha is
+  corner — and `.github/actions/qualification-icons` swaps those over the plain masters, turns the
+  Android adaptive background blue, and reruns `icons_launcher:create` before packaging, all gated
+  on the `get-version` job's `env` output. A stable release keeps the plain icons, so an alpha is
   recognisable at a glance on the home screen, taskbar or launcher.
 
 - Desktop packaging: `build.yml` builds the three desktop targets and one composite action per
@@ -317,18 +564,18 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `macos-dmg` (`hdiutil create -format UDZO` over a staging directory holding the `.app` copied
   with `ditto` and an `/Applications` symlink). The **Windows installer's identity is chosen from
   the `get-version` env**: production and a non-production build carry different Inno `AppId`s and
-  display names (`Open Cine Prod Tools` vs `Open Cine Prod Tools (Qualif)`), and the name drives the
-  install folder and Start-menu group, so the two install side by side instead of overwriting one
-  another — and each app's taskbar icon is read from its own executable path, never a shared Windows
-  icon cache that an earlier install could leave stale. The macOS bundle's `PRODUCT_NAME` is the display
-  name `Open Cine Prod Tools`, so every script path quotes it; its version is split before the
-  build (`--build-name` = the dotted numeric prefix, `--build-number` = the commit distance)
-  because `CFBundleShortVersionString` rejects `git describe`'s output. The app is distributed
-  outside the Mac App Store (`docs/adr/0011`): **the App Sandbox is off** in both entitlements
-  files — the recent-projects list reopens a project by absolute path, which a sandboxed app
-  cannot do without security-scoped bookmarks — and the `.app` carries only the scaffold's ad-hoc
-  signature, so the README documents the Gatekeeper bypass beside the SmartScreen note. Real
-  signing and notarization are written into `build.yml` and dormant, guarded by
+  display names (`Open Cine Prod Tools` vs `Open Cine Prod Tools (Qualification)`), and the name
+  drives the install folder and Start-menu group, so the two install side by side instead of
+  overwriting one another — and each app's taskbar icon is read from its own executable path, never
+  a shared Windows icon cache that an earlier install could leave stale. The macOS bundle's
+  `PRODUCT_NAME` is the display name `Open Cine Prod Tools`, so every script path quotes it; its
+  version is split before the build (`--build-name` = the dotted numeric prefix, `--build-number` =
+  the commit distance) because `CFBundleShortVersionString` rejects `git describe`'s output. The app
+  is distributed outside the Mac App Store (`docs/adr/0011`): **the App Sandbox is off** in both
+  entitlements files — the recent-projects list reopens a project by absolute path, which a
+  sandboxed app cannot do without security-scoped bookmarks — and the `.app` carries only the
+  scaffold's ad-hoc signature, so the README documents the Gatekeeper bypass beside the SmartScreen
+  note. Real signing and notarization are written into `build.yml` and dormant, guarded by
   `if: env.APPLE_CERTIFICATE != ''`; `--options runtime` belongs to that path alone, never to the
   unsigned one. `macos/Podfile` is tracked (copied verbatim from the pinned SDK's template),
   `macos/Podfile.lock` deliberately is not — `pod install` needs a Mac, so the first person to
@@ -379,7 +626,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   is the harness pinning each frozen stable's upgrade path (a verbatim DDL fixture for the schema
   each prior stable shipped, proving `onCreate` == every stable upgrade path), so a table declared
   and forgotten fails there rather than on a user's file; it holds the v1, v2 and v3 fixtures.
-  `**/*.g.dart` is git-ignored (documented deviation); CI regenerates with build_runner.
+  Generated code, drift's `.g.dart` included, sits under `lib/generated/`, which is git-ignored
+  (ADR 0033); CI regenerates it with build_runner.
 
 - Project versions (`project_versions` + `project_info.currentVersionId`, schema v1): the user's
   named, permanent checkpoints of the **whole** project, not to be confused with
@@ -397,16 +645,20 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `payloadFormat`, which follows the same freeze discipline the schema does (ADR 0029):
   `currentPayloadFormat` (4) advances only at a stable release, `lastStablePayloadFormat` (4) tracks
   the last one frozen, and a payload written in a newer format than this build knows is **refused**,
-  not half-read. Like the schema, the pre-stable format ladder was squashed away — no payload older
-  than format 1 exists. Formats 1 (0.1.0) and 2 (0.2.0) were additive, so an older payload decodes
+  not half-read. The codec owns `encode`, `decode` and `contentDigest`; the JSON keys, the
+  field readers (which record the first read failure in one static that `decode` resets on entry and
+  on exit) and each table's row converters sit in the `ocpt_version_*` files beside it, so a new
+  synchronised table gets its converter pair in the file of its area.
+  Like the schema, the pre-stable format ladder was squashed away — no payload older than format 1
+  exists. Formats 1 (0.1.0) and 2 (0.2.0) were additive, so an older payload decodes
   directly; format 3 (0.2.1) is the first that is not — a pre-3 payload's `shotCharacters` rows are
   dropped rather than reshaped into roles (ADR 0030) — and the retired format-1, format-2 and
   format-3 shapes are pinned in the codec test. Format 4 (0.3.0, the storyboard and floor plan
   tables, `shot-list.md`) is additive again, and decodes an older payload with its five lists empty.
   It is **a hand-written mirror of the schema**, and a new synchronised table has to be added to all
-  three of it, `contentDigest` and `_applyPayload`: leave it out of the payload and a restore
-  rewinds half the project, out of the digest and the working copy claims not to have drifted, out
-  of `_applyPayload` and it is never written back. Counters shown on a card
+  three of it, `contentDigest` and `OcptProjectVersionsRestoreOps.applyPayload`: leave it out of
+  the payload and a restore rewinds half the project, out of the digest and the working copy claims
+  not to have drifted, out of `applyPayload` and it is never written back. Counters shown on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left
@@ -442,17 +694,19 @@ the persistence, the project versions, the sync-ready data model and the read-on
   synchronised table carries `isDeleted`, a "delete" is an update to it, and every read filters
   tombstones back out — including `scenes`, which is never synchronised but whose rows are
   referenced by two tables that are. Ordering is `sortKey`, a fractional index
-  (`lib/utils/ocpt_fractional_key.dart`, base-62 strings, never ending on the lowest digit so two
-  keys always have room for a third): `ocptFractionalKeyBetween` allocates one,
+  (`lib/models/rules/ocpt_fractional_key.dart`, base-62 strings, never ending on the lowest digit so
+  two keys always have room for a third): `ocptFractionalKeyBetween` allocates one,
   `ocptFractionalKeySequence` backfills a whole group, `ocptFractionalKeyRekeyPlan` gives the
   minimal set of writes a reorder needs, so an insertion or a move writes exactly one row.
-  `position` survives as a legacy column stamped once at insertion and never renumbered — nothing
-  reads it, and `OcptShot.position` is a read-time rank the loading service counts off, not that
-  column. `row_field_versions` holds the per-column version stamps a merge resolves conflicts with;
-  the only writer so far is a version restore (above), and M3 of the collaboration plan is what will
-  stamp every other edit — a composite primary key is rendered into `rowId` through
-  `ocptCompositeRowStampKey` (`lib/utils/ocpt_row_stamp_key.dart`), the app's single encoding of
-  one. `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
+  On a table that has a `sortKey`, `position` survives as a legacy column stamped once at insertion
+  and never renumbered — nothing reads it, and `OcptShot.position` is a read-time rank the loading
+  service counts off, not that column. `scenes.position` is the exception: it is the scene's index
+  in the screenplay, rewritten at every index and sorted on by several services.
+  `row_field_versions` holds the per-column version stamps a merge resolves conflicts with; a
+  version restore (above) and the domain services write them through `OcptRowStampService` — a
+  composite primary key is rendered into `rowId` through `ocptCompositeRowStampKey`
+  (`lib/models/rules/ocpt_row_stamp_key.dart`), the app's single encoding of one.
+  `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
@@ -486,7 +740,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   personal columns**, so the file stops holding a phone number, a home address and an allergy for
   someone who asked to be removed. Versions cut across that — a payload captured earlier still
   holds a full copy — so the erased ids are kept in `local_erasures` and the **restore path scrubs
-  on decode** (`OcptProjectVersionsService._scrubErasedPeople`, reading the list fresh from the
+  on decode** (`OcptProjectVersionsPayloadOps.scrubErasedPeople`, reading the list fresh from the
   database so an erasure recorded *after* a version was taken still binds): versions stay
   byte-identical (the codec never rewrites a stored payload), and the working copy never
   resurrects an erased person. The scrubbed row is blanked and tombstoned rather than dropped —
@@ -494,13 +748,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
   still point at it. **Their `assets` rows are blanked too, path and label**: an absolute path
   routinely names the person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a
   photograph of them sits, so tombstoning the row without emptying it would leave the leak open.
-  **`_scrubErasedPeople` and `OcptPeopleService.deletePerson` (with
+  **`OcptProjectVersionsPayloadOps.scrubErasedPeople` and `OcptPeopleService.deletePerson` (with
   `OcptAssetsService.erasePersonAssets`) implement the same erasure from two starting points and
   must be kept in step by hand**: a column blanked by one but not the other reopens the leak.
   **`role_candidates` joins that rule**, being the first *link* table to hold something about a
   person rather than only ids: its `notes` is what somebody wrote about them at an audition, so
   erasing a person blanks it and tombstones the row, in all three implementations
-  (`eraseCandidaciesOfPerson`, `_scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`) — and the
+  (`eraseCandidaciesOfPerson`, `scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`) — and the
   test walking every key the codec writes for a person is what catches a miss.
   `shooting_block_candidates` does **not** join it: the link carries no `personId`, pointing at a
   candidacy rather than at a person, and it drops out on its own once that candidacy is tombstoned.
@@ -535,17 +789,18 @@ the persistence, the project versions, the sync-ready data model and the read-on
   to an absolute path on import; a skipped one keeps the path it always had, so either end can name
   what is missing. `project_versions` travel **scrubbed**: on the staged copy alone, every stored
   payload is rewritten with the erased people taken back out
-  (`ocptScrubErasedPeopleFromPayload`, `lib/utils/`, the third implementation of the erasure rule
-  after `OcptPeopleService.deletePerson` and `OcptProjectVersionsService._scrubErasedPeople`, and
-  the only untyped one — a package may be built from a file at any schema version, so it reads the
-  payload's own keys; a test walks every key the codec writes for a person and fails unless this one
-  classifies it), `content_digest` nulled on the rows actually touched, and `local_erasures` emptied.
-  Everything the mode side needs is `MixinOcptProjectPackageBloc`/`MixinOcptProjectPackageState`
-  (`lib/ui/pages/workspace/blocs/`), mixed in beside `MixinOcptProjectVersionsBloc` and declaring
-  the **same `flushPendingProjectWrites` hook**, for the same reason: the package is built from the
-  file on disk, so a debounced field edit has to reach it first. `OcptHomeBloc` mixes it in too, for
-  a project card's `Export…` with nothing open. See `exports.md` for where the two gestures sit in
-  the UI.
+  (`ocptScrubErasedPeopleFromPayload`, `lib/models/rules/`, the third implementation of the erasure
+  rule after `OcptPeopleService.deletePerson` and
+  `OcptProjectVersionsPayloadOps.scrubErasedPeople`, and the only untyped one — a package may be
+  built from a file at any schema version, so it reads the payload's own keys; a test walks every
+  key the codec writes for a person and fails unless this one classifies it), `content_digest`
+  nulled on the rows actually touched, and `local_erasures` emptied. Everything the mode side needs
+  is `MixinOcptProjectPackageBloc`/`MixinOcptProjectPackageState` (`lib/ui/pages/workspace/blocs/`),
+  mixed in beside `MixinOcptProjectVersionsBloc` and declaring the **same
+  `flushPendingProjectWrites` hook**, for the same reason: the package is built from the file on
+  disk, so a debounced field edit has to reach it first. `OcptHomeBloc` mixes it in too, for a
+  project card's `Export…` with nothing open. See `exports.md` for where the two gestures sit in the
+  UI.
 
 - Opening a project file from another build (ADR 0022): **no `.ocpt` reaches drift before it has
   been read.** `OcptProjectFileCompatibilityService` (`lib/managers/projects/services/`) probes it
@@ -555,9 +810,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
   (`lib/models/`) whose `verdict` is `current | older | newer | unreadable | foreignDevBuild`. The
   probe also takes the running build's own `appVersion`, because ADR 0029 makes the gate compare a
   **pair**: the file's schema version *and* the app version that last wrote it, against this build's
-  schema *and* version. `OcptProjectsManager.probeProjectFile` is that probe and `openProject`'s
-  `_gateOnFileFormat` is what acts on it, **before** the currently open project is closed, so a
-  refusal never costs the user the project they already had. A **newer**-schema file is refused with
+  schema *and* version. `OcptProjectsManager.probeProjectFile` is that probe and the file-format gate
+  in `OcptProjectOpenOps` (which `openProject` runs) is what acts on it, **before** the currently open
+  project is closed, so a refusal never costs the user the project they already had. A
+  **newer**-schema file is refused with
   `OcptProjectStatus.newerFormat` — not opened, not touched, not added to the recent list, since
   handing it to drift stamps its `user_version` back *down* while leaving the newer build's tables in
   place. A file at this build's **own** schema but last written by a **pre-release build that is not
@@ -599,7 +855,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   dialog creates nothing. On Android/iOS, where `file_selector`'s `getSaveLocation` has no
   implementation at all (ADR 0009), `OcptProjectsManager.freeNewProjectFilePath` resolves a free
   name with no dialog instead — `Name.ocpt`, `Name (2).ocpt`, … (`ocptFreeFilePath`,
-  `lib/utils/`) inside `newProjectsDirectory`, the application's own documents directory. Joining
+  `lib/models/rules/`) inside `newProjectsDirectory`, the application's own documents directory. Joining
   a shared project mirrors the same split: a native folder picker on desktop,
   `newProjectsDirectory` with no dialog on mobile — the joined project creates its own sub-folder
   inside whichever parent that names, which is what actually refuses an existing one,
@@ -630,8 +886,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `MixinOcptProjectVersionsState` alone. That state, the events and the handlers all live in
   `lib/ui/pages/workspace/blocs/` as `MixinOcptProjectVersionsBloc` +
   `MixinOcptProjectVersionsState` (the `MixinActThemesBloc` idiom): a new production mode gets the
-  tab by mixing both in and answering the two hooks the mixin can't know —
-  `flushPendingProjectWrites` (a pending autosave/field edit must reach the working copy *before* a
+  tab by mixing both into its **mode bloc** and answering the two hooks the mixin can't know —
+  `flushPendingProjectWrites` (which runs the flushers its view blocs registered: a pending
+  autosave/field edit must reach the working copy *before* a
   preview swaps the database out, or it would land in the previewed version's in-memory one) and
   `reloadFromProjectDatabase` (entering or leaving a preview replaces
   `OcptOpenProjectModel.database`, so whatever the mode shows is read again from it — and that

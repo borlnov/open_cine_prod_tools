@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
@@ -111,12 +112,13 @@ OcptShot _buildShot({
   averageDifficulty: 0,
 );
 
+/// Run the tests of [OcptScenarioCoveragePdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   // A single shared instance, reused across every test below: this also exercises the font-loading
   // cache (repeated `generate` calls must not re-read the asset bundle).
-  final service = OcptScenarioCoveragePdfService();
+  final service = OcptScenarioCoveragePdfService(logger: const SilentLogger());
   const parser = FountainParser();
   const composer = FountainScriptComposer();
   const pageSetup = OcptPageSetup.standard();
@@ -417,11 +419,13 @@ String _operandOf(double value) {
 
 /// [stream] inflated, or null when it is not a deflated stream at all.
 String? _inflated(String stream) {
+  String? inflated;
   try {
-    return latin1.decode(ZLibDecoder().convert(latin1.encode(stream)));
+    inflated = latin1.decode(ZLibDecoder().convert(latin1.encode(stream)));
   } on FormatException {
-    return null;
+    inflated = null;
   }
+  return inflated;
 }
 
 /// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order.

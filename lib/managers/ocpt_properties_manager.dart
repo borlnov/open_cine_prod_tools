@@ -5,11 +5,12 @@
 import 'dart:convert';
 
 import 'package:act_dart_utility/act_dart_utility.dart';
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
 import 'package:act_local_storage_manager/act_local_storage_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -43,238 +44,8 @@ class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropert
 /// ([loadOrCreateDeviceId]), and each project's own "host on launch" flag ([loadHostOnLaunch]).
 class OcptPropertiesManager extends AbstractPropertiesManager
     with MixinLocaleProperties, MixinThemesProperties {
-  /// This is the key used to store the recently opened projects in the local storage.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to an empty
-  /// list; prefer [addRecentProject] and [removeRecentProject] over storing to this item
-  /// directly.
-  final recentProjects = SharedPrefsItemWithParser<List<OcptRecentProjectModel>, String>(
-    "RECENT_PROJECTS",
-    parser: _parseRecentProjects,
-    castTo: _castRecentProjects,
-  );
-
-  /// This is the key used to store the preferred editor mode in the local storage.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// [OcptEditorMode.styled].
-  final editorMode = SharedPrefsItemWithParser<OcptEditorMode, String>(
-    "EDITOR_MODE",
-    parser: _parseEditorMode,
-    castTo: (value) => value.name,
-  );
-
-  /// This is the key used to store which day a week starts on, app-wide.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// [OcptFirstWeekday.monday].
-  final firstWeekday = SharedPrefsItemWithParser<OcptFirstWeekday, String>(
-    "FIRST_WEEKDAY",
-    parser: _parseFirstWeekday,
-    castTo: (value) => value.name,
-  );
-
-  /// This is the key used to store whether the editor's "Word-like" page simulation is enabled.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to `true`
-  /// (page simulation is on by default).
-  final isPageSimulationEnabled = SharedPreferencesItem<bool>("PAGE_SIMULATION_ENABLED");
-
-  /// This is the key used to store whether the styled editor shows every scene heading's number
-  /// (explicit or computed) in its left gutter.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to `true` (scene
-  /// numbers are shown by default).
-  final styledSceneNumbersVisible = SharedPreferencesItem<bool>("STYLED_SCENE_NUMBERS_VISIBLE");
-
-  /// This is the key used to store whether this machine shows the spell-check underlines, in
-  /// either editing mode.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to `true`.
-  final spellCheckVisible = SharedPreferencesItem<bool>("SPELL_CHECK_VISIBLE");
-
-  /// This is the key used to store the left (scenes) dock's width, as a fraction of the editor's
-  /// editing row width.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
-  final editorLeftDockFraction = SharedPreferencesItem<double>("EDITOR_LEFT_DOCK_FRACTION");
-
-  /// This is the key used to store the right (preview / syntax) dock's width, as a fraction of
-  /// the editor's editing row width.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
-  final editorRightDockFraction = SharedPreferencesItem<double>("EDITOR_RIGHT_DOCK_FRACTION");
-
-  /// This is the key used to store the shot list mode's left (sequences) dock width, as a
-  /// fraction of its editing row width.
-  ///
-  /// Kept separate from [editorLeftDockFraction]: the two modes show different panels in that
-  /// dock, so a width that suits one has no reason to suit the other. Loading it returns null if
-  /// nothing has been stored yet, which is equivalent to `OcptWorkspaceDock.leftDefaultFraction`,
-  /// applied at the call site.
-  final shotListLeftDockFraction = SharedPreferencesItem<double>("SHOT_LIST_LEFT_DOCK_FRACTION");
-
-  /// This is the key used to store the shot list mode's right (inspector) dock width, as a
-  /// fraction of its editing row width.
-  ///
-  /// Kept separate from [editorRightDockFraction] for the same reason
-  /// [shotListLeftDockFraction] is. Loading it returns null if nothing has been stored yet, which
-  /// is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
-  final shotListRightDockFraction = SharedPreferencesItem<double>("SHOT_LIST_RIGHT_DOCK_FRACTION");
-
-  /// This is the key used to store the resources mode's left (list) dock width, as a fraction of
-  /// its editing row width.
-  ///
-  /// Kept separate from [editorLeftDockFraction] and [shotListLeftDockFraction] for the same reason
-  /// the two are kept apart from each other. Loading it returns null if nothing has been stored
-  /// yet, which is equivalent to `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
-  final resourcesLeftDockFraction = SharedPreferencesItem<double>("RESOURCES_LEFT_DOCK_FRACTION");
-
-  /// This is the key used to store the resources mode's right (versions) dock width, as a fraction
-  /// of its editing row width.
-  ///
-  /// Kept separate from [editorRightDockFraction] and [shotListRightDockFraction] for the same
-  /// reason. Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
-  final resourcesRightDockFraction = SharedPreferencesItem<double>(
-    "RESOURCES_RIGHT_DOCK_FRACTION",
-  );
-
-  /// This is the key used to store the breakdown mode's left (scenes) dock width, as a fraction of
-  /// its editing row width.
-  ///
-  /// Kept separate from [editorLeftDockFraction], [shotListLeftDockFraction] and
-  /// [resourcesLeftDockFraction] for the same reason the three are kept apart from each other.
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
-  final breakdownLeftDockFraction = SharedPreferencesItem<double>("BREAKDOWN_LEFT_DOCK_FRACTION");
-
-  /// This is the key used to store the breakdown mode's right (versions) dock width, as a fraction
-  /// of its editing row width.
-  ///
-  /// Kept separate from [editorRightDockFraction], [shotListRightDockFraction] and
-  /// [resourcesRightDockFraction] for the same reason. Loading it returns null if nothing has been
-  /// stored yet, which is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the
-  /// call site.
-  final breakdownRightDockFraction = SharedPreferencesItem<double>(
-    "BREAKDOWN_RIGHT_DOCK_FRACTION",
-  );
-
-  /// This is the key used to store the tab the breakdown mode's right dock last showed, so
-  /// reopening the dock brings it back where the user left it.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// [OcptBreakdownRightDockTab.inspector].
-  final breakdownLastRightDockTab = SharedPrefsItemWithParser<OcptBreakdownRightDockTab, String>(
-    "BREAKDOWN_LAST_RIGHT_DOCK_TAB",
-    parser: _parseBreakdownRightDockTab,
-    castTo: (value) => value.name,
-  );
-
-  /// This is the key used to store the schedule mode's left (days) dock width, as a fraction of
-  /// its editing row width.
-  ///
-  /// Kept separate from [editorLeftDockFraction], [shotListLeftDockFraction],
-  /// [resourcesLeftDockFraction] and [breakdownLeftDockFraction] for the same reason the four are
-  /// kept apart from each other. Loading it returns null if nothing has been stored yet, which is
-  /// equivalent to `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
-  final scheduleLeftDockFraction = SharedPreferencesItem<double>("SCHEDULE_LEFT_DOCK_FRACTION");
-
-  /// This is the key used to store the schedule mode's right (inspector/versions) dock width, as a
-  /// fraction of its editing row width.
-  ///
-  /// Kept separate from [editorRightDockFraction], [shotListRightDockFraction],
-  /// [resourcesRightDockFraction] and [breakdownRightDockFraction] for the same reason. Loading it
-  /// returns null if nothing has been stored yet, which is equivalent to
-  /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
-  final scheduleRightDockFraction = SharedPreferencesItem<double>(
-    "SCHEDULE_RIGHT_DOCK_FRACTION",
-  );
-
-  /// This is the key used to store the tab the schedule mode's right dock last showed, so
-  /// reopening the dock brings it back where the user left it.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// [OcptScheduleRightDockTab.inspector].
-  final scheduleLastRightDockTab = SharedPrefsItemWithParser<OcptScheduleRightDockTab, String>(
-    "SCHEDULE_LAST_RIGHT_DOCK_TAB",
-    parser: _parseScheduleRightDockTab,
-    castTo: (value) => value.name,
-  );
-
-  /// This is the key used to store the budget mode's right (inspector/versions) dock width, as a
-  /// fraction of its editing row width.
-  ///
-  /// Kept separate from every other mode's own dock-fraction key for the same reason those are
-  /// kept apart from each other. Loading it returns null if nothing has been stored yet, which is
-  /// equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
-  final budgetRightDockFraction = SharedPreferencesItem<double>("BUDGET_RIGHT_DOCK_FRACTION");
-
-  /// This is the key used to store the tab the budget mode's right dock last showed, so reopening
-  /// the dock brings it back where the user left it.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// [OcptBudgetRightDockTab.inspector].
-  final budgetLastRightDockTab = SharedPrefsItemWithParser<OcptBudgetRightDockTab, String>(
-    "BUDGET_LAST_RIGHT_DOCK_TAB",
-    parser: _parseBudgetRightDockTab,
-    castTo: (value) => value.name,
-  );
-
-  /// This is the key used to store which optional columns of the shot list table are visible, as
-  /// the [OcptShotListColumn] names joined by [_shotListColumnsSeparator].
-  ///
-  /// An empty stored string is a meaningful value (every optional column hidden) and is kept
-  /// apart from "nothing stored yet", which loads as null and is equivalent to
-  /// [OcptShotListColumn.defaultVisibleColumns], applied at the call site. A stored name no
-  /// longer matching any enum value is dropped, so removing a column in a later version can never
-  /// make this preference unreadable.
-  final shotListVisibleColumns = SharedPrefsItemWithParser<Set<OcptShotListColumn>, String>(
-    "SHOT_LIST_VISIBLE_COLUMNS",
-    parser: _parseShotListColumns,
-    castTo: _castShotListColumns,
-  );
-
-  /// This is the key used to store the tab the shot list mode's right dock last showed, so
-  /// reopening the dock brings it back where the user left it.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// [OcptShotListRightDockTab.inspector].
-  final shotListLastRightDockTab = SharedPrefsItemWithParser<OcptShotListRightDockTab, String>(
-    "SHOT_LIST_LAST_RIGHT_DOCK_TAB",
-    parser: _parseShotListRightDockTab,
-    castTo: (value) => value.name,
-  );
-
-  /// This is the key used to store which of the shot list mode's centre views was last shown, so
-  /// reopening the mode restores it.
-  ///
-  /// Loading it returns null if nothing has been stored yet, which is equivalent to
-  /// [OcptShotListCentreView.table]. A value of [OcptShotListCentreView.floorPlans] stored by a
-  /// later build that offers that segment is a value this one's switch simply doesn't reach —
-  /// [OcptShotListCentreView]'s own doc comment.
-  final shotListLastCentreView = SharedPrefsItemWithParser<OcptShotListCentreView, String>(
-    "SHOT_LIST_LAST_CENTRE_VIEW",
-    parser: _parseShotListCentreView,
-    castTo: (value) => value.name,
-  );
-
-  /// This is the key used to store the id identifying this replica of the app.
-  ///
-  /// Prefer [loadOrCreateDeviceId] over reading this item directly: loading it returns null until
-  /// something has asked for the id once, and every caller wants the id, not the absence of one.
-  final deviceId = SharedPreferencesItem<String>("DEVICE_ID");
-
-  /// This is the key used to store the folder the native save dialog for a new project (or a moved
-  /// one) last used, so it opens there again next time instead of
-  /// `OcptProjectsManager.getDefaultProjectsDirectory` every time.
-  ///
-  /// Loading it returns null if nothing has been stored yet, or if the folder it names has since
-  /// been deleted — `OcptProjectsManager.suggestedProjectsDirectory` is what falls back to the
-  /// default directory in either case.
-  final lastProjectsDirectory = SharedPreferencesItem<String>("LAST_PROJECTS_DIRECTORY");
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "properties";
 
   /// The separator joining the [OcptShotListColumn] names stored for [shotListVisibleColumns].
   static const _shotListColumnsSeparator = ",";
@@ -295,18 +66,278 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// JSON object stored for [pageMargins].
   static const _marginBottomKey = "bottomInches";
 
+  /// The logger the stored-value parsers write to. Static: the parsers are handed to the items
+  /// below before this manager exists.
+  static final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
+  /// This is the key used to store the recently opened projects in the local storage.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to an empty
+  /// list; prefer [addRecentProject] and [removeRecentProject] over storing to this item
+  /// directly.
+  final SharedPrefsItemWithParser<List<OcptRecentProjectModel>, String> recentProjects;
+
+  /// This is the key used to store the preferred editor mode in the local storage.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptEditorMode.styled].
+  final SharedPrefsItemWithParser<OcptEditorMode, String> editorMode;
+
+  /// This is the key used to store which day a week starts on, app-wide.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptFirstWeekday.monday].
+  final SharedPrefsItemWithParser<OcptFirstWeekday, String> firstWeekday;
+
+  /// This is the key used to store whether the editor's "Word-like" page simulation is enabled.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to `true`
+  /// (page simulation is on by default).
+  final SharedPreferencesItem<bool> isPageSimulationEnabled;
+
+  /// This is the key used to store whether the styled editor shows every scene heading's number
+  /// (explicit or computed) in its left gutter.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to `true` (scene
+  /// numbers are shown by default).
+  final SharedPreferencesItem<bool> styledSceneNumbersVisible;
+
+  /// This is the key used to store whether this machine shows the spell-check underlines, in
+  /// either editing mode.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to `true`.
+  final SharedPreferencesItem<bool> spellCheckVisible;
+
+  /// This is the key used to store the left (scenes) dock's width, as a fraction of the editor's
+  /// editing row width.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
+  final SharedPreferencesItem<double> editorLeftDockFraction;
+
+  /// This is the key used to store the right (preview / syntax) dock's width, as a fraction of
+  /// the editor's editing row width.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
+  final SharedPreferencesItem<double> editorRightDockFraction;
+
+  /// This is the key used to store the shot list mode's left (sequences) dock width, as a
+  /// fraction of its editing row width.
+  ///
+  /// Kept separate from [editorLeftDockFraction]: the two modes show different panels in that
+  /// dock, so a width that suits one has no reason to suit the other. Loading it returns null if
+  /// nothing has been stored yet, which is equivalent to `OcptWorkspaceDock.leftDefaultFraction`,
+  /// applied at the call site.
+  final SharedPreferencesItem<double> shotListLeftDockFraction;
+
+  /// This is the key used to store the shot list mode's right (inspector) dock width, as a
+  /// fraction of its editing row width.
+  ///
+  /// Kept separate from [editorRightDockFraction] for the same reason
+  /// [shotListLeftDockFraction] is. Loading it returns null if nothing has been stored yet, which
+  /// is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
+  final SharedPreferencesItem<double> shotListRightDockFraction;
+
+  /// This is the key used to store the resources mode's left (list) dock width, as a fraction of
+  /// its editing row width.
+  ///
+  /// Kept separate from [editorLeftDockFraction] and [shotListLeftDockFraction] for the same reason
+  /// the two are kept apart from each other. Loading it returns null if nothing has been stored
+  /// yet, which is equivalent to `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
+  final SharedPreferencesItem<double> resourcesLeftDockFraction;
+
+  /// This is the key used to store the resources mode's right (versions) dock width, as a fraction
+  /// of its editing row width.
+  ///
+  /// Kept separate from [editorRightDockFraction] and [shotListRightDockFraction] for the same
+  /// reason. Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
+  final SharedPreferencesItem<double> resourcesRightDockFraction;
+
+  /// This is the key used to store the breakdown mode's left (scenes) dock width, as a fraction of
+  /// its editing row width.
+  ///
+  /// Kept separate from [editorLeftDockFraction], [shotListLeftDockFraction] and
+  /// [resourcesLeftDockFraction] for the same reason the three are kept apart from each other.
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
+  final SharedPreferencesItem<double> breakdownLeftDockFraction;
+
+  /// This is the key used to store the breakdown mode's right (versions) dock width, as a fraction
+  /// of its editing row width.
+  ///
+  /// Kept separate from [editorRightDockFraction], [shotListRightDockFraction] and
+  /// [resourcesRightDockFraction] for the same reason. Loading it returns null if nothing has been
+  /// stored yet, which is equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the
+  /// call site.
+  final SharedPreferencesItem<double> breakdownRightDockFraction;
+
+  /// This is the key used to store the tab the breakdown mode's right dock last showed, so
+  /// reopening the dock brings it back where the user left it.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptBreakdownRightDockTab.inspector].
+  final SharedPrefsItemWithParser<OcptBreakdownRightDockTab, String> breakdownLastRightDockTab;
+
+  /// This is the key used to store the schedule mode's left (days) dock width, as a fraction of
+  /// its editing row width.
+  ///
+  /// Kept separate from [editorLeftDockFraction], [shotListLeftDockFraction],
+  /// [resourcesLeftDockFraction] and [breakdownLeftDockFraction] for the same reason the four are
+  /// kept apart from each other. Loading it returns null if nothing has been stored yet, which is
+  /// equivalent to `OcptWorkspaceDock.leftDefaultFraction`, applied at the call site.
+  final SharedPreferencesItem<double> scheduleLeftDockFraction;
+
+  /// This is the key used to store the schedule mode's right (inspector/versions) dock width, as a
+  /// fraction of its editing row width.
+  ///
+  /// Kept separate from [editorRightDockFraction], [shotListRightDockFraction],
+  /// [resourcesRightDockFraction] and [breakdownRightDockFraction] for the same reason. Loading it
+  /// returns null if nothing has been stored yet, which is equivalent to
+  /// `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
+  final SharedPreferencesItem<double> scheduleRightDockFraction;
+
+  /// This is the key used to store the tab the schedule mode's right dock last showed, so
+  /// reopening the dock brings it back where the user left it.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptScheduleRightDockTab.inspector].
+  final SharedPrefsItemWithParser<OcptScheduleRightDockTab, String> scheduleLastRightDockTab;
+
+  /// This is the key used to store the budget mode's right (inspector/versions) dock width, as a
+  /// fraction of its editing row width.
+  ///
+  /// Kept separate from every other mode's own dock-fraction key for the same reason those are
+  /// kept apart from each other. Loading it returns null if nothing has been stored yet, which is
+  /// equivalent to `OcptWorkspaceDock.rightDefaultFraction`, applied at the call site.
+  final SharedPreferencesItem<double> budgetRightDockFraction;
+
+  /// This is the key used to store the tab the budget mode's right dock last showed, so reopening
+  /// the dock brings it back where the user left it.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptBudgetRightDockTab.inspector].
+  final SharedPrefsItemWithParser<OcptBudgetRightDockTab, String> budgetLastRightDockTab;
+
+  /// This is the key used to store which optional columns of the shot list table are visible, as
+  /// the [OcptShotListColumn] names joined by [_shotListColumnsSeparator].
+  ///
+  /// An empty stored string is a meaningful value (every optional column hidden) and is kept
+  /// apart from "nothing stored yet", which loads as null and is equivalent to
+  /// [OcptShotListColumn.defaultVisibleColumns], applied at the call site. A stored name no
+  /// longer matching any enum value is dropped, so removing a column in a later version can never
+  /// make this preference unreadable.
+  final SharedPrefsItemWithParser<Set<OcptShotListColumn>, String> shotListVisibleColumns;
+
+  /// This is the key used to store the tab the shot list mode's right dock last showed, so
+  /// reopening the dock brings it back where the user left it.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptShotListRightDockTab.inspector].
+  final SharedPrefsItemWithParser<OcptShotListRightDockTab, String> shotListLastRightDockTab;
+
+  /// This is the key used to store which of the shot list mode's centre views was last shown, so
+  /// reopening the mode restores it.
+  ///
+  /// Loading it returns null if nothing has been stored yet, which is equivalent to
+  /// [OcptShotListCentreView.table]. A value of [OcptShotListCentreView.floorPlans] stored by a
+  /// later build that offers that segment is a value this one's switch simply doesn't reach —
+  /// [OcptShotListCentreView]'s own doc comment.
+  final SharedPrefsItemWithParser<OcptShotListCentreView, String> shotListLastCentreView;
+
+  /// This is the key used to store the id identifying this replica of the app.
+  ///
+  /// Prefer [loadOrCreateDeviceId] over reading this item directly: loading it returns null until
+  /// something has asked for the id once, and every caller wants the id, not the absence of one.
+  final SharedPreferencesItem<String> deviceId;
+
+  /// This is the key used to store the folder the native save dialog for a new project (or a moved
+  /// one) last used, so it opens there again next time instead of
+  /// `OcptProjectsManager.getDefaultProjectsDirectory` every time.
+  ///
+  /// Loading it returns null if nothing has been stored yet, or if the folder it names has since
+  /// been deleted — `OcptProjectsManager.suggestedProjectsDirectory` is what falls back to the
+  /// default directory in either case.
+  final SharedPreferencesItem<String> lastProjectsDirectory;
+
   /// This is the key used to store the app-wide page margins preference in the local storage.
   ///
   /// Margins are a rendering preference shared by every project (unlike the page format, which is
   /// stored per project in `project_info.pageFormat`). Loading it returns null if nothing has been
   /// stored yet, which is equivalent to `FountainPageMargins.standard()`, applied at the call site.
-  final pageMargins = SharedPrefsItemWithParser<FountainPageMargins, String>(
-    "PAGE_MARGINS",
-    parser: _parsePageMargins,
-    castTo: _castPageMargins,
-  );
+  final SharedPrefsItemWithParser<FountainPageMargins, String> pageMargins;
 
-  /// The id identifying this replica of the app, minting and storing one the first time it is
+  /// Class constructor
+  OcptPropertiesManager()
+    : recentProjects = SharedPrefsItemWithParser<List<OcptRecentProjectModel>, String>(
+        "RECENT_PROJECTS",
+        parser: _parseRecentProjects,
+        castTo: _castRecentProjects,
+      ),
+      editorMode = SharedPrefsItemWithParser<OcptEditorMode, String>(
+        "EDITOR_MODE",
+        parser: _parseEditorMode,
+        castTo: (value) => value.name,
+      ),
+      firstWeekday = SharedPrefsItemWithParser<OcptFirstWeekday, String>(
+        "FIRST_WEEKDAY",
+        parser: _parseFirstWeekday,
+        castTo: (value) => value.name,
+      ),
+      isPageSimulationEnabled = SharedPreferencesItem<bool>("PAGE_SIMULATION_ENABLED"),
+      styledSceneNumbersVisible = SharedPreferencesItem<bool>("STYLED_SCENE_NUMBERS_VISIBLE"),
+      spellCheckVisible = SharedPreferencesItem<bool>("SPELL_CHECK_VISIBLE"),
+      editorLeftDockFraction = SharedPreferencesItem<double>("EDITOR_LEFT_DOCK_FRACTION"),
+      editorRightDockFraction = SharedPreferencesItem<double>("EDITOR_RIGHT_DOCK_FRACTION"),
+      shotListLeftDockFraction = SharedPreferencesItem<double>("SHOT_LIST_LEFT_DOCK_FRACTION"),
+      shotListRightDockFraction = SharedPreferencesItem<double>("SHOT_LIST_RIGHT_DOCK_FRACTION"),
+      resourcesLeftDockFraction = SharedPreferencesItem<double>("RESOURCES_LEFT_DOCK_FRACTION"),
+      resourcesRightDockFraction = SharedPreferencesItem<double>("RESOURCES_RIGHT_DOCK_FRACTION"),
+      breakdownLeftDockFraction = SharedPreferencesItem<double>("BREAKDOWN_LEFT_DOCK_FRACTION"),
+      breakdownRightDockFraction = SharedPreferencesItem<double>("BREAKDOWN_RIGHT_DOCK_FRACTION"),
+      breakdownLastRightDockTab = SharedPrefsItemWithParser<OcptBreakdownRightDockTab, String>(
+        "BREAKDOWN_LAST_RIGHT_DOCK_TAB",
+        parser: _parseBreakdownRightDockTab,
+        castTo: (value) => value.name,
+      ),
+      scheduleLeftDockFraction = SharedPreferencesItem<double>("SCHEDULE_LEFT_DOCK_FRACTION"),
+      scheduleRightDockFraction = SharedPreferencesItem<double>("SCHEDULE_RIGHT_DOCK_FRACTION"),
+      scheduleLastRightDockTab = SharedPrefsItemWithParser<OcptScheduleRightDockTab, String>(
+        "SCHEDULE_LAST_RIGHT_DOCK_TAB",
+        parser: _parseScheduleRightDockTab,
+        castTo: (value) => value.name,
+      ),
+      budgetRightDockFraction = SharedPreferencesItem<double>("BUDGET_RIGHT_DOCK_FRACTION"),
+      budgetLastRightDockTab = SharedPrefsItemWithParser<OcptBudgetRightDockTab, String>(
+        "BUDGET_LAST_RIGHT_DOCK_TAB",
+        parser: _parseBudgetRightDockTab,
+        castTo: (value) => value.name,
+      ),
+      shotListVisibleColumns = SharedPrefsItemWithParser<Set<OcptShotListColumn>, String>(
+        "SHOT_LIST_VISIBLE_COLUMNS",
+        parser: _parseShotListColumns,
+        castTo: _castShotListColumns,
+      ),
+      shotListLastRightDockTab = SharedPrefsItemWithParser<OcptShotListRightDockTab, String>(
+        "SHOT_LIST_LAST_RIGHT_DOCK_TAB",
+        parser: _parseShotListRightDockTab,
+        castTo: (value) => value.name,
+      ),
+      shotListLastCentreView = SharedPrefsItemWithParser<OcptShotListCentreView, String>(
+        "SHOT_LIST_LAST_CENTRE_VIEW",
+        parser: _parseShotListCentreView,
+        castTo: (value) => value.name,
+      ),
+      deviceId = SharedPreferencesItem<String>("DEVICE_ID"),
+      lastProjectsDirectory = SharedPreferencesItem<String>("LAST_PROJECTS_DIRECTORY"),
+      pageMargins = SharedPrefsItemWithParser<FountainPageMargins, String>(
+        "PAGE_MARGINS",
+        parser: _parsePageMargins,
+        castTo: _castPageMargins,
+      );
+
+  /// Get the id identifying this replica of the app, minting and storing one the first time it is
   /// asked for and returning the very same one on every later call and every later launch.
   ///
   /// A device id is what tells one replica of a project from another
@@ -326,7 +357,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     return minted;
   }
 
-  /// Whether the project identified by [projectId] should start hosting its own relay again
+  /// Tell whether the project identified by [projectId] should start hosting its own relay again
   /// automatically the next time it is opened — the local, per-device, never-synchronised
   /// "réhéberger ce projet au démarrage" preference the hosting panel's checkbox toggles.
   ///
@@ -337,12 +368,9 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   Future<bool> loadHostOnLaunch(String projectId) async =>
       await SharedPreferencesItem<bool>(_hostOnLaunchKey(projectId)).load() ?? false;
 
-  /// Stores whether [projectId] should auto-host on the next open — see [loadHostOnLaunch].
+  /// Store whether [projectId] should auto-host on the next open — see [loadHostOnLaunch].
   Future<void> setHostOnLaunch({required String projectId, required bool value}) =>
       SharedPreferencesItem<bool>(_hostOnLaunchKey(projectId)).store(value);
-
-  /// The local-storage key [projectId]'s own "host on launch" flag is stored under.
-  static String _hostOnLaunchKey(String projectId) => 'HOST_ON_LAUNCH_$projectId';
 
   /// Add [project] to [recentProjects], or move it to the front if it's already there.
   ///
@@ -364,7 +392,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     await recentProjects.store(updated);
   }
 
-  /// Updates the entry at [oldPath] to [newPath], keeping its name, `lastOpenedAt` and episode
+  /// Update the entry at [oldPath] to [newPath], keeping its name, `lastOpenedAt` and episode
   /// count, and its position in the list — a move is a change of address, not a fresh open. Does
   /// nothing if [oldPath] isn't in [recentProjects] at all.
   Future<void> updateRecentProjectPath({required String oldPath, required String newPath}) async {
@@ -379,22 +407,33 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     await recentProjects.store(updated);
   }
 
+  /// Get the local-storage key [projectId]'s own "host on launch" flag is stored under.
+  static String _hostOnLaunchKey(String projectId) => 'HOST_ON_LAUNCH_$projectId';
+
   /// Parse the [value] stored in the local storage to the list of recent projects.
   ///
   /// Returns null if the [value] isn't a valid JSON array of recent projects.
   static List<OcptRecentProjectModel>? _parseRecentProjects(String value) {
-    final jsonList = JsonUtility.parseJsonArrayBodyToArray(value, logger: appLogger());
-    if (jsonList == null) {
-      appLogger().w("The recent projects stored in the local storage isn't a JSON array, we "
-          "can't convert it");
-      return null;
+    // Decoded here rather than through the shared helper: on a failure that one logs the whole
+    // body, which holds every project's path and name.
+    List<Map<String, dynamic>>? jsonList;
+    try {
+      jsonList = List<Map<String, dynamic>>.from(jsonDecode(value) as List<dynamic>);
+    } catch (error) {
+      _logger.w(
+        "The recent projects stored in the local storage isn't a JSON array, we "
+        "can't convert it (${error.runtimeType})",
+      );
     }
 
-    final projects = <OcptRecentProjectModel>[];
-    for (final jsonEntry in jsonList) {
-      final project = OcptRecentProjectModel.fromJson(jsonEntry);
-      if (project != null) {
-        projects.add(project);
+    List<OcptRecentProjectModel>? projects;
+    if (jsonList != null) {
+      projects = [];
+      for (final jsonEntry in jsonList) {
+        final project = OcptRecentProjectModel.fromJson(jsonEntry);
+        if (project != null) {
+          projects.add(project);
+        }
       }
     }
 
@@ -415,8 +454,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The editor mode stored in the local storage: $value, isn't a known editor "
-        "mode, we can't convert it");
+    _logger.w(
+      "The editor mode stored in the local storage: $value, isn't a known editor "
+      "mode, we can't convert it",
+    );
     return null;
   }
 
@@ -430,8 +471,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The first weekday stored in the local storage: $value, isn't a known first "
-        "weekday, we can't convert it");
+    _logger.w(
+      "The first weekday stored in the local storage: $value, isn't a known first "
+      "weekday, we can't convert it",
+    );
     return null;
   }
 
@@ -470,8 +513,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The shot list right dock tab stored in the local storage: $value, isn't a "
-        "known tab, we can't convert it");
+    _logger.w(
+      "The shot list right dock tab stored in the local storage: $value, isn't a "
+      "known tab, we can't convert it",
+    );
     return null;
   }
 
@@ -485,8 +530,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The shot list centre view stored in the local storage: $value, isn't a "
-        "known view, we can't convert it");
+    _logger.w(
+      "The shot list centre view stored in the local storage: $value, isn't a "
+      "known view, we can't convert it",
+    );
     return null;
   }
 
@@ -500,8 +547,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The breakdown right dock tab stored in the local storage: $value, isn't a "
-        "known tab, we can't convert it");
+    _logger.w(
+      "The breakdown right dock tab stored in the local storage: $value, isn't a "
+      "known tab, we can't convert it",
+    );
     return null;
   }
 
@@ -515,8 +564,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The schedule right dock tab stored in the local storage: $value, isn't a "
-        "known tab, we can't convert it");
+    _logger.w(
+      "The schedule right dock tab stored in the local storage: $value, isn't a "
+      "known tab, we can't convert it",
+    );
     return null;
   }
 
@@ -530,8 +581,10 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       }
     }
 
-    appLogger().w("The budget right dock tab stored in the local storage: $value, isn't a "
-        "known tab, we can't convert it");
+    _logger.w(
+      "The budget right dock tab stored in the local storage: $value, isn't a "
+      "known tab, we can't convert it",
+    );
     return null;
   }
 
@@ -539,36 +592,38 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   ///
   /// Returns null if the [value] isn't a valid JSON object holding the four margins.
   static FountainPageMargins? _parsePageMargins(String value) {
-    final json = JsonUtility.parseJsonBodyToObj(value, logger: appLogger());
+    final json = JsonUtility.parseJsonBodyToObj(value, logger: _logger);
     if (json == null) {
-      appLogger().w("The page margins stored in the local storage isn't a JSON object, we can't "
-          "convert it");
+      _logger.w(
+        "The page margins stored in the local storage isn't a JSON object, we can't "
+        "convert it",
+      );
       return null;
     }
 
     final leftResult = JsonUtility.getOnePrimaryElement<double>(
       json: json,
       key: _marginLeftKey,
-      logger: appLogger(),
+      logger: _logger,
     );
     final rightResult = JsonUtility.getOnePrimaryElement<double>(
       json: json,
       key: _marginRightKey,
-      logger: appLogger(),
+      logger: _logger,
     );
     final topResult = JsonUtility.getOnePrimaryElement<double>(
       json: json,
       key: _marginTopKey,
-      logger: appLogger(),
+      logger: _logger,
     );
     final bottomResult = JsonUtility.getOnePrimaryElement<double>(
       json: json,
       key: _marginBottomKey,
-      logger: appLogger(),
+      logger: _logger,
     );
 
     if (!leftResult.isOk || !rightResult.isOk || !topResult.isOk || !bottomResult.isOk) {
-      appLogger().w("A problem occurred when tried to get the page margins from the given JSON");
+      _logger.w("A problem occurred when tried to get the page margins from the given JSON");
       return null;
     }
 

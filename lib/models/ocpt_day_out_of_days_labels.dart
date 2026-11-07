@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_day_out_of_days.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_out_of_days_code.dart';
 
 /// Every localized string the exported *Day Out of Days* carries, resolved by the caller.
 ///
@@ -57,9 +57,9 @@ class OcptDayOutOfDaysLabels extends Equatable {
 
   /// The letters printed in the cells themselves, keyed by [OcptDayOutOfDaysCode] — `SW`, `W`,
   /// `WF`, `SWF` and `H`, the codes a *Day Out of Days* is read by the world over. They are carried
-  /// here rather than hard-coded so a production working in another convention can be given its own,
-  /// and they are printed beside [codeDescriptions] on the legend for the reader who does not know
-  /// them.
+  /// here rather than hard-coded so a production working in another convention can be given its
+  /// own, and they are printed beside [codeDescriptions] on the legend for the reader who does not
+  /// know them.
   final Map<OcptDayOutOfDaysCode, String> codeLabels;
 
   /// What each code of [codeLabels] means, in a full sentence-case phrase, keyed by the same enum —
@@ -95,20 +95,22 @@ class OcptDayOutOfDaysLabels extends Equatable {
     required this.emptyTableNote,
   });
 
-  /// The short date of the day [dayId], or an empty string if [dayDateLabels] holds none for it.
+  /// Get the short date of the day [dayId], or an empty string if [dayDateLabels] holds none for
+  /// it.
   String dateOfDay(String dayId) => dayDateLabels[dayId] ?? "";
 
-  /// The letter printed for [code], or an empty string if [codeLabels] holds none for it.
+  /// Get the letter printed for [code], or an empty string if [codeLabels] holds none for it.
   String codeLabelOf(OcptDayOutOfDaysCode code) => codeLabels[code] ?? "";
 
-  /// What [code] means, or an empty string if [codeDescriptions] holds none for it.
+  /// Get what [code] means, or an empty string if [codeDescriptions] holds none for it.
   String codeDescriptionOf(OcptDayOutOfDaysCode code) => codeDescriptions[code] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
-  String toString() => "OcptDayOutOfDaysLabels(documentTitle: $documentTitle, dayCount: ${dayDateLabels.length})";
+  String toString() =>
+      "OcptDayOutOfDaysLabels(documentTitle: $documentTitle, dayCount: ${dayDateLabels.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

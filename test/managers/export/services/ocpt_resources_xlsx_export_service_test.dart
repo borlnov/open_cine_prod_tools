@@ -2,18 +2,23 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_test_utility/act_test_utility.dart';
 import 'package:excel_community/excel_community.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_resources_xlsx_export_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
+import 'package:open_cine_prod_tools/models/ocpt_location_availability.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_skill.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_unavailability.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_element_link.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -26,7 +31,6 @@ import 'package:open_cine_prod_tools/types/ocpt_people_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_roles_xlsx_column.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_weekday_mask.dart';
 
 /// The seven weekday names an availability window's summary cell is built from, keyed by their
 /// `DateTime.monday`…`DateTime.sunday` numbers — the locale's own names in the app, plain English
@@ -43,8 +47,14 @@ const Map<int, String> _weekdayLabels = {
 
 /// The four sheet names every test here exports under, distinct so a mixed-up sheet is caught.
 const _peopleSheetName = "People";
+
+/// The name of the roles sheet the tests look for.
 const _rolesSheetName = "Roles";
+
+/// The name of the locations sheet the tests look for.
 const _locationsSheetName = "Locations";
+
+/// The name of the elements sheet the tests look for.
 const _elementsSheetName = "Elements";
 
 /// Builds the labels the tests export with: every header named after the enum value itself and
@@ -213,8 +223,7 @@ OcptLocation _buildLocation({
 );
 
 /// The weekday mask covering exactly [weekdays].
-int _maskOf(List<int> weekdays) =>
-    weekdays.fold(0, (mask, weekday) => mask | (1 << (weekday - 1)));
+int _maskOf(List<int> weekdays) => weekdays.fold(0, (mask, weekday) => mask | (1 << (weekday - 1)));
 
 /// Builds an availability window of [locationId], covering [weekdays] of the days from
 /// [startDate] to [endDate].
@@ -253,7 +262,7 @@ OcptElement _buildElement({
   String? broughtByPersonId,
   List<OcptSceneElementLink> sceneLinks = const [],
 }) => OcptElement(
-      status: OcptElementStatus.toFind,
+  status: OcptElementStatus.toFind,
   id: id,
   category: category,
   subCategory: "",
@@ -308,8 +317,9 @@ Object? _valueOf(Data? cell) {
 /// The value of column [index] in [row], or null when the row is shorter than that column.
 Object? _cellAt(List<Object?> row, int index) => index < row.length ? row[index] : null;
 
+/// Run the tests of [OcptResourcesXlsxExportService].
 void main() {
-  const service = OcptResourcesXlsxExportService();
+  const service = OcptResourcesXlsxExportService(logger: SilentLogger());
 
   group('xlsxFileName', () {
     test('appends the .xlsx extension and the suffix to the project name', () {
@@ -326,17 +336,19 @@ void main() {
 
   group('generate', () {
     test('writes exactly four sheets, named after the labels, in order', () {
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: const [],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: const [],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       final excel = Excel.decodeBytes(bytes);
       expect(excel.tables.keys, [
@@ -348,17 +360,19 @@ void main() {
     });
 
     test("writes each sheet's header row, one cell per column", () {
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: const [],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: const [],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       expect(_rowsOf(bytes, _peopleSheetName).first, [
         for (final column in OcptPeopleXlsxColumn.values) column.name,
@@ -395,17 +409,19 @@ void main() {
       );
       final role = _buildRole(id: "role-1", number: 1, name: "LÉA", personId: "person-1");
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: [person],
-          roles: [role],
-          locations: const [],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: [person],
+              roles: [role],
+              locations: const [],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       final row = _rowsOf(bytes, _peopleSheetName)[1];
       expect(_cellAt(row, OcptPeopleXlsxColumn.name.index), "Léa Martin");
@@ -439,17 +455,19 @@ void main() {
         ],
       );
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: [location],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(sceneLabels: const {"scene-1": "4 · Cuisine"}),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: [location],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(sceneLabels: const {"scene-1": "4 · Cuisine"}),
+          )
+          .value!;
 
       final rows = _rowsOf(bytes, _locationsSheetName);
       expect(rows, hasLength(3)); // header + 2 set rows
@@ -469,17 +487,19 @@ void main() {
     test('writes a location with no set at all as one row, its set columns left empty', () {
       final location = _buildLocation(id: "location-1", name: "Rue du marché");
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: [location],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: [location],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       final rows = _rowsOf(bytes, _locationsSheetName);
       expect(rows, hasLength(2)); // header + 1 row
@@ -515,17 +535,19 @@ void main() {
         ],
       );
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: [location],
-          elements: const [],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: [location],
+              elements: const [],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       final windows = _cellAt(
         _rowsOf(bytes, _locationsSheetName)[1],
@@ -551,17 +573,19 @@ void main() {
         ],
       );
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: const [],
-          roles: const [],
-          locations: const [],
-          elements: [element],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(sceneLabels: const {"scene-1": "4 · Cuisine"}),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: const [],
+              roles: const [],
+              locations: const [],
+              elements: [element],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(sceneLabels: const {"scene-1": "4 · Cuisine"}),
+          )
+          .value!;
 
       final row = _rowsOf(bytes, _elementsSheetName)[1];
       expect(_cellAt(row, OcptElementsXlsxColumn.name.index), "Vélo rouge");
@@ -579,17 +603,19 @@ void main() {
       final location = _buildLocation(id: "location-1");
       final element = _buildElement(id: "element-1");
 
-      final bytes = service.generate(
-        snapshot: OcptResourcesSnapshot.build(
-          people: [person],
-          roles: [role],
-          locations: [location],
-          elements: [element],
-          candidatesByRoleId: const {},
-          scenes: const [],
-        ),
-        labels: _buildLabels(),
-      );
+      final bytes = service
+          .generate(
+            snapshot: OcptResourcesSnapshot.build(
+              people: [person],
+              roles: [role],
+              locations: [location],
+              elements: [element],
+              candidatesByRoleId: const {},
+              scenes: const [],
+            ),
+            labels: _buildLabels(),
+          )
+          .value!;
 
       final personRow = _rowsOf(bytes, _peopleSheetName)[1];
       expect(_cellAt(personRow, OcptPeopleXlsxColumn.name.index), isNull);

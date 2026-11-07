@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_block_type_dropdown.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests, matching
-/// `editor_page_test.dart`'s own `_wrapWithLocalization` helper.
+/// `editor_page_test_doubles.dart`'s own `_wrapWithLocalization` helper.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
@@ -38,11 +38,15 @@ const _assignableTypesAndLabels = {
   FountainLineType.pageBreak: "Page break",
 };
 
+/// Run the tests of [OcptEditorBlockTypeDropdown].
 void main() {
   testWidgets("shows the localized label of currentType", (tester) async {
     await tester.pumpWidget(
       _wrapWithLocalization(
-        OcptEditorBlockTypeDropdown(currentType: FountainLineType.character, onTypeSelected: (_) {}),
+        OcptEditorBlockTypeDropdown(
+          currentType: FountainLineType.character,
+          onTypeSelected: (_) {},
+        ),
       ),
     );
 

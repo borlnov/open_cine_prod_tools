@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
-import 'package:open_cine_prod_tools/utils/ocpt_schedule_alerts.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
@@ -37,6 +37,7 @@ const _hardAlert = OcptSchedulePersonDoubleBookedAlert(
   secondSlotId: "slot-b",
 );
 
+/// Run the tests of [OcptScheduleDayAlertBadge].
 void main() {
   testWidgets("a day raising nothing draws nothing at all", (tester) async {
     await tester.pumpWidget(_wrapInApp(const OcptScheduleDayAlertBadge(alerts: [])));

@@ -16,6 +16,11 @@ their sets, the elements catalogue, and the two documents the mode prints.
   `OcptLocationsService` and `OcptElementsService`, owned by `OcptProjectsManager` beside the shot
   list's own, and `OcptResourcesBloc` joins their four reads into one `OcptResourcesSnapshot` the
   way `OcptShotListBloc` builds its own.
+  Each stays the one public entry to its area and forwards the groups of writes it would otherwise
+  hold alone to stateless operation classes (`OcptPeopleAssetOps`, `OcptPeopleDetailOps`,
+  `OcptLocationsSetOps`, `OcptLocationsReferenceOps`, `OcptRoleIndexReconcileOps`,
+  `OcptRoleIndexMergeOps`, `OcptElementsSceneLinkOps`, `OcptElementsRoleLinkOps`), so a test double
+  overriding one of its methods is still the one every caller reaches.
   **A person is one row, whatever they do on the film**: `people` is the address book, and both the
   cast (`roles.personId`) and the crew positions (`person_positions`) are links onto it, never
   copies of a name — so the same person can be a role, a position and a location's owner at once. A
@@ -39,10 +44,10 @@ their sets, the elements catalogue, and the two documents the mode prints.
   **`OcptCrewPositionPickerDialog`** (`lib/ui/widgets/`, shared with the schedule mode) is the one
   searchable dialog every position picker of the app opens, replacing the popup menus the catalogue
   outgrew: a search field, case- and accent-insensitive and blind to the inclusive-writing dot
-  (`ocptCrewPositionSearchNormalized`, `lib/utils/`), which also matches each label's masculine and
-  feminine readings (`ocptInclusiveReadingsOf`: `directrice` finds `Directeur·rice`, from the few
-  ending patterns every label of the catalogue follows, a test holding each word to its expected
-  feminine), filters an optional `promoted` list (shown
+  (`ocptCrewPositionSearchNormalized`, `lib/models/rules/`), which also matches each label's
+  masculine and feminine readings (`ocptInclusiveReadingsOf`: `directrice` finds `Directeur·rice`,
+  from the few ending patterns every label of the catalogue follows, a test holding each word to its
+  expected feminine), filters an optional `promoted` list (shown
   first, under its own heading — the person sheet's own picker offers none, the schedule's own
   offers the crew member's declared positions) over the catalogue, grouped by department; an
   `excluded` set is left out everywhere; an optional "Custom label…" entry, reused from the person
@@ -111,7 +116,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   person rather than only ids: `notes` is what somebody wrote about them at an audition, so erasing
   a person blanks it and tombstones the row, in all three implementations kept in step by hand
   (`OcptPeopleService.deletePerson` → `eraseCandidaciesOfPerson`,
-  `OcptProjectVersionsService._scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`).
+  `OcptProjectVersionsPayloadOps.scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`).
   **`OcptRoleSheetCandidatesCard`** sits under the casting card on the role sheet: one row per
   candidacy — `OcptPersonAvatar`, the name, a status pill, the audition date and a foldable note
   riding the sheets' own 2 s debounce through a sixth `pending…FieldEdits` map — the **retained row
@@ -121,7 +126,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   every irreversible action does. A candidacy is added by the shared `OcptResourcesPersonPicker` over
   the whole address book, minus the people already candidates for this role.
   The **roles tab** wears a per-row pill and its header counts `N roles · M cast`, both read off
-  `OcptRoleCastingProgress` (`lib/utils/`, pure and tested), the one place that reading is written:
+  `OcptRoleCastingProgress` (`lib/models/rules/`, pure and tested), the one place that reading is written:
   `cast` when `personId` is set — by hand or by a candidacy, no distinction being drawn — else
   `inProgress` while a lead is left, else `exhausted` when candidacies were recorded and **none** is
   still a lead, else `notStarted`. `exhausted` is its own stage rather than a count of zero because
@@ -143,7 +148,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   character cued in dialogue and one only ever named in capitals in the action alike — since the
   shot list already offers a silent character and the cast must not disagree about who is in the
   screenplay. The two origins are told apart by the same two columns rather than a column of their
-  own, `ocptRoleIsActionDetected` (`lib/utils/`, read by this service and by the role sheet alike)
+  own, `ocptRoleIsActionDetected` (`lib/models/rules/`, read by this service and by the role sheet alike)
   being the one place the rule is written:
 
   | `isFromScreenplay` | `kind` | Means |
@@ -161,7 +166,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   since it may have been cast in the meantime and losing every link is what already handles a
   character leaving the script. A role whose character disappeared keeps its casting and its notes
   and gains an `orphanedName` (`OcptRemovedRoleAlert`, the sibling of
-  `OcptShotRemovedCharacterAlert`), and a hand-added `silent`/`extra` role is never touched.
+  `OcptRoleCollisionAlert`), and a hand-added `silent`/`extra` role is never touched.
   **Rejecting an action-detected role is final**: reading a name out of an action line is a
   convention, not a syntax, so an acronym or a shouted word (`OK`, `STOP`, `INTERPOL`) is
   occasionally read as a character, and `reconcile` refuses to recreate one whose tombstone is
@@ -193,9 +198,9 @@ their sets, the elements catalogue, and the two documents the mode prints.
   A scene is linked to a **set** (`scene_sets`, many-to-many — a continuous action is regularly
   covered in two) and to an **element** (`scene_elements`, the *dépouillement* link, carrying the
   quantity and the note that belong to that scene alone). `ocptSceneSetSuggestionOf`
-  (`lib/utils/`, pure and tested) reduces a heading to the place it names and *offers* the best set
-  at the top of the picker — never applied, since `INT. CUISINE` in two houses is two sets. A set's
-  **location is not one of its fields**: it is what the set belongs to, chosen when it is created
+  (`lib/models/rules/`, pure and tested) reduces a heading to the place it names and *offers* the
+  best set at the top of the picker — never applied, since `INT. CUISINE` in two houses is two sets.
+  A set's **location is not one of its fields**: it is what the set belongs to, chosen when it is created
   and changed only by moving the whole set (`OcptLocationsService.moveSetToLocation`, the sets
   card's own move control, which re-allocates the `sortKey` in the destination), so a set filed
   under the wrong house is repaired rather than deleted and retyped.
@@ -216,9 +221,10 @@ their sets, the elements catalogue, and the two documents the mode prints.
   category change, and `updateElement` owns that rule rather than a bloc, so the breakdown's own
   category chips get it without knowing it exists — a prefix that stopped saying which department
   an item comes from could not be corrected by hand.
-  Everything writes the moment it changes, except the sheets' typed free-text fields: those ride
-  one 2 s debounce shared by the five `pending…FieldEdits` maps, flushed together on a selection
-  change, a tab change, a version preview and the mode leaving the tree. A field may **flag** what
+  Everything writes the moment it changes, except the sheets' typed free-text fields: those ride a
+  2 s debounce, one per view bloc (the six `pending…FieldEdits` maps live in the four view blocs,
+  see *The blocs*), flushed together on a selection change, a tab change, a version preview and the
+  mode leaving the tree. A field may **flag** what
   it holds without refusing it (`ocptEmailFormatError`, `ocptCostCentsOf`, the coordinates): the
   sheets autosave as they are typed, so a field that refused an incomplete value would refuse
   nearly every keystroke.
@@ -226,7 +232,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   and the four of them are answered by one `OcptConfirmDialog` opened by the mode, as in the shot
   list and the breakdown; only the wording differs, and it is the caller's. The removed-role
   banner is the one exception: it deletes straight away, being that question itself.
-  The toolbar's search toggle filters the active tab's list (`lib/utils/ocpt_resources_search.dart`,
+  The toolbar's search toggle filters the active tab's list (`lib/models/rules/ocpt_resources_search.dart`,
   diacritic-folded so `lea` finds `Léa`), each list filtering itself because matching includes the
   localized labels a row shows; the header count then reports what is on screen while the status
   bar keeps counting the whole catalogue.
@@ -245,3 +251,70 @@ their sets, the elements catalogue, and the two documents the mode prints.
   nobody has made. It is stamped by `ocptScheduleGeneratedAtStamp` like the schedule's own
   paperwork, a contact list being reissued as a crew settles, and its options dialog asks the page
   format alone.
+
+## The blocs
+
+- **The mode is one mode bloc and five view blocs** (ADR 0034; `foundations.md` states the idiom).
+  `OcptResourcesMode` builds `OcptResourcesBloc` first, then `OcptResourcesExportBloc` and the
+  people, roles, locations and elements blocs with `lazy: false`, in that order, so each has
+  registered its flusher before a widget reads it. The files sit in
+  `lib/ui/pages/workspace/modes/resources/`; the events are one sealed hierarchy per domain in
+  `events/` (`workspace` for the mode; `people`, `roles`, `locations`, `elements`; `export`), all
+  extending the abstract `OcptResourcesEvent`, and `resources_event.dart` only exports them.
+  - **The mode bloc** holds the catalogue (one `OcptResourcesSnapshot`, the four services' reads
+    joined in memory), the active tab, the selected person, role, location and element, the search,
+    the docks, the one transient write error, the version and package mixins, and the cross-mode
+    reveal of a set's floor plan (`pendingShotListReveal`, taken once by the mode, which switches to
+    the shot list). `OcptResourcesReloadScope` has one value, `snapshot`: the catalogue is read as a
+    whole, and the currency, the page setup, the mileage rates and the sets holding a floor plan are
+    read by a whole load alone.
+  - **The selection is the mode's.** Choosing a record, changing tab, opening a person's sheet
+    from a role (`↗`) or a role's from an element (`Roles concerned`) are mode events that flush
+    first, so moving between tabs through a chip is one state and the sheet it lands on is not
+    deselected in the same frame. A view that creates a record reads the catalogue again and then
+    asks the mode to select it (`OcptResourcesRecordCreatedEvent`, awaited), without switching tab;
+    one that deletes a record asks it to forget the selection if it is that record
+    (`OcptResourcesRecordDroppedEvent`). `OcptResourcesSelectionCause` says why the selection last
+    moved. No view bloc reacts to a selection: nothing a view holds is scoped to the selected
+    record, so a typed edit survives the user moving to another one and is written by its debounce
+    or by the flush the move starts.
+  - **Each view bloc owns the writes of its sheet and the typed fields of it**:
+    `OcptResourcesPeopleBloc` (`pendingFieldEdits`), `OcptResourcesRolesBloc` (the role's name and
+    casting notes, and each candidacy's note, one debounce for the two maps),
+    `OcptResourcesLocationsBloc` (a location's fields and each set's name and notes) and
+    `OcptResourcesElementsBloc` (an element's fields, and the role links the role sheet adds, being
+    written from `OcptElementsService`). A write is the service, then
+    `await modeBloc.reload({snapshot})`.
+    Deleting a role leaves a note typed on one of its candidacies pending, as before the split.
+    Removing a set or a candidacy forgets only its own pending edit; the rest of the bloc's
+    debounce goes on.
+  - **A flush that fails drops every edit of every sheet, and shows the one write error.** A view
+    bloc reads its own failed write, tells the mode
+    (`OcptResourcesPendingEditsLostEvent`, awaited) and empties its maps; the mode raises
+    `hasWriteError` and moves `lostEditsEpoch`, which every other view bloc reacts to by dropping
+    what it holds, before the flush goes on to them. The flushers are asked in the order the mode
+    builds the blocs (people, roles, locations, elements): the ones before the failure have been
+    written, the ones after it find nothing to write, and the fields fall back to the stored value.
+    The action behind the flush (a selection, an export, a version preview) goes ahead, so the
+    mode's flush hooks always answer true. A write that fails outside a flush is reported with
+    `OcptResourcesWriteFailedEvent`: the error is the mode's, never a view's, so a failure is shown
+    once whichever view it came from. A failed read after a write that landed is not a lost edit:
+    the mode raises the write error, the view forgets what it wrote and the flush goes on to the
+    other views, which still write theirs.
+  - **`OcptResourcesExportBloc`** runs the workbook and the contact list and owns the transient
+    notice. Each one first has the mode write what is pending (`flushAllPendingWrites`), then reads
+    the snapshot the mode holds.
+  - **The widgets.** `resources_mode.dart` wires the shell and owns the dialogs: every confirmation
+    (deleting a record, removing a candidacy, merging two roles), the export panel and its options,
+    the version creation and the project settings. Each slot of the shell is one view widget in
+    `widgets/`: `OcptResourcesListPanelView` (left dock), `OcptResourcesCentre` (the role alert
+    banner over the active tab), `OcptResourcesRightDockView`, `OcptResourcesReadOnlyBanner` and
+    `OcptResourcesSearchToggle`. The centre picks one sheet view per tab (`OcptResourcesPersonSheetView`,
+    `OcptResourcesRoleSheetView`, `OcptResourcesLocationSheetView`,
+    `OcptResourcesElementSheetView`); each reads the mode state it is handed and wraps its sheet in
+    a `BlocBuilder` on that tab's view bloc alone, so a keystroke redraws the sheet and not the
+    shell. A sheet view only *asks* for an irreversible action, through a callback the mode answers
+    with `OcptConfirmDialog`. The one `MultiBlocListener`-style effect of the view blocs is the
+    export notice (`OcptResourcesViewEffects`). The folder holds one public type per file, and no
+    widget builds a piece of itself with a `_build…` method: a part used once is a private widget
+    of its file, a part shared is a widget of its own.

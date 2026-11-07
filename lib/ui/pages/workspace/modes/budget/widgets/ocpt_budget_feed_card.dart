@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The "what feeds this budget" card: three rows, each a title, a one-line reading and a click that
@@ -12,8 +12,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 ///
 /// **Each callback is nullable, and a null one withholds its own row whole** — the app's standing
 /// "withheld, not disabled" rule, applied here to a row rather than a whole control: the
-/// catering-and-travel pass draws this very card at its own top, and a click through to itself would
-/// be a link to the page the reader is already standing on, so it passes null for
+/// catering-and-travel pass draws this very card at its own top, and a click through to itself
+/// would be a link to the page the reader is already standing on, so it passes null for
 /// [onCateringFeedRequested] rather than drawing a row that does nothing.
 ///
 /// **The unpriced-elements count read by [_OcptFeedCardRow]'s own breakdown row is deliberately not
@@ -58,6 +58,7 @@ class OcptBudgetFeedCard extends StatelessWidget {
     required this.onCateringFeedRequested,
   });
 
+  /// Build the budget feed card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -82,7 +83,10 @@ class OcptBudgetFeedCard extends StatelessWidget {
             if (onBreakdownFeedRequested != null)
               _OcptFeedCardRow(
                 title: tr.budgetDashboardFeedBreakdownTitle,
-                readOut: tr.budgetDashboardFeedBreakdownReadOut(breakdownPricedElementCount, elementCount),
+                readOut: tr.budgetDashboardFeedBreakdownReadOut(
+                  breakdownPricedElementCount,
+                  elementCount,
+                ),
                 onTap: onBreakdownFeedRequested!,
               ),
             if (onScheduleFeedRequested != null)
@@ -104,8 +108,8 @@ class OcptBudgetFeedCard extends StatelessWidget {
   }
 }
 
-/// One row of [OcptBudgetFeedCard]: a title, a one-line reading, and a `›` chevron hinting the whole
-/// row is a click through to wherever [readOut] was typed.
+/// One row of [OcptBudgetFeedCard]: a title, a one-line reading, and a `›` chevron hinting the
+/// whole row is a click through to wherever [readOut] was typed.
 class _OcptFeedCardRow extends StatelessWidget {
   /// The row's own title.
   final String title;
@@ -119,18 +123,19 @@ class _OcptFeedCardRow extends StatelessWidget {
   /// Class constructor
   const _OcptFeedCardRow({required this.title, required this.readOut, required this.onTap});
 
+  /// Build the feed card row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           vertical: 8,
-          horizontal: ocptTableRowHorizontalPadding,
+          horizontal: ocpt_theme.ocptTableRowHorizontalPadding,
         ),
         child: Row(
           children: [
@@ -148,7 +153,9 @@ class _OcptFeedCardRow extends StatelessWidget {
                 readOut,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant),

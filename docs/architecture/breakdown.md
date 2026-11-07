@@ -72,7 +72,7 @@ progress per scene, and the two documents it prints.
   *not* what the same click does in `OcptShotCoverageDialog`, where it removes the range: here a tag
   has a sheet worth inspecting, and losing one by mis-clicking while reading is the worse failure.
   A repeated occurrence elsewhere in the script is **offered, never applied**
-  (`lib/utils/ocpt_breakdown_suggestions.dart`, whole-word and diacritic-folded), the principle
+  (`lib/models/rules/ocpt_breakdown_suggestions.dart`, whole-word and diacritic-folded), the principle
   `ocptSceneSetSuggestionOf` already follows. The header's search filters the recap's **rows** and
   never its columns, and typing into it from the script view switches to the recap carrying the
   text: the script is a reading surface, and the answer to "where is this?" is a table.
@@ -125,3 +125,75 @@ progress per scene, and the two documents it prints.
   sheet disagreeing with it would be the workbook contradicting itself. The workbook asks **no
   options at all**, exactly as the shot list's and the resources' own do: picking its card goes
   straight to the native save dialog.
+
+## The blocs
+
+- **The mode is one mode bloc and three view blocs** (ADR 0034; `foundations.md` states the idiom).
+  The mode is not cut by central view: the script and the recap are two renderings of the same
+  data, and the recap holds no selection of its own and writes nothing. What carries its own state
+  and its own writes is a *function*, so the cut is by function: tagging the script, the inspector
+  and the exports. `OcptBreakdownMode` builds `OcptBreakdownBloc` first, then
+  `OcptBreakdownExportBloc`, `OcptBreakdownInspectorBloc` and `OcptBreakdownTaggingBloc` with
+  `lazy: false`, so each has registered its flusher before a widget reads it. The files sit in
+  `lib/ui/pages/workspace/modes/breakdown/`; the events are one sealed hierarchy per domain in
+  `events/` (`workspace` for the mode's chrome, the legend, the centre and its search, `selection`,
+  `tagging`, `inspector`, `export`), all extending the abstract `OcptBreakdownEvent`, and
+  `breakdown_event.dart` only exports them.
+  - **The mode bloc** holds the snapshot (the scenes and tags joined with the four catalogues, one
+    `OcptBreakdownSnapshot`), the screenplay text and the page setup the script is typeset with,
+    the selected scene and the selected target (with the suggested occurrences derived from them),
+    the legend's hidden keys, the centre view and the search, the docks, the version and package
+    mixins, and the pending-writes contract. `OcptBreakdownReloadScope` has one value, `snapshot`:
+    the snapshot is read as a whole, and the screenplay text and the page setup are read by a whole
+    load alone, the page setup also by the project settings page, which moves no selection.
+  - **The selection is the mode's**, and every way of moving it names itself in
+    `OcptBreakdownSelectionCause` and moves `selectionEpoch`, also when the selection ends on the
+    very same row. Selecting a scene from the left dock or from a target's occurrences is quiet
+    (`scene`: it leaves the selected target and the right dock alone), whereas a click on a script
+    heading is loud (`sceneHeading`: it drops the selected target, opens the right dock on the
+    `Inspector` tab and returns to it from `Versions`). Selecting a target (`target`) also selects
+    the scene the click happened in and opens the `Inspector` tab; clearing it is `targetCleared`.
+    A first click of the script that opens an anchor in another scene selects that scene
+    (`anchorScene`, `OcptBreakdownAnchorSceneSelectedEvent`), which differs from `scene` in the
+    one stale case: a scene that is gone drops the scene selection instead of being ignored. The
+    `centreView` cause is not a selection but the centre leaving the script (the header's switch,
+    asked for again or not, or a search typed from the script, which switches to the recap), and
+    `load` is a whole read, which clears both selections. Every selection first has every view
+    write what it holds; the switch of the centre and a whole read do not (the callers of the
+    latter flush before they ask). The events a view must
+    wait for (`OcptBreakdownTargetSelectedEvent`, `OcptBreakdownAnchorSceneSelectedEvent`) are
+    registered with `onAwaited`.
+  - **`OcptBreakdownTaggingBloc`** owns the range the script is being tagged with
+    (`pendingTagAnchor`, `pendingTagRange`) and the refusal notice (`hasTagWriteError`), and writes
+    the three answers of the popover and the suggestions accepted from the target inspector. A
+    popover answer is the service, then `await modeBloc.reload({snapshot})`, then the move of the
+    mode's selection to the new target on the `Inspector` tab (awaited), and only then the popover
+    closes and the anchor clears: a read that fails leaves the range open rather than select a
+    target the snapshot may not hold, and a refused write leaves it open with the notice raised. A
+    suggestion accepted reads again and leaves the selection where it is. **It reacts to two causes
+    and to nothing else**: `load` drops the anchor, the range and the notice (the script they
+    belonged to is another one, which is also what a preview does: it keeps the search text and the
+    choice of script or recap but drops the selection and the pending anchor), and `centreView`
+    drops the anchor and the range. A scene or a target being selected clears nothing, so an anchor
+    opened in one scene survives the user browsing the left dock until the next click replaces it.
+  - **`OcptBreakdownInspectorBloc`** owns the typed edits of the two sheets
+    (`pendingElementFieldEdits`, `pendingSceneNotesEdits`, `pendingSetNameEdits`, one debounce for
+    the three) and every write of them: a scene's status and notes, the sets linked to a scene, a
+    target's status, category, owner, who brings it, name and fields, the tag removal, the
+    `needsCheck` clearing and the removal of a flagged tag. A write is the service, then
+    `await modeBloc.reload({snapshot})`. It reacts to `load` alone, by dropping every typed edit
+    (the caller flushed first whenever losing one would matter); an ordinary re-read after a write,
+    a selection and the project settings page clear nothing, and nothing is pruned for a row that
+    disappeared from the snapshot.
+  - **`OcptBreakdownExportBloc`** runs the sheets PDF and the workbook and owns the transient
+    notice. Each one first has the mode write what is pending (`flushAllPendingWrites`), then reads
+    the snapshot, the screenplay text, the page setup and the title the mode holds.
+  - **A flush never stops what it was asked for.** The inspector reads its own failure: a write
+    that fails is logged by its service, the edits it meant to write are forgotten, the snapshot
+    is not read, and the flush answers true, so a selection, a preview, a restore, a saved
+    version, a package export and an export all go ahead on the value the database holds, as they
+    always did. A read that
+    fails after a write that landed forgets what was written all the same. What a flush waits for
+    is the mode's own: a selection, a right dock tab change, a word click that closes a range, a
+    tag write and every export flush first; switching between the script and the recap, toggling a
+    dock and the legend do not.

@@ -17,15 +17,16 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 /// [OcptChangeset.decode] are the two ends of that opaque byte string; every other member is this
 /// class's own JSON shape, carried the same way every other model in `lib/models/` carries one.
 class OcptChangeset extends Equatable {
+  /// The JSON key of the field stamps.
   static const _fieldStampsKey = 'fieldStamps';
 
   /// Every field stamp this changeset carries.
   final List<OcptFieldStamp> fieldStamps;
 
-  /// Creates a changeset out of [fieldStamps].
+  /// Create a changeset out of [fieldStamps].
   const OcptChangeset({required this.fieldStamps});
 
-  /// Parses a changeset from the JSON object [toJson] writes.
+  /// Parse a changeset from the JSON object [toJson] writes.
   factory OcptChangeset.fromJson(Map<String, dynamic> json) => OcptChangeset(
     fieldStamps: [
       for (final entry in json[_fieldStampsKey] as List<dynamic>)
@@ -33,23 +34,25 @@ class OcptChangeset extends Equatable {
     ],
   );
 
-  /// Parses a changeset from the bytes an `OcptChangesetEnvelope.payload` carries — the inverse of
+  /// Parse a changeset from the bytes an `OcptChangesetEnvelope.payload` carries — the inverse of
   /// [encode].
   factory OcptChangeset.decode(Uint8List bytes) =>
       OcptChangeset.fromJson(jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
 
-  /// Serialises this changeset to the JSON object it is carried as.
+  /// Serialise this changeset to the JSON object it is carried as.
   Map<String, dynamic> toJson() => {
     _fieldStampsKey: [for (final stamp in fieldStamps) stamp.toJson()],
   };
 
-  /// Serialises this changeset to the JSON bytes an `OcptChangesetEnvelope.payload` carries — the
+  /// Serialise this changeset to the JSON bytes an `OcptChangesetEnvelope.payload` carries — the
   /// inverse of [OcptChangeset.decode].
   Uint8List encode() => Uint8List.fromList(utf8.encode(jsonEncode(toJson())));
 
-  @override
-  List<Object?> get props => [fieldStamps];
-
+  /// Describe this [OcptChangeset] for debugging and logging.
   @override
   String toString() => 'OcptChangeset(fieldStamps: $fieldStamps)';
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [fieldStamps];
 }

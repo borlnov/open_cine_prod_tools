@@ -8,7 +8,7 @@ import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -22,17 +22,19 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close a
 /// dialog opened through `showDialog` (the export panel, the shooting plan options dialog)
 /// exactly as the real `GoRouter.pop` would — both push onto the very same root `Navigator`. See
-/// `test/ui/pages/editor/editor_page_test.dart`'s own instance of the same pattern.
+/// `test/ui/pages/editor/editor_page_test_doubles.dart`'s own instance of the same pattern.
 final _navigatorKey = GlobalKey<NavigatorState>();
 
 /// A router manager whose [pop] pops [_navigatorKey]'s own navigator, so a dialog opened through
 /// `showDialog` genuinely closes: this mode's own bloc resolves its router manager from
 /// `globalGetIt()`, with no real GoRouter for `pop` to delegate to.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     final navigator = _navigatorKey.currentState;
@@ -44,12 +46,12 @@ class _RecordingRouterManager extends OcptRouterManager {
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests,
 /// [_navigatorKey] so [_RecordingRouterManager.pop] can close a dialog opened through
-/// `showDialog`, [ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension
-/// resolve one, and a bare [Scaffold]: unlike `EditorPage`, a production mode expects the real
-/// `WorkspacePage` to provide one.
+/// `showDialog`, [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors`
+/// extension resolve one, and a bare [Scaffold]: unlike `OcptEditorPage`, a production mode expects
+/// the real `OcptWorkspacePage` to provide one.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
   navigatorKey: _navigatorKey,
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -60,6 +62,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptScheduleMode].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
@@ -97,7 +100,7 @@ void main() {
   });
 
   tearDown(() async {
-    await projectsManager.closeCurrentProject();
+    await projectsManager.closeCurrentProject().okOrFail;
     await tempDir.delete(recursive: true);
   });
 
@@ -106,39 +109,38 @@ void main() {
   Finder inPanel(Finder matching) =>
       find.descendant(of: find.byType(AlertDialog), matching: matching);
 
-  testWidgets(
-    "with no day planned, every card of the export panel is unavailable and says why",
-    (tester) async {
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets("with no day planned, every card of the export panel is unavailable and says why", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
+    await tester.pumpAndSettle();
 
-      final tr = Tr.of(tester.element(find.byType(OcptScheduleMode)));
+    final tr = Tr.of(tester.element(find.byType(OcptScheduleMode)));
 
-      await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(tr.workspaceExportTooltip));
+    await tester.pumpAndSettle();
 
-      expect(find.text(tr.scheduleExportPanelTitle), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelCallSheetsTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelNamedCallSheetsTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanXlsxTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelDayOutOfDaysTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelOneLineScheduleTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportPanelSidesTitle)), findsOneWidget);
-      expect(inPanel(find.text(tr.scheduleExportUnavailableReason)), findsNWidgets(7));
-      expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanDescription)), findsNothing);
+    expect(find.text(tr.scheduleExportPanelTitle), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelCallSheetsTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelNamedCallSheetsTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanXlsxTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelDayOutOfDaysTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelOneLineScheduleTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportPanelSidesTitle)), findsOneWidget);
+    expect(inPanel(find.text(tr.scheduleExportUnavailableReason)), findsNWidgets(7));
+    expect(inPanel(find.text(tr.scheduleExportPanelShootingPlanDescription)), findsNothing);
 
-      // Unavailable: tapping it pops nothing, so the panel stays open.
-      await tester.tap(inPanel(find.text(tr.scheduleExportPanelShootingPlanTitle)));
-      await tester.pumpAndSettle();
-      expect(find.text(tr.scheduleExportPanelTitle), findsOneWidget);
-    },
-  );
+    // Unavailable: tapping it pops nothing, so the panel stays open.
+    await tester.tap(inPanel(find.text(tr.scheduleExportPanelShootingPlanTitle)));
+    await tester.pumpAndSettle();
+    expect(find.text(tr.scheduleExportPanelTitle), findsOneWidget);
+  });
 
   testWidgets(
     "once a day is planned, picking the shooting plan card opens its own export options dialog",
@@ -149,10 +151,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      final dayId = await projectsManager.scheduleService.createDay(
-        database: project.database,
-        date: DateTime(2026, 8, 10),
-      );
+      final dayId = await projectsManager.scheduleService
+          .createDay(database: project.database, date: DateTime(2026, 8, 10))
+          .maybeValueOrFail;
       expect(dayId, isNotNull);
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
@@ -184,10 +185,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      final dayId = await projectsManager.scheduleService.createDay(
-        database: project.database,
-        date: DateTime(2026, 8, 10),
-      );
+      final dayId = await projectsManager.scheduleService
+          .createDay(database: project.database, date: DateTime(2026, 8, 10))
+          .maybeValueOrFail;
       expect(dayId, isNotNull);
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
@@ -230,7 +230,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.createEpisode(database: project.database);
+      await projectsManager.screenplayService
+          .createEpisode(database: project.database)
+          .maybeValueOrFail;
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
       await tester.pumpAndSettle();
