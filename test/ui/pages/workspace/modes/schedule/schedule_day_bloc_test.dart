@@ -664,7 +664,7 @@ void main() {
       await bloc.close();
     });
 
-    test("the mode reading everything again drops what was typed", () async {
+    test("coming back from the project settings writes what was typed before reading", () async {
       final fixture = await writePlacedShot();
       final bloc = buildBloc();
       final dayBloc = buildDay(bloc, fieldEditDebounce: _neverDebounce);
@@ -675,7 +675,7 @@ void main() {
       bloc.add(const OcptScheduleProjectSettingsChangedEvent());
       await waitForDayState(dayBloc, (state) => state.pendingFieldEdits.isEmpty);
 
-      expect((await readSchedule()).slotsByDayId[fixture.dayId]!.single.label, isEmpty);
+      expect((await readSchedule()).slotsByDayId[fixture.dayId]!.single.label, "Cave");
 
       await dayBloc.close();
       await bloc.close();

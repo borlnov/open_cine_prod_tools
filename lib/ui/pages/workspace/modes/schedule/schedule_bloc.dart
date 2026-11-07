@@ -948,6 +948,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleProjectSettingsChangedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
+    // Reading everything again drops every pending edit, so what is typed is written first. A
+    // flush that fails stops here: the edit stays pending and on screen, and the next read waits.
+    if (!await _flushAllPendingWrites(emitter)) {
+      return;
+    }
+
     final _ = await _load(emitter);
   }
 }
