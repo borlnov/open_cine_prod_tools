@@ -93,10 +93,17 @@ void main() {
         ),
       };
 
+  /// The handlers whose write is one transaction, which read the mode again after a failure.
+  const atomic = {
+    "creating a resource",
+    "writing the fields of a created resource",
+    "updating a resource",
+  };
+
   for (final entry in cases.entries) {
     final test_ = entry.value;
     test(
-      "${entry.key} stops, reads nothing again, and goes through once the refusal is lifted",
+      "${entry.key} stops, leaves the stored resources as they were, and goes through once lifted",
       () async {
         final built = await build();
         final held = harness.state;
@@ -105,11 +112,17 @@ void main() {
         built.view.add(test_.event(built.resourceIds));
         await harness.settle();
 
-        expect(
-          harness.state.reloadEpoch,
-          held.reloadEpoch,
-          reason: "the mode was read again after a failed write",
-        );
+        if (atomic.contains(entry.key)) {
+          // The write is one transaction: the screen is read again, and shows what is stored.
+          expect(harness.state.reloadEpoch, isNot(held.reloadEpoch));
+          expect(harness.state.resources, held.resources);
+        } else {
+          expect(
+            harness.state.reloadEpoch,
+            held.reloadEpoch,
+            reason: "the mode was read again after a failed write",
+          );
+        }
         expect(harness.state.selection, held.selection);
 
         await harness.lift(test_.verb, "budget_resources");

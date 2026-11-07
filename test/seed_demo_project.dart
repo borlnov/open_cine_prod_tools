@@ -123,6 +123,7 @@ void main() {
   final budgetFinancingService = OcptBudgetFinancingService(
     logger: const SilentLogger(),
     deviceId: deviceId,
+    quoteService: OcptBudgetQuoteService(logger: const SilentLogger(), deviceId: deviceId),
   );
   final budgetSharingService = OcptBudgetSharingService(
     logger: const SilentLogger(),

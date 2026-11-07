@@ -5,23 +5,17 @@
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_allowances_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_selection.dart';
-import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_financing_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_form_writes.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 
 /// This is the bloc class for the budget mode's financing views: the financing plan (the
@@ -83,12 +77,10 @@ class OcptBudgetFinancingBloc
 
   /// Create a new financing resource from `event.fields` and select it.
   ///
-  /// [OcptBudgetFinancingService.createResource] mints the row from a label alone (mirroring
-  /// `OcptBudgetQuoteService.createAccount`'s own shape, unlike `createCommitment`'s single
-  /// insert): every other field `event.fields` collected is written straight after, in the very
-  /// same [OcptBudgetFinancingService.updateResource] call [_onResourceUpdateConfirmed] itself
-  /// uses, so there is exactly one place that turns a whole [OcptBudgetResourceFormFields] into a
-  /// write.
+  /// [OcptBudgetFinancingService.createResourceWithFields] writes the row, its fields and the
+  /// counterpart quote line of an in-kind contribution in one transaction, the same write
+  /// [_onResourceUpdateConfirmed] uses for an edit. The snapshot is read again on a failure too, so
+  /// the screen shows what the database holds.
   Future<void> _onResourceCreationConfirmed(
     OcptBudgetResourceCreationConfirmedEvent event,
     Emitter<OcptBudgetFinancingState> emitter,
@@ -104,16 +96,11 @@ class OcptBudgetFinancingBloc
       fields: fields,
     );
     if (created.isError) {
+      await modeBloc.reload({OcptBudgetReloadScope.snapshot});
       return;
     }
 
     final resourceId = created.value;
-    if (resourceId != null) {
-      final reconciled = await _reconcileInKindCounterpartLine(project, resourceId, fields);
-      if (reconciled.isError) {
-        return;
-      }
-    }
 
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
       return;
@@ -145,15 +132,7 @@ class OcptBudgetFinancingBloc
       fields: event.fields,
     );
     if (written.isError) {
-      return;
-    }
-
-    final reconciled = await _reconcileInKindCounterpartLine(
-      project,
-      event.resourceId,
-      event.fields,
-    );
-    if (reconciled.isError) {
+      await modeBloc.reload({OcptBudgetReloadScope.snapshot});
       return;
     }
 
@@ -197,90 +176,6 @@ class OcptBudgetFinancingBloc
     }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
-  }
-
-  /// Keep in-kind contribution `resourceId`'s own counterpart quote line in step with `fields`,
-  /// called right after `OcptBudgetFinancingFormWrites.writeResourceFields` writes the contribution
-  /// itself, from both [_onResourceCreationConfirmed] and [_onResourceUpdateConfirmed] — the
-  /// resource and its counterpart line are two rows kept in step by one caller, the same "one
-  /// write, two rows" shape [OcptBudgetLinePaidDirectlyEvent] already uses to create a commitment
-  /// and its entry together (`docs/architecture/budget.md`, "A quote line is paid directly, the
-  /// commitment made for it").
-  ///
-  /// **Exactly one counterpart line exists whenever `fields` describes an in-kind contribution,
-  /// and none does otherwise** — the invariant `docs/architecture/budget.md`'s "A balanced in-kind
-  /// contribution" argues for:
-  /// - not in kind any more (or never was): the existing line, if any, is tombstoned — a
-  ///   reclassification away from in-kind offsets no account any more.
-  /// - in kind, no line yet: one is minted, quantity 1 (`quantityMilli` 1000), tax-inclusive,
-  ///   frozen at 0 % VAT (a valuation, not an invoice — "The link, and where the single truth
-  ///   lives"), the figure and label read straight off `fields`.
-  /// - in kind, a line already exists, same account: an ordinary field update — the label and the
-  ///   amount follow the contribution; the quantity and the 0 % rate are never touched again.
-  /// - in kind, a line already exists, a **different** account: deleted and re-minted in the new
-  ///   one, never moved in place. `budget_lines.sortKey` is fractional **within its own
-  ///   `accountId`** (`OcptBudgetAccountsTable` orders flat; `budget_lines` orders "like a shot
-  ///   within a scene"), so re-account-ing a line is really a second operation — its position among
-  ///   a different account's own lines — wearing the name of a field write
-  ///   (`docs/architecture/budget.md`, "A commitment's account is editable, a quote line's is
-  ///   not").
-  ///
-  /// `OcptBudgetResourceDialog`'s own account picker already blocks confirming an in-kind
-  /// contribution with no account chosen, so `fields.accountId == null` here should not occur; this
-  /// writes nothing rather than mint an orphaned line if it somehow does.
-  ///
-  /// Stops at the first write that failed and answers its failure.
-  @useResult
-  Future<OcptDatabaseOutcome> _reconcileInKindCounterpartLine(
-    OcptOpenProjectModel project,
-    String resourceId,
-    OcptBudgetResourceFormFields fields,
-  ) async {
-    final existing = ocptBudgetInKindCounterpartLineOf(modeBloc.state.accounts, resourceId);
-
-    if (fields.groupKind != OcptBudgetResourceGroupKind.inKind) {
-      if (existing != null) {
-        return _budgetQuoteService.deleteLine(database: project.database, lineId: existing.id);
-      }
-      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
-    }
-
-    final desiredAccountId = fields.accountId;
-    if (desiredAccountId == null) {
-      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
-    }
-
-    if (existing != null && existing.accountId == desiredAccountId) {
-      return _budgetQuoteService.updateLine(
-        database: project.database,
-        lineId: existing.id,
-        label: Value(fields.label),
-        unitAmountCents: Value(fields.amountCents),
-      );
-    }
-
-    if (existing != null) {
-      final deleted = await _budgetQuoteService.deleteLine(
-        database: project.database,
-        lineId: existing.id,
-      );
-      if (deleted.isError) {
-        return deleted;
-      }
-    }
-
-    final created = await _budgetQuoteService.createLine(
-      database: project.database,
-      accountId: desiredAccountId,
-      label: fields.label,
-      quantityMilli: const Value(1000),
-      unitAmountCents: Value(fields.amountCents),
-      isTaxInclusive: const Value(true),
-      vatRateBasisPoints: const Value(0),
-      inKindResourceId: Value(resourceId),
-    );
-
-    return OcptDatabaseOutcome(status: created.status, extraInfo: created.extraInfo);
   }
 
   /// Create a defrayal from `event.fields`.

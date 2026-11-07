@@ -108,16 +108,15 @@ Map<String, int> ocptBudgetInKindCoveredCentsByAccountId(List<OcptBudgetAccount>
 /// every account, whose [OcptBudgetLine.inKindResourceId] names it — or null while it has none: an
 /// ordinary contribution not (or not yet) in kind, or one whose line has not been minted.
 ///
-/// **There is always at most one.** `OcptBudgetBloc`'s own in-kind reconciliation
-/// (`budget_bloc.dart`) keeps exactly one counterpart line per in-kind contribution in step across
+/// **There is always at most one.** `OcptBudgetFinancingService`'s own in-kind
+/// reconciliation keeps exactly one counterpart line per in-kind contribution in step across
 /// every edit, so this never has more than one match to choose between — see
 /// `docs/architecture/budget.md`, "A balanced in-kind contribution", for the single-line invariant.
 ///
 /// Takes [accounts] with their own lines already loaded, exactly as
 /// [ocptBudgetInKindCoveredCentsByAccountId] does — this file does no database access of its own,
 /// and both the mode's own resource detail panel/dialog (reading the account a contribution
-/// offsets) and the bloc's own reconciliation (finding the line to update, re-home or drop) share
-/// this one lookup.
+/// offsets) and the mode's own views share this one lookup.
 OcptBudgetLine? ocptBudgetInKindCounterpartLineOf(
   List<OcptBudgetAccount> accounts,
   String resourceId,

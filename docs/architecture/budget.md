@@ -523,20 +523,18 @@ tables and the version codec pin on purpose.
     edits it wrote are forgotten (only those whose value is still the one written). A mode that
     reads everything again (entry, a version preview, a restore) drops them unwritten; an ordinary
     re-read leaves them alone, including those typed into a row deleted meanwhile, as before the
-    split. Paying a line directly is still not atomic: the commitment is written, then the entry,
-    and a failure between the two leaves the commitment behind and reads nothing.
+    split.
   - **`OcptBudgetCashJournalBloc`** writes the entries and the commitments: creating, editing and
     deleting each, settling a commitment, undoing a settlement on every entry that names it,
     promoting an entry or a commitment into the quote, moving an entry off the quote. An entry
     dialog can name a resource, a taking or a share still to be made; the bloc creates it through
-    the same writes the owning view uses (`budget_form_writes.dart`,
-    `budget_journal_form_writes.dart` and `budget_sharing_form_writes.dart`, extensions on the
-    services),
-    so the row is the same whichever door it came through.
+    the same writes the owning view uses
+    (`OcptBudgetFinancingService.createResourceWithFields`, `budget_journal_form_writes.dart` and
+    `budget_sharing_form_writes.dart`, the last two extensions on the services), so the row is the
+    same whichever door it came through.
   - **`OcptBudgetFinancingBloc`** writes the resources, the defrayals and the provisioning of an
-    account, and keeps an in-kind contribution's counterpart quote line in step (it reads the
-    accounts from the mode when it needs them). Deleting a contribution takes its counterpart line
-    with it.
+    account, and, through the financing service, keeps an in-kind contribution's counterpart quote
+    line in step. Deleting a contribution takes its counterpart line with it.
   - **`OcptBudgetSharingBloc`** writes the takings and the shares.
   - **The three blocs that type nothing hold no state of their own.** Their state classes are
     empty: the data is the mode's, the selection is the mode's, and none of their fields is typed
@@ -1674,16 +1672,18 @@ tables and the version codec pin on purpose.
   CNC account picker — the same one a commitment offers — only while the selected kind is `inKind`,
   on creation and on an edit that turns a resource into one; a subsidy or a cash contribution never
   shows it. `OcptBudgetResourceFormFields.accountId` carries the pick.
-- **One counterpart line, kept in step by one write.** `OcptBudgetFinancingBloc`'s own
-  reconciliation (`_reconcileInKindCounterpartLine`, run right after the resource's own fields
-  are written, the same "one write, two rows" shape `OcptBudgetLinePaidDirectlyEvent` already
-  uses) keeps exactly one counterpart line whenever a contribution is in kind, and none otherwise:
-  it mints one where there is none, follows the label and the amount on an ordinary edit,
-  **re-homes** the line — deleted and re-minted, never moved in place, since
-  `budget_lines.sortKey` is fractional within
-  its own account ("A commitment's poste is editable, a quote line's is not") — when the account
-  changes, drops it on a reclassification away from in kind, and tombstones it with the
-  contribution when that is deleted.
+- **One counterpart line, kept in step by one transaction.**
+  `OcptBudgetFinancingService.createResourceWithFields` and `writeResourceFields` write the
+  resource's fields and reconcile its line in **one transaction** (the line itself written through
+  `OcptBudgetQuoteService`, aborting on its failure), so a refused line write never leaves the
+  contribution created or edited without its counterpart; the bloc makes one call and reads the
+  snapshot again whether it failed or not. The reconciliation keeps exactly one counterpart line
+  whenever a contribution is in kind, and none otherwise: it mints one where there is none,
+  follows the label and the amount on an ordinary edit, **re-homes** the line — deleted and
+  re-minted, never moved in place, since `budget_lines.sortKey` is fractional within its own
+  account ("A commitment's poste is editable, a quote line's is not") — when the account changes,
+  drops it on a reclassification away from in kind, and tombstones it with the contribution when
+  that is deleted.
 - **Covered in kind, netted out.** A counterpart line stays in its account's quoted total like any
   real quote line (`ocptBudgetAccountQuotedTotalCents` counts it), which is what lifts the needs
   side by the valuation and lets the needs/resources balance net to zero against the contribution on
