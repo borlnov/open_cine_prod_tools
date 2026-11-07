@@ -528,10 +528,10 @@ tables and the version codec pin on purpose.
     deleting each, settling a commitment, undoing a settlement on every entry that names it,
     promoting an entry or a commitment into the quote, moving an entry off the quote. An entry
     dialog can name a resource, a taking or a share still to be made; the bloc creates it through
-    the same writes the owning view uses
-    (`OcptBudgetFinancingService.createResourceWithFields`, `budget_journal_form_writes.dart` and
-    `budget_sharing_form_writes.dart`, the last two extensions on the services), so the row is the
-    same whichever door it came through.
+    the same writes the owning view uses (`OcptBudgetFinancingService.createResourceWithFields` and
+    `OcptBudgetSharingService.createRevenueWithFields`/`createShareWithFields`, each one
+    transaction, and `budget_journal_form_writes.dart`, an extension on the journal service), so
+    the row is the same whichever door it came through.
   - **`OcptBudgetFinancingBloc`** writes the resources, the defrayals and the provisioning of an
     account, and, through the financing service, keeps an in-kind contribution's counterpart quote
     line in step. Deleting a contribution takes its counterpart line with it.
