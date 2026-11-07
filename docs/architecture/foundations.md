@@ -591,7 +591,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   devcontainer carries no Android SDK, so the Android build is **CI-verified only**; the local
   verification gate stays `flutter build linux --debug`.
 
-- Persistence: drift schema v4, frozen at 0.3.0 (ADR 0029). `onCreate` creates the whole
+- Persistence: drift schema v5, the pending step of the cycle after 0.3.0, which froze v4
+  (ADR 0029). `onCreate` creates the whole
   schema at once — `project_info`, `screenplays`, `screenplay_snapshots`, `scenes`, the three shot
   list tables, the five storyboard and floor plan tables (`storyboard_panels`,
   `storyboard_annotations`, `floor_plan_sets`, `floor_plan_symbols`, `floor_plan_arrows`,
@@ -615,17 +616,19 @@ the persistence, the project versions, the sync-ready data model and the read-on
   — `shot_characters` reshaped from `{shotId, characterName}` to `{shotId, roleId}`, the first
   non-additive step this project ships (ADR 0030); the 0.3.0 release froze v4 — the five tables
   above, fully additive, the shot list's storyboard and floor plans (`shot-list.md`). Two constants
-  govern this: `currentSchemaVersion` (4) and `lastStableSchemaVersion` (4, frozen at 0.3.0). While
-  `current == lastStable + 1` a cycle is open and the pending step is rewritten in place; while
-  `current == lastStable` the top step is frozen — the state today — so the next schema change
-  creates a new one, `ocpt_migration_v5.dart`. Freezing sets `lastStableSchemaVersion` to
-  `currentSchemaVersion` at release (`docs/RELEASING.md`), which a fail-closed CI guard on a stable
-  tag enforces — a forgotten freeze blocks the release, an incorrect one fails the migration test.
-  ADR 0007's additive-only guidance still governs how a single step is written; its
-  allocate-at-merge rule is amended — a cycle no longer takes a number per merge. The migration test
-  is the harness pinning each frozen stable's upgrade path (a verbatim DDL fixture for the schema
-  each prior stable shipped, proving `onCreate` == every stable upgrade path), so a table declared
-  and forgotten fails there rather than on a user's file; it holds the v1, v2 and v3 fixtures.
+  govern this: `currentSchemaVersion` (5) and `lastStableSchemaVersion` (4, frozen at 0.3.0). While
+  `current == lastStable + 1` a cycle is open and the pending step is rewritten in place — the state
+  today, `ocpt_migration_v5.dart` being that step: it renames the `labelText` stamps of
+  `storyboard_annotations` in `row_field_versions` to `text` (see [`sync.md`](sync.md)); while
+  `current == lastStable` the top step is frozen, so the next schema change creates a new one.
+  Freezing sets `lastStableSchemaVersion` to `currentSchemaVersion` at release (`docs/RELEASING.md`),
+  which a fail-closed CI guard on a stable tag enforces — a forgotten freeze blocks the release,
+  an incorrect one fails the migration test. ADR 0007's additive-only guidance still governs how
+  a single step is written; its allocate-at-merge rule is amended — a cycle no longer takes a
+  number per merge. The migration test is the harness pinning each frozen stable's upgrade path
+  (a verbatim DDL fixture for the schema each prior stable shipped, proving `onCreate` == every
+  stable upgrade path), so a table declared and forgotten fails there rather than on a user's
+  file; it holds the v1, v2 and v3 fixtures.
   Generated code, drift's `.g.dart` included, sits under `lib/generated/`, which is git-ignored
   (ADR 0033); CI regenerates it with build_runner.
 

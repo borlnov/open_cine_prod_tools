@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/models/database/converters/ocpt_snapshot_re
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_storyboard_annotation_kind_converter.dart';
 import 'package:open_cine_prod_tools/models/database/migrations/ocpt_migration_v3.dart';
 import 'package:open_cine_prod_tools/models/database/migrations/ocpt_migration_v4.dart';
+import 'package:open_cine_prod_tools/models/database/migrations/ocpt_migration_v5.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_assets_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_breakdown_tags_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_accounts_table.dart';
@@ -192,7 +193,9 @@ part '../../generated/models/database/ocpt_project_database.g.dart';
 /// key it by `{shotId, roleId}` instead of `{shotId, characterName}` — the first **non-additive**
 /// migration (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), carried out by
 /// `ocptMigrateToSchemaV3`. Schema version 4 creates the five storyboard and floor plan tables
-/// above — additive only, carried out by `ocptMigrateToSchemaV4`.
+/// above — additive only, carried out by `ocptMigrateToSchemaV4`. Schema version 5, the pending
+/// step of the development cycle after 0.3.0, renames the `labelText` stamps of
+/// `storyboard_annotations` to `text` in `row_field_versions` (`ocptMigrateToSchemaV5`).
 ///
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
@@ -269,7 +272,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// always one of those two values. Freezing a stable release is the one line
   /// `lastStableSchemaVersion = currentSchemaVersion`, done at release prep (see
   /// `docs/RELEASING.md`).
-  static const currentSchemaVersion = 4;
+  static const currentSchemaVersion = 5;
 
   /// The highest schema version a stable release has frozen.
   ///
@@ -309,9 +312,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// shipped before schema version 1, so that version itself carries no pre-stable migration
   /// history — no real `.ocpt` file is ever found below it. Each stable release then froze the next
   /// number in turn: 0.1.0 froze [lastStableSchemaVersion] at 1, 0.2.0 froze it at 2, 0.2.1 froze
-  /// it at 3, and 0.3.0 froze it at 4, so no development cycle is open and a new schema change
-  /// would create version 5. Every `onUpgrade` step below follows the additive-only guidance
-  /// `docs/adr/0007-schema-migration-policy.md` gives, except v3's, called out where it runs.
+  /// it at 3, and 0.3.0 froze it at 4; version 5 is the pending step of the cycle that follows, so
+  /// a new schema change overwrites it until a stable release freezes it. Every `onUpgrade` step
+  /// below follows the additive-only guidance `docs/adr/0007-schema-migration-policy.md` gives,
+  /// except v3's, called out where it runs, and v5's, which rewrites stamps and no table.
   ///
   /// From 1 to 2, `onUpgrade` creates [OcptSyncRelayCursorsTable] — the changeset engine's own
   /// local, never-synchronised delivery-cursor table (`docs/architecture/sync.md`) — and
@@ -333,6 +337,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// (`lib/models/database/migrations/ocpt_migration_v4.dart`): it creates the five tables the
   /// storyboard and floor plans mode is built on — additive only, nothing else touched.
   ///
+  /// From 4 to 5, `onUpgrade` delegates to `ocptMigrateToSchemaV5`
+  /// (`lib/models/database/migrations/ocpt_migration_v5.dart`): it renames the `labelText` stamps
+  /// of `storyboard_annotations` to `text` in `row_field_versions` and touches no other row.
+  ///
   /// `beforeOpen` turns SQLite's `foreign_keys` pragma on: `NativeDatabase` leaves it at SQLite's
   /// own default, which is off, so the `references()` declared on the tables above would otherwise
   /// never actually be enforced.
@@ -350,6 +358,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       }
       if (from < 4) {
         await ocptMigrateToSchemaV4(migrator: m, database: this);
+      }
+      if (from < 5) {
+        await ocptMigrateToSchemaV5(migrator: m, database: this);
       }
     },
     beforeOpen: (details) async {
