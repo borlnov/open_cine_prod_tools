@@ -568,10 +568,8 @@ void main() {
     },
   );
 
-  testWidgets("a payment whose entry cannot be written leaves the commitment it created behind, "
-      "reloads nothing, and a second attempt creates a second commitment for the same line", (
-    tester,
-  ) async {
+  testWidgets("a payment whose entry cannot be written leaves no commitment behind, "
+      "and a second attempt creates the only one for the line", (tester) async {
     final errors = <Object>[];
     await runZonedGuarded(() async {
       final accountId = await harness.seedAccount("Camera");
@@ -587,15 +585,15 @@ void main() {
       await harness.tap(tester, harness.inDialog(find.text(tr.budgetEntryDialogConfirmAction)));
       expect(errors, isEmpty);
       expect(await harness.readEntries(), isEmpty);
-      expect(await harness.readCommitments(), hasLength(1));
-      // The screen was never reloaded: the line still offers to be committed.
+      expect(await harness.readCommitments(), isEmpty);
+      // The screen shows what the database holds: the line still offers to be committed.
       expect(inDetail(find.text(tr.budgetLineCommitAction)), findsOneWidget);
 
       harness.projectsManager.failures.failEntryCreation = false;
       await harness.tap(tester, inDetail(find.text(tr.budgetDetailPayAction(r"$100.00"))));
       await harness.tap(tester, harness.inDialog(find.text(tr.budgetEntryDialogConfirmAction)));
       expect(await harness.readEntries(), hasLength(1));
-      expect(await harness.readCommitments(), hasLength(2));
+      expect(await harness.readCommitments(), hasLength(1));
     }, (error, stack) => errors.add(error));
   });
 

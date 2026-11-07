@@ -40,10 +40,14 @@ void main() {
   late OcptProjectDatabase database;
   late _Fixture rows;
   late String accountId;
+  late String lineId;
 
   /// Insert two entries, the first with a voucher, and two commitments through the service.
   Future<_Fixture> seed() async {
     accountId = await quoteService.createAccount(database: database, label: "Crew").valueOrFail;
+    lineId = await quoteService
+        .createLine(database: database, accountId: accountId, label: "Deposit")
+        .valueOrFail;
     final first = await service
         .createEntry(database: database, date: DateTime(2026), label: "Rent")
         .valueOrFail;
@@ -100,6 +104,19 @@ void main() {
     )).status,
     "clearEntryReceipt": (r) async =>
         (await service.clearEntryReceipt(database: database, entryId: r.firstEntry)).status,
+    "payLineDirectly": (r) async => (await service.payLineDirectly(
+      database: database,
+      lineId: lineId,
+      commitmentAccountId: accountId,
+      commitmentLabel: "Deposit",
+      commitmentAmountCents: 100,
+      commitmentIsTaxInclusive: true,
+      commitmentVatRateBasisPoints: null,
+      date: DateTime(2026, 3),
+      label: "Paid",
+      debitCents: 100,
+      receiptPath: "/receipts/paid.pdf",
+    )).status,
     "createCommitment": (r) async => (await service.createCommitment(
       database: database,
       accountId: accountId,
@@ -229,6 +246,30 @@ void main() {
   });
 
   group("a write that touches two tables is one transaction", () {
+    for (final failing in ["budget_entries", "assets"]) {
+      test("a direct payment whose $failing write is refused leaves no commitment", () async {
+        final untouched = await snapshot();
+        await refuse(failing, ["INSERT"]);
+
+        final paid = await service.payLineDirectly(
+          database: database,
+          lineId: lineId,
+          commitmentAccountId: accountId,
+          commitmentLabel: "Deposit",
+          commitmentAmountCents: 100,
+          commitmentIsTaxInclusive: true,
+          commitmentVatRateBasisPoints: null,
+          date: DateTime(2026, 3),
+          label: "Paid",
+          debitCents: 100,
+          receiptPath: "/receipts/paid.pdf",
+        );
+
+        expect(paid.status, OcptDatabaseStatus.databaseError);
+        expect(await snapshot(), untouched);
+      });
+    }
+
     test("an entry whose voucher cannot be tombstoned stays live", () async {
       final untouched = await snapshot();
       await refuse("assets", ["UPDATE"]);

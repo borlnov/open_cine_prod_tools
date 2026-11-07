@@ -325,10 +325,14 @@ tables and the version codec pin on purpose.
   is `onLinePayDirectlyRequested`, and it opens the capture wizard on `recordExpense` pre-filled from
   the line — its full quoted total, in the line's own tax basis and rate, as today's debit — exactly
   as `ocptBudgetSettleCommitment` pre-fills from a commitment.
-- On confirm it dispatches `OcptBudgetLinePaidDirectlyEvent`, and the bloc does **as one write** the
-  two the promote-then-pay path does apart: it creates the commitment from the line first
+- On confirm it dispatches `OcptBudgetLinePaidDirectlyEvent`, and the bloc makes **one call**,
+  `OcptBudgetJournalService.payLineDirectly`, which does in **one transaction** what the
+  promote-then-pay path does apart: it creates the commitment from the line first
   (`createCommitment`, seeded from the line, naming it through `lineId`, at the line's full quoted
-  total), then records the debit naming that fresh commitment (`createEntry`, `commitmentId` set).
+  total), then records the debit naming that fresh commitment (`createEntry`, `commitmentId` set),
+  then the receipt when the dialog picked one. A failure on any of the three rolls the other two
+  back, so no commitment is left standing on a line whose payment was refused, and the retry finds
+  none; the bloc reads the snapshot again either way, so the screen shows what is stored.
   The **engagement is real in the data** — it is what carries the outstanding and the matching, and
   it draws its own settled sub-row under the line like any other — but **transparent to the reader**,
   who only ever quoted and paid. A **partial** payment leaves the commitment standing at its full

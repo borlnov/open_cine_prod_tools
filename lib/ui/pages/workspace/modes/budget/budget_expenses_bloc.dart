@@ -28,7 +28,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_journal_form_writes.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
@@ -512,55 +511,32 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    final commitmentCreated = await _budgetJournalService.createCommitment(
-      database: project.database,
-      accountId: account.id,
-      label: line.label,
-      amountCents: ocptBudgetLineTotalCents(line),
-      isTaxInclusive: line.unitPrice.isTaxInclusive,
-      vatRateBasisPoints: line.unitPrice.vatRateBasisPoints,
-      // createCommitment already defaults status to quoteAccepted — a line just quoted, nothing yet
-      // signed.
-      lineId: line.id,
-    );
-    if (commitmentCreated.isError) {
-      return;
-    }
-
-    final commitmentId = commitmentCreated.value;
-    if (commitmentId == null) {
-      return;
-    }
-
     final fields = event.fields;
-    final entryCreated = await _budgetJournalService.createEntry(
+    // One transaction (commitment, entry, receipt): a failure leaves nothing behind. The snapshot
+    // is read again either way, so the screen shows what the database holds.
+    final paid = await _budgetJournalService.payLineDirectly(
       database: project.database,
+      lineId: line.id,
+      commitmentAccountId: account.id,
+      commitmentLabel: line.label,
+      commitmentAmountCents: ocptBudgetLineTotalCents(line),
+      commitmentIsTaxInclusive: line.unitPrice.isTaxInclusive,
+      commitmentVatRateBasisPoints: line.unitPrice.vatRateBasisPoints,
       date: fields.date,
       label: fields.label,
       accountId: fields.accountId,
       resourceId: fields.resourceId,
       revenueId: fields.revenueId,
       shareId: fields.shareId,
-      commitmentId: commitmentId,
       debitCents: fields.isDebit ? fields.amountCents : 0,
       creditCents: fields.isDebit ? 0 : fields.amountCents,
       isTaxInclusive: fields.isTaxInclusive,
       vatRateBasisPoints: fields.vatRateBasisPoints,
+      receiptPath: fields.pickedReceiptPath,
     );
-    if (entryCreated.isError) {
+    if (paid.isError) {
+      await modeBloc.reload({OcptBudgetReloadScope.snapshot});
       return;
-    }
-
-    final entryId = entryCreated.value;
-    if (entryId != null) {
-      final receiptWritten = await _budgetJournalService.writeEntryReceiptChange(
-        database: project.database,
-        entryId: entryId,
-        fields: fields,
-      );
-      if (receiptWritten.isError) {
-        return;
-      }
     }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
