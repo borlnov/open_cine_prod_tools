@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_script_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_tag_popover.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_target_inspector.dart';
+import 'package:path/path.dart' as p;
 
 import 'breakdown_mode_scenarios_test_doubles.dart';
 
@@ -224,6 +225,26 @@ void main() {
     expect(find.byTooltip(tr.breakdownBlockedWordTooltip), findsNothing);
     expect(inScript(find.text("a ")), findsOneWidget);
     expect(await harness.readTags(), hasLength(1));
+  });
+
+  testWidgets("going back to the projects right after typing a note writes it before the "
+      "project is closed", (tester) async {
+    await harness.mount(tester);
+    final tr = harness.trOf(tester);
+    await harness.tap(tester, inScript(find.text("INT. KITCHEN - DAY")));
+
+    await harness.type(tester, harness.fieldLabelled(tr.breakdownSceneNotesLabel), "Ladder");
+    await harness.tap(tester, find.byTooltip(tr.editorBackToProjectsTooltip));
+    await harness.pumpUntil(tester, () => harness.projectsManager.currentProject == null);
+    await harness.unmount(tester);
+    await tester.runAsync(() async {
+      final reopened = await harness.projectsManager.openProject(
+        filePath: p.join(harness.tempDir.path, "movie.ocpt"),
+      );
+      expect(reopened.status.isSuccess, isTrue);
+    });
+
+    expect(await harness.readSceneNotes(0), "Ladder");
   });
 
   testWidgets("a word clicked while a note is still being typed writes the note first", (

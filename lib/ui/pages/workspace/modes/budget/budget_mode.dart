@@ -137,7 +137,8 @@ class _BudgetViewState extends State<_BudgetView> {
   @override
   void deactivate() {
     // Triggering the flush here, rather than dispatching an event, is what guarantees the last
-    // debounce worth of typing survives a mode switch or back navigation — see
+    // debounce worth of typing survives a mode switch — going back to the projects flushes in the
+    // bloc, before the project is closed. See
     // `OcptBudgetBloc.flushPendingFieldEdits`'s own doc comment.
     unawaited(context.read<OcptBudgetBloc>().flushPendingFieldEdits());
     super.deactivate();

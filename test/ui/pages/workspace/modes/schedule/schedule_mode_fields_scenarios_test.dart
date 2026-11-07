@@ -293,8 +293,8 @@ void main() {
     expect(harness.exportManager.exports.last.document, "dayOutOfDays");
   });
 
-  testWidgets("going back to the projects right after typing closes the project before the "
-      "keystrokes could be written, and they are lost", (tester) async {
+  testWidgets("going back to the projects right after typing writes the keystrokes before the "
+      "project is closed", (tester) async {
     final dayId = await harness.seedDay(_shootingDate);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
@@ -304,7 +304,6 @@ void main() {
     await harness.pumpUntil(tester, () => harness.projectsManager.currentProject == null);
     expect(harness.projectsManager.currentProject, isNull);
 
-    // The route going away runs the mode's leaving flush, which finds no project any more.
     await harness.unmount(tester);
     await tester.runAsync(() async {
       final reopened = await harness.projectsManager.openProject(
@@ -313,6 +312,6 @@ void main() {
       expect(reopened.status.isSuccess, isTrue);
     });
 
-    expect((await harness.readSchedule()).slotsByDayId[dayId]!.single.label, isEmpty);
+    expect((await harness.readSchedule()).slotsByDayId[dayId]!.single.label, "Cave");
   });
 }

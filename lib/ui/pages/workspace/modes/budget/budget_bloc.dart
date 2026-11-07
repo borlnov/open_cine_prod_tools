@@ -276,8 +276,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// Nothing in this mode catches a failed write: the view that failed keeps its edit pending, the
   /// views after it are still asked, and the action this flush was for (a selection, a view or dock
   /// change, an export, a version preview) does not happen. Selecting a resource, a taking, a share
-  /// or a receipt, going back and creating a record never ask: an edit typed before them is written
-  /// by its own debounce.
+  /// or a receipt and creating a record never ask: an edit typed before them is written by its own
+  /// debounce. Going back does flush, but leaves whatever the answer.
   @useResult
   Future<bool> _flushAllPendingWrites() async {
     final run = await runPendingWritesFlushers();
@@ -354,11 +354,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     });
   }
 
-  /// Leave the workspace: closes the current project and navigates back to the home page.
+  /// Leave the workspace: flushes any pending field edit, closes the current project, and
+  /// navigates back to the home page.
   Future<void> _onBackRequested(
     OcptBudgetBackRequestedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
+    await runPendingWritesFlushers();
     final closed = await _projectsManager.closeCurrentProject();
     if (closed.isError) {
       return;

@@ -147,7 +147,8 @@ class _BreakdownViewState extends State<_BreakdownView> {
   @override
   void deactivate() {
     // `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
-    // this whole subtree out, and so does the workspace's own back navigation), so triggering the
+    // this whole subtree out; going back to the projects flushes in the bloc, before the project
+    // is closed, since this one would find it closed), so triggering the
     // flush here — rather than dispatching an event, which would only be processed on a later
     // microtask this widget might not survive to see — is what guarantees the last debounce worth
     // of typing into the target inspector's or the scene inspector's own fields isn't lost. Mirrors
