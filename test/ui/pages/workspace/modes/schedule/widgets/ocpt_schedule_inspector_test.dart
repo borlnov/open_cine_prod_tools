@@ -466,6 +466,29 @@ void main() {
       expect(reported, 12);
     });
 
+    testWidgets("a figure typed but not submitted is reported when the field leaves the tree", (
+      tester,
+    ) async {
+      final reported = <int>[];
+
+      await _pumpInspector(
+        tester,
+        block: _buildHoldBlock(),
+        blockEntry: entry,
+        onBlockDurationChanged: reported.add,
+      );
+
+      await tester.tap(find.byType(TextField).first);
+      await tester.enterText(find.byType(TextField).first, "45");
+      await tester.pump();
+      expect(reported, isEmpty);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+
+      expect(reported, [45]);
+    });
+
     testWidgets("reads as plain text with no field when the mode is read-only", (tester) async {
       await _pumpInspector(tester, block: _buildHoldBlock(), blockEntry: entry);
 

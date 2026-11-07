@@ -99,6 +99,21 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
     }
   }
 
+  /// Commit what is typed while the field still has the focus, before the tree takes it away.
+  ///
+  /// The field only commits on a focus loss or a submission, and a rebuild that removes it (the
+  /// window crossing the compact breakpoint swaps the docks for drawers) disposes it without
+  /// either. `deactivate` runs while the element is still active and before the children go, so the
+  /// focus is still readable and the callback, which only adds an event to a bloc that outlives
+  /// the field, is safe; the commit leaves the controller alone, so nothing is notified mid-build.
+  @override
+  void deactivate() {
+    if (_focusNode.hasFocus) {
+      _commit(isTearingDown: true);
+    }
+    super.deactivate();
+  }
+
   /// Build the schedule minute field as a [SizedBox].
   @override
   Widget build(BuildContext context) {
@@ -135,7 +150,10 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
   /// Parse the field's current text and report it, or revert the field to
   /// [OcptScheduleMinuteField.minute]'s own formatted reading when the text is neither empty nor a
   /// valid clock reading.
-  void _commit() {
+  ///
+  /// With [isTearingDown], the controller is left alone: writing its text would notify the
+  /// field's text widget in the middle of the build that is removing it.
+  void _commit({bool isTearingDown = false}) {
     final onChanged = widget.onChanged;
     if (onChanged == null) {
       return;
@@ -144,7 +162,9 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
     final text = _controller.text.trim();
     if (text.isEmpty) {
       if (!widget.isClearable) {
-        _controller.text = _formattedMinute;
+        if (!isTearingDown) {
+          _controller.text = _formattedMinute;
+        }
       } else if (_lastReportedMinute != null) {
         _lastReportedMinute = null;
         onChanged(null);
@@ -154,14 +174,18 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
 
     final parsed = ocptParseDayMinute(text);
     if (parsed == null) {
-      _controller.text = _formattedMinute;
+      if (!isTearingDown) {
+        _controller.text = _formattedMinute;
+      }
       return;
     }
 
     final currentMinute = widget.minute;
     final dayOffset = currentMinute == null ? 0 : currentMinute - (currentMinute % 1440);
     final resolved = dayOffset + parsed;
-    _controller.text = ocptFormatDayMinute(resolved);
+    if (!isTearingDown) {
+      _controller.text = ocptFormatDayMinute(resolved);
+    }
 
     if (resolved != _lastReportedMinute) {
       _lastReportedMinute = resolved;

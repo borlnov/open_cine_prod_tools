@@ -122,7 +122,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
   void deactivate() {
     // Triggering the flush here, rather than dispatching an event, is what guarantees the last
     // debounce worth of typing into the inspector's own note fields survives a mode switch — going
-    // back to the projects flushes in the bloc, before the project is closed. See `OcptScheduleBloc.flushPendingFieldEdits`'s own doc comment.
+    // back to the projects flushes in the bloc, before the project is closed. See
+    // `OcptScheduleBloc.flushPendingFieldEdits`'s own doc comment.
     unawaited(context.read<OcptScheduleBloc>().flushPendingFieldEdits());
     super.deactivate();
   }
