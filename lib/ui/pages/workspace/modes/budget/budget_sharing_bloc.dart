@@ -57,8 +57,9 @@ class OcptBudgetSharingBloc
   }
 
   /// Create a new taking from `event.fields` and select it, without opening the right dock —
-  /// mirrors the creation of a financing resource: `OcptBudgetSharingService.createRevenueWithFields`
-  /// writes the row and its fields in one transaction. The snapshot is read again on a failure too,
+  /// mirrors the creation of a financing resource:
+  /// `OcptBudgetSharingService.createRevenueWithFields` writes the row and its fields in one
+  /// transaction. The snapshot is read again on a failure too,
   /// so the screen shows what the database holds.
   Future<void> _onRevenueCreationConfirmed(
     OcptBudgetRevenueCreationConfirmedEvent event,

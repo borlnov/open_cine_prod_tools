@@ -81,7 +81,10 @@ Resources set carries across its three scopes, and the mode's two newest documen
     abbreviation deduced from a committed shot size), the difficulty dots, the character chips, the
     scenario coverage ranges with the anchor of the one being drawn, the `Mark as checked` action
     and the cast-wide role changes of the role alert banner; each is written through the services
-    and followed by a reload of the scopes it changed. It clears the coverage anchor on the
+    and followed by a reload of the scopes it changed. Closing a coverage range writes the range and
+    the characters it covers in one transaction (`OcptShotCoverageService.addRangeWithCharacters`),
+    and every coverage write reads the shot list again and clears the anchor on a failure too, so
+    the screen always shows what the database holds. It clears the coverage anchor on the
     selection moves that have always cleared it (a sequence, selected again or not, a shot
     selected, created or deleted, a fresh load — not a set) and drops a typed field whose shot is
     gone from the shot list. `OcptShotInspectorView` wires `OcptShotInspectorPanel` and the

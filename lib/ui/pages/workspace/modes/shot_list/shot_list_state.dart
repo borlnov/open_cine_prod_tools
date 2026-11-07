@@ -159,7 +159,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// `normalizeCharacterName` and in first-appearance order, as parsed once on entry.
   ///
   /// Kept for `OcptShotListBloc`'s own internal use resolving a scenario coverage range's covered
-  /// text onto [roles] (`_attachCharactersCoveredBy`) rather than for display any more: the
+  /// text onto [roles] (the inspector bloc's coverage attach) rather than for display any more: the
   /// inspector's character chips are built from [roles], the production's whole cast, not from this
   /// screenplay-only list (`OcptShotCharacterChips`).
   final List<String> screenplayCharacters;

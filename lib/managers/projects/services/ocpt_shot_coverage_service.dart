@@ -8,7 +8,9 @@ import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_database_result_abort.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_character_ops.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
@@ -169,6 +171,51 @@ class OcptShotCoverageService extends AbsOcptService {
     });
 
     return id;
+  });
+
+  /// Add a coverage range exactly as [addRange] does, and attach to shot [shotId] every role of
+  /// [roleIds] (the characters the range covers), in one transaction: either the range and its
+  /// characters are all written or nothing is. Return the id [addRange] returns.
+  ///
+  /// A role already attached to the shot, or naming no live role, is left alone by the attach
+  /// itself (`OcptShotListCharacterOps.attachCharacter`).
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseResult<String>> addRangeWithCharacters({
+    required OcptProjectDatabase database,
+    required String shotId,
+    required String sceneId,
+    required int startOffset,
+    required int endOffset,
+    required String sceneText,
+    required List<String> roleIds,
+  }) => guardResult("addRangeWithCharacters", () async {
+    if (database.refusesUserWrite("addRangeWithCharacters")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      final rangeId = await addRange(
+        database: database,
+        shotId: shotId,
+        sceneId: sceneId,
+        startOffset: startOffset,
+        endOffset: endOffset,
+        sceneText: sceneText,
+      ).valueOrAbort();
+
+      for (final roleId in roleIds) {
+        await OcptShotListCharacterOps.attachCharacter(
+          deviceId: deviceId,
+          database: database,
+          shotId: shotId,
+          roleId: roleId,
+        );
+      }
+
+      return rangeId;
+    });
   });
 
   /// Remove the single coverage range [rangeId].

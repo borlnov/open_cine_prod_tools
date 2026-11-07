@@ -99,15 +99,23 @@ class OcptBudgetSharingService extends AbsOcptService {
     required OcptProjectDatabase database,
     required String revenueId,
     required OcptBudgetRevenueFormFields fields,
-  }) => updateRevenue(
-    database: database,
-    revenueId: revenueId,
-    date: Value(fields.date),
-    label: Value(fields.label),
-    amountCents: Value(fields.amountCents),
-    status: Value(fields.status),
-    notes: Value(fields.notes),
-  );
+  }) => guardOutcome("writeRevenueFields", () async {
+    if (database.refusesUserWrite("writeRevenueFields")) {
+      return;
+    }
+
+    await database.transaction(
+      () => updateRevenue(
+        database: database,
+        revenueId: revenueId,
+        date: Value(fields.date),
+        label: Value(fields.label),
+        amountCents: Value(fields.amountCents),
+        status: Value(fields.status),
+        notes: Value(fields.notes),
+      ).okOrAbort(),
+    );
+  });
 
   /// Create the taking [fields] describes and answer its fresh id: [createRevenue] mints the row
   /// from a date and a label alone, then every other field is written, all in one transaction.
@@ -326,15 +334,23 @@ class OcptBudgetSharingService extends AbsOcptService {
     required OcptProjectDatabase database,
     required String shareId,
     required OcptBudgetShareFormFields fields,
-  }) => updateShare(
-    database: database,
-    shareId: shareId,
-    personId: Value(fields.personId),
-    label: Value(fields.label),
-    sharePermille: Value(fields.sharePermille),
-    reinvestPermille: Value(fields.reinvestPermille),
-    notes: Value(fields.notes),
-  );
+  }) => guardOutcome("writeShareFields", () async {
+    if (database.refusesUserWrite("writeShareFields")) {
+      return;
+    }
+
+    await database.transaction(
+      () => updateShare(
+        database: database,
+        shareId: shareId,
+        personId: Value(fields.personId),
+        label: Value(fields.label),
+        sharePermille: Value(fields.sharePermille),
+        reinvestPermille: Value(fields.reinvestPermille),
+        notes: Value(fields.notes),
+      ).okOrAbort(),
+    );
+  });
 
   /// Create the share [fields] describes and answer its fresh id: [createShare] mints the row from
   /// a label alone, then every other field is written, all in one transaction. Either the whole
