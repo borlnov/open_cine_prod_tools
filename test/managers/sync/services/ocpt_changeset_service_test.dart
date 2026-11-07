@@ -7,7 +7,9 @@ import 'dart:io';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_folder_remote_storage.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
@@ -18,7 +20,11 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_merge_failure.dart';
 import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import '../../../ocpt_result_expectations.dart';
+
+/// Answer with the fixed device id the storyboard service stamps its writes with.
+Future<String> _testDeviceId() async => 'device-1';
 
 /// Run the tests of [OcptChangesetService].
 void main() {
@@ -122,21 +128,6 @@ void main() {
       await expectRefused("No row 'ghost' found in 'locations'");
     });
 
-    test('a stamp naming an annotation text by its field name rather than its column', () async {
-      await database.customStatement('PRAGMA foreign_keys = OFF');
-      await database.customStatement(
-        "INSERT INTO storyboard_annotations (id, panel_id, kind, x1, y1, x2, y2) "
-        "VALUES ('annotation-1', 'panel-1', 'label', 0, 0, 0, 0)",
-      );
-      await insertStamp(
-        tableName: 'storyboard_annotations',
-        rowId: 'annotation-1',
-        columnName: 'labelText',
-      );
-
-      await expectRefused("stamps column 'labelText' of 'storyboard_annotations'");
-    });
-
     test('and is pushed once the stamps are mended', () async {
       final location = await insertLocation('location-1');
       await insertStamp(tableName: 'locations', rowId: location.id, columnName: 'noSuchColumn');
@@ -153,6 +144,39 @@ void main() {
 
       expect(await readAppendedFieldStamps(), hasLength(1));
     });
+  });
+
+  test('a freshly created storyboard annotation is pushed with its text column stamped', () async {
+    await database.customStatement('PRAGMA foreign_keys = OFF');
+    await database.customStatement(
+      "INSERT INTO storyboard_panels (id, shot_id) VALUES ('panel-1', 'shot-1')",
+    );
+    const storyboardService = OcptStoryboardService(
+      logger: SilentLogger(),
+      assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
+      deviceId: _testDeviceId,
+    );
+
+    final annotationId = await storyboardService
+        .addAnnotation(
+          database: database,
+          panelId: 'panel-1',
+          kind: OcptStoryboardAnnotationKind.label,
+          x1: 0.1,
+          y1: 0.2,
+          text: 'dolly in',
+        )
+        .valueOrFail;
+
+    await service
+        .pushLocalEdits(database: database, storage: storage, relayId: relayId, deviceId: deviceId)
+        .okOrFail;
+
+    final textStamps = (await readAppendedFieldStamps()).where(
+      (stamp) => stamp.tableName == 'storyboard_annotations' && stamp.rowId == annotationId,
+    );
+    expect(textStamps.map((stamp) => stamp.columnName), contains('text'));
+    expect(textStamps.map((stamp) => stamp.columnName), isNot(contains('labelText')));
   });
 
   test('nothing to push appends nothing and touches no cursor', () async {

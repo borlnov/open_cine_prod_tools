@@ -58,7 +58,10 @@ class OcptStoryboardAnnotationsTable extends Table {
   /// Named [labelText] rather than `text` on the Dart side — that identifier would shadow the
   /// inherited `Table.text()` column builder this very declaration calls — but stored as the
   /// column `text`, the same trick `OcptRowFieldVersionsTable.targetTableName` uses for
-  /// `table_name`.
+  /// `table_name`. The [JsonKey] keeps the stamps and the changeset on the SQL name: the row stamp
+  /// service names a stamp after the row class's `toJson` keys, and the push and the merge look the
+  /// column up by the Dart spelling of its SQL name.
+  @JsonKey('text')
   TextColumn get labelText => text().named('text').withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}
