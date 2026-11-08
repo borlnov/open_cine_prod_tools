@@ -315,7 +315,6 @@ abstract final class OcptProjectOpenOps {
       primaryScreenplayId: screenplay.id,
       database: database,
     );
-    onOpened(project);
 
     final snapshotted = await screenplayService.snapshotOnProjectOpen(
       database: database,
@@ -340,6 +339,10 @@ abstract final class OcptProjectOpenOps {
         episodeCount: episodeCount,
       ),
     );
+
+    // Only a fully opened project becomes the current one: a step failing above closes the
+    // database, and nothing may be left pointing at it.
+    onOpened(project);
 
     logger.i("A project was opened: ${screenplay.id}, $episodeCount episode(s)");
 

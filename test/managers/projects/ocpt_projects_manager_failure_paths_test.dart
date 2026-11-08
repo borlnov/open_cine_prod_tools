@@ -407,11 +407,10 @@ void main() {
       return path;
     }
 
-    /// Expect the database of the project the failed opening left behind to be closed.
-    Future<void> expectDatabaseClosed() async {
-      final database = opened!.currentProject!.database;
-
-      await expectLater(database.select(database.ocptScreenplaysTable).get(), throwsA(anything));
+    /// Expect the failed opening to have left no current project behind: the one it opened is
+    /// closed, so nothing may write to it.
+    void expectNoCurrentProject() {
+      expect(opened!.currentProject, isNull);
     }
 
     /// Open [path] on a manager of its own: a project whose opening failed stays the current one,
@@ -438,7 +437,7 @@ void main() {
       final result = await openOnAFreshManager(path);
 
       expect(result.status, OcptProjectStatus.corruptedFile);
-      await expectDatabaseClosed();
+      expectNoCurrentProject();
     });
 
     test("episodes that cannot be read at opening answer ioError", () async {
@@ -449,7 +448,7 @@ void main() {
       final result = await openOnAFreshManager(path);
 
       expect(result.status, OcptProjectStatus.ioError);
-      await expectDatabaseClosed();
+      expectNoCurrentProject();
     });
   });
 
