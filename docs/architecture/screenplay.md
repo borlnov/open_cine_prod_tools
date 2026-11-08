@@ -292,8 +292,9 @@ model, the title page, the spell-checking, the docks and the syntax guide.
     document, the mode, the two switches and the preview flag off the mode's state when it runs.
     A whole load drops the caches and every underline and pushes the project's learned words; a
     new document or raw becoming the mounted mode requests a raw pass; a switch or language change
-    drives the dictionary. Opening straight in styled mode underlines nothing until the first
-    edit, and opening the styled editor renumbers the headings and autosaves: both are pinned.
+    drives the dictionary, and once a dictionary is ready both surfaces are re-checked (the styled
+    editor reported its texts as it mounted, before the dictionary, and has nothing new to say).
+    Opening the styled editor renumbers the headings and autosaves: pinned.
   - `OcptEditorSearchBloc` owns `OcptEditorSearchState`, which is why a search survives a mode
     switch. It reads nothing of the mode: each surface counts what it shows and reports the count.
   - `OcptEditorIoBloc` owns the notice of the `.fountain` and PDF exports and of the import. An

@@ -456,7 +456,9 @@ class OcptEditorSpellCheckBloc
   /// `OcptEditorState.screenplayLanguage`/[OcptEditorState.isSpellCheckVisible] (the two
   /// independent on/off switches of `docs/architecture/screenplay.md`: with either off, the isolate
   /// stays unloaded and nothing is checked), then request a fresh raw-mode pass so the
-  /// underlines catch up once a dictionary that needed loading has actually finished doing so.
+  /// underlines catch up once a dictionary that needed loading has actually finished doing
+  /// so — over the styled texts too, which the styled editor reported as it mounted, before the
+  /// dictionary was ready, and has nothing new to report since.
   ///
   /// Never awaited by its own callers ([onModeStateChanged], [_onSettingsChanged]):
   /// `OcptSpellCheckManager.useLanguage` can take ~300 ms the first time a language loads, and none
@@ -471,6 +473,9 @@ class OcptEditorSpellCheckBloc
       return;
     }
     _requestSpellCheck();
+    if (!modeBloc.state.isPreviewingVersion && state.caches.lastStyledTexts.isNotEmpty) {
+      _reissueStyledSpellCheck();
+    }
   }
 
   /// Clear `OcptEditorSpellCheckCaches.raw` the first time it is asked to work under a different
