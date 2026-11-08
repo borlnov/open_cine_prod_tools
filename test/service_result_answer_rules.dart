@@ -164,8 +164,17 @@ class AnswerUseFinder extends RecursiveAstVisitor<void> {
   /// Turns an offset into a line.
   final int Function(int offset) lineOf;
 
+  /// The names of the members of this file that go on past a failure on purpose: an `if` on a
+  /// failure inside one of them may end without a way out.
+  final Set<String> continuingMembers;
+
   /// Class constructor
-  AnswerUseFinder({required this.names, required this.databaseNames, required this.lineOf});
+  AnswerUseFinder({
+    required this.names,
+    required this.databaseNames,
+    required this.lineOf,
+    this.continuingMembers = const {},
+  });
 
   /// Check a variable that holds an answer.
   @override
@@ -203,7 +212,9 @@ class AnswerUseFinder extends RecursiveAstVisitor<void> {
   /// Check that an `if` on a failure ends in a way out.
   @override
   void visitIfStatement(IfStatement node) {
-    if (node.elseStatement == null && _testsForFailure(node.expression)) {
+    if (node.elseStatement == null &&
+        _testsForFailure(node.expression) &&
+        !continuingMembers.contains(_enclosingMemberName(node))) {
       final then = node.thenStatement;
       final last = then is Block ? then.statements.lastOrNull : then;
       if (!_leaves(last)) {
@@ -216,13 +227,34 @@ class AnswerUseFinder extends RecursiveAstVisitor<void> {
     super.visitIfStatement(node);
   }
 
+  /// Get the name of the method or function [node] sits in, or null outside of any.
+  String? _enclosingMemberName(AstNode node) {
+    var parent = node.parent;
+    while (parent != null && parent is! MethodDeclaration && parent is! FunctionDeclaration) {
+      parent = parent.parent;
+    }
+
+    return switch (parent) {
+      MethodDeclaration(:final name) => name.lexeme,
+      FunctionDeclaration(:final name) => name.lexeme,
+      _ => null,
+    };
+  }
+
   /// Tell whether [condition] holds the branch when an answer is a failure: an `isError` read
-  /// alone, or as an operand of `||`.
+  /// alone, or as an operand of `||`, or an `isSuccess` negated or compared to `false`.
   bool _testsForFailure(Expression condition) {
     final stripped = _strip(condition);
     var tests = false;
     if (stripped is BinaryExpression && stripped.operator.type == TokenType.BAR_BAR) {
       tests = _testsForFailure(stripped.leftOperand) || _testsForFailure(stripped.rightOperand);
+    } else if (stripped is BinaryExpression &&
+        stripped.operator.type == TokenType.EQ_EQ &&
+        stripped.rightOperand is BooleanLiteral &&
+        !(stripped.rightOperand as BooleanLiteral).value) {
+      tests = _readsMember(stripped.leftOperand, "isSuccess");
+    } else if (stripped is PrefixExpression && stripped.operator.type == TokenType.BANG) {
+      tests = _readsMember(stripped.operand, "isSuccess");
     } else if (stripped is PrefixedIdentifier) {
       tests = stripped.identifier.name == "isError";
     } else if (stripped is PropertyAccess) {
@@ -230,6 +262,17 @@ class AnswerUseFinder extends RecursiveAstVisitor<void> {
     }
 
     return tests;
+  }
+
+  /// Tell whether [expression] reads the member named [member].
+  bool _readsMember(Expression expression, String member) {
+    final stripped = _strip(expression);
+
+    return switch (stripped) {
+      PrefixedIdentifier(:final identifier) => identifier.name == member,
+      PropertyAccess(:final propertyName) => propertyName.name == member,
+      _ => false,
+    };
   }
 
   /// Tell whether [statement] leaves the function or the loop, or sets a flag the code goes on
@@ -352,12 +395,14 @@ List<String> answerUseOffencesOf(
   Set<String> names,
   String source, {
   Set<String> databaseNames = const {},
+  Set<String> continuingMembers = const {},
 }) {
   final unit = parseSource(source);
   final finder = AnswerUseFinder(
     names: names,
     databaseNames: databaseNames,
     lineOf: (offset) => unit.lineInfo.getLocation(offset).lineNumber,
+    continuingMembers: continuingMembers,
   );
   unit.accept(finder);
 

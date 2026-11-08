@@ -46,12 +46,12 @@ abstract final class OcptProjectEpisodeOps {
     // The count only serves the home card: failing to read it must not keep the user inside the
     // project, so it is logged and the close goes on without recording one.
     final episodes = await screenplayService.loadEpisodes(database: project.fileDatabase);
-    final episodeCount = episodes.isError ? null : episodes.value!.length;
-    if (episodeCount == null) {
+    if (episodes.isError) {
       logger.w(
         "The episodes of a project could not be counted at its closing: ${episodes.extraInfo}",
       );
     }
+    final episodeCount = episodes.isError ? null : episodes.value!.length;
 
     onClosed();
 
