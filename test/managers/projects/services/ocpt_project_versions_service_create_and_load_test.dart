@@ -335,6 +335,24 @@ void main() {
       expect(payload.rowFieldVersions.single.version, 7);
     });
 
+    test("captures the version stamps of the allowances", () async {
+      await database
+          .into(database.ocptRowFieldVersionsTable)
+          .insert(
+            OcptRowFieldVersionsTableCompanion.insert(
+              targetTableName: "budget_allowances",
+              rowId: "allowance-1",
+              columnName: "label",
+              version: 4,
+              deviceId: "device-0",
+            ),
+          );
+
+      final payload = await readPayload((await createVersion()).id);
+
+      expect(payload.rowFieldVersions.map((row) => row.targetTableName), ["budget_allowances"]);
+    });
+
     test("captures the whole page setup: the project's format and the app's margins", () async {
       final payload = await readPayload((await createVersion()).id);
 

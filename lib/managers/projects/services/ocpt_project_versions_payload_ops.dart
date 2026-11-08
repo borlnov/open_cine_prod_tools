@@ -60,6 +60,7 @@ abstract final class OcptProjectVersionsPayloadOps {
     'budget_mileage_rates',
     'budget_revenues',
     'budget_shares',
+    'budget_allowances',
     'storyboard_panels',
     'storyboard_annotations',
     'floor_plan_sets',
