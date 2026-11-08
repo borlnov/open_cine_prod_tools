@@ -163,13 +163,10 @@ void main() {
     expect(isPopoverShown(), isFalse);
     expect(inScript(find.text("teapot ")), findsNWidgets(2));
 
-    // The script keeps the keyboard focus the anchor gave it, so Escape reaches the popover only
-    // once its field has been clicked.
+    // The popover's field takes the keyboard focus as it opens, so Escape closes it without a
+    // click first.
     await selectTeapotOfKitchen(tester);
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.pumpAndSettle();
     expect(isPopoverShown(), isTrue);
-    await harness.tap(tester, harness.fieldHinted(tr.breakdownPopoverFieldHint));
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(isPopoverShown(), isFalse);
