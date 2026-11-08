@@ -119,6 +119,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   `OcptProjectVersionsPayloadOps.scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`).
   Erasing a person also **uncasts the roles they played**: `deletePerson` clears (and stamps)
   `roles.personId` on each live one, and `scrubErasedPeople` does the same to a restored payload,
+  as `ocptScrubErasedPeopleFromPayload` does to the stored versions of a package,
   so the role reads "Not cast" in every mode instead of counting a blanked row as cast.
   **`OcptRoleSheetCandidatesCard`** sits under the casting card on the role sheet: one row per
   candidacy — `OcptPersonAvatar`, the name, a status pill, the audition date and a foldable note

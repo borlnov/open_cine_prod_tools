@@ -755,13 +755,15 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `elements.ownerPersonId`, `assets.personId` and `locations.contactPersonId` may still point at
   it. **`roles.personId` does not**: erasing a person uncasts every live role they played
   (cleared and stamped, in the same transaction), and the scrub does the same to a restored
-  payload, so no reader counts a part as cast for somebody who no longer exists.
+  payload and to the stored versions of a portable package (`ocptScrubErasedPeopleFromPayload`),
+  so no reader counts a part as cast for somebody who no longer exists.
   **Their `assets` rows are blanked too, path and label**: an absolute path
   routinely names the person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a
   photograph of them sits, so tombstoning the row without emptying it would leave the leak open.
-  **`OcptProjectVersionsPayloadOps.scrubErasedPeople` and `OcptPeopleService.deletePerson` (with
-  `OcptAssetsService.erasePersonAssets`) implement the same erasure from two starting points and
-  must be kept in step by hand**: a column blanked by one but not the other reopens the leak.
+  **`OcptProjectVersionsPayloadOps.scrubErasedPeople`, `OcptPeopleService.deletePerson` (with
+  `OcptAssetsService.erasePersonAssets`) and `ocptScrubErasedPeopleFromPayload` implement the same
+  erasure from three starting points and must be kept in step by hand**: a column blanked by one
+  but not the others reopens the leak.
   **`role_candidates` joins that rule**, being the first *link* table to hold something about a
   person rather than only ids: its `notes` is what somebody wrote about them at an audition, so
   erasing a person blanks it and tombstones the row, in all three implementations
