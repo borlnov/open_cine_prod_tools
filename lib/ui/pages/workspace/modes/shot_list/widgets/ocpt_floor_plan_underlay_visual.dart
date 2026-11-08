@@ -24,17 +24,18 @@ class OcptFloorPlanUnderlayVisual extends StatelessWidget {
   /// Class constructor
   const OcptFloorPlanUnderlayVisual({super.key, required this.floorPlanSet, required this.rect});
 
-  /// Build the floor plan underlay visual as an [IgnorePointer].
+  /// Build the floor plan underlay visual as a [Positioned] (a direct child of the canvas's
+  /// `Stack`) around an [IgnorePointer].
   @override
   Widget build(BuildContext context) {
     final rotationDeg = floorPlanSet.underlayRotationDeg ?? 0;
 
-    return IgnorePointer(
-      child: Positioned(
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
+    return Positioned(
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      child: IgnorePointer(
         child: Transform.rotate(
           angle: rotationDeg * math.pi / 180,
           child: OcptReferencedImage(
