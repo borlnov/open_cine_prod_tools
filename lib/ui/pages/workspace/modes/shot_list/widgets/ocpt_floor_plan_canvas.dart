@@ -161,9 +161,6 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// The canvas's own currently active tool.
   final OcptFloorPlanTool activeTool;
 
-  /// The sequence layer a placed set element lands on.
-  final OcptFloorPlanLayer activeLayer;
-
   /// The décor primitive a `setElement` tool click-to-arm placement carries — which of the
   /// palette's own four typed entries (wall/door/furniture/freeform) was armed last. A drag-and-
   /// drop placement instead carries its own shape on the drag itself
@@ -343,7 +340,6 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.pendingArrowAnchorSymbolId,
     required this.isMetricsShown,
     required this.activeTool,
-    required this.activeLayer,
     required this.activeSetElementShape,
     required this.activeSetElementScope,
     required this.activeLabel,

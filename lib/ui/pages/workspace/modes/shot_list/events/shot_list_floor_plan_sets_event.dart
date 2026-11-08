@@ -150,21 +150,6 @@ class OcptShotListFloorPlanZoomChangedEvent extends OcptShotListFloorPlanSetsEve
   List<Object?> get props => [...super.props, zoom];
 }
 
-/// Pick the sequence layer a placed set element lands on, dispatched by a click on one of the
-/// tray's own sequence layer rows.
-class OcptShotListFloorPlanActiveLayerChangedEvent extends OcptShotListFloorPlanSetsEvent {
-  /// The layer just picked. Always sequence-scoped: the tray only ever offers sequence layer
-  /// rows.
-  final OcptFloorPlanLayer layer;
-
-  /// Class constructor
-  const OcptShotListFloorPlanActiveLayerChangedEvent({required this.layer});
-
-  /// {@macro act_flutter_utility.BlocEventForMixin.props}
-  @override
-  List<Object?> get props => [...super.props, layer];
-}
-
 /// Pick the décor primitive a `setElement` placement carries, dispatched by a click on one of the
 /// palette's own four typed set-element entries (wall/door/furniture/freeform).
 class OcptShotListFloorPlanActiveSetElementShapeChangedEvent

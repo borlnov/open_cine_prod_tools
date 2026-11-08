@@ -8,7 +8,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
@@ -55,7 +54,6 @@ void main() {
       pendingArrowAnchorSymbolId: null,
       isMetricsShown: false,
       activeTool: OcptFloorPlanTool.select,
-      activeLayer: OcptFloorPlanLayer.set,
       activeSetElementShape: OcptFloorPlanSetElementShape.wall,
       activeSetElementScope: OcptFloorPlanScope.set,
       activeLabel: "",

@@ -114,7 +114,6 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
       selectedArrowId: canvasState.selectedFloorPlanArrowId,
       pendingArrowAnchorSymbolId: canvasState.pendingFloorPlanArrowAnchorSymbolId,
       activeTool: canvasState.floorPlanActiveTool,
-      activeLayer: setsState.floorPlanActiveLayer,
       activeSetElementShape: setsState.floorPlanActiveSetElementShape,
       activeSetElementScope: setsState.floorPlanActiveSetElementScope,
       activeLabel: setsState.floorPlanActiveLabel,
@@ -131,8 +130,6 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
       onToolSelected: (tool) => canvasBloc.add(OcptShotListFloorPlanToolSelectedEvent(tool: tool)),
       onLayerVisibilityToggled: (layer) =>
           setsBloc.add(OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: layer)),
-      onActiveLayerChanged: (layer) =>
-          setsBloc.add(OcptShotListFloorPlanActiveLayerChangedEvent(layer: layer)),
       onSetElementShapeSelected: (shape) =>
           setsBloc.add(OcptShotListFloorPlanActiveSetElementShapeChangedEvent(shape: shape)),
       onSetElementScopeSelected: (scope) =>

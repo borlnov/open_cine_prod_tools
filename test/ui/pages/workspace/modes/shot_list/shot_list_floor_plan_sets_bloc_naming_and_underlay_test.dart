@@ -443,7 +443,7 @@ void main() {
     await closeAll(sets, bloc);
   });
 
-  test("zoom, active layer and layer visibility are session view state", () async {
+  test("zoom, placement shape and layer visibility are session view state", () async {
     await writeScreenplay(twoSceneText);
     final bloc = buildBloc();
     final sets = buildSets(bloc);

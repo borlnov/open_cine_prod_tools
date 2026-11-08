@@ -147,7 +147,6 @@ class OcptShotListFloorPlanSetsBloc
     on<OcptShotListSetDuplicationRequestedEvent>(_onSetDuplicationRequested);
     on<OcptShotListFloorPlanBlockingCopyRequestedEvent>(_onBlockingCopyRequested);
     on<OcptShotListFloorPlanZoomChangedEvent>(_onZoomChanged);
-    on<OcptShotListFloorPlanActiveLayerChangedEvent>(_onActiveLayerChanged);
     on<OcptShotListFloorPlanActiveSetElementShapeChangedEvent>(_onActiveSetElementShapeChanged);
     on<OcptShotListFloorPlanActiveSetElementScopeChangedEvent>(_onActiveSetElementScopeChanged);
     on<OcptShotListFloorPlanActiveLabelChangedEvent>(_onActiveLabelChanged);
@@ -533,14 +532,6 @@ class OcptShotListFloorPlanSetsBloc
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
     emitter(state.copyWithZoom(zoom: event.zoom));
-  }
-
-  /// Pick the sequence layer a placed set element lands on. A view preference.
-  Future<void> _onActiveLayerChanged(
-    OcptShotListFloorPlanActiveLayerChangedEvent event,
-    Emitter<OcptShotListFloorPlanSetsState> emitter,
-  ) async {
-    emitter(state.copyWithActiveLayer(layer: event.layer));
   }
 
   /// Pick the décor primitive a `setElement` placement carries. A view preference.

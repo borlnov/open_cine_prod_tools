@@ -222,16 +222,11 @@ void main() {
     await bloc.close();
   });
 
-  test("placing a set element writes a sequence-scoped symbol on the active layer", () async {
+  test("placing a set element writes a sequence-scoped symbol on its own layer", () async {
     await writeScreenplay(twoSceneText);
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
     final setId = await createCase(bloc);
-
-    setsOf(
-      bloc,
-    ).add(const OcptShotListFloorPlanActiveLayerChangedEvent(layer: OcptFloorPlanLayer.set));
-    await waitUntil(() => setsOf(bloc).state.floorPlanActiveLayer == OcptFloorPlanLayer.set);
 
     canvasOf(bloc).add(
       OcptShotListFloorPlanSymbolPlacedEvent(
