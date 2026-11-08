@@ -17512,6 +17512,10 @@
   "@hostingReconcileInvalidInvite": {
     "description": "Result line of the hosting panel's own reconcile form when the pasted text isn't a well-formed invite link"
   },
+  "hostingReconcileDismissTooltip": "Dismiss",
+  "@hostingReconcileDismissTooltip": {
+    "description": "Tooltip of the close button at the end of the hosting panel's reconcile result line or invalid-invite message"
+  },
   "hostingReconcileFailed": "Reconciliation failed",
   "@hostingReconcileFailed": {
     "description": "Result line of the hosting panel's own reconcile form when the upstream relay could not be reconciled with"

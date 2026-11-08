@@ -318,6 +318,37 @@ void main() {
     expect(requestedInvite, "ocpt://join?r=https%3A%2F%2Fr.example%2F&p=p&t=t");
   });
 
+  testWidgets("the close button of a reconcile result line dismisses it", (tester) async {
+    var dismissals = 0;
+    await pumpPanel(
+      tester,
+      onlineState.copyWith(reconcileOutcome: const OcptReconcileSucceeded(pushed: 3, pulled: 0)),
+      onReconcileDismissed: () => dismissals++,
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
+    await tester.tap(find.byTooltip(tr.hostingReconcileDismissTooltip));
+    await tester.pump();
+
+    expect(dismissals, 1);
+  });
+
+  testWidgets("the close button of the invalid-invite message dismisses it", (tester) async {
+    var dismissals = 0;
+    await pumpPanel(
+      tester,
+      onlineState.copyWith(reconcileInviteInvalid: true),
+      onReconcileDismissed: () => dismissals++,
+    );
+
+    final tr = Tr.of(tester.element(find.byType(OcptHostingPanel)));
+    expect(find.text(tr.hostingReconcileInvalidInvite), findsOneWidget);
+    await tester.tap(find.byTooltip(tr.hostingReconcileDismissTooltip));
+    await tester.pump();
+
+    expect(dismissals, 1);
+  });
+
   testWidgets("a successful reconcile outcome shows the pushed/pulled result line", (tester) async {
     await pumpPanel(
       tester,

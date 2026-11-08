@@ -2350,6 +2350,7 @@
   "hostingReconcileRun": "Réconcilier",
   "hostingReconcileResult": "Envoyés {pushed}, reçus {pulled}",
   "hostingReconcileInvalidInvite": "Ce lien d'invitation est invalide",
+  "hostingReconcileDismissTooltip": "Fermer",
   "hostingReconcileFailed": "La réconciliation a échoué",
   "hostingStatusStarting": "Démarrage…",
   "hostingStatusOnline": "En ligne",
