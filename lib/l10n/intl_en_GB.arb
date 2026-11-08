@@ -1359,6 +1359,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeErrorPreviousProjectStillOpen": "The previous project could not be closed.",
+  "@homeErrorPreviousProjectStillOpen": {
+    "description": "Error shown when opening a project failed because the project that was open could not be closed",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeErrorAlreadyOpen": "Another project operation is already in progress.",
   "@homeErrorAlreadyOpen": {
     "description": "Error shown when a create/open/close operation is already in progress",

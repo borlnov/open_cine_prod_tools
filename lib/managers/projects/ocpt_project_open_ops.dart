@@ -276,7 +276,8 @@ abstract final class OcptProjectOpenOps {
     if (currentProject != null) {
       final closed = await closeCurrentProject();
       if (closed.isError) {
-        return _failedOpening(database: null, failure: closed);
+        // The new file was never touched: the fault is the previous project's, not its.
+        return const ResultWithStatus(status: OcptProjectStatus.previousProjectStillOpen);
       }
     }
 
@@ -353,8 +354,8 @@ abstract final class OcptProjectOpenOps {
   /// [openProject] gives a step of the opening that raised: a file that sqlite itself refused is
   /// corrupted, anything else is an I/O failure.
   ///
-  /// The screenplay service and the manager's close answer the failure of such a step instead of
-  /// raising it, with the type of what they caught as `extraInfo`: the verdict is the one
+  /// The screenplay service answers the failure of such a step instead of raising it, with the
+  /// type of what it caught as `extraInfo`: the verdict is the one
   /// [openProject] reaches for an exception of the same type. That is why a failure is handed on
   /// as it came, never rebuilt on the way.
   static Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> _failedOpening({

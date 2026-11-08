@@ -327,12 +327,22 @@ void main() {
       );
     });
 
-    test("is not closed, and closing it answers the failure of the read", () async {
+    test("is closed all the same, and its recorded episode count is left as it was", () async {
+      final path = manager.currentProject!.path;
+      await propertiesManager.recentProjects.store([
+        OcptRecentProjectModel(
+          path: path,
+          name: "My Movie",
+          lastOpenedAt: DateTime.utc(2026),
+          episodeCount: 7,
+        ),
+      ]);
+
       final closed = await manager.closeCurrentProject();
 
-      expect(closed.status, OcptDatabaseStatus.databaseError);
-      expect(closed.extraInfo, FormatException);
-      expect(manager.currentProject, isNotNull);
+      expect(closed.isError, isFalse);
+      expect(manager.currentProject, isNull);
+      expect((await propertiesManager.recentProjects.load())!.single.episodeCount, 7);
     });
 
     test("records no episode count, and recording it answers the failure", () async {
@@ -515,26 +525,47 @@ void main() {
             .okOrFail;
       });
 
-      test("a sqlite error while counting the episodes answers corruptedFile", () async {
+      test("a sqlite error while counting the episodes does not stop the next opening", () async {
         await manager.currentProject!.fileDatabase.customStatement(
           "ALTER TABLE screenplays RENAME TO screenplays_gone",
         );
 
         final result = await manager.openProject(filePath: otherPath);
 
-        expect(result.status, OcptProjectStatus.corruptedFile);
-        expect(manager.currentProject!.path, path, reason: "the open project stays open");
+        expect(result.status, OcptProjectStatus.ok);
+        expect(manager.currentProject!.path, otherPath);
       });
 
-      test("another error while counting the episodes answers ioError", () async {
+      test("another error while counting the episodes does not stop the next opening", () async {
         await manager.currentProject!.fileDatabase.customStatement(
           "UPDATE screenplays SET number = 'unreadable' WHERE title = 'Two'",
         );
 
         final result = await manager.openProject(filePath: otherPath);
 
-        expect(result.status, OcptProjectStatus.ioError);
-        expect(manager.currentProject!.path, path);
+        expect(result.status, OcptProjectStatus.ok);
+        expect(manager.currentProject!.path, otherPath);
+      });
+
+      test("a database that cannot be closed answers previousProjectStillOpen", () async {
+        final result = await OcptProjectOpenOps.openProject(
+          filePath: otherPath,
+          allowMigration: false,
+          currentProject: manager.currentProject,
+          appVersion: manager.appVersion,
+          logger: buildOcptLogsHelper("test"),
+          propertiesManager: propertiesManager,
+          projectFileCompatibilityService: manager.projectFileCompatibilityService,
+          screenplayService: manager.screenplayService,
+          probeProjectFile: manager.probeProjectFile,
+          onOpened: (_) {},
+          closeCurrentProject: () async => const OcptDatabaseOutcome(
+            status: OcptDatabaseStatus.databaseError,
+            extraInfo: SqliteException,
+          ),
+        );
+
+        expect(result.status, OcptProjectStatus.previousProjectStillOpen);
       });
     });
   });

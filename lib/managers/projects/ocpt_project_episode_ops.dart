@@ -27,10 +27,10 @@ abstract final class OcptProjectEpisodeOps {
   /// count behind rather than the one it opened with, and previewing a version never overwrites it
   /// with a count that isn't the project's own.
   ///
-  /// Answers the failure of that read as it came, with the type of what failed as its `extraInfo`:
-  /// the project is then left open, nothing is closed and no count is recorded. A database that
-  /// cannot be closed is answered the same way, once the project has been reported closed: nothing
-  /// after it runs, so no count is recorded either.
+  /// A count that cannot be read is logged and does not stop the close: the project is closed all
+  /// the same and the recorded count is left as it was. Only a database that cannot be closed is
+  /// answered as a failure, with the type of what failed as its `extraInfo`, once the project has
+  /// been reported closed: nothing after it runs, so no count is recorded either.
   @useResult
   static Future<OcptDatabaseOutcome> closeProject({
     required OcptOpenProjectModel? project,
@@ -43,12 +43,15 @@ abstract final class OcptProjectEpisodeOps {
       return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
+    // The count only serves the home card: failing to read it must not keep the user inside the
+    // project, so it is logged and the close goes on without recording one.
     final episodes = await screenplayService.loadEpisodes(database: project.fileDatabase);
-    if (episodes.isError) {
-      return OcptDatabaseOutcome(status: episodes.status, extraInfo: episodes.extraInfo);
+    final episodeCount = episodes.isError ? null : episodes.value!.length;
+    if (episodeCount == null) {
+      logger.w(
+        "The episodes of a project could not be counted at its closing: ${episodes.extraInfo}",
+      );
     }
-
-    final episodeCount = episodes.value!.length;
 
     onClosed();
 
@@ -75,11 +78,13 @@ abstract final class OcptProjectEpisodeOps {
       return closed;
     }
 
-    await recordEpisodeCount(
-      path: project.path,
-      episodeCount: episodeCount,
-      propertiesManager: propertiesManager,
-    );
+    if (episodeCount != null) {
+      await recordEpisodeCount(
+        path: project.path,
+        episodeCount: episodeCount,
+        propertiesManager: propertiesManager,
+      );
+    }
 
     logger.i("A project was closed: ${project.primaryScreenplayId}");
 

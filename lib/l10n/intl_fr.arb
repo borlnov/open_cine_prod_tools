@@ -186,6 +186,7 @@
   "homeErrorFileNotFound": "Ce fichier de projet est introuvable.",
   "homeErrorCorruptedFile": "Ce fichier de projet semble corrompu.",
   "homeErrorIoError": "Un problème est survenu lors de l'accès au fichier du projet.",
+  "homeErrorPreviousProjectStillOpen": "Le projet précédent n'a pas pu être fermé.",
   "homeErrorAlreadyOpen": "Une autre opération sur un projet est déjà en cours.",
   "homeErrorMigrationRequired": "Ce projet est dans un format plus ancien et n'a pas été mis à jour : il reste fermé.",
   "homeErrorNewerFormat": "Ce projet a été enregistré par une version plus récente de l'application et ne peut pas être ouvert ici.",

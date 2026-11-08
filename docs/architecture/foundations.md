@@ -384,7 +384,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   A project's episode count is also read outside the workspace: `OcptRecentProjectModel.episodeCount`
   is recorded by `OcptProjectsManager` as it changes and on leaving a project, and
   `OcptProjectCard` wears a `⟨N episodes⟩` pill for it — **null** (an entry written before the app
-  recorded it) and **1** both draw nothing.
+  recorded it) and **1** both draw nothing. That count never stands in the way of anything else: a
+  project whose episodes cannot be read is still closed (the entry keeps its old count), and a
+  restore that went through still answers success.
   **A single-episode project is exactly what it was before**: one screenplay numbered 1, no
   selector, no prefix, nothing anywhere reading as an episode of something. That is a standing
   constraint on every surface this feature touches, not a transitional state. Its one deliberate

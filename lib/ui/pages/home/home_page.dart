@@ -336,6 +336,7 @@ class _HomeView extends StatelessWidget {
       OcptProjectStatus.foreignDevBuildFormat => tr.homeErrorForeignDevBuildFormat,
       OcptProjectStatus.fileAlreadyExists => tr.homeErrorFileAlreadyExists,
       OcptProjectStatus.alreadyOpen => tr.homeErrorAlreadyOpen,
+      OcptProjectStatus.previousProjectStillOpen => tr.homeErrorPreviousProjectStillOpen,
       OcptProjectStatus.ioError => tr.homeErrorIoError,
     };
   }
