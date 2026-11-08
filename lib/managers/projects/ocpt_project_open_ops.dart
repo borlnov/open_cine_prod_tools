@@ -227,13 +227,15 @@ abstract final class OcptProjectOpenOps {
       primaryScreenplayId: screenplayId,
       database: database,
     );
-    onCreated(project);
-
     await propertiesManager.addRecentProject(
       // A fresh project holds exactly one episode — no need to read it back.
       OcptRecentProjectModel(path: filePath, name: name, lastOpenedAt: now, episodeCount: 1),
     );
     await rememberProjectsDirectory(p.dirname(filePath));
+
+    // Only a fully created project becomes the current one: a step failing above closes the
+    // database, and nothing may be left pointing at it.
+    onCreated(project);
 
     logger.i("A project was created: $screenplayId");
 

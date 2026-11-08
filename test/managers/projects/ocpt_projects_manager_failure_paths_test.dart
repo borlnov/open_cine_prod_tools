@@ -199,6 +199,25 @@ void main() {
     expect(manager.currentProject, isNull);
   });
 
+  test(
+    "createProject leaves no current project when a step after the file is written fails",
+    () async {
+      final failing = OcptProjectsManager(
+        propertiesManager: _ThrowingPropertiesManager(),
+        appLanguageCode: () => "en",
+      );
+      await failing.initLifeCycle();
+
+      final result = await failing.createProject(
+        name: "My Movie",
+        filePath: p.join(tempDir.path, "movie.ocpt"),
+      );
+
+      expect(result.status, OcptProjectStatus.ioError);
+      expect(failing.currentProject, isNull, reason: "its database was closed");
+    },
+  );
+
   test("openProject answers ioError when a step after the file is read fails", () async {
     final path = p.join(tempDir.path, "movie.ocpt");
     await manager.createProject(name: "My Movie", filePath: path);
