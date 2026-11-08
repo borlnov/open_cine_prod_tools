@@ -340,7 +340,7 @@ void main() {
   });
 
   testWidgets("a write the database refuses shows the error once, and a typed field that cannot "
-      "be written falls back to the stored value", (tester) async {
+      "be written stays on screen, pending", (tester) async {
     await harness.seedPerson("Alice");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
@@ -353,7 +353,7 @@ void main() {
       await waitForDebounce(tester);
 
       expect(find.text(tr.resourcesWriteError), findsOneWidget);
-      expect(shownIn(tester, harness.fieldHinted(tr.resourcesFirstNameHint)), "Alice");
+      expect(shownIn(tester, harness.fieldHinted(tr.resourcesFirstNameHint)), "Alicia");
 
       // The notice goes away with its SnackBar and the mode keeps answering.
       await tester.pump(const Duration(seconds: 6));

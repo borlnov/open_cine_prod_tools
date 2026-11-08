@@ -22,7 +22,6 @@ import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_state.dart';
@@ -45,9 +44,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// and a path, with no bytes to read: see [_pickFilePath].
 ///
 /// **Failing.** A write that fails raises the mode's write error (`OcptResourcesWriteFailedEvent`).
-/// A flush that fails drops every edit typed into **any** sheet, not only this one's, through
-/// `OcptResourcesPendingEditsLostEvent`: the mode shows the one error, and every view reacts by
-/// emptying what it holds ([onModeStateChanged]).
+/// A flush that fails answers `failed` and keeps this view's edits pending, the mode showing the
+/// error: the next flush writes them again, and the edits of the other views are untouched.
 class OcptResourcesPeopleBloc
     extends AbsOcptViewBloc<OcptResourcesPeopleState, OcptResourcesState, OcptResourcesBloc> {
   /// The manager used to access the project currently open.
@@ -76,10 +74,7 @@ class OcptResourcesPeopleBloc
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).peopleService,
        _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
-       super(
-         OcptResourcesPeopleState.init(lastLostEditsEpoch: modeBloc.state.lostEditsEpoch),
-         modeBloc: modeBloc,
-       );
+       super(const OcptResourcesPeopleState.init(), modeBloc: modeBloc);
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -110,28 +105,6 @@ class OcptResourcesPeopleBloc
     on<OcptResourcesImageRightsDocumentClearedEvent>(_onImageRightsDocumentCleared);
   }
 
-  /// Drop the edits this bloc holds when the mode says writing them failed somewhere (see
-  /// `OcptResourcesPendingEditsLostEvent`): the fields fall back to the stored values.
-  ///
-  /// Nothing else is scoped to the selection or to the data here: a pending edit survives the user
-  /// selecting another person, since it is written by its own debounce or by the flush the
-  /// selection starts, and the mode reading the catalogue again after a write changes nothing about
-  /// what was typed. Waits for nothing, as the mode's change and this reaction must land in the
-  /// same turn of the event loop.
-  @override
-  Future<void> onModeStateChanged(
-    OcptViewModeStateChangedEvent<OcptResourcesState> event,
-    Emitter<OcptResourcesPeopleState> emitter,
-  ) async {
-    final lostEditsEpoch = event.modeState.lostEditsEpoch;
-    if (lostEditsEpoch <= state.lastLostEditsEpoch) {
-      return;
-    }
-
-    cancelDebounce();
-    emitter(state.copyWithFieldEditsLost(lostEditsEpoch: lostEditsEpoch));
-  }
-
   /// Write every pending field edit immediately: cancels the debounce timer (a no-op if it already
   /// fired or there was none), writes each one through `OcptPeopleService.updatePerson`, then has
   /// the mode read the catalogue again so every derived aggregate reflects what the database now
@@ -139,11 +112,10 @@ class OcptResourcesPeopleBloc
   /// stored value between the two. A no-op while nothing is pending.
   /// Answers `nothingToWrite` when nothing was pending.
   ///
-  /// A write that fails drops **every** edit of the mode and raises the one write error (see
-  /// [_loseEdits]); the snapshot is not read again, so the fields show the value they had. A read
-  /// after a write that landed which fails only raises the write error: what was written is
-  /// forgotten and the other views keep what they hold, to be written in their turn. When the write
-  /// landed and the `Versions` tab is the one showing, also asks the mode to refresh its
+  /// A write that fails raises the mode's write error and answers `failed`: the edits stay pending
+  /// (so do those of every other view) and the snapshot is not read again. A read after a write
+  /// that landed which fails only raises the write error: what was written is forgotten. When the
+  /// write landed and the `Versions` tab is the one showing, also asks the mode to refresh its
   /// working-copy card.
   ///
   /// Called by the debounce firing, and by the mode ahead of every action that needs the database
@@ -167,13 +139,11 @@ class OcptResourcesPeopleBloc
 
     final written = await _writeAllPendingFields(database: project.database, pending: pending);
     if (written.isError) {
-      await _loseEdits(emitter);
-      return OcptPendingWritesStatus.ok;
+      return _reportFailedFlush();
     }
 
     // A read that fails changes nothing here: the write landed, so what was written is forgotten
-    // all the same, and the mode has already raised the write error. Dropping the edits of the
-    // other views as well would lose what no write failure has touched.
+    // all the same, and the mode has already raised the write error.
     await modeBloc.reload({OcptResourcesReloadScope.snapshot});
 
     emitter(
@@ -344,14 +314,11 @@ class OcptResourcesPeopleBloc
     await onFlushRequested(emitter);
   }
 
-  /// Tell the mode that writing the typed edits failed, which raises its write error and makes
-  /// every view drop what it holds, this one included; waits for that, so the flush goes on to the
-  /// other views with nothing left for them to write.
-  ///
-  /// This bloc empties its own map as well, for the mode that is closing and no longer answers.
-  Future<void> _loseEdits(Emitter<OcptResourcesPeopleState> emitter) async {
-    await addToModeAndWait(const OcptResourcesPendingEditsLostEvent());
-    emitter(state.copyWithFieldEditsCleared());
+  /// Raise the mode's write error for a flush whose write failed, and answer that it failed: the
+  /// edits this view holds stay pending, to be written again by the next flush.
+  OcptPendingWritesStatus _reportFailedFlush() {
+    addToMode(const OcptResourcesWriteFailedEvent());
+    return OcptPendingWritesStatus.failed;
   }
 
   /// Write a discrete change to the address book through [action], a service call that answers an

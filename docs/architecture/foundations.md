@@ -208,6 +208,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
     too, so those two modes' views answer `failed` when `reload` answers false
     after their write, rather than answering that all went well over a snapshot from before it.
     The edit stays pending, and the next flush writes it again.
+    The resources mode joins them: its views raise the mode's write error
+    (`OcptResourcesWriteFailedEvent`), answer `failed` and keep the edit pending, and its hooks
+    answer false on `hasFailed`.
     The shot list's views catch their own failure (`hasWriteError`, the edit dropped) and carry
     on: its hooks always answer true, and the action goes ahead on the value the database still
     holds. A new mode copies whichever of the two its old handlers did, and a
