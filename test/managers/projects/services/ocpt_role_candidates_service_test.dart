@@ -558,7 +558,7 @@ void main() {
       expect(other.isDeleted, isFalse);
     });
 
-    test("erasing the person a part is cast with leaves the part cast", () async {
+    test("erasing the person a part is cast with uncasts the part", () async {
       await createRole("role-1");
       await createPerson("person-1");
       final candidateId = (await candidatesService
@@ -570,9 +570,7 @@ void main() {
 
       await peopleService.deletePerson(database: database, personId: "person-1").okOrFail;
 
-      // `roles.personId` still points at the blanked `people` row, exactly as every other
-      // reference to an erased person does: the row is never dropped, so the reference resolves.
-      expect(await readCasting("role-1"), "person-1");
+      expect(await readCasting("role-1"), isNull);
     });
   });
 

@@ -749,8 +749,11 @@ the persistence, the project versions, the sync-ready data model and the read-on
   database so an erasure recorded *after* a version was taken still binds): versions stay
   byte-identical (the codec never rewrites a stored payload), and the working copy never
   resurrects an erased person. The scrubbed row is blanked and tombstoned rather than dropped —
-  `roles.personId`, `elements.ownerPersonId`, `assets.personId` and `locations.contactPersonId` may
-  still point at it. **Their `assets` rows are blanked too, path and label**: an absolute path
+  `elements.ownerPersonId`, `assets.personId` and `locations.contactPersonId` may still point at
+  it. **`roles.personId` does not**: erasing a person uncasts every live role they played
+  (cleared and stamped, in the same transaction), and the scrub does the same to a restored
+  payload, so no reader counts a part as cast for somebody who no longer exists.
+  **Their `assets` rows are blanked too, path and label**: an absolute path
   routinely names the person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a
   photograph of them sits, so tombstoning the row without emptying it would leave the leak open.
   **`OcptProjectVersionsPayloadOps.scrubErasedPeople` and `OcptPeopleService.deletePerson` (with
