@@ -55,10 +55,13 @@ class _StuckCloseProjectsManager extends OcptProjectsManager {
   _StuckCloseProjectsManager({required super.propertiesManager})
     : super(appLanguageCode: () => "en");
 
-  /// Fail as a database that cannot be closed does, when told to.
+  /// Fail as a database that cannot be closed does, when told to: the project is reported closed
+  /// all the same, and the error is answered.
   @override
   Future<OcptDatabaseOutcome> closeCurrentProject() async {
     if (refuseClose) {
+      await super.closeCurrentProject().okOrFail;
+
       return const OcptDatabaseOutcome(
         status: OcptDatabaseStatus.databaseError,
         extraInfo: StateError,
@@ -169,9 +172,8 @@ void main() {
 
     expect(result.status, OcptProjectStatus.ioError);
     expect(File(newPath).existsSync(), isFalse);
-    expect(stuck.currentProject, same(opened));
-    expect(stuck.currentProject!.path, oldPath);
-    stuck.refuseClose = false;
+    expect(stuck.currentProject, isNull, reason: "the previous project was reported closed");
+    expect(opened.path, oldPath);
     await stuck.disposeLifeCycle();
   });
 

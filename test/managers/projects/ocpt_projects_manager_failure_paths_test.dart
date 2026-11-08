@@ -578,13 +578,20 @@ void main() {
           screenplayService: manager.screenplayService,
           probeProjectFile: manager.probeProjectFile,
           onOpened: (_) {},
-          closeCurrentProject: () async => const OcptDatabaseOutcome(
-            status: OcptDatabaseStatus.databaseError,
-            extraInfo: SqliteException,
-          ),
+          closeCurrentProject: () async {
+            // As a real failed close does: the project is reported closed, then the error is
+            // answered.
+            await manager.closeCurrentProject().okOrFail;
+
+            return const OcptDatabaseOutcome(
+              status: OcptDatabaseStatus.databaseError,
+              extraInfo: SqliteException,
+            );
+          },
         );
 
         expect(result.status, OcptProjectStatus.previousProjectStillOpen);
+        expect(manager.currentProject, isNull);
       });
     });
   });

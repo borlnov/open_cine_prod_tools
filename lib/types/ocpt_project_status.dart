@@ -54,8 +54,8 @@ enum OcptProjectStatus with MixinResultStatus {
   /// Another create/open/close operation is already in progress on this manager.
   alreadyOpen(isSuccess: false, canBeRetried: true),
 
-  /// The project that was open could not be closed, so the file asked for was not opened: the
-  /// previous project is still the current one, and the file asked for was never touched.
+  /// The project that was open could not be closed cleanly, so the file asked for was not opened:
+  /// the previous project is no longer the current one, and the file asked for was never touched.
   previousProjectStillOpen(isSuccess: false, canBeRetried: true),
 
   /// A filesystem or database error occurred while creating/opening the project.
