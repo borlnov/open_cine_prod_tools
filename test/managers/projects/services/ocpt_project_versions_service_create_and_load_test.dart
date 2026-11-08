@@ -624,6 +624,27 @@ void main() {
       );
     });
 
+    test("previews the simplified budget flag the version was captured with", () async {
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(isBudgetSimplified: Value(true)));
+      final payload = await readPayload((await createVersion()).id);
+
+      final preview = OcptProjectDatabase.memory(isPreview: true);
+      addTearDown(preview.close);
+
+      await service
+          .hydratePreview(
+            database: preview,
+            projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+            payload: payload,
+          )
+          .okOrFail;
+
+      final info = await preview.select(preview.ocptProjectInfoTable).getSingle();
+      expect(info.isBudgetSimplified, isTrue);
+    });
+
     test("the storyboard and floor plan tables — a panel with an image asset, its annotation, a "
         "linked set's plan, a shot-scoped symbol, a scene-scope override and an arrow — all come "
         "back", () async {

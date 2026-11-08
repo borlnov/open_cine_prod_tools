@@ -615,10 +615,11 @@ abstract final class OcptProjectVersionsRestoreOps {
             // `OcptProjectVersionPayload.screenplayLanguage`.
             screenplayLanguage: Value(payload.screenplayLanguage),
             // Same reading again: `OcptProjectVersionPayload.defaultVatRateBasisPoints`,
-            // `.mealPriceCents` and `.snackPriceCents`.
+            // `.mealPriceCents`, `.snackPriceCents` and `.isBudgetSimplified`.
             defaultVatRateBasisPoints: Value(payload.defaultVatRateBasisPoints),
             mealPriceCents: Value(payload.mealPriceCents),
             snackPriceCents: Value(payload.snackPriceCents),
+            isBudgetSimplified: Value(payload.isBudgetSimplified),
           ),
         );
 

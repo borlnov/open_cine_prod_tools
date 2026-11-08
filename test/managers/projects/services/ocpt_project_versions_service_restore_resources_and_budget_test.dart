@@ -673,6 +673,23 @@ void main() {
       },
     );
 
+    test("restores the simplified budget flag the version was captured with", () async {
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(isBudgetSimplified: Value(true)));
+      final version = await createVersion();
+
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(isBudgetSimplified: Value(false)));
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+      final info = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(info.isBudgetSimplified, isTrue);
+    });
+
     test("restores the screenplay language the version was captured with", () async {
       await database
           .update(database.ocptProjectInfoTable)

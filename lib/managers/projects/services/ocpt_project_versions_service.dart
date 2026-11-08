@@ -339,6 +339,7 @@ class OcptProjectVersionsService extends AbsOcptService {
                 defaultVatRateBasisPoints: Value(payload.defaultVatRateBasisPoints),
                 mealPriceCents: Value(payload.mealPriceCents),
                 snackPriceCents: Value(payload.snackPriceCents),
+                isBudgetSimplified: Value(payload.isBudgetSimplified),
                 currentVersionId: Value(id),
               ),
             );
