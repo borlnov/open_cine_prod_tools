@@ -90,7 +90,7 @@ void main() {
 
       // Under `flutter test` no `--dart-define=APP_VERSION=...` is passed, so this is the
       // manager's own local/dev fallback — see `OcptProjectsManager._appVersion`.
-      expect(info.migratedByAppVersion, "0.3.0");
+      expect(info.migratedByAppVersion, "0.3.1");
       expect(info.appVersionAtCreation, info.migratedByAppVersion);
     },
   );
