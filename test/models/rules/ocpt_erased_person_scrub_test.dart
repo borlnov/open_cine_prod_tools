@@ -403,6 +403,43 @@ void main() {
     });
   });
 
+  group("the roles cast with an erased person", () {
+    test("lose the link to them and keep everything else", () {
+      final scrubbed = ocptScrubErasedPeopleFromPayload(
+        payload: {
+          "roles": [
+            {"id": "role-1", "name": "CLARA", "personId": "person-1"},
+            {"id": "role-2", "name": "MARC", "personId": "person-2"},
+            {"id": "role-3", "name": "EXTRA", "personId": null},
+          ],
+        },
+        erasedPersonIds: {"person-1"},
+      );
+
+      expect(scrubbed.changed, isTrue);
+      final roles = (scrubbed.payload["roles"] as List).cast<Map<String, dynamic>>();
+      expect(roles[0], {"id": "role-1", "name": "CLARA", "personId": null});
+      expect(roles[1]["personId"], "person-2");
+      expect(roles[2]["personId"], isNull);
+    });
+
+    test("a payload whose roles name nobody erased stays identical", () {
+      final original = {
+        "roles": [
+          {"id": "role-1", "personId": "person-2"},
+        ],
+      };
+
+      final scrubbed = ocptScrubErasedPeopleFromPayload(
+        payload: original,
+        erasedPersonIds: {"person-1"},
+      );
+
+      expect(scrubbed.changed, isFalse);
+      expect(scrubbed.payload["roles"], same(original["roles"]));
+    });
+  });
+
   group("scrubbing nothing", () {
     test("an empty erasure list leaves the payload untouched, identically", () {
       final original = encodedPayloadOf(buildPayload());

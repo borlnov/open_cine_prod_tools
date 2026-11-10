@@ -390,11 +390,12 @@ void main() {
       },
     );
 
-    test("are all dropped when the mode says writing the typed edits failed", () async {
+    test("stay pending, with the one write error, and are written once the write works", () async {
       final bloc = buildBloc();
       final peopleBloc = buildPeople(bloc, fieldEditDebounce: _neverDebounce);
       await waitForState(bloc, (state) => !state.isLoading);
       final personId = await createPerson(bloc, peopleBloc);
+      final database = projectsManager.currentProject!.database;
       peopleBloc.add(
         OcptResourcesPersonFieldChangedEvent(
           personId: personId,
@@ -404,38 +405,21 @@ void main() {
       );
       await waitForState(peopleBloc, (state) => state.pendingFieldEdits.isNotEmpty);
 
-      bloc.add(const OcptResourcesPendingEditsLostEvent());
-      await waitForState(peopleBloc, (state) => state.pendingFieldEdits.isEmpty);
-
-      expect(bloc.state.hasWriteError, isTrue);
-      expect(bloc.state.selectedPerson!.firstName, isEmpty);
-
-      await closeAll(peopleBloc, bloc);
-    });
-
-    test("fall back to the stored value, with the one write error, when the write fails", () async {
-      final bloc = buildBloc();
-      final peopleBloc = buildPeople(bloc);
-      await waitForState(bloc, (state) => !state.isLoading);
-      final personId = await createPerson(bloc, peopleBloc);
-      final database = projectsManager.currentProject!.database;
-
       await database.customStatement("ALTER TABLE people RENAME TO people_gone");
       try {
-        peopleBloc.add(
-          OcptResourcesPersonFieldChangedEvent(
-            personId: personId,
-            field: OcptPersonField.firstName,
-            rawValue: "Alicia",
-          ),
-        );
-        await waitForState(bloc, (state) => state.hasWriteError);
-        await waitForState(peopleBloc, (state) => state.pendingFieldEdits.isEmpty);
+        final mayProceed = await bloc.flushAllPendingWrites();
 
-        expect(bloc.state.selectedPerson!.firstName, isEmpty);
+        expect(mayProceed, isFalse);
+        expect(bloc.state.hasWriteError, isTrue);
+        expect(peopleBloc.state.pendingFieldEdits, hasLength(1));
+        expect(peopleBloc.state.pendingFieldEdits.values.single, "Alicia");
       } finally {
         await database.customStatement("ALTER TABLE people_gone RENAME TO people");
       }
+
+      expect(await bloc.flushAllPendingWrites(), isTrue);
+      expect(peopleBloc.state.pendingFieldEdits, isEmpty);
+      expect(bloc.state.selectedPerson!.firstName, "Alicia");
 
       await closeAll(peopleBloc, bloc);
     });

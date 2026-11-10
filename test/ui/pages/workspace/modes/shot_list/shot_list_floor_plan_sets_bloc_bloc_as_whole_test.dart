@@ -270,7 +270,6 @@ void main() {
       OcptShotListSetDuplicationRequestedEvent() => "duplication",
       OcptShotListFloorPlanBlockingCopyRequestedEvent() => "blocking copy",
       OcptShotListFloorPlanZoomChangedEvent() => "zoom",
-      OcptShotListFloorPlanActiveLayerChangedEvent() => "active layer",
       OcptShotListFloorPlanActiveSetElementShapeChangedEvent() => "shape",
       OcptShotListFloorPlanActiveSetElementScopeChangedEvent() => "scope",
       OcptShotListFloorPlanActiveLabelChangedEvent() => "label",
@@ -303,7 +302,6 @@ void main() {
         OcptShotListSetDuplicationRequestedEvent(setId: "s", newSetName: "Copy"),
         OcptShotListFloorPlanBlockingCopyRequestedEvent(setId: "s", sourceShotId: "x"),
         OcptShotListFloorPlanZoomChangedEvent(zoom: 2),
-        OcptShotListFloorPlanActiveLayerChangedEvent(layer: OcptFloorPlanLayer.set),
         OcptShotListFloorPlanActiveSetElementShapeChangedEvent(
           shape: OcptFloorPlanSetElementShape.door,
         ),
@@ -329,7 +327,7 @@ void main() {
         OcptShotListFloorPlanPropsLoadRequestedEvent(sequenceId: null),
         OcptShotListFloorPlanSetsWriteErrorDismissedEvent(),
       ];
-      expect(events.map(nameOf).toSet(), hasLength(24));
+      expect(events.map(nameOf).toSet(), hasLength(23));
 
       // A bloc asserts, in debug mode, that an event it is given has a handler registered.
       for (final event in events) {

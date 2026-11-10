@@ -383,6 +383,10 @@ class OcptProjectsServices {
        budgetFinancingService = OcptBudgetFinancingService(
          logger: _sub(logger, 'budget_financing'),
          deviceId: _resolveDeviceId(propertiesManager),
+         quoteService: OcptBudgetQuoteService(
+           logger: _sub(logger, 'budget_quote'),
+           deviceId: _resolveDeviceId(propertiesManager),
+         ),
        ),
        budgetAllowancesService = OcptBudgetAllowancesService(
          logger: _sub(logger, 'budget_allowances'),

@@ -913,6 +913,15 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
     }
   }
 
+  /// Commit what is typed while the field still has the focus, as the minute field does.
+  @override
+  void deactivate() {
+    if (_focusNode.hasFocus) {
+      _commit(isTearingDown: true);
+    }
+    super.deactivate();
+  }
+
   /// Build the schedule block duration field as a [SizedBox].
   @override
   Widget build(BuildContext context) {
@@ -953,7 +962,9 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
   /// Parse the field's current text and report it, or revert the field to
   /// [_OcptScheduleBlockDurationField.durationMinutes]'s own formatted reading when the text is
   /// empty, unparseable or negative.
-  void _commit() {
+  ///
+  /// With [isTearingDown], the controller is left alone, as it is notified mid-build.
+  void _commit({bool isTearingDown = false}) {
     final onChanged = widget.onChanged;
     if (onChanged == null) {
       return;
@@ -961,11 +972,15 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
 
     final parsed = int.tryParse(_controller.text.trim());
     if (parsed == null || parsed < 0) {
-      _controller.text = "${widget.durationMinutes}";
+      if (!isTearingDown) {
+        _controller.text = "${widget.durationMinutes}";
+      }
       return;
     }
 
-    _controller.text = "$parsed";
+    if (!isTearingDown) {
+      _controller.text = "$parsed";
+    }
     if (parsed != _lastReportedDurationMinutes) {
       _lastReportedDurationMinutes = parsed;
       onChanged(parsed);

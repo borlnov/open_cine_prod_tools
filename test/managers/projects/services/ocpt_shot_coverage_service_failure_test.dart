@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import '../../../ocpt_result_expectations.dart';
 
 /// The rows the calls of this file work on.
@@ -68,6 +69,11 @@ void main() {
         .valueOrFail;
     // The shot is flagged, so that checking it changes a row.
     await database.customStatement("UPDATE shots SET needs_check = 1 WHERE id = 'shot-1'");
+    await database
+        .into(database.ocptRolesTable)
+        .insert(
+          OcptRolesTableCompanion.insert(id: "role-1", name: "JOHN", kind: OcptRoleKind.speaking),
+        );
 
     return (rangeId: rangeId);
   }
@@ -91,6 +97,15 @@ void main() {
       endOffset: 33,
       sceneText: sceneText,
     )).status,
+    "addRangeWithCharacters": (r) async => (await service.addRangeWithCharacters(
+      database: database,
+      shotId: "shot-1",
+      sceneId: "scene-1",
+      startOffset: 28,
+      endOffset: 33,
+      sceneText: sceneText,
+      roleIds: const ["role-1"],
+    )).status,
     "removeRange": (r) async =>
         (await service.removeRange(database: database, rangeId: r.rangeId)).status,
     "clearRangesOfShot": (r) async =>
@@ -105,13 +120,52 @@ void main() {
   /// Every row of the tables the service writes, plus the stamps, as a comparable text.
   Future<String> snapshot() async {
     final buffer = StringBuffer();
-    for (final table in ["shot_coverages", "shots", "row_field_versions"]) {
+    for (final table in ["shot_coverages", "shot_characters", "shots", "row_field_versions"]) {
       final result = await database.customSelect("SELECT * FROM $table ORDER BY 1, 2, 3").get();
       buffer.writeln("$table: ${[for (final row in result) row.data]}");
     }
 
     return buffer.toString();
   }
+
+  test("a range whose character cannot be attached is not written", () async {
+    final untouched = await snapshot();
+    await database.customStatement(
+      "CREATE TRIGGER refuse_insert BEFORE INSERT ON shot_characters "
+      "BEGIN SELECT RAISE(ABORT, 'refused'); END",
+    );
+
+    final added = await service.addRangeWithCharacters(
+      database: database,
+      shotId: "shot-1",
+      sceneId: "scene-1",
+      startOffset: 28,
+      endOffset: 33,
+      sceneText: sceneText,
+      roleIds: const ["role-1"],
+    );
+
+    expect(added.status, OcptDatabaseStatus.databaseError);
+    expect(await snapshot(), untouched);
+  });
+
+  test("a range and its characters are written together when nothing fails", () async {
+    final rangeId = await service
+        .addRangeWithCharacters(
+          database: database,
+          shotId: "shot-1",
+          sceneId: "scene-1",
+          startOffset: 28,
+          endOffset: 33,
+          sceneText: sceneText,
+          roleIds: const ["role-1"],
+        )
+        .valueOrFail;
+
+    final links = await database.customSelect("SELECT role_id FROM shot_characters").get();
+    expect(rangeId, isNotEmpty);
+    expect([for (final link in links) link.data["role_id"]], ["role-1"]);
+  });
 
   group("every write answers a database error when the database refuses it", () {
     for (final entry in writes.entries) {
@@ -125,7 +179,7 @@ void main() {
         rows = await seed();
 
         final untouched = await snapshot();
-        for (final table in ["shot_coverages", "shots"]) {
+        for (final table in ["shot_coverages", "shot_characters", "shots"]) {
           for (final verb in ["INSERT", "UPDATE"]) {
             await database.customStatement(
               "CREATE TRIGGER refuse_${verb.toLowerCase()}_$table BEFORE $verb ON $table "

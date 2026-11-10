@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of [OcptPeopleService].
@@ -415,6 +416,49 @@ void main() {
         expect(row.path, isEmpty);
         expect(row.label, isEmpty);
       }
+    });
+
+    test("deletePerson uncasts the roles the person played, stamping each", () async {
+      final id = await peopleService.createPerson(database: database).valueOrFail;
+      final otherId = await peopleService.createPerson(database: database).valueOrFail;
+      await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(
+              id: "role-1",
+              name: "LÉA",
+              kind: OcptRoleKind.speaking,
+              personId: Value(id),
+            ),
+          );
+      await database
+          .into(database.ocptRolesTable)
+          .insert(
+            OcptRolesTableCompanion.insert(
+              id: "role-2",
+              name: "PAUL",
+              kind: OcptRoleKind.speaking,
+              personId: Value(otherId),
+            ),
+          );
+
+      await peopleService.deletePerson(database: database, personId: id).okOrFail;
+
+      final roles = {
+        for (final row in await database.select(database.ocptRolesTable).get()) row.id: row,
+      };
+      expect(roles["role-1"]!.personId, isNull);
+      expect(roles["role-2"]!.personId, otherId);
+      final stamps = await database.select(database.ocptRowFieldVersionsTable).get();
+      expect(
+        stamps.where(
+          (stamp) =>
+              stamp.targetTableName == "roles" &&
+              stamp.rowId == "role-1" &&
+              stamp.columnName == "personId",
+        ),
+        hasLength(1),
+      );
     });
   });
 

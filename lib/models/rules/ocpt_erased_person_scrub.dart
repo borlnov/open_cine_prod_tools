@@ -69,6 +69,9 @@ const _isDeletedKey = "isDeleted";
 /// The payload key a row pointing at a person names them by.
 const _personIdKey = "personId";
 
+/// The payload list of the roles, whose `personId` names the person cast in each.
+const _rolesKey = "roles";
+
 /// The `id` key, which is also how a `people` row names itself.
 const _idKey = "id";
 
@@ -110,13 +113,13 @@ const _scrubbedChildBlankedKeys = {
 ///
 /// This is the **third** implementation of one rule, and the only one that is not typed:
 /// `OcptPeopleService.deletePerson` (with `OcptAssetsService.erasePersonAssets` and
-/// `OcptRoleCandidatesService.eraseCandidaciesOfPerson`) applies it to a
-/// live row, `OcptProjectVersionsPayloadOps.scrubErasedPeople` applies it to a decoded payload on
-/// its way to a preview or a restore, and this one applies it to the stored JSON of a payload being
-/// **copied out of the project** — the export of a portable package, which must not carry an erased
-/// person's data to somebody else's machine. It reads the payload's own keys instead of the
-/// schema's Dart types because a package may be built from a project file at **any** schema
-/// version, including one this build would migrate: nothing here may assume a shape.
+/// `OcptRoleCandidatesService.eraseCandidaciesOfPerson`, and the uncasting of the person's roles)
+/// applies it to a live row, `OcptProjectVersionsPayloadOps.scrubErasedPeople` applies it to a
+/// decoded payload on its way to a preview or a restore, and this one applies it to the stored JSON
+/// of a payload being **copied out of the project** — the export of a portable package, which must
+/// not carry an erased person's data to somebody else's machine. It reads the payload's own keys
+/// instead of the schema's Dart types because a package may be built from a project file at **any**
+/// schema version, including one this build would migrate: nothing here may assume a shape.
 ///
 /// The three are kept in step by a test rather than by hand: it walks every key the codec writes
 /// for a person and fails unless this file names it in exactly one of [ocptErasedPersonKeptKeys],
@@ -128,6 +131,9 @@ const _scrubbedChildBlankedKeys = {
 /// that test is about to complain about — is emptied by the type of the value it holds rather than
 /// left alone: a string becomes empty, anything else becomes null. Leaking is the one outcome that
 /// is not acceptable, so the fallback errs towards taking too much out.
+///
+/// A role naming an erased person through `personId` keeps its row and loses the link: the key is
+/// set to null, as the other two implementations do.
 ///
 /// The payload is **not** rewritten when [erasedPersonIds] is empty, or when it names nobody this
 /// payload holds: the caller relies on that to leave a stored version byte-identical, digest
@@ -169,6 +175,20 @@ const _scrubbedChildBlankedKeys = {
       for (final row in rows)
         if (row is Map<String, dynamic> && erasedPersonIds.contains(row[entry.value]))
           _scrubbedChildRow(row, blankedKeys: _scrubbedChildBlankedKeys[entry.key]!)
+        else
+          row,
+    ];
+    changed = true;
+  }
+
+  // A role cast with an erased person is uncast, exactly as the live erasure does it: the row
+  // stays, and only its link to the person goes.
+  final roles = payload[_rolesKey];
+  if (roles is List && namesErasedPerson(roles, _personIdKey)) {
+    scrubbed[_rolesKey] = [
+      for (final row in roles)
+        if (row is Map<String, dynamic> && erasedPersonIds.contains(row[_personIdKey]))
+          {...row, _personIdKey: null}
         else
           row,
     ];

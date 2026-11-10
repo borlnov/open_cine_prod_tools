@@ -32,6 +32,7 @@ void main() {
   final financingService = OcptBudgetFinancingService(
     logger: const SilentLogger(),
     deviceId: testDeviceId,
+    quoteService: OcptBudgetQuoteService(logger: const SilentLogger(), deviceId: testDeviceId),
   );
 
   late OcptProjectDatabase database;

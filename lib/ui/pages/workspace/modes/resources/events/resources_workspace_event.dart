@@ -271,19 +271,6 @@ class OcptResourcesWriteFailedEvent extends OcptResourcesWorkspaceEvent {
   const OcptResourcesWriteFailedEvent();
 }
 
-/// Report that writing the edits typed into the sheets failed: the transient write error is shown
-/// and **every** view drops what it still holds in its debounce, the field falling back to the
-/// value the database holds.
-///
-/// Dispatched by a view bloc whose flush failed, never by a widget. The edits of the other views
-/// are dropped with its own, as they were when all the sheets shared one pending map: a flush that
-/// failed leaves no way to tell which of the other edits would have been written on top of it.
-/// Awaited by its dispatcher, so the other views have reacted before the flush goes on to them.
-class OcptResourcesPendingEditsLostEvent extends OcptResourcesWorkspaceEvent {
-  /// Class constructor
-  const OcptResourcesPendingEditsLostEvent();
-}
-
 /// Select the record [recordId] a view bloc has just created, in the list of [tab], without
 /// switching tab nor writing what is pending: the view already did, and has read the mode's data
 /// again so the record is in it.

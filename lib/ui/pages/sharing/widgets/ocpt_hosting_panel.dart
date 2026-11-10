@@ -182,6 +182,7 @@ class _OcptHostingPanelState extends State<OcptHostingPanel> {
                   controller: _inviteController,
                   onOpenForm: () => setState(() => _isReconcileFormOpen = true),
                   onReconcileRequested: widget.onReconcileRequested,
+                  onReconcileDismissed: widget.onReconcileDismissed,
                 ),
               ],
             ],
@@ -495,6 +496,10 @@ class _OcptHostingReconcileCard extends StatelessWidget {
   /// Called when "Réconcilier" is pressed, with the field's own current text.
   final ValueChanged<String> onReconcileRequested;
 
+  /// Called when the close button at the end of the result line or of the invalid-invite message
+  /// is pressed.
+  final VoidCallback onReconcileDismissed;
+
   /// Class constructor
   const _OcptHostingReconcileCard({
     required this.state,
@@ -502,6 +507,7 @@ class _OcptHostingReconcileCard extends StatelessWidget {
     required this.controller,
     required this.onOpenForm,
     required this.onReconcileRequested,
+    required this.onReconcileDismissed,
   });
 
   /// Build the hosting reconcile card as a [Card].
@@ -551,20 +557,52 @@ class _OcptHostingReconcileCard extends StatelessWidget {
             ],
             if (state.reconcileInviteInvalid) ...[
               const SizedBox(height: 8),
-              Text(
-                tr.hostingReconcileInvalidInvite,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+              _OcptHostingDismissibleLine(
+                onDismissed: onReconcileDismissed,
+                child: Text(
+                  tr.hostingReconcileInvalidInvite,
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+                ),
               ),
             ],
             if (state.reconcileOutcome case final outcome?) ...[
               const SizedBox(height: 8),
-              _OcptHostingReconcileResultLine(outcome: outcome),
+              _OcptHostingDismissibleLine(
+                onDismissed: onReconcileDismissed,
+                child: _OcptHostingReconcileResultLine(outcome: outcome),
+              ),
             ],
           ],
         ),
       ),
     );
   }
+}
+
+/// A reconcile notice ([child]) followed by a small close button that dismisses it.
+class _OcptHostingDismissibleLine extends StatelessWidget {
+  /// The notice shown before the close button.
+  final Widget child;
+
+  /// Called when the close button is pressed.
+  final VoidCallback onDismissed;
+
+  /// Class constructor
+  const _OcptHostingDismissibleLine({required this.child, required this.onDismissed});
+
+  /// Build the notice and its close button as a [Row].
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(child: child),
+      IconButton(
+        icon: const Icon(Icons.close, size: 16),
+        tooltip: Tr.of(context).hostingReconcileDismissTooltip,
+        visualDensity: VisualDensity.compact,
+        onPressed: onDismissed,
+      ),
+    ],
+  );
 }
 
 /// The reconcile card's own result line: the pushed/pulled counts on success, or a generic failure

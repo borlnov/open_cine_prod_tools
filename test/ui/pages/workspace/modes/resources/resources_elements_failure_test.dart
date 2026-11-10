@@ -321,23 +321,23 @@ void main() {
       await settle();
     }
 
-    test("a refused write loses the edit, raises the write error and reads nothing", () async {
+    test("a refused write keeps the edit, raises the write error and reads nothing", () async {
       await type();
       final held = mode.state;
       await refuse("UPDATE", "elements");
 
       final status = await view.flushPendingWrites();
 
-      expect(status, OcptPendingWritesStatus.ok);
+      expect(status, OcptPendingWritesStatus.failed);
       expect(mode.state.hasWriteError, isTrue);
-      expect(view.state.pendingElementFieldEdits, isEmpty);
+      expect(view.state.pendingElementFieldEdits, hasLength(1));
       expect(mode.state.snapshot, same(held.snapshot), reason: "the mode read again");
 
       await lift("UPDATE", "elements");
       mode.add(const OcptResourcesWriteErrorDismissedEvent());
-      await type();
 
       expect(await view.flushPendingWrites(), OcptPendingWritesStatus.ok);
+      expect(view.state.pendingElementFieldEdits, isEmpty);
       expect(mode.state.snapshot, isNot(same(held.snapshot)));
     });
 
@@ -359,7 +359,7 @@ void main() {
 
       final status = await view.flushPendingWrites();
 
-      expect(status, OcptPendingWritesStatus.ok);
+      expect(status, OcptPendingWritesStatus.failed);
       final names = await projectsManager.currentProject!.database
           .customSelect("SELECT name FROM elements ORDER BY name")
           .get();

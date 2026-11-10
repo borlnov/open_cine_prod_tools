@@ -230,10 +230,11 @@ seven documents a production runs on.
     in it: **selecting a day or a block does not flush a pending edit, and neither does a switch of
     the centre view**; the debounce writes the edit later, even after the user has moved to another
     day. It is flushed ahead of a dock tab change, a version preview, a project package export and
-    every export, and by the mode's `deactivate()` without state. Going back to the projects does
-    **not** flush: the project is closed before the keystrokes could be written, and they are lost
-    (a known defect, pinned by a scenario). When the mode reads everything again
-    (`OcptScheduleSelectionCause.load`) every pending edit is dropped; when it only reads the
+    every export, and by the mode's `deactivate()` without state. Going back to the projects flushes
+    first, then closes the project. Coming back from the project
+    settings flushes before it reads the plan again (and stops, the edit still pending, if a write
+    fails). Any other read of everything (`OcptScheduleSelectionCause.load`) drops every pending
+    edit; when it only reads the
     schedule, an edit typed into a row that no longer exists is.
     **A write that fails stops the handler where it is:** the service logs it, nothing is read
     again, no row is selected and the typed edit stays pending and on screen, to be written again

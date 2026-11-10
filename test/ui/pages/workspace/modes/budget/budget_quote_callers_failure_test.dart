@@ -103,8 +103,9 @@ void main() {
       view.add(OcptBudgetResourceCreationConfirmedEvent(fields: inKind(accountId, "Camera loan")));
       await harness.settle();
 
-      expect(harness.state.reloadEpoch, held.reloadEpoch);
+      expect(harness.state.reloadEpoch, isNot(held.reloadEpoch), reason: "read again on failure");
       expect(harness.state.selection, held.selection);
+      expect(harness.state.resources, isEmpty, reason: "the resource is rolled back with its line");
 
       await harness.lift("INSERT", "budget_lines");
       view.add(OcptBudgetResourceCreationConfirmedEvent(fields: inKind(accountId, "Camera loan")));
@@ -129,7 +130,8 @@ void main() {
       );
       await harness.settle();
 
-      expect(harness.state.reloadEpoch, held.reloadEpoch);
+      expect(harness.state.reloadEpoch, isNot(held.reloadEpoch), reason: "read again on failure");
+      expect(harness.state.resources.single.label, "Camera loan");
 
       await harness.lift("UPDATE", "budget_lines");
       view.add(
@@ -187,8 +189,9 @@ void main() {
       );
       await harness.settle();
 
-      expect(harness.state.reloadEpoch, held.reloadEpoch);
+      expect(harness.state.reloadEpoch, isNot(held.reloadEpoch), reason: "read again on failure");
       expect(harness.state.accounts.last.lines, isEmpty, reason: "no line was minted after it");
+      expect(hasCounterpart(harness.modeBloc!, "Camera loan"), isTrue, reason: "the line stays");
     });
   });
 

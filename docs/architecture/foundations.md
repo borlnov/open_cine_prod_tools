@@ -208,6 +208,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
     too, so those two modes' views answer `failed` when `reload` answers false
     after their write, rather than answering that all went well over a snapshot from before it.
     The edit stays pending, and the next flush writes it again.
+    The resources mode joins them: its views raise the mode's write error
+    (`OcptResourcesWriteFailedEvent`), answer `failed` and keep the edit pending, and its hooks
+    answer false on `hasFailed`.
     The shot list's views catch their own failure (`hasWriteError`, the edit dropped) and carry
     on: its hooks always answer true, and the action goes ahead on the value the database still
     holds. A new mode copies whichever of the two its old handlers did, and a
@@ -384,7 +387,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   A project's episode count is also read outside the workspace: `OcptRecentProjectModel.episodeCount`
   is recorded by `OcptProjectsManager` as it changes and on leaving a project, and
   `OcptProjectCard` wears a `⟨N episodes⟩` pill for it — **null** (an entry written before the app
-  recorded it) and **1** both draw nothing.
+  recorded it) and **1** both draw nothing. That count never stands in the way of anything else: a
+  project whose episodes cannot be read is still closed (the entry keeps its old count), and a
+  restore that went through still answers success.
   **A single-episode project is exactly what it was before**: one screenplay numbered 1, no
   selector, no prefix, nothing anywhere reading as an episode of something. That is a standing
   constraint on every surface this feature touches, not a transitional state. Its one deliberate
@@ -591,7 +596,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   devcontainer carries no Android SDK, so the Android build is **CI-verified only**; the local
   verification gate stays `flutter build linux --debug`.
 
-- Persistence: drift schema v4, frozen at 0.3.0 (ADR 0029). `onCreate` creates the whole
+- Persistence: drift schema v5, the pending step of the cycle after 0.3.0, which froze v4
+  (ADR 0029). `onCreate` creates the whole
   schema at once — `project_info`, `screenplays`, `screenplay_snapshots`, `scenes`, the three shot
   list tables, the five storyboard and floor plan tables (`storyboard_panels`,
   `storyboard_annotations`, `floor_plan_sets`, `floor_plan_symbols`, `floor_plan_arrows`,
@@ -615,17 +621,19 @@ the persistence, the project versions, the sync-ready data model and the read-on
   — `shot_characters` reshaped from `{shotId, characterName}` to `{shotId, roleId}`, the first
   non-additive step this project ships (ADR 0030); the 0.3.0 release froze v4 — the five tables
   above, fully additive, the shot list's storyboard and floor plans (`shot-list.md`). Two constants
-  govern this: `currentSchemaVersion` (4) and `lastStableSchemaVersion` (4, frozen at 0.3.0). While
-  `current == lastStable + 1` a cycle is open and the pending step is rewritten in place; while
-  `current == lastStable` the top step is frozen — the state today — so the next schema change
-  creates a new one, `ocpt_migration_v5.dart`. Freezing sets `lastStableSchemaVersion` to
-  `currentSchemaVersion` at release (`docs/RELEASING.md`), which a fail-closed CI guard on a stable
-  tag enforces — a forgotten freeze blocks the release, an incorrect one fails the migration test.
-  ADR 0007's additive-only guidance still governs how a single step is written; its
-  allocate-at-merge rule is amended — a cycle no longer takes a number per merge. The migration test
-  is the harness pinning each frozen stable's upgrade path (a verbatim DDL fixture for the schema
-  each prior stable shipped, proving `onCreate` == every stable upgrade path), so a table declared
-  and forgotten fails there rather than on a user's file; it holds the v1, v2 and v3 fixtures.
+  govern this: `currentSchemaVersion` (5) and `lastStableSchemaVersion` (4, frozen at 0.3.0). While
+  `current == lastStable + 1` a cycle is open and the pending step is rewritten in place — the state
+  today, `ocpt_migration_v5.dart` being that step: it renames the `labelText` stamps of
+  `storyboard_annotations` in `row_field_versions` to `text` (see [`sync.md`](sync.md)); while
+  `current == lastStable` the top step is frozen, so the next schema change creates a new one.
+  Freezing sets `lastStableSchemaVersion` to `currentSchemaVersion` at release (`docs/RELEASING.md`),
+  which a fail-closed CI guard on a stable tag enforces — a forgotten freeze blocks the release,
+  an incorrect one fails the migration test. ADR 0007's additive-only guidance still governs how
+  a single step is written; its allocate-at-merge rule is amended — a cycle no longer takes a
+  number per merge. The migration test is the harness pinning each frozen stable's upgrade path
+  (a verbatim DDL fixture for the schema each prior stable shipped, proving `onCreate` == every
+  stable upgrade path), so a table declared and forgotten fails there rather than on a user's
+  file; it holds the v1, v2 and v3 fixtures.
   Generated code, drift's `.g.dart` included, sits under `lib/generated/`, which is git-ignored
   (ADR 0033); CI regenerates it with build_runner.
 
@@ -744,13 +752,18 @@ the persistence, the project versions, the sync-ready data model and the read-on
   database so an erasure recorded *after* a version was taken still binds): versions stay
   byte-identical (the codec never rewrites a stored payload), and the working copy never
   resurrects an erased person. The scrubbed row is blanked and tombstoned rather than dropped —
-  `roles.personId`, `elements.ownerPersonId`, `assets.personId` and `locations.contactPersonId` may
-  still point at it. **Their `assets` rows are blanked too, path and label**: an absolute path
+  `elements.ownerPersonId`, `assets.personId` and `locations.contactPersonId` may still point at
+  it. **`roles.personId` does not**: erasing a person uncasts every live role they played
+  (cleared and stamped, in the same transaction), and the scrub does the same to a restored
+  payload and to the stored versions of a portable package (`ocptScrubErasedPeopleFromPayload`),
+  so no reader counts a part as cast for somebody who no longer exists.
+  **Their `assets` rows are blanked too, path and label**: an absolute path
   routinely names the person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a
   photograph of them sits, so tombstoning the row without emptying it would leave the leak open.
-  **`OcptProjectVersionsPayloadOps.scrubErasedPeople` and `OcptPeopleService.deletePerson` (with
-  `OcptAssetsService.erasePersonAssets`) implement the same erasure from two starting points and
-  must be kept in step by hand**: a column blanked by one but not the other reopens the leak.
+  **`OcptProjectVersionsPayloadOps.scrubErasedPeople`, `OcptPeopleService.deletePerson` (with
+  `OcptAssetsService.erasePersonAssets`) and `ocptScrubErasedPeopleFromPayload` implement the same
+  erasure from three starting points and must be kept in step by hand**: a column blanked by one
+  but not the others reopens the leak.
   **`role_candidates` joins that rule**, being the first *link* table to hold something about a
   person rather than only ids: its `notes` is what somebody wrote about them at an audition, so
   erasing a person blanks it and tombstones the row, in all three implementations

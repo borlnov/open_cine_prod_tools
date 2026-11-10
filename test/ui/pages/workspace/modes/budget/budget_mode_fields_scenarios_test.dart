@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
+import 'package:path/path.dart' as p;
 
 import 'budget_mode_scenarios_test_doubles.dart';
 
@@ -153,6 +154,32 @@ void main() {
       tester,
       () async => (await harness.readAccounts()).first.label == "Camera crew",
     );
+  });
+
+  testWidgets("going back to the projects right after typing writes the field before the "
+      "project is closed", (tester) async {
+    await openCameraDetail(tester);
+    final tr = harness.trOf(tester);
+
+    await harness.type(
+      tester,
+      harness.fieldLabelled(tr.budgetInspectorAccountLabelFieldLabel),
+      "Camera crew",
+    );
+    await harness.tap(tester, find.byTooltip(tr.editorBackToProjectsTooltip));
+    await harness.pumpUntil(tester, () => harness.projectsManager.currentProject == null);
+    await harness.unmount(tester);
+    await tester.runAsync(() async {
+      final reopened = await harness.projectsManager.openProject(
+        filePath: p.join(harness.tempDir.path, "movie.ocpt"),
+      );
+      expect(reopened.status.isSuccess, isTrue);
+    });
+
+    expect((await harness.readAccounts()).map((account) => account.label), [
+      "Camera crew",
+      "Sound",
+    ]);
   });
 
   testWidgets("a figure that does not parse is skipped and the field falls back to what is "

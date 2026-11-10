@@ -318,27 +318,19 @@ void main() {
       await bloc.close();
     });
 
-    test(
-      "a write error reported by a view is shown, and lost edits are told to every view",
-      () async {
-        final bloc = buildBloc();
-        final loaded = await waitForState(bloc, (state) => !state.isLoading);
+    test("a write error reported by a view is shown until it is dismissed", () async {
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
 
-        bloc.add(const OcptResourcesWriteFailedEvent());
-        final failed = await waitForState(bloc, (state) => state.hasWriteError);
-        expect(failed.lostEditsEpoch, loaded.lostEditsEpoch);
+      bloc.add(const OcptResourcesWriteFailedEvent());
+      final failed = await waitForState(bloc, (state) => state.hasWriteError);
+      expect(failed.reloadEpoch, loaded.reloadEpoch);
 
-        bloc.add(const OcptResourcesWriteErrorDismissedEvent());
-        await waitForState(bloc, (state) => !state.hasWriteError);
+      bloc.add(const OcptResourcesWriteErrorDismissedEvent());
+      await waitForState(bloc, (state) => !state.hasWriteError);
 
-        await bloc.addAndWait(const OcptResourcesPendingEditsLostEvent());
-        expect(bloc.state.hasWriteError, isTrue);
-        expect(bloc.state.lostEditsEpoch, greaterThan(loaded.lostEditsEpoch));
-        expect(bloc.state.reloadEpoch, greaterThan(loaded.reloadEpoch));
-
-        await bloc.close();
-      },
-    );
+      await bloc.close();
+    });
   });
 
   test("loads an empty catalogue with every count at zero", () async {

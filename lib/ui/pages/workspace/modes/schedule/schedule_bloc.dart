@@ -579,11 +579,13 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     );
   }
 
-  /// Leave the workspace: closes the current project and navigates back to the home page.
+  /// Leave the workspace: flushes any pending field edit, closes the current project, and
+  /// navigates back to the home page.
   Future<void> _onBackRequested(
     OcptScheduleBackRequestedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
+    final _ = await _flushAllPendingWrites(emitter);
     final closed = await _projectsManager.closeCurrentProject();
     if (closed.isError) {
       return;
@@ -908,8 +910,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// changes the right dock's tab: a pending edit is never silently dropped by one of them. Answers
   /// whether every view wrote what it held, and a handler that gets false stops: the edit is still
   /// pending, and going on would show, print or replace the data without it. Moving
-  /// the selected day, block or shot, switching the centre view and going back do **not** flush: an
-  /// edit typed before them is written by its own debounce, whichever day is showing by then.
+  /// the selected day, block or shot and switching the centre view do **not** flush: an edit typed
+  /// before them is written by its own debounce, whichever day is showing by then. Going back
+  /// flushes too, but leaves whatever the answer.
   @useResult
   Future<bool> _flushAllPendingWrites(Emitter<OcptScheduleState> emitter) async {
     final run = await runPendingWritesFlushers();
@@ -945,6 +948,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleProjectSettingsChangedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
+    // Reading everything again drops every pending edit, so what is typed is written first. A
+    // flush that fails stops here: the edit stays pending and on screen, and the next read waits.
+    if (!await _flushAllPendingWrites(emitter)) {
+      return;
+    }
+
     final _ = await _load(emitter);
   }
 }

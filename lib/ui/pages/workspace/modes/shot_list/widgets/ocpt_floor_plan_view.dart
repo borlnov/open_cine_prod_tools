@@ -123,9 +123,6 @@ class OcptFloorPlanView extends StatefulWidget {
   /// The canvas's own currently active tool.
   final OcptFloorPlanTool activeTool;
 
-  /// The sequence layer a placed set element lands on.
-  final OcptFloorPlanLayer activeLayer;
-
   /// The décor primitive a `setElement` click-to-arm placement carries — see
   /// `OcptFloorPlanCanvas.activeSetElementShape`'s own doc comment.
   final OcptFloorPlanSetElementShape activeSetElementShape;
@@ -152,9 +149,6 @@ class OcptFloorPlanView extends StatefulWidget {
 
   /// Called with the layer whose eye was clicked.
   final ValueChanged<OcptFloorPlanLayer> onLayerVisibilityToggled;
-
-  /// Called with the sequence layer just picked as the active one.
-  final ValueChanged<OcptFloorPlanLayer> onActiveLayerChanged;
 
   /// Called with the décor primitive just picked among the palette's own typed set-element
   /// entries — click-to-arms [activeSetElementShape] alongside [OcptFloorPlanTool.setElement]
@@ -321,7 +315,6 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.selectedArrowId,
     required this.pendingArrowAnchorSymbolId,
     required this.activeTool,
-    required this.activeLayer,
     required this.activeSetElementShape,
     required this.activeSetElementScope,
     required this.activeLabel,
@@ -330,7 +323,6 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.symbolLabelValueOf,
     required this.onToolSelected,
     required this.onLayerVisibilityToggled,
-    required this.onActiveLayerChanged,
     required this.onSetElementShapeSelected,
     required this.onSetElementScopeSelected,
     required this.onPropChipSelected,
@@ -569,7 +561,6 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                       pendingArrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
                       isMetricsShown: widget.isMetricsShown,
                       activeTool: widget.activeTool,
-                      activeLayer: widget.activeLayer,
                       activeSetElementShape: widget.activeSetElementShape,
                       activeSetElementScope: widget.activeSetElementScope,
                       activeLabel: widget.activeLabel,

@@ -46,6 +46,32 @@ class _StuckPreviewProjectsManager extends OcptProjectsManager {
       const OcptDatabaseOutcome(status: OcptDatabaseStatus.databaseError, extraInfo: StateError);
 }
 
+/// A projects manager whose open project cannot be closed, while it is told to refuse.
+class _StuckCloseProjectsManager extends OcptProjectsManager {
+  /// Whether closing the open project fails.
+  bool refuseClose = false;
+
+  /// Class constructor
+  _StuckCloseProjectsManager({required super.propertiesManager})
+    : super(appLanguageCode: () => "en");
+
+  /// Fail as a database that cannot be closed does, when told to: the project is reported closed
+  /// all the same, and the error is answered.
+  @override
+  Future<OcptDatabaseOutcome> closeCurrentProject() async {
+    if (refuseClose) {
+      await super.closeCurrentProject().okOrFail;
+
+      return const OcptDatabaseOutcome(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: StateError,
+      );
+    }
+
+    return super.closeCurrentProject();
+  }
+}
+
 /// A properties manager whose device id cannot be read.
 class _NoDeviceIdPropertiesManager extends OcptPropertiesManager {
   /// Whether the device id cannot be read.
@@ -91,21 +117,7 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  /// Open a project at [name] holding a second episode whose number the database cannot read back.
-  Future<String> openProjectWithUnreadableEpisodes(String name) async {
-    final path = p.join(tempDir.path, name);
-    await manager.createProject(name: "My Movie", filePath: path);
-    final secondId = await manager.screenplayService
-        .createEpisode(database: manager.currentProject!.database, title: "Two")
-        .valueOrFail;
-    await manager.currentProject!.database.customStatement(
-      "UPDATE screenplays SET number = 'unreadable' WHERE id = '$secondId'",
-    );
-
-    return path;
-  }
-
-  test("a restore that committed but cannot count the episodes answers databaseError", () async {
+  test("a restore that committed but cannot count the episodes answers ok", () async {
     final path = p.join(tempDir.path, "movie.ocpt");
     final project = (await manager.createProject(name: "My Movie", filePath: path)).value!;
     await manager.screenplayService
@@ -136,7 +148,7 @@ void main() {
       safetyVersionName: "Before",
     );
 
-    expect(status, OcptProjectRestoreStatus.databaseError);
+    expect(status, OcptProjectRestoreStatus.ok);
     final text = await project.fileDatabase
         .customSelect("SELECT fountain_text FROM screenplays")
         .getSingle();
@@ -148,36 +160,41 @@ void main() {
   });
 
   test("creating a project while the open one cannot be closed creates nothing", () async {
-    final oldPath = await openProjectWithUnreadableEpisodes("old.ocpt");
-    final opened = manager.currentProject!;
+    final stuck = _StuckCloseProjectsManager(propertiesManager: propertiesManager);
+    await stuck.initLifeCycle();
+    final oldPath = p.join(tempDir.path, "old.ocpt");
+    await stuck.createProject(name: "My Movie", filePath: oldPath);
+    final opened = stuck.currentProject!;
+    stuck.refuseClose = true;
     final newPath = p.join(tempDir.path, "new.ocpt");
 
-    final result = await manager.createProject(name: "Other", filePath: newPath);
+    final result = await stuck.createProject(name: "Other", filePath: newPath);
 
     expect(result.status, OcptProjectStatus.ioError);
     expect(File(newPath).existsSync(), isFalse);
-    expect(manager.currentProject, same(opened));
-    expect(manager.currentProject!.path, oldPath);
-    final stillOpen = await opened.fileDatabase.customSelect("SELECT id FROM screenplays").get();
-    expect(stillOpen, hasLength(2), reason: "the old database was not closed or changed");
+    expect(stuck.currentProject, isNull, reason: "the previous project was reported closed");
+    expect(opened.path, oldPath);
+    await stuck.disposeLifeCycle();
   });
 
-  test("disposing the manager stops when the open project cannot be closed", () async {
-    await openProjectWithUnreadableEpisodes("movie.ocpt");
+  test("disposing the manager goes on when the open project cannot be closed", () async {
+    final stuck = _StuckCloseProjectsManager(propertiesManager: propertiesManager);
+    await stuck.initLifeCycle();
+    await stuck.createProject(name: "My Movie", filePath: p.join(tempDir.path, "movie.ocpt"));
     var streamClosed = false;
-    final subscription = manager.currentProjectStream.listen(
+    final subscription = stuck.currentProjectStream.listen(
       (_) {},
       onDone: () {
         streamClosed = true;
       },
     );
     addTearDown(subscription.cancel);
+    stuck.refuseClose = true;
 
-    await manager.disposeLifeCycle();
+    await stuck.disposeLifeCycle();
     await pumpEventQueue();
 
-    expect(streamClosed, isFalse, reason: "nothing after the failed close ran");
-    expect(manager.currentProject, isNotNull);
+    expect(streamClosed, isTrue, reason: "the services were disposed all the same");
   });
 
   group("a version creation whose device id cannot be read", () {

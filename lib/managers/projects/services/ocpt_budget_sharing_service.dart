@@ -5,10 +5,14 @@
 import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_database_outcome_abort.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_database_result_abort.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
@@ -85,6 +89,66 @@ class OcptBudgetSharingService extends AbsOcptService {
     });
 
     return id;
+  });
+
+  /// Write every field of [fields] onto revenue [revenueId].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseOutcome> writeRevenueFields({
+    required OcptProjectDatabase database,
+    required String revenueId,
+    required OcptBudgetRevenueFormFields fields,
+  }) => guardOutcome("writeRevenueFields", () async {
+    if (database.refusesUserWrite("writeRevenueFields")) {
+      return;
+    }
+
+    await database.transaction(
+      () => updateRevenue(
+        database: database,
+        revenueId: revenueId,
+        date: Value(fields.date),
+        label: Value(fields.label),
+        amountCents: Value(fields.amountCents),
+        status: Value(fields.status),
+        notes: Value(fields.notes),
+      ).okOrAbort(),
+    );
+  });
+
+  /// Create the taking [fields] describes and answer its fresh id: [createRevenue] mints the row
+  /// from a date and a label alone, then every other field is written, all in one transaction.
+  /// Either the whole taking is written or nothing is.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseResult<String>> createRevenueWithFields({
+    required OcptProjectDatabase database,
+    required OcptBudgetRevenueFormFields fields,
+  }) => guardResult("createRevenueWithFields", () async {
+    if (database.refusesUserWrite("createRevenueWithFields")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      final revenueId = await createRevenue(
+        database: database,
+        date: fields.date,
+        label: fields.label,
+      ).valueOrAbort();
+      if (revenueId == null) {
+        return null;
+      }
+
+      await writeRevenueFields(
+        database: database,
+        revenueId: revenueId,
+        fields: fields,
+      ).okOrAbort();
+
+      return revenueId;
+    });
   });
 
   /// Update the fields of revenue [revenueId] in [database] that are passed as something other
@@ -260,6 +324,58 @@ class OcptBudgetSharingService extends AbsOcptService {
     });
 
     return id;
+  });
+
+  /// Write every field of [fields] onto share [shareId].
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseOutcome> writeShareFields({
+    required OcptProjectDatabase database,
+    required String shareId,
+    required OcptBudgetShareFormFields fields,
+  }) => guardOutcome("writeShareFields", () async {
+    if (database.refusesUserWrite("writeShareFields")) {
+      return;
+    }
+
+    await database.transaction(
+      () => updateShare(
+        database: database,
+        shareId: shareId,
+        personId: Value(fields.personId),
+        label: Value(fields.label),
+        sharePermille: Value(fields.sharePermille),
+        reinvestPermille: Value(fields.reinvestPermille),
+        notes: Value(fields.notes),
+      ).okOrAbort(),
+    );
+  });
+
+  /// Create the share [fields] describes and answer its fresh id: [createShare] mints the row from
+  /// a label alone, then every other field is written, all in one transaction. Either the whole
+  /// share is written or nothing is.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseResult<String>> createShareWithFields({
+    required OcptProjectDatabase database,
+    required OcptBudgetShareFormFields fields,
+  }) => guardResult("createShareWithFields", () async {
+    if (database.refusesUserWrite("createShareWithFields")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      final shareId = await createShare(database: database, label: fields.label).valueOrAbort();
+      if (shareId == null) {
+        return null;
+      }
+
+      await writeShareFields(database: database, shareId: shareId, fields: fields).okOrAbort();
+
+      return shareId;
+    });
   });
 
   /// Update the fields of share [shareId] in [database] that are passed as something other than

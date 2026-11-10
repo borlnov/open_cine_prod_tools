@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_payload_ops.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_synchronised_tables.dart';
 
@@ -93,5 +94,20 @@ void main() {
     };
 
     expect(names.intersection(localTableNames), isEmpty);
+  });
+
+  test('is carried, stamps included, by every version payload but the screenplay snapshots', () {
+    // `screenplay_snapshots` is a safety net with its own retention, which a version deliberately
+    // does not copy; `scenes` is derived, yet a payload holds it for the restore to rebuild from.
+    final expected = {
+      ...ocptSynchronisedTables(database).map((table) => table.actualTableName),
+      'scenes',
+    }..remove('screenplay_snapshots');
+
+    expect(OcptProjectVersionsPayloadOps.payloadTableNames.toSet(), expected);
+    expect(
+      OcptProjectVersionsPayloadOps.payloadTableNames.length,
+      OcptProjectVersionsPayloadOps.payloadTableNames.toSet().length,
+    );
   });
 }

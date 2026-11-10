@@ -111,6 +111,13 @@ class OcptSyncSession extends AbsOcptService {
   /// Whether the session is started.
   bool _isRunning;
 
+  /// Whether the last run that settled left this session offline, and no run has since settled
+  /// in sync or on a relay error.
+  ///
+  /// It is a flag of its own because every run starts by moving [_status] to syncing, so by the
+  /// time a failure is told the status no longer says whether the session was offline before it.
+  bool _wasOffline;
+
   /// Get this session's current status. [statusStream] never replays it to a new listener — read
   /// this
   /// first to seed a fresh subscriber, exactly as this class's own doc comment says.
@@ -146,7 +153,8 @@ class OcptSyncSession extends AbsOcptService {
        ),
        _isStatusClosed = false,
        _conflicts = [],
-       _isRunning = false;
+       _isRunning = false,
+       _wasOffline = false;
 
   /// Run an initial sync, then subscribe to [storage]'s [OcptRemoteStorage.newWorkStream] and start
   /// the [pushInterval] timer.
@@ -290,6 +298,9 @@ class OcptSyncSession extends AbsOcptService {
 
   /// Record [status], emit it on [statusStream] unless that is closed, and log it.
   void _setStatus(OcptSyncStatus status) {
+    if (status is OcptSyncStatusInSync || status is OcptSyncStatusError) {
+      _wasOffline = false;
+    }
     if (!_isStatusClosed) {
       _status.value = status;
     }
@@ -303,10 +314,11 @@ class OcptSyncSession extends AbsOcptService {
   /// diagnostics view names *why* syncing stopped (an unreachable relay, a closed database, …)
   /// without the reason scrolling past on every retry.
   void _logOfflineCause(Object error) {
-    if (_status.value is OcptSyncStatusOffline) {
+    if (_wasOffline) {
       return;
     }
 
+    _wasOffline = true;
     OcptDiagnosticsManager.log(
       category: OcptDiagnosticsCategory.sync,
       level: OcptDiagnosticsLevel.error,

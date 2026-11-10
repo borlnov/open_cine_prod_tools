@@ -117,6 +117,10 @@ their sets, the elements catalogue, and the two documents the mode prints.
   a person blanks it and tombstones the row, in all three implementations kept in step by hand
   (`OcptPeopleService.deletePerson` → `eraseCandidaciesOfPerson`,
   `OcptProjectVersionsPayloadOps.scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`).
+  Erasing a person also **uncasts the roles they played**: `deletePerson` clears (and stamps)
+  `roles.personId` on each live one, and `scrubErasedPeople` does the same to a restored payload,
+  as `ocptScrubErasedPeopleFromPayload` does to the stored versions of a package,
+  so the role reads "Not cast" in every mode instead of counting a blanked row as cast.
   **`OcptRoleSheetCandidatesCard`** sits under the casting card on the role sheet: one row per
   candidacy — `OcptPersonAvatar`, the name, a status pill, the audition date and a foldable note
   riding the sheets' own 2 s debounce through a sixth `pending…FieldEdits` map — the **retained row
@@ -288,19 +292,20 @@ their sets, the elements catalogue, and the two documents the mode prints.
     Deleting a role leaves a note typed on one of its candidacies pending, as before the split.
     Removing a set or a candidacy forgets only its own pending edit; the rest of the bloc's
     debounce goes on.
-  - **A flush that fails drops every edit of every sheet, and shows the one write error.** A view
-    bloc reads its own failed write, tells the mode
-    (`OcptResourcesPendingEditsLostEvent`, awaited) and empties its maps; the mode raises
-    `hasWriteError` and moves `lostEditsEpoch`, which every other view bloc reacts to by dropping
-    what it holds, before the flush goes on to them. The flushers are asked in the order the mode
-    builds the blocs (people, roles, locations, elements): the ones before the failure have been
-    written, the ones after it find nothing to write, and the fields fall back to the stored value.
-    The action behind the flush (a selection, an export, a version preview) goes ahead, so the
-    mode's flush hooks always answer true. A write that fails outside a flush is reported with
-    `OcptResourcesWriteFailedEvent`: the error is the mode's, never a view's, so a failure is shown
-    once whichever view it came from. A failed read after a write that landed is not a lost edit:
-    the mode raises the write error, the view forgets what it wrote and the flush goes on to the
-    other views, which still write theirs.
+  - **A flush that fails keeps its edits pending and shows the one write error**, as the schedule
+    and the shot list do. A view bloc reads its own failed write, reports it to the mode with
+    `OcptResourcesWriteFailedEvent` and answers `failed`: the edits that could not be written stay
+    in its maps, the field keeps showing what was typed, and the next flush (the debounce, a
+    selection, an export) writes them again, which clears them as for any successful write. The
+    flushers are asked in the order the mode builds the blocs (people, roles, locations,
+    elements) and each one is asked even after another failed, so a failure on a person never
+    costs the edit typed into a role sheet: the other views write theirs. The mode's flush hooks
+    answer false when a view failed, so a version preview, a package export or a workbook export
+    does not run on a database missing a typed edit; a selection still moves, the pending edit
+    being keyed by its record. A write that fails outside a flush is reported the same way, and
+    the error is the mode's, never a view's, so a failure is shown once whichever view it came
+    from. A failed read after a write that landed is not a failed flush: the mode raises the write
+    error, the view forgets what it wrote and the flush goes on to the other views.
   - **`OcptResourcesExportBloc`** runs the workbook and the contact list and owns the transient
     notice. Each one first has the mode write what is pending (`flushAllPendingWrites`), then reads
     the snapshot the mode holds.

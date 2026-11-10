@@ -1359,6 +1359,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "homeErrorPreviousProjectStillOpen": "The previous project could not be closed.",
+  "@homeErrorPreviousProjectStillOpen": {
+    "description": "Error shown when opening a project failed because the project that was open could not be closed",
+    "context": "Displayed in a SnackBar on the home page",
+    "type": "text",
+    "placeholders": {}
+  },
   "homeErrorAlreadyOpen": "Another project operation is already in progress.",
   "@homeErrorAlreadyOpen": {
     "description": "Error shown when a create/open/close operation is already in progress",
@@ -17504,6 +17511,10 @@
   "hostingReconcileInvalidInvite": "That is not a valid invite link",
   "@hostingReconcileInvalidInvite": {
     "description": "Result line of the hosting panel's own reconcile form when the pasted text isn't a well-formed invite link"
+  },
+  "hostingReconcileDismissTooltip": "Dismiss",
+  "@hostingReconcileDismissTooltip": {
+    "description": "Tooltip of the close button at the end of the hosting panel's reconcile result line or invalid-invite message"
   },
   "hostingReconcileFailed": "Reconciliation failed",
   "@hostingReconcileFailed": {

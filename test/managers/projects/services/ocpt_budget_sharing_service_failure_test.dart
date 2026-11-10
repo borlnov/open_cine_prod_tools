@@ -9,6 +9,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_sharing_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import '../../../ocpt_result_expectations.dart';
 
@@ -53,6 +56,21 @@ void main() {
     await database.close();
   });
 
+  final revenueFields = OcptBudgetRevenueFormFields(
+    date: DateTime.utc(2026, 6),
+    label: "Broadcast",
+    amountCents: 250000,
+    status: OcptBudgetRevenueStatus.confirmed,
+    notes: "",
+  );
+  const shareFields = OcptBudgetShareFormFields(
+    personId: null,
+    label: "Producer",
+    sharePermille: 500,
+    reinvestPermille: 0,
+    notes: "",
+  );
+
   /// Every write of the service, with an input that changes a row.
   final writes = <String, Future<MixinResultStatus> Function(_Fixture)>{
     "createRevenue": (r) async => (await service.createRevenue(
@@ -60,6 +78,10 @@ void main() {
       date: DateTime.utc(2026, 5),
       label: "Streaming",
     )).status,
+    "createRevenueWithFields": (r) async =>
+        (await service.createRevenueWithFields(database: database, fields: revenueFields)).status,
+    "createShareWithFields": (r) async =>
+        (await service.createShareWithFields(database: database, fields: shareFields)).status,
     "updateRevenue": (r) async => (await service.updateRevenue(
       database: database,
       revenueId: r.firstRevenue,
@@ -130,6 +152,28 @@ void main() {
 
         expect(status, OcptDatabaseStatus.databaseError);
         expect(await snapshot(), untouched, reason: "the failed call rolled back whole");
+      });
+    }
+  });
+
+  group("a row created with its fields is one transaction", () {
+    for (final table in tables) {
+      test("a $table row whose fields cannot be written is not created", () async {
+        final untouched = await snapshot();
+        await database.customStatement(
+          "CREATE TRIGGER refuse_update BEFORE UPDATE ON $table "
+          "BEGIN SELECT RAISE(ABORT, 'refused'); END",
+        );
+
+        final status = table == "budget_revenues"
+            ? (await service.createRevenueWithFields(
+                database: database,
+                fields: revenueFields,
+              )).status
+            : (await service.createShareWithFields(database: database, fields: shareFields)).status;
+
+        expect(status, OcptDatabaseStatus.databaseError);
+        expect(await snapshot(), untouched);
       });
     }
   });

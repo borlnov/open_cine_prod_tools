@@ -227,13 +227,15 @@ abstract final class OcptProjectOpenOps {
       primaryScreenplayId: screenplayId,
       database: database,
     );
-    onCreated(project);
-
     await propertiesManager.addRecentProject(
       // A fresh project holds exactly one episode — no need to read it back.
       OcptRecentProjectModel(path: filePath, name: name, lastOpenedAt: now, episodeCount: 1),
     );
     await rememberProjectsDirectory(p.dirname(filePath));
+
+    // Only a fully created project becomes the current one: a step failing above closes the
+    // database, and nothing may be left pointing at it.
+    onCreated(project);
 
     logger.i("A project was created: $screenplayId");
 
@@ -276,7 +278,8 @@ abstract final class OcptProjectOpenOps {
     if (currentProject != null) {
       final closed = await closeCurrentProject();
       if (closed.isError) {
-        return _failedOpening(database: null, failure: closed);
+        // The new file was never touched: the fault is the previous project's, not its.
+        return const ResultWithStatus(status: OcptProjectStatus.previousProjectStillOpen);
       }
     }
 
@@ -315,7 +318,6 @@ abstract final class OcptProjectOpenOps {
       primaryScreenplayId: screenplay.id,
       database: database,
     );
-    onOpened(project);
 
     final snapshotted = await screenplayService.snapshotOnProjectOpen(
       database: database,
@@ -341,6 +343,10 @@ abstract final class OcptProjectOpenOps {
       ),
     );
 
+    // Only a fully opened project becomes the current one: a step failing above closes the
+    // database, and nothing may be left pointing at it.
+    onOpened(project);
+
     logger.i("A project was opened: ${screenplay.id}, $episodeCount episode(s)");
 
     return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
@@ -350,8 +356,8 @@ abstract final class OcptProjectOpenOps {
   /// [openProject] gives a step of the opening that raised: a file that sqlite itself refused is
   /// corrupted, anything else is an I/O failure.
   ///
-  /// The screenplay service and the manager's close answer the failure of such a step instead of
-  /// raising it, with the type of what they caught as `extraInfo`: the verdict is the one
+  /// The screenplay service answers the failure of such a step instead of raising it, with the
+  /// type of what it caught as `extraInfo`: the verdict is the one
   /// [openProject] reaches for an exception of the same type. That is why a failure is handed on
   /// as it came, never rebuilt on the way.
   static Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> _failedOpening({

@@ -264,7 +264,7 @@ void main() {
     );
   });
 
-  test("a refused flush of a typed note drops the edit and raises the write error", () async {
+  test("a refused flush of a typed note keeps the edit and raises the write error", () async {
     await refuse("UPDATE", "role_candidates");
     rolesBloc.add(
       OcptResourcesRoleCandidateFieldChangedEvent(
@@ -277,9 +277,10 @@ void main() {
 
     final mayProceed = await modeBloc.flushAllPendingWrites();
 
-    expect(mayProceed, isTrue);
+    expect(mayProceed, isFalse);
     expect(modeBloc.state.hasWriteError, isTrue);
-    expect(rolesBloc.state.pendingCandidateFieldEdits, isEmpty);
+    expect(rolesBloc.state.pendingCandidateFieldEdits, hasLength(1));
+    expect(rolesBloc.state.pendingCandidateFieldEdits.values.single, "Very good");
     expect(shown().notes, isEmpty);
   });
 

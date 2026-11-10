@@ -11,7 +11,6 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_sharing_form_writes.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_sharing_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 
@@ -58,10 +57,10 @@ class OcptBudgetSharingBloc
   }
 
   /// Create a new taking from `event.fields` and select it, without opening the right dock —
-  /// mirrors the creation of a financing resource: `OcptBudgetSharingService.createRevenue` mints
-  /// the row from a date and a label alone, every other field written straight after through
-  /// `OcptBudgetSharingFormWrites.writeRevenueFields`, the very same call
-  /// [_onRevenueUpdateConfirmed] itself uses.
+  /// mirrors the creation of a financing resource:
+  /// `OcptBudgetSharingService.createRevenueWithFields` writes the row and its fields in one
+  /// transaction. The snapshot is read again on a failure too,
+  /// so the screen shows what the database holds.
   Future<void> _onRevenueCreationConfirmed(
     OcptBudgetRevenueCreationConfirmedEvent event,
     Emitter<OcptBudgetSharingState> emitter,
@@ -77,6 +76,7 @@ class OcptBudgetSharingBloc
       fields: fields,
     );
     if (created.isError) {
+      await modeBloc.reload({OcptBudgetReloadScope.snapshot});
       return;
     }
 
@@ -179,6 +179,7 @@ class OcptBudgetSharingBloc
       fields: fields,
     );
     if (created.isError) {
+      await modeBloc.reload({OcptBudgetReloadScope.snapshot});
       return;
     }
 

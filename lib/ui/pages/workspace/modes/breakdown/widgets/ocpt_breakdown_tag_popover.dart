@@ -113,11 +113,20 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
     candidates: widget.candidates,
   );
 
-  /// Register [_onQueryChanged] as a listener of [_controller].
+  /// Register [_onQueryChanged] as a listener of [_controller], then take the keyboard focus
+  /// for the query field after the first frame.
+  ///
+  /// `autofocus` alone does not take it: the script view keeps the focus its anchor gave it, and
+  /// Escape would reach the popover only once its field had been clicked.
   @override
   void initState() {
     super.initState();
     _controller.addListener(_onQueryChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fieldFocusNode.requestFocus();
+      }
+    });
   }
 
   /// Build the breakdown tag popover as a [TapRegion].
@@ -161,7 +170,6 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
                             child: TextField(
                               controller: _controller,
                               focusNode: _fieldFocusNode,
-                              autofocus: true,
                               decoration: InputDecoration(
                                 isDense: true,
                                 hintText: tr.breakdownPopoverFieldHint,

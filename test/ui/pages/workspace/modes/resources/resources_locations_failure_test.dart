@@ -408,10 +408,10 @@ void main() {
 
       final status = await locationsBloc.flushPendingWrites();
 
-      expect(status, OcptPendingWritesStatus.ok);
+      expect(status, OcptPendingWritesStatus.failed);
       expect(modeBloc.state.hasWriteError, isTrue);
       expect((await column("sets", "notes"))[seeded.setId], isEmpty);
-      expect(locationsBloc.state.pendingSetFieldEdits, isEmpty);
+      expect(locationsBloc.state.pendingSetFieldEdits, hasLength(1));
     });
 
     test("a refused location write stops the location edits after it", () async {

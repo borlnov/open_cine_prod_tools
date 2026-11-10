@@ -25,20 +25,14 @@ class OcptResourcesRolesState extends BlocStateForMixin<OcptResourcesRolesState>
   /// [pendingRoleFieldEdits].
   final Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits;
 
-  /// The `lostEditsEpoch` of the mode state this bloc last reacted to, so a mode state that still
-  /// carries an epoch already handled is not taken for news. Starts at the mode's own epoch when
-  /// the bloc is built: a view built after the mode lost edits has nothing to drop.
-  final int lastLostEditsEpoch;
-
   /// Class constructor
   const OcptResourcesRolesState({
     required this.pendingRoleFieldEdits,
     required this.pendingCandidateFieldEdits,
-    required this.lastLostEditsEpoch,
   });
 
   /// Build the state of a bloc that holds no pending edit.
-  const OcptResourcesRolesState.init({this.lastLostEditsEpoch = 0})
+  const OcptResourcesRolesState.init()
     : pendingRoleFieldEdits = const {},
       pendingCandidateFieldEdits = const {};
 
@@ -48,11 +42,9 @@ class OcptResourcesRolesState extends BlocStateForMixin<OcptResourcesRolesState>
   OcptResourcesRolesState copyWith({
     Map<(String, OcptRoleField), String>? pendingRoleFieldEdits,
     Map<(String, OcptRoleCandidateField), String>? pendingCandidateFieldEdits,
-    int? lastLostEditsEpoch,
   }) => OcptResourcesRolesState(
     pendingRoleFieldEdits: pendingRoleFieldEdits ?? this.pendingRoleFieldEdits,
     pendingCandidateFieldEdits: pendingCandidateFieldEdits ?? this.pendingCandidateFieldEdits,
-    lastLostEditsEpoch: lastLostEditsEpoch ?? this.lastLostEditsEpoch,
   );
 
   /// Copy this state with every pending field edit dropped, of the roles and of their candidates.
@@ -91,20 +83,7 @@ class OcptResourcesRolesState extends BlocStateForMixin<OcptResourcesRolesState>
     required Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits,
   }) => copyWith(pendingCandidateFieldEdits: pendingCandidateFieldEdits);
 
-  /// Copy this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
-  /// reacted to, the mode having said that writing them failed somewhere.
-  OcptResourcesRolesState copyWithFieldEditsLost({required int lostEditsEpoch}) => copyWith(
-    pendingRoleFieldEdits: const {},
-    pendingCandidateFieldEdits: const {},
-    lastLostEditsEpoch: lostEditsEpoch,
-  );
-
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
-  List<Object?> get props => [
-    ...super.props,
-    pendingRoleFieldEdits,
-    pendingCandidateFieldEdits,
-    lastLostEditsEpoch,
-  ];
+  List<Object?> get props => [...super.props, pendingRoleFieldEdits, pendingCandidateFieldEdits];
 }

@@ -331,7 +331,7 @@ void main() {
     expect(harness.underlinedWords(tester), ["Wrold"]);
   });
 
-  testWidgets("odd: opening straight into styled mode underlines nothing until the first edit", (
+  testWidgets("opening straight into styled mode underlines at once, without an edit", (
     tester,
   ) async {
     await harness.propertiesManager.editorMode.store(OcptEditorMode.styled);
@@ -339,21 +339,10 @@ void main() {
     await enableSpellCheck();
     await harness.mount(tester);
 
-    // The styled editor reports its texts as it mounts, before the dictionary is loaded, and
-    // nothing asks it again once it is: the dictionary is ready and the word is still plain.
-    await harness.pumpUntil(
-      tester,
-      () => harness.spellCheckManager.loadedLanguage == OcptScreenplayLanguage.enGb,
-    );
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
-    await tester.pumpAndSettle();
-    expect(styledErrorsOf("wrold"), isEmpty);
+    // The styled editor reports its texts as it mounts, before the dictionary is loaded; the
+    // bloc re-issues them once the dictionary is ready.
+    await harness.pumpUntil(tester, () => styledErrorsOf("wrold").isNotEmpty);
 
-    final node = SuperEditorInspector.findDocument()!.getNodeAt(1)! as ParagraphNode;
-    await tester.placeCaretInParagraph(node.id, 5);
-    await tester.typeImeText("x");
-    await harness.pumpUntil(tester, () => styledErrorsOf("wroldx").isNotEmpty);
-
-    expect(styledErrorsOf("wroldx"), [const TextRange(start: 0, end: 6)]);
+    expect(styledErrorsOf("wrold"), [const TextRange(start: 0, end: 5)]);
   });
 }

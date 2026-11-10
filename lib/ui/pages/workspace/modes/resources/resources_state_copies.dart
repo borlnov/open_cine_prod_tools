@@ -29,14 +29,6 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
   /// Copy this state with the write error dismissed.
   OcptResourcesState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
 
-  /// Copy this state with the pending edits flagged as lost: a write error, and the reload epoch
-  /// moved so the views read the catalogue again.
-  OcptResourcesState copyWithPendingEditsLost() => copyWith(
-    hasWriteError: true,
-    lostEditsEpoch: lostEditsEpoch + 1,
-    reloadEpoch: reloadEpoch + 1,
-  );
-
   /// Copy this state as loaded when no project is open: the dock fractions restored, no version
   /// previewed and the selection moved with the cause [OcptResourcesSelectionCause.load].
   OcptResourcesState copyToLoadedWithoutProject({

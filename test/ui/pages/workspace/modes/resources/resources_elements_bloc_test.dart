@@ -367,29 +367,6 @@ void main() {
         await closeAll(elementsBloc, bloc);
       },
     );
-
-    test("are dropped when the mode says writing the typed edits failed", () async {
-      final bloc = buildBloc();
-      final elementsBloc = buildElements(bloc, fieldEditDebounce: _neverDebounce);
-      await waitForState(bloc, (state) => !state.isLoading);
-      final elementId = await createElement(bloc, elementsBloc);
-      elementsBloc.add(
-        OcptResourcesElementFieldChangedEvent(
-          elementId: elementId,
-          field: OcptElementField.name,
-          rawValue: "Valise",
-        ),
-      );
-      await waitForState(elementsBloc, (state) => state.pendingElementFieldEdits.isNotEmpty);
-
-      bloc.add(const OcptResourcesPendingEditsLostEvent());
-      await waitForState(elementsBloc, (state) => state.pendingElementFieldEdits.isEmpty);
-
-      expect(bloc.state.hasWriteError, isTrue);
-      expect(bloc.state.selectedElement!.name, isEmpty);
-
-      await closeAll(elementsBloc, bloc);
-    });
   });
 
   group("the other writes of an element's sheet", () {

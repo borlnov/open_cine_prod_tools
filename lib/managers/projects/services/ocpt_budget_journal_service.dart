@@ -5,6 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_database_result_abort.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -483,6 +484,85 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
 
     return id;
+  });
+
+  /// Pay quote line [lineId] directly, in one transaction: create the commitment of the line's full
+  /// quoted total ([commitmentAmountCents], in the line's own tax basis and rate, naming the line
+  /// and filed under [commitmentAccountId]), then the journal entry that settles it, then — when
+  /// [receiptPath] is given — the entry's receipt. Return the entry's id.
+  ///
+  /// Either all of it is written or none of it: a failure on the entry or on the receipt rolls the
+  /// commitment back too, so a second attempt never finds a commitment already standing on the
+  /// line.
+  ///
+  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  @useResult
+  Future<OcptDatabaseResult<String>> payLineDirectly({
+    required OcptProjectDatabase database,
+    required String lineId,
+    required String commitmentAccountId,
+    required String commitmentLabel,
+    required int commitmentAmountCents,
+    required bool commitmentIsTaxInclusive,
+    required int? commitmentVatRateBasisPoints,
+    required DateTime date,
+    required String label,
+    String? accountId,
+    String? resourceId,
+    String? revenueId,
+    String? shareId,
+    int debitCents = 0,
+    int creditCents = 0,
+    bool isTaxInclusive = true,
+    int? vatRateBasisPoints,
+    String? receiptPath,
+  }) => guardResult("payLineDirectly", () async {
+    if (database.refusesUserWrite("payLineDirectly")) {
+      return null;
+    }
+
+    return database.transaction(() async {
+      final commitmentId = await createCommitment(
+        database: database,
+        accountId: commitmentAccountId,
+        label: commitmentLabel,
+        amountCents: commitmentAmountCents,
+        isTaxInclusive: commitmentIsTaxInclusive,
+        vatRateBasisPoints: commitmentVatRateBasisPoints,
+        lineId: lineId,
+      ).valueOrAbort();
+      if (commitmentId == null) {
+        return null;
+      }
+
+      final entryId = await createEntry(
+        database: database,
+        date: date,
+        label: label,
+        accountId: accountId,
+        resourceId: resourceId,
+        revenueId: revenueId,
+        shareId: shareId,
+        commitmentId: commitmentId,
+        debitCents: debitCents,
+        creditCents: creditCents,
+        isTaxInclusive: isTaxInclusive,
+        vatRateBasisPoints: vatRateBasisPoints,
+      ).valueOrAbort();
+      if (entryId == null) {
+        return null;
+      }
+
+      if (receiptPath != null) {
+        await setEntryReceipt(
+          database: database,
+          entryId: entryId,
+          path: receiptPath,
+        ).valueOrAbort();
+      }
+
+      return entryId;
+    });
   });
 
   /// Update the fields of commitment [commitmentId] in [database] that are passed as something

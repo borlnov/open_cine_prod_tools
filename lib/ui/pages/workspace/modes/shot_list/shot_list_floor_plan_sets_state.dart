@@ -38,12 +38,6 @@ class OcptShotListFloorPlanSetsState extends BlocStateForMixin<OcptShotListFloor
   /// to 100%.
   final double floorPlanZoom;
 
-  /// The layer a placed set element lands on, picked from the palette's own set/scene group; the
-  /// shot layers group is picked separately.
-  ///
-  /// A **view/session state** value, like [floorPlanZoom]: never written to the project.
-  final OcptFloorPlanLayer floorPlanActiveLayer;
-
   /// The décor primitive a `setElement` click-to-arm placement carries — which of the palette's
   /// own four typed set-element entries (wall/door/furniture/freeform) was armed last.
   ///
@@ -116,7 +110,6 @@ class OcptShotListFloorPlanSetsState extends BlocStateForMixin<OcptShotListFloor
   const OcptShotListFloorPlanSetsState({
     required this.pendingFieldEdits,
     required this.floorPlanZoom,
-    required this.floorPlanActiveLayer,
     required this.floorPlanActiveSetElementShape,
     required this.floorPlanActiveSetElementScope,
     required this.floorPlanActiveLabel,
@@ -135,7 +128,6 @@ class OcptShotListFloorPlanSetsState extends BlocStateForMixin<OcptShotListFloor
   const OcptShotListFloorPlanSetsState.init()
     : pendingFieldEdits = const {},
       floorPlanZoom = 1,
-      floorPlanActiveLayer = OcptFloorPlanLayer.set,
       floorPlanActiveSetElementShape = OcptFloorPlanSetElementShape.wall,
       floorPlanActiveSetElementScope = OcptFloorPlanScope.set,
       floorPlanActiveLabel = "",
@@ -154,7 +146,6 @@ class OcptShotListFloorPlanSetsState extends BlocStateForMixin<OcptShotListFloor
   OcptShotListFloorPlanSetsState copyWith({
     Map<OcptShotListPendingEditKey, String>? pendingFieldEdits,
     double? floorPlanZoom,
-    OcptFloorPlanLayer? floorPlanActiveLayer,
     OcptFloorPlanSetElementShape? floorPlanActiveSetElementShape,
     OcptFloorPlanScope? floorPlanActiveSetElementScope,
     String? floorPlanActiveLabel,
@@ -170,7 +161,6 @@ class OcptShotListFloorPlanSetsState extends BlocStateForMixin<OcptShotListFloor
   }) => OcptShotListFloorPlanSetsState(
     pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     floorPlanZoom: floorPlanZoom ?? this.floorPlanZoom,
-    floorPlanActiveLayer: floorPlanActiveLayer ?? this.floorPlanActiveLayer,
     floorPlanActiveSetElementShape:
         floorPlanActiveSetElementShape ?? this.floorPlanActiveSetElementShape,
     floorPlanActiveSetElementScope:
@@ -230,10 +220,6 @@ class OcptShotListFloorPlanSetsState extends BlocStateForMixin<OcptShotListFloor
   OcptShotListFloorPlanSetsState copyWithZoom({required double zoom}) =>
       copyWith(floorPlanZoom: zoom);
 
-  /// Copy this state with [layer] as the layer a placed set element lands on.
-  OcptShotListFloorPlanSetsState copyWithActiveLayer({required OcptFloorPlanLayer layer}) =>
-      copyWith(floorPlanActiveLayer: layer);
-
   /// Copy this state with [shape] as the décor primitive a placement carries.
   OcptShotListFloorPlanSetsState copyWithActiveSetElementShape({
     required OcptFloorPlanSetElementShape shape,
@@ -287,7 +273,6 @@ class OcptShotListFloorPlanSetsState extends BlocStateForMixin<OcptShotListFloor
     ...super.props,
     pendingFieldEdits,
     floorPlanZoom,
-    floorPlanActiveLayer,
     floorPlanActiveSetElementShape,
     floorPlanActiveSetElementScope,
     floorPlanActiveLabel,

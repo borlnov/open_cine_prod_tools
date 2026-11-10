@@ -758,7 +758,9 @@ class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings
     // A restored version may hold a different number of episodes than the working copy did.
     final recorded = await recordCurrentProjectEpisodeCount();
     if (recorded.isError) {
-      return OcptProjectRestoreStatus.databaseError;
+      // The restore itself went through: the count is only the home card's, and the caller must
+      // reload what the restored project holds.
+      _logger.w("The episodes could not be counted after a restore: ${recorded.extraInfo}");
     }
 
     return result.status;
@@ -912,8 +914,8 @@ class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings
     _logger.i("The projects manager is being disposed");
     final closed = await closeCurrentProject();
     if (closed.isError) {
-      // The project is still open: nothing after this runs, as when the close raised.
-      return;
+      // The other services are released all the same, so a failed close leaves nothing running.
+      _logger.e("The open project could not be closed at disposal: ${closed.extraInfo}");
     }
 
     await _currentProject.disposeLifeCycle();

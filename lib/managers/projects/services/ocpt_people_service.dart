@@ -401,10 +401,11 @@ class OcptPeopleService extends AbsOcptService {
   ///
   /// The `role_candidates` rows naming them — the parts they were seen for — go the same way,
   /// through `OcptRoleCandidatesService.eraseCandidaciesOfPerson`: tombstoned, with the `notes`
-  /// somebody wrote about them at an audition blanked. **The `roles` they may be cast in are left
-  /// alone**, `roles.personId` still pointing at the blanked row exactly as every other reference
-  /// to an erased person does: the schema hard-deletes nothing, so every one of them still
-  /// resolves, and a part is not uncast by the address book losing a name.
+  /// somebody wrote about them at an audition blanked. **The `roles` they are cast in are uncast**:
+  /// `roles.personId` is cleared (stamped) on each live one, so a part never counts as cast for
+  /// somebody who no longer exists, in the casting progress, the schedule or the exports. Every
+  /// other reference to an erased person (budget, elements, locations, a slot's crew) still points
+  /// at the blanked row, which keeps resolving, since the schema hard-deletes nothing.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   @useResult
@@ -474,6 +475,20 @@ class OcptPeopleService extends AbsOcptService {
           rowId: unavailabilityRow.id,
           current: unavailabilityRow,
           next: unavailabilityRow.copyWith(isDeleted: true, reason: ''),
+          stamps: stamps,
+        );
+      }
+
+      final castRoleRows = await (database.select(
+        database.ocptRolesTable,
+      )..where((table) => table.personId.equals(personId) & table.isDeleted.not())).get();
+      for (final roleRow in castRoleRows) {
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptRolesTable,
+          rowId: roleRow.id,
+          current: roleRow,
+          next: roleRow.copyWith(personId: const Value(null)),
           stamps: stamps,
         );
       }

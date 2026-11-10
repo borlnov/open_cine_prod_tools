@@ -62,8 +62,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// active tab, changes, when the workspace is left, ahead of a version preview or a package export,
 /// and (through [flushPendingFieldEdits], called by the mode's own `deactivate()`) whenever the
 /// mode leaves the widget tree for any other reason, so a pending edit is never silently dropped. A
-/// flush that fails drops the edits of every view, shows the one write error and lets the action go
-/// ahead on the value the database still holds ([OcptResourcesPendingEditsLostEvent]).
+/// flush that fails shows the one write error, keeps the failed edits pending and stops the
+/// action that asked for it, which would otherwise run on the value the database still holds.
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does. The two hooks the mixin needs are answered by [flushPendingProjectWrites]
@@ -189,7 +189,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesTabSelectedEvent>(_onTabSelected);
     on<OcptResourcesPersonSelectedEvent>(_onPersonSelected);
     on<OcptResourcesWriteFailedEvent>(_onWriteFailed);
-    onAwaited<OcptResourcesPendingEditsLostEvent>(_onPendingEditsLost);
     onAwaited<OcptResourcesRecordCreatedEvent>(_onRecordCreated);
     onAwaited<OcptResourcesRecordDroppedEvent>(_onRecordDropped);
     on<OcptResourcesRoleSelectedEvent>(_onRoleSelected);
@@ -221,20 +220,20 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   @protected
   @override
   Future<bool> flushPendingProjectWrites(Emitter<OcptResourcesState> emitter) async {
-    await runPendingWritesFlushers();
-    return true;
+    final run = await runPendingWritesFlushers();
+    return !run.hasFailed;
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
   ///
-  /// Always true, for the reason [flushPendingProjectWrites] gives: a write that fails is shown by
-  /// the mode itself (its transient write error), the edits that could not be written are dropped,
-  /// and the action goes ahead on the value the database still holds.
+  /// False when a typed edit could not be written: the mode shows its transient write error, the
+  /// edit stays pending, and an export or a preview would otherwise run on the value the database
+  /// still holds.
   @protected
   @override
   Future<bool> flushAllPendingWritesIn(Emitter<OcptResourcesState> emitter) async {
-    await runPendingWritesFlushers();
-    return true;
+    final run = await runPendingWritesFlushers();
+    return !run.hasFailed;
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
@@ -926,16 +925,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     Emitter<OcptResourcesState> emitter,
   ) async {
     emitter(state.copyWithWriteError());
-  }
-
-  /// Raise the transient write error and tell every view bloc to drop the edits it holds, since
-  /// writing them failed. The reload epoch moves with the lost edits epoch because it is what makes
-  /// a view bloc look at the mode's state: nothing is read again.
-  Future<void> _onPendingEditsLost(
-    OcptResourcesPendingEditsLostEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    emitter(state.copyWithPendingEditsLost());
   }
 
   /// Select the record a view bloc has just created, in the list of `event.tab`, without switching

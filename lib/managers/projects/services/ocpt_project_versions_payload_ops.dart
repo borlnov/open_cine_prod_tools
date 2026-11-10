@@ -60,6 +60,7 @@ abstract final class OcptProjectVersionsPayloadOps {
     'budget_mileage_rates',
     'budget_revenues',
     'budget_shares',
+    'budget_allowances',
     'storyboard_panels',
     'storyboard_annotations',
     'floor_plan_sets',
@@ -171,10 +172,11 @@ abstract final class OcptProjectVersionsPayloadOps {
   ///
   /// Every erased person's row is put back through exactly the blanking-and-tombstoning
   /// [erasedPersonRow] performs — chosen over dropping the row outright, since nothing in this
-  /// schema is ever hard-deleted, and other rows this same payload may carry (`roles.personId`,
-  /// `elements.ownerPersonId`/`broughtByPersonId`, `assets.personId`, `locations.contactPersonId`)
-  /// can still reference the id: the row they point at must keep existing, merely empty, or the
-  /// restore's own `PRAGMA defer_foreign_keys` commit would have nothing to resolve them against.
+  /// schema is ever hard-deleted, and other rows this same payload may carry
+  /// (`elements.ownerPersonId`/`broughtByPersonId`, `assets.personId`, `locations.contactPersonId`)
+  /// can still reference the id (`roles.personId` is the exception: it is cleared): the row they
+  /// point at must keep existing, merely empty, or the restore's own
+  /// `PRAGMA defer_foreign_keys` commit would have nothing to resolve them against.
   /// **This must be kept in step with `OcptPeopleService.deletePerson` by hand** — the two
   /// implement the very same erasure from two different starting points (a live row there, a
   /// captured one here), and a column blanked by one but not the other reopens exactly the leak
@@ -218,7 +220,14 @@ abstract final class OcptProjectVersionsPayloadOps {
         for (final row in payload.personUnavailabilities)
           erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true, reason: '') : row,
       ],
-      roles: payload.roles,
+      // A role cast with an erased person is uncast, exactly as `OcptPeopleService.deletePerson`
+      // does it live.
+      roles: [
+        for (final row in payload.roles)
+          row.personId != null && erasedPersonIds.contains(row.personId)
+              ? row.copyWith(personId: const Value(null))
+              : row,
+      ],
       // A role_episodes row names a role and a screenplay, never a person: an actor is reached
       // through `roles.personId`, which the `roles` list above already answers for. Nothing here
       // to scrub.
@@ -236,9 +245,7 @@ abstract final class OcptProjectVersionsPayloadOps {
       // A `role_candidates` row is the one link table that *is* about a person: it names them, and
       // its `notes` hold what somebody wrote about them at an audition. So a candidacy of an erased
       // person is tombstoned **and blanked**, exactly as `OcptPeopleService.deletePerson` does it
-      // live — the mirror this method's own doc comment warns must be kept in step. `roles` is left
-      // alone, `roles.personId` staying valid against the blanked row it points at, exactly as
-      // every other reference to an erased person does.
+      // live — the mirror this method's own doc comment warns must be kept in step.
       roleCandidates: [
         for (final row in payload.roleCandidates)
           erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true, notes: '') : row,

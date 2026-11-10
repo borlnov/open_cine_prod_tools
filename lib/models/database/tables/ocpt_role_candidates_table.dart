@@ -29,7 +29,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 /// ran no auditions casts directly, and touches no row of this table doing it.
 ///
 /// [notes] is **personal data about a person**, so this table joins the erasure rule
-/// (`OcptPeopleService.deletePerson`, `OcptProjectVersionsService` and
+/// (`OcptPeopleService.deletePerson`, `OcptProjectVersionsPayloadOps.scrubErasedPeople` and
 /// `ocptScrubErasedPeopleFromPayload`, the three implementations kept in step by hand): erasing a
 /// person blanks it and tombstones the row.
 @DataClassName('OcptRoleCandidateRow')

@@ -539,36 +539,11 @@ void main() {
         await closeAll(rolesBloc, bloc);
       },
     );
-
-    test(
-      "are dropped, the role and the candidate notes alike, when the mode says writing failed",
-      () async {
-        final bloc = buildBloc();
-        final rolesBloc = buildRoles(bloc, fieldEditDebounce: _neverDebounce);
-        await waitForState(bloc, (state) => !state.isLoading);
-        final roleId = await createRole(bloc, rolesBloc);
-        rolesBloc.add(
-          OcptResourcesRoleFieldChangedEvent(
-            roleId: roleId,
-            field: OcptRoleField.castingNotes,
-            rawValue: "Zoe",
-          ),
-        );
-        await waitForState(rolesBloc, (state) => state.pendingRoleFieldEdits.isNotEmpty);
-
-        bloc.add(const OcptResourcesPendingEditsLostEvent());
-        await waitForState(rolesBloc, (state) => state.pendingRoleFieldEdits.isEmpty);
-
-        expect(bloc.state.hasWriteError, isTrue);
-
-        await closeAll(rolesBloc, bloc);
-      },
-    );
   });
 
   group("a flush that fails", () {
     test(
-      "drops the edits of every sheet, shows the one write error and writes nothing after",
+      "keeps the failed edits pending, shows the one write error and writes the other sheets",
       () async {
         final bloc = buildBloc();
         final peopleBloc = OcptResourcesPeopleBloc(
@@ -599,23 +574,27 @@ void main() {
         await waitForState(rolesBloc, (state) => state.pendingRoleFieldEdits.isNotEmpty);
         final database = projectsManager.currentProject!.database;
 
-        // The people write fails; the role's note was not written yet and must not be afterwards.
+        // The people write fails: its edit stays pending, while the role's note, which nothing
+        // failed, is written by the same flush instead of being dropped with it.
         await database.customStatement("ALTER TABLE people RENAME TO people_gone");
         try {
           final mayProceed = await bloc.flushAllPendingWrites();
 
-          expect(mayProceed, isTrue);
+          expect(mayProceed, isFalse);
           expect(bloc.state.hasWriteError, isTrue);
-          expect(peopleBloc.state.pendingFieldEdits, isEmpty);
+          expect(peopleBloc.state.pendingFieldEdits, hasLength(1));
           expect(rolesBloc.state.pendingRoleFieldEdits, isEmpty);
         } finally {
           await database.customStatement("ALTER TABLE people_gone RENAME TO people");
         }
 
+        expect(await bloc.flushAllPendingWrites(), isTrue);
+        expect(peopleBloc.state.pendingFieldEdits, isEmpty);
+
         final roles = await projectsManager.roleIndexService
             .loadRoles(database: database)
             .valueOrFail;
-        expect(roles.single.castingNotes, isEmpty);
+        expect(roles.single.castingNotes, "Zoe");
 
         await peopleBloc.close();
         await closeAll(rolesBloc, bloc);

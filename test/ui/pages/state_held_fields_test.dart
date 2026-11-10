@@ -5,11 +5,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
-import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_state.dart';
 
 /// The data a bloc used to keep in a field of its own now sits in its state: each of these moves
 /// the way the field did, and enters the state's equality.
@@ -36,22 +34,6 @@ void main() {
       expect(cancelled.isJoining, isFalse);
       expect(cancelled, isNot(started.copyWithJoinStarted().copyToIdle()));
       expect(cancelled.copyWithJoinStarted().isCancelled, isFalse);
-    });
-  });
-
-  group("a view state's lost edits epoch", () {
-    test("starts where it is given, and moves with the edits it drops", () {
-      const initial = OcptResourcesPeopleState.init(lastLostEditsEpoch: 3);
-      final typed = initial.copyWithFieldEditTyped(
-        pendingFieldEdits: {("p", OcptPersonField.firstName): "x"},
-      );
-      final lost = typed.copyWithFieldEditsLost(lostEditsEpoch: 4);
-
-      expect(initial.lastLostEditsEpoch, 3);
-      expect(lost.lastLostEditsEpoch, 4);
-      expect(lost.pendingFieldEdits, isEmpty);
-      expect(lost, isNot(initial));
-      expect(initial.copyWithFieldEditsLost(lostEditsEpoch: 4), isNot(initial));
     });
   });
 

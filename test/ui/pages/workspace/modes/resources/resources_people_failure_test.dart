@@ -402,12 +402,12 @@ void main() {
 
       final status = await peopleBloc.flushPendingWrites();
 
-      expect(status, OcptPendingWritesStatus.ok);
+      expect(status, OcptPendingWritesStatus.failed);
       expect(modeBloc.state.hasWriteError, isTrue);
       final stored = await notes();
       expect(stored[seeded.personId], isEmpty);
       expect(stored[seeded.otherPersonId], isEmpty, reason: "the edit after the refused one");
-      expect(peopleBloc.state.pendingFieldEdits, isEmpty);
+      expect(peopleBloc.state.pendingFieldEdits, hasLength(2));
     });
 
     test("a refused flush on leaving stops the edits after it, and keeps them pending", () async {

@@ -335,6 +335,24 @@ void main() {
       expect(payload.rowFieldVersions.single.version, 7);
     });
 
+    test("captures the version stamps of the allowances", () async {
+      await database
+          .into(database.ocptRowFieldVersionsTable)
+          .insert(
+            OcptRowFieldVersionsTableCompanion.insert(
+              targetTableName: "budget_allowances",
+              rowId: "allowance-1",
+              columnName: "label",
+              version: 4,
+              deviceId: "device-0",
+            ),
+          );
+
+      final payload = await readPayload((await createVersion()).id);
+
+      expect(payload.rowFieldVersions.map((row) => row.targetTableName), ["budget_allowances"]);
+    });
+
     test("captures the whole page setup: the project's format and the app's margins", () async {
       final payload = await readPayload((await createVersion()).id);
 
@@ -604,6 +622,27 @@ void main() {
         await preview.select(preview.ocptRowFieldVersionsTable).get(),
         payload.rowFieldVersions,
       );
+    });
+
+    test("previews the simplified budget flag the version was captured with", () async {
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(isBudgetSimplified: Value(true)));
+      final payload = await readPayload((await createVersion()).id);
+
+      final preview = OcptProjectDatabase.memory(isPreview: true);
+      addTearDown(preview.close);
+
+      await service
+          .hydratePreview(
+            database: preview,
+            projectInfo: await database.select(database.ocptProjectInfoTable).getSingle(),
+            payload: payload,
+          )
+          .okOrFail;
+
+      final info = await preview.select(preview.ocptProjectInfoTable).getSingle();
+      expect(info.isBudgetSimplified, isTrue);
     });
 
     test("the storyboard and floor plan tables — a panel with an image asset, its annotation, a "

@@ -487,45 +487,6 @@ void main() {
         await closeAll(locationsBloc, bloc);
       },
     );
-
-    test(
-      "are dropped, the location and the set ones alike, when the mode says writing failed",
-      () async {
-        final bloc = buildBloc();
-        final locationsBloc = buildLocations(bloc, fieldEditDebounce: _neverDebounce);
-        await waitForState(bloc, (state) => !state.isLoading);
-        final locationId = await createLocation(bloc, locationsBloc);
-        locationsBloc.add(
-          OcptResourcesLocationFieldChangedEvent(
-            locationId: locationId,
-            field: OcptLocationField.city,
-            rawValue: "Lyon",
-          ),
-        );
-        locationsBloc.add(
-          const OcptResourcesSetFieldChangedEvent(
-            setId: "s",
-            field: OcptSetField.name,
-            rawValue: "Cuisine",
-          ),
-        );
-        await waitForState(
-          locationsBloc,
-          (state) =>
-              state.pendingLocationFieldEdits.isNotEmpty && state.pendingSetFieldEdits.isNotEmpty,
-        );
-
-        bloc.add(const OcptResourcesPendingEditsLostEvent());
-        await waitForState(
-          locationsBloc,
-          (state) => state.pendingLocationFieldEdits.isEmpty && state.pendingSetFieldEdits.isEmpty,
-        );
-
-        expect(bloc.state.hasWriteError, isTrue);
-
-        await closeAll(locationsBloc, bloc);
-      },
-    );
   });
 
   group("the other writes of a location's sheet", () {

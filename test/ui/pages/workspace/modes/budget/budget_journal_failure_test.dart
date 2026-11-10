@@ -274,11 +274,18 @@ void main() {
         case_.dispatch(seeded);
         await harness.settle();
 
-        expect(
-          harness.state.reloadEpoch,
-          held.reloadEpoch,
-          reason: "the mode was read again after a failed write",
-        );
+        if (entry.key.startsWith("paying a line directly")) {
+          // One transaction: nothing is left behind, and the screen is read again.
+          expect(harness.state.reloadEpoch, isNot(held.reloadEpoch));
+          expect(harness.state.commitments, held.commitments);
+          expect(harness.state.entries, held.entries);
+        } else {
+          expect(
+            harness.state.reloadEpoch,
+            held.reloadEpoch,
+            reason: "the mode was read again after a failed write",
+          );
+        }
         expect(harness.state.selection, held.selection);
 
         await harness.lift(case_.verb, case_.table);

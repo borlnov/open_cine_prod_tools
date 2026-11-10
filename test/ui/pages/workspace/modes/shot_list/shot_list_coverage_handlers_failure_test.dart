@@ -33,8 +33,8 @@ class _RecordingRouterManager extends OcptRouterManager {
 }
 
 /// What the inspector does when the database refuses a scenario coverage write: each of the four
-/// handlers that write one raises the transient write error, clears the pending anchor, reads
-/// nothing again, and goes on once the refusal is lifted.
+/// handlers that write one raises the transient write error, clears the pending anchor, reads the
+/// shot list again so the screen matches the database, and goes on once the refusal is lifted.
 void main() {
   const text = "INT. HOUSE - DAY\n\nJOHN\nHello there.\n\nMARY\nGood day.\n";
 
@@ -216,7 +216,7 @@ void main() {
 
       expect(inspector.state.pendingCoverageAnchor, isNull);
       expect(await liveRangeCount(), 0);
-      expect(await modeReadsAgain(), isFalse, reason: "nothing is read after a failure");
+      expect(await modeReadsAgain(), isTrue, reason: "the screen is read again after a failure");
       expect(await liveCharacterLinkCount(), 0);
 
       await allow("INSERT", "shot_coverages");
@@ -232,7 +232,7 @@ void main() {
   );
 
   test(
-    "a refused attachment of the covered character raises the write error and reads nothing",
+    "a refused attachment of the covered character raises the write error and writes no range",
     () async {
       final cue = layout.blocks.firstWhere((block) => block.text == "JOHN").words.first;
       final last = dialogueWords().last;
@@ -246,7 +246,8 @@ void main() {
 
       expect(inspector.state.pendingCoverageAnchor, isNull);
       expect(await liveCharacterLinkCount(), 0);
-      expect(await modeReadsAgain(), isFalse, reason: "nothing is read after a failure");
+      expect(await liveRangeCount(), 0, reason: "the range is rolled back with its characters");
+      expect(await modeReadsAgain(), isTrue, reason: "the screen is read again after a failure");
     },
   );
 
@@ -273,6 +274,7 @@ void main() {
     await waitUntil(() => inspector.state.hasWriteError);
 
     expect(await liveCharacterLinkCount(), 0, reason: "the second character is not attached");
+    expect(await liveRangeCount(), 0, reason: "the range is rolled back with its characters");
   });
 
   test("a refused range removal raises the write error and keeps the range", () async {
@@ -284,7 +286,7 @@ void main() {
     await waitUntil(() => inspector.state.hasWriteError);
 
     expect(await liveRangeCount(), 1);
-    expect(await modeReadsAgain(), isFalse, reason: "nothing is read after a failure");
+    expect(await modeReadsAgain(), isTrue, reason: "the screen is read again after a failure");
 
     await allow("UPDATE", "shot_coverages");
     inspector.add(const OcptShotListInspectorWriteErrorDismissedEvent());
@@ -303,7 +305,7 @@ void main() {
     await waitUntil(() => inspector.state.hasWriteError);
 
     expect(await liveRangeCount(), 1);
-    expect(await modeReadsAgain(), isFalse, reason: "nothing is read after a failure");
+    expect(await modeReadsAgain(), isTrue, reason: "the screen is read again after a failure");
 
     await allow("UPDATE", "shot_coverages");
     inspector.add(const OcptShotListInspectorWriteErrorDismissedEvent());
@@ -332,7 +334,7 @@ void main() {
     await waitUntil(() => inspector.state.hasWriteError);
 
     expect(await shotNeedsCheck(), isTrue);
-    expect(await modeReadsAgain(), isFalse, reason: "nothing is read after a failure");
+    expect(await modeReadsAgain(), isTrue, reason: "the screen is read again after a failure");
 
     await allow("UPDATE", "shots");
     inspector.add(const OcptShotListInspectorWriteErrorDismissedEvent());

@@ -132,8 +132,10 @@ abstract final class OcptVersionScheduleJson {
     label: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.labelKey),
     locationId: OcptVersionJsonReader.readNullableString(json, OcptVersionJsonKeys.locationIdKey),
     setId: OcptVersionJsonReader.readNullableString(json, OcptVersionJsonProductionKeys.setIdKey),
-    anchorEdge: OcptShootingSlotAnchorEdge.values.byName(
-      OcptVersionJsonReader.readString(json, OcptVersionJsonProductionKeys.anchorEdgeKey),
+    anchorEdge: OcptVersionJsonReader.readEnum(
+      json,
+      OcptVersionJsonProductionKeys.anchorEdgeKey,
+      OcptShootingSlotAnchorEdge.values.asNameMap(),
     ),
     anchorMinute: OcptVersionJsonReader.readNullableInt(
       json,

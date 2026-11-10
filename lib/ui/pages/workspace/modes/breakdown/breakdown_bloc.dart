@@ -512,11 +512,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     );
   }
 
-  /// Leave the workspace: closes the current project and navigates back to the home page.
+  /// Leave the workspace: flushes any pending field edit, closes the current project, and
+  /// navigates back to the home page.
   Future<void> _onBackRequested(
     OcptBreakdownBackRequestedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
+    await runPendingWritesFlushers();
     final closed = await _projectsManager.closeCurrentProject();
     if (closed.isError) {
       return;

@@ -167,11 +167,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// What moved the selection the last time [selectionEpoch] advanced.
   final OcptResourcesSelectionCause selectionCause;
 
-  /// How many times writing the typed edits failed (`OcptResourcesPendingEditsLostEvent`): a view
-  /// bloc that sees it rise drops the edits it holds, since the mode has shown the write error and
-  /// the fields fall back to what the database holds.
-  final int lostEditsEpoch;
-
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
   final List<OcptProjectVersion> projectVersions;
@@ -380,7 +375,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.selectionCause,
-    required this.lostEditsEpoch,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -419,7 +413,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       reloadEpoch = 0,
       selectionEpoch = 0,
       selectionCause = OcptResourcesSelectionCause.none,
-      lostEditsEpoch = 0,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -506,7 +499,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     int? reloadEpoch,
     int? selectionEpoch,
     OcptResourcesSelectionCause? selectionCause,
-    int? lostEditsEpoch,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool forcePreviewedVersionIdValue = false,
@@ -565,7 +557,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
             : this.reloadEpoch),
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
     selectionCause: selectionCause ?? this.selectionCause,
-    lostEditsEpoch: lostEditsEpoch ?? this.lostEditsEpoch,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId:
         previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
@@ -671,6 +662,5 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     reloadEpoch,
     selectionEpoch,
     selectionCause,
-    lostEditsEpoch,
   ];
 }

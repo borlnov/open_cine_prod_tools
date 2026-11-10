@@ -133,7 +133,17 @@ Documented as schema in [`foundations.md`](foundations.md); its sync meaning:
 - **Ordering is `sortKey`**, a fractional index, so a move writes exactly one row and two concurrent
   insertions at the same index coexist; the legacy `position` column is never renumbered.
 - **`row_field_versions`** is the per-column stamp sidecar the merge reads. A per-replica `deviceId`
-  lives in `OcptPropertiesManager`.
+  lives in `OcptPropertiesManager`. A stamp's column name is the **Dart spelling of the SQL column**
+  (`ocptDartFieldName`), and `OcptRowStampService` takes it from the row class's `toJson` keys, so
+  a column whose Dart getter differs from its SQL name carries a `@JsonKey` naming the SQL one
+  (`storyboard_annotations.text`, the budget `posteId` columns); a guard test fails on any
+  synchronised table whose row keys and columns disagree. Before that key existed, an annotation was
+  stamped `labelText`, which the push and the merge could not map to a column and refused: schema
+  v5 renames those stamps to `text` (keeping the higher one if both exist). A project version
+  captured earlier still carries `labelText` in its payload stamps; restoring or previewing it is
+  unaffected, since a restore only folds the stamps in as a clock floor and never writes them
+  verbatim, and the floor of the `text` column may then sit one step low in the rare case a
+  version held a higher `labelText` stamp than the working copy does.
 - Two tables are **local to a replica and never synchronised** — no `is_deleted`, so the rule in
   `lib/models/rules/ocpt_synchronised_tables.dart` drops them out on its own: `sync_relay_cursors` (one
   delivery cursor per relay) and `sync_pairings` (a project's relay base URL). `project_versions`

@@ -192,21 +192,20 @@ void main() {
     await harness.openTab(tester, tr.resourcesTabRoles);
     expect(find.text(tr.resourcesNoRoleSelectedHint), findsOneWidget);
 
-    // Erasing the person, confirmed, empties the address book but leaves the role pointing at the
-    // erased row, which is how the data model keeps a part from being uncast by a name going.
+    // Erasing the person, confirmed, empties the address book and uncasts the role.
     await harness.openTab(tester, tr.resourcesTabPeople);
     await harness.tap(tester, find.text("Alice Smith"));
     await harness.tapScrolled(tester, find.text(tr.resourcesDeletePersonAction));
     await harness.confirmDialog(tester, tr.resourcesDeleteConfirmDeleteAction);
 
     expect(await harness.readPeople(), isEmpty);
-    expect((await harness.readRoles()).singleWhere((role) => role.id == roleId).personId, aliceId);
+    expect((await harness.readRoles()).singleWhere((role) => role.id == roleId).personId, isNull);
     expect(find.text(tr.resourcesNoPersonSelectedHint), findsOneWidget);
     expect(find.text("Alice Smith"), findsNothing);
     await harness.openTab(tester, tr.resourcesTabRoles);
-    expect(find.text(tr.resourcesRolesListCastPill), findsOneWidget);
+    expect(find.text(tr.resourcesRolesListCastPill), findsNothing);
     expect(
-      find.textContaining("${tr.resourcesStatsRoles(1)} · ${tr.resourcesStatsRolesCast(1)}"),
+      find.textContaining("${tr.resourcesStatsRoles(1)} · ${tr.resourcesStatsRolesCast(0)}"),
       findsOneWidget,
     );
     await harness.tap(tester, find.text("SAM"));

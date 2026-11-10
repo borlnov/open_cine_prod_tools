@@ -84,6 +84,22 @@ const _stopCarriers = {
   },
 };
 
+/// The members that go on past a failed answer on purpose, by file, each with its reason: an `if`
+/// on a failure inside them may end without a way out.
+const _continuingMembers = <String, Map<String, String>>{
+  "lib/managers/projects/ocpt_project_episode_ops.dart": {
+    "closeProject":
+        "the episode count only serves the home card: failing to read it must not keep the user "
+        "inside the project",
+  },
+  "lib/managers/projects/ocpt_projects_manager.dart": {
+    "restoreProjectVersion":
+        "the restore went through: a failed episode count must not hide it from the caller, who "
+        "has to reload what the restored project holds",
+    "disposeLifeCycle": "a failed close must not leave the other services running",
+  },
+};
+
 /// List a file's lines of offences as `path:line: reason`.
 List<String> _prefixed(String path, Iterable<String> offences) => [
   for (final offence in offences) "$path:$offence",
@@ -150,6 +166,7 @@ void main() {
             resultMembers,
             file.readAsStringSync(),
             databaseNames: databaseMembers,
+            continuingMembers: _continuingMembers[file.path]?.keys.toSet() ?? const {},
           ),
         ),
       );
@@ -268,13 +285,39 @@ Future<void> f() async {
     if (m.isSuccess) { go(); }
     if (n.isError && o) { go(); }
     if (p.isError) { continue; }
+    if (q.isSuccess == false) { log(); }
+    if (!r.isSuccess) { log(); }
+    if (s.isSuccess == false) { return; }
   }
 }
 ''';
 
       final offences = answerUseOffencesOf({"nothing"}, source);
 
-      expect(offences.map((offence) => offence.split(":").first), ["3", "8", "9", "10"]);
+      expect(offences.map((offence) => offence.split(":").first), [
+        "3",
+        "8",
+        "9",
+        "10",
+        "17",
+        "18",
+      ]);
+    });
+
+    test("a member listed as going on past a failure may log and go on, and no other", () {
+      const source = '''
+Future<void> listed() async {
+  if (a.isError) { log(); }
+}
+
+Future<void> other() async {
+  if (b.isError) { log(); }
+}
+''';
+
+      final offences = answerUseOffencesOf({"nothing"}, source, continuingMembers: {"listed"});
+
+      expect(offences.map((offence) => offence.split(":").first), ["6"]);
     });
 
     test("the rules see a call only through the name of the member", () {

@@ -209,50 +209,63 @@ void main() {
   });
 
   test(
-    "a failed write in the first sheet drops every sheet's edit and writes none of the others",
+    "a failed write in the first sheet keeps its edit pending and still writes the others",
     () async {
       final database = projectsManager.currentProject!.database;
       await database.customStatement("ALTER TABLE people RENAME TO people_gone");
       try {
         final mayProceed = await modeBloc.flushAllPendingWrites();
 
-        // The action the flush was asked for still goes ahead, on the values the database holds.
-        expect(mayProceed, isTrue);
+        // The action the flush was asked for must not go ahead on a database missing the edit.
+        expect(mayProceed, isFalse);
         expect(modeBloc.state.hasWriteError, isTrue);
-        expect(isNothingPending(), isTrue);
+        expect(peopleBloc.state.pendingFieldEdits, hasLength(1));
+        expect(rolesBloc.state.pendingRoleFieldEdits, isEmpty);
+        expect(locationsBloc.state.pendingLocationFieldEdits, isEmpty);
+        expect(elementsBloc.state.pendingElementFieldEdits, isEmpty);
       } finally {
         await database.customStatement("ALTER TABLE people_gone RENAME TO people");
       }
 
+      expect(
+        (await projectsManager.roleIndexService.loadRoles(database: database).valueOrFail)
+            .single
+            .castingNotes,
+        "Zoe",
+      );
+      expect(
+        (await projectsManager.locationsService.loadLocations(database: database).valueOrFail)
+            .single
+            .city,
+        "Lyon",
+      );
+      expect(
+        (await projectsManager.elementsService.loadElements(database: database).valueOrFail)
+            .single
+            .notes,
+        "Fragile",
+      );
       expect(
         (await projectsManager.peopleService.loadPeople(database: database).valueOrFail)
             .single
             .firstName,
         isEmpty,
       );
+
+      // Once the database works again the next flush writes the edit that was kept.
+      expect(await modeBloc.flushAllPendingWrites(), isTrue);
+      expect(isNothingPending(), isTrue);
       expect(
-        (await projectsManager.roleIndexService.loadRoles(database: database).valueOrFail)
+        (await projectsManager.peopleService.loadPeople(database: database).valueOrFail)
             .single
-            .castingNotes,
-        isEmpty,
-      );
-      expect(
-        (await projectsManager.locationsService.loadLocations(database: database).valueOrFail)
-            .single
-            .city,
-        isEmpty,
-      );
-      expect(
-        (await projectsManager.elementsService.loadElements(database: database).valueOrFail)
-            .single
-            .notes,
-        isEmpty,
+            .firstName,
+        "Alicia",
       );
     },
   );
 
   test(
-    "a failed write in a later sheet keeps what the earlier ones wrote and drops the rest",
+    "a failed write in a later sheet keeps the earlier ones written and its own pending",
     () async {
       final database = projectsManager.currentProject!.database;
       // A trigger makes the write fail while every read still works, which renaming the table would
@@ -262,10 +275,12 @@ void main() {
         "BEGIN SELECT RAISE(ABORT, 'refused'); END",
       );
       try {
-        await modeBloc.flushAllPendingWrites();
+        expect(await modeBloc.flushAllPendingWrites(), isFalse);
 
         expect(modeBloc.state.hasWriteError, isTrue);
-        expect(isNothingPending(), isTrue);
+        expect(elementsBloc.state.pendingElementFieldEdits, hasLength(1));
+        expect(peopleBloc.state.pendingFieldEdits, isEmpty);
+        expect(locationsBloc.state.pendingLocationFieldEdits, isEmpty);
       } finally {
         await database.customStatement("DROP TRIGGER refuse_elements");
       }
@@ -287,6 +302,15 @@ void main() {
             .single
             .notes,
         isEmpty,
+      );
+
+      expect(await modeBloc.flushAllPendingWrites(), isTrue);
+      expect(isNothingPending(), isTrue);
+      expect(
+        (await projectsManager.elementsService.loadElements(database: database).valueOrFail)
+            .single
+            .notes,
+        "Fragile",
       );
     },
   );

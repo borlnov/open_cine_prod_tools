@@ -155,8 +155,11 @@ OcptFloorPlanSymbolLiveOverride ocptFloorPlanSymbolFovDraggedTo({
   );
   final pointerVector = localPosition - centreScreen;
   final worldBearingRad = math.atan2(pointerVector.dx, -pointerVector.dy);
-  final localBearingRad = worldBearingRad - override.rotationDeg * math.pi / 180;
-  final halfAngleDeg = (localBearingRad * 180 / math.pi).abs() % 360;
+  final rawLocalBearingRad = worldBearingRad - override.rotationDeg * math.pi / 180;
+  // The difference of two bearings can fall outside (-180°, 180°]: fold it back so its absolute
+  // value is the true angle off the heading, whichever way the camera is aimed.
+  final localBearingRad = math.atan2(math.sin(rawLocalBearingRad), math.cos(rawLocalBearingRad));
+  final halfAngleDeg = (localBearingRad * 180 / math.pi).abs();
   final fovDeg = (2 * halfAngleDeg).clamp(
     ocptFloorPlanMinCameraFovDeg,
     ocptFloorPlanMaxCameraFovDeg,

@@ -673,6 +673,23 @@ void main() {
       },
     );
 
+    test("restores the simplified budget flag the version was captured with", () async {
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(isBudgetSimplified: Value(true)));
+      final version = await createVersion();
+
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(const OcptProjectInfoTableCompanion(isBudgetSimplified: Value(false)));
+
+      final result = await restore(version.id);
+
+      expect(result.status, OcptProjectRestoreStatus.ok);
+      final info = await database.select(database.ocptProjectInfoTable).getSingle();
+      expect(info.isBudgetSimplified, isTrue);
+    });
+
     test("restores the screenplay language the version was captured with", () async {
       await database
           .update(database.ocptProjectInfoTable)
@@ -751,6 +768,7 @@ void main() {
                 id: "role-1",
                 name: "CLARA",
                 kind: OcptRoleKind.speaking,
+                personId: const Value("person-1"),
               ),
             );
         await database
@@ -797,6 +815,13 @@ void main() {
         )..where((table) => table.id.equals("candidate-1"))).getSingle();
         expect(candidate.isDeleted, isTrue);
         expect(candidate.notes, isEmpty);
+
+        // The part the erased person was cast in is uncast by the restore, not left pointing at
+        // somebody who no longer exists.
+        final role = await (database.select(
+          database.ocptRolesTable,
+        )..where((table) => table.id.equals("role-1"))).getSingle();
+        expect(role.personId, isNull);
 
         // The erasure itself is never rewound: it is recorded outside any payload, on purpose.
         final erasures = await database.select(database.ocptLocalErasuresTable).get();

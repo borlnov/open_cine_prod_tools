@@ -63,7 +63,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 /// [OcptShotListInspectorState.pendingCoverageAnchor] into adding, removing, or simply moving where
 /// the next click would close a range (see that handler's own doc comment for the three-state
 /// interaction) — a range being added also attaches the characters it covers to the shot, see
-/// [_attachCharactersCoveredBy] —, [_onCoverageClearRequested] drops every range of a shot, and
+/// [_roleIdsToAttachFor] —, [_onCoverageClearRequested] drops every range of a shot, and
 /// [_onShotMarkedAsChecked] clears a shot's `needsCheck` flag and re-stamps its ranges' digests.
 /// [_onCoverageAnchorCancelled] is the odd one out: it never touches a range at all, only the
 /// pending anchor a first click opened, so the coverage dialog can be backed out of without
@@ -602,9 +602,9 @@ class OcptShotListInspectorBloc
   /// opened in: a range legitimately runs from an action paragraph into the dialogue below it, and
   /// `OcptShotCoverageService.addRange` stopped enforcing anything about blocks along with it.
   ///
-  /// The click that closes a range writes the characters that range covers alongside it, in the
-  /// same [_writeCoverageChange] action so both land before the shot list is read again: see
-  /// [_attachCharactersCoveredBy].
+  /// The click that closes a range writes the characters that range covers with it, in one
+  /// transaction (`OcptShotCoverageService.addRangeWithCharacters`), so both land or neither does
+  /// before the shot list is read again: see [_roleIdsToAttachFor].
   Future<void> _onCoverageWordClicked(
     OcptShotListCoverageWordClickedEvent event,
     Emitter<OcptShotListInspectorState> emitter,
@@ -663,29 +663,22 @@ class OcptShotListInspectorBloc
       project: project,
       shotId: event.shotId,
       action: () async {
-        final added = await _shotCoverageService.addRange(
+        final added = await _shotCoverageService.addRangeWithCharacters(
           database: project.database,
           shotId: event.shotId,
           sceneId: layout.sceneId,
           startOffset: range.startOffset,
           endOffset: range.endOffset,
           sceneText: layout.sceneText,
+          roleIds: _roleIdsToAttachFor(shotId: event.shotId, layout: layout, range: range),
         );
-        if (added.isError) {
-          return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
-        }
 
-        return _attachCharactersCoveredBy(
-          project: project,
-          shotId: event.shotId,
-          layout: layout,
-          range: range,
-        );
+        return OcptDatabaseOutcome(status: added.status, extraInfo: added.extraInfo);
       },
     );
   }
 
-  /// Attach to shot [shotId] every character the range just recorded covers, so selecting a
+  /// Get the ids of the roles to attach to shot [shotId] once [range] is recorded, so selecting a
   /// shot's scenario coverage ticks its character chips on its own instead of leaving the same
   /// names to be clicked twice.
   ///
@@ -694,16 +687,12 @@ class OcptShotListInspectorBloc
   /// extra, a character kept in frame through a reply they don't speak — and only the user knows
   /// which of them the coverage happens to explain. A role already attached is skipped, and so is a
   /// covered name matching no live role of [OcptShotListState.roles] — one not reconciled yet,
-  /// which the next save resolves.
-  ///
-  /// Stops at the first character that cannot be attached and answers its failure.
-  @useResult
-  Future<OcptDatabaseOutcome> _attachCharactersCoveredBy({
-    required OcptOpenProjectModel project,
+  /// which the next save resolves. The service attaches them in the same transaction as the range.
+  List<String> _roleIdsToAttachFor({
     required String shotId,
     required OcptScriptWordLayout layout,
     required ({int startOffset, int endOffset}) range,
-  }) async {
+  }) {
     final modeState = modeBloc.state;
     final attachedRoleIds =
         modeState.snapshot?.shotsById[shotId]?.characterRoleIds ?? const <String>[];
@@ -712,23 +701,12 @@ class OcptShotListInspectorBloc
       endOffset: range.endOffset,
     );
 
-    for (final characterName in covered) {
-      final role = modeState.roles.firstWhereOrNull((role) => role.name == characterName);
-      if (role == null || attachedRoleIds.contains(role.id)) {
-        continue;
-      }
-
-      final attached = await _shotListService.attachCharacter(
-        database: project.database,
-        shotId: shotId,
-        roleId: role.id,
-      );
-      if (attached.isError) {
-        return attached;
-      }
-    }
-
-    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
+    return [
+      for (final characterName in covered)
+        if (modeState.roles.firstWhereOrNull((role) => role.name == characterName) case final role?
+            when !attachedRoleIds.contains(role.id))
+          role.id,
+    ];
   }
 
   /// Remove every scenario coverage range of shot `event.shotId`, written immediately: the
@@ -797,7 +775,8 @@ class OcptShotListInspectorBloc
   /// coverage write always leaves the interaction back at its initial, no-anchor state. Reads the
   /// answer of [action] as `_onShotDifficultyChanged` and `_onShotCharacterToggled` read theirs.
   ///
-  /// A failed outcome of [action] reads nothing again and raises the coverage write error.
+  /// A failed outcome of [action] raises the coverage write error, and reads the shot list again
+  /// and clears the anchor all the same, so the screen shows what the database holds.
   Future<void> _writeCoverageChange({
     required Emitter<OcptShotListInspectorState> emitter,
     required OcptOpenProjectModel project,
@@ -806,6 +785,7 @@ class OcptShotListInspectorBloc
   }) async {
     final written = await action();
     if (written.isError) {
+      await modeBloc.reload({OcptShotListReloadScope.snapshot});
       emitter(state.copyToCoverageWriteFailed());
       return;
     }

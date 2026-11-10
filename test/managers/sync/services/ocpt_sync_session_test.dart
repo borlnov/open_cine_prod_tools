@@ -493,6 +493,36 @@ void main() {
       ),
     };
 
+    test(
+      'two failed runs in a row tell the diagnostics once and the file log twice',
+      () async {
+        changesetService.syncOnceOutcomes.add(Exception('connection refused'));
+        await session.start();
+        changesetService.syncOnceOutcomes.add(Exception('connection refused'));
+        await session.syncNow();
+
+        expect(session.status, isA<OcptSyncStatusOffline>());
+        expect(causes(), ['offline cause: project=$projectId Exception: connection refused']);
+        expect(fakeLogger.recordsAtLevel(LogsLevel.warn), hasLength(2));
+      },
+      timeout: const Timeout(Duration(seconds: 5)),
+    );
+
+    test(
+      'a run that failed again after a success tells the diagnostics again',
+      () async {
+        changesetService.syncOnceOutcomes.add(Exception('connection refused'));
+        await session.start();
+        await session.syncNow();
+        expect(session.status, isA<OcptSyncStatusInSync>());
+        changesetService.syncOnceOutcomes.add(Exception('connection refused'));
+        await session.syncNow();
+
+        expect(causes(), hasLength(2));
+      },
+      timeout: const Timeout(Duration(seconds: 5)),
+    );
+
     for (final isPullOnly in [false, true]) {
       final label = isPullOnly ? 'Sync pull failed' : 'Sync failed';
       final path = isPullOnly ? 'pulling alone' : 'pushing then pulling';

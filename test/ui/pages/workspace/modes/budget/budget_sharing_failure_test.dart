@@ -154,7 +154,7 @@ void main() {
   for (final entry in cases.entries) {
     final test_ = entry.value;
     test(
-      "${entry.key} stops, reads nothing again, and goes through once the refusal is lifted",
+      "${entry.key} stops, leaves what is stored as it was, and goes through once lifted",
       () async {
         final built = await build();
         final held = harness.state;
@@ -163,11 +163,19 @@ void main() {
         built.view.add(test_.event(built.revenueIds, built.shareIds));
         await harness.settle();
 
-        expect(
-          harness.state.reloadEpoch,
-          held.reloadEpoch,
-          reason: "the mode was read again after a failed write",
-        );
+        if (entry.key.startsWith("creating a ") ||
+            entry.key.startsWith("writing the fields of a")) {
+          // The creation is one transaction: the screen is read again, and shows what is stored.
+          expect(harness.state.reloadEpoch, isNot(held.reloadEpoch));
+          expect(harness.state.revenues, held.revenues);
+          expect(harness.state.shares, held.shares);
+        } else {
+          expect(
+            harness.state.reloadEpoch,
+            held.reloadEpoch,
+            reason: "the mode was read again after a failed write",
+          );
+        }
         expect(harness.state.selection, held.selection);
 
         await harness.lift(test_.verb, test_.table);

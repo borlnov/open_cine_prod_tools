@@ -247,8 +247,9 @@ void main() {
 
       final status = await rolesBloc.flushPendingWrites();
 
-      expect(status, OcptPendingWritesStatus.ok);
+      expect(status, OcptPendingWritesStatus.failed);
       expect(modeBloc.state.hasWriteError, isTrue);
+      expect(rolesBloc.state.pendingRoleFieldEdits, hasLength(2));
       final notes = await castingNotes();
       expect(notes["PASSERBY"], isEmpty);
       expect(notes["DRIVER"], isEmpty, reason: "the edit after the refused one");

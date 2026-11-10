@@ -234,7 +234,7 @@ void main() {
     expect(state.hasWriteError, isTrue);
   });
 
-  test("a refused location field flush raises the write error and drops the edit", () async {
+  test("a refused location field flush raises the write error and keeps the edit", () async {
     await refuse("UPDATE", "locations");
     locationsBloc.add(
       OcptResourcesLocationFieldChangedEvent(
@@ -247,12 +247,12 @@ void main() {
 
     final mayProceed = await modeBloc.flushAllPendingWrites();
 
-    expect(mayProceed, isTrue);
+    expect(mayProceed, isFalse);
     expect(modeBloc.state.hasWriteError, isTrue);
-    expect(locationsBloc.state.pendingLocationFieldEdits, isEmpty);
+    expect(locationsBloc.state.pendingLocationFieldEdits, hasLength(1));
   });
 
-  test("a refused role field flush raises the write error and drops the edit", () async {
+  test("a refused role field flush raises the write error and keeps the edit", () async {
     await refuse("UPDATE", "roles");
     rolesBloc.add(
       OcptResourcesRoleFieldChangedEvent(
@@ -265,9 +265,9 @@ void main() {
 
     final mayProceed = await modeBloc.flushAllPendingWrites();
 
-    expect(mayProceed, isTrue);
+    expect(mayProceed, isFalse);
     expect(modeBloc.state.hasWriteError, isTrue);
-    expect(rolesBloc.state.pendingRoleFieldEdits, isEmpty);
+    expect(rolesBloc.state.pendingRoleFieldEdits, hasLength(1));
   });
 
   test("opening a set in the shot list reveals nothing when its link cannot be read", () async {
