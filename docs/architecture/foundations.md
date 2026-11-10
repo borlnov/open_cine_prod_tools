@@ -596,8 +596,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   devcontainer carries no Android SDK, so the Android build is **CI-verified only**; the local
   verification gate stays `flutter build linux --debug`.
 
-- Persistence: drift schema v5, the pending step of the cycle after 0.3.0, which froze v4
-  (ADR 0029). `onCreate` creates the whole
+- Persistence: drift schema v5, frozen by 0.3.1 (ADR 0029). `onCreate` creates the whole
   schema at once — `project_info`, `screenplays`, `screenplay_snapshots`, `scenes`, the three shot
   list tables, the five storyboard and floor plan tables (`storyboard_panels`,
   `storyboard_annotations`, `floor_plan_sets`, `floor_plan_symbols`, `floor_plan_arrows`,
@@ -620,12 +619,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
   touching nothing else, so a v1 file's existing rows are untouched by it; the 0.2.1 release froze v3
   — `shot_characters` reshaped from `{shotId, characterName}` to `{shotId, roleId}`, the first
   non-additive step this project ships (ADR 0030); the 0.3.0 release froze v4 — the five tables
-  above, fully additive, the shot list's storyboard and floor plans (`shot-list.md`). Two constants
-  govern this: `currentSchemaVersion` (5) and `lastStableSchemaVersion` (4, frozen at 0.3.0). While
-  `current == lastStable + 1` a cycle is open and the pending step is rewritten in place — the state
-  today, `ocpt_migration_v5.dart` being that step: it renames the `labelText` stamps of
-  `storyboard_annotations` in `row_field_versions` to `text` (see [`sync.md`](sync.md)); while
-  `current == lastStable` the top step is frozen, so the next schema change creates a new one.
+  above, fully additive, the shot list's storyboard and floor plans (`shot-list.md`); the 0.3.1
+  release froze v5 — `ocpt_migration_v5.dart`, which reshapes no table and renames the `labelText`
+  stamps of `storyboard_annotations` in `row_field_versions` to `text` (see [`sync.md`](sync.md)).
+  Two constants govern this: `currentSchemaVersion` (5) and `lastStableSchemaVersion` (5, frozen at
+  0.3.1). While `current == lastStable + 1` a cycle is open and the pending step is rewritten in
+  place; while `current == lastStable` the top step is frozen — the state today — so the next
+  schema change creates a new one.
   Freezing sets `lastStableSchemaVersion` to `currentSchemaVersion` at release (`docs/RELEASING.md`),
   which a fail-closed CI guard on a stable tag enforces — a forgotten freeze blocks the release,
   an incorrect one fails the migration test. ADR 0007's additive-only guidance still governs how

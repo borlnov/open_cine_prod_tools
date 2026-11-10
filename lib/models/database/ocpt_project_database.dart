@@ -193,9 +193,9 @@ part '../../generated/models/database/ocpt_project_database.g.dart';
 /// key it by `{shotId, roleId}` instead of `{shotId, characterName}` — the first **non-additive**
 /// migration (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), carried out by
 /// `ocptMigrateToSchemaV3`. Schema version 4 creates the five storyboard and floor plan tables
-/// above — additive only, carried out by `ocptMigrateToSchemaV4`. Schema version 5, the pending
-/// step of the development cycle after 0.3.0, renames the `labelText` stamps of
-/// `storyboard_annotations` to `text` in `row_field_versions` (`ocptMigrateToSchemaV5`).
+/// above — additive only, carried out by `ocptMigrateToSchemaV4`. Schema version 5, frozen by
+/// 0.3.1, renames the `labelText` stamps of `storyboard_annotations` to `text` in
+/// `row_field_versions` (`ocptMigrateToSchemaV5`).
 ///
 /// `OcptProjectsManager` owns the single instance open at a time.
 @DriftDatabase(
@@ -278,7 +278,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   ///
   /// See [currentSchemaVersion]'s own doc comment for the overwrite-vs-create rule these two
   /// constants drive together.
-  static const lastStableSchemaVersion = 4;
+  static const lastStableSchemaVersion = 5;
 
   /// The category this class logs under.
   static const _loggerCategory = "project_database";
@@ -312,10 +312,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// shipped before schema version 1, so that version itself carries no pre-stable migration
   /// history — no real `.ocpt` file is ever found below it. Each stable release then froze the next
   /// number in turn: 0.1.0 froze [lastStableSchemaVersion] at 1, 0.2.0 froze it at 2, 0.2.1 froze
-  /// it at 3, and 0.3.0 froze it at 4; version 5 is the pending step of the cycle that follows, so
-  /// a new schema change overwrites it until a stable release freezes it. Every `onUpgrade` step
-  /// below follows the additive-only guidance `docs/adr/0007-schema-migration-policy.md` gives,
-  /// except v3's, called out where it runs, and v5's, which rewrites stamps and no table.
+  /// it at 3, 0.3.0 froze it at 4, and 0.3.1 froze it at 5, so a new schema change creates
+  /// version 6. Every `onUpgrade` step below follows the additive-only guidance
+  /// `docs/adr/0007-schema-migration-policy.md` gives, except v3's, called out where it runs, and
+  /// v5's, which rewrites stamps and no table.
   ///
   /// From 1 to 2, `onUpgrade` creates [OcptSyncRelayCursorsTable] — the changeset engine's own
   /// local, never-synchronised delivery-cursor table (`docs/architecture/sync.md`) — and
