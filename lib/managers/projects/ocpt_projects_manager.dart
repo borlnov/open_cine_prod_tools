@@ -142,7 +142,7 @@ class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings
   // value the CI passes deliberately (`--dart-define=APP_VERSION=...`), with a documented,
   // version-controlled default for every build that doesn't pass one.
   // ignore: do_not_use_environment
-  static const _appVersion = String.fromEnvironment("APP_VERSION", defaultValue: "0.3.0");
+  static const _appVersion = String.fromEnvironment("APP_VERSION", defaultValue: "0.3.1-beta.1");
 
   /// The service used to load/save a screenplay's text and manage its snapshots.
   final OcptScreenplayService screenplayService;

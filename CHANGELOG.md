@@ -6,6 +6,43 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## 0.3.1-beta.1
+
+Fixes for edits that could be lost, a sync failure and the floor plans, in a
+pre-release to test on copies of your projects.
+
+- Edits: a value typed just before "Back to projects" in the schedule, the
+  budget or the breakdown is now saved, as is one typed in the schedule before
+  opening the project settings, or in a schedule time field when the window is
+  resized.
+- Budget: paying a quote line directly, an in-kind resource with its
+  counterpart line, and a taking or share with its fields are each saved in
+  one go, never half. An in-kind resource created from the journal's entry
+  dialog now gets its counterpart line too.
+- Resources: an edit that fails to save stays pending and is reported, instead
+  of being dropped. Erasing a person now takes them off the roles they were
+  cast in, in the schedule and the exports too. People erased with an earlier
+  version stay cast: remove them from their roles by hand.
+- Sync: creating a storyboard annotation in a shared project no longer takes
+  the sync offline for good.
+- Versions: restoring a version now brings back the budget's simplified mode
+  and the allowances' history.
+- Projects: a project that cannot be closed no longer blocks opening another
+  one with a misleading "corrupted file" message, and a failed open or creation
+  leaves nothing half-open behind.
+- Floor plans: a camera's field-of-view handle no longer jumps to its widest
+  angle when the camera faces left, and an underlay photo is laid out
+  correctly.
+- Styled editor: spelling mistakes are underlined as soon as the editor opens.
+- Breakdown: Escape closes a tag's popover without clicking its field first.
+- Sharing: the hosting reconcile notice can be dismissed.
+- Logs: the diagnostics log no longer records project titles, file names or
+  project content.
+- Project files move to format 5: opening an earlier project upgrades it after
+  a confirmation, keeping a copy of the original. As with every pre-release,
+  a file this build has written will not open in 0.3.0, nor in 0.3.1 once it
+  is out.
+
 ## 0.3.0
 
 The shot list gains a storyboard and floor plans, each with its own PDF.
