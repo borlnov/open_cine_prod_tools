@@ -20,7 +20,8 @@ import 'ocpt_project_database_ddl_fixtures.dart';
 // `OcptSyncPairingsTable`, both local, never-synchronised tables the changeset engine and its relay
 // transport add, plus `budget_lines.in_kind_resource_id`; the 0.2.1 release froze v3 —
 // `shot_characters` reshaped from `{shotId, characterName}` to `{shotId, roleId}`; the 0.3.0
-// release froze v4 — the five storyboard and floor plan tables.
+// release froze v4 — the five storyboard and floor plan tables; the 0.3.1 release froze v5 — no
+// table reshaped, the `labelText` stamps of `storyboard_annotations` renamed to `text`.
 //
 // ADR 0029 ties a verbatim DDL fixture to each frozen release, one for the schema the *previous*
 // stable shipped — the shape a real file from that release was left with, migrated forward and
@@ -28,7 +29,8 @@ import 'ocpt_project_database_ddl_fixtures.dart';
 // froze v2; [v2Ddl] is the v2 fixture (a real 0.2.0 file), added when 0.2.1 froze v3; [v3Ddl] is
 // the v3 fixture (a real 0.2.1 file), added while v4 was still open, so that cycle's upgrade path
 // was exercised before 0.3.0 froze it; [v4Ddl] is the v4 fixture (a real 0.3.0 file), added while
-// v5 was still open, for the same reason. Each is a hand-held copy of the real `CREATE TABLE`
+// v5 was still open, for the same reason, and v5 reshaped no table, so it is also the shape a real
+// 0.3.1 file holds. Each is a hand-held copy of the real `CREATE TABLE`
 // statements, never built through drift, so the test proves `onCreate` still reproduces migrating
 // that real file forward rather than merely rewriting the same "undo the last upgrade" trick the
 // schema's own `onUpgrade` doc comment already describes.

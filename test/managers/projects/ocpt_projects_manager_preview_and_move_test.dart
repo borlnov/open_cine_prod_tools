@@ -558,7 +558,7 @@ void main() {
       await manager.createProject(name: "From Another Workshop", filePath: foreignPath);
       await manager.closeCurrentProject().okOrFail;
       // A pre-release writer, whereas the manager's own fallback under `flutter test` is the
-      // stable "0.3.0" (per `OcptProjectsManager._appVersion`): same schema, and a pre-release
+      // stable "0.3.1" (per `OcptProjectsManager._appVersion`): same schema, and a pre-release
       // is involved on the writer side, so the file is a foreign dev build.
       stampWriter(foreignPath, "0.2.0-alpha.99");
 
@@ -578,7 +578,7 @@ void main() {
       // The manager's own local/dev fallback under `flutter test` — see
       // `OcptProjectsManager._appVersion`. Already stamped by createProject, but stamped again
       // explicitly here to state exactly what this test is about.
-      stampWriter(filePath, "0.3.0");
+      stampWriter(filePath, "0.3.1");
 
       final result = await manager.openProject(filePath: filePath);
 
