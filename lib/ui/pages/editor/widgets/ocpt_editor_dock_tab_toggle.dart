@@ -42,7 +42,8 @@ class OcptEditorDockTabToggle extends StatelessWidget {
     icon: Icon(isActive ? activeIcon : inactiveIcon, size: 20),
     tooltip: tooltip,
     isSelected: isActive,
-    onPressed: () =>
-        context.read<OcptEditorBloc>().add(OcptEditorRightDockTabSelectedEvent(tab: tab)),
+    onPressed: () => context.read<OcptEditorBloc>().add(
+      OcptEditorRightDockTabSelectedEvent(tab: tab, closesWhenActive: true),
+    ),
   );
 }

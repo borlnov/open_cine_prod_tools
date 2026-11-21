@@ -832,7 +832,7 @@ void main() {
     await bloc.close();
   });
 
-  test('the right dock toggles closed, then reopens on the last tab selected', () async {
+  test('the right dock closes by its own control, then reopens on the last tab selected', () async {
     await writeScreenplay(twoSceneText);
 
     final bloc = buildBloc();
@@ -842,8 +842,12 @@ void main() {
     bloc.add(const OcptShotListRightDockTabSelectedEvent(tab: OcptShotListRightDockTab.metadata));
     await waitForState(bloc, (state) => state.rightDockTab == OcptShotListRightDockTab.metadata);
 
-    // Selecting the active tab again closes the dock, but still remembers it.
+    // Selecting the active tab again keeps the dock open on it.
     bloc.add(const OcptShotListRightDockTabSelectedEvent(tab: OcptShotListRightDockTab.metadata));
+    await Future<void>.delayed(Duration.zero);
+    expect(bloc.state.rightDockTab, OcptShotListRightDockTab.metadata);
+
+    bloc.add(const OcptShotListRightDockClosedEvent());
     await waitForState(bloc, (state) => state.rightDockTab == null);
     expect(bloc.state.lastRightDockTab, OcptShotListRightDockTab.metadata);
 

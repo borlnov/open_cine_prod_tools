@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
@@ -388,6 +389,24 @@ void main() {
 
       expect(bloc.state.selectedShotId, isNull);
       expect(bloc.state.rightDockTab, isNull);
+
+      await bloc.close();
+    });
+  });
+
+  group("the right dock", () {
+    test("selecting the active tab keeps the dock open on it", () async {
+      await writePlacedShot();
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptScheduleRightDockTabSelectedEvent(tab: OcptScheduleRightDockTab.alerts));
+      await waitForState(bloc, (state) => state.rightDockTab == OcptScheduleRightDockTab.alerts);
+
+      bloc.add(const OcptScheduleRightDockTabSelectedEvent(tab: OcptScheduleRightDockTab.alerts));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(bloc.state.rightDockTab, OcptScheduleRightDockTab.alerts);
 
       await bloc.close();
     });

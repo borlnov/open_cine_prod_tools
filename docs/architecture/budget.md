@@ -1404,8 +1404,9 @@ tables and the version codec pin on purpose.
   mode with nothing to explain renders no button at all, and every mode but this one leaves it null.
   Clicking it dispatches the very same `OcptBudgetRightDockTabSelectedEvent` the dock's own tab row
   already sends, naming `OcptBudgetRightDockTab.help`, so the toolbar button and the dock tab are
-  one gesture rather than two: opening the dock on `Help`, and closing it again on a second click
-  while `Help` is already showing — the toggle every other dock control already has.
+  one gesture rather than two: opening the dock on `Help`, and doing nothing on a second click
+  while `Help` is already showing: a tab selects, it never closes the dock (the dock's own `×` and
+  the toolbar's dock toggle do).
   `OcptBudgetHelp` (`lib/ui/pages/workspace/modes/budget/widgets/`) **writes nothing**, exactly the
   argument `OcptBudgetLogistics` used to make for itself before it started writing defrayals, so it
   carries no `isReadOnly` flag and is offered identically under a previewed version. Its content

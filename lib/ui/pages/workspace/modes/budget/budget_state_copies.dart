@@ -129,16 +129,9 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     );
   }
 
-  /// Copy this state with the right dock tab [tab] shown and remembered, or the dock closed when
-  /// [isAlreadyActive].
-  OcptBudgetState copyWithToggledRightDockTab({
-    required OcptBudgetRightDockTab tab,
-    required bool isAlreadyActive,
-  }) => copyWith(
-    rightDockTab: isAlreadyActive ? null : tab,
-    forceRightDockTabValue: isAlreadyActive,
-    lastRightDockTab: tab,
-  );
+  /// Copy this state with the right dock tab [tab] shown and remembered.
+  OcptBudgetState copyWithRightDockTabSelected({required OcptBudgetRightDockTab tab}) =>
+      copyWith(rightDockTab: tab, lastRightDockTab: tab);
 
   /// Copy this state with the right dock closed.
   OcptBudgetState copyWithRightDockClosed() => copyWith(forceRightDockTabValue: true);

@@ -458,6 +458,21 @@ void main() {
     await bloc.close();
   });
 
+  test("selecting the active right dock tab keeps the dock open on it", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptBreakdownRightDockTabSelectedEvent(tab: OcptBreakdownRightDockTab.versions));
+    await waitForState(bloc, (state) => state.rightDockTab == OcptBreakdownRightDockTab.versions);
+
+    bloc.add(const OcptBreakdownRightDockTabSelectedEvent(tab: OcptBreakdownRightDockTab.versions));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(bloc.state.rightDockTab, OcptBreakdownRightDockTab.versions);
+
+    await bloc.close();
+  });
+
   test(
     "the right dock toggle reopens the last tab explicitly selected, persisted across entries",
     () async {

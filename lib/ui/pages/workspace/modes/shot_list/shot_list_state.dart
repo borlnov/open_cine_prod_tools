@@ -670,16 +670,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   OcptShotListState copyWithSequencePanelToggled() =>
       copyWith(isSequencePanelVisible: !isSequencePanelVisible);
 
-  /// Copy this state with [tab] as the last right dock tab, and the dock closed when
-  /// [isAlreadyActive] or showing [tab] otherwise.
-  OcptShotListState copyWithRightDockTabSelected({
-    required OcptShotListRightDockTab tab,
-    required bool isAlreadyActive,
-  }) => copyWith(
-    rightDockTab: isAlreadyActive ? null : tab,
-    forceRightDockTabValue: isAlreadyActive,
-    lastRightDockTab: tab,
-  );
+  /// Copy this state with [tab] as the last right dock tab and the dock showing it.
+  OcptShotListState copyWithRightDockTabSelected({required OcptShotListRightDockTab tab}) =>
+      copyWith(rightDockTab: tab, lastRightDockTab: tab);
 
   /// Copy this state with the right dock closed.
   OcptShotListState copyWithRightDockClosed() => copyWith(forceRightDockTabValue: true);

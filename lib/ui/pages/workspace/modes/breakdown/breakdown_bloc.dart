@@ -624,8 +624,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithToggledListPanel());
   }
 
-  /// Select a tab of the right dock (the already-active tab closes the dock, any other one opens or
-  /// switches to it) and record it as the tab the toolbar's toggle reopens the dock on.
+  /// Select a tab of the right dock (it opens or switches to the tab; selecting the active one is a
+  /// no-op) and record it as the tab the toolbar's toggle reopens the dock on.
   ///
   /// Flushes any pending field edit first — the inspector tab this may be leaving is the
   /// one place they are shown — mirroring `OcptShotListBloc._onRightDockTabSelected`. Opening the
@@ -641,7 +641,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final isAlreadyActive = state.rightDockTab == event.tab;
     await _persistLastRightDockTab(event.tab);
 
-    emitter(state.copyWithToggledRightDockTab(tab: event.tab, isAlreadyActive: isAlreadyActive));
+    emitter(state.copyWithRightDockTabSelected(tab: event.tab));
 
     if (!isAlreadyActive && event.tab == OcptBreakdownRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());

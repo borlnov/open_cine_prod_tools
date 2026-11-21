@@ -132,16 +132,9 @@ extension OcptScheduleStateCopiesExtension on OcptScheduleState {
   /// Copy this state with the list panel's visibility flipped.
   OcptScheduleState copyWithListPanelToggled() => copyWith(isListPanelVisible: !isListPanelVisible);
 
-  /// Copy this state with [tab] as the last right dock tab, and the dock closed when
-  /// [isAlreadyActive] or showing [tab] otherwise.
-  OcptScheduleState copyWithRightDockTabSelected({
-    required OcptScheduleRightDockTab tab,
-    required bool isAlreadyActive,
-  }) => copyWith(
-    rightDockTab: isAlreadyActive ? null : tab,
-    forceRightDockTabValue: isAlreadyActive,
-    lastRightDockTab: tab,
-  );
+  /// Copy this state with [tab] as the last right dock tab and the dock showing it.
+  OcptScheduleState copyWithRightDockTabSelected({required OcptScheduleRightDockTab tab}) =>
+      copyWith(rightDockTab: tab, lastRightDockTab: tab);
 
   /// Copy this state with the right dock closed.
   OcptScheduleState copyWithRightDockClosed() => copyWith(forceRightDockTabValue: true);

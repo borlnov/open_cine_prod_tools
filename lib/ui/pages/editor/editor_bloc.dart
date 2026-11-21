@@ -558,8 +558,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWithScenePanelVisibility(isScenePanelVisible: !state.isScenePanelVisible));
   }
 
-  /// Select a tab of the right dock (decision 3's toggle semantics: the already-active tab closes
-  /// the dock, any other tab opens or switches to it), record it as
+  /// Select a tab of the right dock (any tab opens or switches to it; the already-active tab only
+  /// closes the dock when the event [OcptEditorRightDockTabSelectedEvent.closesWhenActive], as the
+  /// toolbar's toggle buttons ask), record it as
   /// [OcptEditorState.lastRightDockTab] (even when it just closed the dock: that's still the tab
   /// the toolbar's toggle must bring back), and clear
   /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
@@ -568,7 +569,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     final isAlreadyActive = state.rightDockTab == event.tab;
-    emitter(state.copyWithRightDockTabSelected(tab: event.tab, isAlreadyActive: isAlreadyActive));
+    emitter(
+      state.copyWithRightDockTabSelected(
+        tab: event.tab,
+        isClosing: isAlreadyActive && event.closesWhenActive,
+      ),
+    );
 
     // Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
     // working-copy card needs a fresh read for: the other is a save landing while it is already

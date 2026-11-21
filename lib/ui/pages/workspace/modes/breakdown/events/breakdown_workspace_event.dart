@@ -37,8 +37,8 @@ class OcptBreakdownLeftPanelToggledEvent extends OcptBreakdownWorkspaceEvent {
   const OcptBreakdownLeftPanelToggledEvent();
 }
 
-/// Select a tab of the right dock (the already-active tab closes the dock, any other one opens or
-/// switches to it).
+/// Select a tab of the right dock: the dock opens (or switches) to it, and selecting the tab it
+/// already shows does nothing.
 class OcptBreakdownRightDockTabSelectedEvent extends OcptBreakdownWorkspaceEvent {
   /// The tab to select.
   final OcptBreakdownRightDockTab tab;

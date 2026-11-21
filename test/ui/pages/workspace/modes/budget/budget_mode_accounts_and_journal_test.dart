@@ -891,9 +891,14 @@ void main() {
     expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
     expect(find.byType(OcptBudgetHelp), findsOneWidget);
 
-    // Clicking the toolbar's Help button again, while the tab is already showing, closes the
-    // dock — the same toggle reading every other dock toggle already has.
+    // Clicking the toolbar's Help button again, while the tab is already showing, leaves the dock
+    // open on it: only the dock's own close button closes it.
     await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OcptBudgetHelp), findsOneWidget);
+
+    await tester.tap(find.byTooltip(tr.budgetRightDockCloseTooltip));
     await tester.pumpAndSettle();
 
     expect(find.text(tr.budgetRightDockHelpTabLabel), findsNothing);

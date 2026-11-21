@@ -676,16 +676,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   OcptBreakdownState copyWithToggledListPanel() =>
       copyWith(isListPanelVisible: !isListPanelVisible);
 
-  /// Copy this state with the right dock tab [tab] shown and remembered, or the dock closed when
-  /// [isAlreadyActive].
-  OcptBreakdownState copyWithToggledRightDockTab({
-    required OcptBreakdownRightDockTab tab,
-    required bool isAlreadyActive,
-  }) => copyWith(
-    rightDockTab: isAlreadyActive ? null : tab,
-    forceRightDockTabValue: isAlreadyActive,
-    lastRightDockTab: tab,
-  );
+  /// Copy this state with the right dock tab [tab] shown and remembered.
+  OcptBreakdownState copyWithRightDockTabSelected({required OcptBreakdownRightDockTab tab}) =>
+      copyWith(rightDockTab: tab, lastRightDockTab: tab);
 
   /// Copy this state with the right dock closed.
   OcptBreakdownState copyWithRightDockClosed() => copyWith(forceRightDockTabValue: true);

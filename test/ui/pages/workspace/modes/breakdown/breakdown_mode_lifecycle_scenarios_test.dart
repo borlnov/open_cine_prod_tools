@@ -262,8 +262,11 @@ void main() {
     expect(find.byType(OcptBreakdownSceneInspector), findsOneWidget);
     await harness.tap(tester, find.text(tr.breakdownRightDockVersionsTabLabel));
     expect(find.byType(OcptProjectVersionsPanel), findsOneWidget);
-    // The active tab closes the dock when picked again; the toolbar reopens it where it was.
+    // The active tab picked again leaves the dock open; its close button closes it, and the
+    // toolbar reopens it where it was.
     await harness.tap(tester, find.text(tr.breakdownRightDockVersionsTabLabel));
+    expect(find.byType(OcptProjectVersionsPanel), findsOneWidget);
+    await harness.tap(tester, find.byTooltip(tr.breakdownRightDockCloseTooltip));
     expect(find.byType(OcptProjectVersionsPanel), findsNothing);
     await harness.tap(tester, find.byTooltip(tr.workspaceToggleRightDockTooltip));
     expect(find.byType(OcptProjectVersionsPanel), findsOneWidget);

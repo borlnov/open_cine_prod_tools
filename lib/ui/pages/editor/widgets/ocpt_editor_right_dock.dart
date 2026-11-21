@@ -14,12 +14,13 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_right_dock_tab_label.dart';
 /// `onSurfaceVariant`), a trailing × close button, and the active tab's body below.
 ///
 /// The tab row itself is clickable: tapping a label dispatches [onTabSelected] with that tab,
-/// toggling it exactly like the workspace toolbar's own preview/syntax buttons do (selecting the
-/// tab already active closes the dock). Preview and syntax are also reachable from those toolbar
-/// buttons, which additionally double as a way to open a closed dock; inspector, metadata and
-/// versions have no toolbar button of their own and are reachable from this row only. Only the ×
-/// here acts on the dock directly, via [onClose]. In styled mode the preview tab doesn't exist at
-/// all (its own layout already is the formatted screenplay), so the row skips it then.
+/// selecting it without ever closing the dock (selecting the tab already active does nothing),
+/// unlike the workspace toolbar's own preview/syntax buttons, which toggle. Preview and syntax
+/// are also reachable from those toolbar buttons, which additionally double as a way to open a
+/// closed dock; inspector, metadata and versions have no toolbar button of their own and are
+/// reachable from this row only. Only the × here acts on the dock directly, via [onClose]. In
+/// styled mode the preview tab doesn't exist at all (its own layout already is the formatted
+/// screenplay), so the row skips it then.
 class OcptEditorRightDock extends StatelessWidget {
   /// The currently active tab, whose body is shown below the tab row.
   final OcptEditorRightDockTab activeTab;
