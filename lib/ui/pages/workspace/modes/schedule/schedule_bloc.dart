@@ -602,8 +602,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithListPanelToggled());
   }
 
-  /// Select a tab of the right dock (the already-active tab closes the dock, any other one opens
-  /// or switches to it). Flushes any pending field edit first, mirroring every other mode.
+  /// Select a tab of the right dock (it opens or switches to the tab; selecting the active one is
+  /// a no-op). Flushes any pending field edit first, mirroring every other mode.
   Future<void> _onRightDockTabSelected(
     OcptScheduleRightDockTabSelectedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -614,7 +614,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     final isAlreadyActive = state.rightDockTab == event.tab;
     await _persistLastRightDockTab(event.tab);
-    emitter(state.copyWithRightDockTabSelected(tab: event.tab, isAlreadyActive: isAlreadyActive));
+    emitter(state.copyWithRightDockTabSelected(tab: event.tab));
 
     if (!isAlreadyActive && event.tab == OcptScheduleRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());

@@ -12,6 +12,8 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_arrow_delete_handle.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_arrow_midpoint_handle.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_live_override.dart';
@@ -142,6 +144,7 @@ void main() {
     onSymbolFovChanged: (_, fovDeg) => fovChangedTo?.add(fovDeg),
     onSymbolFovReachChanged: (_, fovReachM) => fovReachChangedTo?.add(fovReachM),
     onSymbolDeleteRequested: (_) {},
+    onArrowDeleteRequested: (_) {},
     onSymbolRestoreRequested: (_) {},
     onArrowSymbolTapped: (_) {},
     onArrowAnchorCancelled: () {},
@@ -203,6 +206,7 @@ void main() {
       onSymbolFovChanged: (_, __) {},
       onSymbolFovReachChanged: (_, __) {},
       onSymbolDeleteRequested: (_) {},
+      onArrowDeleteRequested: (_) {},
       onSymbolRestoreRequested: (_) {},
       onArrowSymbolTapped: (_) {},
       onArrowAnchorCancelled: () {},
@@ -282,6 +286,90 @@ void main() {
     expect(arrowCurveChangedTo.last.ctrlYM, isNull);
   });
 
+  group("the selected arrow's delete handle", () {
+    Widget buildCanvas({
+      required String? selectedArrowId,
+      required ValueChanged<String>? onArrowDeleteRequested,
+    }) => OcptFloorPlanCanvas(
+      floorPlanSet: _caseWithArrow(),
+      shotRankByShotId: const {"shot-1": 1},
+      focusSceneId: "scene-1",
+      focusShotId: "shot-1",
+      previousShotId: null,
+      nextShotId: null,
+      isOnionSkinPreviousShown: false,
+      isOnionSkinNextShown: false,
+      onionSkinOpacity: 0.3,
+      hiddenLayers: const {},
+      hiddenCameraSymbolIds: const {},
+      isUnderlayHidden: false,
+      selectedSymbolId: null,
+      selectedArrowId: selectedArrowId,
+      pendingArrowAnchorSymbolId: null,
+      isMetricsShown: false,
+      activeTool: OcptFloorPlanTool.select,
+      activeSetElementShape: OcptFloorPlanSetElementShape.wall,
+      activeSetElementScope: OcptFloorPlanScope.set,
+      activeLabel: "",
+      viewportController: OcptFloorPlanViewportController(zoom: 1),
+      isReadOnly: false,
+      symbolLabelValueOf: (_) => "",
+      onSymbolSelected: (_) {},
+      onSymbolPlaced: (_, __, ___, ____, _____, {setElementShape, label = ""}) {},
+      onSymbolMoved: (_, __, ___) {},
+      onSymbolResized: (_, __, ___) {},
+      onSymbolRotated: (_, __) {},
+      onSymbolFovChanged: (_, __) {},
+      onSymbolFovReachChanged: (_, __) {},
+      onSymbolDeleteRequested: (_) {},
+      onArrowDeleteRequested: onArrowDeleteRequested,
+      onSymbolRestoreRequested: (_) {},
+      onArrowSymbolTapped: (_) {},
+      onArrowAnchorCancelled: () {},
+      onArrowSelected: (_) {},
+      onArrowCurveChanged: (_, __, ___) {},
+      onSymbolDuplicateRequested: (_) {},
+      onSymbolDuplicateDragged: (_, __, ___) {},
+      onGhostShotFocusRequested: (_) {},
+      onSymbolLabelChanged: (_, __) {},
+      onUnderlayTransformChanged: (_, __, ___, ____) {},
+      onZoomSettled: (_) {},
+    );
+
+    testWidgets("shows beside a selected arrow, and tapping it reports the arrow's id", (
+      tester,
+    ) async {
+      final requested = <String>[];
+      await pumpCanvas(
+        tester,
+        buildCanvas(selectedArrowId: "arrow-1", onArrowDeleteRequested: requested.add),
+      );
+
+      expect(find.byType(OcptFloorPlanArrowDeleteHandle), findsOneWidget);
+
+      await tester.tap(find.byType(OcptFloorPlanArrowDeleteHandle));
+      await tester.pump();
+
+      expect(requested, ["arrow-1"]);
+    });
+
+    testWidgets("is absent while no arrow is selected", (tester) async {
+      await pumpCanvas(tester, buildCanvas(selectedArrowId: null, onArrowDeleteRequested: (_) {}));
+
+      expect(find.byType(OcptFloorPlanArrowDeleteHandle), findsNothing);
+    });
+
+    testWidgets("is withheld, not disabled, when the request is not wired", (tester) async {
+      await pumpCanvas(
+        tester,
+        buildCanvas(selectedArrowId: "arrow-1", onArrowDeleteRequested: null),
+      );
+
+      expect(find.byType(OcptFloorPlanArrowMidpointHandle), findsOneWidget);
+      expect(find.byType(OcptFloorPlanArrowDeleteHandle), findsNothing);
+    });
+  });
+
   testWidgets("hiding a camera drops it from the sheet with a shot focused", (tester) async {
     final controller = OcptFloorPlanViewportController(zoom: 1);
     final symbol = cameraSymbol(xM: 0, yM: 0);
@@ -319,6 +407,7 @@ void main() {
       onSymbolFovChanged: (_, __) {},
       onSymbolFovReachChanged: (_, __) {},
       onSymbolDeleteRequested: (_) {},
+      onArrowDeleteRequested: (_) {},
       onSymbolRestoreRequested: (_) {},
       onArrowSymbolTapped: (_) {},
       onArrowAnchorCancelled: () {},
@@ -395,6 +484,7 @@ void main() {
         onSymbolFovChanged: (_, __) {},
         onSymbolFovReachChanged: (_, __) {},
         onSymbolDeleteRequested: (_) {},
+        onArrowDeleteRequested: (_) {},
         onSymbolRestoreRequested: (_) {},
         onArrowSymbolTapped: (_) {},
         onArrowAnchorCancelled: () {},
@@ -541,6 +631,7 @@ void main() {
             onSymbolFovChanged: (_, __) {},
             onSymbolFovReachChanged: (_, __) {},
             onSymbolDeleteRequested: (_) {},
+            onArrowDeleteRequested: (_) {},
             onSymbolRestoreRequested: (_) {},
             onArrowSymbolTapped: (_) {},
             onArrowAnchorCancelled: () {},

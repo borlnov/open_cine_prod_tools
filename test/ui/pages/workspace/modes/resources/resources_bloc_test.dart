@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
@@ -407,6 +408,21 @@ void main() {
     final state = await waitForState(bloc, (state) => state.selectedPersonId == null);
 
     expect(state.activeTab, OcptResourcesTab.roles);
+
+    await bloc.close();
+  });
+
+  test("selecting the active right dock tab keeps the dock open on it", () async {
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptResourcesRightDockTabSelectedEvent(tab: OcptResourcesRightDockTab.versions));
+    await waitForState(bloc, (state) => state.rightDockTab == OcptResourcesRightDockTab.versions);
+
+    bloc.add(const OcptResourcesRightDockTabSelectedEvent(tab: OcptResourcesRightDockTab.versions));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(bloc.state.rightDockTab, OcptResourcesRightDockTab.versions);
 
     await bloc.close();
   });

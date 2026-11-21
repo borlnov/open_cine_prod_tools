@@ -46,7 +46,8 @@ the scene panel, the editor and the preview into local variables once, before th
 The right dock hosts several panels as tabs, one visible at a time - `OcptEditorRightDock`,
 switching on `OcptEditorRightDockTab` (`preview`, `syntax`). The toolbar's panel buttons are the
 tab selectors: clicking a closed or inactive tab's button opens the dock on it, clicking the
-active tab's button closes the dock, and the dock's own `×` always closes it. Styled mode has no
+active tab's button closes the dock, whereas clicking a tab of the dock's own row only selects it
+(the active one does nothing), and the dock's own `×` always closes it. Styled mode has no
 preview tab (its own layout already is the formatted screenplay): switching to styled while the
 preview tab is open closes the dock and remembers the tab in `autoClosedRightDockTab`; switching
 back to raw reopens it - unless the user explicitly closed the dock themselves at some point, in

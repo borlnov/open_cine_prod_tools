@@ -40,8 +40,9 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 /// callback) under a version preview, reads (zoom, pan, layer visibility, symbol selection,
 /// focusing a shot) staying available throughout.
 ///
-/// Deleting a symbol and clearing an underlay are only *asked*, through [onSymbolDeleteRequested]
-/// and [onUnderlayClearRequested]: the mode owns their confirmation dialogs.
+/// Deleting a symbol or an arrow and clearing an underlay are only *asked*, through
+/// [onSymbolDeleteRequested], [onArrowDeleteRequested] and [onUnderlayClearRequested]: the mode
+/// owns their confirmation dialogs.
 class OcptShotListFloorPlanCentre extends StatelessWidget {
   /// The mode's state, which the sequence, the sets and the snapshots are read from.
   final OcptShotListState state;
@@ -53,6 +54,10 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
   /// dispatches the deletion.
   final ValueChanged<String> onSymbolDeleteRequested;
 
+  /// Called with the id of the arrow the user asked to delete; the mode confirms it, then
+  /// dispatches the deletion.
+  final ValueChanged<String> onArrowDeleteRequested;
+
   /// Called with the id of the set whose underlay the user asked to clear; the mode confirms it,
   /// then dispatches the clearing.
   final ValueChanged<String> onUnderlayClearRequested;
@@ -63,6 +68,7 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     required this.state,
     required this.sequence,
     required this.onSymbolDeleteRequested,
+    required this.onArrowDeleteRequested,
     required this.onUnderlayClearRequested,
   });
 
@@ -197,6 +203,7 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
               ),
             ),
       onSymbolDeleteRequested: isReadOnly ? null : onSymbolDeleteRequested,
+      onArrowDeleteRequested: isReadOnly ? null : onArrowDeleteRequested,
       onSymbolRestoreRequested: isReadOnly
           ? null
           : (symbolId) => placementsBloc.add(

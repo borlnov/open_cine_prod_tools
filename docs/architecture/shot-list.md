@@ -146,10 +146,13 @@ Resources set carries across its three scopes, and the mode's two newest documen
     the live geometry of the drag in progress: the dragged symbol, the underlay's frame, the
     arrow's control point. The drag math is pure functions in
     `ocpt_floor_plan_canvas_gestures.dart`; each handle (the underlay's two, a symbol's resize, aim,
-    two field-of-view edges, tip and delete, the restore handle, an arrow's midpoint and
-    straighten) and the label editor and the scope bubble is a widget of its own, composed by
-    `OcptFloorPlanSymbolHandles` and `OcptFloorPlanArrowHandles`; they only *report* a drag, and the
-    canvas settles it into one write when it ends.
+    two field-of-view edges, tip and delete, the restore handle, an arrow's midpoint,
+    straighten and delete) and the label editor and the scope bubble is a widget of its own,
+    composed by `OcptFloorPlanSymbolHandles` and `OcptFloorPlanArrowHandles`; they only *report* a
+    drag, and the canvas settles it into one write when it ends. The two delete handles only *ask*
+    (`onSymbolDeleteRequested`, `onArrowDeleteRequested`, both null under a version preview, so the
+    handle is not built): the mode answers each with its `OcptConfirmDialog`, the arrow's being the
+    one the inspector's Placements group already opens.
 
 ## The three centre views and their shared chrome
 

@@ -21,8 +21,8 @@ class OcptBudgetBackRequestedEvent extends OcptBudgetWorkspaceEvent {
   const OcptBudgetBackRequestedEvent();
 }
 
-/// Select a tab of the right dock (the already-active tab closes the dock, any other one opens or
-/// switches to it).
+/// Select a tab of the right dock: the dock opens (or switches) to it, and selecting the tab it
+/// already shows does nothing.
 class OcptBudgetRightDockTabSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// The tab to select.
   final OcptBudgetRightDockTab tab;

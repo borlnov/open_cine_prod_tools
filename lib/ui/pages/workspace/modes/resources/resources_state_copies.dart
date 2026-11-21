@@ -231,13 +231,9 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
   /// Copy this state with the search query [query].
   OcptResourcesState copyWithSearchQuery({required String query}) => copyWith(searchQuery: query);
 
-  /// Copy this state with the right dock tab [tab] shown, or the dock closed when
-  /// [isAlreadyActive].
-  OcptResourcesState copyWithToggledRightDockTab({
-    required OcptResourcesRightDockTab tab,
-    required bool isAlreadyActive,
-  }) =>
-      copyWith(rightDockTab: isAlreadyActive ? null : tab, forceRightDockTabValue: isAlreadyActive);
+  /// Copy this state with the right dock tab [tab] shown.
+  OcptResourcesState copyWithRightDockTabSelected({required OcptResourcesRightDockTab tab}) =>
+      copyWith(rightDockTab: tab);
 
   /// Copy this state with the versions tab of the right dock shown.
   OcptResourcesState copyWithVersionsDockOpened() =>

@@ -21,8 +21,8 @@ class OcptEditorScenePanelToggledEvent extends OcptEditorWorkspaceEvent {
 /// Select a tab of the right dock, dispatched by the toolbar's preview/syntax buttons and by the
 /// dock's own tab row.
 ///
-/// Implements decision 3's toggle semantics: if [tab] is already the dock's active tab, the dock
-/// closes; otherwise the dock opens (or switches) to show [tab]. Either way, [tab] becomes
+/// The dock opens (or switches) to show [tab]; selecting the tab it already shows does nothing,
+/// unless [closesWhenActive] is set, in which case the dock closes. Either way, [tab] becomes
 /// `OcptEditorState.lastRightDockTab`, the tab [OcptEditorRightDockToggledEvent] reopens the dock
 /// on. This is also an explicit user action on the dock, so it clears
 /// `OcptEditorState.autoClosedRightDockTab` — a dock the user just acted on by hand must never be
@@ -31,12 +31,16 @@ class OcptEditorRightDockTabSelectedEvent extends OcptEditorWorkspaceEvent {
   /// The tab the toolbar button pressed represents.
   final OcptEditorRightDockTab tab;
 
+  /// Whether selecting the tab the dock already shows closes the dock, as the toolbar's toggle
+  /// buttons do. The dock's own tab row leaves it unset: a tab there is a selector, not a switch.
+  final bool closesWhenActive;
+
   /// Class constructor
-  const OcptEditorRightDockTabSelectedEvent({required this.tab});
+  const OcptEditorRightDockTabSelectedEvent({required this.tab, this.closesWhenActive = false});
 
   /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
-  List<Object?> get props => [...super.props, tab];
+  List<Object?> get props => [...super.props, tab, closesWhenActive];
 }
 
 /// Toggle the right dock as a whole, dispatched by the workspace toolbar's right dock toggle.

@@ -4,16 +4,19 @@
 
 import 'package:flutter/widgets.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow_shape.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_arrow_delete_handle.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_arrow_midpoint_handle.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_arrow_straighten_handle.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_drag_controller.dart';
 
 /// The selected arrow's own midpoint handle (drag to bend, drop to write one row) and, while it
-/// already carries a curve, its neighbouring straighten button, layered over the canvas.
+/// already carries a curve, its neighbouring straighten button, layered over the canvas, plus a
+/// delete button beside its tip while [onDeleteRequested] is wired.
 ///
 /// Drags go through [drag], which owns the live control point, and end by calling [onDragEnded],
 /// which settles the control point into one write; the straighten button calls
-/// [onStraightenRequested] straight away.
+/// [onStraightenRequested] straight away, and the delete button only *asks* through
+/// [onDeleteRequested].
 class OcptFloorPlanArrowHandles extends StatelessWidget {
   /// The selected arrow.
   final OcptFloorPlanArrowShape arrow;
@@ -36,6 +39,10 @@ class OcptFloorPlanArrowHandles extends StatelessWidget {
   /// Called when the straighten button is tapped.
   final VoidCallback onStraightenRequested;
 
+  /// Called when the delete button is tapped, or null while withheld (the button is then not
+  /// built). Only asks — the mode opens `OcptConfirmDialog`.
+  final VoidCallback? onDeleteRequested;
+
   /// Class constructor
   const OcptFloorPlanArrowHandles({
     super.key,
@@ -46,6 +53,7 @@ class OcptFloorPlanArrowHandles extends StatelessWidget {
     required this.drag,
     required this.onDragEnded,
     required this.onStraightenRequested,
+    required this.onDeleteRequested,
   });
 
   /// Build the floor plan arrow handles as a [Positioned].
@@ -74,6 +82,14 @@ class OcptFloorPlanArrowHandles extends StatelessWidget {
               zoom: zoom,
               pan: pan,
               onStraightenRequested: onStraightenRequested,
+            ),
+          if (onDeleteRequested != null)
+            OcptFloorPlanArrowDeleteHandle(
+              arrow: arrow,
+              canvasSize: canvasSize,
+              zoom: zoom,
+              pan: pan,
+              onDeleteRequested: onDeleteRequested!,
             ),
         ],
       ),

@@ -593,14 +593,14 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   OcptEditorState copyWithScenePanelVisibility({required bool isScenePanelVisible}) =>
       copyWith(isScenePanelVisible: isScenePanelVisible);
 
-  /// Copy this state with the right dock showing [tab], or closed when it [isAlreadyActive]; the
-  /// tab is remembered and the tab the dock was auto-closed from is forgotten.
+  /// Copy this state with the right dock showing [tab], or closed when [isClosing]; the tab is
+  /// remembered and the tab the dock was auto-closed from is forgotten.
   OcptEditorState copyWithRightDockTabSelected({
     required OcptEditorRightDockTab tab,
-    required bool isAlreadyActive,
+    bool isClosing = false,
   }) => copyWith(
-    rightDockTab: isAlreadyActive ? null : tab,
-    forceRightDockTabValue: isAlreadyActive,
+    rightDockTab: isClosing ? null : tab,
+    forceRightDockTabValue: isClosing,
     lastRightDockTab: tab,
     forceAutoClosedRightDockTabValue: true,
   );

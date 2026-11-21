@@ -202,9 +202,8 @@ class OcptResourcesSearchQueryChangedEvent extends OcptResourcesWorkspaceEvent {
   List<Object?> get props => [...super.props, query];
 }
 
-/// Select a tab of the right dock, dispatched by the dock's own tab row. There being only one
-/// tab, this either opens the dock on it or closes the dock, mirroring the shot list's own
-/// select-the-active-tab-again-to-close semantics.
+/// Select a tab of the right dock, dispatched by the dock's own tab row. It opens the dock
+/// on the tab, and selecting the tab the dock already shows does nothing.
 class OcptResourcesRightDockTabSelectedEvent extends OcptResourcesWorkspaceEvent {
   /// The tab whose label was clicked.
   final OcptResourcesRightDockTab tab;

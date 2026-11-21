@@ -628,8 +628,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithSequencePanelToggled());
   }
 
-  /// Select a tab of the right dock (the already-active tab closes the dock, any other one opens or
-  /// switches to it) and record it as the tab the toolbar's toggle reopens the dock on.
+  /// Select a tab of the right dock (it opens or switches to the tab; selecting the active one is a
+  /// no-op) and record it as the tab the toolbar's toggle reopens the dock on.
   ///
   /// Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
   /// working-copy card needs a fresh read for: the other is a field edit flushing while it is
@@ -641,7 +641,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final isAlreadyActive = state.rightDockTab == event.tab;
     await _persistLastRightDockTab(event.tab);
 
-    emitter(state.copyWithRightDockTabSelected(tab: event.tab, isAlreadyActive: isAlreadyActive));
+    emitter(state.copyWithRightDockTabSelected(tab: event.tab));
 
     if (!isAlreadyActive && event.tab == OcptShotListRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());

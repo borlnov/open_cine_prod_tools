@@ -438,9 +438,12 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   `OcptEditorDockFractionsChangedEvent` on `onHorizontalDragEnd`. The right dock
   (`OcptEditorRightDock`, under `lib/ui/pages/editor/widgets/`) is tabbed
   (`OcptEditorRightDockTab { preview, syntax, inspector, metadata, versions }`); its tab row is
-  itself clickable (`onTabSelected`), while the toolbar's preview/syntax buttons — **raw mode
-  only**, the styled mode reaches every tab through the tab row alone — additionally *open* a closed
-  dock on their tab (inspector/metadata/versions have no toolbar button in either mode). The shell's
+  itself clickable (`onTabSelected`) and only ever selects (the active tab does nothing, the dock
+  never closes), while the toolbar's preview/syntax buttons — **raw mode only**, the styled mode
+  reaches every tab through the tab row alone — *toggle* their tab, through
+  `OcptEditorRightDockTabSelectedEvent.closesWhenActive`: they open a closed dock on it and close
+  the dock when it already shows it (inspector/metadata/versions have no toolbar button in either
+  mode). The shell's
   own right-dock toggle closes the dock whichever tab it shows, and reopens it on
   `lastRightDockTab` (the last tab explicitly selected, never null, `preview` by default), falling
   back to `syntax` when that tab is `preview` and the styled mode is active. Switching to styled

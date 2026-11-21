@@ -274,6 +274,8 @@ class _ShotListViewState extends State<_ShotListView> {
                       unawaited(_handlePanelDeleteRequested(context, panelId)),
                   onSymbolDeleteRequested: (symbolId) =>
                       unawaited(_handleSymbolDeleteRequested(context, state, symbolId)),
+                  onArrowDeleteRequested: (arrowId) =>
+                      unawaited(_handleArrowDeleteRequested(context, arrowId)),
                   onUnderlayClearRequested: (setId) =>
                       unawaited(_handleUnderlayClearRequested(context, setId)),
                   onCopyBlockingRequested: (setId) =>

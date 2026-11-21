@@ -391,13 +391,31 @@ void main() {
     await bloc.close();
   });
 
-  test('selecting the currently active tab closes the dock', () async {
+  test('selecting the currently active tab keeps the dock open on it', () async {
     await propertiesManager.editorMode.store(OcptEditorMode.raw);
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
     expect(bloc.state.rightDockTab, OcptEditorRightDockTab.preview);
 
     bloc.add(const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.preview));
+    await Future<void>.delayed(Duration.zero);
+    expect(bloc.state.rightDockTab, OcptEditorRightDockTab.preview);
+
+    await bloc.close();
+  });
+
+  test('selecting the active tab with closesWhenActive closes the dock', () async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+    expect(bloc.state.rightDockTab, OcptEditorRightDockTab.preview);
+
+    bloc.add(
+      const OcptEditorRightDockTabSelectedEvent(
+        tab: OcptEditorRightDockTab.preview,
+        closesWhenActive: true,
+      ),
+    );
     final state = await waitForState(bloc, (state) => state.rightDockTab == null);
     expect(state.rightDockTab, isNull);
 

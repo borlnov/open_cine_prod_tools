@@ -275,8 +275,11 @@ void main() {
       await harness.propertiesManager.budgetLastRightDockTab.load(),
       OcptBudgetRightDockTab.help,
     );
-    // The active tab closes the dock when picked again; the toolbar reopens it where it was.
+    // The active tab picked again leaves the dock open; the dock's own close button closes it
+    // and the toolbar reopens it where it was.
     await harness.tap(tester, find.text(tr.budgetRightDockHelpTabLabel));
+    expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsOneWidget);
+    await harness.tap(tester, find.byTooltip(tr.budgetRightDockCloseTooltip));
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsNothing);
     await harness.tap(tester, find.byTooltip(tr.workspaceToggleRightDockTooltip));
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsOneWidget);

@@ -476,6 +476,20 @@ void main() {
   });
 
   group("the right dock", () {
+    test("selecting the active tab keeps the dock open on it", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.help));
+      await waitForState(bloc, (state) => state.rightDockTab == OcptBudgetRightDockTab.help);
+
+      bloc.add(const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.help));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(bloc.state.rightDockTab, OcptBudgetRightDockTab.help);
+    });
+
     test("persists the fraction and the last tab", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);

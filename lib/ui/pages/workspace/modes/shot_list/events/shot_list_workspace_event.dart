@@ -56,8 +56,8 @@ class OcptShotListSequencePanelToggledEvent extends OcptShotListWorkspaceEvent {
 
 /// Select a tab of the right dock, dispatched by the dock's own tab row.
 ///
-/// Follows the screenplay editor's toggle semantics exactly: selecting the tab already active
-/// closes the dock, any other tab opens (or switches) it. Either way [tab] becomes
+/// Any tab opens (or switches) the dock to it, and selecting the tab already active does nothing:
+/// the tab row selects, it never closes the dock. Either way [tab] becomes
 /// `OcptShotListState.lastRightDockTab`, the tab [OcptShotListRightDockToggledEvent] reopens the
 /// dock on, and is persisted.
 class OcptShotListRightDockTabSelectedEvent extends OcptShotListWorkspaceEvent {
