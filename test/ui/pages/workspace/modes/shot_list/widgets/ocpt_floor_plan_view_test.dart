@@ -131,6 +131,7 @@ void main() {
         onSymbolFovChanged: null,
         onSymbolFovReachChanged: null,
         onSymbolDeleteRequested: null,
+        onArrowDeleteRequested: null,
         onSymbolRestoreRequested: null,
         onArrowSymbolTapped: null,
         onArrowAnchorCancelled: null,

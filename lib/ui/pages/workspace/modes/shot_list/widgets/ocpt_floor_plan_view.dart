@@ -223,6 +223,10 @@ class OcptFloorPlanView extends StatefulWidget {
   /// withheld.
   final ValueChanged<String>? onSymbolDeleteRequested;
 
+  /// Called with the selected arrow's id when its own delete action is clicked, or null while
+  /// withheld.
+  final ValueChanged<String>? onArrowDeleteRequested;
+
   /// Called with the selected override's own id when its own `Restore` handle is tapped, or null
   /// while withheld. See `OcptFloorPlanCanvas.onSymbolRestoreRequested`'s own doc comment.
   final ValueChanged<String>? onSymbolRestoreRequested;
@@ -341,6 +345,7 @@ class OcptFloorPlanView extends StatefulWidget {
     required this.onSymbolFovChanged,
     required this.onSymbolFovReachChanged,
     required this.onSymbolDeleteRequested,
+    required this.onArrowDeleteRequested,
     required this.onSymbolRestoreRequested,
     required this.onArrowSymbolTapped,
     required this.onArrowAnchorCancelled,
@@ -575,6 +580,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
                       onSymbolFovChanged: widget.onSymbolFovChanged,
                       onSymbolFovReachChanged: widget.onSymbolFovReachChanged,
                       onSymbolDeleteRequested: widget.onSymbolDeleteRequested,
+                      onArrowDeleteRequested: widget.onArrowDeleteRequested,
                       onSymbolRestoreRequested: widget.onSymbolRestoreRequested,
                       onArrowSymbolTapped: widget.onArrowSymbolTapped,
                       onArrowAnchorCancelled: widget.onArrowAnchorCancelled,

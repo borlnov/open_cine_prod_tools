@@ -236,6 +236,10 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   /// withheld. Only asks — the mode opens `OcptConfirmDialog`.
   final ValueChanged<String>? onSymbolDeleteRequested;
 
+  /// Called with the selected arrow's id when its own delete action is clicked, or null while
+  /// withheld. Only asks — the mode opens `OcptConfirmDialog`.
+  final ValueChanged<String>? onArrowDeleteRequested;
+
   /// Called with the selected override's own id (a visible override's own shape, or a hidden
   /// override's own ghost — both name the override, never the original) when its own `Restore`
   /// handle is tapped, or null while withheld. Reversible (tombstones the override, the original
@@ -354,6 +358,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     required this.onSymbolFovChanged,
     required this.onSymbolFovReachChanged,
     required this.onSymbolDeleteRequested,
+    required this.onArrowDeleteRequested,
     required this.onSymbolRestoreRequested,
     required this.onArrowSymbolTapped,
     required this.onArrowAnchorCancelled,
@@ -603,6 +608,9 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                       onDragEnded: () => _commitArrowCurveDrag(selectedArrow),
                       onStraightenRequested: () =>
                           widget.onArrowCurveChanged!(selectedArrow.arrowId, null, null),
+                      onDeleteRequested: widget.onArrowDeleteRequested == null
+                          ? null
+                          : () => widget.onArrowDeleteRequested!(selectedArrow.arrowId),
                     ),
                   if (widget.activeTool == OcptFloorPlanTool.label &&
                       selectedShape != null &&

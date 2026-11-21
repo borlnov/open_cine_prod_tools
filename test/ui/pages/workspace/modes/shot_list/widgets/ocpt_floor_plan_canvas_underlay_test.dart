@@ -68,6 +68,7 @@ void main() {
       onSymbolFovChanged: (_, __) {},
       onSymbolFovReachChanged: (_, __) {},
       onSymbolDeleteRequested: (_) {},
+      onArrowDeleteRequested: (_) {},
       onSymbolRestoreRequested: (_) {},
       onArrowSymbolTapped: (_) {},
       onArrowAnchorCancelled: () {},

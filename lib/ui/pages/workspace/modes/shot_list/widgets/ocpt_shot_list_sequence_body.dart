@@ -47,6 +47,9 @@ class OcptShotListSequenceBody extends StatelessWidget {
   /// Called with the id of the symbol the user asked to delete.
   final ValueChanged<String> onSymbolDeleteRequested;
 
+  /// Called with the id of the floor plan arrow the user asked to delete.
+  final ValueChanged<String> onArrowDeleteRequested;
+
   /// Called with the id of the set whose underlay the user asked to clear.
   final ValueChanged<String> onUnderlayClearRequested;
 
@@ -67,6 +70,7 @@ class OcptShotListSequenceBody extends StatelessWidget {
     required this.isCompact,
     required this.onPanelDeleteRequested,
     required this.onSymbolDeleteRequested,
+    required this.onArrowDeleteRequested,
     required this.onUnderlayClearRequested,
     required this.onCopyBlockingRequested,
     required this.onSetDeleteRequested,
@@ -137,6 +141,7 @@ class OcptShotListSequenceBody extends StatelessWidget {
                 state: state,
                 sequence: sequence,
                 onSymbolDeleteRequested: onSymbolDeleteRequested,
+                onArrowDeleteRequested: onArrowDeleteRequested,
                 onUnderlayClearRequested: onUnderlayClearRequested,
               ),
               _ => OcptShotListTable(
