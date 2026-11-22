@@ -198,7 +198,11 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   `Credit`, `Author`, `Draft date`, `Contact`, `Source`, always all six, empty ones included),
   tagged with the `ocptTitlePageFieldAttribution` `blockType` and `ocptTitlePageKeyMetadataKey`;
   encoding always goes through `FountainTitlePageWriter.apply`, never a hand-written `Key: value`
-  line, so a title page with no entries at all is dropped. `OcptTitlePageComponentBuilder`
+  line, so a title page with no entries at all is dropped. Entries outside the six (`Copyright`,
+  `Notes`, `Revision`…, matched case-insensitively, `Authors` counting as `Author`;
+  `ocpt_title_page_standard_keys.dart`) are neither shown nor editable: they ride on the first field
+  node under `ocptTitlePageExtraEntriesMetadataKey`, are written back verbatim after the six, and
+  the `Title page…` dialog appends them the same way. `OcptTitlePageComponentBuilder`
   (`ocpt_title_page_component_builder.dart`) paints the field layout (large centred title,
   centred credit/author, bottom-left contact, bottom-right draft date) and each empty field's
   placeholder hint, and `ocptTitlePageGuardRequestHandler`

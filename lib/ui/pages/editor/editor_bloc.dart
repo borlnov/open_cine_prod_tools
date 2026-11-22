@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_title_page_standard_keys.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -820,7 +821,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorTitlePageChangedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    final entries = _titlePageEntriesFrom(event);
+    final entries = [
+      ..._titlePageEntriesFrom(event),
+      ...ocptNonStandardTitlePageEntries(state.document?.titlePage),
+    ];
     final newText = const FountainTitlePageWriter().apply(
       source: state.text,
       existingRange: state.document?.titlePage?.sourceRange,
@@ -839,13 +843,17 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
   /// Build the title-page entries [event] describes, skipping every field left blank.
   List<FountainTitlePageEntry> _titlePageEntriesFrom(OcptEditorTitlePageChangedEvent event) {
+    final values = [
+      event.title,
+      event.credit,
+      event.author,
+      event.draftDate,
+      event.contact,
+      event.source,
+    ];
     final fields = {
-      'Title': event.title,
-      'Credit': event.credit,
-      'Author': event.author,
-      'Draft date': event.draftDate,
-      'Contact': event.contact,
-      'Source': event.source,
+      for (var index = 0; index < ocptTitlePageStandardKeys.length; index++)
+        ocptTitlePageStandardKeys[index]: values[index],
     };
 
     return [

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_title_page_standard_keys.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The `ParagraphNode` metadata key holding which title-page field a node represents (one of
@@ -15,6 +16,13 @@ import 'package:super_editor/super_editor.dart';
 /// carrying it, which is what `OcptWysiwygCodec.isTitlePageNode` lets every one of those passes
 /// check for and skip.
 const String ocptTitlePageKeyMetadataKey = "ocptTitlePageKey";
+
+/// The `ParagraphNode` metadata key holding, on the first title-page field node only, the
+/// title-page entries no field represents (`Copyright`, `Notes`, `Revision`…) as an unmodifiable
+/// `List<FountainTitlePageEntry>`: they are neither shown nor editable, only carried from
+/// `OcptWysiwygCodec.decodeWithTitlePage` to `OcptWysiwygCodec.encodeWithTitlePage` so that writing
+/// the title page back does not drop them.
+const String ocptTitlePageExtraEntriesMetadataKey = "ocptTitlePageExtraEntries";
 
 /// The `blockType` attribution shared by every title-page field node, regardless of which field it
 /// represents ([ocptTitlePageKeyMetadataKey] carries that distinction instead): a title-page field
@@ -29,14 +37,7 @@ const NamedAttribution ocptTitlePageFieldAttribution = NamedAttribution("fountai
 /// the order `OcptEditorTitlePageDialog`'s `⋮ ▸ Title page…` fields already appear in
 /// (`editor_bloc.dart`'s `_titlePageEntriesFrom`), so editing the same screenplay through either
 /// front-end never reorders the block for no reason.
-const List<String> ocptTitlePageFieldKeys = [
-  "Title",
-  "Credit",
-  "Author",
-  "Draft date",
-  "Contact",
-  "Source",
-];
+const List<String> ocptTitlePageFieldKeys = ocptTitlePageStandardKeys;
 
 /// The title-page half of `OcptWysiwygCodec`: builds the title-page field nodes from a parsed
 /// [FountainTitlePage] and folds live nodes back into the entries the title-page writer expects.
@@ -81,6 +82,7 @@ final class OcptWysiwygTitlePage {
   /// super_editor release).
   static List<ParagraphNode> nodesFrom(FountainTitlePage? titlePage) {
     final nodes = <ParagraphNode>[];
+    final extraEntries = ocptNonStandardTitlePageEntries(titlePage);
     for (final key in ocptTitlePageFieldKeys) {
       final entry = entryFor(titlePage, key);
       final values = entry == null || entry.values.isEmpty ? const [""] : entry.values;
@@ -92,12 +94,27 @@ final class OcptWysiwygTitlePage {
             metadata: {
               "blockType": ocptTitlePageFieldAttribution,
               ocptTitlePageKeyMetadataKey: key,
+              if (nodes.isEmpty && extraEntries.isNotEmpty)
+                ocptTitlePageExtraEntriesMetadataKey: extraEntries,
             },
           ),
         );
       }
     }
     return nodes;
+  }
+
+  /// Get the entries [nodesFrom] stored on [titlePageNodes] under
+  /// [ocptTitlePageExtraEntriesMetadataKey], in node order, or an empty list when none carries any.
+  static List<FountainTitlePageEntry> extraEntriesFromNodes(List<ParagraphNode> titlePageNodes) {
+    final extras = <FountainTitlePageEntry>[];
+    for (final node in titlePageNodes) {
+      final stored = node.getMetadataValue(ocptTitlePageExtraEntriesMetadataKey);
+      if (stored is List<FountainTitlePageEntry>) {
+        extras.addAll(stored);
+      }
+    }
+    return extras;
   }
 
   /// Get the inverse of [nodesFrom]: groups [titlePageNodes] (already in the fixed

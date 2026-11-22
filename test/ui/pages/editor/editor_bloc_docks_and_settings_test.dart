@@ -328,6 +328,39 @@ void main() {
     await bloc.close();
   });
 
+  test('editing the title page keeps the entries no dialog field shows, after the six', () async {
+    const initialText =
+        'Copyright: (c) 2012\nTitle: Old\nAuthors: Stu\nrevision: Blue\n\n$editedText';
+
+    final bloc = buildBloc();
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptEditorTextChangedEvent(text: initialText));
+    await waitForState(bloc, (state) => state.document?.titlePage != null);
+
+    bloc.add(
+      const OcptEditorTitlePageChangedEvent(
+        title: 'New Title',
+        credit: '',
+        author: 'Stu',
+        draftDate: '',
+        contact: '',
+        source: '',
+      ),
+    );
+
+    final state = await waitForState(
+      bloc,
+      (state) => state.document?.titlePage?.title == 'New Title',
+    );
+    expect(
+      state.text,
+      'Title: New Title\nAuthor: Stu\nCopyright: (c) 2012\nrevision: Blue\n\n$editedText',
+    );
+
+    await bloc.close();
+  });
+
   test(
     'clearing every field on a screenplay with a title page removes it, leaving only the body',
     () async {
