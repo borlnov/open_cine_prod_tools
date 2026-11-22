@@ -32,7 +32,30 @@ final class OcptWysiwygCommentLayout {
     required this.commentRangesByLine,
   });
 
+  /// The lines [OcptWysiwygCommentLayout.of] answered last: the passes of a settle and every build
+  /// ask for the layout of the very same lines, which is then computed once.
+  static List<String>? _lastLines;
+
+  /// The layout of [_lastLines].
+  static OcptWysiwygCommentLayout? _lastLayout;
+
+  /// Get the layout of [lines], the one already computed when the lines are the same as the last
+  /// call's.
+  factory OcptWysiwygCommentLayout.of(List<String> lines) {
+    final last = _lastLayout;
+    final lastLines = _lastLines;
+    if (last != null && lastLines != null && _sameLines(lastLines, lines)) {
+      return last;
+    }
+    final layout = OcptWysiwygCommentLayout.fromLines(lines);
+    _lastLines = List<String>.of(lines);
+    _lastLayout = layout;
+    return layout;
+  }
+
   /// Build the layout of [lines], one source line each (a blank line is an empty string).
+  ///
+  /// Linear in the text and the number of spans: the spans are walked once, with a cursor.
   factory OcptWysiwygCommentLayout.fromLines(List<String> lines) {
     final text = lines.join("\n");
     final spans = FountainCommentSpans.of(text);
@@ -41,16 +64,23 @@ final class OcptWysiwygCommentLayout {
     final isInertByLine = <bool>[];
     final commentRangesByLine = <List<(int, int)>>[];
     var lineStart = 0;
+    // The first span ending after the current line starts: the ones before it touch no later line.
+    var firstSpan = 0;
     for (final line in lines) {
       final lineEnd = lineStart + line.length;
-      final ranges = <(int, int)>[
-        for (final span in spans)
-          if (span.start < lineEnd && span.end > lineStart)
-            (
-              span.start > lineStart ? span.start - lineStart : 0,
-              span.end < lineEnd ? span.end - lineStart : line.length,
-            ),
-      ];
+      while (firstSpan < spans.length && spans[firstSpan].end <= lineStart) {
+        firstSpan++;
+      }
+      final ranges = <(int, int)>[];
+      for (var index = firstSpan; index < spans.length && spans[index].start < lineEnd; index++) {
+        final span = spans[index];
+        if (span.end > lineStart) {
+          ranges.add((
+            span.start > lineStart ? span.start - lineStart : 0,
+            span.end < lineEnd ? span.end - lineStart : line.length,
+          ));
+        }
+      }
       commentRangesByLine.add(ranges);
       isInertByLine.add(_isWhollyCovered(line, ranges));
       lineStart = lineEnd + 1;
@@ -63,16 +93,33 @@ final class OcptWysiwygCommentLayout {
     );
   }
 
+  /// Tell whether [a] and [b] hold the same lines.
+  static bool _sameLines(List<String> a, List<String> b) {
+    if (a.length != b.length) {
+      return false;
+    }
+    for (var index = 0; index < a.length; index++) {
+      if (a[index] != b[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /// Tell whether [line] has text and every one of its non-whitespace characters lies inside one of
   /// [ranges].
   static bool _isWhollyCovered(String line, List<(int, int)> ranges) {
     var hasText = false;
+    var rangeIndex = 0;
     for (var index = 0; index < line.length; index++) {
       if (line[index].trim().isEmpty) {
         continue;
       }
       hasText = true;
-      if (!ranges.any((range) => index >= range.$1 && index < range.$2)) {
+      while (rangeIndex < ranges.length && ranges[rangeIndex].$2 <= index) {
+        rangeIndex++;
+      }
+      if (rangeIndex >= ranges.length || ranges[rangeIndex].$1 > index) {
         return false;
       }
     }

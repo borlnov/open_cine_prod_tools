@@ -18,8 +18,16 @@ final class OcptStyledDocumentSettle {
   /// spans refreshed, and scene numbers renumbered — in that order, each its own `execute` call so
   /// every later pass only ever sees the previous one's already-settled result.
   static void settle(MutableDocument document, Editor editor) {
-    // Run before every other pass, and in its own `execute` call: a `#N#` tag typed live still
-    // sits in the node's plain text at this point, and both this pass and `uppercaseRequests`
+    // A line that was commented out and no longer is gets its emphasis markers parsed first: it
+    // replaces node texts, which every later pass reads offsets from.
+    final rawInlineRequests = OcptWysiwygCodec.rawInlineRequests(document);
+    if (rawInlineRequests.isNotEmpty) {
+      editor.execute(rawInlineRequests);
+    }
+
+    // Run before every other pass (the one above apart), and in its own `execute` call: a `#N#`
+    // tag typed live still sits in the node's plain text at this point, and both this pass and
+    // `uppercaseRequests`
     // would otherwise compute their replacement text from that same pre-strip snapshot, so
     // whichever request executed last would silently undo the other's effect on the same node.
     final sceneNumberRequests = OcptWysiwygCodec.sceneNumberRequests(document);

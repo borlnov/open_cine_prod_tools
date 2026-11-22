@@ -63,6 +63,9 @@ final class OcptWysiwygInlineRuns {
   /// Convert [text]'s attributions into [FountainStyledRun]s, splitting it wherever its bold,
   /// italic, underline or note attribution set changes; the inverse of [attributedTextFromRuns].
   ///
+  /// A range carrying [ocptFountainCommentAttribution] is read as a note too, so it is written back
+  /// verbatim.
+  ///
   /// An [ocptFountainNoteAttribution] range always wins over any overlapping bold/italic/underline
   /// attribution (dropped at this point): a note is atomic in Fountain, so emphasis can never
   /// survive inside one on serialization.
@@ -74,7 +77,11 @@ final class OcptWysiwygInlineRuns {
 
     (bool, bool, bool, bool) styleAt(int offset) {
       final attributions = text.getAllAttributionsAt(offset);
-      final isNote = attributions.contains(ocptFountainNoteAttribution);
+      // What lies inside a commented span is written as it is, like a note: nothing in a boneyard
+      // is emphasis, and nothing in it may be escaped.
+      final isNote =
+          attributions.contains(ocptFountainNoteAttribution) ||
+          attributions.contains(ocptFountainCommentAttribution);
       return (
         !isNote && attributions.contains(boldAttribution),
         !isNote && attributions.contains(italicsAttribution),
