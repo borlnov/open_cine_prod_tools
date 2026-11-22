@@ -382,6 +382,49 @@ void main() {
       },
     );
 
+    testWidgets("a text opened with a boneyard and a note is undone and redone like any other", (
+      tester,
+    ) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+
+        await pumpStandaloneEditor(
+          tester,
+          "He waits. [[a note]]\n\n/*\nINT. GONE - DAY\n*/\n\nShe leaves.",
+          styledController: controller,
+        );
+        final document = SuperEditorInspector.findDocument()!;
+        // What the decode put there is part of the document the editor opens with: it is no edit.
+        expect(controller.canUndo, isFalse);
+        expect(
+          nodeAt(document, 2).text.getAttributionSpans({ocptFountainCommentAttribution}),
+          isNotEmpty,
+        );
+
+        await tester.placeCaretInParagraph(nodeAt(document, 0).id, 2);
+        await typeRun(tester, "x");
+        expect(nodeAt(document, 0).text.toPlainText(), "Hex waits. [[a note]]");
+        expect(controller.canUndo, isTrue);
+
+        await sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await pumpPastSettleDebounce(tester);
+        expect(nodeAt(document, 0).text.toPlainText(), "He waits. [[a note]]");
+
+        await sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+        await pumpPastSettleDebounce(tester);
+        expect(nodeAt(document, 0).text.toPlainText(), "Hex waits. [[a note]]");
+
+        // The typing is the second step back; the first one is the caret the test put in the line.
+        await sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await pumpPastSettleDebounce(tester);
+        expect(nodeAt(document, 0).text.toPlainText(), "He waits. [[a note]]");
+        await sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await pumpPastSettleDebounce(tester);
+        expect(controller.canUndo, isFalse);
+      });
+    });
+
     testWidgets("the controller reports what can be undone and redone, refusal included", (
       tester,
     ) async {
