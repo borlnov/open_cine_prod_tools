@@ -75,6 +75,10 @@ class FountainSerializer {
   /// uppercase is forced with a leading `@` so it is recognized on
   /// re-parse regardless of case.
   String _writeCharacter(FountainCharacter character) {
+    final rawText = character.rawText;
+    if (rawText != null) {
+      return rawText;
+    }
     final needsForcing = character.name != character.name.toUpperCase();
     final buffer = StringBuffer();
     if (needsForcing) {

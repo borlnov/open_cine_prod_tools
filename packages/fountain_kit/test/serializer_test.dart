@@ -126,6 +126,11 @@ void main() {
       expect(written, isNot(contains('.INT. KITCHEN - DAY')));
     });
 
+    test('keeps a note written on a character cue', () {
+      final written = _serializer.write(_parser.parse('SARAH[[y]]\nHi.\n'));
+      expect(written, startsWith('SARAH[[y]]\nHi.'));
+    });
+
     test('re-forces a character cue whose name is not all uppercase', () {
       final document = _parser.parse('@McCLANE\nYippee-ki-yay.\n');
       final written = _serializer.write(document);

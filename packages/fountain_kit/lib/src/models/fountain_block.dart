@@ -106,12 +106,17 @@ class FountainCharacter extends FountainBlock {
   /// preceding it.
   final bool isDualDialogue;
 
+  /// The cue's source line as written (forcing marker and inline notes included), or `null` for a
+  /// cue not read from a source line; a serializer writes it back verbatim when set.
+  final String? rawText;
+
   /// Create a [FountainCharacter].
   const FountainCharacter({
     required super.sourceRange,
     required this.name,
     required this.isDualDialogue,
     this.extension,
+    this.rawText,
   });
 
   /// Describe this [FountainCharacter] for debugging and logging.
@@ -123,7 +128,7 @@ class FountainCharacter extends FountainBlock {
 
   /// List the fields that decide equality.
   @override
-  List<Object?> get props => [name, extension, isDualDialogue];
+  List<Object?> get props => [name, extension, isDualDialogue, rawText];
 }
 
 /// A parenthetical direction inside a block of dialogue, for example
