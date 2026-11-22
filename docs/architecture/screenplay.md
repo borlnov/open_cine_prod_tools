@@ -121,7 +121,20 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   and in the editor), and the uppercase pass leaves the text of a note or of a comment as written.
   A derived pass, run with the others inside the settle pass (so with no undo step of its own),
   puts `ocptFountainCommentAttribution` on every commented span, across nodes too; the stylesheet
-  dims it like a note.
+  dims it like a note. `decode` puts the same attributions itself, so a decoded document is
+  already settled: the editor's first history snapshot carries them, and no pass has a request to
+  make on it, which is what keeps Ctrl+Z, then redo, working on a freshly opened text. The
+  layout of a given list of lines is computed once (`OcptWysiwygCommentLayout.of` answers the last
+  one again), however many passes and builds ask for it.
+  Text inside a commented span is verbatim all the way: the inline parser leaves it alone, and a
+  node's serialization writes the characters carrying the comment attribution as they are, never
+  escaped. An inert node keeps its raw line, emphasis markers included, and is flagged
+  (`ocptInlineUnparsedMetadataKey`); once it is live again, `rawInlineRequests` parses them.
+  A line whose marker cannot be stripped and written back exactly (a marker preceded by a note or
+  a boneyard, a page break or a centered text in any form but its canonical one) is kept as
+  written, its text the whole source line and its type the parser's; `encode` writes it back as it
+  is. `encode` gives an inert node the type and the following line the parser reads (the layout's
+  classification lines), so a forcing marker is never added around a multi-line comment.
   `ocpt_fountain_keyboard_actions.dart` handles Tab/Shift+Tab (cycles 6 common types, locks the
   block) and Enter (splits into the type's usual screenplay successor, unlocked; Shift+Enter
   keeps the same type). Whichever gesture sets a block to `parenthetical` opens it on `()` with the
