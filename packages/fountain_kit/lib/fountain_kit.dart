@@ -35,6 +35,7 @@ export 'package:fountain_kit/src/models/fountain_title_page.dart';
 export 'package:fountain_kit/src/models/fountain_title_page_entry.dart';
 export 'package:fountain_kit/src/parser/fountain_block_builder.dart';
 export 'package:fountain_kit/src/parser/fountain_character_cue.dart';
+export 'package:fountain_kit/src/parser/fountain_comment_spans.dart';
 export 'package:fountain_kit/src/parser/fountain_inline_parser.dart';
 export 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 export 'package:fountain_kit/src/parser/fountain_line_type.dart';

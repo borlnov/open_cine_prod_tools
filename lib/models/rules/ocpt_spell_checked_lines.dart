@@ -5,15 +5,6 @@
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:spell_kit/spell_kit.dart';
 
-/// Matches a boneyard block comment (`/* ... */`), possibly spanning several lines — the very
-/// same pattern `FountainParser` extracts standalone boneyard blocks with, kept in step by hand
-/// since that one is private to the package.
-final RegExp _boneyardPattern = RegExp(r'/\*[\s\S]*?\*/');
-
-/// Matches an inline or standalone authoring note (`[[ ... ]]`), possibly spanning several
-/// lines — the mirror of [_boneyardPattern].
-final RegExp _notePattern = RegExp(r'\[\[[\s\S]*?\]\]');
-
 /// Tell whether a screenplay line of [type] is prose a spell check should ever look at, rather than
 /// scaffolding or a fixed vocabulary the language itself does not own.
 ///
@@ -108,8 +99,8 @@ FountainLineType? ocptLineTypeOfBlock(FountainBlock block) {
 /// tokens that fall inside them before handing the rest off to be checked.
 List<SpellRange> ocptSpellCheckSkipSpansIn(String source) {
   final spans = <SpellRange>[
-    for (final match in _boneyardPattern.allMatches(source)) SpellRange(match.start, match.end),
-    for (final match in _notePattern.allMatches(source)) SpellRange(match.start, match.end),
+    for (final span in FountainCommentSpans.boneyards(source)) SpellRange(span.start, span.end),
+    for (final span in FountainCommentSpans.notes(source)) SpellRange(span.start, span.end),
   ];
   spans.sort((a, b) => a.start.compareTo(b.start));
   return spans;
