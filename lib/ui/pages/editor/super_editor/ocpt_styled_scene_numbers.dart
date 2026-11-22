@@ -29,6 +29,8 @@ final RegExp _sequentialSceneNumberPattern = RegExp(r'^([0-9]+)([A-Za-z]*)$');
 /// next (out of order, a gap, a duplicate, a hand-typed value that makes no sense in context) —
 /// is corrected to the next plain integer.
 ///
+/// An inert node (wholly commented out) is no scene: it is skipped and never numbered.
+///
 /// Pure and stateless: it only reads [document]'s current metadata and returns the requests a
 /// caller must still execute against a live `Editor` to actually apply them.
 ///
@@ -41,9 +43,10 @@ final RegExp _sequentialSceneNumberPattern = RegExp(r'^([0-9]+)([A-Za-z]*)$');
 List<EditRequest> sceneNumberNormalizationRequests(Document document, {bool isHistorical = true}) {
   final requests = <EditRequest>[];
   var lastConsumed = 0;
+  final inertIds = OcptWysiwygCodec.inertNodeIds(document);
 
   for (final node in document) {
-    if (node is! ParagraphNode) {
+    if (node is! ParagraphNode || inertIds.contains(node.id)) {
       continue;
     }
     final type = OcptFountainLineAttributions.typeOfAttributionValue(

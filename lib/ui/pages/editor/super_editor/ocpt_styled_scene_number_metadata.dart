@@ -18,11 +18,12 @@ final class OcptStyledSceneNumberMetadata {
   /// By the time this is called (every build), that metadata is already correct: it was set by
   /// [OcptWysiwygCodec.decode] for an explicit tag, or normalized by the styled editor's own
   /// `sceneNumberNormalizationRequests` pass right after every rebuild or edit, so this is a plain
-  /// read, not a fresh computation.
+  /// read, not a fresh computation. An inert node (wholly commented out) shows no number.
   static Map<String, String> of(Document document) {
     final numbers = <String, String>{};
+    final inertIds = OcptWysiwygCodec.inertNodeIds(document);
     for (final node in document) {
-      if (node is! ParagraphNode) {
+      if (node is! ParagraphNode || inertIds.contains(node.id)) {
         continue;
       }
       final type = OcptFountainLineAttributions.typeOfAttributionValue(

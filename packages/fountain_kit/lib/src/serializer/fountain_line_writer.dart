@@ -53,6 +53,10 @@ class FountainLineWriter {
   /// already-written earlier lines and a preview of the not-yet-written
   /// next line's plain text.
   ///
+  /// [classifiedText] is the text as the classifier reads it when that differs from [text]: with
+  /// its commented spans (`/* ... */`) blanked out, a line the parser reads as a heading may open
+  /// with the closing `*/` of a boneyard begun on an earlier line. It defaults to [text].
+  ///
   /// [sectionLevel] (1-6) selects the number of leading `#` characters
   /// emitted for [FountainLineType.section]; it is ignored for every other
   /// type.
@@ -62,6 +66,7 @@ class FountainLineWriter {
     required bool hadForcingMarker,
     required FountainLineType? previousType,
     required String? nextRawLine,
+    String? classifiedText,
     int sectionLevel = 1,
   }) {
     assert(
@@ -86,6 +91,7 @@ class FountainLineWriter {
         hadForcingMarker: hadForcingMarker,
         previousType: previousType,
         nextRawLine: nextRawLine,
+        classifiedText: classifiedText,
       ),
       FountainLineType.action => _writeWithPrefixMarker(
         text: text,
@@ -94,6 +100,7 @@ class FountainLineWriter {
         hadForcingMarker: hadForcingMarker,
         previousType: previousType,
         nextRawLine: nextRawLine,
+        classifiedText: classifiedText,
       ),
       FountainLineType.character => _writeWithPrefixMarker(
         text: text,
@@ -102,6 +109,7 @@ class FountainLineWriter {
         hadForcingMarker: hadForcingMarker,
         previousType: previousType,
         nextRawLine: nextRawLine,
+        classifiedText: classifiedText,
       ),
       FountainLineType.transition => _writeWithPrefixMarker(
         text: text,
@@ -110,6 +118,7 @@ class FountainLineWriter {
         hadForcingMarker: hadForcingMarker,
         previousType: previousType,
         nextRawLine: nextRawLine,
+        classifiedText: classifiedText,
       ),
       FountainLineType.lyrics => _writeWithPrefixMarker(
         text: text,
@@ -118,6 +127,7 @@ class FountainLineWriter {
         hadForcingMarker: hadForcingMarker,
         previousType: previousType,
         nextRawLine: nextRawLine,
+        classifiedText: classifiedText,
       ),
       FountainLineType.synopsis => _writeWithPrefixMarker(
         text: text,
@@ -126,6 +136,7 @@ class FountainLineWriter {
         hadForcingMarker: hadForcingMarker,
         previousType: previousType,
         nextRawLine: nextRawLine,
+        classifiedText: classifiedText,
       ),
       FountainLineType.section => _writeWithPrefixMarker(
         text: text,
@@ -134,13 +145,14 @@ class FountainLineWriter {
         hadForcingMarker: hadForcingMarker,
         previousType: previousType,
         nextRawLine: nextRawLine,
+        classifiedText: classifiedText,
       ),
     };
   }
 
   /// Prepend [marker] to [text] unless [text] would already classify as
-  /// [type] on its own, in the given [previousType]/[nextRawLine] context,
-  /// and [hadForcingMarker] is not set.
+  /// [type] on its own (read as [classifiedText] when given), in the given
+  /// [previousType]/[nextRawLine] context, and [hadForcingMarker] is not set.
   String _writeWithPrefixMarker({
     required String text,
     required FountainLineType type,
@@ -148,9 +160,15 @@ class FountainLineWriter {
     required bool hadForcingMarker,
     required FountainLineType? previousType,
     required String? nextRawLine,
+    required String? classifiedText,
   }) {
     final autoDetects =
-        classifier.classifyLine(text, previousType: previousType, nextRawLine: nextRawLine) == type;
+        classifier.classifyLine(
+          classifiedText ?? text,
+          previousType: previousType,
+          nextRawLine: nextRawLine,
+        ) ==
+        type;
     if (autoDetects && !hadForcingMarker) {
       return text;
     }

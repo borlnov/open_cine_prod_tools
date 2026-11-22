@@ -28,6 +28,17 @@ void main() {
       expect(FountainCommentSpans.scrub(text, FountainCommentSpans.notes(text)), 'a    \n    b');
     });
 
+    test('standaloneNotes keeps the notes alone on their lines', () {
+      const text = '[[a]]\nx [[b]]\n  [[c\nd]]  \n[[e]] [[f]]';
+      final notes = FountainCommentSpans.standaloneNotes(text);
+      expect(notes.map((s) => text.substring(s.start, s.end)), ['[[a]]', '[[c\nd]]']);
+    });
+
+    test('scrubForClassification blanks boneyards and standalone notes only', () {
+      const text = '/* a */ x\n[[n]]\ny [[i]]';
+      expect(FountainCommentSpans.scrubForClassification(text), '        x\n     \ny [[i]]');
+    });
+
     test('contains covers the markers', () {
       const span = FountainCommentSpan(start: 2, end: 5, isBoneyard: true);
       expect(span.contains(2), isTrue);

@@ -96,7 +96,7 @@ class FountainParser {
       FountainCommentSpans.boneyards(normalized),
     );
 
-    final noteSpans = _extractStandaloneNoteSpans(afterBoneyard, lineStartOffsets);
+    final noteSpans = _extractStandaloneNoteSpans(afterBoneyard);
     final scrubbed = FountainCommentSpans.scrub(
       afterBoneyard,
       noteSpans.map(
@@ -178,30 +178,8 @@ class FountainParser {
   /// lines by itself (i.e. nothing but whitespace shares its line(s)),
   /// which is what makes it a standalone [FountainNoteBlock] rather than an
   /// inline note span within another block (see `FountainInlineStyle.note`).
-  List<_ScrubbedSpan> _extractStandaloneNoteSpans(String source, List<int> lineStartOffsets) {
-    final spans = <_ScrubbedSpan>[];
-    for (final match in FountainCommentSpans.notes(source)) {
-      final startLine = _lineForOffset(lineStartOffsets, match.start);
-      final endLine = _lineForOffset(lineStartOffsets, match.end - 1);
-      final lineStart = lineStartOffsets[startLine];
-      final lineEndOffset = endLine + 1 < lineStartOffsets.length
-          ? lineStartOffsets[endLine + 1] - 1
-          : source.length;
-      final before = source.substring(lineStart, match.start);
-      final after = source.substring(match.end, lineEndOffset);
-      if (before.trim().isEmpty && after.trim().isEmpty) {
-        spans.add(
-          _ScrubbedSpan(
-            startOffset: match.start,
-            endOffset: match.end,
-            text: source.substring(match.start + 2, match.end - 2),
-            isBoneyard: false,
-          ),
-        );
-      }
-    }
-    return spans;
-  }
+  List<_ScrubbedSpan> _extractStandaloneNoteSpans(String source) =>
+      _extractSpans(source, FountainCommentSpans.standaloneNotes(source));
 
   /// Build the top-level [FountainBlock] (a [FountainBoneyard] or
   /// [FountainNoteBlock]) for a pre-pass [span].

@@ -6,6 +6,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comment_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
@@ -71,6 +72,14 @@ const String ocptSceneNumberMetadataKey = "ocptSceneNumber";
 /// [italicsAttribution], [underlineAttribution]) instead of staying as literal markup characters;
 /// an inline authoring note (`[[text]]`) keeps its brackets visible in the text and only gets the
 /// dimming-only [ocptFountainNoteAttribution].
+///
+/// **Inert lines:** a node whose whole text lies inside a commented span (a boneyard or a note,
+/// possibly running over several lines: `FountainCommentSpans`) is inert, the way the parser sees
+/// no screenplay element there. Whether a node is inert is recomputed from the document's texts on
+/// every pass, never stored. An inert node keeps its raw source line as its text (no marker
+/// stripped, no inline parsing), is never reclassified, uppercased nor numbered, and [encode]
+/// writes it back byte for byte. The lines around it are classified on the same blanked-out lines
+/// the parser classifies, so the editor and the parser agree on their types.
 ///
 /// This class only holds pure, side-effect-free helpers (decode text into a document, encode a
 /// document back to text, and compute the metadata-update requests a live editor needs after an
@@ -264,8 +273,17 @@ class OcptWysiwygCodec {
   /// class documents exist); every section node always serializes with a single `#`, collapsing a
   /// `##`/`###`/… heading to level 1. This is a deliberate, harmless normalization in the same
   /// spirit as the dialogue fallback above (worst case, a one-time dirty flag on mode entry).
-  static OcptWysiwygEncodeResult encode(Document document, {int trailingBlankLines = 0}) {
+  static OcptWysiwygEncodeResult encode(
+    Document document, {
+    int trailingBlankLines = 0,
+    Set<String>? inertNodeIds,
+  }) {
     final nodes = document.map((node) => node as ParagraphNode).toList(growable: false);
+    final (layout, lineIndexOfNode, sourceTexts) = _layoutOf(nodes);
+    final isInertByNode = [
+      for (var index = 0; index < nodes.length; index++)
+        inertNodeIds?.contains(nodes[index].id) ?? layout.isInertByLine[lineIndexOfNode[index]],
+    ];
 
     final types = [
       for (final node in nodes)
@@ -273,7 +291,7 @@ class OcptWysiwygCodec {
     ];
     final displayTextByNode = [
       for (var index = 0; index < nodes.length; index++)
-        _displayTextForEncode(nodes[index], types[index]),
+        isInertByNode[index] ? "" : _displayTextForEncode(nodes[index], types[index]),
     ];
     final blankLinesBeforeByNode = [for (final node in nodes) _readBlankLinesBefore(node)];
 
@@ -286,11 +304,24 @@ class OcptWysiwygCodec {
     // immediately before one (for example between two separate dialogue exchanges that both
     // happen to feature the same character, as in `MARY (O.S.)` / `STEVE` / `STEVE` / `MARY^` in
     // kitchen_sink.fountain) must be preserved, not zeroed.
-    for (var index = 1; index < nodes.length; index++) {
+    //
+    // An inert node is read the way the parser reads it: a blanked-out line, which keeps a
+    // dialogue group open when it directly follows a member and is blank otherwise.
+    final effectiveTypes = List<FountainLineType>.of(types);
+    for (var index = 0; index < nodes.length; index++) {
+      final followsMember =
+          index > 0 &&
+          blankLinesBeforeByNode[index] == 0 &&
+          _isDialogueGroupMember(effectiveTypes[index - 1]);
+      if (isInertByNode[index]) {
+        effectiveTypes[index] = followsMember ? FountainLineType.dialogue : FountainLineType.blank;
+        continue;
+      }
       final continuesDialogueGroup =
           (types[index] == FountainLineType.dialogue ||
               types[index] == FountainLineType.parenthetical) &&
-          _isDialogueGroupMember(types[index - 1]);
+          index > 0 &&
+          _isDialogueGroupMember(effectiveTypes[index - 1]);
       if (continuesDialogueGroup) {
         blankLinesBeforeByNode[index] = 0;
       }
@@ -300,6 +331,12 @@ class OcptWysiwygCodec {
     for (var index = 0; index < nodes.length; index++) {
       for (var blank = 0; blank < blankLinesBeforeByNode[index]; blank++) {
         outputLines.add("");
+      }
+
+      // An inert node is written as it is: no marker, no escaping, no reclassification.
+      if (isInertByNode[index]) {
+        outputLines.add(_inertLineOf(nodes[index]));
+        continue;
       }
 
       // `FountainLineType.pageBreak`/`centeredText` never derive their written line from a
@@ -319,12 +356,15 @@ class OcptWysiwygCodec {
       final nextNodeBlankLines = hasNextNode
           ? blankLinesBeforeByNode[index + 1]
           : trailingBlankLines;
+      // An inert next line reads as a blanked-out one: whitespace, not an empty line.
       final nextRawLine = hasNextNode
-          ? (nextNodeBlankLines > 0 ? "" : displayTextByNode[index + 1])
+          ? (nextNodeBlankLines > 0
+                ? ""
+                : (isInertByNode[index + 1] ? " " : displayTextByNode[index + 1]))
           : (trailingBlankLines > 0 ? "" : null);
       final previousType = blankLinesBeforeByNode[index] > 0
           ? FountainLineType.blank
-          : (index == 0 ? null : types[index - 1]);
+          : (index == 0 ? null : effectiveTypes[index - 1]);
 
       outputLines.add(
         _lineWriter.writeLine(
@@ -333,6 +373,12 @@ class OcptWysiwygCodec {
           hadForcingMarker: _readHadForcingMarker(nodes[index]),
           previousType: previousType,
           nextRawLine: nextRawLine,
+          classifiedText: _classifiedTextOf(
+            nodes[index],
+            displayText,
+            layout.classificationLines[lineIndexOfNode[index]],
+            sourceTexts[index],
+          ),
         ),
       );
     }
@@ -423,7 +469,9 @@ class OcptWysiwygCodec {
       nodes.first.copyWithAddedMetadata({ocptBlankLinesBeforeMetadataKey: 0}),
       ...nodes.skip(1),
     ];
-    return encode(MutableDocument(nodes: adjustedNodes)).text;
+    // The nodes were clipped out of their surroundings: which of them are inert is what the whole
+    // document says, not what the fragment alone would.
+    return encode(MutableDocument(nodes: adjustedNodes), inertNodeIds: inertNodeIds(document)).text;
   }
 
   /// Compute the requests needed to bring every unlocked, non-empty node's `blockType` metadata
@@ -458,25 +506,29 @@ class OcptWysiwygCodec {
     // just skipped when generating a request for them): their text has no place in the body's own
     // classification context (a real body node's auto-detection must never depend on what a title
     // field happens to hold).
-    final nodes = document
-        .map((node) => node as ParagraphNode)
-        .where((node) => !isTitlePageNode(node))
-        .toList(growable: false);
+    final nodes = _bodyNodes(document);
     final types = [
       for (final node in nodes)
         OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
     ];
 
     // Reconstruct the virtual line list every node's context depends on: blank runs are real
-    // nodes' metadata, not nodes, so they must be reinserted before classifying.
-    final virtualLines = <String>[];
-    final lineIndexOfNode = List<int>.filled(nodes.length, 0);
+    // nodes' metadata, not nodes, so they must be reinserted before classifying, and the
+    // commented spans are blanked out the way the parser does before it classifies, so a line
+    // after a boneyard is read the same here and there.
+    final (layout, lineIndexOfNode, sourceTexts) = _layoutOf(nodes);
+    final virtualLines = List<String>.of(layout.classificationLines);
     for (var index = 0; index < nodes.length; index++) {
-      for (var blank = 0; blank < _readBlankLinesBefore(nodes[index]); blank++) {
-        virtualLines.add("");
+      final lineIndex = lineIndexOfNode[index];
+      if (layout.isInertByLine[lineIndex]) {
+        continue;
       }
-      lineIndexOfNode[index] = virtualLines.length;
-      virtualLines.add(_virtualLineForNode(nodes[index], types[index]));
+      final plainText = nodes[index].text.toPlainText();
+      virtualLines[lineIndex] = _virtualLineForNode(
+        nodes[index],
+        types[index],
+        plainText == sourceTexts[index] ? layout.classificationLines[lineIndex] : plainText,
+      );
     }
     final classifiedTypes = _classifier.classify(virtualLines);
 
@@ -484,7 +536,7 @@ class OcptWysiwygCodec {
     for (var index = 0; index < nodes.length; index++) {
       final node = nodes[index];
 
-      if (node.text.toPlainText().isEmpty) {
+      if (node.text.toPlainText().isEmpty || layout.isInertByLine[lineIndexOfNode[index]]) {
         continue;
       }
 
@@ -521,9 +573,10 @@ class OcptWysiwygCodec {
   /// node's text wholesale, and whichever executes last would silently undo the other.
   static List<EditRequest> sceneNumberRequests(Document document) {
     final requests = <EditRequest>[];
+    final inertIds = inertNodeIds(document);
 
     for (final node in document) {
-      if (node is! ParagraphNode || isTitlePageNode(node)) {
+      if (node is! ParagraphNode || isTitlePageNode(node) || inertIds.contains(node.id)) {
         continue;
       }
 
@@ -559,11 +612,18 @@ class OcptWysiwygCodec {
   /// of [_uppercasedTypes] whose text isn't already fully uppercase, preserving its attribution
   /// spans and (since uppercasing is 1:1 for the app's locales, leaving every character's offset
   /// unchanged) the caret position.
+  ///
+  /// What lies inside a commented span is never touched: an inert node is skipped entirely, and a
+  /// note (`[[ ... ]]`) or a boneyard on a live line keeps its text as written.
   static List<EditRequest> uppercaseRequests(Document document) {
     final requests = <EditRequest>[];
+    final nodes = _bodyNodes(document);
+    final (layout, lineIndexOfNode, sourceTexts) = _layoutOf(nodes);
 
-    for (final node in document) {
-      if (node is! ParagraphNode || isTitlePageNode(node)) {
+    for (var index = 0; index < nodes.length; index++) {
+      final node = nodes[index];
+      final lineIndex = lineIndexOfNode[index];
+      if (layout.isInertByLine[lineIndex]) {
         continue;
       }
 
@@ -575,7 +635,10 @@ class OcptWysiwygCodec {
       }
 
       final plainText = node.text.toPlainText();
-      final upperText = plainText.toUpperCase();
+      final upperText = _uppercasedOutside(
+        plainText,
+        _commentedRangesOf(layout, lineIndex, sourceTexts[index], plainText),
+      );
       if (upperText == plainText) {
         continue;
       }
@@ -666,28 +729,37 @@ class OcptWysiwygCodec {
   /// lines still pending after the last non-blank line (the trailing run [decode] alone turns
   /// into [OcptWysiwygDecodeResult.trailingBlankLines]).
   static (List<ParagraphNode>, List<int>, int) _decodeLines(List<String> lines) {
-    final types = _classifier.classify(lines);
+    final layout = OcptWysiwygCommentLayout.fromLines(lines);
+    final types = _classifier.classify(layout.classificationLines);
 
     final nodes = <ParagraphNode>[];
     final blankLinesBeforeByNode = <int>[];
     var pendingBlanks = 0;
 
     for (var index = 0; index < lines.length; index++) {
-      if (types[index] == FountainLineType.blank) {
+      final isInert = layout.isInertByLine[index];
+      if (!isInert && types[index] == FountainLineType.blank) {
         pendingBlanks++;
         continue;
       }
 
-      final (strippedText, hadForcingMarker) = _stripDisplayText(lines[index], types[index]);
-      final (displayText, sceneNumber) = types[index] == FountainLineType.sceneHeading
+      final type = isInert
+          ? FountainLineType.action
+          : _typeForDecode(lines[index], layout.classificationLines[index], types[index]);
+      final (strippedText, hadForcingMarker) = isInert
+          ? (lines[index], false)
+          : _stripDisplayText(lines[index], type);
+      final (displayText, sceneNumber) = type == FountainLineType.sceneHeading
           ? _extractSceneNumber(strippedText)
           : (strippedText, null);
       nodes.add(
         ParagraphNode(
           id: Editor.createNodeId(),
-          text: OcptWysiwygInlineRuns.attributedTextFromRuns(_inlineParser.parseRuns(displayText)),
+          text: isInert
+              ? AttributedText(displayText)
+              : OcptWysiwygInlineRuns.attributedTextFromRuns(_inlineParser.parseRuns(displayText)),
           metadata: {
-            "blockType": OcptFountainLineAttributions.attributionOf(types[index]),
+            "blockType": OcptFountainLineAttributions.attributionOf(type),
             ocptBlankLinesBeforeMetadataKey: pendingBlanks,
             ocptTypeLockedMetadataKey: false,
             ocptHadForcingMarkerMetadataKey: hadForcingMarker,
@@ -702,11 +774,152 @@ class OcptWysiwygCodec {
     return (nodes, blankLinesBeforeByNode, pendingBlanks);
   }
 
+  /// Get the type a live source line [rawLine] is decoded as, given the [classified] type of its
+  /// [classificationLine] (the line with its commented spans blanked out).
+  ///
+  /// A line whose commented opening was blanked out, and whose type is read off a marker that
+  /// the raw line no longer starts with (a section, a synopsis, a centered text), would lose its
+  /// text on stripping: it is decoded as action, text untouched.
+  static FountainLineType _typeForDecode(
+    String rawLine,
+    String classificationLine,
+    FountainLineType classified,
+  ) {
+    final openingBlanked =
+        classificationLine.length - classificationLine.trimLeft().length >
+        rawLine.length - rawLine.trimLeft().length;
+    if (openingBlanked &&
+        (classified == FountainLineType.section ||
+            classified == FountainLineType.synopsis ||
+            classified == FountainLineType.centeredText)) {
+      return FountainLineType.action;
+    }
+    return classified;
+  }
+
+  /// Get [displayText], the text [encode] writes for [node], as the parser's classifier reads it:
+  /// its boneyards and standalone notes blanked out, [classificationLine] being the node's line so
+  /// blanked. Null when nothing differs, or when [sourceText] and the node's plain text do not
+  /// line up (emphasis markers turned into attributions shift every offset).
+  static String? _classifiedTextOf(
+    ParagraphNode node,
+    String displayText,
+    String classificationLine,
+    String sourceText,
+  ) {
+    final plainText = node.text.toPlainText();
+    if (sourceText != plainText || classificationLine == plainText) {
+      return null;
+    }
+    return classificationLine + displayText.substring(plainText.length);
+  }
+
+  /// Get the text a node stands for in its source line, the one the commented spans are looked
+  /// for in: its plain text, or, when it carries emphasis (whose markers the inline parser turned
+  /// into attributions), its serialized text.
+  static String _sourceTextOf(ParagraphNode node) {
+    final hasEmphasis = node.text.getAttributionSpans({
+      boldAttribution,
+      italicsAttribution,
+      underlineAttribution,
+    }).isNotEmpty;
+    return hasEmphasis
+        ? _inlineSerializer.write(OcptWysiwygInlineRuns.runsFromAttributedText(node.text))
+        : node.text.toPlainText();
+  }
+
+  /// Lay out [nodes] (body nodes only) as source lines, the blank runs folded into their metadata
+  /// put back, and compute where the commented spans fall; the second part tells, for each node,
+  /// its index in the layout's lines, the third its source text.
+  static (OcptWysiwygCommentLayout, List<int>, List<String>) _layoutOf(List<ParagraphNode> nodes) {
+    final lines = <String>[];
+    final lineIndexOfNode = List<int>.filled(nodes.length, 0);
+    final sourceTexts = [for (final node in nodes) _sourceTextOf(node)];
+    for (var index = 0; index < nodes.length; index++) {
+      for (var blank = 0; blank < _readBlankLinesBefore(nodes[index]); blank++) {
+        lines.add("");
+      }
+      lineIndexOfNode[index] = lines.length;
+      lines.add(sourceTexts[index]);
+    }
+    return (OcptWysiwygCommentLayout.fromLines(lines), lineIndexOfNode, sourceTexts);
+  }
+
+  /// Get the body paragraphs of [document], the title-page fields left out.
+  static List<ParagraphNode> _bodyNodes(Document document) => document
+      .whereType<ParagraphNode>()
+      .where((node) => !isTitlePageNode(node))
+      .toList(growable: false);
+
+  /// Get the ids of the inert nodes of [document]: the body nodes whose whole text lies inside a
+  /// boneyard or a note. Recomputed on every call, from the nodes' texts.
+  static Set<String> inertNodeIds(Document document) {
+    final nodes = _bodyNodes(document);
+    final (layout, lineIndexOfNode, _) = _layoutOf(nodes);
+    return {
+      for (var index = 0; index < nodes.length; index++)
+        if (layout.isInertByLine[lineIndexOfNode[index]]) nodes[index].id,
+    };
+  }
+
+  /// Get the source line [encode] writes for the inert [node], byte for byte: its text, plus what
+  /// a node decoded as a live line would have been written with (a scene number, a forcing marker)
+  /// when it only became inert afterwards.
+  static String _inertLineOf(ParagraphNode node) {
+    final type = OcptFountainLineAttributions.typeOfAttributionValue(
+      node.getMetadataValue("blockType"),
+    );
+    var line = node.text.toPlainText();
+    final sceneNumber = _readSceneNumber(node);
+    if (type == FountainLineType.sceneHeading && sceneNumber != null) {
+      line = "$line #$sceneNumber#";
+    }
+    if (!_readHadForcingMarker(node) || type == FountainLineType.blank) {
+      return line;
+    }
+    return _lineWriter.writeLine(
+      text: line,
+      type: type,
+      hadForcingMarker: true,
+      previousType: null,
+      nextRawLine: null,
+    );
+  }
+
   /// Copy [text]'s attribution spans and placeholders onto [upperText] unchanged: uppercasing
   /// never changes a string's length for this app's supported locales, so every span's (start, end)
   /// offset still refers to the same run of characters.
   static AttributedText _uppercased(AttributedText text, String upperText) =>
       AttributedText(upperText, text.spans.copy(), text.placeholders);
+
+  /// Get [text] in capitals, the characters inside [commentedRanges] (start, exclusive end) left as
+  /// written.
+  static String _uppercasedOutside(String text, List<(int, int)> commentedRanges) {
+    final buffer = StringBuffer();
+    var cursor = 0;
+    for (final (start, end) in commentedRanges) {
+      buffer.write(text.substring(cursor, start).toUpperCase());
+      buffer.write(text.substring(start, end));
+      cursor = end;
+    }
+    buffer.write(text.substring(cursor).toUpperCase());
+    return buffer.toString();
+  }
+
+  /// Get the commented ranges of the line [plainText] within [layout], falling back to the
+  /// line's own spans when [sourceText] and [plainText] differ (emphasis markers turned into
+  /// attributions shift every offset).
+  static List<(int, int)> _commentedRangesOf(
+    OcptWysiwygCommentLayout layout,
+    int lineIndex,
+    String sourceText,
+    String plainText,
+  ) {
+    if (sourceText == plainText) {
+      return layout.commentRangesByLine[lineIndex];
+    }
+    return [for (final span in FountainCommentSpans.of(plainText)) (span.start, span.end)];
+  }
 
   /// Tell whether [type] is a dialogue-block element that keeps a dialogue group open (see
   /// [FountainLineClassifier]'s own equivalent private rule), used by [encode] to force
@@ -761,7 +974,7 @@ class OcptWysiwygCodec {
       _readTypeLocked(node) || _readHadForcingMarker(node);
 
   /// Get the virtual source line [reclassifyRequests] feeds the classifier for [node], currently
-  /// stored as [type]. A pinned node (see [_isPinnedNode]) gets its marker re-emitted through
+  /// stored as [type], from its [displayText] (its text, its commented spans blanked out). A pinned node (see [_isPinnedNode]) gets its marker re-emitted through
   /// [_lineWriter] with `hadForcingMarker: true`, which always prepends the marker regardless of
   /// what auto-detection alone would decide (`FountainLineWriter`'s own private
   /// `_writeWithPrefixMarker` helper only skips the marker when auto-detection agrees *and* no
@@ -774,8 +987,7 @@ class OcptWysiwygCodec {
   /// never is, but calling it on an empty string would still prepend a lone marker (e.g. `.`) with
   /// nothing after it, fabricating a virtual "line" made purely of punctuation instead of the
   /// harmless empty line a genuinely empty node should contribute.
-  static String _virtualLineForNode(ParagraphNode node, FountainLineType type) {
-    final displayText = node.text.toPlainText();
+  static String _virtualLineForNode(ParagraphNode node, FountainLineType type, String displayText) {
     if (displayText.isEmpty || !_isPinnedNode(node)) {
       return displayText;
     }

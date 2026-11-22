@@ -51,6 +51,31 @@ class FountainCommentSpans {
     return [...boneyardSpans, ...noteSpans]..sort((a, b) => a.start.compareTo(b.start));
   }
 
+  /// Get the notes of [text] that take one or more whole lines by themselves, nothing but whitespace
+  /// sharing their lines: what the parser turns into a standalone note block rather than an inline
+  /// note of another line.
+  static List<FountainCommentSpan> standaloneNotes(String text) {
+    final spans = <FountainCommentSpan>[];
+    for (final note in notes(text)) {
+      final lineStart = note.start == 0 ? 0 : text.lastIndexOf('\n', note.start - 1) + 1;
+      final lineEndIndex = text.indexOf('\n', note.end);
+      final lineEnd = lineEndIndex == -1 ? text.length : lineEndIndex;
+      if (text.substring(lineStart, note.start).trim().isEmpty &&
+          text.substring(note.end, lineEnd).trim().isEmpty) {
+        spans.add(note);
+      }
+    }
+    return spans;
+  }
+
+  /// Get [text] as the parser hands it to its line classifier: the boneyards blanked out, then the
+  /// standalone notes, offsets and line structure kept. The inline notes stay, the classifier
+  /// reads past them.
+  static String scrubForClassification(String text) {
+    final withoutBoneyards = scrub(text, boneyards(text));
+    return scrub(withoutBoneyards, standaloneNotes(withoutBoneyards));
+  }
+
   /// Get [text] with every character covered by [spans] replaced by a space, newlines kept, so the
   /// line structure and every other offset stay stable.
   static String scrub(String text, Iterable<FountainCommentSpan> spans) {
