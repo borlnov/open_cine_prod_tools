@@ -146,8 +146,7 @@ class FountainLineClassifier {
   /// name, optionally followed by a parenthetical extension (written in any
   /// case, as in `HANS (on the radio)`) and/or a trailing `^` dual-dialogue
   /// marker.
-  bool _isCharacterCandidate(String trimmed) =>
-      _isAllCaps(parseFountainCharacterCue(trimmed).name);
+  bool _isCharacterCandidate(String trimmed) => _isAllCaps(parseFountainCharacterCue(trimmed).name);
 
   /// Tell whether [trimmed] looks like an (unforced) transition: all-caps text
   /// ending with `TO:`.
