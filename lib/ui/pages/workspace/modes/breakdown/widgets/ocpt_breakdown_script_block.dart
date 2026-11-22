@@ -141,7 +141,7 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
   /// Build the breakdown script block as a [Padding].
   @override
   Widget build(BuildContext context) {
-    final element = _elementLayoutOf(block.type, previewLayout.metrics);
+    final element = previewLayout.metrics.elementOf(block.type);
     final printStyle = FountainPrintStyle.of(block.type);
     final baseStyle = TextStyle(
       fontFamily: OcptEditorPreviewLayout.fontFamily,
@@ -374,24 +374,6 @@ class _OcptBreakdownWordSlot extends StatelessWidget {
     return OcptBreakdownTagPopoverAnchor(popover: popover, child: word);
   }
 }
-
-/// Get the screenplay layout box a line of [type] is typeset in, mirroring
-/// `OcptShotCoverageDialog`'s own `_elementLayout` getter.
-FountainElementLayout _elementLayoutOf(FountainLineType type, FountainLayoutMetrics metrics) =>
-    switch (type) {
-      FountainLineType.sceneHeading => metrics.sceneHeading,
-      FountainLineType.character => metrics.character,
-      FountainLineType.parenthetical => metrics.parenthetical,
-      FountainLineType.dialogue => metrics.dialogue,
-      FountainLineType.transition => metrics.transition,
-      FountainLineType.centeredText => metrics.centeredText,
-      FountainLineType.lyrics => metrics.lyrics,
-      FountainLineType.action ||
-      FountainLineType.section ||
-      FountainLineType.synopsis ||
-      FountainLineType.pageBreak ||
-      FountainLineType.blank => metrics.action,
-    };
 
 /// Get the horizontal alignment [element] is typeset with.
 TextAlign _textAlignOf(FountainElementLayout element) => switch (element.alignment) {

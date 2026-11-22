@@ -114,7 +114,7 @@ class OcptScriptPagePainter {
   /// leaves a little slack on top of that, and truncated column counts keep the box inside the
   /// page margins (which right-aligned transitions and centered text rely on).
   double lineBoxWidthPt(FountainLineType lineType) =>
-      _elementLayoutFor(lineType).maxWidthColumns * columnWidthPt;
+      metrics.elementOf(lineType).maxWidthColumns * columnWidthPt;
 
   /// Build the leading title [pw.Page] from [titlePage]'s metadata: title centered in the
   /// upper-to-middle area, credit and authors below it, contact at the bottom-left and draft date
@@ -353,27 +353,5 @@ class OcptScriptPagePainter {
     FountainLayoutAlignment.left => pw.TextAlign.left,
     FountainLayoutAlignment.center => pw.TextAlign.center,
     FountainLayoutAlignment.right => pw.TextAlign.right,
-  };
-
-  /// Get the [FountainElementLayout] [metrics] uses for [lineType], so a line's box width for
-  /// alignment
-  /// purposes matches exactly the width [FountainScriptComposer] already wrapped it to.
-  ///
-  /// [FountainLineType.blank] (a spacer line) and the non-printing types that never reach this
-  /// renderer (page break, section, synopsis) fall back to [FountainLayoutMetrics.action]:
-  /// harmless, since a line reaching this branch never has any runs to align in the first place.
-  FountainElementLayout _elementLayoutFor(FountainLineType lineType) => switch (lineType) {
-    FountainLineType.sceneHeading => metrics.sceneHeading,
-    FountainLineType.action => metrics.action,
-    FountainLineType.character => metrics.character,
-    FountainLineType.parenthetical => metrics.parenthetical,
-    FountainLineType.dialogue => metrics.dialogue,
-    FountainLineType.transition => metrics.transition,
-    FountainLineType.centeredText => metrics.centeredText,
-    FountainLineType.lyrics => metrics.lyrics,
-    FountainLineType.blank ||
-    FountainLineType.pageBreak ||
-    FountainLineType.section ||
-    FountainLineType.synopsis => metrics.action,
   };
 }

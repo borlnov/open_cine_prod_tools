@@ -356,23 +356,7 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
   /// The types that are never printed (a section, a synopsis, a page break — and the blank lines
   /// the layout has no block for at all) have no box of their own: they borrow the action box, so
   /// a sequence carrying one still reads as a paragraph rather than disappearing.
-  FountainElementLayout get _elementLayout {
-    final metrics = previewLayout.metrics;
-    return switch (block.type) {
-      FountainLineType.sceneHeading => metrics.sceneHeading,
-      FountainLineType.character => metrics.character,
-      FountainLineType.parenthetical => metrics.parenthetical,
-      FountainLineType.dialogue => metrics.dialogue,
-      FountainLineType.transition => metrics.transition,
-      FountainLineType.centeredText => metrics.centeredText,
-      FountainLineType.lyrics => metrics.lyrics,
-      FountainLineType.action ||
-      FountainLineType.section ||
-      FountainLineType.synopsis ||
-      FountainLineType.pageBreak ||
-      FountainLineType.blank => metrics.action,
-    };
-  }
+  FountainElementLayout get _elementLayout => previewLayout.metrics.elementOf(block.type);
 
   /// Get the horizontal alignment [block]'s element is typeset with.
   TextAlign get _textAlign => switch (_elementLayout.alignment) {
