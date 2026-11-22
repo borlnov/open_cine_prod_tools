@@ -45,11 +45,11 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "open_cine_prod_tools");
+    gtk_header_bar_set_title(header_bar, "Open Cine Prod Tools");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "open_cine_prod_tools");
+    gtk_window_set_title(window, "Open Cine Prod Tools");
   }
 
   // Names the icon the window (and the task bar entry beside it) wears, resolved by the icon
