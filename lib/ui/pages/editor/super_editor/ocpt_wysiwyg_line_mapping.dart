@@ -4,6 +4,10 @@
 
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 
+/// The `ParagraphNode` metadata key holding the number of blank source lines that preceded a node
+/// (0 inside a dialogue group, since a real blank line there would break the group).
+const String ocptBlankLinesBeforeMetadataKey = "ocptBlankLinesBefore";
+
 /// The node-index ↔ source-line mapping produced by both [OcptWysiwygCodec.decode] and
 /// [OcptWysiwygCodec.encode], letting the styled editor report caret lines and resolve scene-panel
 /// jump requests without the old model's "node index == line index" invariant, now that blank

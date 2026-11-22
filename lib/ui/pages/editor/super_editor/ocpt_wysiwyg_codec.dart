@@ -2,17 +2,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/foundation.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comment_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comments.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_document_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_markers.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_selection_clip.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart';
 import 'package:super_editor/super_editor.dart';
@@ -27,10 +28,6 @@ export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_i
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart'
     show ocptTitlePageFieldAttribution, ocptTitlePageFieldKeys, ocptTitlePageKeyMetadataKey;
-
-/// The `ParagraphNode` metadata key holding the number of blank source lines that preceded a node
-/// (0 inside a dialogue group, since a real blank line there would break the group).
-const String ocptBlankLinesBeforeMetadataKey = "ocptBlankLinesBefore";
 
 /// The number of [ocptBlankLinesBeforeMetadataKey] blank lines above which extra spacing stops
 /// growing: beyond a few blank lines, one more doesn't need to visually register any bigger a gap
@@ -111,16 +108,6 @@ class OcptWysiwygCodec {
     FountainLineType.character,
     FountainLineType.transition,
   };
-
-  /// Mirrors [FountainLineClassifier]'s own (private) section-heading pattern, so a section
-  /// node's display text can be recovered without re-deriving the leading `#` run's length here:
-  /// see [decode]'s per-type stripping and the class doc comment on the section-level
-  /// normalization [encode] accepts.
-  static final RegExp _sectionPattern = RegExp(r'^(#{1,6})\s*(.*)$');
-
-  /// Mirrors `FountainBlockBuilder`'s own (private) scene-number pattern, matching a trailing
-  /// `#N#` tag on a scene heading line (e.g. `#4A#` in `INT. HOUSE #4A#`), captured as group 1.
-  static final RegExp _sceneNumberPattern = RegExp(r'#([A-Za-z0-9.\-]+)#\s*$');
 
   /// Private constructor: this class only exposes static members.
   const OcptWysiwygCodec._();
@@ -285,7 +272,7 @@ class OcptWysiwygCodec {
     Set<String>? inertNodeIds,
   }) {
     final nodes = document.map((node) => node as ParagraphNode).toList(growable: false);
-    final (layout, lineIndexOfNode) = _layoutOf(nodes);
+    final (layout, lineIndexOfNode) = OcptWysiwygComments.layoutOfNodes(nodes);
     final isInertByNode = [
       for (var index = 0; index < nodes.length; index++)
         inertNodeIds?.contains(nodes[index].id) ?? layout.isInertByLine[lineIndexOfNode[index]],
@@ -305,7 +292,9 @@ class OcptWysiwygCodec {
                 layout.boneyardStarsByLine[lineIndexOfNode[index]],
               ),
     ];
-    final blankLinesBeforeByNode = [for (final node in nodes) _readBlankLinesBefore(node)];
+    final blankLinesBeforeByNode = [
+      for (final node in nodes) OcptWysiwygComments.blankLinesBeforeOf(node),
+    ];
 
     // Dialogue/parenthetical have no forcing marker at all (`FountainLineWriter` always emits
     // their text verbatim): their classification depends entirely on the immediately preceding
@@ -545,7 +534,7 @@ class OcptWysiwygCodec {
     // just skipped when generating a request for them): their text has no place in the body's own
     // classification context (a real body node's auto-detection must never depend on what a title
     // field happens to hold).
-    final (nodes, layout, lineIndexOfNode) = _resolved(document, documentLayout);
+    final (nodes, layout, lineIndexOfNode) = OcptWysiwygComments.resolve(document, documentLayout);
     final types = [
       for (final node in nodes)
         OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
@@ -628,7 +617,7 @@ class OcptWysiwygCodec {
       }
 
       final plainText = node.text.toPlainText();
-      final match = _sceneNumberPattern.firstMatch(plainText);
+      final match = OcptWysiwygMarkers.sceneNumberPattern.firstMatch(plainText);
       if (match == null) {
         continue;
       }
@@ -660,7 +649,7 @@ class OcptWysiwygCodec {
     OcptWysiwygDocumentLayout? documentLayout,
   }) {
     final requests = <EditRequest>[];
-    final (nodes, layout, lineIndexOfNode) = _resolved(document, documentLayout);
+    final (nodes, layout, lineIndexOfNode) = OcptWysiwygComments.resolve(document, documentLayout);
 
     for (var index = 0; index < nodes.length; index++) {
       final node = nodes[index];
@@ -690,100 +679,35 @@ class OcptWysiwygCodec {
     return requests;
   }
 
-  /// Compute the requests needed to bring every node's [ocptFountainNoteAttribution] spans back
-  /// in sync with the `[[...]]` regions currently in its text, adding/removing spans only for a
-  /// node whose desired spans actually differ from what it currently carries (so an edit outside
-  /// any note leaves every node's note spans untouched).
-  static List<EditRequest> noteAttributionRequests(Document document) {
-    final requests = <EditRequest>[];
+  /// Compute the requests bringing every node's note attribution in sync with its text (see
+  /// [OcptWysiwygComments.noteAttributionRequests]).
+  static List<EditRequest> noteAttributionRequests(Document document) =>
+      OcptWysiwygComments.noteAttributionRequests(document);
 
-    for (final node in document) {
-      if (node is! ParagraphNode) {
-        continue;
-      }
-
-      requests.addAll(_attributionRequests(node, ocptFountainNoteAttribution, noteRangesOf(node)));
-    }
-
-    return requests;
-  }
-
-  /// Compute the requests needed to bring every body node's [ocptFountainCommentAttribution] spans
-  /// back in sync with the commented spans of the whole document: a boneyard or a note running
-  /// over several nodes dims every one of them, and an inert node is dimmed whole. Like
-  /// [noteAttributionRequests], only a node whose spans differ gets a request, and the requests are
-  /// plain attribution changes, so they merge into the step of the edit that caused them.
+  /// Compute the requests bringing every body node's comment attribution in sync with the
+  /// commented spans of the document (see [OcptWysiwygComments.commentAttributionRequests]).
   static List<EditRequest> commentAttributionRequests(
     Document document, {
     OcptWysiwygDocumentLayout? documentLayout,
-  }) {
-    final requests = <EditRequest>[];
-    final (nodes, layout, lineIndexOfNode) = _resolved(document, documentLayout);
+  }) => OcptWysiwygComments.commentAttributionRequests(document, documentLayout: documentLayout);
 
-    for (var index = 0; index < nodes.length; index++) {
-      requests.addAll(
-        _attributionRequests(
-          nodes[index],
-          ocptFountainCommentAttribution,
-          layout.commentRangesByLine[lineIndexOfNode[index]],
-        ),
-      );
-    }
+  /// Get the (start, exclusive end) ranges of the notes [node]'s text holds (see
+  /// [OcptWysiwygComments.noteRangesOf]).
+  static List<(int, int)> noteRangesOf(ParagraphNode node) =>
+      OcptWysiwygComments.noteRangesOf(node);
 
-    return requests;
-  }
+  /// Get the text of [node] the commented spans are looked for in (see
+  /// [OcptWysiwygComments.virtualTextOf]).
+  static String virtualTextOf(ParagraphNode node) => OcptWysiwygComments.virtualTextOf(node);
 
-  /// Get the requests bringing [node]'s [attribution] spans to exactly [desiredRanges] (start,
-  /// exclusive end), none when it already carries them.
-  static List<EditRequest> _attributionRequests(
-    TextNode node,
-    NamedAttribution attribution,
-    List<(int, int)> desiredRanges,
-  ) {
-    final plainText = node.text.toPlainText();
-    final currentRanges =
-        node.text
-            .getAttributionSpans({attribution})
-            .map((span) => (span.start, span.end + 1))
-            .toList(growable: false)
-          ..sort((a, b) => a.$1.compareTo(b.$1));
+  /// Get the ids of the inert nodes of [document] (see [OcptWysiwygComments.inertNodeIds]).
+  static Set<String> inertNodeIds(Document document, {OcptWysiwygDocumentLayout? documentLayout}) =>
+      OcptWysiwygComments.inertNodeIds(document, documentLayout: documentLayout);
 
-    final desired = _mergeAdjacent(desiredRanges);
-    if (OcptWysiwygInlineRuns.sameRanges(currentRanges, desired)) {
-      return const [];
-    }
-
-    return [
-      if (currentRanges.isNotEmpty)
-        RemoveTextAttributionsRequest(
-          documentRange: DocumentRange(
-            start: DocumentPosition(
-              nodeId: node.id,
-              nodePosition: const TextNodePosition(offset: 0),
-            ),
-            end: DocumentPosition(
-              nodeId: node.id,
-              nodePosition: TextNodePosition(offset: plainText.length),
-            ),
-          ),
-          attributions: {attribution},
-        ),
-      for (final (start, end) in desired)
-        AddTextAttributionsRequest(
-          documentRange: DocumentRange(
-            start: DocumentPosition(
-              nodeId: node.id,
-              nodePosition: TextNodePosition(offset: start),
-            ),
-            end: DocumentPosition(
-              nodeId: node.id,
-              nodePosition: TextNodePosition(offset: end),
-            ),
-          ),
-          attributions: {attribution},
-        ),
-    ];
-  }
+  /// Lay out the body of [document] as lines of plain text, to hand to the passes of one settle
+  /// (see [OcptWysiwygComments.layoutOf]).
+  static OcptWysiwygDocumentLayout layoutOf(Document document) =>
+      OcptWysiwygComments.layoutOf(document);
 
   /// Split [text] into its source lines, normalizing `\r\n`/`\r` line endings to `\n` first (the
   /// same normalization `FountainParser.parse` applies), so folded blank-line counts and the
@@ -815,9 +739,13 @@ class OcptWysiwygCodec {
       final type = isInert ? FountainLineType.action : types[index];
       final (strippedText, hadForcingMarker) = isInert
           ? (lines[index], false)
-          : _stripDisplayText(lines[index], type, layout.classificationLines[index]);
+          : OcptWysiwygMarkers.stripDisplayText(
+              lines[index],
+              type,
+              layout.classificationLines[index],
+            );
       final (displayText, sceneNumber) = type == FountainLineType.sceneHeading
-          ? _extractSceneNumber(strippedText)
+          ? OcptWysiwygMarkers.extractSceneNumber(strippedText)
           : (strippedText, null);
       nodes.add(
         ParagraphNode(
@@ -839,7 +767,7 @@ class OcptWysiwygCodec {
       pendingBlanks = 0;
     }
 
-    _attributeCommentedText(nodes);
+    OcptWysiwygComments.attributeCommentedText(nodes);
     return (nodes, blankLinesBeforeByNode, pendingBlanks);
   }
 
@@ -850,65 +778,13 @@ class OcptWysiwygCodec {
     final styled = OcptWysiwygInlineRuns.attributedTextFromRuns(
       _inlineParser.parseRuns(text, literalStars: boneyardStars),
     );
-    final notes = _spansOf(styled, ocptFountainNoteAttribution);
+    final notes = OcptWysiwygComments.spansOf(styled, ocptFountainNoteAttribution);
     for (final span in FountainCommentSpans.notes(styled.toPlainText(), honoursEscapes: false)) {
       if (!notes.contains((span.start, span.end))) {
         styled.addAttribution(ocptFountainEscapedAttribution, SpanRange(span.start, span.start));
       }
     }
     return styled;
-  }
-
-  /// Get the (start, exclusive end) ranges of the notes [node]'s text holds: the `[[ ... ]]`
-  /// regions of its virtual text, an escaped `[[` leaving none.
-  static List<(int, int)> noteRangesOf(ParagraphNode node) => [
-    for (final span in FountainCommentSpans.notes(virtualTextOf(node), honoursEscapes: false))
-      (span.start, span.end),
-  ];
-
-  /// Put on the freshly decoded [nodes] the comment and note attributions the derived passes
-  /// would put, so a decoded document is already settled: the editor's first history snapshot
-  /// carries them, and no pass has anything to add on a document nobody edited.
-  static void _attributeCommentedText(List<ParagraphNode> nodes) {
-    final (layout, lineIndexOfNode) = _layoutOf(nodes);
-    for (var index = 0; index < nodes.length; index++) {
-      final text = nodes[index].text;
-      final length = text.length;
-      void set(NamedAttribution attribution, List<(int, int)> desired) {
-        final merged = _mergeAdjacent(desired);
-        if (OcptWysiwygInlineRuns.sameRanges(_spansOf(text, attribution), merged)) {
-          return;
-        }
-        if (length > 0) {
-          text.removeAttribution(attribution, SpanRange(0, length - 1));
-        }
-        for (final (start, end) in merged) {
-          text.addAttribution(attribution, SpanRange(start, end - 1));
-        }
-      }
-
-      set(ocptFountainCommentAttribution, layout.commentRangesByLine[lineIndexOfNode[index]]);
-      set(ocptFountainNoteAttribution, noteRangesOf(nodes[index]));
-    }
-  }
-
-  /// Get the (start, exclusive end) ranges [attribution] covers in [text], ascending.
-  static List<(int, int)> _spansOf(AttributedText text, NamedAttribution attribution) =>
-      text.getAttributionSpans({attribution}).map((span) => (span.start, span.end + 1)).toList()
-        ..sort((a, b) => a.$1.compareTo(b.$1));
-
-  /// Get [ranges] (start, exclusive end, ascending) with every range that starts where the
-  /// previous one ends joined to it, the way an attributed text merges two touching spans.
-  static List<(int, int)> _mergeAdjacent(List<(int, int)> ranges) {
-    final merged = <(int, int)>[];
-    for (final (start, end) in ranges) {
-      if (merged.isNotEmpty && merged.last.$2 == start) {
-        merged[merged.length - 1] = (merged.last.$1, end);
-      } else {
-        merged.add((start, end));
-      }
-    }
-    return merged;
   }
 
   /// Get [displayText], the text [encode] writes for [node], as the parser's classifier reads it:
@@ -925,82 +801,6 @@ class OcptWysiwygCodec {
       return null;
     }
     return classificationLine + displayText.substring(plainText.length);
-  }
-
-  /// Get the text of [node] the commented spans are looked for in: its plain text, the characters
-  /// that stand for an escaped bracket (see [ocptFountainEscapedAttribution]) made harmless.
-  static String virtualTextOf(ParagraphNode node) {
-    final plainText = node.text.toPlainText();
-    final escaped = _spansOf(node.text, ocptFountainEscapedAttribution);
-    if (escaped.isEmpty) {
-      return plainText;
-    }
-    final characters = plainText.split("");
-    for (final (start, end) in escaped) {
-      for (var index = start; index < end; index++) {
-        characters[index] = "(";
-      }
-    }
-    return characters.join();
-  }
-
-  /// The number of times a document was laid out as source lines, for a test to tell how often a
-  /// settle does it.
-  @visibleForTesting
-  static int layoutCount = 0;
-
-  /// Lay out [nodes] (body nodes only) as lines of plain text, the blank runs folded into their
-  /// metadata put back, and compute where the commented spans fall; the second part tells, for
-  /// each node, its index in the layout's lines.
-  static (OcptWysiwygCommentLayout, List<int>) _layoutOf(List<ParagraphNode> nodes) {
-    layoutCount++;
-    final lines = <String>[];
-    final lineIndexOfNode = List<int>.filled(nodes.length, 0);
-    for (var index = 0; index < nodes.length; index++) {
-      for (var blank = 0; blank < _readBlankLinesBefore(nodes[index]); blank++) {
-        lines.add("");
-      }
-      lineIndexOfNode[index] = lines.length;
-      lines.add(virtualTextOf(nodes[index]));
-    }
-    return (OcptWysiwygCommentLayout.of(lines, honoursEscapes: false), lineIndexOfNode);
-  }
-
-  /// Get the body paragraphs of [document], the title-page fields left out.
-  static List<ParagraphNode> _bodyNodes(Document document) => document
-      .whereType<ParagraphNode>()
-      .where((node) => !isTitlePageNode(node))
-      .toList(growable: false);
-
-  /// Get the ids of the inert nodes of [document]: the body nodes whose whole text lies inside a
-  /// boneyard or a note. Recomputed on every call, from the nodes' texts.
-  static Set<String> inertNodeIds(Document document, {OcptWysiwygDocumentLayout? documentLayout}) {
-    final (nodes, layout, lineIndexOfNode) = _resolved(document, documentLayout);
-    return {
-      for (var index = 0; index < nodes.length; index++)
-        if (layout.isInertByLine[lineIndexOfNode[index]]) nodes[index].id,
-    };
-  }
-
-  /// Lay out the body of [document] as source lines, to hand to the passes of one settle (see
-  /// [OcptWysiwygDocumentLayout]).
-  static OcptWysiwygDocumentLayout layoutOf(Document document) {
-    final nodes = _bodyNodes(document);
-    final (layout, lineIndexOfNode) = _layoutOf(nodes);
-    return OcptWysiwygDocumentLayout(
-      nodes: nodes,
-      comments: layout,
-      lineIndexOfNode: lineIndexOfNode,
-    );
-  }
-
-  /// Get the body nodes of [document] with their layout: [given] when set, else computed.
-  static (List<ParagraphNode>, OcptWysiwygCommentLayout, List<int>) _resolved(
-    Document document,
-    OcptWysiwygDocumentLayout? given,
-  ) {
-    final resolved = given ?? layoutOf(document);
-    return (resolved.nodes, resolved.comments, resolved.lineIndexOfNode);
   }
 
   /// Get the source line [encode] writes for the inert [node], byte for byte: its text, plus what
@@ -1054,13 +854,6 @@ class OcptWysiwygCodec {
       type == FountainLineType.character ||
       type == FountainLineType.parenthetical ||
       type == FountainLineType.dialogue;
-
-  /// Read a node's [ocptBlankLinesBeforeMetadataKey] metadata, defaulting to 0 for a node that
-  /// never had it set (for example one freshly split off by a default super_editor command).
-  static int _readBlankLinesBefore(ParagraphNode node) {
-    final value = node.getMetadataValue(ocptBlankLinesBeforeMetadataKey);
-    return value is int ? value : 0;
-  }
 
   /// Read a node's [ocptHadForcingMarkerMetadataKey] metadata, defaulting to false.
   static bool _readHadForcingMarker(ParagraphNode node) =>
@@ -1151,105 +944,5 @@ class OcptWysiwygCodec {
       previousType: null,
       nextRawLine: null,
     );
-  }
-
-  /// Strip [rawLine]'s forcing prefix (if any) for its classified [type], returning its display
-  /// text and whether a marker was actually present. Mirrors, in reverse, every rule
-  /// [FountainLineClassifier.classifyLine] and [FountainLineWriter.writeLine] use for that type.
-  ///
-  /// A line this cannot strip exactly (a marker preceded by a comment, a page break or a centered
-  /// text written with anything but its canonical form, [classificationLine] being the line with
-  /// its boneyards and standalone notes blanked out) is kept as written, with no marker: its type
-  /// is still the one the parser reads, and [encode] writes the text back as it is.
-  static (String, bool) _stripDisplayText(
-    String rawLine,
-    FountainLineType type,
-    String classificationLine,
-  ) {
-    if (_isKeptAsWritten(rawLine, type, classificationLine)) {
-      return (rawLine, false);
-    }
-    switch (type) {
-      case FountainLineType.blank:
-        // Never reached: blank lines are folded into ocptBlankLinesBefore before this is called.
-        return (rawLine, false);
-      case FountainLineType.pageBreak:
-        // `FountainLineWriter` ignores the text entirely for a page break; there is nothing
-        // meaningful to preserve.
-        return ("", false);
-      case FountainLineType.section:
-        final match = _sectionPattern.firstMatch(rawLine.trim());
-        return (match?.group(2) ?? "", true);
-      case FountainLineType.synopsis:
-        var rest = rawLine.substring(1);
-        if (rest.startsWith(" ")) {
-          rest = rest.substring(1);
-        }
-        return (rest, true);
-      case FountainLineType.sceneHeading:
-        return rawLine.startsWith(".") && !rawLine.startsWith("..")
-            ? (rawLine.substring(1), true)
-            : (rawLine, false);
-      case FountainLineType.action:
-        return rawLine.startsWith("!") ? (rawLine.substring(1), true) : (rawLine, false);
-      case FountainLineType.character:
-        return rawLine.startsWith("@") ? (rawLine.substring(1), true) : (rawLine, false);
-      case FountainLineType.transition:
-        return rawLine.startsWith(">") ? (rawLine.substring(1), true) : (rawLine, false);
-      case FountainLineType.lyrics:
-        return (rawLine.substring(1), true);
-      case FountainLineType.centeredText:
-        return (_stripCentered(rawLine), true);
-      case FountainLineType.dialogue:
-      case FountainLineType.parenthetical:
-        return (rawLine, false);
-    }
-  }
-
-  /// Tell whether the source line [rawLine], classified as [type], cannot have its marker stripped
-  /// and re-written exactly.
-  static bool _isKeptAsWritten(String rawLine, FountainLineType type, String classificationLine) {
-    final leading = rawLine.length - rawLine.trimLeft().length;
-    final markerIsCommented =
-        classificationLine.length - classificationLine.trimLeft().length > leading ||
-        FountainCommentSpans.notes(rawLine).any((note) => note.start == leading);
-    return switch (type) {
-      FountainLineType.section => markerIsCommented,
-      FountainLineType.synopsis => markerIsCommented || !rawLine.startsWith("="),
-      FountainLineType.lyrics => markerIsCommented || !rawLine.startsWith("~"),
-      FountainLineType.pageBreak => rawLine != "===",
-      FountainLineType.centeredText =>
-        !(rawLine.startsWith("> ") && rawLine.endsWith(" <") && rawLine.length >= 4),
-      _ => false,
-    };
-  }
-
-  /// Strip a trailing `#N#` scene-number tag off a scene heading's already forcing-marker-
-  /// stripped [text], returning the text without it (trailing whitespace trimmed) and the
-  /// captured number, or [text] unchanged and null when there is no tag.
-  static (String, String?) _extractSceneNumber(String text) {
-    final match = _sceneNumberPattern.firstMatch(text);
-    if (match == null) {
-      return (text, null);
-    }
-    return (text.substring(0, match.start).trimRight(), match.group(1));
-  }
-
-  /// Strip the `> ` / ` <` wrapping [FountainLineWriter.writeLine] always emits for
-  /// [FountainLineType.centeredText] (`'> $text <'`), tolerating the wrapping marker with or
-  /// without its usual single space so a hand-written `>text<` line still recovers its inner text.
-  static String _stripCentered(String rawLine) {
-    final trimmed = rawLine.trim();
-    if (trimmed.length < 2) {
-      return "";
-    }
-    var body = trimmed.substring(1, trimmed.length - 1);
-    if (body.startsWith(" ")) {
-      body = body.substring(1);
-    }
-    if (body.endsWith(" ")) {
-      body = body.substring(0, body.length - 1);
-    }
-    return body;
   }
 }

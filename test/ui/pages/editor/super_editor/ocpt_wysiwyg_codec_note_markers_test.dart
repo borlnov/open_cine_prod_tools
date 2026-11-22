@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_n
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_document_settle.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_numbers.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comments.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// Decode [source], encode it back and get the text written.
@@ -288,11 +289,11 @@ void main() {
       final document = OcptWysiwygCodec.decode(
         'INT. HOUSE - DAY\n\nHe **runs** /* x */ now.\n\n[[ a\nb ]]',
       ).document;
-      final before = OcptWysiwygCodec.layoutCount;
+      final before = OcptWysiwygComments.layoutCount;
 
       settle(document);
 
-      expect(OcptWysiwygCodec.layoutCount - before, 1);
+      expect(OcptWysiwygComments.layoutCount - before, 1);
     });
   });
 }
