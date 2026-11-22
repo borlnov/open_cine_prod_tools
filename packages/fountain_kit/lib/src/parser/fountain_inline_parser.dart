@@ -213,25 +213,6 @@ class FountainInlineParser {
     ];
   }
 
-  /// Get a private-use character found in none of [texts], to stand in for a `*` that must not be
-  /// read as a marker.
-  static String _unusedCharacter(List<String> texts) {
-    var code = 0xE000;
-    while (texts.any((text) => text.contains(String.fromCharCode(code)))) {
-      code++;
-    }
-    return String.fromCharCode(code);
-  }
-
-  /// Get [text] with the characters at [offsets] replaced by [placeholder].
-  static String _replaceStars(String text, Set<int> offsets, String placeholder) {
-    final buffer = StringBuffer();
-    for (var index = 0; index < text.length; index++) {
-      buffer.write(offsets.contains(index) && text[index] == '*' ? placeholder : text[index]);
-    }
-    return buffer.toString();
-  }
-
   /// Convert one top-level [FountainInlineSpan] into a [FountainStyledRun],
   /// resolving one level of nesting as described on [parseRuns].
   ///
@@ -378,4 +359,23 @@ class FountainInlineParser {
         startOffset: lineStartOffset + localStart,
         endOffset: lineStartOffset + localEnd,
       );
+
+  /// Get a private-use character found in none of [texts], to stand in for a `*` that must not be
+  /// read as a marker.
+  static String _unusedCharacter(List<String> texts) {
+    var code = 0xE000;
+    while (texts.any((text) => text.contains(String.fromCharCode(code)))) {
+      code++;
+    }
+    return String.fromCharCode(code);
+  }
+
+  /// Get [text] with the characters at [offsets] replaced by [placeholder].
+  static String _replaceStars(String text, Set<int> offsets, String placeholder) {
+    final buffer = StringBuffer();
+    for (var index = 0; index < text.length; index++) {
+      buffer.write(offsets.contains(index) && text[index] == '*' ? placeholder : text[index]);
+    }
+    return buffer.toString();
+  }
 }

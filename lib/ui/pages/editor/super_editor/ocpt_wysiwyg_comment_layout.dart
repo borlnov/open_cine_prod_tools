@@ -15,6 +15,16 @@ import 'package:fountain_kit/fountain_kit.dart';
 /// inert (wholly commented), what the classifier must read of each line, and which character
 /// ranges of each line are commented.
 final class OcptWysiwygCommentLayout {
+  /// The lines [OcptWysiwygCommentLayout.of] answered last: the passes of a settle and every build
+  /// ask for the layout of the very same lines, which is then computed once.
+  static List<String>? _lastLines;
+
+  /// Whether the last layout was built honouring escapes.
+  static bool _lastHonoursEscapes = true;
+
+  /// The layout of [_lastLines].
+  static OcptWysiwygCommentLayout? _lastLayout;
+
   /// Whether each line is inert: it has text, and all of it lies inside a commented span.
   final List<bool> isInertByLine;
 
@@ -37,16 +47,6 @@ final class OcptWysiwygCommentLayout {
     required this.commentRangesByLine,
     required this.boneyardStarsByLine,
   });
-
-  /// The lines [OcptWysiwygCommentLayout.of] answered last: the passes of a settle and every build
-  /// ask for the layout of the very same lines, which is then computed once.
-  static List<String>? _lastLines;
-
-  /// Whether the last layout was built honouring escapes.
-  static bool _lastHonoursEscapes = true;
-
-  /// The layout of [_lastLines].
-  static OcptWysiwygCommentLayout? _lastLayout;
 
   /// Get the layout of [lines], the one already computed when the lines are the same as the last
   /// call's.

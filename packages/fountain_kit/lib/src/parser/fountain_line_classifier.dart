@@ -141,27 +141,6 @@ class FountainLineClassifier {
     return FountainLineType.action;
   }
 
-  /// Get [line] without its inline notes (`[[ ... ]]`), which are annotations never printed and
-  /// so never change what the line is.
-  ///
-  /// A line made of notes alone (a standalone note) is returned as written, since it has no other
-  /// text to be classified by.
-  static String withoutInlineNotes(String line) {
-    final notes = FountainCommentSpans.notes(line);
-    if (notes.isEmpty) {
-      return line;
-    }
-    final buffer = StringBuffer();
-    var cursor = 0;
-    for (final note in notes) {
-      buffer.write(line.substring(cursor, note.start));
-      cursor = note.end;
-    }
-    buffer.write(line.substring(cursor));
-    final stripped = buffer.toString();
-    return stripped.trim().isEmpty ? line : stripped;
-  }
-
   /// Tell whether [type] is a dialogue-block element that keeps the dialogue
   /// block open for the line immediately after it.
   bool _continuesDialogue(FountainLineType? type) =>
@@ -188,6 +167,27 @@ class FountainLineClassifier {
   /// letter (so that, for example, a line of only digits and punctuation
   /// does not count as "all caps").
   bool _isAllCaps(String text) => text == text.toUpperCase() && text != text.toLowerCase();
+
+  /// Get [line] without its inline notes (`[[ ... ]]`), which are annotations never printed and
+  /// so never change what the line is.
+  ///
+  /// A line made of notes alone (a standalone note) is returned as written, since it has no other
+  /// text to be classified by.
+  static String withoutInlineNotes(String line) {
+    final notes = FountainCommentSpans.notes(line);
+    if (notes.isEmpty) {
+      return line;
+    }
+    final buffer = StringBuffer();
+    var cursor = 0;
+    for (final note in notes) {
+      buffer.write(line.substring(cursor, note.start));
+      cursor = note.end;
+    }
+    buffer.write(line.substring(cursor));
+    final stripped = buffer.toString();
+    return stripped.trim().isEmpty ? line : stripped;
+  }
 
   /// Tell whether [line] opens with the leading token of a scene heading (`INT`,
   /// `EXT`, `EST`, `INT./EXT`, `I/E`…), whatever the surrounding context makes

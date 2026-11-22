@@ -63,15 +63,6 @@ class FountainCommentSpans {
     return spans;
   }
 
-  /// Tell whether the character at [index] of [text] is preceded by an odd number of backslashes.
-  static bool _isEscaped(String text, int index) {
-    var count = 0;
-    while (index - count > 0 && text[index - count - 1] == r'\') {
-      count++;
-    }
-    return count.isOdd;
-  }
-
   /// Get the commented spans of [text] as the parser reads them, in ascending order and without
   /// overlap: the boneyards first, then the notes found once the boneyards are blanked out, so a
   /// note inside a boneyard is no span of its own, and a `/*` inside a note starts nothing.
@@ -123,6 +114,15 @@ class FountainCommentSpans {
     }
     buffer.write(text.substring(cursor));
     return buffer.toString();
+  }
+
+  /// Tell whether the character at [index] of [text] is preceded by an odd number of backslashes.
+  static bool _isEscaped(String text, int index) {
+    var count = 0;
+    while (index - count > 0 && text[index - count - 1] == r'\') {
+      count++;
+    }
+    return count.isOdd;
   }
 
   /// Get every match of [pattern] in [text] as a span.
