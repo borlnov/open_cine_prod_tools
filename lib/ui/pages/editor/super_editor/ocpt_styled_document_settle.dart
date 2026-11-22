@@ -39,6 +39,7 @@ final class OcptStyledDocumentSettle {
     final requests = [
       ...OcptWysiwygCodec.reclassifyRequests(document),
       ...OcptWysiwygCodec.noteAttributionRequests(document),
+      ...OcptWysiwygCodec.commentAttributionRequests(document),
       ...OcptWysiwygCodec.uppercaseRequests(document),
     ];
     if (requests.isNotEmpty) {

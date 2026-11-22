@@ -58,6 +58,12 @@ Map<String, FountainLineType> _parserTypes(String text) {
   return types;
 }
 
+/// Build a live [Editor] over [document], the one the settle pass executes its requests on.
+Editor _editorFor(MutableDocument document) => Editor(
+  editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
+  requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers),
+);
+
 /// Run the tests of the commented lines of the styled editor's codec.
 void main() {
   group('inert lines', () {
@@ -156,6 +162,45 @@ void main() {
         OcptWysiwygCodec.encode(decoded.document).text,
         '/* He waits.\n\nINT. HOUSE - DAY\n\n*/',
       );
+    });
+  });
+
+  group('dimming', () {
+    /// The (start, exclusive end) ranges of the comment attribution of the node at [index].
+    List<(int, int)> rangesAt(Document document, int index) =>
+        (document.getNodeAt(index)! as ParagraphNode).text
+            .getAttributionSpans({ocptFountainCommentAttribution})
+            .map((span) => (span.start, span.end + 1))
+            .toList();
+
+    test('a boneyard and a multi-line note are dimmed on every node they cover', () {
+      final decoded = OcptWysiwygCodec.decode(
+        'He waits /* aside\nINT. GONE - DAY\nend */ now.\n\n[[ a note\nover two ]]',
+      );
+      final editor = _editorFor(decoded.document);
+
+      editor.execute(OcptWysiwygCodec.commentAttributionRequests(decoded.document));
+
+      expect(rangesAt(decoded.document, 0), [(9, 17)]);
+      expect(rangesAt(decoded.document, 1), [(0, 15)]);
+      expect(rangesAt(decoded.document, 2), [(0, 6)]);
+      expect(rangesAt(decoded.document, 3), [(0, 9)]);
+      expect(rangesAt(decoded.document, 4), [(0, 11)]);
+      expect(OcptWysiwygCodec.commentAttributionRequests(decoded.document), isEmpty);
+    });
+
+    test('removing the closing marker takes the dimming off', () {
+      final decoded = OcptWysiwygCodec.decode('/* a\nb\n*/\n\nc');
+      final editor = _editorFor(decoded.document);
+      editor.execute(OcptWysiwygCodec.commentAttributionRequests(decoded.document));
+      expect(rangesAt(decoded.document, 1), [(0, 1)]);
+
+      replaceText(decoded.document, 2, 'x');
+      editor.execute(OcptWysiwygCodec.commentAttributionRequests(decoded.document));
+
+      for (var index = 0; index < 4; index++) {
+        expect(rangesAt(decoded.document, index), isEmpty);
+      }
     });
   });
 

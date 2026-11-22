@@ -18,7 +18,7 @@ import 'package:super_editor/super_editor.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart'
-    show ocptFountainNoteAttribution;
+    show ocptFountainCommentAttribution, ocptFountainNoteAttribution;
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart'
     show ocptTitlePageFieldAttribution, ocptTitlePageFieldKeys, ocptTitlePageKeyMetadataKey;
@@ -663,57 +663,91 @@ class OcptWysiwygCodec {
         continue;
       }
 
-      final plainText = node.text.toPlainText();
-      final desiredRanges = OcptWysiwygInlineRuns.noteRanges(plainText);
-      final currentRanges =
-          node.text
-              .getAttributionSpans({ocptFountainNoteAttribution})
-              .map((span) => (span.start, span.end + 1))
-              .toList(growable: false)
-            ..sort((a, b) => a.$1.compareTo(b.$1));
-
-      if (OcptWysiwygInlineRuns.sameRanges(currentRanges, desiredRanges)) {
-        continue;
-      }
-
-      if (currentRanges.isNotEmpty) {
-        requests.add(
-          RemoveTextAttributionsRequest(
-            documentRange: DocumentRange(
-              start: DocumentPosition(
-                nodeId: node.id,
-                nodePosition: const TextNodePosition(offset: 0),
-              ),
-              end: DocumentPosition(
-                nodeId: node.id,
-                nodePosition: TextNodePosition(offset: plainText.length),
-              ),
-            ),
-            attributions: {ocptFountainNoteAttribution},
-          ),
-        );
-      }
-
-      for (final (start, end) in desiredRanges) {
-        requests.add(
-          AddTextAttributionsRequest(
-            documentRange: DocumentRange(
-              start: DocumentPosition(
-                nodeId: node.id,
-                nodePosition: TextNodePosition(offset: start),
-              ),
-              end: DocumentPosition(
-                nodeId: node.id,
-                nodePosition: TextNodePosition(offset: end),
-              ),
-            ),
-            attributions: {ocptFountainNoteAttribution},
-          ),
-        );
-      }
+      requests.addAll(
+        _attributionRequests(
+          node,
+          ocptFountainNoteAttribution,
+          OcptWysiwygInlineRuns.noteRanges(node.text.toPlainText()),
+        ),
+      );
     }
 
     return requests;
+  }
+
+  /// Compute the requests needed to bring every body node's [ocptFountainCommentAttribution] spans
+  /// back in sync with the commented spans of the whole document: a boneyard or a note running
+  /// over several nodes dims every one of them, and an inert node is dimmed whole. Like
+  /// [noteAttributionRequests], only a node whose spans differ gets a request, and the requests are
+  /// plain attribution changes, so they merge into the step of the edit that caused them.
+  static List<EditRequest> commentAttributionRequests(Document document) {
+    final requests = <EditRequest>[];
+    final nodes = _bodyNodes(document);
+    final (layout, lineIndexOfNode, sourceTexts) = _layoutOf(nodes);
+
+    for (var index = 0; index < nodes.length; index++) {
+      final plainText = nodes[index].text.toPlainText();
+      requests.addAll(
+        _attributionRequests(
+          nodes[index],
+          ocptFountainCommentAttribution,
+          _commentedRangesOf(layout, lineIndexOfNode[index], sourceTexts[index], plainText),
+        ),
+      );
+    }
+
+    return requests;
+  }
+
+  /// Get the requests bringing [node]'s [attribution] spans to exactly [desiredRanges] (start,
+  /// exclusive end), none when it already carries them.
+  static List<EditRequest> _attributionRequests(
+    TextNode node,
+    NamedAttribution attribution,
+    List<(int, int)> desiredRanges,
+  ) {
+    final plainText = node.text.toPlainText();
+    final currentRanges =
+        node.text
+            .getAttributionSpans({attribution})
+            .map((span) => (span.start, span.end + 1))
+            .toList(growable: false)
+          ..sort((a, b) => a.$1.compareTo(b.$1));
+
+    if (OcptWysiwygInlineRuns.sameRanges(currentRanges, desiredRanges)) {
+      return const [];
+    }
+
+    return [
+      if (currentRanges.isNotEmpty)
+        RemoveTextAttributionsRequest(
+          documentRange: DocumentRange(
+            start: DocumentPosition(
+              nodeId: node.id,
+              nodePosition: const TextNodePosition(offset: 0),
+            ),
+            end: DocumentPosition(
+              nodeId: node.id,
+              nodePosition: TextNodePosition(offset: plainText.length),
+            ),
+          ),
+          attributions: {attribution},
+        ),
+      for (final (start, end) in desiredRanges)
+        AddTextAttributionsRequest(
+          documentRange: DocumentRange(
+            start: DocumentPosition(
+              nodeId: node.id,
+              nodePosition: TextNodePosition(offset: start),
+            ),
+            end: DocumentPosition(
+              nodeId: node.id,
+              nodePosition: TextNodePosition(offset: end),
+            ),
+          ),
+          attributions: {attribution},
+        ),
+    ];
   }
 
   /// Split [text] into its source lines, normalizing `\r\n`/`\r` line endings to `\n` first (the

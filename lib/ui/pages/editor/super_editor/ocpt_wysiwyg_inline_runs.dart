@@ -11,6 +11,14 @@ import 'package:super_editor/super_editor.dart';
 /// for styling, never for serialization (a node's text already carries the brackets verbatim).
 const NamedAttribution ocptFountainNoteAttribution = NamedAttribution("fountainNote");
 
+/// The attribution marking a commented span (a boneyard `/* ... */` or a note `[[ ... ]]`, possibly
+/// running over several nodes) for dimmed rendering, the same way as [ocptFountainNoteAttribution].
+///
+/// Unlike it, this one never takes part in serialization: it is put on a node's text by a derived
+/// pass after every edit, from the commented spans of the whole document, and is only ever read by
+/// the stylesheet.
+const NamedAttribution ocptFountainCommentAttribution = NamedAttribution("fountainComment");
+
 /// Convert between Fountain styled runs and super_editor attributed text, the inline half of
 /// `OcptWysiwygCodec`.
 final class OcptWysiwygInlineRuns {
