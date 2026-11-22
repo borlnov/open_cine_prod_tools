@@ -106,6 +106,22 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   (`lib/ui/pages/editor/super_editor/`, the only directory besides `fountain_kit` that knows
   about this format) is the Fountain ↔ document (de)serializer, built on `fountain_kit`'s
   `FountainLineClassifier`/`FountainLineWriter`/`FountainInlineParser`/`FountainInlineSerializer`.
+  Commented text is read through one rule, `FountainCommentSpans` (`fountain_kit`): the boneyard
+  `/* ... */` and the note `[[ ... ]]`, each running to its first closing marker, over several
+  lines if need be. The parser, the spell checker and the editor all use it. A node whose whole
+  text lies inside such a span is **inert**, the way the parser sees no screenplay element there.
+  Inertness is recomputed from the document's texts on every pass (`OcptWysiwygCommentLayout`),
+  never stored: an inert node is decoded as action with its raw line kept as its text (no marker
+  stripped, no inline parsing), is never reclassified, uppercased or numbered (the computed scene
+  numbers skip it), and `encode` writes it byte for byte, never with a forcing marker. The other
+  lines are classified on the same lines the parser classifies, the boneyards and the standalone
+  notes blanked out, so editor and parser agree on their types; a line with live text and a
+  trailing `/*` or a leading `*/` keeps its normal type. Classification also ignores the inline
+  notes of a line (`[[x]]INT. HOUSE - DAY` is a heading, `CUT TO:[[x]]` a transition, in the parser
+  and in the editor), and the uppercase pass leaves the text of a note or of a comment as written.
+  A derived pass, run with the others inside the settle pass (so with no undo step of its own),
+  puts `ocptFountainCommentAttribution` on every commented span, across nodes too; the stylesheet
+  dims it like a note.
   `ocpt_fountain_keyboard_actions.dart` handles Tab/Shift+Tab (cycles 6 common types, locks the
   block) and Enter (splits into the type's usual screenplay successor, unlocked; Shift+Enter
   keeps the same type). Whichever gesture sets a block to `parenthetical` opens it on `()` with the
@@ -176,7 +192,9 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   title-page field or a page break, and wherever the selection touches an existing note, since notes
   never nest. Remove note appears when the caret, or the whole selection, lies inside one `[[...]]`
   range and deletes it whole, brackets and content, and the one space it would leave doubled or
-  dangling, with no confirmation: each command is one `Editor.execute`, hence one undo step. The
+  dangling, with no confirmation. A note running over several blocks goes the same way: the blocks
+  it covers are dropped, and what stood before it in its first block joins what stood after it in
+  its last. Each command is one `Editor.execute`, hence one undo step. The
   list of assignable types lives once, as `ocptAssignableFountainLineTypes`
   (`lib/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart`). An entry with nothing to act on is
   **withheld, not disabled** (a null callback), which is what hides Cut/Copy over a collapsed caret.
@@ -392,7 +410,8 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   invented on purpose and the six fields existing only under page simulation, so the squiggles
   would otherwise appear and disappear with a display toggle. `ocptLineTypeOfBlock` expresses the
   same rule over `FountainDocument.blocks` rather than restating it, and
-  `ocptSpellCheckSkipSpansIn` drops the tokens sitting inside an inline note or boneyard comment.
+  `ocptSpellCheckSkipSpansIn` drops the tokens sitting inside an inline note or boneyard comment,
+  reading the spans from `fountain_kit`'s `FountainCommentSpans`, the rule the parser uses too.
   The remaining two rules are the tokenizer's own (`SpellTokenizerOptions`, on by default): a token
   in all capitals is skipped (a shouted word, the convention that introduces a silent character)
   and so is one holding a digit.

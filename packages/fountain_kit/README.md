@@ -66,6 +66,11 @@ Smells like Sunday.
 classification, block building), which keeps the door open for a future
 incremental re-parse of just a changed region of a document.
 
+The commented spans (boneyards and notes) are read through one public rule,
+`FountainCommentSpans`, which the parser uses and so can any caller. The
+line classifier ignores the inline notes of a line, which are annotations
+never printed: `[[x]]INT. HOUSE - DAY` is a scene heading.
+
 ## Pagination and source provenance
 
 `FountainScriptComposer.compose` lays a parsed document out into printed
