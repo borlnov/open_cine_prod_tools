@@ -125,10 +125,11 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   they need no offset mapping. The inline parser and serializer behave as ever unless handed the
   offsets of the `*` of real boneyard delimiters (`literalStars`), which the codec takes from the
   boneyard spans only: on decode from the whole source text, on encode from the layout. Those
-  stars are plain text, never emphasis, never escaped; a `/*` with no closing `*/` is no span. A `[[` preceded by an odd number of
-  backslashes is escaped, printed text and no note, for the parser and the spell checker alike;
-  the parser drops the backslash, so the node marks the `[` with `ocptFountainEscapedAttribution`
-  and the spans are looked for in a copy of its text where that character is blanked.
+  stars are plain text, never emphasis, never escaped; a `/*` with no closing `*/` is no span.
+  A `[[` preceded by an odd number of backslashes is escaped, printed text and no note, for the
+  parser and the spell checker alike; the parser drops the backslash, so the node marks the `[`
+  with `ocptFountainEscapedAttribution` and the spans are looked for in a copy of its text where
+  that character is blanked.
   A derived pass, run with the others inside the settle pass (so with no undo step of its own),
   puts `ocptFountainCommentAttribution` on every commented span, across nodes too; the stylesheet
   dims it like a note. `decode` puts the same attributions itself, so a decoded document is

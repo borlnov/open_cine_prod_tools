@@ -73,7 +73,8 @@ never printed: `[[x]]INT. HOUSE - DAY` is a scene heading, and the builders loca
 marker the same way (`[[x]]# Act` is a section). A `FountainCharacter` keeps its
 source line (`rawText`), which the serializer writes back with its notes.
 The inline parser and serializer take, optionally, the offsets of the `*` of boneyard delimiters
-to keep as plain text, never emphasis (`literalStars`), and a `[[` preceded by an odd number of backslashes is escaped: printed text, no note.
+to keep as plain text, never emphasis (`literalStars`). A `[[` preceded by an odd number of
+backslashes is escaped: printed text, no note.
 
 ## Pagination and source provenance
 
