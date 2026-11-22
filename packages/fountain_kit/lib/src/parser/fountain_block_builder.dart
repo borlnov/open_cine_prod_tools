@@ -228,6 +228,7 @@ class FountainBlockBuilder {
     final cue = parseFountainCharacterCue(FountainLineClassifier.withoutInlineNotes(rawLine));
     return FountainCharacter(
       sourceRange: range,
+      rawText: rawLine,
       name: cue.name,
       extension: cue.extension,
       isDualDialogue: cue.isDualDialogue,
@@ -310,18 +311,34 @@ class FountainBlockBuilder {
   String _removeAt(String text, int index) => text.substring(0, index) + text.substring(index + 1);
 
   /// Build a [FountainSection] from its raw source line.
+  ///
+  /// The heading marker is read off the line with its notes blanked out, the way the classifier
+  /// reads it; a note stays in the text, so no annotation is lost.
   FountainSection _buildSection(String rawLine, FountainSourceRange range) {
-    final match = _sectionPattern.firstMatch(rawLine.trim())!;
-    return FountainSection(
-      sourceRange: range,
-      level: match.group(1)!.length,
-      text: match.group(2)!.trim(),
-    );
+    final scrubbed = _scrubNotes(rawLine);
+    final start = scrubbed.length - scrubbed.trimLeft().length;
+    final match = _sectionPattern.firstMatch(scrubbed.trim())!;
+    final level = match.group(1)!.length;
+    final afterMarker = start + level;
+    final text = rawLine.substring(0, start) + rawLine.substring(afterMarker).trimLeft();
+    return FountainSection(sourceRange: range, level: level, text: text.trim());
   }
 
   /// Build a [FountainSynopsis] from its raw source line.
+  ///
+  /// Like [_buildSection], the `=` marker is located with the notes blanked out and the notes stay
+  /// in the text.
   FountainSynopsis _buildSynopsis(String rawLine, FountainSourceRange range) {
-    final text = rawLine.trim().replaceFirst(RegExp(r'^=+\s?'), '');
-    return FountainSynopsis(sourceRange: range, text: text);
+    final scrubbed = _scrubNotes(rawLine);
+    final start = scrubbed.length - scrubbed.trimLeft().length;
+    var afterMarker = start;
+    while (afterMarker < rawLine.length && rawLine[afterMarker] == '=') {
+      afterMarker++;
+    }
+    if (afterMarker < rawLine.length && rawLine[afterMarker].trim().isEmpty) {
+      afterMarker++;
+    }
+    final text = rawLine.substring(0, start) + rawLine.substring(afterMarker);
+    return FountainSynopsis(sourceRange: range, text: text.trim());
   }
 }
