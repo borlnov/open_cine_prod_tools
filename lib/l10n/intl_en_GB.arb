@@ -352,6 +352,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorContextMenuInsertNoteAction": "Insert note",
+  "@editorContextMenuInsertNoteAction": {
+    "description": "Label of the entry inserting an authoring note in the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorContextMenuRemoveNoteAction": "Remove note",
+  "@editorContextMenuRemoveNoteAction": {
+    "description": "Label of the entry removing the authoring note under the caret in the styled editor's right-click context menu",
+    "context": "Displayed in the styled screenplay editor's context menu, inside a note",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorContextMenuBlockTypeSubmenu": "Block type",
   "@editorContextMenuBlockTypeSubmenu": {
     "description": "Label of the block-type submenu of the styled editor's right-click context menu",

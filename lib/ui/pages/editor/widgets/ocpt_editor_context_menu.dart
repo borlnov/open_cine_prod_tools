@@ -8,9 +8,10 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart';
 
 /// The right-click context menu of the styled screenplay editor: up to five spelling suggestions,
-/// `Ignore this word` and `Add to the project's dictionary`, Cut, Copy, Paste, Select all, and the
-/// block type as a submenu — [child]'s own popover, opened and positioned by whichever gesture
-/// handler owns [controller] (a right-click today), never by this widget itself.
+/// `Ignore this word` and `Add to the project's dictionary`, Cut, Copy, Paste, Select all, Insert
+/// note and Remove note, and the block type as a submenu — [child]'s own popover, opened and
+/// positioned by whichever gesture handler owns [controller] (a right-click today), never by this
+/// widget itself.
 ///
 /// This file stays free of `package:super_editor`, like every other file outside
 /// `lib/ui/pages/editor/super_editor/`: the caller resolves every super_editor concept (the caret's
@@ -73,6 +74,14 @@ class OcptEditorContextMenu extends StatelessWidget {
   /// Called to select the whole document, or null while there is no selection to expand from.
   final VoidCallback? onSelectAll;
 
+  /// Called to insert a note at the current selection, or null while a note cannot be inserted
+  /// there (a selection over several blocks, inside a note, on a title-page field or a page
+  /// break).
+  final VoidCallback? onInsertNote;
+
+  /// Called to remove the note the current selection lies in, or null while it lies in none.
+  final VoidCallback? onRemoveNote;
+
   /// Called with the picked block type, or null while the caret sits on no retypeable block.
   final ValueChanged<FountainLineType>? onTypeSelected;
 
@@ -94,6 +103,8 @@ class OcptEditorContextMenu extends StatelessWidget {
     required this.onCopy,
     required this.onPaste,
     required this.onSelectAll,
+    this.onInsertNote,
+    this.onRemoveNote,
     required this.onTypeSelected,
     required this.child,
   });
@@ -106,6 +117,8 @@ class OcptEditorContextMenu extends StatelessWidget {
     final onCopy = this.onCopy;
     final onPaste = this.onPaste;
     final onSelectAll = this.onSelectAll;
+    final onInsertNote = this.onInsertNote;
+    final onRemoveNote = this.onRemoveNote;
     final onTypeSelected = this.onTypeSelected;
     final currentType = this.currentType;
     final onSuggestionSelected = this.onSuggestionSelected;
@@ -121,6 +134,9 @@ class OcptEditorContextMenu extends StatelessWidget {
     final showIgnoreWord = misspelledWord != null && onIgnoreWord != null;
     final showLearnWord = misspelledWord != null && onLearnWord != null;
     final hasSpellingActions = showIgnoreWord || showLearnWord;
+    final hasNoteGroup = onInsertNote != null || onRemoveNote != null;
+    final hasClipboardGroup =
+        onCut != null || onCopy != null || onPaste != null || onSelectAll != null;
     final hasSpellingGroup = suggestionEntries.isNotEmpty || hasSpellingActions;
 
     return MenuAnchor(
@@ -181,12 +197,25 @@ class OcptEditorContextMenu extends StatelessWidget {
             onPressed: onSelectAll,
             child: Text(tr.editorContextMenuSelectAllAction),
           ),
-        // Only drawn when both halves of the menu are actually there: the clipboard entries above
-        // are all withheld over a collapsed selection but Paste and Select all, and a rule hanging
-        // under nothing (or over nothing) would read as a missing entry rather than as a grouping.
-        if (onTypeSelected != null &&
-            currentType != null &&
-            (onCut != null || onCopy != null || onPaste != null || onSelectAll != null))
+        // The note group sits between the clipboard entries and the block type, each rule only
+        // drawn when something stands on both sides of it.
+        if (hasNoteGroup && hasClipboardGroup) const Divider(height: 1),
+        if (onInsertNote != null)
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.sticky_note_2_outlined, size: 16),
+            onPressed: onInsertNote,
+            child: Text(tr.editorContextMenuInsertNoteAction),
+          ),
+        if (onRemoveNote != null)
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.speaker_notes_off_outlined, size: 16),
+            onPressed: onRemoveNote,
+            child: Text(tr.editorContextMenuRemoveNoteAction),
+          ),
+        // Only drawn when both halves of the menu are actually there: the entries above are
+        // withheld over a collapsed selection but Paste and Select all, and a rule hanging under
+        // nothing (or over nothing) would read as a missing entry rather than as a grouping.
+        if (onTypeSelected != null && currentType != null && (hasClipboardGroup || hasNoteGroup))
           const Divider(height: 1),
         if (onTypeSelected != null && currentType != null)
           SubmenuButton(
