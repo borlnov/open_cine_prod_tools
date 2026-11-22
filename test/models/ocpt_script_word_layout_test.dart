@@ -443,6 +443,16 @@ void main() {
       ]);
     });
 
+    test("reads the cue of a line carrying a note without the note", () {
+      const sceneText = 'INT. HOUSE - DAY\n\nSARAH [[check]]\nHello.\n\n[[x]]@JOHN\nHi.';
+      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
+
+      expect(layout.charactersCoveredBy(startOffset: 0, endOffset: sceneText.length), [
+        "SARAH",
+        "JOHN",
+      ]);
+    });
+
     test("stops naming a speaker once the dialogue group is over", () {
       final (layout, action) = layoutAndBlock("They wait.");
 

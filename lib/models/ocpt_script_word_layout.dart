@@ -219,7 +219,9 @@ class OcptScriptWordLayout extends Equatable {
 
       switch (block.type) {
         case FountainLineType.character:
-          currentCharacter = normalizeCharacterName(parseFountainCharacterCue(block.text).name);
+          currentCharacter = normalizeCharacterName(
+            parseFountainCharacterCue(FountainLineClassifier.withoutInlineNotes(block.text)).name,
+          );
         // The two line types belonging to the cue above them: they leave the walk inside the
         // dialogue group they are part of.
         case FountainLineType.parenthetical:
