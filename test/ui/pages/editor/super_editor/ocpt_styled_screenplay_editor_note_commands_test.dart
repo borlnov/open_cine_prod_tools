@@ -88,7 +88,7 @@ void main() {
       await tester.tap(find.text(tr.editorContextMenuRemoveNoteAction));
       await pumpPastSettleDebounce(tester);
 
-      expect(nodeAt(document, 0).text.toPlainText(), " text.");
+      expect(nodeAt(document, 0).text.toPlainText(), "text.");
 
       await sendCtrl(tester, LogicalKeyboardKey.keyZ);
       await pumpPastSettleDebounce(tester);

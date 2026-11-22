@@ -129,8 +129,8 @@ void main() {
         _selection(6),
       )!;
 
-      expect(_writtenText(requests), "a  b");
-      expect(_caretOffset(requests), 2);
+      expect(_writtenText(requests), "a b");
+      expect(_caretOffset(requests), 1);
     });
 
     test("a selection wholly inside a note removes the whole range", () {
@@ -139,7 +139,7 @@ void main() {
         _selection(4, 8),
       )!;
 
-      expect(_writtenText(requests), "a  b");
+      expect(_writtenText(requests), "a b");
     });
 
     test("only the note the caret is in goes", () {
@@ -148,8 +148,21 @@ void main() {
         _selection(15),
       )!;
 
-      expect(_writtenText(requests), "[[one]] and ");
-      expect(_caretOffset(requests), 12);
+      expect(_writtenText(requests), "[[one]] and");
+      expect(_caretOffset(requests), 11);
+    });
+
+    test("takes the space a note opening the line leaves behind, and none it never had", () {
+      expect(
+        _writtenText(
+          OcptFountainNoteActions.removeRequests(_document("[[x]] word"), _selection(2))!,
+        ),
+        "word",
+      );
+      expect(
+        _writtenText(OcptFountainNoteActions.removeRequests(_document("a[[x]] b"), _selection(3))!),
+        "a b",
+      );
     });
 
     test("is withheld with the caret outside any note", () {

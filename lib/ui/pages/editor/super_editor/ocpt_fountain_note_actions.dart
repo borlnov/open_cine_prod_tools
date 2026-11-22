@@ -61,7 +61,8 @@ final class OcptFountainNoteActions {
   /// command is withheld: no selection, a selection over several blocks, or a caret or selection
   /// not wholly inside one `[[...]]` range of its block.
   ///
-  /// The whole range goes, brackets and content, and the caret lands where the note started.
+  /// The whole range goes, brackets and content, along with the one space that would otherwise be
+  /// left doubled or dangling, and the caret lands where the removed text started.
   static List<EditRequest>? removeRequests(Document document, DocumentSelection? selection) {
     final target = _target(document, selection);
     if (target == null) {
@@ -80,13 +81,30 @@ final class OcptFountainNoteActions {
       return null;
     }
 
+    final (start, end) = _withOneSurroundingSpace(text.toPlainText(), range);
     return [
       OcptReplaceNodeTextRequest(
         nodeId: target.node.id,
-        text: text.copyText(0, range.$1).copyAndAppend(text.copyText(range.$2)),
+        text: text.copyText(0, start).copyAndAppend(text.copyText(end)),
       ),
-      _caretRequest(target.node.id, range.$1),
+      _caretRequest(target.node.id, start),
     ];
+  }
+
+  /// Get [range] of [plainText] widened by the one space that would otherwise be left doubled or
+  /// dangling once the note is gone: the space before it when a space or the end of the line
+  /// follows (`a [[x]] b`, `DAY [[x]]`), else the space after it when it opens the line
+  /// (`[[x]] word`).
+  static (int, int) _withOneSurroundingSpace(String plainText, (int, int) range) {
+    final (start, end) = range;
+    final spaceOrEndAfter = end == plainText.length || plainText[end] == " ";
+    if (start > 0 && plainText[start - 1] == " " && spaceOrEndAfter) {
+      return (start - 1, end);
+    }
+    if (start == 0 && end < plainText.length && plainText[end] == " ") {
+      return (start, end + 1);
+    }
+    return range;
   }
 
   /// Build the request collapsing the caret at [offset] of the node [nodeId].

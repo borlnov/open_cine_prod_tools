@@ -171,15 +171,15 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   note entries form their own group between the clipboard and the block type, and
   `OcptFountainNoteActions` (`ocpt_fountain_note_actions.dart`) holds their rules as pure functions
   of a document and a selection, answering the requests to run or null. Insert note wraps a
-  selection inside one block in `[[` ... `]]` (caret before the closing brackets), or drops an
-  empty `[[]]` at a collapsed caret (caret between them); it is withheld across several blocks, on
-  a title-page field or a page break, and wherever the selection touches an existing note, since
-  notes never nest. Remove note appears when the caret, or the whole selection, lies inside one
-  `[[...]]` range and deletes it whole, brackets and content, with no confirmation: each command is
-  one `Editor.execute`, hence one undo step. The list of assignable types lives once, as
-  `ocptAssignableFountainLineTypes` (`lib/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart`).
-  An entry with nothing to act on is **withheld, not disabled** (a null callback), which is what
-  hides Cut/Copy over a collapsed caret.
+  selection inside one block in `[[` ... `]]` (caret before the closing brackets), or drops an empty
+  `[[]]` at a collapsed caret (caret between them); it is withheld across several blocks, on a
+  title-page field or a page break, and wherever the selection touches an existing note, since notes
+  never nest. Remove note appears when the caret, or the whole selection, lies inside one `[[...]]`
+  range and deletes it whole, brackets and content, and the one space it would leave doubled or
+  dangling, with no confirmation: each command is one `Editor.execute`, hence one undo step. The
+  list of assignable types lives once, as `ocptAssignableFountainLineTypes`
+  (`lib/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart`). An entry with nothing to act on is
+  **withheld, not disabled** (a null callback), which is what hides Cut/Copy over a collapsed caret.
   The secondary tap resolves the document position under the pointer and places the caret there,
   unless it lands inside an expanded selection, which it never destroys. A left click landing back
   on the document closes the menu, which a `MenuAnchor` does not do on its own: its anchor child —
