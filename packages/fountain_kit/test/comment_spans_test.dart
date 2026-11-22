@@ -5,6 +5,7 @@
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of the commented span rule.
 void main() {
   group('FountainCommentSpans', () {
     test('finds a boneyard and a note across several lines', () {

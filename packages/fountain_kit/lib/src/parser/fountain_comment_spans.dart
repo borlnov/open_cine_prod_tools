@@ -51,9 +51,9 @@ class FountainCommentSpans {
     return [...boneyardSpans, ...noteSpans]..sort((a, b) => a.start.compareTo(b.start));
   }
 
-  /// Get the notes of [text] that take one or more whole lines by themselves, nothing but whitespace
-  /// sharing their lines: what the parser turns into a standalone note block rather than an inline
-  /// note of another line.
+  /// Get the notes of [text] that take one or more whole lines by themselves, nothing but
+  /// whitespace sharing their lines: what the parser turns into a standalone note block rather
+  /// than an inline note of another line.
   static List<FountainCommentSpan> standaloneNotes(String text) {
     final spans = <FountainCommentSpan>[];
     for (final note in notes(text)) {

@@ -1008,7 +1008,8 @@ class OcptWysiwygCodec {
       _readTypeLocked(node) || _readHadForcingMarker(node);
 
   /// Get the virtual source line [reclassifyRequests] feeds the classifier for [node], currently
-  /// stored as [type], from its [displayText] (its text, its commented spans blanked out). A pinned node (see [_isPinnedNode]) gets its marker re-emitted through
+  /// stored as [type], from its [displayText] (its text, its commented spans blanked out). A pinned
+  /// node (see [_isPinnedNode]) gets its marker re-emitted through
   /// [_lineWriter] with `hadForcingMarker: true`, which always prepends the marker regardless of
   /// what auto-detection alone would decide (`FountainLineWriter`'s own private
   /// `_writeWithPrefixMarker` helper only skips the marker when auto-detection agrees *and* no
