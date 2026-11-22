@@ -160,6 +160,46 @@ void main() {
       ]);
     });
 
+    test('the parenthetical extension of a character cue may be lowercase', () {
+      expect(_classify(['', 'HANS (on the radio)', 'Hello.']), [
+        FountainLineType.blank,
+        FountainLineType.character,
+        FountainLineType.dialogue,
+      ]);
+    });
+
+    test('a cue with a lowercase extension and a dual-dialogue marker is a cue', () {
+      expect(_classify(['', 'HANS (on the radio) ^', 'Hello.']), [
+        FountainLineType.blank,
+        FountainLineType.character,
+        FountainLineType.dialogue,
+      ]);
+    });
+
+    test('a lowercase name with an extension is not a cue unless forced', () {
+      expect(_classify(['', 'Hans (V.O.)', 'Hello.']), [
+        FountainLineType.blank,
+        FountainLineType.action,
+        FountainLineType.action,
+      ]);
+      expect(_classify(['', '@Hans (V.O.)', 'Hello.']), [
+        FountainLineType.blank,
+        FountainLineType.character,
+        FountainLineType.dialogue,
+      ]);
+    });
+
+    test('a line of digits only is not a cue, with or without an extension', () {
+      expect(_classify(['', '23', 'Hello.'])[1], FountainLineType.action);
+      expect(_classify(['', '23 (on the radio)', 'Hello.'])[1], FountainLineType.action);
+    });
+
+    test('a name made of letters and digits and a "^" marker are cues', () {
+      expect(_classify(['', 'R2D2', 'Beep.'])[1], FountainLineType.character);
+      expect(_classify(['', 'STEEL ^', 'Beep.'])[1], FountainLineType.character);
+      expect(_classify(['', 'HANS (V.O.)', 'Beep.'])[1], FountainLineType.character);
+    });
+
     test('a leading "@" forces a character cue, allowing lowercase', () {
       expect(_classify(['', '@McCLANE', 'Yippee-ki-yay.']), [
         FountainLineType.blank,

@@ -18,14 +18,16 @@ final RegExp _characterExtension = RegExp(r'^(.*?)\s*\(([^()]*)\)\s*$');
 /// dual-dialogue `^` suffix and the parenthetical extension from the name
 /// itself.
 ///
-/// [rawLine] must already have been classified as a
-/// `FountainLineType.character` line: this only takes a cue apart, it never
-/// decides whether a line is one.
+/// This only takes a line apart as if it were a cue, whatever it really is:
+/// `FountainLineClassifier` calls it on a line not yet classified, to tell
+/// whether the name part alone is upper case, the extension being free to
+/// be written in either case.
 ///
 /// Shared by `FountainBlockBuilder` (which parses a whole document into
-/// blocks) and by any caller holding a single classified line rather than a
-/// document — named in a code span rather than a doc reference because that
-/// builder imports this file, so importing it back would be circular.
+/// blocks), by `FountainLineClassifier`, and by any caller holding a single
+/// line rather than a document — both named in a code span rather than a doc
+/// reference because they import this file, so importing them back would be
+/// circular.
 FountainCharacterCue parseFountainCharacterCue(String rawLine) {
   var work = rawLine.trim();
   if (work.startsWith('@')) {
