@@ -4,8 +4,10 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_command.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note_actions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_command.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
@@ -182,6 +184,93 @@ void main() {
     test("is withheld without a selection and over an unclosed note", () {
       expect(OcptFountainNoteActions.removeRequests(_document("[[a]]"), null), isNull);
       expect(OcptFountainNoteActions.removeRequests(_document("[[open"), _selection(4)), isNull);
+    });
+  });
+
+  group("removeRequests over several blocks", () {
+    /// Build a document of one paragraph per entry of [texts], the nodes "a", "b", "c"...
+    MutableDocument documentOf(List<String> texts) => MutableDocument(
+      nodes: [
+        for (var index = 0; index < texts.length; index++)
+          ParagraphNode(
+            id: String.fromCharCode(97 + index),
+            text: AttributedText(texts[index]),
+            metadata: {ocptBlankLinesBeforeMetadataKey: index == 0 ? 0 : 1},
+          ),
+      ],
+    );
+
+    /// Build a caret at [offset] of the node [nodeId].
+    DocumentSelection caret(String nodeId, int offset) => DocumentSelection.collapsed(
+      position: DocumentPosition(
+        nodeId: nodeId,
+        nodePosition: TextNodePosition(offset: offset),
+      ),
+    );
+
+    /// Build an [Editor] over [document].
+    Editor editorOf(MutableDocument document) => Editor(
+      editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
+      isHistoryEnabled: true,
+      requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+        ..add(ocptChangeNodeMetadataRequestHandler)
+        ..add(ocptReplaceNodeTextRequestHandler),
+    );
+
+    /// Read the texts of [document]'s paragraphs.
+    List<String> textsOf(Document document) => [
+      for (final node in document) (node as ParagraphNode).text.toPlainText(),
+    ];
+
+    test("a caret in the middle block joins the first and last blocks", () {
+      final document = documentOf(["See [[a note", "in the", "middle]] here", "Next."]);
+      final requests = OcptFountainNoteActions.removeRequests(document, caret("b", 3))!;
+
+      editorOf(document).execute(requests);
+
+      expect(textsOf(document), ["See here", "Next."]);
+    });
+
+    test("a selection wholly inside the note, over two blocks, removes it too", () {
+      final document = documentOf(["[[a note", "over two]]", "Next."]);
+      const selection = DocumentSelection(
+        base: DocumentPosition(nodeId: "a", nodePosition: TextNodePosition(offset: 3)),
+        extent: DocumentPosition(nodeId: "b", nodePosition: TextNodePosition(offset: 4)),
+      );
+
+      editorOf(document).execute(OcptFountainNoteActions.removeRequests(document, selection)!);
+
+      expect(textsOf(document), ["Next."]);
+    });
+
+    test("a note taking whole blocks drops them and keeps the spacing of what follows", () {
+      final document = documentOf(["Before.", "[[a note", "over two]]", "After."]);
+
+      editorOf(document).execute(OcptFountainNoteActions.removeRequests(document, caret("b", 4))!);
+
+      expect(textsOf(document), ["Before.", "After."]);
+      expect(document.getNodeById("d")!.getMetadataValue(ocptBlankLinesBeforeMetadataKey), 1);
+    });
+
+    test("one undo step brings the whole note back", () {
+      final document = documentOf(["See [[a note", "over two]] here", "Next."]);
+      final editor = editorOf(document);
+      final history = <String>[];
+      editor.execute(OcptFountainNoteActions.removeRequests(document, caret("a", 8))!);
+      history.addAll(textsOf(document));
+      expect(history, ["See here", "Next."]);
+
+      editor.undo();
+
+      expect(textsOf(document), ["See [[a note", "over two]] here", "Next."]);
+    });
+
+    test("is withheld outside the note, and for a boneyard", () {
+      final document = documentOf(["Hi [[a note", "over two]] there", "/* b", "*/"]);
+
+      expect(OcptFountainNoteActions.removeRequests(document, caret("a", 1)), isNull);
+      expect(OcptFountainNoteActions.removeRequests(document, caret("b", 12)), isNull);
+      expect(OcptFountainNoteActions.removeRequests(document, caret("c", 1)), isNull);
     });
   });
 }
