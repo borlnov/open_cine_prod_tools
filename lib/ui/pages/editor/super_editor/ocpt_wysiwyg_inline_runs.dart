@@ -127,25 +127,4 @@ final class OcptWysiwygInlineRuns {
     }
     return true;
   }
-
-  /// Get the (start, exclusive end) character ranges of every `[[...]]` region in [text], left to
-  /// right and non-overlapping, mirroring `FountainInlineParser.parse`'s own note-matching rule
-  /// (nearest `]]` after each `[[`, no nesting).
-  static List<(int, int)> noteRanges(String text) {
-    final ranges = <(int, int)>[];
-    var index = 0;
-    while (index < text.length) {
-      final openIndex = text.indexOf("[[", index);
-      if (openIndex == -1) {
-        break;
-      }
-      final closeIndex = text.indexOf("]]", openIndex + 2);
-      if (closeIndex == -1) {
-        break;
-      }
-      ranges.add((openIndex, closeIndex + 2));
-      index = closeIndex + 2;
-    }
-    return ranges;
-  }
 }

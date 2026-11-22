@@ -25,11 +25,17 @@ final class OcptWysiwygCommentLayout {
   /// The commented ranges (start, exclusive end) of each line, relative to the line, ascending.
   final List<List<(int, int)>> commentRangesByLine;
 
+  /// The offsets, relative to each line, of the `*` of the boneyard delimiters (`/*` and `*/`) the
+  /// line holds, ascending: the stars no emphasis marker may be made of. A `/*` with no closing
+  /// `*/` is no boneyard and has none.
+  final List<List<int>> boneyardStarsByLine;
+
   /// Class constructor.
   const OcptWysiwygCommentLayout._({
     required this.isInertByLine,
     required this.classificationLines,
     required this.commentRangesByLine,
+    required this.boneyardStarsByLine,
   });
 
   /// The lines [OcptWysiwygCommentLayout.of] answered last: the passes of a settle and every build
@@ -74,6 +80,12 @@ final class OcptWysiwygCommentLayout {
       honoursEscapes: honoursEscapes,
     ).split("\n");
 
+    final stars = [
+      for (final span in spans)
+        if (span.isBoneyard) ...[span.start + 1, span.end - 2],
+    ];
+    var nextStar = 0;
+    final boneyardStarsByLine = <List<int>>[];
     final isInertByLine = <bool>[];
     final commentRangesByLine = <List<(int, int)>>[];
     var lineStart = 0;
@@ -94,6 +106,14 @@ final class OcptWysiwygCommentLayout {
           ));
         }
       }
+      final lineStars = <int>[];
+      while (nextStar < stars.length && stars[nextStar] <= lineEnd) {
+        if (stars[nextStar] >= lineStart && stars[nextStar] < lineEnd) {
+          lineStars.add(stars[nextStar] - lineStart);
+        }
+        nextStar++;
+      }
+      boneyardStarsByLine.add(lineStars);
       commentRangesByLine.add(ranges);
       isInertByLine.add(_isWhollyCovered(line, ranges));
       lineStart = lineEnd + 1;
@@ -103,6 +123,7 @@ final class OcptWysiwygCommentLayout {
       isInertByLine: isInertByLine,
       classificationLines: classificationLines,
       commentRangesByLine: commentRangesByLine,
+      boneyardStarsByLine: boneyardStarsByLine,
     );
   }
 

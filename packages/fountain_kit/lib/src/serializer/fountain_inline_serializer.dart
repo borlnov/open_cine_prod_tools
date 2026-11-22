@@ -38,7 +38,48 @@ class FountainInlineSerializer {
   const FountainInlineSerializer();
 
   /// Render [runs] as a single marked-up Fountain source line.
-  String write(List<FountainStyledRun> runs) {
+  ///
+  /// [literalStars] holds the offsets, in the text of the runs put end to end, of the `*`
+  /// characters that are no emphasis marker and are never escaped: those of the `/*` and `*/` of a
+  /// boneyard (see [FountainInlineParser.parseRuns], which reads them the same way).
+  String write(List<FountainStyledRun> runs, {Set<int> literalStars = const {}}) {
+    if (literalStars.isEmpty) {
+      return _write(runs);
+    }
+    final placeholder = _unusedCharacter(runs);
+    final masked = <FountainStyledRun>[];
+    var offset = 0;
+    for (final run in runs) {
+      final buffer = StringBuffer();
+      for (var index = 0; index < run.text.length; index++) {
+        final isLiteral = run.text[index] == '*' && literalStars.contains(offset + index);
+        buffer.write(isLiteral ? placeholder : run.text[index]);
+      }
+      offset += run.text.length;
+      masked.add(
+        FountainStyledRun(
+          text: buffer.toString(),
+          isBold: run.isBold,
+          isItalic: run.isItalic,
+          isUnderline: run.isUnderline,
+          isNote: run.isNote,
+        ),
+      );
+    }
+    return _write(masked).replaceAll(placeholder, '*');
+  }
+
+  /// Get a private-use character found in none of [runs], to stand in for a `*` that is no marker.
+  String _unusedCharacter(List<FountainStyledRun> runs) {
+    var code = 0xE000;
+    while (runs.any((run) => run.text.contains(String.fromCharCode(code)))) {
+      code++;
+    }
+    return String.fromCharCode(code);
+  }
+
+  /// Render [runs] as a single marked-up Fountain source line, escaping what must be.
+  String _write(List<FountainStyledRun> runs) {
     final merged = _mergeAdjacent(runs);
     final texts = [
       for (final run in merged) _isPlain(run) ? _escapeAmbiguousMarkers(run.text) : run.text,
@@ -192,7 +233,7 @@ class FountainInlineSerializer {
       }
       final token = _matchMarkerToken(text, index);
       if (token != null) {
-        final closeIndex = FountainInlineParser.indexOfMarker(text, token, index + token.length);
+        final closeIndex = text.indexOf(token, index + token.length);
         if (closeIndex != -1) {
           final inner = text.substring(index + token.length, closeIndex);
           buffer
@@ -213,22 +254,11 @@ class FountainInlineSerializer {
   /// longer tokens first, or `null` if none matches.
   String? _matchMarkerToken(String text, int index) {
     for (final token in _markerTokens) {
-      if (text.startsWith(token, index) && !_holdsBoneyardStar(text, index, token)) {
+      if (text.startsWith(token, index)) {
         return token;
       }
     }
     return null;
-  }
-
-  /// Tell whether [token] at [index] of [text] holds a `*` of a boneyard delimiter, which is never
-  /// a marker.
-  bool _holdsBoneyardStar(String text, int index, String token) {
-    for (var offset = 0; offset < token.length; offset++) {
-      if (FountainInlineParser.isBoneyardStar(text, index + offset)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   /// Escape every character of [token] individually, for example `**` →
@@ -256,9 +286,6 @@ class FountainInlineSerializer {
       for (var j = 0; j < text.length; j++) {
         final char = text[j];
         if (char != '*' && char != '_' && char != '[') {
-          continue;
-        }
-        if (FountainInlineParser.isBoneyardStar(text, j)) {
           continue;
         }
         if (_isEscaped(text, j)) {

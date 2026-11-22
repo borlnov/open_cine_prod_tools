@@ -122,8 +122,10 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   type. Classification also ignores the inline notes of a line (`[[x]]INT. HOUSE - DAY` is a
   heading, `CUT TO:[[x]]` a transition, in the parser and in the editor), and the uppercase pass
   leaves the text of a note or of a comment as written. The spans are found on the plain texts, so
-  they need no offset mapping: the inline parser reads `/*` and `*/` as literal text, never as an
-  emphasis marker, and the serializer never escapes them. A `[[` preceded by an odd number of
+  they need no offset mapping. The inline parser and serializer behave as ever unless handed the
+  offsets of the `*` of real boneyard delimiters (`literalStars`), which the codec takes from the
+  boneyard spans only: on decode from the whole source text, on encode from the layout. Those
+  stars are plain text, never emphasis, never escaped; a `/*` with no closing `*/` is no span. A `[[` preceded by an odd number of
   backslashes is escaped, printed text and no note, for the parser and the spell checker alike;
   the parser drops the backslash, so the node marks the `[` with `ocptFountainEscapedAttribution`
   and the spans are looked for in a copy of its text where that character is blanked.

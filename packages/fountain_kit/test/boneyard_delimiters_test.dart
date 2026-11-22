@@ -11,21 +11,34 @@ const FountainInlineParser _parser = FountainInlineParser();
 /// The serializer the tests write runs back with.
 const FountainInlineSerializer _serializer = FountainInlineSerializer();
 
-/// Parse [line] into runs and write them back.
-String _roundTrip(String line) => _serializer.write(_parser.parseRuns(line));
+/// Get the offsets of the `*` of the boneyard delimiters of [line], the way a caller knows them.
+Set<int> _starsOf(String line) => {
+  for (final span in FountainCommentSpans.of(line))
+    if (span.isBoneyard) ...[span.start + 1, span.end - 2],
+};
+
+/// Parse [line] into runs and write them back, boneyard delimiters read as plain text.
+String _roundTrip(String line) {
+  final runs = _parser.parseRuns(line, literalStars: _starsOf(line));
+  // The serializer reads the delimiters in the plain text of the runs.
+  final plainText = runs.map((run) => run.text).join();
+  return _serializer.write(runs, literalStars: _starsOf(plainText));
+}
 
 /// Run the tests of the boneyard delimiters and the escaped notes in inline text.
 void main() {
-  group('a boneyard delimiter is never emphasis', () {
+  group('a boneyard delimiter handed to the parser is never emphasis', () {
     test('a closed boneyard on a line is plain text', () {
-      final runs = _parser.parseRuns('He /* x */ runs.');
+      const line = 'He /* x */ runs.';
+      final runs = _parser.parseRuns(line, literalStars: _starsOf(line));
 
-      expect(runs.single.text, 'He /* x */ runs.');
+      expect(runs.single.text, line);
       expect(runs.single.isItalic, isFalse);
     });
 
     test('emphasis inside a boneyard is still read', () {
-      final runs = _parser.parseRuns('/* *a* */');
+      const line = '/* *a* */';
+      final runs = _parser.parseRuns(line, literalStars: _starsOf(line));
 
       expect(runs.map((run) => (run.text, run.isItalic)), [
         ('/* ', false),
@@ -35,7 +48,8 @@ void main() {
     });
 
     test('a boneyard inside an emphasis span stays in it', () {
-      final runs = _parser.parseRuns('He **runs /* x */ fast**.');
+      const line = 'He **runs /* x */ fast**.';
+      final runs = _parser.parseRuns(line, literalStars: _starsOf(line));
 
       expect(runs.map((run) => (run.text, run.isBold)), [
         ('He ', false),
@@ -60,6 +74,40 @@ void main() {
       for (final line in lines) {
         expect(_roundTrip(line), line, reason: line);
       }
+    });
+  });
+
+  group('without boneyard delimiters the parser reads a * beside a / as ever', () {
+    test('emphasis touching a slash keeps its emphasis', () {
+      expect(_parser.parseRuns('He said *yes*/no.').map((run) => (run.text, run.isItalic)), [
+        ('He said ', false),
+        ('yes', true),
+        ('/no.', false),
+      ]);
+      expect(_parser.parseRuns('his/*her* car').map((run) => (run.text, run.isItalic)), [
+        ('his/', false),
+        ('her', true),
+        (' car', false),
+      ]);
+      expect(_parser.parseRuns('*and*/or').map((run) => (run.text, run.isItalic)), [
+        ('and', true),
+        ('/or', false),
+      ]);
+      expect(_parser.parseRuns('**A**/**B**').map((run) => (run.text, run.isBold)), [
+        ('A', true),
+        ('/', false),
+        ('B', true),
+      ]);
+      expect(_parser.parseRuns('**bold**/').map((run) => (run.text, run.isBold)), [
+        ('bold', true),
+        ('/', false),
+      ]);
+    });
+
+    test('an unclosed /* is no boneyard, its star stays an ordinary character', () {
+      const line = 'a /* b *c* d';
+      expect(_starsOf(line), isEmpty);
+      expect(_roundTrip(line), line);
     });
   });
 

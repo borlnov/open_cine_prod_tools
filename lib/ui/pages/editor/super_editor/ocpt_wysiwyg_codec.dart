@@ -297,7 +297,13 @@ class OcptWysiwygCodec {
     ];
     final displayTextByNode = [
       for (var index = 0; index < nodes.length; index++)
-        isInertByNode[index] ? "" : _displayTextForEncode(nodes[index], types[index]),
+        isInertByNode[index]
+            ? ""
+            : _displayTextForEncode(
+                nodes[index],
+                types[index],
+                layout.boneyardStarsByLine[lineIndexOfNode[index]],
+              ),
     ];
     final blankLinesBeforeByNode = [for (final node in nodes) _readBlankLinesBefore(node)];
 
@@ -358,7 +364,9 @@ class OcptWysiwygCodec {
 
       // An inert node is written as it is: no marker, no escaping, no reclassification.
       if (isInertByNode[index]) {
-        outputLines.add(_inertLineOf(nodes[index]));
+        outputLines.add(
+          _inertLineOf(nodes[index], layout.boneyardStarsByLine[lineIndexOfNode[index]]),
+        );
         continue;
       }
 
@@ -694,7 +702,7 @@ class OcptWysiwygCodec {
         continue;
       }
 
-      requests.addAll(_attributionRequests(node, ocptFountainNoteAttribution, _noteRangesOf(node)));
+      requests.addAll(_attributionRequests(node, ocptFountainNoteAttribution, noteRangesOf(node)));
     }
 
     return requests;
@@ -814,7 +822,10 @@ class OcptWysiwygCodec {
       nodes.add(
         ParagraphNode(
           id: Editor.createNodeId(),
-          text: _parseInline(displayText),
+          text: _parseInline(
+            displayText,
+            _starsWithin(layout.boneyardStarsByLine[index], lines[index], displayText),
+          ),
           metadata: {
             "blockType": OcptFountainLineAttributions.attributionOf(type),
             ocptBlankLinesBeforeMetadataKey: pendingBlanks,
@@ -835,8 +846,10 @@ class OcptWysiwygCodec {
   /// Parse [text] into styled text: the emphasis markers become attributions, a note an atomic
   /// run, and an escaped `[[` (which the parser reads as plain text) carries
   /// [ocptFountainEscapedAttribution], so that nothing takes it for a note afterwards.
-  static AttributedText _parseInline(String text) {
-    final styled = OcptWysiwygInlineRuns.attributedTextFromRuns(_inlineParser.parseRuns(text));
+  static AttributedText _parseInline(String text, Set<int> boneyardStars) {
+    final styled = OcptWysiwygInlineRuns.attributedTextFromRuns(
+      _inlineParser.parseRuns(text, literalStars: boneyardStars),
+    );
     final notes = _spansOf(styled, ocptFountainNoteAttribution);
     for (final span in FountainCommentSpans.notes(styled.toPlainText(), honoursEscapes: false)) {
       if (!notes.contains((span.start, span.end))) {
@@ -848,8 +861,8 @@ class OcptWysiwygCodec {
 
   /// Get the (start, exclusive end) ranges of the notes [node]'s text holds: the `[[ ... ]]`
   /// regions of its virtual text, an escaped `[[` leaving none.
-  static List<(int, int)> _noteRangesOf(ParagraphNode node) => [
-    for (final span in FountainCommentSpans.notes(_virtualTextOf(node), honoursEscapes: false))
+  static List<(int, int)> noteRangesOf(ParagraphNode node) => [
+    for (final span in FountainCommentSpans.notes(virtualTextOf(node), honoursEscapes: false))
       (span.start, span.end),
   ];
 
@@ -875,7 +888,7 @@ class OcptWysiwygCodec {
       }
 
       set(ocptFountainCommentAttribution, layout.commentRangesByLine[lineIndexOfNode[index]]);
-      set(ocptFountainNoteAttribution, _noteRangesOf(nodes[index]));
+      set(ocptFountainNoteAttribution, noteRangesOf(nodes[index]));
     }
   }
 
@@ -916,7 +929,7 @@ class OcptWysiwygCodec {
 
   /// Get the text of [node] the commented spans are looked for in: its plain text, the characters
   /// that stand for an escaped bracket (see [ocptFountainEscapedAttribution]) made harmless.
-  static String _virtualTextOf(ParagraphNode node) {
+  static String virtualTextOf(ParagraphNode node) {
     final plainText = node.text.toPlainText();
     final escaped = _spansOf(node.text, ocptFountainEscapedAttribution);
     if (escaped.isEmpty) {
@@ -948,7 +961,7 @@ class OcptWysiwygCodec {
         lines.add("");
       }
       lineIndexOfNode[index] = lines.length;
-      lines.add(_virtualTextOf(nodes[index]));
+      lines.add(virtualTextOf(nodes[index]));
     }
     return (OcptWysiwygCommentLayout.of(lines, honoursEscapes: false), lineIndexOfNode);
   }
@@ -993,11 +1006,11 @@ class OcptWysiwygCodec {
   /// Get the source line [encode] writes for the inert [node], byte for byte: its text, plus what
   /// a node decoded as a live line would have been written with (a scene number, a forcing marker)
   /// when it only became inert afterwards.
-  static String _inertLineOf(ParagraphNode node) {
+  static String _inertLineOf(ParagraphNode node, List<int> boneyardStars) {
     final type = OcptFountainLineAttributions.typeOfAttributionValue(
       node.getMetadataValue("blockType"),
     );
-    var line = _serialize(node);
+    var line = _serialize(node, boneyardStars);
     final sceneNumber = _readSceneNumber(node);
     if (type == FountainLineType.sceneHeading && sceneNumber != null) {
       line = "$line #$sceneNumber#";
@@ -1054,8 +1067,25 @@ class OcptWysiwygCodec {
       node.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true;
 
   /// Serialize [node]'s styled text into marked-up source, through the one serializer.
-  static String _serialize(ParagraphNode node) =>
-      _inlineSerializer.write(OcptWysiwygInlineRuns.runsFromAttributedText(node.text));
+  static String _serialize(ParagraphNode node, List<int> boneyardStars) => _inlineSerializer.write(
+    OcptWysiwygInlineRuns.runsFromAttributedText(node.text),
+    literalStars: boneyardStars.toSet(),
+  );
+
+  /// Get the offsets [stars] of a source line [rawLine] hold, as offsets in [displayText], the line
+  /// once its forcing marker was stripped.
+  static Set<int> _starsWithin(List<int> stars, String rawLine, String displayText) {
+    final shift = rawLine.endsWith(displayText)
+        ? rawLine.length - displayText.length
+        : rawLine.indexOf(displayText);
+    if (shift < 0) {
+      return const {};
+    }
+    return {
+      for (final star in stars)
+        if (star >= shift && star - shift < displayText.length) star - shift,
+    };
+  }
 
   /// Read a node's [ocptSceneNumberMetadataKey] metadata, or null if it isn't set.
   static String? _readSceneNumber(ParagraphNode node) {
@@ -1067,8 +1097,12 @@ class OcptWysiwygCodec {
   /// with a scene heading's [ocptSceneNumberMetadataKey] tag re-appended when set. Never appends
   /// to an empty base text, so an emptied heading still serializes through the empty-node rule
   /// (a plain blank line) rather than stranding a lone `#N#` tag.
-  static String _displayTextForEncode(ParagraphNode node, FountainLineType type) {
-    final base = _serialize(node);
+  static String _displayTextForEncode(
+    ParagraphNode node,
+    FountainLineType type,
+    List<int> boneyardStars,
+  ) {
+    final base = _serialize(node, boneyardStars);
     if (type != FountainLineType.sceneHeading || base.isEmpty) {
       return base;
     }
