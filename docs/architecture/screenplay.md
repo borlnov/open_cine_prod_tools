@@ -164,11 +164,20 @@ model, the title page, the spell-checking, the docks and the syntax guide.
 
 - Right-click menu: the styled mode alone carries one (`OcptEditorContextMenu`,
   `lib/ui/pages/editor/widgets/`, a `MenuAnchor` free of any `package:super_editor` import — the raw
-  mode is a plain `TextField` and gets Flutter's native menu for free). Cut, Copy, Paste, Select all
-  and the block type as a submenu; the clipboard entries call the very helpers the Ctrl+C/X/V
-  handlers do, and the submenu the same `applyBlockType` the toolbar dropdown does, so no gesture
-  can behave differently from its keyboard or toolbar twin. The list of assignable types lives once,
-  as `ocptAssignableFountainLineTypes`
+  mode is a plain `TextField` and gets Flutter's native menu for free). Cut, Copy, Paste, Select
+  all, Insert note and Remove note, and the block type as a submenu; the clipboard entries call the
+  very helpers the Ctrl+C/X/V handlers do, and the submenu the same `applyBlockType` the toolbar
+  dropdown does, so no gesture can behave differently from its keyboard or toolbar twin. The two
+  note entries form their own group between the clipboard and the block type, and
+  `OcptFountainNoteActions` (`ocpt_fountain_note_actions.dart`) holds their rules as pure functions
+  of a document and a selection, answering the requests to run or null. Insert note wraps a
+  selection inside one block in `[[` ... `]]` (caret before the closing brackets), or drops an empty
+  `[[]]` at a collapsed caret (caret between them); it is withheld across several blocks, on a
+  title-page field or a page break, and wherever the selection touches an existing note, since notes
+  never nest. Remove note appears when the caret, or the whole selection, lies inside one `[[...]]`
+  range and deletes it whole, brackets and content, and the one space it would leave doubled or
+  dangling, with no confirmation: each command is one `Editor.execute`, hence one undo step. The
+  list of assignable types lives once, as `ocptAssignableFountainLineTypes`
   (`lib/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart`). An entry with nothing to act on is
   **withheld, not disabled** (a null callback), which is what hides Cut/Copy over a collapsed caret.
   The secondary tap resolves the document position under the pointer and places the caret there,

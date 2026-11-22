@@ -10,6 +10,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_clipboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_spell_check_ranges.dart';
@@ -356,6 +357,13 @@ final class OcptStyledContextMenu {
       onCopy: hasExpandedSelection ? copySelection : null,
       onPaste: _composer.selection != null ? paste : null,
       onSelectAll: _composer.selection != null ? selectAll : null,
+      // A note command is offered only where it applies: the pure rules answer null otherwise.
+      onInsertNote: OcptFountainNoteActions.insertRequests(_document, _composer.selection) != null
+          ? insertNote
+          : null,
+      onRemoveNote: OcptFountainNoteActions.removeRequests(_document, _composer.selection) != null
+          ? removeNote
+          : null,
       onTypeSelected: blockType != null ? onTypeSelected : null,
       child: Listener(
         onPointerDown: onPointerDownOverDocument,
@@ -403,6 +411,28 @@ final class OcptStyledContextMenu {
     unawaited(
       ocptPasteFountainClipboardContent(editor: _editor, document: _document, composer: _composer),
     );
+    _focusNode.requestFocus();
+  }
+
+  /// Handle the right-click context menu's Insert note entry: executes
+  /// [OcptFountainNoteActions.insertRequests] in one [Editor.execute] call, hence one undo step,
+  /// then hands focus back to the editor.
+  void insertNote() {
+    final requests = OcptFountainNoteActions.insertRequests(_document, _composer.selection);
+    if (requests != null) {
+      _editor.execute(requests);
+    }
+    _focusNode.requestFocus();
+  }
+
+  /// Handle the right-click context menu's Remove note entry: executes
+  /// [OcptFountainNoteActions.removeRequests] in one [Editor.execute] call, hence one undo step
+  /// and no confirmation, then hands focus back to the editor.
+  void removeNote() {
+    final requests = OcptFountainNoteActions.removeRequests(_document, _composer.selection);
+    if (requests != null) {
+      _editor.execute(requests);
+    }
     _focusNode.requestFocus();
   }
 

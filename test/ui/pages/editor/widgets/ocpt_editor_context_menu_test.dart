@@ -41,6 +41,8 @@ void main() {
           onCopy: null,
           onPaste: null,
           onSelectAll: null,
+          onInsertNote: null,
+          onRemoveNote: null,
           onTypeSelected: null,
           child: const SizedBox(),
         ),
@@ -77,6 +79,8 @@ void main() {
           onCopy: null,
           onPaste: null,
           onSelectAll: null,
+          onInsertNote: null,
+          onRemoveNote: null,
           onTypeSelected: null,
           child: const SizedBox(),
         ),
@@ -109,6 +113,8 @@ void main() {
           onCopy: null,
           onPaste: null,
           onSelectAll: null,
+          onInsertNote: null,
+          onRemoveNote: null,
           onTypeSelected: null,
           child: const SizedBox(),
         ),
@@ -141,6 +147,8 @@ void main() {
           onCopy: null,
           onPaste: null,
           onSelectAll: null,
+          onInsertNote: null,
+          onRemoveNote: null,
           onTypeSelected: null,
           child: const SizedBox(),
         ),
@@ -175,6 +183,8 @@ void main() {
           onCopy: null,
           onPaste: null,
           onSelectAll: null,
+          onInsertNote: null,
+          onRemoveNote: null,
           onTypeSelected: null,
           child: const SizedBox(),
         ),
@@ -213,6 +223,8 @@ void main() {
             onCopy: null,
             onPaste: null,
             onSelectAll: null,
+            onInsertNote: null,
+            onRemoveNote: null,
             onTypeSelected: null,
             child: const SizedBox(),
           ),
@@ -248,6 +260,8 @@ void main() {
             onCopy: null,
             onPaste: null,
             onSelectAll: null,
+            onInsertNote: null,
+            onRemoveNote: null,
             onTypeSelected: null,
             child: const SizedBox(),
           ),
@@ -282,6 +296,8 @@ void main() {
             onCopy: null,
             onPaste: null,
             onSelectAll: null,
+            onInsertNote: null,
+            onRemoveNote: null,
             onTypeSelected: null,
             child: const SizedBox(),
           ),
@@ -294,4 +310,52 @@ void main() {
       expect(find.byType(Divider), findsNothing);
     },
   );
+
+  testWidgets("shows the note entries only where their callback is given, and runs them", (
+    tester,
+  ) async {
+    var inserted = 0;
+    var removed = 0;
+    final controller = MenuController();
+
+    Widget build({VoidCallback? onInsertNote, VoidCallback? onRemoveNote}) => _wrapWithLocalization(
+      OcptEditorContextMenu(
+        controller: controller,
+        childFocusNode: FocusNode(),
+        currentType: null,
+        onCut: null,
+        onCopy: null,
+        onPaste: () {},
+        onSelectAll: null,
+        onInsertNote: onInsertNote,
+        onRemoveNote: onRemoveNote,
+        onTypeSelected: null,
+        child: const SizedBox(),
+      ),
+    );
+
+    await tester.pumpWidget(build());
+    controller.open();
+    await tester.pumpAndSettle();
+    expect(find.text("Insert note"), findsNothing);
+    expect(find.text("Remove note"), findsNothing);
+    controller.close();
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(build(onInsertNote: () => inserted++));
+    controller.open();
+    await tester.pumpAndSettle();
+    expect(find.text("Remove note"), findsNothing);
+    await tester.tap(find.text("Insert note"));
+    await tester.pumpAndSettle();
+    expect(inserted, 1);
+
+    await tester.pumpWidget(build(onRemoveNote: () => removed++));
+    controller.open();
+    await tester.pumpAndSettle();
+    expect(find.text("Insert note"), findsNothing);
+    await tester.tap(find.text("Remove note"));
+    await tester.pumpAndSettle();
+    expect(removed, 1);
+  });
 }
