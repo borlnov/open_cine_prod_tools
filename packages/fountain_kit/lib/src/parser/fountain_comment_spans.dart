@@ -30,9 +30,6 @@ class FountainCommentSpans {
   /// Matches a boneyard, possibly spanning several lines.
   static final RegExp _boneyardPattern = RegExp(r'/\*[\s\S]*?\*/');
 
-  /// Matches a note, possibly spanning several lines.
-  static final RegExp _notePattern = RegExp(r'\[\[[\s\S]*?\]\]');
-
   /// Utility class: no instance.
   const FountainCommentSpans._();
 
@@ -40,23 +37,56 @@ class FountainCommentSpans {
   static List<FountainCommentSpan> boneyards(String text) => _spansOf(text, _boneyardPattern, true);
 
   /// Get the note spans of [text], in ascending order.
-  static List<FountainCommentSpan> notes(String text) => _spansOf(text, _notePattern, false);
+  ///
+  /// A `[[` preceded by an odd number of backslashes is escaped, the way the inline parser reads
+  /// it: printed text, no note. A caller whose [text] has no backslash left for an escaped bracket
+  /// (the plain text of a styled editor) passes [honoursEscapes] false.
+  static List<FountainCommentSpan> notes(String text, {bool honoursEscapes = true}) {
+    final spans = <FountainCommentSpan>[];
+    var index = 0;
+    while (true) {
+      final open = text.indexOf('[[', index);
+      if (open == -1) {
+        break;
+      }
+      if (honoursEscapes && _isEscaped(text, open)) {
+        index = open + 1;
+        continue;
+      }
+      final close = text.indexOf(']]', open + 2);
+      if (close == -1) {
+        break;
+      }
+      spans.add(FountainCommentSpan(start: open, end: close + 2, isBoneyard: false));
+      index = close + 2;
+    }
+    return spans;
+  }
+
+  /// Tell whether the character at [index] of [text] is preceded by an odd number of backslashes.
+  static bool _isEscaped(String text, int index) {
+    var count = 0;
+    while (index - count > 0 && text[index - count - 1] == r'\') {
+      count++;
+    }
+    return count.isOdd;
+  }
 
   /// Get the commented spans of [text] as the parser reads them, in ascending order and without
   /// overlap: the boneyards first, then the notes found once the boneyards are blanked out, so a
   /// note inside a boneyard is no span of its own, and a `/*` inside a note starts nothing.
-  static List<FountainCommentSpan> of(String text) {
+  static List<FountainCommentSpan> of(String text, {bool honoursEscapes = true}) {
     final boneyardSpans = boneyards(text);
-    final noteSpans = notes(scrub(text, boneyardSpans));
+    final noteSpans = notes(scrub(text, boneyardSpans), honoursEscapes: honoursEscapes);
     return [...boneyardSpans, ...noteSpans]..sort((a, b) => a.start.compareTo(b.start));
   }
 
   /// Get the notes of [text] that take one or more whole lines by themselves, nothing but
   /// whitespace sharing their lines: what the parser turns into a standalone note block rather
   /// than an inline note of another line.
-  static List<FountainCommentSpan> standaloneNotes(String text) {
+  static List<FountainCommentSpan> standaloneNotes(String text, {bool honoursEscapes = true}) {
     final spans = <FountainCommentSpan>[];
-    for (final note in notes(text)) {
+    for (final note in notes(text, honoursEscapes: honoursEscapes)) {
       final lineStart = note.start == 0 ? 0 : text.lastIndexOf('\n', note.start - 1) + 1;
       final lineEndIndex = text.indexOf('\n', note.end);
       final lineEnd = lineEndIndex == -1 ? text.length : lineEndIndex;
@@ -71,9 +101,12 @@ class FountainCommentSpans {
   /// Get [text] as the parser hands it to its line classifier: the boneyards blanked out, then the
   /// standalone notes, offsets and line structure kept. The inline notes stay, the classifier
   /// reads past them.
-  static String scrubForClassification(String text) {
+  static String scrubForClassification(String text, {bool honoursEscapes = true}) {
     final withoutBoneyards = scrub(text, boneyards(text));
-    return scrub(withoutBoneyards, standaloneNotes(withoutBoneyards));
+    return scrub(
+      withoutBoneyards,
+      standaloneNotes(withoutBoneyards, honoursEscapes: honoursEscapes),
+    );
   }
 
   /// Get [text] with every character covered by [spans] replaced by a space, newlines kept, so the

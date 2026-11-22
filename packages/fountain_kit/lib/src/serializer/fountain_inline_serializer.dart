@@ -184,9 +184,15 @@ class FountainInlineSerializer {
           continue;
         }
       }
+      if (text[index] == r'\' && index + 1 < text.length && r'*_\[]'.contains(text[index + 1])) {
+        // A backslash that would escape what follows it is itself escaped.
+        buffer.write(r'\\');
+        index++;
+        continue;
+      }
       final token = _matchMarkerToken(text, index);
       if (token != null) {
-        final closeIndex = text.indexOf(token, index + token.length);
+        final closeIndex = FountainInlineParser.indexOfMarker(text, token, index + token.length);
         if (closeIndex != -1) {
           final inner = text.substring(index + token.length, closeIndex);
           buffer
@@ -207,11 +213,22 @@ class FountainInlineSerializer {
   /// longer tokens first, or `null` if none matches.
   String? _matchMarkerToken(String text, int index) {
     for (final token in _markerTokens) {
-      if (text.startsWith(token, index)) {
+      if (text.startsWith(token, index) && !_holdsBoneyardStar(text, index, token)) {
         return token;
       }
     }
     return null;
+  }
+
+  /// Tell whether [token] at [index] of [text] holds a `*` of a boneyard delimiter, which is never
+  /// a marker.
+  bool _holdsBoneyardStar(String text, int index, String token) {
+    for (var offset = 0; offset < token.length; offset++) {
+      if (FountainInlineParser.isBoneyardStar(text, index + offset)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Escape every character of [token] individually, for example `**` →
@@ -231,12 +248,20 @@ class FountainInlineSerializer {
         continue;
       }
       final text = texts[i];
+      // A backslash ending a run would escape the marker of the run after it.
+      if (i + 1 < runs.length && text.endsWith(r'\') && _isEscaped(text, text.length)) {
+        texts[i] = '$text\\';
+        return true;
+      }
       for (var j = 0; j < text.length; j++) {
         final char = text[j];
         if (char != '*' && char != '_' && char != '[') {
           continue;
         }
-        if (j > 0 && text[j - 1] == r'\') {
+        if (FountainInlineParser.isBoneyardStar(text, j)) {
+          continue;
+        }
+        if (_isEscaped(text, j)) {
           continue;
         }
         texts[i] = '${text.substring(0, j)}\\$char${text.substring(j + 1)}';
@@ -244,6 +269,15 @@ class FountainInlineSerializer {
       }
     }
     return false;
+  }
+
+  /// Tell whether the character at [index] of [text] is preceded by an odd number of backslashes.
+  bool _isEscaped(String text, int index) {
+    var count = 0;
+    while (index - count > 0 && text[index - count - 1] == r'\') {
+      count++;
+    }
+    return count.isOdd;
   }
 
   /// Tell whether [a] and [b] contain the same runs in the same order.

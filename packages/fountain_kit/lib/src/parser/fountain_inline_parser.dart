@@ -63,6 +63,36 @@ class FountainInlineParser {
   /// Create a [FountainInlineParser].
   const FountainInlineParser();
 
+  /// Tell whether the `*` at [index] of [text] belongs to a boneyard delimiter, `/*` or `*/`.
+  ///
+  /// Such a `*` is never an emphasis marker: the delimiters of a comment reach this parser when
+  /// a line opens or closes a boneyard, or holds one, and they stay literal text. The serializer
+  /// follows the same rule, so it never escapes them.
+  static bool isBoneyardStar(String text, int index) =>
+      text[index] == '*' &&
+      ((index > 0 && text[index - 1] == '/') ||
+          (index + 1 < text.length && text[index + 1] == '/'));
+
+  /// Tell whether [token] at [index] of [text] holds a `*` of a boneyard delimiter.
+  static bool _holdsBoneyardStar(String text, int index, String token) {
+    for (var offset = 0; offset < token.length; offset++) {
+      if (isBoneyardStar(text, index + offset)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Get the index of the first [token] at or after [from] in [text] that is no boneyard
+  /// delimiter, or -1.
+  static int indexOfMarker(String text, String token, int from) {
+    var index = text.indexOf(token, from);
+    while (index != -1 && _holdsBoneyardStar(text, index, token)) {
+      index = text.indexOf(token, index + 1);
+    }
+    return index;
+  }
+
   /// Parse [text] into a sequence of [FountainInlineSpan]s.
   ///
   /// [line] is the 0-based source line [text] was taken from, and
@@ -123,7 +153,7 @@ class FountainInlineParser {
       final matchedMarker = _matchEmphasis(text, index);
       if (matchedMarker != null) {
         final marker = matchedMarker.token;
-        final closeIndex = text.indexOf(marker, index + marker.length);
+        final closeIndex = indexOfMarker(text, marker, index + marker.length);
         if (closeIndex != -1) {
           flushPlain(index);
           spans.add(
@@ -305,7 +335,7 @@ class FountainInlineParser {
       if (text.length < 2 * token.length || !text.startsWith(token)) {
         continue;
       }
-      final closeIndex = text.indexOf(token, token.length);
+      final closeIndex = indexOfMarker(text, token, token.length);
       if (closeIndex == text.length - token.length) {
         return (marker.style, text.substring(token.length, closeIndex), token.length);
       }
@@ -317,7 +347,7 @@ class FountainInlineParser {
   /// [text], trying longer tokens first, or `null` if none matches.
   _EmphasisMarker? _matchEmphasis(String text, int index) {
     for (final marker in _markers) {
-      if (text.startsWith(marker.token, index)) {
+      if (text.startsWith(marker.token, index) && !_holdsBoneyardStar(text, index, marker.token)) {
         return marker;
       }
     }
