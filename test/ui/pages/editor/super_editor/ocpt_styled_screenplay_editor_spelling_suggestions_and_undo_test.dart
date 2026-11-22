@@ -425,6 +425,30 @@ void main() {
       });
     });
 
+    testWidgets("uncommenting a line by Backspace keeps the caret in the text, and can be undone", (
+      tester,
+    ) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        await pumpStandaloneEditor(tester, "x\n\n/* He runs away. */\n\nMore.");
+        final document = SuperEditorInspector.findDocument()!;
+        final commentedLine = nodeAt(document, 1);
+        final length = commentedLine.text.length;
+
+        await tester.placeCaretInParagraph(commentedLine.id, length);
+        await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+        await pumpPastSettleDebounce(tester);
+
+        expect(tester.takeException(), isNull);
+        expect(nodeAt(document, 1).text.toPlainText(), "/* He runs away. *");
+        final selection = SuperEditorInspector.findDocumentSelection()!;
+        expect((selection.extent.nodePosition as TextNodePosition).offset, length - 1);
+
+        await sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await pumpPastSettleDebounce(tester);
+        expect(nodeAt(document, 1).text.toPlainText(), "/* He runs away. */");
+      });
+    });
+
     testWidgets("the controller reports what can be undone and redone, refusal included", (
       tester,
     ) async {

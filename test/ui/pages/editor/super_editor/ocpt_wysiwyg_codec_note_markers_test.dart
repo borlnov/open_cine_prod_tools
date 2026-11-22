@@ -64,6 +64,11 @@ void main() {
       'He /* x */ runs.',
       '/* *a* */',
       'a /* b */ c *d*',
+      '**bold /* x',
+      'y */ z**',
+      r'He \[[x]] y.',
+      r'He \[[x]] **b**.',
+      'a \uE000 b \uE001 c \uE002 d \uE003 e \uE004',
     ];
 
     for (final line in lines) {
@@ -93,7 +98,6 @@ void main() {
   group('a decoded document is already settled', () {
     /// Every derived pass of the live editor, run on [document]: none may have anything to do.
     void expectSettled(Document document, String reason, {bool isUppercaseChecked = true}) {
-      expect(OcptWysiwygCodec.rawInlineRequests(document), isEmpty, reason: reason);
       expect(OcptWysiwygCodec.sceneNumberRequests(document), isEmpty, reason: reason);
       expect(OcptWysiwygCodec.reclassifyRequests(document), isEmpty, reason: reason);
       expect(OcptWysiwygCodec.noteAttributionRequests(document), isEmpty, reason: reason);
@@ -168,7 +172,7 @@ void main() {
       );
     });
 
-    test('a line decoded inert is parsed once it is live again', () {
+    test('an inert line holds its emphasis as styled text, live or not', () {
       final decoded = OcptWysiwygCodec.decode('/*\nHe **runs** _away_.\n*/');
       final document = decoded.document;
       final opener = document.getNodeAt(0)! as ParagraphNode;
@@ -241,20 +245,38 @@ void main() {
       expect(OcptWysiwygCodec.encode(document).text, 'A.\n\nHe **runs** _away_.\n\n*/');
     });
 
-    test('bold added to an inert line keeps the literal markers once it is live', () {
-      final decoded = OcptWysiwygCodec.decode('/*\nHe **runs** _away_.\n*/');
+    test('bold across the edge of a note is written as valid Fountain', () {
+      final decoded = OcptWysiwygCodec.decode('He runs [[note]] away.');
       final document = decoded.document;
-      final node = document.getNodeAt(1)! as ParagraphNode;
-      node.text.addAttribution(boldAttribution, const SpanRange(13, 16));
-      final opener = document.getNodeAt(0)! as ParagraphNode;
-      document.replaceNodeById(opener.id, opener.copyParagraphWith(text: AttributedText('')));
+      final node = document.getNodeAt(0)! as ParagraphNode;
+      node.text.addAttribution(boldAttribution, const SpanRange(3, 10));
 
       settle(document);
+      final written = OcptWysiwygCodec.encode(document).text;
 
+      final reread = OcptWysiwygCodec.decode(written).document.getNodeAt(0)! as ParagraphNode;
+      expect(reread.text.toPlainText(), 'He runs [[note]] away.');
       expect(
-        OcptWysiwygCodec.encode(document, trailingBlankLines: decoded.trailingBlankLines).text,
-        '\nHe **runs** _**away**_.\n*/',
+        reread.text.getAttributionSpans({boldAttribution}).map((span) => (span.start, span.end)),
+        [(3, 7)],
       );
+      expect(
+        reread.text
+            .getAttributionSpans({ocptFountainNoteAttribution})
+            .map((span) => (span.start, span.end)),
+        [(8, 15)],
+      );
+    });
+
+    test('an escaped note is no note, and is not dimmed', () {
+      final decoded = OcptWysiwygCodec.decode('He \\[[x]] y.\n\n/* \\[[z]] */');
+      final first = decoded.document.getNodeAt(0)! as ParagraphNode;
+
+      expect(first.text.toPlainText(), 'He [[x]] y.');
+      expect(first.text.getAttributionSpans({ocptFountainNoteAttribution}), isEmpty);
+      expect(first.text.getAttributionSpans({ocptFountainCommentAttribution}), isEmpty);
+      expect(OcptWysiwygCodec.noteAttributionRequests(decoded.document), isEmpty);
+      expect(OcptWysiwygCodec.commentAttributionRequests(decoded.document), isEmpty);
     });
 
     test('a settle lays the document out once when no pass changes its text', () {
@@ -266,18 +288,6 @@ void main() {
       settle(document);
 
       expect(OcptWysiwygCodec.layoutCount - before, 1);
-    });
-
-    test('a line decoded inert and not yet settled is written without escapes', () {
-      final decoded = OcptWysiwygCodec.decode('/*\nHe **runs** _away_.\n*/');
-      final document = decoded.document;
-      final opener = document.getNodeAt(0)! as ParagraphNode;
-      document.replaceNodeById(opener.id, opener.copyParagraphWith(text: AttributedText('')));
-
-      expect(
-        OcptWysiwygCodec.encode(document, trailingBlankLines: decoded.trailingBlankLines).text,
-        '\nHe **runs** _away_.\n*/',
-      );
     });
   });
 }

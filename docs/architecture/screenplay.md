@@ -110,31 +110,31 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   `/* ... */` and the note `[[ ... ]]`, each running to its first closing marker, over several
   lines if need be. The parser, the spell checker and the editor all use it. A node whose whole
   text lies inside such a span is **inert**, the way the parser sees no screenplay element there.
-  Inertness is recomputed from the document's texts on every pass (`OcptWysiwygCommentLayout`),
-  never stored: an inert node is decoded as action with its raw line kept as its text (no marker
-  stripped, no inline parsing), is never reclassified, uppercased or numbered (the computed scene
-  numbers skip it), and `encode` writes it byte for byte, never with a forcing marker. The other
-  lines are classified on the same lines the parser classifies, the boneyards and the standalone
-  notes blanked out, so editor and parser agree on their types; a line with live text and a
-  trailing `/*` or a leading `*/` keeps its normal type. Classification also ignores the inline
-  notes of a line (`[[x]]INT. HOUSE - DAY` is a heading, `CUT TO:[[x]]` a transition, in the parser
-  and in the editor), and the uppercase pass leaves the text of a note or of a comment as written.
+  Inertness is recomputed from the nodes' plain texts on every pass (`OcptWysiwygCommentLayout`),
+  never stored. **A node holds its text in one form, inert or live:** the whole line's inline runs
+  parsed into attributions (emphasis, notes) and written back by the one serializer, so commenting
+  or uncommenting a line never changes its representation and nothing is re-parsed. An inert node
+  differs from a live one only by its type (action, no marker stripped on decode and none added on
+  `encode`), by being left alone by the reclassify, uppercase and scene-number passes (the computed
+  scene numbers skip it), and by being dimmed. The other lines are classified on the same lines the
+  parser classifies, the boneyards and the standalone notes blanked out, so editor and parser agree
+  on their types; a line with live text and a trailing `/*` or a leading `*/` keeps its normal
+  type. Classification also ignores the inline notes of a line (`[[x]]INT. HOUSE - DAY` is a
+  heading, `CUT TO:[[x]]` a transition, in the parser and in the editor), and the uppercase pass
+  leaves the text of a note or of a comment as written. The spans are found on the plain texts, so
+  they need no offset mapping: the inline parser reads `/*` and `*/` as literal text, never as an
+  emphasis marker, and the serializer never escapes them. A `[[` preceded by an odd number of
+  backslashes is escaped, printed text and no note, for the parser and the spell checker alike;
+  the parser drops the backslash, so the node marks the `[` with `ocptFountainEscapedAttribution`
+  and the spans are looked for in a copy of its text where that character is blanked.
   A derived pass, run with the others inside the settle pass (so with no undo step of its own),
   puts `ocptFountainCommentAttribution` on every commented span, across nodes too; the stylesheet
   dims it like a note. `decode` puts the same attributions itself, so a decoded document is
   already settled: the editor's first history snapshot carries them, and no pass has a request to
   make on it, which is what keeps Ctrl+Z, then redo, working on a freshly opened text. The
-  document is laid out as source lines once per settle (`OcptWysiwygCodec.layoutOf`, an
+  document is laid out as lines of plain text once per settle (`OcptWysiwygCodec.layoutOf`, an
   `OcptWysiwygDocumentLayout` handed to each pass, laid out again only after a pass that changed
   a text); `OcptWysiwygCommentLayout.of` also answers the last layout again to the builds.
-  Text inside a commented span is verbatim all the way: the inline parser leaves the emphasis
-  markers inside it alone, and the serialization of a node writes the characters of its notes and
-  commented spans as they are, never escaped, even inside an emphasis span (`He _runs /* x */
-  fast_.` decodes and encodes unchanged), while the node's real emphasis is still written as
-  markers. A commented range is carried between the source line and the plain text by aligning
-  the two. An inert node keeps its raw line, emphasis markers included, and is flagged
-  (`ocptInlineUnparsedMetadataKey`); once it is live again, `rawInlineRequests` parses its source
-  text, the literal markers and the emphasis given since both kept.
   A line whose marker cannot be stripped and written back exactly (a marker preceded by a note or
   a boneyard, a page break or a centered text in any form but its canonical one) is kept as
   written, its text the whole source line and its type the parser's; `encode` writes it back as it

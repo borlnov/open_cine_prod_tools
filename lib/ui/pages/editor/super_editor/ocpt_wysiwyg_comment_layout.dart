@@ -36,18 +36,25 @@ final class OcptWysiwygCommentLayout {
   /// ask for the layout of the very same lines, which is then computed once.
   static List<String>? _lastLines;
 
+  /// Whether the last layout was built honouring escapes.
+  static bool _lastHonoursEscapes = true;
+
   /// The layout of [_lastLines].
   static OcptWysiwygCommentLayout? _lastLayout;
 
   /// Get the layout of [lines], the one already computed when the lines are the same as the last
   /// call's.
-  factory OcptWysiwygCommentLayout.of(List<String> lines) {
+  factory OcptWysiwygCommentLayout.of(List<String> lines, {bool honoursEscapes = true}) {
     final last = _lastLayout;
     final lastLines = _lastLines;
-    if (last != null && lastLines != null && _sameLines(lastLines, lines)) {
+    if (last != null &&
+        lastLines != null &&
+        _lastHonoursEscapes == honoursEscapes &&
+        _sameLines(lastLines, lines)) {
       return last;
     }
-    final layout = OcptWysiwygCommentLayout.fromLines(lines);
+    final layout = OcptWysiwygCommentLayout.fromLines(lines, honoursEscapes: honoursEscapes);
+    _lastHonoursEscapes = honoursEscapes;
     _lastLines = List<String>.of(lines);
     _lastLayout = layout;
     return layout;
@@ -56,10 +63,16 @@ final class OcptWysiwygCommentLayout {
   /// Build the layout of [lines], one source line each (a blank line is an empty string).
   ///
   /// Linear in the text and the number of spans: the spans are walked once, with a cursor.
-  factory OcptWysiwygCommentLayout.fromLines(List<String> lines) {
+  ///
+  /// [honoursEscapes] is false for lines of plain text, where an escaped `[[` has lost its
+  /// backslash (see `FountainCommentSpans.notes`).
+  factory OcptWysiwygCommentLayout.fromLines(List<String> lines, {bool honoursEscapes = true}) {
     final text = lines.join("\n");
-    final spans = FountainCommentSpans.of(text);
-    final classificationLines = FountainCommentSpans.scrubForClassification(text).split("\n");
+    final spans = FountainCommentSpans.of(text, honoursEscapes: honoursEscapes);
+    final classificationLines = FountainCommentSpans.scrubForClassification(
+      text,
+      honoursEscapes: honoursEscapes,
+    ).split("\n");
 
     final isInertByLine = <bool>[];
     final commentRangesByLine = <List<(int, int)>>[];
