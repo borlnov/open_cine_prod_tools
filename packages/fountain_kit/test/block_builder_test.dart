@@ -57,6 +57,13 @@ void main() {
       expect(group.character.extension, 'V.O.');
     });
 
+    test('a lowercase character extension makes a dialogue group', () {
+      final blocks = _build('\nHANS (on the radio)\nHello there.\n');
+      final group = blocks.single as FountainDialogueGroup;
+      expect(group.character.name, 'HANS');
+      expect(group.character.extension, 'on the radio');
+    });
+
     test('a blank line ends a dialogue group', () {
       final blocks = _build('\nSARAH\nHello there.\n\nMore action.\n');
       expect(blocks, hasLength(2));

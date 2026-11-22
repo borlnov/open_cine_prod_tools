@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
 //
 // SPDX-License-Identifier: Apache-2.0
+import 'package:fountain_kit/src/parser/fountain_character_cue.dart';
 import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
 /// First parsing pass: classifies every source line of a Fountain document
@@ -141,16 +142,12 @@ class FountainLineClassifier {
       type == FountainLineType.parenthetical ||
       type == FountainLineType.dialogue;
 
-  /// Tell whether [trimmed] looks like an (unforced) character cue: all-caps
-  /// text, optionally with a parenthetical extension and/or a trailing `^`
-  /// dual-dialogue marker.
-  bool _isCharacterCandidate(String trimmed) {
-    var candidate = trimmed;
-    if (candidate.endsWith('^')) {
-      candidate = candidate.substring(0, candidate.length - 1).trim();
-    }
-    return _isAllCaps(candidate);
-  }
+  /// Tell whether [trimmed] looks like an (unforced) character cue: an all-caps
+  /// name, optionally followed by a parenthetical extension (written in any
+  /// case, as in `HANS (on the radio)`) and/or a trailing `^` dual-dialogue
+  /// marker.
+  bool _isCharacterCandidate(String trimmed) =>
+      _isAllCaps(parseFountainCharacterCue(trimmed).name);
 
   /// Tell whether [trimmed] looks like an (unforced) transition: all-caps text
   /// ending with `TO:`.
