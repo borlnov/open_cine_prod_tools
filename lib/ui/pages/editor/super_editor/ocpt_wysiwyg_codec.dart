@@ -20,7 +20,11 @@ export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_i
     show ocptFountainNoteAttribution;
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart'
-    show ocptTitlePageFieldAttribution, ocptTitlePageFieldKeys, ocptTitlePageKeyMetadataKey;
+    show
+        ocptTitlePageExtraEntriesMetadataKey,
+        ocptTitlePageFieldAttribution,
+        ocptTitlePageFieldKeys,
+        ocptTitlePageKeyMetadataKey;
 
 /// The `ParagraphNode` metadata key holding the number of blank source lines that preceded a node
 /// (0 inside a dialogue group, since a real blank line there would break the group).
@@ -379,7 +383,10 @@ class OcptWysiwygCodec {
       MutableDocument(nodes: List<DocumentNode>.of(bodyNodes)),
       trailingBlankLines: trailingBlankLines,
     );
-    final titlePageEntries = OcptWysiwygTitlePage.entriesFromNodes(titlePageNodes);
+    final titlePageEntries = [
+      ...OcptWysiwygTitlePage.entriesFromNodes(titlePageNodes),
+      ...OcptWysiwygTitlePage.extraEntriesFromNodes(titlePageNodes),
+    ];
     final text = const FountainTitlePageWriter().apply(
       source: bodyEncoded.text,
       existingRange: null,

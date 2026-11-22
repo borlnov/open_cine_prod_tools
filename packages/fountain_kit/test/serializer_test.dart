@@ -55,6 +55,13 @@ void main() {
       _expectRoundTrips('SARAH (V.O.)\nHello there.\n');
     });
 
+    test('character with a lowercase extension', () {
+      const source = 'Intro.\n\nHANS (on the radio)\nWhat?\n';
+      final group = _parser.parse(source).blocks.whereType<FountainDialogueGroup>().single;
+      expect(group.character.extension, 'on the radio');
+      _expectRoundTrips(source);
+    });
+
     test('forced, lowercase character', () {
       _expectRoundTrips('@McCLANE\nYippee-ki-yay.\n');
     });
