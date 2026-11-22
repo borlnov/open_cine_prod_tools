@@ -124,12 +124,17 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   dims it like a note. `decode` puts the same attributions itself, so a decoded document is
   already settled: the editor's first history snapshot carries them, and no pass has a request to
   make on it, which is what keeps Ctrl+Z, then redo, working on a freshly opened text. The
-  layout of a given list of lines is computed once (`OcptWysiwygCommentLayout.of` answers the last
-  one again), however many passes and builds ask for it.
-  Text inside a commented span is verbatim all the way: the inline parser leaves it alone, and a
-  node's serialization writes the characters carrying the comment attribution as they are, never
-  escaped. An inert node keeps its raw line, emphasis markers included, and is flagged
-  (`ocptInlineUnparsedMetadataKey`); once it is live again, `rawInlineRequests` parses them.
+  document is laid out as source lines once per settle (`OcptWysiwygCodec.layoutOf`, an
+  `OcptWysiwygDocumentLayout` handed to each pass, laid out again only after a pass that changed
+  a text); `OcptWysiwygCommentLayout.of` also answers the last layout again to the builds.
+  Text inside a commented span is verbatim all the way: the inline parser leaves the emphasis
+  markers inside it alone, and the serialization of a node writes the characters of its notes and
+  commented spans as they are, never escaped, even inside an emphasis span (`He _runs /* x */
+  fast_.` decodes and encodes unchanged), while the node's real emphasis is still written as
+  markers. A commented range is carried between the source line and the plain text by aligning
+  the two. An inert node keeps its raw line, emphasis markers included, and is flagged
+  (`ocptInlineUnparsedMetadataKey`); once it is live again, `rawInlineRequests` parses its source
+  text, the literal markers and the emphasis given since both kept.
   A line whose marker cannot be stripped and written back exactly (a marker preceded by a note or
   a boneyard, a page break or a centered text in any form but its canonical one) is kept as
   written, its text the whole source line and its type the parser's; `encode` writes it back as it

@@ -2,12 +2,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:flutter/foundation.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comment_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_document_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
@@ -531,12 +533,15 @@ class OcptWysiwygCodec {
   /// answer. A side effect worth calling out: a pinned node now always classifies back to its own
   /// stored type by construction, so it never produces a request of its own — which is the
   /// correct, self-consistent outcome, not a coincidence of the check below.
-  static List<EditRequest> reclassifyRequests(Document document) {
+  static List<EditRequest> reclassifyRequests(
+    Document document, {
+    OcptWysiwygDocumentLayout? documentLayout,
+  }) {
     // Title-page field nodes are filtered out before building the virtual line list below (not
     // just skipped when generating a request for them): their text has no place in the body's own
     // classification context (a real body node's auto-detection must never depend on what a title
     // field happens to hold).
-    final nodes = _bodyNodes(document);
+    final (nodes, layout, lineIndexOfNode, sourceTexts) = _resolved(document, documentLayout);
     final types = [
       for (final node in nodes)
         OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
@@ -546,7 +551,6 @@ class OcptWysiwygCodec {
     // nodes' metadata, not nodes, so they must be reinserted before classifying, and the
     // commented spans are blanked out the way the parser does before it classifies, so a line
     // after a boneyard is read the same here and there.
-    final (layout, lineIndexOfNode, sourceTexts) = _layoutOf(nodes);
     final virtualLines = List<String>.of(layout.classificationLines);
     for (var index = 0; index < nodes.length; index++) {
       final lineIndex = lineIndexOfNode[index];
@@ -597,10 +601,12 @@ class OcptWysiwygCodec {
   ///
   /// Run this pass, and execute its requests, before every other one: it replaces the text of the
   /// nodes it touches, which every later pass reads offsets from.
-  static List<EditRequest> rawInlineRequests(Document document) {
+  static List<EditRequest> rawInlineRequests(
+    Document document, {
+    OcptWysiwygDocumentLayout? documentLayout,
+  }) {
     final requests = <EditRequest>[];
-    final nodes = _bodyNodes(document);
-    final (layout, lineIndexOfNode, _) = _layoutOf(nodes);
+    final (nodes, layout, lineIndexOfNode, sourceTexts) = _resolved(document, documentLayout);
     for (var index = 0; index < nodes.length; index++) {
       final node = nodes[index];
       final lineIndex = lineIndexOfNode[index];
@@ -608,14 +614,14 @@ class OcptWysiwygCodec {
           layout.isInertByLine[lineIndex]) {
         continue;
       }
-      if (!_hasEmphasis(node)) {
-        requests.add(
-          OcptReplaceNodeTextRequest(
-            nodeId: node.id,
-            text: _parseInline(node.text.toPlainText(), layout.commentRangesByLine[lineIndex]),
-          ),
-        );
-      }
+      // Parsed from the node's source text: its literal markers, and the emphasis it was given
+      // since, written as markers, so both come out as styled text.
+      requests.add(
+        OcptReplaceNodeTextRequest(
+          nodeId: node.id,
+          text: _parseInline(sourceTexts[index], layout.commentRangesByLine[lineIndex]),
+        ),
+      );
       requests.add(
         OcptChangeNodeMetadataRequest(
           nodeId: node.id,
@@ -636,9 +642,12 @@ class OcptWysiwygCodec {
   /// `OcptStyledScreenplayEditor._syncAfterEdit`): otherwise a request from this pass and one from
   /// [uppercaseRequests], both computed against the same pre-strip text, would each replace the
   /// node's text wholesale, and whichever executes last would silently undo the other.
-  static List<EditRequest> sceneNumberRequests(Document document) {
+  static List<EditRequest> sceneNumberRequests(
+    Document document, {
+    OcptWysiwygDocumentLayout? documentLayout,
+  }) {
     final requests = <EditRequest>[];
-    final inertIds = inertNodeIds(document);
+    final inertIds = inertNodeIds(document, documentLayout: documentLayout);
 
     for (final node in document) {
       if (node is! ParagraphNode || isTitlePageNode(node) || inertIds.contains(node.id)) {
@@ -680,10 +689,12 @@ class OcptWysiwygCodec {
   ///
   /// What lies inside a commented span is never touched: an inert node is skipped entirely, and a
   /// note (`[[ ... ]]`) or a boneyard on a live line keeps its text as written.
-  static List<EditRequest> uppercaseRequests(Document document) {
+  static List<EditRequest> uppercaseRequests(
+    Document document, {
+    OcptWysiwygDocumentLayout? documentLayout,
+  }) {
     final requests = <EditRequest>[];
-    final nodes = _bodyNodes(document);
-    final (layout, lineIndexOfNode, sourceTexts) = _layoutOf(nodes);
+    final (nodes, layout, lineIndexOfNode, sourceTexts) = _resolved(document, documentLayout);
 
     for (var index = 0; index < nodes.length; index++) {
       final node = nodes[index];
@@ -745,10 +756,12 @@ class OcptWysiwygCodec {
   /// over several nodes dims every one of them, and an inert node is dimmed whole. Like
   /// [noteAttributionRequests], only a node whose spans differ gets a request, and the requests are
   /// plain attribution changes, so they merge into the step of the edit that caused them.
-  static List<EditRequest> commentAttributionRequests(Document document) {
+  static List<EditRequest> commentAttributionRequests(
+    Document document, {
+    OcptWysiwygDocumentLayout? documentLayout,
+  }) {
     final requests = <EditRequest>[];
-    final nodes = _bodyNodes(document);
-    final (layout, lineIndexOfNode, sourceTexts) = _layoutOf(nodes);
+    final (nodes, layout, lineIndexOfNode, sourceTexts) = _resolved(document, documentLayout);
 
     for (var index = 0; index < nodes.length; index++) {
       final plainText = nodes[index].text.toPlainText();
@@ -877,35 +890,134 @@ class OcptWysiwygCodec {
     return (nodes, blankLinesBeforeByNode, pendingBlanks);
   }
 
-  /// Parse [text] into styled text, the characters inside [commentedRanges] (start, exclusive end)
-  /// left as they are: nothing in a boneyard is emphasis, whatever `*` or `_` it holds. Those
-  /// characters carry [ocptFountainCommentAttribution], so they are written back as they are too.
+  /// Parse [text] into styled text, the emphasis markers (`*`, `_`) inside [commentedRanges]
+  /// (start, exclusive end) left alone: nothing in a boneyard is emphasis, whatever it holds. The
+  /// characters inside carry [ocptFountainCommentAttribution], so they are written back as they
+  /// are too (see [_serialize]).
   static AttributedText _parseInline(String text, List<(int, int)> commentedRanges) {
-    final runs = <FountainStyledRun>[];
-    final attributed = <(int, int)>[];
-    var cursor = 0;
-    var length = 0;
-    void addRuns(List<FountainStyledRun> added) {
-      runs.addAll(added);
-      length += added.fold(0, (sum, run) => sum + run.text.length);
-    }
-
-    for (final (start, end) in commentedRanges) {
-      if (start < cursor || end > text.length) {
-        continue;
-      }
-      addRuns(_inlineParser.parseRuns(text.substring(cursor, start)));
-      attributed.add((length, length + end - start));
-      addRuns([FountainStyledRun(text: text.substring(start, end))]);
-      cursor = end;
-    }
-    addRuns(_inlineParser.parseRuns(text.substring(cursor)));
-
+    final runs = [
+      for (final run in _inlineParser.parseRuns(_mask(text, commentedRanges)))
+        FountainStyledRun(
+          text: _unmask(run.text),
+          isBold: run.isBold,
+          isItalic: run.isItalic,
+          isUnderline: run.isUnderline,
+          isNote: run.isNote,
+        ),
+    ];
     final styled = OcptWysiwygInlineRuns.attributedTextFromRuns(runs);
-    for (final (start, end) in attributed) {
+    final plainText = styled.toPlainText();
+    final offsets = _plainOffsets(text, plainText);
+    for (final (start, end) in _mergeAdjacent(_mapRanges(commentedRanges, offsets))) {
       styled.addAttribution(ocptFountainCommentAttribution, SpanRange(start, end - 1));
     }
     return styled;
+  }
+
+  /// The emphasis markers the inline parser reads, and the private-use characters standing for them
+  /// while they must not be read: [_mask] and [_unmask] swap one for the other.
+  static const Map<String, String> _emphasisMarkers = {
+    "*": "\uE000",
+    "_": "\uE001",
+    r'\': "\uE002",
+  };
+
+  /// The brackets that open and close a note, masked along with the emphasis markers while a line
+  /// is written, so that a note or a boneyard comes out exactly as it is.
+  static const Map<String, String> _bracketMarkers = {"[": "\uE003", "]": "\uE004"};
+
+  /// Get [text] with the markers inside [ranges] (start, exclusive end) replaced by their
+  /// placeholder, or all of them when [ranges] is null; the brackets of a note too when
+  /// [areBracketsMasked].
+  static String _mask(String text, List<(int, int)>? ranges, {bool areBracketsMasked = false}) {
+    if (ranges != null && ranges.isEmpty) {
+      return text;
+    }
+    final buffer = StringBuffer();
+    for (var index = 0; index < text.length; index++) {
+      final isCovered = ranges == null || ranges.any((r) => index >= r.$1 && index < r.$2);
+      final character = text[index];
+      buffer.write(
+        isCovered
+            ? (_emphasisMarkers[character] ??
+                  (areBracketsMasked ? _bracketMarkers[character] : null) ??
+                  character)
+            : character,
+      );
+    }
+    return buffer.toString();
+  }
+
+  /// Get [text] with every placeholder put back as the marker it stands for.
+  static String _unmask(String text) {
+    var result = text;
+    for (final markers in [_emphasisMarkers, _bracketMarkers]) {
+      markers.forEach((marker, placeholder) {
+        result = result.replaceAll(placeholder, marker);
+      });
+    }
+    return result;
+  }
+
+  /// Get, for every offset of [source] (and the one past its end), the number of characters of
+  /// [plain] that come before it, [plain] being [source] with its emphasis markers and escapes
+  /// taken out. Greedy: a character of [source] is the next one of [plain] when they are equal.
+  static List<int> _plainOffsets(String source, String plain) {
+    final offsets = List<int>.filled(source.length + 1, 0);
+    var matched = 0;
+    for (var index = 0; index < source.length; index++) {
+      offsets[index] = matched;
+      if (matched < plain.length && source[index] == plain[matched]) {
+        matched++;
+      }
+    }
+    offsets[source.length] = matched;
+    return offsets;
+  }
+
+  /// Get [ranges] of a source text turned into ranges of its plain text, through [offsets] (see
+  /// [_plainOffsets]), the empty ones dropped.
+  static List<(int, int)> _mapRanges(List<(int, int)> ranges, List<int> offsets) => [
+    for (final (start, end) in ranges)
+      if (offsets[end.clamp(0, offsets.length - 1)] > offsets[start.clamp(0, offsets.length - 1)])
+        (offsets[start.clamp(0, offsets.length - 1)], offsets[end.clamp(0, offsets.length - 1)]),
+  ];
+
+  /// Serialize [node]'s styled text into marked-up source: its real emphasis written as markers,
+  /// and the characters inside its notes and commented spans (all of them while
+  /// [ocptInlineUnparsedMetadataKey] is set) written exactly as they are, whatever markers they
+  /// hold, even inside an emphasis span.
+  static String _serialize(ParagraphNode node) {
+    final runs = OcptWysiwygInlineRuns.runsFromAttributedText(node.text, areNotesIgnored: true);
+    final isUnparsed = node.getMetadataValue(ocptInlineUnparsedMetadataKey) == true;
+    final commented = [
+      ..._spansOf(node.text, ocptFountainCommentAttribution),
+      ..._spansOf(node.text, ocptFountainNoteAttribution),
+    ];
+    if (!isUnparsed && commented.isEmpty) {
+      return _inlineSerializer.write(runs);
+    }
+    final masked = <FountainStyledRun>[];
+    var offset = 0;
+    for (final run in runs) {
+      final ranges = isUnparsed
+          ? null
+          : [
+              for (final (start, end) in commented)
+                if (end > offset && start < offset + run.text.length)
+                  (start - offset, end - offset),
+            ];
+      masked.add(
+        FountainStyledRun(
+          text: _mask(run.text, ranges, areBracketsMasked: true),
+          isBold: run.isBold,
+          isItalic: run.isItalic,
+          isUnderline: run.isUnderline,
+        ),
+      );
+      offset += run.text.length;
+    }
+    return _unmask(_inlineSerializer.write(masked));
   }
 
   /// Get the commented ranges of the source line [rawLine] (the [index]th of [layout]) that fall
@@ -1011,17 +1123,19 @@ class OcptWysiwygCodec {
   /// Get the text a node stands for in its source line, the one the commented spans are looked
   /// for in: its plain text, or, when it carries emphasis (whose markers the inline parser turned
   /// into attributions), its serialized text.
-  static String _sourceTextOf(ParagraphNode node) {
-    final hasEmphasis = _hasEmphasis(node);
-    return hasEmphasis
-        ? _inlineSerializer.write(OcptWysiwygInlineRuns.runsFromAttributedText(node.text))
-        : node.text.toPlainText();
-  }
+  static String _sourceTextOf(ParagraphNode node) =>
+      _hasEmphasis(node) ? _serialize(node) : node.text.toPlainText();
+
+  /// The number of times a document was laid out as source lines, for a test to tell how often a
+  /// settle does it.
+  @visibleForTesting
+  static int layoutCount = 0;
 
   /// Lay out [nodes] (body nodes only) as source lines, the blank runs folded into their metadata
   /// put back, and compute where the commented spans fall; the second part tells, for each node,
   /// its index in the layout's lines, the third its source text.
   static (OcptWysiwygCommentLayout, List<int>, List<String>) _layoutOf(List<ParagraphNode> nodes) {
+    layoutCount++;
     final lines = <String>[];
     final lineIndexOfNode = List<int>.filled(nodes.length, 0);
     final sourceTexts = [for (final node in nodes) _sourceTextOf(node)];
@@ -1043,13 +1157,34 @@ class OcptWysiwygCodec {
 
   /// Get the ids of the inert nodes of [document]: the body nodes whose whole text lies inside a
   /// boneyard or a note. Recomputed on every call, from the nodes' texts.
-  static Set<String> inertNodeIds(Document document) {
-    final nodes = _bodyNodes(document);
-    final (layout, lineIndexOfNode, _) = _layoutOf(nodes);
+  static Set<String> inertNodeIds(Document document, {OcptWysiwygDocumentLayout? documentLayout}) {
+    final (nodes, layout, lineIndexOfNode, _) = _resolved(document, documentLayout);
     return {
       for (var index = 0; index < nodes.length; index++)
         if (layout.isInertByLine[lineIndexOfNode[index]]) nodes[index].id,
     };
+  }
+
+  /// Lay out the body of [document] as source lines, to hand to the passes of one settle (see
+  /// [OcptWysiwygDocumentLayout]).
+  static OcptWysiwygDocumentLayout layoutOf(Document document) {
+    final nodes = _bodyNodes(document);
+    final (layout, lineIndexOfNode, sourceTexts) = _layoutOf(nodes);
+    return OcptWysiwygDocumentLayout(
+      nodes: nodes,
+      comments: layout,
+      lineIndexOfNode: lineIndexOfNode,
+      sourceTexts: sourceTexts,
+    );
+  }
+
+  /// Get the body nodes of [document] with their layout: [given] when set, else computed.
+  static (List<ParagraphNode>, OcptWysiwygCommentLayout, List<int>, List<String>) _resolved(
+    Document document,
+    OcptWysiwygDocumentLayout? given,
+  ) {
+    final resolved = given ?? layoutOf(document);
+    return (resolved.nodes, resolved.comments, resolved.lineIndexOfNode, resolved.sourceTexts);
   }
 
   /// Get the source line [encode] writes for the inert [node], byte for byte: its text, plus what
@@ -1096,9 +1231,9 @@ class OcptWysiwygCodec {
     return buffer.toString();
   }
 
-  /// Get the commented ranges of the line [plainText] within [layout], falling back to the
-  /// line's own spans when [sourceText] and [plainText] differ (emphasis markers turned into
-  /// attributions shift every offset).
+  /// Get the commented ranges of the line [plainText] within [layout], carried over from
+  /// [sourceText] to [plainText] when they differ (emphasis markers turned into attributions
+  /// shift every offset).
   static List<(int, int)> _commentedRangesOf(
     OcptWysiwygCommentLayout layout,
     int lineIndex,
@@ -1108,7 +1243,7 @@ class OcptWysiwygCodec {
     if (sourceText == plainText) {
       return layout.commentRangesByLine[lineIndex];
     }
-    return [for (final span in FountainCommentSpans.of(plainText)) (span.start, span.end)];
+    return _mapRanges(layout.commentRangesByLine[lineIndex], _plainOffsets(sourceText, plainText));
   }
 
   /// Tell whether [type] is a dialogue-block element that keeps a dialogue group open (see
@@ -1130,11 +1265,6 @@ class OcptWysiwygCodec {
   static bool _readHadForcingMarker(ParagraphNode node) =>
       node.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true;
 
-  /// Tell whether [node]'s text is a source line whose inline markers were never parsed (see
-  /// [ocptInlineUnparsedMetadataKey]) and which still carries no emphasis of its own.
-  static bool _isInlineUnparsed(ParagraphNode node) =>
-      node.getMetadataValue(ocptInlineUnparsedMetadataKey) == true && !_hasEmphasis(node);
-
   /// Tell whether [node]'s text carries a bold, italic or underline attribution.
   static bool _hasEmphasis(ParagraphNode node) => node.text.getAttributionSpans({
     boldAttribution,
@@ -1153,9 +1283,7 @@ class OcptWysiwygCodec {
   /// to an empty base text, so an emptied heading still serializes through the empty-node rule
   /// (a plain blank line) rather than stranding a lone `#N#` tag.
   static String _displayTextForEncode(ParagraphNode node, FountainLineType type) {
-    final base = _isInlineUnparsed(node)
-        ? node.text.toPlainText()
-        : _inlineSerializer.write(OcptWysiwygInlineRuns.runsFromAttributedText(node.text));
+    final base = _serialize(node);
     if (type != FountainLineType.sceneHeading || base.isEmpty) {
       return base;
     }

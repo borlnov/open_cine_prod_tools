@@ -18,21 +18,30 @@ final class OcptStyledDocumentSettle {
   /// spans refreshed, and scene numbers renumbered — in that order, each its own `execute` call so
   /// every later pass only ever sees the previous one's already-settled result.
   static void settle(MutableDocument document, Editor editor) {
+    // The document laid out as source lines, once for every pass that reads it: only a pass that
+    // changes a node's text makes it stale, and it is laid out again after that one.
+    var layout = OcptWysiwygCodec.layoutOf(document);
+
     // A line that was commented out and no longer is gets its emphasis markers parsed first: it
     // replaces node texts, which every later pass reads offsets from.
-    final rawInlineRequests = OcptWysiwygCodec.rawInlineRequests(document);
+    final rawInlineRequests = OcptWysiwygCodec.rawInlineRequests(document, documentLayout: layout);
     if (rawInlineRequests.isNotEmpty) {
       editor.execute(rawInlineRequests);
+      layout = OcptWysiwygCodec.layoutOf(document);
     }
 
     // Run before every other pass (the one above apart), and in its own `execute` call: a `#N#`
     // tag typed live still sits in the node's plain text at this point, and both this pass and
-    // `uppercaseRequests`
-    // would otherwise compute their replacement text from that same pre-strip snapshot, so
-    // whichever request executed last would silently undo the other's effect on the same node.
-    final sceneNumberRequests = OcptWysiwygCodec.sceneNumberRequests(document);
+    // `uppercaseRequests` would otherwise compute their replacement text from that same pre-strip
+    // snapshot, so whichever request executed last would silently undo the other's effect on the
+    // same node.
+    final sceneNumberRequests = OcptWysiwygCodec.sceneNumberRequests(
+      document,
+      documentLayout: layout,
+    );
     if (sceneNumberRequests.isNotEmpty) {
       editor.execute(sceneNumberRequests);
+      layout = OcptWysiwygCodec.layoutOf(document);
     }
 
     // Reclassifies every node's `blockType` (and refreshes note attributions/uppercasing) BEFORE
@@ -45,10 +54,10 @@ final class OcptStyledDocumentSettle {
     // a node whose stored type doesn't match its own text, and that character comes back on the
     // very next decode as a genuine, sticky, user-typed forcing marker.
     final requests = [
-      ...OcptWysiwygCodec.reclassifyRequests(document),
+      ...OcptWysiwygCodec.reclassifyRequests(document, documentLayout: layout),
       ...OcptWysiwygCodec.noteAttributionRequests(document),
-      ...OcptWysiwygCodec.commentAttributionRequests(document),
-      ...OcptWysiwygCodec.uppercaseRequests(document),
+      ...OcptWysiwygCodec.commentAttributionRequests(document, documentLayout: layout),
+      ...OcptWysiwygCodec.uppercaseRequests(document, documentLayout: layout),
     ];
     if (requests.isNotEmpty) {
       editor.execute(requests);
@@ -58,7 +67,10 @@ final class OcptStyledDocumentSettle {
     // in its own `execute` call so it always runs against final, already-reclassified block types:
     // inserting, deleting or retyping a heading anywhere can shift every number after it, not just
     // the one being edited.
-    final normalizationRequests = sceneNumberNormalizationRequests(document);
+    final normalizationRequests = sceneNumberNormalizationRequests(
+      document,
+      documentLayout: layout,
+    );
     if (normalizationRequests.isNotEmpty) {
       editor.execute(normalizationRequests);
     }
