@@ -101,11 +101,6 @@ class OcptWysiwygCodec {
     FountainLineType.transition,
   };
 
-  /// Splits a character cue's display text into its name and its trailing parenthetical extension,
-  /// optionally followed by the dual-dialogue `^`, so [uppercaseRequests] uppercases the name
-  /// alone.
-  static final RegExp _cueExtensionPattern = RegExp(r'^(.*?)(\s*\([^()]*\)\s*\^?\s*)$');
-
   /// Mirrors [FountainLineClassifier]'s own (private) section-heading pattern, so a section
   /// node's display text can be recovered without re-deriving the leading `#` run's length here:
   /// see [decode]'s per-type stripping and the class doc comment on the section-level
@@ -587,9 +582,7 @@ class OcptWysiwygCodec {
       }
 
       final plainText = node.text.toPlainText();
-      final upperText = blockType == FountainLineType.character
-          ? _uppercasedCue(plainText)
-          : plainText.toUpperCase();
+      final upperText = plainText.toUpperCase();
       if (upperText == plainText) {
         continue;
       }
@@ -714,17 +707,6 @@ class OcptWysiwygCodec {
     }
 
     return (nodes, blankLinesBeforeByNode, pendingBlanks);
-  }
-
-  /// Get the character cue [text] with its name uppercased and its trailing parenthetical extension
-  /// (and dual-dialogue `^`) left as written: the Fountain spec lets an extension be written in
-  /// either case (`HANS (on the radio)`), and the print style uppercases the whole cue anyway.
-  static String _uppercasedCue(String text) {
-    final match = _cueExtensionPattern.firstMatch(text);
-    if (match == null) {
-      return text.toUpperCase();
-    }
-    return "${match.group(1)!.toUpperCase()}${match.group(2)}";
   }
 
   /// Copy [text]'s attribution spans and placeholders onto [upperText] unchanged: uppercasing

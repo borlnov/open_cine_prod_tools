@@ -543,24 +543,6 @@ void main() {
       expect(requests[1].text.toPlainText(), "CUT TO:");
     });
 
-    test("uppercases a cue's name and leaves its extension as written", () {
-      final decoded = OcptWysiwygCodec.decode("HANS (on the radio)\nWhat?\n\nSTEEL (v.o.) ^\nNo.");
-      expect(typeAt(decoded.document, 0), FountainLineType.character);
-      expect(OcptWysiwygCodec.uppercaseRequests(decoded.document), isEmpty);
-
-      replaceText(decoded.document, 0, "hans (on the radio)");
-      replaceText(decoded.document, 2, "steel (v.o.) ^");
-
-      final requests = OcptWysiwygCodec.uppercaseRequests(
-        decoded.document,
-      ).cast<OcptReplaceNodeTextRequest>();
-
-      expect(requests.map((request) => request.text.toPlainText()), [
-        "HANS (on the radio)",
-        "STEEL (v.o.) ^",
-      ]);
-    });
-
     test("leaves action, dialogue and already-uppercase nodes untouched", () {
       final decoded = OcptWysiwygCodec.decode(
         "INT. HOUSE - DAY\n\nSome action.\n\nSARAH\nhello there.",
