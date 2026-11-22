@@ -175,7 +175,9 @@ final class OcptFountainNoteActions {
           OcptChangeNodeMetadataRequest(
             nodeId: next.id,
             metadata: {
-              ocptBlankLinesBeforeMetadataKey: blankLinesBefore > nextBlankLines
+              // Nothing above the note: what follows it takes the place of the note, so it keeps
+              // the note's own blank lines, never the gap that used to separate the two.
+              ocptBlankLinesBeforeMetadataKey: previous == null || blankLinesBefore > nextBlankLines
                   ? blankLinesBefore
                   : nextBlankLines,
             },

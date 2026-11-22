@@ -252,6 +252,15 @@ void main() {
       expect(document.getNodeById("d")!.getMetadataValue(ocptBlankLinesBeforeMetadataKey), 1);
     });
 
+    test("a note opening the body leaves no blank line before what follows", () {
+      final document = documentOf(["[[a note", "over two]]", "After."]);
+
+      editorOf(document).execute(OcptFountainNoteActions.removeRequests(document, caret("a", 4))!);
+
+      expect(textsOf(document), ["After."]);
+      expect(document.getNodeById("c")!.getMetadataValue(ocptBlankLinesBeforeMetadataKey), 0);
+    });
+
     test("one undo step brings the whole note back", () {
       final document = documentOf(["See [[a note", "over two]] here", "Next."]);
       final editor = editorOf(document);
