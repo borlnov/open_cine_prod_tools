@@ -68,7 +68,7 @@ final class OcptFountainNoteActions {
   /// stood before it in its first block is joined to what stood after it in its last, all in the
   /// same request list, so one undo step puts it back.
   static List<EditRequest>? removeRequests(Document document, DocumentSelection? selection) {
-    final target = _target(document, selection);
+    final target = _target(document, selection, allowsNotedPageBreak: true);
     if (target != null) {
       final text = target.node.text;
       final range = OcptWysiwygInlineRuns.noteRanges(text.toPlainText())
@@ -237,8 +237,13 @@ final class OcptFountainNoteActions {
 
   /// Resolve [selection] to the single body paragraph and the ordered, in-block offsets a note
   /// command works on, or null when it has none: no selection, two blocks, a node that is not a
-  /// text paragraph, a title-page field or a page break.
-  static _NoteTarget? _target(Document document, DocumentSelection? selection) {
+  /// text paragraph, a title-page field or a page break ([allowsNotedPageBreak] lets through a
+  /// page break that holds a note, which a command removing it can still work on).
+  static _NoteTarget? _target(
+    Document document,
+    DocumentSelection? selection, {
+    bool allowsNotedPageBreak = false,
+  }) {
     if (selection == null || selection.base.nodeId != selection.extent.nodeId) {
       return null;
     }
@@ -250,8 +255,9 @@ final class OcptFountainNoteActions {
         base is! TextNodePosition ||
         extent is! TextNodePosition ||
         OcptWysiwygCodec.isTitlePageNode(node) ||
-        OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")) ==
-            FountainLineType.pageBreak) {
+        (OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")) ==
+                FountainLineType.pageBreak &&
+            !(allowsNotedPageBreak && node.text.toPlainText().contains("[[")))) {
       return null;
     }
 

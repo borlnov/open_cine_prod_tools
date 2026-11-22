@@ -274,6 +274,19 @@ void main() {
       expect(textsOf(document), ["See [[a note", "over two]] here", "Next."]);
     });
 
+    test("removes the note of a page break kept as written, but inserts none in it", () {
+      final document = _document(
+        "[[x]]===",
+        metadata: {
+          "blockType": OcptFountainLineAttributions.attributionOf(FountainLineType.pageBreak),
+        },
+      );
+
+      final requests = OcptFountainNoteActions.removeRequests(document, _selection(3))!;
+      expect(_writtenText(requests), "===");
+      expect(OcptFountainNoteActions.insertRequests(document, _selection(7)), isNull);
+    });
+
     test("is withheld outside the note, and for a boneyard", () {
       final document = documentOf(["Hi [[a note", "over two]] there", "/* b", "*/"]);
 
