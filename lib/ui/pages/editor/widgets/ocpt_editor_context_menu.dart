@@ -103,8 +103,8 @@ class OcptEditorContextMenu extends StatelessWidget {
     required this.onCopy,
     required this.onPaste,
     required this.onSelectAll,
-    this.onInsertNote,
-    this.onRemoveNote,
+    required this.onInsertNote,
+    required this.onRemoveNote,
     required this.onTypeSelected,
     required this.child,
   });
@@ -164,14 +164,10 @@ class OcptEditorContextMenu extends StatelessWidget {
             onPressed: onLearnWord,
             child: Text(tr.editorContextMenuAddToDictionaryAction),
           ),
-        // Separates the spelling group from the clipboard/block-type half below, only drawn when
-        // both halves are actually there.
+        // Separates the spelling group from the clipboard/note/block-type half below, only drawn
+        // when both halves are actually there.
         if (hasSpellingGroup &&
-            (onCut != null ||
-                onCopy != null ||
-                onPaste != null ||
-                onSelectAll != null ||
-                (onTypeSelected != null && currentType != null)))
+            (hasClipboardGroup || hasNoteGroup || (onTypeSelected != null && currentType != null)))
           const Divider(height: 1),
         if (onCut != null)
           MenuItemButton(
