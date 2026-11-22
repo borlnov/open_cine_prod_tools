@@ -320,7 +320,12 @@ class FountainBlockBuilder {
     final match = _sectionPattern.firstMatch(scrubbed.trim())!;
     final level = match.group(1)!.length;
     final afterMarker = start + level;
-    final text = rawLine.substring(0, start) + rawLine.substring(afterMarker).trimLeft();
+    final rest = rawLine.substring(afterMarker);
+    final text = _joinAroundMarker(
+      rawLine.substring(0, start),
+      rest.trimLeft(),
+      rest != rest.trimLeft(),
+    );
     return FountainSection(sourceRange: range, level: level, text: text.trim());
   }
 
@@ -335,10 +340,23 @@ class FountainBlockBuilder {
     while (afterMarker < rawLine.length && rawLine[afterMarker] == '=') {
       afterMarker++;
     }
+    var hadSpace = false;
     if (afterMarker < rawLine.length && rawLine[afterMarker].trim().isEmpty) {
       afterMarker++;
+      hadSpace = true;
     }
-    final text = rawLine.substring(0, start) + rawLine.substring(afterMarker);
+    final text = _joinAroundMarker(
+      rawLine.substring(0, start),
+      rawLine.substring(afterMarker),
+      hadSpace,
+    );
     return FountainSynopsis(sourceRange: range, text: text.trim());
   }
+
+  /// Join what [before] a marker (notes) and what follows it, with one space between them when
+  /// the source had one after the marker and [before] does not already end with one.
+  String _joinAroundMarker(String before, String after, bool hadSpace) =>
+      hadSpace && before.isNotEmpty && before.trimRight() == before && after.isNotEmpty
+      ? '$before $after'
+      : '$before$after';
 }

@@ -18,11 +18,11 @@ void main() {
         expect(block.text, contains('Act'), reason: source);
         expect(block.text, isNot(contains('#')), reason: source);
       }
-      expect((_parse('[[x]]# Act').single as FountainSection).text, '[[x]]Act');
+      expect((_parse('[[x]]# Act').single as FountainSection).text, '[[x]] Act');
     });
 
     test('synopsis', () {
-      expect((_parse('[[x]]= syn').single as FountainSynopsis).text, '[[x]]syn');
+      expect((_parse('[[x]]= syn').single as FountainSynopsis).text, '[[x]] syn');
       expect((_parse('= syn[[x]]').single as FountainSynopsis).text, 'syn[[x]]');
     });
 
