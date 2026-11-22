@@ -187,6 +187,23 @@ void main() {
     });
   });
 
+  group("an escaped bracket is printed text", () {
+    test("Remove note is withheld inside it, and a real note next to it still goes", () {
+      final document = OcptWysiwygCodec.decode(r'He \[[x]] y [[n]].').document;
+      final node = document.getNodeAt(0)! as ParagraphNode;
+      DocumentSelection caretAt(int offset) => DocumentSelection.collapsed(
+        position: DocumentPosition(
+          nodeId: node.id,
+          nodePosition: TextNodePosition(offset: offset),
+        ),
+      );
+
+      expect(node.text.toPlainText(), "He [[x]] y [[n]].");
+      expect(OcptFountainNoteActions.removeRequests(document, caretAt(6)), isNull);
+      expect(OcptFountainNoteActions.removeRequests(document, caretAt(14)), isNotNull);
+    });
+  });
+
   group("removeRequests over several blocks", () {
     /// Build a document of one paragraph per entry of [texts], the nodes "a", "b", "c"...
     MutableDocument documentOf(List<String> texts) => MutableDocument(

@@ -7,7 +7,6 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_no
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The pure half of the styled editor's "Insert note" and "Remove note" commands: from a document
@@ -34,8 +33,7 @@ final class OcptFountainNoteActions {
     }
 
     final text = target.node.text;
-    final plainText = text.toPlainText();
-    final touchesNote = OcptWysiwygInlineRuns.noteRanges(plainText).any(
+    final touchesNote = OcptWysiwygCodec.noteRangesOf(target.node).any(
       (range) => target.start == target.end
           ? target.start > range.$1 && target.start < range.$2
           : target.start < range.$2 && target.end > range.$1,
@@ -71,7 +69,7 @@ final class OcptFountainNoteActions {
     final target = _target(document, selection, allowsNotedPageBreak: true);
     if (target != null) {
       final text = target.node.text;
-      final range = OcptWysiwygInlineRuns.noteRanges(text.toPlainText())
+      final range = OcptWysiwygCodec.noteRangesOf(target.node)
           .where(
             (range) => target.start == target.end
                 ? target.start > range.$1 && target.start < range.$2
@@ -119,8 +117,8 @@ final class OcptFountainNoteActions {
     final start = base < extent ? base : extent;
     final end = base < extent ? extent : base;
 
-    final joined = nodes.map((node) => node.text.toPlainText()).join("\n");
-    final note = FountainCommentSpans.of(joined)
+    final joined = nodes.map(OcptWysiwygCodec.virtualTextOf).join("\n");
+    final note = FountainCommentSpans.of(joined, honoursEscapes: false)
         .where((span) => !span.isBoneyard)
         .where(
           (span) => start == end
