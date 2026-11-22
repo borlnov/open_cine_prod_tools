@@ -92,6 +92,23 @@ line whose text cannot be located in the source gets no range rather than a
 wrong one, and `FountainScriptLine.isSynthetic` marks the lines the composer
 wrote itself.
 
+## Dual dialogue
+
+A speech whose cue ends with `^` is set beside the one before it.
+`FountainLayoutMetrics.dualDialogue` holds the two columns' layout boxes
+(`FountainDualDialogueLayout`, one per `FountainDualDialogueSide`): the
+printable width is split into two equal columns with a 4-column gutter (28
+columns in US Letter, 26 in A4), and it is `null` when a column would be
+narrower than 16 columns. `FountainLayoutMetrics.elementOf(lineType, side: ...)`
+answers the layout box of any line type, in a column when a side is given.
+
+`fountainDualDialoguePairs` finds the pairs among a document's blocks, and
+`fountainDualDialogueLinePairs` finds the same pairs among classified source
+lines, for a caller that holds no blocks. Both apply one rule: two dialogue
+groups strictly adjacent, the second one carrying `^`, the first one not
+being already the second of another pair. Anything printed or noted between
+the two groups, a note or a section for instance, breaks the pair.
+
 ## License
 
 Licensed under the Apache-2.0 license, like the rest of Open Cine Prod
