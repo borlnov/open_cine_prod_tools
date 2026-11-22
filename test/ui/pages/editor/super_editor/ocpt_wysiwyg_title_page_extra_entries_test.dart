@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_title_page_standard_keys.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_guard_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
 import 'ocpt_wysiwyg_codec_test_doubles.dart';
@@ -62,6 +63,40 @@ void main() {
       final encoded = _roundTrip(text);
 
       expect(encoded, 'Title: Brick\nAuthor: Stu\nCOPYRIGHT: (c) 2012\n\nIntro.');
+    });
+
+    test('are written once after the default newline splits the first field', () {
+      const text = 'Title: Brick\nCopyright: (c) 2012\n\nIntro.';
+      final document = OcptWysiwygCodec.decodeWithTitlePage(text).document;
+      final editor = Editor(
+        editables: {Editor.documentKey: document, Editor.composerKey: MutableDocumentComposer()},
+        requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+          ..insert(0, ocptTitlePageGuardRequestHandler),
+      );
+      final titleNodeId = document.getNodeAt(0)!.id;
+
+      // An expanded selection inside the field: the platform newline that follows splits the node
+      // with its metadata replicated.
+      editor.execute([
+        ChangeSelectionRequest(
+          DocumentSelection(
+            base: DocumentPosition(
+              nodeId: titleNodeId,
+              nodePosition: const TextNodePosition(offset: 1),
+            ),
+            extent: DocumentPosition(
+              nodeId: titleNodeId,
+              nodePosition: const TextNodePosition(offset: 3),
+            ),
+          ),
+          SelectionChangeType.expandSelection,
+          SelectionReason.userInteraction,
+        ),
+        InsertNewlineAtCaretRequest(Editor.createNodeId()),
+      ]);
+
+      final encoded = OcptWysiwygCodec.encodeWithTitlePage(document).text;
+      expect('Copyright:'.allMatches(encoded), hasLength(1));
     });
 
     test('are absent from the nodes of a screenplay without any', () {

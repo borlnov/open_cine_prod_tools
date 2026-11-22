@@ -104,17 +104,18 @@ final class OcptWysiwygTitlePage {
     return nodes;
   }
 
-  /// Get the entries [nodesFrom] stored on [titlePageNodes] under
-  /// [ocptTitlePageExtraEntriesMetadataKey], in node order, or an empty list when none carries any.
+  /// Get the entries [nodesFrom] stored on the first of [titlePageNodes] under
+  /// [ocptTitlePageExtraEntriesMetadataKey], or an empty list when it carries none.
+  ///
+  /// Only the first node is read: super_editor's own newline command splits a paragraph with
+  /// `replicateExistingMetadata`, so a field split mid-text hands a copy of the list to the node
+  /// it creates after the first one, and reading every node would write the entries twice.
   static List<FountainTitlePageEntry> extraEntriesFromNodes(List<ParagraphNode> titlePageNodes) {
-    final extras = <FountainTitlePageEntry>[];
-    for (final node in titlePageNodes) {
-      final stored = node.getMetadataValue(ocptTitlePageExtraEntriesMetadataKey);
-      if (stored is List<FountainTitlePageEntry>) {
-        extras.addAll(stored);
-      }
+    if (titlePageNodes.isEmpty) {
+      return const [];
     }
-    return extras;
+    final stored = titlePageNodes.first.getMetadataValue(ocptTitlePageExtraEntriesMetadataKey);
+    return stored is List<FountainTitlePageEntry> ? stored : const [];
   }
 
   /// Get the inverse of [nodesFrom]: groups [titlePageNodes] (already in the fixed
