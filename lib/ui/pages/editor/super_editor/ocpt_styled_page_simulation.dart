@@ -5,6 +5,7 @@
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The styled editor's page simulation bookkeeping: which nodes start a fresh simulated page, how
@@ -14,6 +15,9 @@ import 'package:super_editor/super_editor.dart';
 /// The document and the editor are resolved through callbacks at call time, since the styled
 /// editor replaces both whenever its text is rebuilt from outside.
 final class OcptStyledPageSimulation {
+  /// The difference, in inches of page, under which a stored page-start value is left as it is.
+  static const double _metadataTolerance = 1e-6;
+
   /// The number of simulated pages the document currently spans while page simulation is on
   /// (always 0 while it's off), set by [recompute].
   int pageCount;
@@ -111,21 +115,27 @@ final class OcptStyledPageSimulation {
     }
 
     final metrics = _pageSetupOf().toMetrics();
+    final zoom = _zoomOf();
+    final layout = OcptEditorPreviewLayout(metrics: metrics, zoom: zoom);
     final pagination = computeOcptStyledPagination(
       document: _document,
       metrics: metrics,
-      zoom: _zoomOf(),
+      zoom: zoom,
     );
 
+    // What is stored does not depend on the zoom, so a zoom writes nothing here (only a change of
+    // where the pages break does).
+    final wanted = {
+      for (final entry in pagination.pageStartTopPaddings.entries)
+        entry.key: ocptPageStartMetadataOf(entry.value, layout),
+    };
     final requests = <EditRequest>[
       for (final node in _document)
         if (node is ParagraphNode)
-          if (_pageStartPaddingOf(node) != (pagination.pageStartTopPaddings[node.id] ?? 0.0))
+          if ((_pageStartPaddingOf(node) - (wanted[node.id] ?? 0.0)).abs() > _metadataTolerance)
             OcptChangeNodeMetadataRequest(
               nodeId: node.id,
-              metadata: {
-                ocptStartsNewPageMetadataKey: pagination.pageStartTopPaddings[node.id] ?? 0.0,
-              },
+              metadata: {ocptStartsNewPageMetadataKey: wanted[node.id] ?? 0.0},
             ),
     ];
     if (requests.isNotEmpty) {
@@ -136,8 +146,9 @@ final class OcptStyledPageSimulation {
     trailingBottomPadding = pagination.trailingBottomPadding;
   }
 
-  /// Get the exact top padding (in logical pixels) [node] currently carries in
-  /// [ocptStartsNewPageMetadataKey] metadata, or 0 if it doesn't start a page.
+  /// Get the zoom-independent page-start value [node] currently carries in
+  /// [ocptStartsNewPageMetadataKey] metadata (see [ocptPageStartMetadataOf]), or 0 if it doesn't
+  /// start a page.
   static double _pageStartPaddingOf(ParagraphNode node) {
     final value = node.getMetadataValue(ocptStartsNewPageMetadataKey);
     return value is double ? value : 0;

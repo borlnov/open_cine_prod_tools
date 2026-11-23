@@ -333,7 +333,7 @@ class OcptFountainEditorStylesheet {
     return {
       Styles.padding: CascadingPadding.only(
         left: indent,
-        top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node),
+        top: _blankLinesBeforeTopPadding(node, layout) + _pageBoundaryTopPadding(node, layout),
       ),
       Styles.maxWidth: indent + width,
       Styles.textAlign: textAlign,
@@ -356,11 +356,10 @@ class OcptFountainEditorStylesheet {
   /// opened up above a node flagged [ocptStartsNewPageMetadataKey] by `computeOcptStyledPagination`
   /// — the exact pixel amount that pass computed for this node so it lands precisely at its
   /// sheet's text origin, rather than a fixed estimate (0 for a node not flagged, or while page
-  /// simulation is off: the flag is only ever set while it's on).
-  static double _pageBoundaryTopPadding(DocumentNode node) {
-    final value = node.getMetadataValue(ocptStartsNewPageMetadataKey);
-    return value is double ? value : 0;
-  }
+  /// simulation is off: the flag is only ever set while it's on). The stored value does not depend
+  /// on the zoom, the pixels are worked out here at [layout]'s.
+  static double _pageBoundaryTopPadding(DocumentNode node, OcptEditorPreviewLayout layout) =>
+      ocptPageStartPaddingOf(node.getMetadataValue(ocptStartsNewPageMetadataKey), layout);
 
   /// Wrap `defaultInlineTextStyler` to additionally dim an [ocptFountainNoteAttribution] or an
   /// [ocptFountainCommentAttribution] span ([_noteInlineOpacity] of [onSurfaceVariant]), read-only
