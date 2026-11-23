@@ -16,9 +16,9 @@ typedef OcptScriptWordItem = ({List<int> left, List<int>? right});
 
 /// Group the blocks of [layout] into the items a word sheet renders, in source order.
 ///
-/// A pair of [OcptScriptWordLayout.dualPairs] makes one item set side by side when [allowSideBySide]
-/// is true, the page has room for two columns ([FountainLayoutMetrics.dualDialogue] is not null)
-/// and the taller column fits a page. In every other case, a sheet too narrow for two columns, a
+/// A pair of [OcptScriptWordLayout.dualPairs] makes one item set side by side when
+/// [allowSideBySide] is true, the page has room for two columns
+/// ([FountainLayoutMetrics.dualDialogue] is not null) and the taller column fits a page. In every other case, a sheet too narrow for two columns, a
 /// page too small for them, a pair taller than a page, both members stay ordinary dialogue, one
 /// block per item, stacked.
 List<OcptScriptWordItem> ocptScriptWordItemsOf({
