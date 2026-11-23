@@ -147,6 +147,25 @@ void main() {
       }
     });
 
+    test("a clamped page start is stored the same at every zoom, and reads back as no padding", () {
+      final stored = [
+        for (final zoom in [0.5, 1.0, 2.0])
+          ocptPageStartMetadataOf(0, OcptEditorPreviewLayout(metrics: metrics, zoom: zoom)),
+      ];
+
+      expect(stored.toSet(), hasLength(1));
+      expect(stored.first, isNot(0));
+      for (final zoom in [0.5, 1.0, 2.0]) {
+        expect(
+          ocptPageStartPaddingOf(
+            stored.first,
+            OcptEditorPreviewLayout(metrics: metrics, zoom: zoom),
+          ),
+          0,
+        );
+      }
+    });
+
     test("a page start's padding lands its text at the sheet's text origin at any zoom", () {
       for (final zoom in [0.5, 1.0, 2.0]) {
         final layout = OcptEditorPreviewLayout(metrics: metrics, zoom: zoom);
@@ -507,6 +526,45 @@ void main() {
         expect(
           SuperEditorInspector.findComponentOffset(id, Alignment.topLeft).dy,
           closeTo(before, 40),
+        );
+      });
+    }
+
+    for (final isPageSimulationEnabled in [true, false]) {
+      final mode = isPageSimulationEnabled ? "with" : "without";
+
+      testWidgets("keeps the centre of a narrow area put while the page is scaled down, $mode "
+          "page simulation", (tester) async {
+        // Narrower than a sheet: at 100 % or less it is scaled down to fit, so what is drawn is
+        // not what is laid out, and the scroll offset is in the latter.
+        await _pumpEditor(
+          tester,
+          text: manyPages,
+          zoom: 0.75,
+          width: 560,
+          isPageSimulationEnabled: isPageSimulationEnabled,
+        );
+        final scrollable = tester.state<ScrollableState>(
+          find.descendant(of: find.byType(SuperEditor), matching: find.byType(Scrollable)).first,
+        );
+        scrollable.position.jumpTo(scrollable.position.maxScrollExtent * 0.6);
+        await tester.pumpAndSettle();
+        final centre = tester.getCenter(find.byType(SuperEditor));
+        final id = nodeAtPoint(centre);
+        final before = distanceTo(id, centre);
+
+        await _pumpEditor(
+          tester,
+          text: manyPages,
+          zoom: 0.9,
+          width: 560,
+          isPageSimulationEnabled: isPageSimulationEnabled,
+        );
+
+        // A scaled-down sheet is drawn at the same size at any zoom; a fluid page is not.
+        expect(
+          distanceTo(id, centre),
+          closeTo(isPageSimulationEnabled ? before : before * 1.2, 12),
         );
       });
     }

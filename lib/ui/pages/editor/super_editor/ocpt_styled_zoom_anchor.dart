@@ -100,6 +100,11 @@ final class OcptStyledZoomAnchor {
     // The line under the point and how far down it the point is: what is found again, once laid
     // out at the new zoom, wherever the text happens to land.
     final anchored = _lineAt(box, point);
+    // What a sheet scaled down to fit a narrow area is drawn at: the scroll offset is in the units
+    // it is laid out in, the rectangles in the ones it is drawn in.
+    final fitScale = hasSheets && newZoom <= 1 && viewport.width < newLayout.pageWidth
+        ? viewport.width / newLayout.pageWidth
+        : 1.0;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_vertical.hasClients && _vertical.position.hasContentDimensions) {
@@ -112,7 +117,8 @@ final class OcptStyledZoomAnchor {
                 newLayout: newLayout,
                 hasSheets: hasSheets,
               )
-            : _vertical.offset + line.top + anchored!.fraction * line.height - point.dy;
+            : _vertical.offset +
+                  (line.top + anchored!.fraction * line.height - point.dy) / fitScale;
         _vertical.jumpTo(target.clamp(0, _vertical.position.maxScrollExtent));
       }
 
@@ -175,7 +181,11 @@ final class OcptStyledZoomAnchor {
       return null;
     }
 
-    return layout.getAncestorOffsetFromDocumentOffset(rect.topLeft, area) & rect.size;
+    // Both corners, since a page scaled down to fit its area is drawn smaller than it is laid out.
+    return Rect.fromPoints(
+      layout.getAncestorOffsetFromDocumentOffset(rect.topLeft, area),
+      layout.getAncestorOffsetFromDocumentOffset(rect.bottomRight, area),
+    );
   }
 
   /// Get the line of text under [point] (in [area]'s own coordinates), and how far down that line

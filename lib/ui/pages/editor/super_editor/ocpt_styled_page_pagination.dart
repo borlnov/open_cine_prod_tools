@@ -21,13 +21,18 @@ import 'package:super_editor/super_editor.dart';
 /// pixels at the zoom it renders at ([ocptPageStartPaddingOf]). 0 means the node starts no page.
 const String ocptStartsNewPageMetadataKey = "ocptStartsNewPage";
 
+/// The metadata value of a page start whose padding came out clamped to nothing.
+const double _clampedPageStartMetadata = -1;
+
 /// Get the zoom-independent metadata value standing for a page-start [padding] (in logical pixels
 /// at [layout]'s zoom): every part of it but the page gap scales with the page, so what is stored
 /// is the rest, in inches of page.
 double ocptPageStartMetadataOf(double padding, OcptEditorPreviewLayout layout) {
-  if (padding == 0 && layout.pixelsPerInch > 0) {
-    // A clamped padding still starts a page: the value stays distinguishable from "no page".
-    return -OcptEditorPreviewLayout.pageGap / layout.pixelsPerInch;
+  if (padding == 0) {
+    // A clamped padding (a title page taller than a sheet) still starts a page, and still has to
+    // be the same whatever the zoom: one inch of page is always more than the gap, so this reads
+    // back as no padding at every zoom (see [ocptPageStartPaddingOf]).
+    return _clampedPageStartMetadata;
   }
 
   final inches = (padding - OcptEditorPreviewLayout.pageGap) / layout.pixelsPerInch;
