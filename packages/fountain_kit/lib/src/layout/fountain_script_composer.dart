@@ -810,6 +810,21 @@ class _PageBuilder {
     }
   }
 
+  /// Close the page still being filled, if any, and return the finished
+  /// [FountainScriptLayout].
+  FountainScriptLayout finish() {
+    if (_current.isNotEmpty) {
+      _closePage();
+    }
+    return FountainScriptLayout(pages: List.unmodifiable(_pages));
+  }
+
+  /// Close the page currently being filled and start a fresh one.
+  void _closePage() {
+    _pages.add(FountainScriptPage(lines: List.unmodifiable(_current)));
+    _current.clear();
+  }
+
   /// Close the current page to open the next one for a block [height] rows tall.
   ///
   /// A scene heading ending the page is carried over with the block, with the spacer that
@@ -842,21 +857,6 @@ class _PageBuilder {
   /// Tell whether [line] is a spacer, a blank line holding nothing.
   static bool _isSpacer(FountainScriptLine line) =>
       line.lineType == FountainLineType.blank && line.runs.isEmpty && line.dualSide == null;
-
-  /// Close the page still being filled, if any, and return the finished
-  /// [FountainScriptLayout].
-  FountainScriptLayout finish() {
-    if (_current.isNotEmpty) {
-      _closePage();
-    }
-    return FountainScriptLayout(pages: List.unmodifiable(_pages));
-  }
-
-  /// Close the page currently being filled and start a fresh one.
-  void _closePage() {
-    _pages.add(FountainScriptPage(lines: List.unmodifiable(_current)));
-    _current.clear();
-  }
 
   /// Get [cell], a left cell, carrying [companion] as the right cell of its row.
   static FountainScriptLine _withCompanion(

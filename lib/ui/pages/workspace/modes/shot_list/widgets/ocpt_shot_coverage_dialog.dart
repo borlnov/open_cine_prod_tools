@@ -297,25 +297,6 @@ class _OcptShotCoverageSheet extends StatelessWidget {
       if (indices.any((i) => layout.rangesIn(layout.blocks[i], entry.value).isNotEmpty)) entry.key,
   ];
 
-  /// Build the `Also covered by` caption set under a whole pair, or null when no other shot covers
-  /// any of its blocks.
-  Widget? _pairCaption(BuildContext context, ({List<int> left, List<int>? right}) item) {
-    final codes = otherCodesOf([...item.left, ...?item.right]);
-    final dual = previewLayout.metrics.dualDialogue;
-    if (codes.isEmpty || dual == null) {
-      return null;
-    }
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: EdgeInsets.only(left: previewLayout.indentOf(dual.leftDialogue)),
-      child: Text(
-        Tr.of(context).shotListCoverageAlsoCoveredBy(codes.join(" · ")),
-        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary),
-      ),
-    );
-  }
-
   /// Build the shot coverage sheet as a [Material].
   @override
   Widget build(BuildContext context) => Material(
@@ -339,7 +320,12 @@ class _OcptShotCoverageSheet extends StatelessWidget {
                 _OcptShotCoverageSheetBlock(sheet: this, index: item.left.first)
               else
                 OcptDualDialoguePair(
-                  footer: _pairCaption(context, item),
+                  footer: _OcptShotCoveragePairCaption(
+                    codes: otherCodesOf([...item.left, ...?item.right]),
+                    indent: previewLayout.indentOf(
+                      previewLayout.metrics.dualDialogue!.leftDialogue,
+                    ),
+                  ),
                   bottomSpacing: _isFollowedByBlankLine(layout, item.right!.last)
                       ? previewLayout.blockSpacing
                       : 0,
@@ -367,6 +353,36 @@ class _OcptShotCoverageSheet extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// The `Also covered by` caption set under a whole dual-dialogue pair, which keeps the rows of its
+/// two columns in step, or nothing when no other shot covers any of its blocks.
+class _OcptShotCoveragePairCaption extends StatelessWidget {
+  /// The codes of the other shots covering part of the pair.
+  final List<String> codes;
+
+  /// The distance from the page's left edge to where the caption starts, in logical pixels.
+  final double indent;
+
+  /// Class constructor
+  const _OcptShotCoveragePairCaption({required this.codes, required this.indent});
+
+  /// Build the caption as a [Padding], or an empty box when [codes] is empty.
+  @override
+  Widget build(BuildContext context) {
+    if (codes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: EdgeInsets.only(left: indent),
+      child: Text(
+        Tr.of(context).shotListCoverageAlsoCoveredBy(codes.join(" · ")),
+        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary),
+      ),
+    );
+  }
 }
 
 /// Tell whether the source leaves a blank line between [layout]'s block at [index] and the next.
