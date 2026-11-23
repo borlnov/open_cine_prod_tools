@@ -111,4 +111,34 @@ void main() {
       expect(OcptWysiwygDualDialogue.toggleAt(alone, alone.getNodeAt(0)!.id), isNull);
     });
   });
+
+  group("copying a cue", () {
+    /// Encode the selection from [startOffset] of the cue to [endOffset] of node [endIndex].
+    String copy(int startOffset, int endIndex, int endOffset) {
+      final document = OcptWysiwygCodec.decode(pair).document;
+      final selection = DocumentSelection(
+        base: DocumentPosition(
+          nodeId: document.getNodeAt(2)!.id,
+          nodePosition: TextNodePosition(offset: startOffset),
+        ),
+        extent: DocumentPosition(
+          nodeId: document.getNodeAt(endIndex)!.id,
+          nodePosition: TextNodePosition(offset: endOffset),
+        ),
+      );
+      return OcptWysiwygCodec.encodeSelectionToFountain(document, selection);
+    }
+
+    test("leaves the hidden suffix behind when the end of the cue is not copied", () {
+      expect(copy(0, 2, 2), "@KI");
+    });
+
+    test("takes the suffix along when the whole cue is copied", () {
+      expect(copy(0, 2, 3), "@KIM^");
+    });
+
+    test("takes the suffix along when the copy goes on past the cue", () {
+      expect(copy(1, 3, 2), "IM^\nHi");
+    });
+  });
 }

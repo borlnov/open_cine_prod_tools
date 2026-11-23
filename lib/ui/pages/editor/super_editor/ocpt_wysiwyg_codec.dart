@@ -503,6 +503,19 @@ class OcptWysiwygCodec {
       nodes.first.copyWithAddedMetadata({ocptBlankLinesBeforeMetadataKey: 0}),
       ...nodes.skip(1),
     ];
+    // The dual-dialogue suffix belongs to the end of its cue: a cue copied only in part leaves it
+    // behind.
+    final range = selection.normalize(document);
+    final endNode = document.getNodeById(range.end.nodeId);
+    final endPosition = range.end.nodePosition;
+    if (endNode is ParagraphNode &&
+        endPosition is TextNodePosition &&
+        endPosition.offset < endNode.text.length) {
+      final last = adjustedNodes.length - 1;
+      adjustedNodes[last] = adjustedNodes[last].copyWithAddedMetadata({
+        ocptDualDialogueMetadataKey: null,
+      });
+    }
     // The nodes were clipped out of their surroundings: which of them are inert is what the whole
     // document says, not what the fragment alone would.
     return encode(MutableDocument(nodes: adjustedNodes), inertNodeIds: inertNodeIds(document)).text;
