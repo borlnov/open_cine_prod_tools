@@ -219,7 +219,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     }
 
     _blocks = OcptEditorPreviewLayout.printableBlocks(document);
-    _items = layout.groupItems(_blocks);
+    _items = layout.groupItems(document);
     if (widget.isPageSimulationEnabled) {
       _refreshPaginatedCaches(layout);
     } else {
@@ -293,11 +293,24 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
       var separatorLines = currentPage.isEmpty ? 0 : 1;
       if (currentPage.isNotEmpty &&
           currentLines + separatorLines + lines > layout.metrics.linesPerPage) {
+        // A scene heading ending the page goes onto the next one with the pair that moves, rather
+        // than being left alone at the foot of this one.
+        final carried = _headingToCarry(currentPage, item, layout);
+        if (carried != null) {
+          currentPage.removeLast();
+        }
         pages.add(currentPage);
         currentPage = [];
         currentLines = 0;
         separatorLines = 0;
         withinPageOffset = layout.marginTop;
+        if (carried != null) {
+          offsets[carried.blockIndex] = offsetOfCurrentPage() + withinPageOffset;
+          currentPage.add(carried);
+          currentLines = layout.estimatedItemLineCount(carried);
+          separatorLines = 1;
+          withinPageOffset += layout.estimateItemHeight(carried);
+        }
       }
 
       offsets[index] = offsetOfCurrentPage() + withinPageOffset;
@@ -315,6 +328,25 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
 
     _pages = pages;
     _blockOffsets = offsets;
+  }
+
+  /// Get the scene heading ending [page], when [item], a dual-dialogue pair about to move to the
+  /// next page, has to take it along, or null.
+  ///
+  /// The heading stays where it is when the page holds nothing else, or when it and the pair
+  /// together would not fit a page.
+  OcptEditorPreviewItem? _headingToCarry(
+    List<OcptEditorPreviewItem> page,
+    OcptEditorPreviewItem item,
+    OcptEditorPreviewLayout layout,
+  ) {
+    if (item.rightBlock == null || page.length < 2 || page.last.block is! FountainSceneHeading) {
+      return null;
+    }
+    final heading = page.last;
+    final needed = layout.estimatedItemLineCount(heading) + 1 + layout.estimatedItemLineCount(item);
+
+    return needed <= layout.metrics.linesPerPage ? heading : null;
   }
 
   /// Scroll the page so the block containing the caret's line is visible.

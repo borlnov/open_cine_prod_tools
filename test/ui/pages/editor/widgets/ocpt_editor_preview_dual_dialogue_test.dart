@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
@@ -63,9 +65,12 @@ void main() {
   List<FountainBlock> blocksOf(String source) =>
       OcptEditorPreviewLayout.printableBlocks(const FountainParser().parse(source));
 
+  List<OcptEditorPreviewItem> itemsOf(String source) =>
+      layout.groupItems(const FountainParser().parse(source));
+
   group("OcptEditorPreviewLayout dual dialogue", () {
     test("a pair is one item, the right member's index kept", () {
-      final items = layout.groupItems(blocksOf("Action.\n\n$_shortPair"));
+      final items = itemsOf("Action.\n\n$_shortPair");
 
       expect(items, hasLength(2));
       expect(items[1].blockIndex, 1);
@@ -75,7 +80,7 @@ void main() {
 
     test("a pair is estimated as the taller of its two columns", () {
       final longText = List.filled(12, "word").join(" ");
-      final items = layout.groupItems(blocksOf("BOB\nShort.\n\nALICE^\n$longText"));
+      final items = itemsOf("BOB\nShort.\n\nALICE^\n$longText");
 
       expect(items, hasLength(1));
       final rightLines =
@@ -91,7 +96,7 @@ void main() {
 
     test("each column is wrapped at its own width, narrower than an ordinary dialogue", () {
       final text = List.filled(12, "aaaa").join(" ");
-      final items = layout.groupItems(blocksOf("BOB\n$text\n\nALICE^\nOk."));
+      final items = itemsOf("BOB\n$text\n\nALICE^\nOk.");
       final block = blocksOf("BOB\n$text").single;
 
       expect(
@@ -101,7 +106,7 @@ void main() {
     });
 
     test("an orphan ^ stays an item of its own", () {
-      final items = layout.groupItems(blocksOf("Action.\n\nALICE^\nHi back."));
+      final items = itemsOf("Action.\n\nALICE^\nHi back.");
 
       expect(items, hasLength(2));
       expect(items.every((item) => item.rightBlock == null), isTrue);
@@ -120,21 +125,63 @@ void main() {
       );
 
       expect(narrow.metrics.dualDialogue, isNull);
-      expect(narrow.groupItems(blocksOf(_shortPair)), hasLength(2));
+      expect(narrow.groupItems(const FountainParser().parse(_shortPair)), hasLength(2));
     });
 
     test("a pair taller than a page is stacked", () {
       final tallText = List.filled(400, "word").join(" ");
-      final items = layout.groupItems(blocksOf("BOB\n$tallText\n\nALICE^\nHi."));
+      final items = itemsOf("BOB\n$tallText\n\nALICE^\nHi.");
 
       expect(items, hasLength(2));
       expect(items.every((item) => item.rightBlock == null), isTrue);
     });
 
-    test("a script without dual dialogue keeps every block as an item of its own", () {
-      final blocks = blocksOf("Action.\n\nBOB\nHello.\n\nALICE\nHi.");
+    test("a block that is never printed between two speeches breaks the pair", () {
+      for (final between in ["[[note]]", "# Act", "= synopsis", "/* bone */"]) {
+        for (final gap in ["\n\n", "\n"]) {
+          final source = "ROSS\nHello.\n\n$between${gap}KIM^\nHi.\n";
+          expect(itemsOf(source).where((item) => item.rightBlock != null), isEmpty, reason: source);
+        }
+      }
+    });
 
-      expect(layout.groupItems(blocks), hasLength(blocks.length));
+    test("the composer and the preview pair the same speeches", () {
+      List<String> composerPairs(String source) {
+        final layout = const FountainScriptComposer().compose(
+          document: const FountainParser().parse(source),
+          metrics: metrics,
+        );
+        return [
+          for (final page in layout.pages)
+            for (final row in page.lines)
+              if (row.dualCompanion != null && row.lineType == FountainLineType.character)
+                row.dualCompanion!.plainText,
+        ];
+      }
+
+      List<String> previewPairs(String source) => [
+        for (final item in itemsOf(source))
+          if (item.rightBlock != null) item.rightBlock!.character.name.toUpperCase(),
+      ];
+
+      final sources = [
+        for (final file in Directory("packages/fountain_kit/test/corpus").listSync())
+          if (file is File && file.path.endsWith(".fountain")) file.readAsStringSync(),
+        "ROSS\nA.\n[[note]]\n\nKIM^\nHi.\n",
+        for (final between in ["[[note]]", "# Act", "= syn", "/* bone */"])
+          for (final gap in ["\n\n", "\n"]) "ROSS\nA.\n\n$between${gap}KIM^\nHi.\n",
+        "ROSS\nA.\n\nKIM^\nHi.\n",
+      ];
+      for (final source in sources) {
+        expect(previewPairs(source), composerPairs(source), reason: source);
+      }
+      expect(composerPairs(sources.last), ["KIM"]);
+    });
+
+    test("a script without dual dialogue keeps every block as an item of its own", () {
+      const source = "Action.\n\nBOB\nHello.\n\nALICE\nHi.";
+
+      expect(itemsOf(source), hasLength(blocksOf(source).length));
     });
   });
 
@@ -174,7 +221,7 @@ void main() {
       final source = "BOB\nShort.\n\nALICE^\n$longText";
       await _pumpPreview(tester, source, panelWidth: panelWidth, height: 600);
 
-      final item = layout.groupItems(blocksOf(source)).single;
+      final item = itemsOf(source).single;
       final blockSize = tester.getSize(find.byType(OcptEditorPreviewBlock));
 
       expect(blockSize.height, closeTo(layout.estimateItemHeight(item), 2));
@@ -203,6 +250,27 @@ void main() {
         expect(secondSheet.contains(tester.getTopLeft(find.text(text))), isTrue, reason: text);
       }
       expect(secondSheet.contains(tester.getTopLeft(find.text("Action ${actions - 1}."))), isFalse);
+    });
+
+    testWidgets("a scene heading ending the page moves with the pair", (tester) async {
+      // 26 actions and the heading leave one free line, where a pair needs three.
+      final source =
+          "${List.generate(26, (index) => "Action $index.").join("\n\n")}\n\n"
+          "INT. ROOM - DAY\n\n$_shortPair";
+      await _pumpPreview(
+        tester,
+        source,
+        panelWidth: panelWidth,
+        height: layout.pageHeight * 2 + 200,
+        isPageSimulationEnabled: true,
+      );
+
+      final sheets = find.byType(Material);
+      expect(sheets, findsNWidgets(2));
+      final secondSheet = tester.getRect(sheets.at(1));
+      for (final text in ["INT. ROOM - DAY", "BOB", "ALICE"]) {
+        expect(secondSheet.contains(tester.getTopLeft(find.text(text))), isTrue, reason: text);
+      }
     });
 
     testWidgets("a pair taller than a page is stacked at the ordinary dialogue indent", (
@@ -238,8 +306,7 @@ void main() {
       final source =
           "${List.generate(40, (index) => "Action $index.").join("\n\n")}\n\n$_shortPair";
       final document = const FountainParser().parse(source);
-      final blocks = OcptEditorPreviewLayout.printableBlocks(document);
-      final pair = layout.groupItems(blocks).last;
+      final pair = layout.groupItems(document).last;
       final leftLine = pair.block.sourceRange.startLine;
       final rightLine = pair.rightBlock!.sourceRange.startLine;
 

@@ -174,16 +174,21 @@ class OcptEditorPreviewLayout {
   double estimateItemHeight(OcptEditorPreviewItem item) =>
       estimatedItemLineCount(item) * lineHeight + blockSpacing;
 
-  /// Group [blocks] into the items the preview renders, in source order.
+  /// Group the printed blocks of [document] ([printableBlocks]) into the items the preview
+  /// renders, in source order.
   ///
-  /// Two blocks forming a dual-dialogue pair ([fountainDualDialoguePairs]) make one item set side
-  /// by side, unless the page has no room for two columns ([FountainLayoutMetrics.dualDialogue] is
-  /// null) or the pair is taller than a page: then both stay ordinary dialogue, stacked. Every
-  /// other block, an orphan `^` included, is an item of its own.
-  List<OcptEditorPreviewItem> groupItems(List<FountainBlock> blocks) {
+  /// Two blocks forming a dual-dialogue pair ([fountainPrintableDualDialoguePairs], found over the
+  /// whole document, so that a note or a section between two speeches breaks it) make one item set
+  /// side by side, unless the page has no room for two columns
+  /// ([FountainLayoutMetrics.dualDialogue] is null) or the pair is taller than a page: then both
+  /// stay ordinary dialogue, stacked. Every other block, an orphan `^` included, is an item of its
+  /// own.
+  List<OcptEditorPreviewItem> groupItems(FountainDocument document) {
+    final blocks = printableBlocks(document);
     final rightOf = {
       if (metrics.dualDialogue != null)
-        for (final pair in fountainDualDialoguePairs(blocks)) pair.left: pair.right,
+        for (final pair in fountainPrintableDualDialoguePairs(document.blocks))
+          pair.left: pair.right,
     };
     final items = <OcptEditorPreviewItem>[];
     var index = 0;

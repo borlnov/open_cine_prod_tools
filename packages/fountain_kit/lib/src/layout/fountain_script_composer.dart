@@ -68,7 +68,9 @@ class FountainScriptComposer {
     final blocks = _printableBlocks(document);
     final builder = _PageBuilder(metrics);
     final anchors = _SourceAnchors(document.sourceText);
-    final pairs = {for (final pair in fountainDualDialoguePairs(blocks)) pair.left: pair.right};
+    final pairs = {
+      for (final pair in fountainPrintableDualDialoguePairs(document.blocks)) pair.left: pair.right,
+    };
     final rightMembers = pairs.values.toSet();
 
     for (var index = 0; index < blocks.length; index++) {
@@ -795,7 +797,7 @@ class _PageBuilder {
       if (1 + height <= _capacity) {
         _current.add(_spacerLine());
       } else {
-        _closePage();
+        _moveToNextPage(height);
       }
     }
     for (var row = 0; row < height; row++) {
@@ -807,6 +809,39 @@ class _PageBuilder {
       );
     }
   }
+
+  /// Close the current page to open the next one for a block [height] rows tall.
+  ///
+  /// A scene heading ending the page is carried over with the block, with the spacer that
+  /// follows it, so the heading is never left alone at the foot of a page. It stays put when the
+  /// page holds nothing else or when the heading and the block together would not fit a page.
+  void _moveToNextPage(int height) {
+    var headingStart = _current.length;
+    while (headingStart > 0 && _current[headingStart - 1].isSceneHeading) {
+      headingStart--;
+    }
+    final headingLength = _current.length - headingStart;
+    var keepUntil = headingStart;
+    if (keepUntil > 0 && _isSpacer(_current[keepUntil - 1])) {
+      keepUntil--;
+    }
+    if (headingLength == 0 ||
+        keepUntil == 0 ||
+        headingLength + 1 + height > _metrics.linesPerPage) {
+      _closePage();
+      return;
+    }
+    final carried = _current.sublist(headingStart);
+    _current.removeRange(keepUntil, _current.length);
+    _closePage();
+    _current
+      ..addAll(carried)
+      ..add(_spacerLine());
+  }
+
+  /// Tell whether [line] is a spacer, a blank line holding nothing.
+  static bool _isSpacer(FountainScriptLine line) =>
+      line.lineType == FountainLineType.blank && line.runs.isEmpty && line.dualSide == null;
 
   /// Close the page still being filled, if any, and return the finished
   /// [FountainScriptLayout].

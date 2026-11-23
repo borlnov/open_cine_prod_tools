@@ -4,6 +4,7 @@
 
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/parser/fountain_character_cue.dart';
+import 'package:fountain_kit/src/parser/fountain_comment_spans.dart';
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
@@ -39,6 +40,32 @@ List<FountainDualDialoguePair> fountainDualDialoguePairs(List<FountainBlock> blo
   return pairs;
 }
 
+/// Find the dual-dialogue pairs of a whole document's [blocks], as the indices of their members
+/// among its printed blocks (the ones that are no section, synopsis, note or boneyard).
+///
+/// The pairs are found over every block, so a block that is never printed still breaks a pair, as
+/// it does in the editor, and are then expressed in the numbering of the printed blocks a layout
+/// walks.
+List<FountainDualDialoguePair> fountainPrintableDualDialoguePairs(List<FountainBlock> blocks) {
+  final printedIndexOf = <int, int>{};
+  for (var index = 0; index < blocks.length; index++) {
+    if (!_isNeverPrinted(blocks[index])) {
+      printedIndexOf[index] = printedIndexOf.length;
+    }
+  }
+  return [
+    for (final pair in fountainDualDialoguePairs(blocks))
+      (left: printedIndexOf[pair.left]!, right: printedIndexOf[pair.right]!),
+  ];
+}
+
+/// Tell whether [block] is an editor-only construct that is never printed.
+bool _isNeverPrinted(FountainBlock block) =>
+    block is FountainSection ||
+    block is FountainSynopsis ||
+    block is FountainNoteBlock ||
+    block is FountainBoneyard;
+
 /// Find the dual-dialogue pairs among the classified source [lines], as their line ranges.
 ///
 /// This is the rule of [fountainDualDialoguePairs] for a caller holding lines rather than blocks.
@@ -46,7 +73,8 @@ List<FountainDualDialoguePair> fountainDualDialoguePairs(List<FountainBlock> blo
 /// character line followed by the parenthetical and dialogue lines right after it. A pair is a
 /// group, then one or more lines with nothing on them, then a group whose cue carries `^`; the
 /// first group is not already the right member of another pair. A line holding anything else,
-/// even a note alone, between the two groups breaks the pair.
+/// even a note alone, between the two groups breaks the pair, and a line holding nothing but notes
+/// ends a group, as the note block it makes does when the document is parsed.
 List<FountainDualDialogueLinePair> fountainDualDialogueLinePairs(
   List<FountainLineType> types,
   List<String> lines,
@@ -56,7 +84,7 @@ List<FountainDualDialogueLinePair> fountainDualDialogueLinePairs(
   final pairs = <FountainDualDialogueLinePair>[];
   var cursor = 0;
   while (cursor < types.length) {
-    final left = _groupAt(types, cursor);
+    final left = _groupAt(types, lines, cursor);
     if (left == null) {
       cursor++;
       continue;
@@ -73,13 +101,14 @@ List<FountainDualDialogueLinePair> fountainDualDialogueLinePairs(
 }
 
 /// Get the dialogue group starting at [start], or null when no character line is there.
-FountainLineRange? _groupAt(List<FountainLineType> types, int start) {
+FountainLineRange? _groupAt(List<FountainLineType> types, List<String> lines, int start) {
   if (types[start] != FountainLineType.character) {
     return null;
   }
   var end = start + 1;
   while (end < types.length &&
-      (types[end] == FountainLineType.parenthetical || types[end] == FountainLineType.dialogue)) {
+      (types[end] == FountainLineType.parenthetical || types[end] == FountainLineType.dialogue) &&
+      !_isNoteOnly(lines[end])) {
     end++;
   }
   return (start: start, end: end);
@@ -100,7 +129,7 @@ FountainLineRange? _rightGroupAfter(
   if (next == left.end) {
     return null;
   }
-  final group = next < types.length ? _groupAt(types, next) : null;
+  final group = next < types.length ? _groupAt(types, lines, next) : null;
   if (group == null) {
     return null;
   }
@@ -108,4 +137,17 @@ FountainLineRange? _rightGroupAfter(
     FountainLineClassifier.withoutInlineNotes(lines[group.start]),
   );
   return cue.isDualDialogue ? group : null;
+}
+
+/// Tell whether [line] holds notes and nothing else.
+bool _isNoteOnly(String line) {
+  final notes = FountainCommentSpans.notes(line);
+  if (notes.isEmpty || line.trim().isEmpty) {
+    return false;
+  }
+  var rest = line;
+  for (final note in notes.reversed) {
+    rest = rest.replaceRange(note.start, note.end, '');
+  }
+  return rest.trim().isEmpty;
 }

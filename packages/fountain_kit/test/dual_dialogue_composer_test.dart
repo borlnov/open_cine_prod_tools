@@ -309,6 +309,45 @@ void main() {
     });
   });
 
+  group('pairs and blocks never printed', () {
+    test('a note between two speeches keeps them stacked', () {
+      final composed = _Composed(
+        'ROSS\nOne.\n\n[[note]]\n\nKIM^\nTwo.\n',
+        _metrics(linesPerPage: 20),
+      );
+
+      expect(composed.rows.every((row) => row.dualSide == null), isTrue);
+    });
+  });
+
+  group('heading before a moved pair', () {
+    test('a scene heading is carried to the next page with the pair that moves', () {
+      // The heading, a spacer and the 5-row pair need 7 rows, and 6 remain after 4 action rows.
+      final composed = _Composed(
+        'One.\n\nTwo.\n\nINT. ROOM - DAY\n\nROSS\nA.\nB.\nC.\nD.\n\nKIM^\nHi.\n',
+        _metrics(linesPerPage: 9),
+      );
+
+      expect(composed.layout.pages, hasLength(2));
+      final first = composed.layout.pages.first.lines;
+      expect(first.any((line) => line.isSceneHeading), isFalse);
+      expect(first.last.plainText, 'Two.');
+      final second = composed.layout.pages.last.lines;
+      expect(second.first.isSceneHeading, isTrue);
+      expect(second[1].lineType, FountainLineType.blank);
+      expect(second[2].dualSide, FountainDualDialogueSide.left);
+    });
+
+    test('a heading alone on its page stays where it is', () {
+      final composed = _Composed(
+        'INT. ROOM - DAY\n\nROSS\nA.\nB.\nC.\nD.\n\nKIM^\nHi.\n',
+        _metrics(linesPerPage: 5),
+      );
+
+      expect(composed.layout.pages.first.lines.first.isSceneHeading, isTrue);
+    });
+  });
+
   group('corpus', () {
     test('dual_dialogue.fountain composes with its pairs on shared rows', () {
       final source = File('test/corpus/dual_dialogue.fountain').readAsStringSync();

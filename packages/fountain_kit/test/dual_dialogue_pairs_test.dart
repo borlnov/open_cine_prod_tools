@@ -80,6 +80,25 @@ void main() {
       _expectPairs('ROSS\nA.\n\n= What happens\n\nKIM^\nB.\n', []);
     });
 
+    test('a block never printed between the groups breaks the pair', () {
+      for (final between in ['[[a note]]', '# Act two', '= What happens', '/* bone */']) {
+        for (final gap in ['\n\n', '\n']) {
+          _expectPairs('ROSS\nA.\n\n$between${gap}KIM^\nB.\n', []);
+        }
+      }
+    });
+
+    test('a line holding only a note right after the dialogue ends its group', () {
+      _expectPairs('ROSS\nA.\n[[a note]]\n\nKIM^\nB.\n', []);
+    });
+
+    test('the printed numbering skips what is never printed', () {
+      final blocks = _parser.parse('# Act\n\n[[n]]\n\nROSS\nA.\n\nKIM^\nB.\n').blocks;
+      expect(fountainPrintableDualDialoguePairs(blocks), [(left: 0, right: 1)]);
+      final noted = _parser.parse('ROSS\nA.\n\n[[n]]\n\nKIM^\nB.\n').blocks;
+      expect(fountainPrintableDualDialoguePairs(noted), isEmpty);
+    });
+
     test('a cue with an inline note, an extension or the @ forcing still pairs', () {
       _expectPairs('ROSS\nA.\n\nKIM [[aside]]^\nB.\n', [(0, 3)]);
       _expectPairs('ROSS\nA.\n\nKIM (V.O.)^\nB.\n', [(0, 3)]);
