@@ -553,7 +553,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final editorWithoutImplicitScrollbar = MediaQuery.withNoTextScaling(
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-        child: editor,
+        child: LayoutBuilder(
+          builder: (context, constraints) =>
+              OcptDualDialogueColumnScope(width: constraints.maxWidth, child: editor),
+        ),
       ),
     );
 

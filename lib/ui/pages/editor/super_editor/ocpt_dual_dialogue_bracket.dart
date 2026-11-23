@@ -86,9 +86,9 @@ class OcptDualDialogueBracketComponentBuilder implements ComponentBuilder {
     required Color color,
     double scale = 1,
   }) {
-    final (pairs, orphanCueIds) = _analyze(document);
+    final analysis = OcptWysiwygDualDialogue.analysisOf(document);
     final segments = <String, OcptDualDialogueBracketSegment>{};
-    for (final pair in pairs) {
+    for (final pair in analysis.pairs) {
       final ids = [...pair.leftNodeIds, ...pair.rightNodeIds];
       for (var index = 0; index < ids.length; index++) {
         final node = document.getNodeById(ids[index])! as ParagraphNode;
@@ -102,7 +102,7 @@ class OcptDualDialogueBracketComponentBuilder implements ComponentBuilder {
 
     return OcptDualDialogueBracketComponentBuilder(
       segments: segments,
-      orphanCueIds: orphanCueIds,
+      orphanCueIds: analysis.orphanCueIds,
       marginWidth: layout.indentOf(layout.metrics.action) * scale,
       actionBoxWidth:
           (layout.indentOf(layout.metrics.action) + layout.widthOf(layout.metrics.action)) * scale,
@@ -139,12 +139,8 @@ class OcptDualDialogueBracketComponentBuilder implements ComponentBuilder {
     }
 
     final segment = segments[componentViewModel.nodeId];
-    if (segment == null) {
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          base,
-          Positioned.fill(
+    final orphanMarker = orphanCueIds.contains(componentViewModel.nodeId)
+        ? Positioned.fill(
             child: IgnorePointer(
               key: ValueKey("dualDialogueOrphan:${componentViewModel.nodeId}"),
               child: _OrphanMarker(
@@ -153,26 +149,30 @@ class OcptDualDialogueBracketComponentBuilder implements ComponentBuilder {
                 context: componentContext.context,
               ),
             ),
-          ),
-        ],
-      );
+          )
+        : null;
+    if (segment == null) {
+      return Stack(clipBehavior: Clip.none, children: [base, ?orphanMarker]);
     }
 
     final padding = componentViewModel.padding.resolve(TextDirection.ltr);
-    final nodeBoxWidth = componentViewModel.maxWidth;
     return LayoutBuilder(
       builder: (context, constraints) {
         // The document column centres every node's box, whose width is the node's own `maxWidth`
-        // while the column is wide enough for it, so the page's left edge sits half the difference
-        // with the action box to the left of the node's own box; once the column is narrower the
-        // boxes all fill it and the edge is the box's own.
-        final isCentered =
-            nodeBoxWidth != null && constraints.maxWidth + padding.horizontal >= nodeBoxWidth - 0.5;
-        final centering = isCentered ? (nodeBoxWidth - actionBoxWidth) / 2 : 0.0;
+        // while the column is wide enough for it and the column's own width once it is narrower,
+        // so the page's left edge, where an action's box starts, sits half the difference between
+        // this box and the action's one to the left of this box.
+        final boxWidth = constraints.maxWidth + padding.horizontal;
+        final columnWidth = OcptDualDialogueColumnScope.maybeOf(context);
+        final actionWidth = columnWidth == null || actionBoxWidth < columnWidth
+            ? actionBoxWidth
+            : columnWidth;
+        final centering = (boxWidth - actionWidth) / 2;
         return Stack(
           clipBehavior: Clip.none,
           children: [
             base,
+            ?orphanMarker,
             Positioned(
               left: centering - padding.left + marginWidth - bracketGap - endWidth,
               top: -segment.topExtension,
@@ -206,42 +206,37 @@ class OcptDualDialogueBracketComponentBuilder implements ComponentBuilder {
 
   /// Get a key that changes whenever the pairs or the orphan cues of [document] do, for the
   /// owner of the builder to tell when it must build a fresh one.
-  static String keyOf(Document document) {
-    final (pairs, orphanCueIds) = _analyze(document);
-    return "${[
-          for (final pair in pairs) [...pair.leftNodeIds, ...pair.rightNodeIds],
-        ]}"
-        "|${orphanCueIds.toList()}";
-  }
-
-  /// Find the pairs of [document] and the ids of its orphan cues, without any work for a document
-  /// carrying no marker at all.
-  static (List<OcptDualDialoguePair>, Set<String>) _analyze(Document document) {
-    if (!document.whereType<ParagraphNode>().any(
-      (node) => OcptWysiwygDualDialogue.suffixOf(node) != null,
-    )) {
-      return (const [], const {});
-    }
-    final pairs = OcptWysiwygDualDialogue.pairsOf(document);
-    final pairedCueIds = {for (final pair in pairs) pair.rightNodeIds.first};
-    return (
-      pairs,
-      {
-        for (final group in OcptWysiwygDualDialogue.groupsOf(document))
-          if (group.isMarked && !pairedCueIds.contains(group.nodeIds.first)) group.nodeIds.first,
-      },
-    );
-  }
+  static String keyOf(Document document) => OcptWysiwygDualDialogue.analysisOf(document).key;
 
   /// Get the height of the blank lines the stylesheet opens above [node], which the bracket bridges
   /// unless the node starts a simulated page.
   static double _blankHeightOf(ParagraphNode node, OcptEditorPreviewLayout layout) {
-    if (node.getMetadataValue(ocptStartsNewPageMetadataKey) is double) {
+    final pageStart = node.getMetadataValue(ocptStartsNewPageMetadataKey);
+    if (pageStart is double && pageStart > 0) {
       return 0;
     }
     final count = OcptWysiwygComments.blankLinesBeforeOf(node);
     return count.clamp(0, ocptMaxBlankLinesBeforeSpacing) * layout.lineHeight;
   }
+}
+
+/// The width of the column the styled editor's nodes are centred in, for the bracket to find the
+/// page's left edge from: a node's own box is as wide as the column once the column is narrower
+/// than the node's `maxWidth`, and so is an action's.
+class OcptDualDialogueColumnScope extends InheritedWidget {
+  /// The width of the column, in logical pixels.
+  final double width;
+
+  /// Create an [OcptDualDialogueColumnScope].
+  const OcptDualDialogueColumnScope({super.key, required this.width, required super.child});
+
+  /// Tell whether a change of [oldWidget] to this scope has to rebuild the nodes below it.
+  @override
+  bool updateShouldNotify(OcptDualDialogueColumnScope oldWidget) => width != oldWidget.width;
+
+  /// Get the width of the column [context] sits in, or null when no scope is above it.
+  static double? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<OcptDualDialogueColumnScope>()?.width;
 }
 
 /// The dimmed `^` painted after the last character of an orphan cue, where the cue's text ends.

@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comments.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_document_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -38,6 +39,19 @@ typedef OcptDualDialogueGroup = ({
 /// A pair of dialogue groups printed side by side, as the ids of their nodes.
 typedef OcptDualDialoguePair = ({List<String> leftNodeIds, List<String> rightNodeIds});
 
+/// What a document holds of dual dialogue: its pairs, its cues carrying a hidden `^` with no
+/// partner on their left, and a key that changes whenever either does.
+typedef OcptDualDialogueAnalysis = ({
+  /// The pairs set side by side, in document order.
+  List<OcptDualDialoguePair> pairs,
+
+  /// The ids of the cue nodes carrying a hidden `^` that is not the mark of a right member.
+  Set<String> orphanCueIds,
+
+  /// A key that changes whenever [pairs] or [orphanCueIds] do.
+  String key,
+});
+
 /// What the dual-dialogue toggle shows and does for a caret.
 typedef OcptDualDialogueToggle = ({
   /// Whether the caret's speech is part of a pair, or carries a marker with no partner.
@@ -58,6 +72,9 @@ final class OcptWysiwygDualDialogue {
 
   /// Match a dual-dialogue `^` at the end of a cue, with the spaces around it.
   static final RegExp suffixPattern = RegExp(r'\s*\^\s*$');
+
+  /// The analyses already computed, by document, dropped as soon as their document changes.
+  static final Expando<_Analysis> _analyses = Expando<_Analysis>("dualDialogueAnalysis");
 
   /// Private constructor: this class only exposes static members.
   const OcptWysiwygDualDialogue._();
@@ -147,13 +164,19 @@ final class OcptWysiwygDualDialogue {
 
   /// Find the dual-dialogue pairs of [document]'s body, by the shared pairing rule of
   /// [fountainDualDialogueLinePairs] over the nodes read as source lines.
-  static List<OcptDualDialoguePair> pairsOf(Document document) {
-    final lines = _Lines.of(document);
-    final pairs = fountainDualDialogueLinePairs(lines.types, lines.texts);
-    return [
-      for (final pair in pairs)
-        (leftNodeIds: lines.nodeIdsOf(pair.left), rightNodeIds: lines.nodeIdsOf(pair.right)),
-    ];
+  static List<OcptDualDialoguePair> pairsOf(Document document) => _pairsOf(_Lines.of(document));
+
+  /// Get what [document] holds of dual dialogue, computed once per change of the document: the
+  /// bracket builder and the owner deciding when to build a fresh one both read it, and a document
+  /// carrying no marker at all costs one cheap pass over its nodes.
+  static OcptDualDialogueAnalysis analysisOf(Document document) {
+    var entry = _analyses[document];
+    if (entry == null) {
+      final created = entry = _Analysis();
+      _analyses[document] = created;
+      document.addListener((_) => created.value = null);
+    }
+    return entry.value ??= _analyze(document);
   }
 
   /// Read what the toggle shows for a caret in the node [nodeId] of [document], or null when it has
@@ -162,18 +185,21 @@ final class OcptWysiwygDualDialogue {
   /// A caret in a pair, left or right, reads as checked and unpairs by removing the right cue's
   /// marker. A caret in a speech carrying a marker with no partner reads as checked and removes
   /// it. Any other speech is paired with the group before it by marking its own cue, or, when that
-  /// group already is the right member of a pair, with the group after it by marking that one's.
+  /// group already is a member of a pair, with the group after it by marking that one's, unless
+  /// that one is the left member of a pair of its own, which marking it would break.
+  ///
+  /// Only the run of dialogue groups the caret's group belongs to is read, never the whole
+  /// document: a pair can only be made of two groups with nothing but blank lines between them.
   static OcptDualDialogueToggle? toggleAt(Document document, String nodeId) {
     final caretNode = document.getNodeById(nodeId);
-    if (caretNode is! ParagraphNode ||
-        !_Lines._isGroupMember(
-          OcptFountainLineAttributions.typeOfAttributionValue(
-            caretNode.getMetadataValue("blockType"),
-          ),
-        )) {
+    if (caretNode is! ParagraphNode) {
       return null;
     }
-    final lines = _Lines.of(document);
+    final window = _Window.around(document, caretNode);
+    if (window == null) {
+      return null;
+    }
+    final lines = _Lines.ofNodes(window, _Window.isInert);
     final groups = lines.groups;
     final index = groups.indexWhere((group) => group.nodeIds.contains(nodeId));
     if (index < 0) {
@@ -193,24 +219,49 @@ final class OcptWysiwygDualDialogue {
       return (isChecked: true, cueNodeId: group.nodeIds.first);
     }
 
-    final rightIds = {for (final pair in pairs) lines.nodeIdsOf(pair.right).first};
-    if (index > 0 && group.followsGroup && !rightIds.contains(groups[index - 1].nodeIds.first)) {
+    final rightCueIds = {for (final pair in pairs) lines.nodeIdsOf(pair.right).first};
+    final leftCueIds = {for (final pair in pairs) lines.nodeIdsOf(pair.left).first};
+    if (index > 0 && group.followsGroup && !rightCueIds.contains(groups[index - 1].nodeIds.first)) {
       return (isChecked: false, cueNodeId: group.nodeIds.first);
     }
-    if (index + 1 < groups.length && groups[index + 1].followsGroup) {
+    if (index + 1 < groups.length &&
+        groups[index + 1].followsGroup &&
+        !leftCueIds.contains(groups[index + 1].nodeIds.first)) {
       return (isChecked: false, cueNodeId: groups[index + 1].nodeIds.first);
     }
     return null;
   }
 
   /// Get the requests of the toggle for a caret in the node [nodeId] of [document], or null when it
-  /// has nothing to act on there (see [toggleAt]): one request, hence one undo step.
+  /// has nothing to act on there (see [toggleAt]) or nothing to write: one request group, hence at
+  /// most one undo step.
   static List<EditRequest>? toggleRequestsAt(Document document, String nodeId) {
     final toggle = toggleAt(document, nodeId);
     if (toggle == null) {
       return null;
     }
-    return [suffixRequest(toggle.cueNodeId, toggle.isChecked ? null : uiSuffix)];
+    if (!toggle.isChecked) {
+      return [suffixRequest(toggle.cueNodeId, uiSuffix)];
+    }
+    final cue = document.getNodeById(toggle.cueNodeId);
+    if (cue is! ParagraphNode) {
+      return null;
+    }
+    if (suffixOf(cue) != null) {
+      return [suffixRequest(toggle.cueNodeId, null)];
+    }
+    // The marker is plain text, followed by a note: removing it keeps everything else in place.
+    final span = _markerSpanIn(cue.text.toPlainText());
+    if (span == null) {
+      return null;
+    }
+    final (start, end) = span;
+    return [
+      OcptReplaceNodeTextRequest(
+        nodeId: cue.id,
+        text: cue.text.copyText(0, start).copyAndAppend(cue.text.copyText(end)),
+      ),
+    ];
   }
 
   /// Get the request writing [suffix] (or removing the marker when null) on the cue [cueNodeId].
@@ -219,15 +270,203 @@ final class OcptWysiwygDualDialogue {
         nodeId: cueNodeId,
         metadata: {ocptDualDialogueMetadataKey: suffix},
       );
+
+  /// Compute the pairs and the orphan cues of [document].
+  static OcptDualDialogueAnalysis _analyze(Document document) {
+    if (!document.whereType<ParagraphNode>().any(_mayCarryMarker)) {
+      return (pairs: const [], orphanCueIds: const {}, key: "");
+    }
+    final lines = _Lines.of(document);
+    final pairs = _pairsOf(lines);
+    final rightCueIds = {for (final pair in pairs) pair.rightNodeIds.first};
+    final orphanCueIds = {
+      for (final group in lines.groups)
+        if (group.hasHiddenSuffix && !rightCueIds.contains(group.nodes.first.id))
+          group.nodes.first.id,
+    };
+    final key =
+        "${[
+          for (final pair in pairs) [...pair.leftNodeIds, ...pair.rightNodeIds],
+        ]}|${orphanCueIds.toList()}";
+    return (pairs: pairs, orphanCueIds: orphanCueIds, key: key);
+  }
+
+  /// Tell whether [node] may hold a dual-dialogue marker, hidden or written out.
+  static bool _mayCarryMarker(ParagraphNode node) =>
+      suffixOf(node) != null || node.text.toPlainText().contains("^");
+
+  /// Find the pairs among [lines].
+  static List<OcptDualDialoguePair> _pairsOf(_Lines lines) => [
+    for (final pair in fountainDualDialogueLinePairs(lines.types, lines.texts))
+      (leftNodeIds: lines.nodeIdsOf(pair.left), rightNodeIds: lines.nodeIdsOf(pair.right)),
+  ];
+
+  /// Find where the marker of a cue written out in [text] sits, with the spaces before it, as a
+  /// (start, end) range, or null when [text] ends with none: only whitespace and notes may follow
+  /// the `^`.
+  static (int, int)? _markerSpanIn(String text) {
+    final notes = FountainCommentSpans.notes(text);
+    var end = text.length;
+    while (true) {
+      var trimmed = end;
+      while (trimmed > 0 && text[trimmed - 1].trim().isEmpty) {
+        trimmed--;
+      }
+      final note = notes.where((span) => span.end == trimmed).firstOrNull;
+      if (note == null) {
+        end = trimmed;
+        break;
+      }
+      end = note.start;
+    }
+    if (end == 0 || text[end - 1] != "^") {
+      return null;
+    }
+    var start = end - 1;
+    while (start > 0 && text[start - 1].trim().isEmpty) {
+      start--;
+    }
+    return (start, end);
+  }
 }
 
-/// A group of the styled editor's document, as node indices into [_Lines.nodes].
+/// The analysis of a document, kept until the document next changes.
+final class _Analysis {
+  /// The analysis, or null when it has to be computed again.
+  OcptDualDialogueAnalysis? value;
+}
+
+/// The run of dialogue groups around a caret, read without walking the whole document: the nodes
+/// from the first group of the run to the end of the last, groups being adjacent when nothing but
+/// blank lines separates them.
+final class _Window {
+  /// Private constructor: this class only exposes static members.
+  const _Window._();
+
+  /// Find the nodes of the run of groups [caret] belongs to, or null when it is in none.
+  static List<ParagraphNode>? around(Document document, ParagraphNode caret) {
+    final caretIndex = document.getNodeIndexById(caret.id);
+    final caretCue = _cueIndexOf(document, caretIndex);
+    if (caretCue == null) {
+      return null;
+    }
+
+    return _collect(document, caretCue);
+  }
+
+  /// Tell whether [node] is inert, judging by the comment attribution a settle left on its text.
+  static bool isInert(ParagraphNode node) {
+    final length = node.text.length;
+    if (length == 0 ||
+        !node.text.hasAttributionAt(0, attribution: ocptFountainCommentAttribution)) {
+      return false;
+    }
+    return node.text.hasAttributionsThroughout(
+      attributions: {ocptFountainCommentAttribution},
+      range: SpanRange(0, length - 1),
+    );
+  }
+
+  /// Get the live body paragraph at [index], or null when there is none there.
+  static ParagraphNode? _nodeAt(Document document, int index) {
+    if (index < 0 || index >= document.nodeCount) {
+      return null;
+    }
+    final node = document.getNodeAt(index);
+    return node is ParagraphNode && node.getMetadataValue(ocptTitlePageKeyMetadataKey) is! String
+        ? node
+        : null;
+  }
+
+  /// Get the type of [node] as the pairing reads it: an inert node is no part of a group.
+  static FountainLineType _typeOf(ParagraphNode node) => isInert(node)
+      ? FountainLineType.action
+      : OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
+
+  /// Tell whether [type] keeps a dialogue group open.
+  static bool _isMember(FountainLineType type) => _Lines._isGroupMember(type);
+
+  /// Find the index of the cue of the group holding the node at [index], or null when it is in
+  /// none.
+  static int? _cueIndexOf(Document document, int index) {
+    var cursor = index;
+    while (true) {
+      final node = _nodeAt(document, cursor);
+      if (node == null) {
+        return null;
+      }
+      final type = _typeOf(node);
+      if (type == FountainLineType.character) {
+        return cursor;
+      }
+      final before = _nodeAt(document, cursor - 1);
+      if ((type != FountainLineType.dialogue && type != FountainLineType.parenthetical) ||
+          OcptWysiwygComments.blankLinesBeforeOf(node) != 0 ||
+          before == null ||
+          !_isMember(_typeOf(before))) {
+        return null;
+      }
+      cursor--;
+    }
+  }
+
+  /// Get the index right after the last node of the group whose cue is at [cue].
+  static int _endOfGroup(Document document, int cue) {
+    var end = cue + 1;
+    while (true) {
+      final node = _nodeAt(document, end);
+      if (node == null) {
+        return end;
+      }
+      final type = _typeOf(node);
+      if ((type != FountainLineType.dialogue && type != FountainLineType.parenthetical) ||
+          OcptWysiwygComments.blankLinesBeforeOf(node) != 0) {
+        return end;
+      }
+      end++;
+    }
+  }
+
+  /// Get the nodes of the run of groups the group whose cue is at [cue] belongs to.
+  static List<ParagraphNode> _collect(Document document, int cue) {
+    var first = cue;
+    while (true) {
+      final cueNode = _nodeAt(document, first)!;
+      final before = _nodeAt(document, first - 1);
+      final previousCue = OcptWysiwygComments.blankLinesBeforeOf(cueNode) > 0 && before != null
+          ? _cueIndexOf(document, first - 1)
+          : null;
+      if (previousCue == null) {
+        break;
+      }
+      first = previousCue;
+    }
+
+    var end = _endOfGroup(document, cue);
+    while (true) {
+      final next = _nodeAt(document, end);
+      if (next == null ||
+          _typeOf(next) != FountainLineType.character ||
+          OcptWysiwygComments.blankLinesBeforeOf(next) == 0) {
+        break;
+      }
+      end = _endOfGroup(document, end);
+    }
+
+    return [for (var index = first; index < end; index++) _nodeAt(document, index)!];
+  }
+}
+
+/// A group of the styled editor's document.
 final class _Group {
   /// The group's nodes.
   final List<ParagraphNode> nodes;
 
-  /// Whether the cue carries the dual-dialogue suffix.
+  /// Whether the cue carries the dual-dialogue marker, hidden in its metadata or written out.
   final bool isMarked;
+
+  /// Whether the marker is the hidden suffix of the cue's metadata.
+  final bool hasHiddenSuffix;
 
   /// Whether a blank line alone separates the group from the group right before it.
   final bool followsGroup;
@@ -236,7 +475,12 @@ final class _Group {
   List<String> get nodeIds => [for (final node in nodes) node.id];
 
   /// Class constructor.
-  const _Group({required this.nodes, required this.isMarked, required this.followsGroup});
+  const _Group({
+    required this.nodes,
+    required this.isMarked,
+    required this.hasHiddenSuffix,
+    required this.followsGroup,
+  });
 
   /// Get the group as its public record.
   OcptDualDialogueGroup toGroup() =>
@@ -271,17 +515,21 @@ final class _Lines {
   });
 
   /// Read the body of [document] as source lines.
-  factory _Lines.of(Document document) {
-    final nodes = OcptWysiwygComments.bodyNodes(document);
-    final inertIds = OcptWysiwygComments.inertNodeIds(document);
+  factory _Lines.of(Document document) =>
+      _Lines.ofNodes(OcptWysiwygComments.bodyNodes(document), _Window.isInert);
+
+  /// Read [nodes], consecutive body nodes, as source lines, [isInert] telling which of them are
+  /// left out of the screenplay.
+  factory _Lines.ofNodes(List<ParagraphNode> nodes, bool Function(ParagraphNode) isInert) {
     final types = <FountainLineType>[];
     final texts = <String>[];
     final nodeIndexOfLine = <int>[];
     final nodeTypes = <FountainLineType>[];
+    final lineOfNode = <int>[];
 
     for (var index = 0; index < nodes.length; index++) {
       final node = nodes[index];
-      final type = inertIds.contains(node.id)
+      final type = isInert(node)
           ? FountainLineType.action
           : OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
       nodeTypes.add(type);
@@ -299,6 +547,7 @@ final class _Lines {
       final suffix = type == FountainLineType.character
           ? OcptWysiwygDualDialogue.suffixOf(node)
           : null;
+      lineOfNode.add(texts.length);
       texts.add(OcptWysiwygComments.virtualTextOf(node) + (suffix ?? ""));
       nodeIndexOfLine.add(index);
     }
@@ -308,7 +557,7 @@ final class _Lines {
       types: types,
       texts: texts,
       nodeIndexOfLine: nodeIndexOfLine,
-      groups: _groupsOf(nodes, nodeTypes),
+      groups: _groupsOf(nodes, nodeTypes, texts, lineOfNode),
     );
   }
 
@@ -318,8 +567,14 @@ final class _Lines {
       if (nodeIndexOfLine[line] >= 0) nodes[nodeIndexOfLine[line]].id,
   ];
 
-  /// Find the dialogue groups among [nodes], whose types are [nodeTypes].
-  static List<_Group> _groupsOf(List<ParagraphNode> nodes, List<FountainLineType> nodeTypes) {
+  /// Find the dialogue groups among [nodes], whose types are [nodeTypes] and whose lines are
+  /// [texts], the line of the node at an index being `lineOfNode` of it.
+  static List<_Group> _groupsOf(
+    List<ParagraphNode> nodes,
+    List<FountainLineType> nodeTypes,
+    List<String> texts,
+    List<int> lineOfNode,
+  ) {
     final groups = <_Group>[];
     var previousEnd = -1;
     var index = 0;
@@ -338,7 +593,10 @@ final class _Lines {
       groups.add(
         _Group(
           nodes: nodes.sublist(index, end),
-          isMarked: OcptWysiwygDualDialogue.suffixOf(nodes[index]) != null,
+          isMarked: parseFountainCharacterCue(
+            FountainLineClassifier.withoutInlineNotes(texts[lineOfNode[index]]),
+          ).isDualDialogue,
+          hasHiddenSuffix: OcptWysiwygDualDialogue.suffixOf(nodes[index]) != null,
           followsGroup:
               previousEnd == index && OcptWysiwygComments.blankLinesBeforeOf(nodes[index]) > 0,
         ),
