@@ -63,6 +63,12 @@ Future<void> _pump(
 String? _suffixAt(Document document, int index) =>
     OcptWysiwygDualDialogue.suffixOf(nodeAt(document, index));
 
+/// Find the check shown on the menu entry labelled [label].
+Finder _checkOf(WidgetTester tester, String label) => find.descendant(
+  of: find.ancestor(of: find.text(label), matching: find.byType(MenuItemButton)),
+  matching: find.byIcon(Icons.check),
+);
+
 /// Run the tests of the dual-dialogue toggle.
 void main() {
   BlinkController.indeterminateAnimationsEnabled = false;
@@ -205,14 +211,14 @@ void main() {
 
         final tr = await rightClick(tester, nodeAt(document, 3).id);
         expect(find.text(tr.editorDualDialogueAction), findsOneWidget);
-        expect(tester.widget<CheckboxMenuButton>(find.byType(CheckboxMenuButton)).value, isFalse);
+        expect(_checkOf(tester, tr.editorDualDialogueAction), findsNothing);
 
         await tester.tap(find.text(tr.editorDualDialogueAction));
         await pumpPastSettleDebounce(tester);
         expect(_suffixAt(document, 2), " ^");
 
         await rightClick(tester, nodeAt(document, 3).id);
-        expect(tester.widget<CheckboxMenuButton>(find.byType(CheckboxMenuButton)).value, isTrue);
+        expect(_checkOf(tester, tr.editorDualDialogueAction), findsOneWidget);
       } finally {
         debugDefaultTargetPlatformOverride = null;
       }

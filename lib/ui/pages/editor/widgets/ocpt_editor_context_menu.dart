@@ -224,9 +224,9 @@ class OcptEditorContextMenu extends StatelessWidget {
         // nothing (or over nothing) would read as a missing entry rather than as a grouping.
         if (onToggleDualDialogue != null) ...[
           if (hasClipboardGroup || hasNoteGroup) const Divider(height: 1),
-          CheckboxMenuButton(
-            value: isDualDialogueChecked,
-            onChanged: (_) => onToggleDualDialogue(),
+          MenuItemButton(
+            trailingIcon: isDualDialogueChecked ? const Icon(Icons.check, size: 16) : null,
+            onPressed: onToggleDualDialogue,
             child: Text(tr.editorDualDialogueAction),
           ),
         ],
