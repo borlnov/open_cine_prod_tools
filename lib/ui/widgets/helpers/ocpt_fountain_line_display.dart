@@ -52,6 +52,13 @@ List<List<OcptFountainDisplayRun>> ocptFountainWordDisplayRuns(OcptScriptWordBlo
   ];
 }
 
+/// Tell whether [block] prints in capitals: whenever its type's print style says so
+/// ([FountainPrintStyle.isUppercase]), except a character cue forced with `@`, which the Fountain
+/// spec prints in its own case (`@McCLANE`), as the composer does.
+bool ocptFountainBlockPrintsUppercase(OcptScriptWordBlock block) =>
+    FountainPrintStyle.of(block.type).isUppercase &&
+    !(block.type == FountainLineType.character && block.text.trimLeft().startsWith("@"));
+
 /// Tell whether [block] is a character cue closed by the dual-dialogue `^`, which
 /// [ocptFountainWordDisplayRuns] never shows: a sheet that does not set the cue's speech beside
 /// another paints a dimmed `^` of its own after the name, so the marker is not lost.

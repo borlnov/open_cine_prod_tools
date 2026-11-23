@@ -135,4 +135,16 @@ void main() {
       expect(ocptFountainCueHasDualMarker(_blockOf("Up ^")), isFalse);
     });
   });
+
+  group("ocptFountainBlockPrintsUppercase", () {
+    test("prints a cue in capitals unless it is forced with @", () {
+      expect(ocptFountainBlockPrintsUppercase(_blockOf("Hi.\n\nHANS\nHello.", index: 1)), isTrue);
+      expect(ocptFountainBlockPrintsUppercase(_blockOf("Hi.\n\n@McCLANE\nYo.", index: 1)), isFalse);
+    });
+
+    test("prints a scene heading in capitals and an action as written", () {
+      expect(ocptFountainBlockPrintsUppercase(_blockOf("INT. HOUSE - DAY")), isTrue);
+      expect(ocptFountainBlockPrintsUppercase(_blockOf("John walks in.")), isFalse);
+    });
+  });
 }
