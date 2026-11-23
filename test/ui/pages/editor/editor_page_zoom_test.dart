@@ -228,7 +228,8 @@ void main() {
   ) async {
     await propertiesManager.editorMode.store(OcptEditorMode.raw);
     await propertiesManager.styledPageZoom.store(const OcptPageZoom.fitToWidth());
-    await pumpPage(tester);
+    // Wide enough for the dock to fit the page within the zoom bounds (the test font is wide).
+    await pumpPage(tester, width: 2400);
 
     final dockWidth = tester.getSize(find.byType(OcptEditorPreview)).width;
     final pageWidth = tester
