@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_c
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comments.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_document_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_dual_dialogue.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
@@ -19,6 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_t
 import 'package:super_editor/super_editor.dart';
 
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
+export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_dual_dialogue.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart'
     show
@@ -501,6 +503,19 @@ class OcptWysiwygCodec {
       nodes.first.copyWithAddedMetadata({ocptBlankLinesBeforeMetadataKey: 0}),
       ...nodes.skip(1),
     ];
+    // The dual-dialogue suffix belongs to the end of its cue: a cue copied only in part leaves it
+    // behind.
+    final range = selection.normalize(document);
+    final endNode = document.getNodeById(range.end.nodeId);
+    final endPosition = range.end.nodePosition;
+    if (endNode is ParagraphNode &&
+        endPosition is TextNodePosition &&
+        endPosition.offset < endNode.text.length) {
+      final last = adjustedNodes.length - 1;
+      adjustedNodes[last] = adjustedNodes[last].copyWithAddedMetadata({
+        ocptDualDialogueMetadataKey: null,
+      });
+    }
     // The nodes were clipped out of their surroundings: which of them are inert is what the whole
     // document says, not what the fragment alone would.
     return encode(MutableDocument(nodes: adjustedNodes), inertNodeIds: inertNodeIds(document)).text;
@@ -607,12 +622,16 @@ class OcptWysiwygCodec {
   static List<EditRequest> sceneNumberRequests(
     Document document, {
     OcptWysiwygDocumentLayout? documentLayout,
+    Set<String> composingNodeIds = const {},
   }) {
     final requests = <EditRequest>[];
     final inertIds = inertNodeIds(document, documentLayout: documentLayout);
 
     for (final node in document) {
-      if (node is! ParagraphNode || isTitlePageNode(node) || inertIds.contains(node.id)) {
+      if (node is! ParagraphNode ||
+          isTitlePageNode(node) ||
+          inertIds.contains(node.id) ||
+          composingNodeIds.contains(node.id)) {
         continue;
       }
 
@@ -654,6 +673,7 @@ class OcptWysiwygCodec {
   static List<EditRequest> uppercaseRequests(
     Document document, {
     OcptWysiwygDocumentLayout? documentLayout,
+    Set<String> composingNodeIds = const {},
   }) {
     final requests = <EditRequest>[];
     final (nodes, layout, lineIndexOfNode) = OcptWysiwygComments.resolve(document, documentLayout);
@@ -661,7 +681,7 @@ class OcptWysiwygCodec {
     for (var index = 0; index < nodes.length; index++) {
       final node = nodes[index];
       final lineIndex = lineIndexOfNode[index];
-      if (layout.isInertByLine[lineIndex]) {
+      if (layout.isInertByLine[lineIndex] || composingNodeIds.contains(node.id)) {
         continue;
       }
 
@@ -751,9 +771,12 @@ class OcptWysiwygCodec {
               type,
               layout.classificationLines[index],
             );
-      final (displayText, sceneNumber) = type == FountainLineType.sceneHeading
+      final (sceneText, sceneNumber) = type == FountainLineType.sceneHeading
           ? OcptWysiwygMarkers.extractSceneNumber(strippedText)
           : (strippedText, null);
+      final (displayText, dualSuffix) = !isInert && type == FountainLineType.character
+          ? OcptWysiwygDualDialogue.extractSuffix(sceneText)
+          : (sceneText, null);
       nodes.add(
         ParagraphNode(
           id: Editor.createNodeId(),
@@ -767,6 +790,7 @@ class OcptWysiwygCodec {
             ocptTypeLockedMetadataKey: false,
             ocptHadForcingMarkerMetadataKey: hadForcingMarker,
             ocptSceneNumberMetadataKey: sceneNumber,
+            ocptDualDialogueMetadataKey: dualSuffix,
           },
         ),
       );
@@ -821,6 +845,10 @@ class OcptWysiwygCodec {
     final sceneNumber = _readSceneNumber(node);
     if (type == FountainLineType.sceneHeading && sceneNumber != null) {
       line = "$line #$sceneNumber#";
+    }
+    final dualSuffix = OcptWysiwygDualDialogue.suffixOf(node);
+    if (type == FountainLineType.character && dualSuffix != null && line.isNotEmpty) {
+      line = "$line$dualSuffix";
     }
     if (!_readHadForcingMarker(node) || type == FountainLineType.blank) {
       return line;
@@ -903,6 +931,9 @@ class OcptWysiwygCodec {
     List<int> boneyardStars,
   ) {
     final base = _serialize(node, boneyardStars);
+    if (type == FountainLineType.character && base.isNotEmpty) {
+      return "$base${OcptWysiwygDualDialogue.suffixOf(node) ?? ""}";
+    }
     if (type != FountainLineType.sceneHeading || base.isEmpty) {
       return base;
     }

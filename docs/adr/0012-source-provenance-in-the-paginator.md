@@ -82,6 +82,9 @@ Worth noting for a future reader: a coverage range is scene-scoped by constructi
 spans two scenes. If ranges ever become document-scoped, the layout's per-scene resolution is the
 piece that has to change, not this provenance.
 
+A dual dialogue prints as one row of two cells, so the order of the rows is no longer the order of
+the source and a row holds two source ranges; each cell keeps its own range (ADR 0035).
+
 ## Alternatives considered
 
 - **Recompute the mapping in the app**: means re-implementing the wrap, the marker stripping and

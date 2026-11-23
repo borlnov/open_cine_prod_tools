@@ -39,6 +39,24 @@ A few useful gestures in the styled editor:
 - Copy-paste inside the app preserves block types; text pasted from outside is analysed and
   split into the right elements.
 
+## Dual dialogue
+
+Two characters who speak at the same time are written as a **dual dialogue**: the second
+character's name ends with `^` (for example `KIM ^`), and the two speeches are printed **side by
+side**, one column each, on the page of the preview, the PDF and the sheets of the other modes.
+A pair is never cut by a page break: if it does not fit, it moves whole to the next page. A `^`
+with no speech right before it to pair with prints as an ordinary dialogue, and a note or any
+other line between the two speeches breaks the pair.
+
+In the styled editor you do not type the `^`: put the caret in the second speech and choose
+**Dual dialogue** in the right-click menu, in the toolbar's format controls (or their **⋮**
+menu), or press **Ctrl+Alt+D** (**Cmd+Alt+D** on macOS). The entry is checked while the speech is
+part of a pair, and choosing it again undoes the pairing. It only appears when another speech
+sits next to the one you are in. The styled editor keeps the two speeches **one under the other**,
+and a **bracket in the left margin** shows they are a pair; a `^` that pairs with nothing appears
+dimmed after the character's name. Typing a `^` at the end of a name works too, and the raw Fountain
+text shows it as written.
+
 ## The scene panel (on the left)
 
 A resizable panel lists your scenes so you can navigate and jump between them.

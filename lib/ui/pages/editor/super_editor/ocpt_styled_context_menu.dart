@@ -338,8 +338,16 @@ final class OcptStyledContextMenu {
   /// read-only `OcptEditorPreview` for both editing modes while a version is being previewed, so
   /// the styled editor, and the menu it opens, is simply never mounted under one. There is no
   /// `isReadOnly` flag to thread through because there is nothing here that would ever need one.
-  Widget wrap({required Widget child, required ValueChanged<FountainLineType> onTypeSelected}) {
+  Widget wrap({
+    required Widget child,
+    required ValueChanged<FountainLineType> onTypeSelected,
+    required VoidCallback onDualDialogueToggled,
+  }) {
     final misspelledWord = _misspelledWord;
+    final selection = _composer.selection;
+    final dualDialogue = selection == null
+        ? null
+        : OcptWysiwygDualDialogue.toggleAt(_document, selection.extent.nodeId);
 
     return OcptEditorContextMenu(
       controller: controller,
@@ -365,6 +373,9 @@ final class OcptStyledContextMenu {
           ? removeNote
           : null,
       onTypeSelected: blockType != null ? onTypeSelected : null,
+      // Offered only where it applies: a speech with another one next to it to pair with.
+      onToggleDualDialogue: dualDialogue != null ? onDualDialogueToggled : null,
+      isDualDialogueChecked: dualDialogue?.isChecked ?? false,
       child: Listener(
         onPointerDown: onPointerDownOverDocument,
         child: GestureDetector(

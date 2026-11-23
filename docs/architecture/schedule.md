@@ -709,3 +709,6 @@ seven documents a production runs on.
   invented. **No document gains an episode column**: the six read their sequence numbers off
   `OcptSchedulePlanSnapshot` and so print `2.12` for free, and a column would say the same thing
   twice while costing width on grids already chunked for want of it.
+  A dual dialogue is tested **cell by cell**: a row belongs to a day when any of its cells'
+  source ranges overlaps one of the day's scenes (ADR 0035), and the `packed` presentation may
+  still cut a pair between two pages, as it already cuts a speech without a `(MORE)`.

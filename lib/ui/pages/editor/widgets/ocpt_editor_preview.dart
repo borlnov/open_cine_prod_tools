@@ -89,10 +89,13 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   /// here for [_blockIndexForLine]'s sake even when [_pages] doesn't render it as content).
   List<FountainBlock> _blocks = const [];
 
-  /// The blocks of [_cachedDocument] split into pages, only populated while [OcptEditorPreview
+  /// The items [_blocks] are rendered as, in source order: a block, or a dual-dialogue pair.
+  List<OcptEditorPreviewItem> _items = const [];
+
+  /// The items of [_cachedDocument] split into pages, only populated while [OcptEditorPreview
   /// .isPageSimulationEnabled] is on; a [FountainPageBreak] forces a new page and isn't itself
   /// carried over as page content (the fresh sheet already is its visual representation).
-  List<List<FountainBlock>> _pages = const [];
+  List<List<OcptEditorPreviewItem>> _pages = const [];
 
   /// The estimated scroll offset of each block of [_blocks], measured from the top of the page
   /// scroll view's content (i.e. already including every margin/gap above it).
@@ -141,7 +144,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     final content = _OcptEditorPreviewContent(
       layout: layout,
       isPageSimulationEnabled: widget.isPageSimulationEnabled,
-      blocks: _blocks,
+      items: _items,
       pages: _pages,
       scrollController: _scrollController,
     );
@@ -209,12 +212,14 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
 
     if (document == null) {
       _blocks = const [];
+      _items = const [];
       _pages = const [];
       _blockOffsets = const [];
       return;
     }
 
     _blocks = OcptEditorPreviewLayout.printableBlocks(document);
+    _items = layout.groupItems(document);
     if (widget.isPageSimulationEnabled) {
       _refreshPaginatedCaches(layout);
     } else {
@@ -229,16 +234,20 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
 
     final offsets = List<double>.filled(_blocks.length, 0);
     var cumulative = layout.marginTop;
-    for (var index = 0; index < _blocks.length; index++) {
-      offsets[index] = cumulative;
-      cumulative += layout.estimateBlockHeight(_blocks[index]);
+    for (final item in _items) {
+      offsets[item.blockIndex] = cumulative;
+      final rightIndex = item.rightBlockIndex;
+      if (rightIndex != null) {
+        offsets[rightIndex] = cumulative;
+      }
+      cumulative += layout.estimateItemHeight(item);
     }
     _blockOffsets = offsets;
   }
 
-  /// Split [_blocks] into [_pages] and compute [_blockOffsets] for the paginated rendering.
+  /// Split [_items] into [_pages] and compute [_blockOffsets] for the paginated rendering.
   ///
-  /// Blocks are greedily packed onto the current page while the running sum of
+  /// Items are greedily packed onto the current page while the running sum of
   /// [OcptEditorPreviewLayout.estimatedLineCount] — **plus the blank line that separates two
   /// consecutive blocks** — stays within [FountainLayoutMetrics.linesPerPage]; a
   /// [FountainPageBreak] always starts a fresh page (and isn't itself added as page content).
@@ -255,16 +264,17 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   /// render slightly shorter or taller than that), acceptable since block offsets only ever drive
   /// the caret scroll sync, not pixel-exact placement.
   void _refreshPaginatedCaches(OcptEditorPreviewLayout layout) {
-    final pages = <List<FountainBlock>>[];
+    final pages = <List<OcptEditorPreviewItem>>[];
     final offsets = List<double>.filled(_blocks.length, 0);
-    var currentPage = <FountainBlock>[];
+    var currentPage = <OcptEditorPreviewItem>[];
     var currentLines = 0;
     var withinPageOffset = layout.marginTop;
 
     double offsetOfCurrentPage() => pages.length * (layout.pageHeight + _pageGap);
 
-    for (var index = 0; index < _blocks.length; index++) {
-      final block = _blocks[index];
+    for (final item in _items) {
+      final block = item.block;
+      final index = item.blockIndex;
 
       if (block is FountainPageBreak) {
         offsets[index] = offsetOfCurrentPage() + withinPageOffset;
@@ -277,23 +287,40 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
         continue;
       }
 
-      final lines = layout.estimatedLineCount(block);
+      final lines = layout.estimatedItemLineCount(item);
       // The blank line separating this block from the one above it, which only exists once the
       // page already holds something.
       var separatorLines = currentPage.isEmpty ? 0 : 1;
       if (currentPage.isNotEmpty &&
           currentLines + separatorLines + lines > layout.metrics.linesPerPage) {
+        // A scene heading ending the page goes onto the next one with the pair that moves, rather
+        // than being left alone at the foot of this one.
+        final carried = _headingToCarry(currentPage, item, layout);
+        if (carried != null) {
+          currentPage.removeLast();
+        }
         pages.add(currentPage);
         currentPage = [];
         currentLines = 0;
         separatorLines = 0;
         withinPageOffset = layout.marginTop;
+        if (carried != null) {
+          offsets[carried.blockIndex] = offsetOfCurrentPage() + withinPageOffset;
+          currentPage.add(carried);
+          currentLines = layout.estimatedItemLineCount(carried);
+          separatorLines = 1;
+          withinPageOffset += layout.estimateItemHeight(carried);
+        }
       }
 
       offsets[index] = offsetOfCurrentPage() + withinPageOffset;
-      currentPage.add(block);
+      final rightIndex = item.rightBlockIndex;
+      if (rightIndex != null) {
+        offsets[rightIndex] = offsets[index];
+      }
+      currentPage.add(item);
       currentLines += separatorLines + lines;
-      withinPageOffset += layout.estimateBlockHeight(block);
+      withinPageOffset += layout.estimateItemHeight(item);
     }
     if (currentPage.isNotEmpty) {
       pages.add(currentPage);
@@ -301,6 +328,25 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
 
     _pages = pages;
     _blockOffsets = offsets;
+  }
+
+  /// Get the scene heading ending [page], when [item], a dual-dialogue pair about to move to the
+  /// next page, has to take it along, or null.
+  ///
+  /// The heading stays where it is when the page holds nothing else, or when it and the pair
+  /// together would not fit a page.
+  OcptEditorPreviewItem? _headingToCarry(
+    List<OcptEditorPreviewItem> page,
+    OcptEditorPreviewItem item,
+    OcptEditorPreviewLayout layout,
+  ) {
+    if (item.rightBlock == null || page.length < 2 || page.last.block is! FountainSceneHeading) {
+      return null;
+    }
+    final heading = page.last;
+    final needed = layout.estimatedItemLineCount(heading) + 1 + layout.estimatedItemLineCount(item);
+
+    return needed <= layout.metrics.linesPerPage ? heading : null;
   }
 
   /// Scroll the page so the block containing the caret's line is visible.
@@ -373,11 +419,11 @@ class _OcptEditorPreviewContent extends StatelessWidget {
   /// Whether the preview shows one sheet per page rather than a single continuous one.
   final bool isPageSimulationEnabled;
 
-  /// Every block of the document, in source order.
-  final List<FountainBlock> blocks;
+  /// Every item of the document, in source order.
+  final List<OcptEditorPreviewItem> items;
 
-  /// [blocks] split by page, read only while [isPageSimulationEnabled].
-  final List<List<FountainBlock>> pages;
+  /// [items] split by page, read only while [isPageSimulationEnabled].
+  final List<List<OcptEditorPreviewItem>> pages;
 
   /// The controller of the list scrolling the sheets, which the state keeps across rebuilds.
   final ScrollController scrollController;
@@ -386,7 +432,7 @@ class _OcptEditorPreviewContent extends StatelessWidget {
   const _OcptEditorPreviewContent({
     required this.layout,
     required this.isPageSimulationEnabled,
-    required this.blocks,
+    required this.items,
     required this.pages,
     required this.scrollController,
   });
@@ -401,7 +447,7 @@ class _OcptEditorPreviewContent extends StatelessWidget {
         )
       : _OcptEditorPreviewPaperPage(
           layout: layout,
-          blocks: blocks,
+          items: items,
           scrollController: scrollController,
         );
 }
@@ -412,8 +458,8 @@ class _OcptEditorPreviewPaperPage extends StatelessWidget {
   /// The geometry the sheet is typeset with.
   final OcptEditorPreviewLayout layout;
 
-  /// Every block of the document, in source order.
-  final List<FountainBlock> blocks;
+  /// Every item of the document, in source order.
+  final List<OcptEditorPreviewItem> items;
 
   /// The controller of the list scrolling the sheet.
   final ScrollController scrollController;
@@ -421,7 +467,7 @@ class _OcptEditorPreviewPaperPage extends StatelessWidget {
   /// Class constructor
   const _OcptEditorPreviewPaperPage({
     required this.layout,
-    required this.blocks,
+    required this.items,
     required this.scrollController,
   });
 
@@ -435,8 +481,12 @@ class _OcptEditorPreviewPaperPage extends StatelessWidget {
     child: ListView.builder(
       controller: scrollController,
       padding: EdgeInsets.only(top: layout.marginTop, bottom: layout.marginBottom),
-      itemCount: blocks.length,
-      itemBuilder: (context, index) => OcptEditorPreviewBlock(block: blocks[index], layout: layout),
+      itemCount: items.length,
+      itemBuilder: (context, index) => OcptEditorPreviewBlock(
+        block: items[index].block,
+        pairedWith: items[index].rightBlock,
+        layout: layout,
+      ),
     ),
   );
 }
@@ -453,8 +503,8 @@ class _OcptEditorPreviewPaginatedPages extends StatelessWidget {
   /// The geometry the sheets are typeset with.
   final OcptEditorPreviewLayout layout;
 
-  /// The blocks of each page.
-  final List<List<FountainBlock>> pages;
+  /// The items of each page.
+  final List<List<OcptEditorPreviewItem>> pages;
 
   /// The controller of the list scrolling the sheets.
   final ScrollController scrollController;
@@ -495,8 +545,12 @@ class _OcptEditorPreviewPaginatedPages extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final block in pages[index])
-                  OcptEditorPreviewBlock(block: block, layout: layout),
+                for (final item in pages[index])
+                  OcptEditorPreviewBlock(
+                    block: item.block,
+                    pairedWith: item.rightBlock,
+                    layout: layout,
+                  ),
               ],
             ),
           ),

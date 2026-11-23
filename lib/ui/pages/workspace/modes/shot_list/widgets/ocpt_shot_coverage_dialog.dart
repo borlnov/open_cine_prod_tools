@@ -17,6 +17,8 @@ import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_anchor.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_display.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_script_word_items.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_dual_dialogue_pair.dart';
 
 /// The alpha applied to [ColorScheme.primary] for text covered by the shot being edited: strong
 /// enough to read at a glance, on the simulated paper sheet, as "this shot films this text".
@@ -33,6 +35,10 @@ const double _ocptOtherCoverageAlpha = 0.10;
 /// carries the whitespace that follows it, so two consecutive covered words leave no gap between
 /// their two bands.
 const double _ocptWordVerticalPadding = 2;
+
+/// The colour of the dual-dialogue `^` a cue shows after its name when its speech is not set
+/// beside another: dimmed, and no click target, since it is no word.
+const Color _ocptDualMarkerColor = Colors.black38;
 
 /// The dialog a shot's scenario coverage is selected in: the sequence typeset on a simulated paper
 /// sheet, in Courier Prime at its true screenplay indents, every word clickable.
@@ -285,6 +291,12 @@ class _OcptShotCoverageSheet extends StatelessWidget {
     required this.onWordTapped,
   });
 
+  /// Get the codes of the other shots covering part of the blocks at [indices], in shot order.
+  List<String> otherCodesOf(Iterable<int> indices) => [
+    for (final entry in otherShotsRanges.entries)
+      if (indices.any((i) => layout.rangesIn(layout.blocks[i], entry.value).isNotEmpty)) entry.key,
+  ];
+
   /// Build the shot coverage sheet as a [Material].
   @override
   Widget build(BuildContext context) => Material(
@@ -299,23 +311,43 @@ class _OcptShotCoverageSheet extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (var i = 0; i < layout.blocks.length; i++)
-              _OcptShotCoverageSheetBlock(
-                layout: layout,
-                block: layout.blocks[i],
-                // The raw mode's paper preview only ever leaves a blank line where the source has
-                // one: consecutive lines of an action paragraph, and the cue/parenthetical/dialogue
-                // lines of one dialogue block, flow on without a gap. Two adjacent source lines are
-                // one character apart (their own newline); anything wider is a blank line.
-                isFollowedByBlankLine:
-                    i + 1 < layout.blocks.length &&
-                    layout.blocks[i + 1].startOffset - layout.blocks[i].endOffset > 1,
-                previewLayout: previewLayout,
-                ownRanges: ownRanges,
-                otherShotsRanges: otherShotsRanges,
-                pendingAnchor: pendingAnchor,
-                onWordTapped: onWordTapped,
-              ),
+            for (final item in ocptScriptWordItemsOf(
+              layout: layout,
+              metrics: previewLayout.metrics,
+              allowSideBySide: true,
+            ))
+              if (item.right == null)
+                _OcptShotCoverageSheetBlock(sheet: this, index: item.left.first)
+              else
+                OcptDualDialoguePair(
+                  footer: _OcptShotCoveragePairCaption(
+                    codes: otherCodesOf([...item.left, ...?item.right]),
+                    indent: previewLayout.indentOf(
+                      previewLayout.metrics.dualDialogue!.leftDialogue,
+                    ),
+                  ),
+                  bottomSpacing: _isFollowedByBlankLine(layout, item.right!.last)
+                      ? previewLayout.blockSpacing
+                      : 0,
+                  left: [
+                    for (final i in item.left)
+                      _OcptShotCoverageSheetBlock(
+                        sheet: this,
+                        index: i,
+                        side: layout.blocks[i].dualSide,
+                        endsColumn: i == item.left.last,
+                      ),
+                  ],
+                  right: [
+                    for (final i in item.right!)
+                      _OcptShotCoverageSheetBlock(
+                        sheet: this,
+                        index: i,
+                        side: layout.blocks[i].dualSide,
+                        endsColumn: i == item.right!.last,
+                      ),
+                  ],
+                ),
           ],
         ),
       ),
@@ -323,56 +355,93 @@ class _OcptShotCoverageSheet extends StatelessWidget {
   );
 }
 
+/// The `Also covered by` caption set under a whole dual-dialogue pair, which keeps the rows of its
+/// two columns in step, or nothing when no other shot covers any of its blocks.
+class _OcptShotCoveragePairCaption extends StatelessWidget {
+  /// The codes of the other shots covering part of the pair.
+  final List<String> codes;
+
+  /// The distance from the page's left edge to where the caption starts, in logical pixels.
+  final double indent;
+
+  /// Class constructor
+  const _OcptShotCoveragePairCaption({required this.codes, required this.indent});
+
+  /// Build the caption as a [Padding], or an empty box when [codes] is empty.
+  @override
+  Widget build(BuildContext context) {
+    if (codes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: EdgeInsets.only(left: indent),
+      child: Text(
+        Tr.of(context).shotListCoverageAlsoCoveredBy(codes.join(" · ")),
+        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary),
+      ),
+    );
+  }
+}
+
+/// Tell whether the source leaves a blank line between [layout]'s block at [index] and the next.
+bool _isFollowedByBlankLine(OcptScriptWordLayout layout, int index) =>
+    index + 1 < layout.blocks.length &&
+    layout.blocks[index + 1].startOffset - layout.blocks[index].endOffset > 1;
+
 /// One block of the sheet: its words, each clickable, at the block's own screenplay indent, width
 /// and alignment, followed by the `Also covered by` caption when another shot covers part of it.
 class _OcptShotCoverageSheetBlock extends StatelessWidget {
-  /// The layout [block] belongs to.
-  final OcptScriptWordLayout layout;
+  /// The sheet the block belongs to, whose fields every block is rendered with.
+  final _OcptShotCoverageSheet sheet;
 
-  /// The block rendered.
-  final OcptScriptWordBlock block;
+  /// The index of the block in [OcptScriptWordLayout.blocks].
+  final int index;
 
-  /// Whether the source leaves a blank line between this block and the next one, which is the only
-  /// place the sheet leaves a vertical gap.
-  final bool isFollowedByBlankLine;
+  /// The column of a dual-dialogue pair the block is set in, or null when it is rendered on its
+  /// own: a cue closed by `^` then shows the marker, dimmed, after its name.
+  final FountainDualDialogueSide? side;
 
-  /// The pixel geometry the sheet is typeset with.
-  final OcptEditorPreviewLayout previewLayout;
+  /// Whether the block ends a column of a pair: the pair carries the space under it once, so
+  /// nothing is left under the block itself.
+  final bool endsColumn;
 
-  /// The edited shot's own coverage ranges.
-  final List<OcptShotCoverageRange> ownRanges;
+  /// Get the layout the block belongs to.
+  OcptScriptWordLayout get layout => sheet.layout;
 
-  /// Every other shot's coverage ranges of this scene, keyed by that shot's code.
-  final Map<String, List<OcptShotCoverageRange>> otherShotsRanges;
+  /// Get the block rendered.
+  OcptScriptWordBlock get block => layout.blocks[index];
 
-  /// The first word clicked of a range currently being drawn, or null while none is.
-  final OcptShotCoverageAnchor? pendingAnchor;
+  /// Get the pixel geometry the sheet is typeset with.
+  OcptEditorPreviewLayout get previewLayout => sheet.previewLayout;
 
-  /// Called with a clicked word's own scene-relative start/end offsets.
-  final void Function(int wordStartOffset, int wordEndOffset) onWordTapped;
+  /// Get the edited shot's own coverage ranges.
+  List<OcptShotCoverageRange> get ownRanges => sheet.ownRanges;
+
+  /// Get every other shot's coverage ranges of this scene, keyed by that shot's code.
+  Map<String, List<OcptShotCoverageRange>> get otherShotsRanges => sheet.otherShotsRanges;
+
+  /// Get the first word clicked of a range currently being drawn, or null while none is.
+  OcptShotCoverageAnchor? get pendingAnchor => sheet.pendingAnchor;
+
+  /// Get the callback told a clicked word's own scene-relative start/end offsets.
+  void Function(int wordStartOffset, int wordEndOffset) get onWordTapped => sheet.onWordTapped;
+
+  /// Tell whether the source leaves a blank line between this block and the next one, which is the
+  /// only place the sheet leaves a vertical gap. The raw mode's paper preview only ever leaves a
+  /// blank line where the source has one: consecutive lines of an action paragraph, and the
+  /// cue/parenthetical/dialogue lines of one dialogue block, flow on without a gap. Two adjacent
+  /// source lines are one character apart (their own newline); anything wider is a blank line.
+  bool get isFollowedByBlankLine => !endsColumn && _isFollowedByBlankLine(layout, index);
 
   /// Get the screenplay layout box [block]'s own line type is typeset in.
   ///
   /// The types that are never printed (a section, a synopsis, a page break — and the blank lines
   /// the layout has no block for at all) have no box of their own: they borrow the action box, so
   /// a sequence carrying one still reads as a paragraph rather than disappearing.
-  FountainElementLayout get _elementLayout {
-    final metrics = previewLayout.metrics;
-    return switch (block.type) {
-      FountainLineType.sceneHeading => metrics.sceneHeading,
-      FountainLineType.character => metrics.character,
-      FountainLineType.parenthetical => metrics.parenthetical,
-      FountainLineType.dialogue => metrics.dialogue,
-      FountainLineType.transition => metrics.transition,
-      FountainLineType.centeredText => metrics.centeredText,
-      FountainLineType.lyrics => metrics.lyrics,
-      FountainLineType.action ||
-      FountainLineType.section ||
-      FountainLineType.synopsis ||
-      FountainLineType.pageBreak ||
-      FountainLineType.blank => metrics.action,
-    };
-  }
+  FountainElementLayout get _elementLayout =>
+      previewLayout.metrics.elementOf(block.type, side: side);
 
   /// Get the horizontal alignment [block]'s element is typeset with.
   TextAlign get _textAlign => switch (_elementLayout.alignment) {
@@ -383,14 +452,10 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
 
   /// Class constructor
   const _OcptShotCoverageSheetBlock({
-    required this.layout,
-    required this.block,
-    required this.isFollowedByBlankLine,
-    required this.previewLayout,
-    required this.ownRanges,
-    required this.otherShotsRanges,
-    required this.pendingAnchor,
-    required this.onWordTapped,
+    required this.sheet,
+    required this.index,
+    this.side,
+    this.endsColumn = false,
   });
 
   /// Build the shot coverage sheet block as a [Padding].
@@ -412,10 +477,9 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
 
     final displayRuns = ocptFountainWordDisplayRuns(block);
 
-    final otherCodes = [
-      for (final entry in otherShotsRanges.entries)
-        if (layout.rangesIn(block, entry.value).isNotEmpty) entry.key,
-    ];
+    // A block in a pair column has no caption of its own: the pair's one sits under both columns,
+    // which keeps the rows of the two columns in step.
+    final otherCodes = side == null ? sheet.otherCodesOf([index]) : const <String>[];
 
     return Padding(
       padding: EdgeInsets.only(bottom: isFollowedByBlankLine ? previewLayout.blockSpacing : 0),
@@ -443,6 +507,11 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
                             onTap: () =>
                                 onWordTapped(block.words[i].startOffset, block.words[i].endOffset),
                           ),
+                        ),
+                      if (side == null && ocptFountainCueHasDualMarker(block))
+                        TextSpan(
+                          text: "^",
+                          style: baseStyle.copyWith(color: _ocptDualMarkerColor),
                         ),
                     ],
                   ),

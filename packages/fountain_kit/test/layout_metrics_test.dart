@@ -2,9 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:fountain_kit/src/layout/fountain_dual_dialogue_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_element_layout.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 import 'package:fountain_kit/src/layout/fountain_page_margins.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 import 'package:test/test.dart';
 
 /// Asserts that [value] is within a very small tolerance of [expected],
@@ -258,6 +261,109 @@ void main() {
       _expectClose(a4Metrics.marginTopInches, 2);
       _expectClose(a4Metrics.marginBottomInches, 0.5);
       _expectClose(a4Metrics.character.leftIndentInches, 3.7);
+    });
+  });
+
+  group('dual dialogue', () {
+    /// Assert the indent and width of [box], in inches and columns.
+    void expectBox(FountainElementLayout? box, double indent, int columns) {
+      expect(box, isNotNull);
+      _expectClose(box!.leftIndentInches, indent);
+      expect(box.leftIndentColumns, (indent * 10).round());
+      expect(box.maxWidthColumns, columns);
+      _expectClose(box.maxWidthInches, columns / 10);
+      expect(box.alignment, FountainLayoutAlignment.left);
+    }
+
+    test('US Letter sets two 28-column columns', () {
+      final dual = FountainLayoutMetrics.usLetter().dualDialogue!;
+      expectBox(dual.leftDialogue, 1.5, 28);
+      expectBox(dual.rightDialogue, 4.7, 28);
+      expectBox(dual.leftParenthetical, 1.8, 25);
+      expectBox(dual.rightParenthetical, 5, 25);
+      expectBox(dual.leftCharacter, 2.1, 22);
+      expectBox(dual.rightCharacter, 5.3, 22);
+    });
+
+    test('A4 sets two 26-column columns', () {
+      final dual = FountainLayoutMetrics.a4().dualDialogue!;
+      expectBox(dual.leftDialogue, 1.5, 26);
+      expectBox(dual.rightDialogue, 4.6, 26);
+      expectBox(dual.leftParenthetical, 1.8, 23);
+      expectBox(dual.rightParenthetical, 4.9, 23);
+      expectBox(dual.leftCharacter, 2.1, 20);
+      expectBox(dual.rightCharacter, 5.2, 20);
+    });
+
+    test('every box stays inside the printable area', () {
+      for (final metrics in [FountainLayoutMetrics.usLetter(), FountainLayoutMetrics.a4()]) {
+        final dual = metrics.dualDialogue!;
+        final rightEdge = metrics.pageWidthInches - metrics.marginRightInches;
+        for (final side in FountainDualDialogueSide.values) {
+          for (final type in [
+            FountainLineType.character,
+            FountainLineType.parenthetical,
+            FountainLineType.dialogue,
+          ]) {
+            final box = dual.elementOf(side, type)!;
+            expect(box.leftIndentInches, greaterThanOrEqualTo(metrics.marginLeftInches));
+            expect(box.leftIndentInches + box.maxWidthInches, lessThanOrEqualTo(rightEdge + 1e-6));
+          }
+        }
+      }
+    });
+
+    test('the columns follow a wider left margin', () {
+      final metrics = FountainLayoutMetrics.usLetter(
+        margins: const FountainPageMargins(
+          leftInches: 2,
+          rightInches: 1,
+          topInches: 1,
+          bottomInches: 1,
+        ),
+      );
+      final dual = metrics.dualDialogue!;
+      expectBox(dual.leftDialogue, 2, 25);
+      expectBox(dual.rightDialogue, 5, 25);
+    });
+
+    test('margins leaving columns under 16 wide give no dual dialogue', () {
+      final metrics = FountainLayoutMetrics.usLetter(
+        margins: const FountainPageMargins(
+          leftInches: 2.5,
+          rightInches: 2.5,
+          topInches: 1,
+          bottomInches: 1,
+        ),
+      );
+      expect(metrics.dualDialogue, isNull);
+    });
+
+    test('elementOf answers the column boxes for a side and the ordinary ones without', () {
+      final metrics = FountainLayoutMetrics.usLetter();
+      final dual = metrics.dualDialogue!;
+      expect(
+        metrics.elementOf(FountainLineType.dialogue, side: FountainDualDialogueSide.right),
+        dual.rightDialogue,
+      );
+      expect(
+        metrics.elementOf(FountainLineType.character, side: FountainDualDialogueSide.left),
+        dual.leftCharacter,
+      );
+      expect(metrics.elementOf(FountainLineType.dialogue), metrics.dialogue);
+      expect(
+        metrics.elementOf(FountainLineType.action, side: FountainDualDialogueSide.left),
+        metrics.action,
+      );
+      expect(metrics.elementOf(FountainLineType.lyrics), metrics.lyrics);
+      expect(metrics.elementOf(FountainLineType.pageBreak), metrics.action);
+      expect(metrics.elementOf(FountainLineType.transition), metrics.transition);
+    });
+
+    test('dual dialogue takes part in equality', () {
+      final metrics = FountainLayoutMetrics.usLetter();
+      expect(metrics, FountainLayoutMetrics.usLetter());
+      expect(metrics, isNot(equals(FountainLayoutMetrics.a4())));
     });
   });
 }

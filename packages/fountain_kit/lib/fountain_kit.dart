@@ -6,6 +6,8 @@
 /// Fountain screenplay format (https://fountain.io/syntax).
 library;
 
+export 'package:fountain_kit/src/layout/fountain_dual_dialogue_layout.dart';
+export 'package:fountain_kit/src/layout/fountain_dual_dialogue_pairs.dart';
 export 'package:fountain_kit/src/layout/fountain_element_layout.dart';
 export 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
 export 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';

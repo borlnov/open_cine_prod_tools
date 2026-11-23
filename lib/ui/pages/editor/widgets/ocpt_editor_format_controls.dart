@@ -64,6 +64,14 @@ class OcptEditorFormatControls extends StatelessWidget {
               isSelected: activeStyles.contains(OcptInlineStyle.underline),
               onPressed: () => controller.toggleInlineStyle(OcptInlineStyle.underline),
             ),
+            // Withheld, never disabled, wherever there is no other speech to pair the caret's with.
+            if (controller.canToggleDualDialogue)
+              IconButton(
+                icon: const Icon(Icons.vertical_split, size: 20),
+                tooltip: tr.editorDualDialogueTooltip,
+                isSelected: controller.isDualDialogueChecked,
+                onPressed: controller.toggleDualDialogue,
+              ),
           ],
         ),
       );

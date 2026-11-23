@@ -391,3 +391,11 @@ Resources set carries across its three scopes, and the mode's two newest documen
   page-building method rather than drawing a second copy of them, so the two documents can travel
   together without ever disagreeing about what a plan looks like. Both share the app's other PDF
   services' own `OcptCourierPrimeFontsLoader` — fourteen services in all now (`exports.md`).
+
+## Dual dialogue in the coverage dialog
+
+The coverage dialog and the shot inspector read the screenplay through `OcptScriptWordLayout`
+(`breakdown.md`), so a dual dialogue is set side by side there too, through the same
+`OcptDualDialoguePair`: a coverage range is a pair of source offsets, so one running from the left
+speech into the right one is a single range whose highlight falls in both columns. The coverage PDF
+prints the bar per column (`exports.md`).

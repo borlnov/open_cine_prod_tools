@@ -30,6 +30,10 @@ abstract class OcptStyledEditorControllerDelegate {
   /// Toggle [style] on the current selection (or the composer's pending style, if collapsed).
   void applyToggleInlineStyle(OcptInlineStyle style);
 
+  /// Pair the caret's speech with the one next to it, or unpair it when it already is, in one undo
+  /// step; does nothing where the toggle has nothing to act on.
+  void applyToggleDualDialogue();
+
   /// Replace the find/replace query and current-match index the delegate highlights/navigates
   /// to, mirroring [OcptStyledEditorController.updateSearch]'s own doc comment. `null`/`null`
   /// means "no active search" (the bar is closed, a different mode is active, or a version is

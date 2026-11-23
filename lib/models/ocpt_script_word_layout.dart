@@ -7,6 +7,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_cue_dual_marker.dart';
 
 /// A scene's text, laid out into the blocks and words every screen that lets the user click a
 /// passage of the script renders and reasons with — the scenario coverage editor first, and the
@@ -39,11 +40,17 @@ class OcptScriptWordLayout extends Equatable {
   /// source left a blank line there.
   final List<OcptScriptWordBlock> blocks;
 
+  /// The dual-dialogue pairs of this scene, as the ranges of [blocks] indices of their two
+  /// members, in reading order: every block of a pair carries the matching
+  /// [OcptScriptWordBlock.dualSide].
+  final List<FountainDualDialogueLinePair> dualPairs;
+
   /// Class constructor
   const OcptScriptWordLayout({
     required this.sceneId,
     required this.sceneText,
     required this.blocks,
+    this.dualPairs = const [],
   });
 
   /// Lay [sceneText] (scene [sceneId]'s own text) out into [OcptScriptWordLayout.blocks].
@@ -67,21 +74,37 @@ class OcptScriptWordLayout extends Equatable {
 
     final types = const FountainLineClassifier().classify(lines);
 
+    final linePairs = fountainDualDialogueLinePairs(types, lines);
+    final sideOfLine = <int, FountainDualDialogueSide>{
+      for (final pair in linePairs) ...{
+        for (var i = pair.left.start; i < pair.left.end; i++) i: FountainDualDialogueSide.left,
+        for (var i = pair.right.start; i < pair.right.end; i++) i: FountainDualDialogueSide.right,
+      },
+    };
+
     final blocks = <OcptScriptWordBlock>[];
+    final blockOfLine = List<int>.filled(lines.length + 1, 0);
     for (var i = 0; i < lines.length; i++) {
+      blockOfLine[i] = blocks.length;
       if (types[i] == FountainLineType.blank) {
         continue;
       }
 
       final line = lines[i];
       final lineStart = lineStarts[i];
+      // The `^` closing a cue is a marker, not a word: it is left out of the words, though no
+      // offset moves for it.
+      final markerIndex = types[i] == FountainLineType.character
+          ? ocptCueDualMarkerIndexOf(line)
+          : null;
       final words = <OcptScriptWord>[
         for (final match in RegExp(r'\S+').allMatches(line))
-          OcptScriptWord(
-            text: match.group(0)!,
-            startOffset: lineStart + match.start,
-            endOffset: lineStart + match.end,
-          ),
+          if (!(match.start == markerIndex && match.group(0) == "^"))
+            OcptScriptWord(
+              text: match.group(0)!,
+              startOffset: lineStart + match.start,
+              endOffset: lineStart + match.end,
+            ),
       ];
 
       blocks.add(
@@ -91,11 +114,24 @@ class OcptScriptWordLayout extends Equatable {
           startOffset: lineStart,
           endOffset: lineStart + line.length,
           words: words,
+          dualSide: sideOfLine[i],
         ),
       );
     }
+    blockOfLine[lines.length] = blocks.length;
 
-    return OcptScriptWordLayout(sceneId: sceneId, sceneText: sceneText, blocks: blocks);
+    return OcptScriptWordLayout(
+      sceneId: sceneId,
+      sceneText: sceneText,
+      blocks: blocks,
+      dualPairs: [
+        for (final pair in linePairs)
+          (
+            left: (start: blockOfLine[pair.left.start], end: blockOfLine[pair.left.end]),
+            right: (start: blockOfLine[pair.right.start], end: blockOfLine[pair.right.end]),
+          ),
+      ],
+    );
   }
 
   /// Get the scene-relative range to store for a click on [first] followed by a click on [second],
@@ -276,5 +312,5 @@ class OcptScriptWordLayout extends Equatable {
 
   /// List the fields that decide equality.
   @override
-  List<Object?> get props => [sceneId, sceneText, blocks];
+  List<Object?> get props => [sceneId, sceneText, blocks, dualPairs];
 }

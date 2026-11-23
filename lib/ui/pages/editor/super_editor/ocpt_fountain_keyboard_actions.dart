@@ -42,6 +42,7 @@ const List<FountainLineType> _ocptTabCycleTypes = [
 List<SuperEditorKeyboardAction> ocptFountainKeyboardActions({
   required VoidCallback onUndo,
   required VoidCallback onRedo,
+  required VoidCallback onToggleDualDialogue,
 }) => [
   ocptTabToCycleBlockType,
   ocptEnterToSmartSplit,
@@ -51,6 +52,7 @@ List<SuperEditorKeyboardAction> ocptFountainKeyboardActions({
   ocptCmdUToToggleUnderline,
   ocptUndoAction(onUndo: onUndo),
   ocptRedoAction(onRedo: onRedo),
+  ocptToggleDualDialogueAction(onToggle: onToggleDualDialogue),
   ...defaultImeKeyboardActions.where((action) => !_ocptExcludedDefaultActions.contains(action)),
 ];
 
@@ -311,6 +313,9 @@ ExecutionInstruction ocptEnterToSmartSplit({
   final splitsAtEnd = splitPosition.offset == node.text.toPlainText().length;
   final newType = isShiftEnter || !splitsAtEnd ? currentType : _ocptSmartEnterNextType(currentType);
   final blankLinesBefore = isShiftEnter || _ocptIsDialogueGroupMember(newType) ? 0 : 1;
+  // The dual-dialogue suffix belongs to the end of the cue: it follows the tail of a split in the
+  // middle, and stays on the original node only when the split is at its very end.
+  final movedSuffix = splitsAtEnd ? null : OcptWysiwygDualDialogue.suffixOf(node);
 
   final newNodeId = Editor.createNodeId();
   editContext.editor.execute([
@@ -340,8 +345,10 @@ ExecutionInstruction ocptEnterToSmartSplit({
         ocptBlankLinesBeforeMetadataKey: blankLinesBefore,
         ocptTypeLockedMetadataKey: false,
         ocptHadForcingMarkerMetadataKey: false,
+        if (movedSuffix != null) ocptDualDialogueMetadataKey: movedSuffix,
       },
     ),
+    if (movedSuffix != null) OcptWysiwygDualDialogue.suffixRequest(node.id, null),
     // `_ocptSmartEnterNextType` maps nothing to `parenthetical` today, so `splitsAtEnd` alone can
     // never actually make `newType` land on it — this call is currently inert. It stays here (with
     // `isNodeEmpty: splitsAtEnd`, never true for a mid-text split, which carries the tail text into
@@ -507,3 +514,23 @@ SuperEditorKeyboardAction ocptRedoAction({
 
   return ExecutionInstruction.haltExecution;
 };
+
+/// Handle Ctrl+Alt+D / Cmd+Alt+D: asks [onToggle] to pair the caret's speech with the one next to
+/// it, or to unpair it. Halts whether or not the toggle had anything to act on at the caret: the
+/// chord was meant, and no other action of the list has any use for it.
+SuperEditorKeyboardAction ocptToggleDualDialogueAction({required VoidCallback onToggle}) =>
+    ({required SuperEditorContext editContext, required KeyEvent keyEvent}) {
+      if (keyEvent is! KeyDownEvent && keyEvent is! KeyRepeatEvent) {
+        return ExecutionInstruction.continueExecution;
+      }
+      if (!keyEvent.isPrimaryShortcutKeyPressed ||
+          !HardwareKeyboard.instance.isAltPressed ||
+          HardwareKeyboard.instance.isShiftPressed ||
+          keyEvent.logicalKey != LogicalKeyboardKey.keyD) {
+        return ExecutionInstruction.continueExecution;
+      }
+
+      onToggle();
+
+      return ExecutionInstruction.haltExecution;
+    };

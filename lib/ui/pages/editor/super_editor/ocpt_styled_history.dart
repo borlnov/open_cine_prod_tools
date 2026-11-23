@@ -25,6 +25,9 @@ final class OcptStyledHistory {
   /// Renumbers the scene headings of a restored document.
   final void Function() _syncSceneNumbers;
 
+  /// Redraws the dual-dialogue brackets of a restored document.
+  final void Function() _syncBracket;
+
   /// Reports the fresh history state to the toolbar.
   final void Function() _reportReadState;
 
@@ -65,12 +68,14 @@ final class OcptStyledHistory {
   OcptStyledHistory({
     required Editor Function() editorOf,
     required void Function() syncSceneNumbers,
+    required void Function() syncBracket,
     required void Function() reportReadState,
   }) : mergePolicy = OcptSettleMergePolicy(),
        _isRedoStackStale = false,
        _isApplyingHistory = false,
        _editorOf = editorOf,
        _syncSceneNumbers = syncSceneNumbers,
+       _syncBracket = syncBracket,
        _reportReadState = reportReadState;
 
   /// Mark the redo stack as overtaken by an edit made since the last undo.
@@ -140,6 +145,7 @@ final class OcptStyledHistory {
     try {
       historyChange();
       _syncSceneNumbers();
+      _syncBracket();
     } finally {
       _isApplyingHistory = false;
     }

@@ -57,6 +57,10 @@ class OcptStyledEditorController extends ChangeNotifier {
   /// from.
   Map<String, String> _spellCheckTextsByNodeId;
 
+  /// Whether the caret's speech is part of a dual dialogue, or null when the toggle has nothing to
+  /// act on there; mirrored from the live styled editor by [updateReadState].
+  bool? _isDualDialogueChecked;
+
   /// Whether the attached delegate had anything left to undo when it last called
   /// [updateReadState]; false while detached.
   bool _canUndo;
@@ -91,6 +95,13 @@ class OcptStyledEditorController extends ChangeNotifier {
   /// Get the inline styles the toolbar's B/I/U toggles should currently show as selected.
   Set<OcptInlineStyle> get activeInlineStyles => _activeInlineStyles;
 
+  /// Tell whether the dual-dialogue toggle has something to act on at the caret: it is withheld
+  /// everywhere else, and in raw mode.
+  bool get canToggleDualDialogue => _isDualDialogueChecked != null;
+
+  /// Tell whether the caret's speech is part of a dual dialogue, what the toggle shows as checked.
+  bool get isDualDialogueChecked => _isDualDialogueChecked ?? false;
+
   /// Tell whether the live styled editor currently has anything to undo — what an `Undo` affordance
   /// reads to decide whether to appear at all. False while detached (raw mode), where the raw
   /// field's own `UndoHistoryController` is what answers the same question.
@@ -111,6 +122,7 @@ class OcptStyledEditorController extends ChangeNotifier {
       _spellCheckTextsByNodeId = const {},
       _canUndo = false,
       _canRedo = false,
+      _isDualDialogueChecked = null,
       _disposed = false;
 
   /// Request that the writer's last gesture be taken back, forwarded to the attached delegate; a
@@ -129,6 +141,13 @@ class OcptStyledEditorController extends ChangeNotifier {
   /// no-op while detached (raw mode).
   void setBlockType(FountainLineType type) {
     _delegate?.applyBlockType(type);
+  }
+
+  /// Request that the caret's speech be paired with the one next to it, or unpaired when it
+  /// already is, forwarded to the attached delegate; a no-op while detached (raw mode), or where
+  /// [canToggleDualDialogue] is false.
+  void toggleDualDialogue() {
+    _delegate?.applyToggleDualDialogue();
   }
 
   /// Request that [style] be toggled on the current selection, forwarded to the attached
@@ -234,12 +253,15 @@ class OcptStyledEditorController extends ChangeNotifier {
     _spellCheckTextsByNodeId = const {};
     _canUndo = false;
     _canRedo = false;
+    _isDualDialogueChecked = null;
     _notifySafely();
   }
 
   /// Push a fresh read-side snapshot from the attached delegate: the caret's current block type,
-  /// the set of inline styles active at the caret/selection, and whether that editor has anything
-  /// left to undo or redo. Listeners are only notified when one of those four actually changed,
+  /// the set of inline styles active at the caret/selection, whether that editor has anything
+  /// left to undo or redo, and what the dual-dialogue toggle shows ([isDualDialogueChecked], null
+  /// where it has nothing to act on). Listeners are only notified when one of those actually
+  /// changed,
   /// avoiding redundant toolbar rebuilds on every keystroke that doesn't move the caret across a
   /// style boundary.
   void updateReadState({
@@ -247,8 +269,10 @@ class OcptStyledEditorController extends ChangeNotifier {
     required Set<OcptInlineStyle> activeInlineStyles,
     required bool canUndo,
     required bool canRedo,
+    bool? isDualDialogueChecked,
   }) {
     if (_currentBlockType == currentBlockType &&
+        _isDualDialogueChecked == isDualDialogueChecked &&
         setEquals(_activeInlineStyles, activeInlineStyles) &&
         _canUndo == canUndo &&
         _canRedo == canRedo) {
@@ -258,6 +282,7 @@ class OcptStyledEditorController extends ChangeNotifier {
     _activeInlineStyles = activeInlineStyles;
     _canUndo = canUndo;
     _canRedo = canRedo;
+    _isDualDialogueChecked = isDualDialogueChecked;
     _notifySafely();
   }
 

@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:fountain_kit/src/layout/fountain_dual_dialogue_layout.dart';
 import 'package:fountain_kit/src/layout/fountain_element_layout.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
 import 'package:fountain_kit/src/layout/fountain_page_margins.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
 /// Page and element layout metrics for typesetting a Fountain screenplay in
 /// 12-point Courier, the traditional screenplay font.
@@ -30,6 +32,8 @@ import 'package:fountain_kit/src/layout/fountain_page_margins.dart';
 /// * Transitions are right-aligned within the full printable width, so
 ///   they end flush with the right margin.
 /// * Lyrics are set like dialogue, since they are sung/spoken text.
+/// * Dual dialogue sets two speeches side by side, each in a column of [dualDialogue]'s width,
+///   derived from the printable width (see [FountainDualDialogueLayout]).
 class FountainLayoutMetrics extends Equatable {
   /// Millimeters per inch, used to derive [FountainLayoutMetrics.a4]'s page
   /// size from the ISO 216 A4 dimensions (210 mm by 297 mm).
@@ -65,6 +69,19 @@ class FountainLayoutMetrics extends Equatable {
   /// regardless of page size, unlike the other elements' widths (which
   /// stretch to the printable area's right edge).
   static const double _dialogueMaxWidthInches = 3.5;
+
+  /// The width, in columns, kept clear between the two columns of a dual dialogue.
+  static const int _dualDialogueGutterColumns = 4;
+
+  /// The narrowest a dual-dialogue column may be, in columns; a page leaving less has no
+  /// [dualDialogue] and sets a pair stacked.
+  static const int _dualDialogueMinColumns = 16;
+
+  /// The distance, in inches, from a dual-dialogue column's left edge to its parentheticals.
+  static const double _dualParentheticalOffsetInches = 0.3;
+
+  /// The distance, in inches, from a dual-dialogue column's left edge to its character cues.
+  static const double _dualCharacterOffsetInches = 0.6;
 
   /// The full page width, in inches.
   final double pageWidthInches;
@@ -119,6 +136,10 @@ class FountainLayoutMetrics extends Equatable {
   /// The layout box for lyrics.
   final FountainElementLayout lyrics;
 
+  /// The layout boxes of a dual-dialogue pair's two columns, or null when the printable area is
+  /// too narrow for two readable columns, in which case a pair is set stacked.
+  final FountainDualDialogueLayout? dualDialogue;
+
   /// Create a [FountainLayoutMetrics] with every measurement given
   /// explicitly. Prefer the [FountainLayoutMetrics.usLetter] and
   /// [FountainLayoutMetrics.a4] presets unless a non-standard page size is
@@ -141,6 +162,7 @@ class FountainLayoutMetrics extends Equatable {
     required this.transition,
     required this.centeredText,
     required this.lyrics,
+    this.dualDialogue,
   });
 
   /// Build the standard US Letter (8.5 by 11 inch) preset, with [margins]
@@ -230,7 +252,38 @@ class FountainLayoutMetrics extends Equatable {
         maxWidthInches: _dialogueMaxWidthInches,
         alignment: FountainLayoutAlignment.left,
       ),
+      dualDialogue: _dualDialogueLayout(marginLeft: marginLeft, printableWidth: printableWidth),
     );
+  }
+
+  /// Get the layout box a line of [lineType] is set in, as a dual-dialogue column when [side] is
+  /// given, and as an ordinary element otherwise.
+  ///
+  /// The types that are never printed (a section, a synopsis, a page break and a blank line)
+  /// borrow the action box, so a sequence carrying one still reads as a paragraph. Lyrics use
+  /// their own box. A [side] only changes the character cue, the parenthetical and the dialogue,
+  /// and only when [dualDialogue] is not null; every other case answers the ordinary box.
+  FountainElementLayout elementOf(FountainLineType lineType, {FountainDualDialogueSide? side}) {
+    if (side != null) {
+      final column = dualDialogue?.elementOf(side, lineType);
+      if (column != null) {
+        return column;
+      }
+    }
+    return switch (lineType) {
+      FountainLineType.sceneHeading => sceneHeading,
+      FountainLineType.character => character,
+      FountainLineType.parenthetical => parenthetical,
+      FountainLineType.dialogue => dialogue,
+      FountainLineType.transition => transition,
+      FountainLineType.centeredText => centeredText,
+      FountainLineType.lyrics => lyrics,
+      FountainLineType.action ||
+      FountainLineType.section ||
+      FountainLineType.synopsis ||
+      FountainLineType.pageBreak ||
+      FountainLineType.blank => action,
+    };
   }
 
   /// Describe this [FountainLayoutMetrics] for debugging and logging.
@@ -258,6 +311,45 @@ class FountainLayoutMetrics extends Equatable {
     alignment: alignment,
   );
 
+  /// Build the [FountainDualDialogueLayout] of a page whose printable area starts at [marginLeft]
+  /// inches and is [printableWidth] inches wide, or null when the columns would be narrower than
+  /// the minimum.
+  ///
+  /// The printable width is truncated to whole columns, then split into two equal columns
+  /// separated by a gutter. The left column starts at the left margin and the right one is set
+  /// flush right. Inside a column the dialogue spans the whole width, the parenthetical starts
+  /// 0.3 inch further in and the character cue 0.6 inch further in, all running to the column's
+  /// right edge.
+  static FountainDualDialogueLayout? _dualDialogueLayout({
+    required double marginLeft,
+    required double printableWidth,
+  }) {
+    final printableColumns = (printableWidth * _courierCharsPerInch + _columnRoundingEpsilon)
+        .floor();
+    final columns = (printableColumns - _dualDialogueGutterColumns) ~/ 2;
+    if (columns < _dualDialogueMinColumns) {
+      return null;
+    }
+
+    final columnWidth = columns / _courierCharsPerInch;
+    final rightStart = marginLeft + (printableColumns - columns) / _courierCharsPerInch;
+
+    FountainElementLayout box(double columnStart, double offset) => _elementLayout(
+      leftIndentInches: columnStart + offset,
+      maxWidthInches: columnWidth - offset,
+      alignment: FountainLayoutAlignment.left,
+    );
+
+    return FountainDualDialogueLayout(
+      leftCharacter: box(marginLeft, _dualCharacterOffsetInches),
+      leftParenthetical: box(marginLeft, _dualParentheticalOffsetInches),
+      leftDialogue: box(marginLeft, 0),
+      rightCharacter: box(rightStart, _dualCharacterOffsetInches),
+      rightParenthetical: box(rightStart, _dualParentheticalOffsetInches),
+      rightDialogue: box(rightStart, 0),
+    );
+  }
+
   /// List the fields that decide equality.
   @override
   List<Object?> get props => [
@@ -278,5 +370,6 @@ class FountainLayoutMetrics extends Equatable {
     transition,
     centeredText,
     lyrics,
+    dualDialogue,
   ];
 }

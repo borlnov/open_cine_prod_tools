@@ -17,6 +17,7 @@ keyboard.
 | **Tab** / **Shift+Tab** | Cycle the current block's type, and lock it |
 | **Enter** | New block, in the type that normally follows |
 | **Shift+Enter** | New block, keeping the same type |
+| **Ctrl+Alt+D** | Pair the speech with the one next to it as a dual dialogue, or unpair it |
 
 The usual editing gestures — **Ctrl+C**, **Ctrl+X**, **Ctrl+V**, **Ctrl+Z** — work as everywhere.
 Copy-paste inside the app preserves block types.

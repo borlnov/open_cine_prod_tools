@@ -343,4 +343,77 @@ void main() {
 
     expect(layout.pages.single.lines, script.pages[0].lines);
   });
+
+  group("a dual-dialogue pair", () {
+    /// A dual-dialogue cell of [side] printed from `[start, end)`, or a blank one with no range.
+    FountainScriptLine cell(
+      String tag,
+      FountainDualDialogueSide side, {
+      int? start,
+      int? end,
+      FountainScriptLine? companion,
+    }) => FountainScriptLine(
+      runs: start == null
+          ? const []
+          : [
+              FountainStyledRun(
+                text: tag,
+                sourceRange: FountainSourceRange(
+                  startLine: 0,
+                  endLine: 0,
+                  startOffset: start,
+                  endOffset: end!,
+                ),
+              ),
+            ],
+      lineType: start == null ? FountainLineType.blank : FountainLineType.dialogue,
+      leftIndentInches: 0,
+      alignment: FountainLayoutAlignment.left,
+      isSceneHeading: false,
+      dualSide: side,
+      dualCompanion: companion,
+    );
+
+    // Rows: 0 outside, 1 (left 10-15, right 50-55), 2 (blank left, right 56-60), 3 outside.
+    final right1 = cell("r1", FountainDualDialogueSide.right, start: 50, end: 55);
+    final right2 = cell("r2", FountainDualDialogueSide.right, start: 56, end: 60);
+    final row1 = cell("l1", FountainDualDialogueSide.left, start: 10, end: 15, companion: right1);
+    final row2 = cell("", FountainDualDialogueSide.left, companion: right2);
+    final script = _onePageScript([
+      _line("row0", start: 0, end: 5),
+      row1,
+      row2,
+      _line("row3", start: 100, end: 105),
+    ]);
+
+    OcptScriptSidesLayout sidesOf(({int charStart, int charEnd}) span) => OcptScriptSidesLayout.of(
+      script: script,
+      sceneSpans: [span],
+      metrics: _metrics(54),
+      presentation: OcptSidesPresentation.scriptPages,
+    );
+
+    test("selects the row a scene only matches in the right column", () {
+      final layout = sidesOf((charStart: 56, charEnd: 60));
+
+      expect(layout.pages, hasLength(1));
+      final lines = layout.pages.single.lines;
+      expect(lines, hasLength(3));
+      expect(lines[2], row2);
+      expect(lines[2].dualCompanion, right2);
+      expect(lines[1].plainText, isEmpty);
+    });
+
+    test("keeps both cells of a selected row", () {
+      final lines = sidesOf((charStart: 10, charEnd: 15)).pages.single.lines;
+
+      expect(lines, hasLength(2));
+      expect(lines[1], same(row1));
+      expect(lines[1].cells, [row1, right1]);
+    });
+
+    test("selects nothing for a span no cell overlaps", () {
+      expect(sidesOf((charStart: 70, charEnd: 90)).pages, isEmpty);
+    });
+  });
 }

@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:flutter/rendering.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
+import 'package:open_cine_prod_tools/models/rules/ocpt_wrapped_line_count.dart';
 
 /// Convert `FountainLayoutMetrics` character-column measurements into pixels for the preview.
 ///
@@ -139,22 +141,7 @@ class OcptEditorPreviewLayout {
       metrics.sceneHeading.maxWidthColumns,
     ),
     FountainActionBlock(:final lines) => _sumOfWrappedLines(lines, metrics.action.maxWidthColumns),
-    FountainDialogueGroup(:final character, :final children) =>
-      wrappedLineCount(_characterCueText(character), metrics.character.maxWidthColumns) +
-          children
-              .map(
-                (child) => switch (child) {
-                  FountainParenthetical(:final text) => wrappedLineCount(
-                    "($text)",
-                    metrics.parenthetical.maxWidthColumns,
-                  ),
-                  _ => wrappedLineCount(
-                    child is FountainDialogueLine ? child.text : "",
-                    metrics.dialogue.maxWidthColumns,
-                  ),
-                },
-              )
-              .fold(0, (sum, lineCount) => sum + lineCount),
+    final FountainDialogueGroup group => _dialogueLineCount(group),
     FountainTransition(:final text) => wrappedLineCount(text, metrics.transition.maxWidthColumns),
     FountainCenteredText(:final text) => wrappedLineCount(
       text,
@@ -166,6 +153,94 @@ class OcptEditorPreviewLayout {
     // parentheticals and dialogue lines only live inside a dialogue group).
     _ => 0,
   };
+
+  /// Estimate how many rendered lines [item] spans: its block's count, or, for a pair set side by
+  /// side, the taller of its two columns, each wrapped at its own column's width.
+  int estimatedItemLineCount(OcptEditorPreviewItem item) {
+    final right = item.rightBlock;
+    if (right == null) {
+      return estimatedLineCount(item.block);
+    }
+    final leftLines = _dialogueLineCount(
+      item.block as FountainDialogueGroup,
+      side: FountainDualDialogueSide.left,
+    );
+    final rightLines = _dialogueLineCount(right, side: FountainDualDialogueSide.right);
+
+    return leftLines > rightLines ? leftLines : rightLines;
+  }
+
+  /// Estimate the rendered height of [item], in logical pixels, including the trailing
+  /// [blockSpacing].
+  double estimateItemHeight(OcptEditorPreviewItem item) =>
+      estimatedItemLineCount(item) * lineHeight + blockSpacing;
+
+  /// Group the printed blocks of [document] ([printableBlocks]) into the items the preview
+  /// renders, in source order.
+  ///
+  /// Two blocks forming a dual-dialogue pair ([fountainPrintableDualDialoguePairs], found over the
+  /// whole document, so that a note or a section between two speeches breaks it) make one item set
+  /// side by side, unless the page has no room for two columns
+  /// ([FountainLayoutMetrics.dualDialogue] is null) or the pair is taller than a page: then both
+  /// stay ordinary dialogue, stacked. Every other block, an orphan `^` included, is an item of its
+  /// own.
+  List<OcptEditorPreviewItem> groupItems(FountainDocument document) {
+    final blocks = printableBlocks(document);
+    final rightOf = {
+      if (metrics.dualDialogue != null)
+        for (final pair in fountainPrintableDualDialoguePairs(document.blocks))
+          pair.left: pair.right,
+    };
+    final items = <OcptEditorPreviewItem>[];
+    var index = 0;
+    while (index < blocks.length) {
+      final rightIndex = rightOf[index];
+      final item = rightIndex == null
+          ? OcptEditorPreviewItem(blockIndex: index, block: blocks[index])
+          : OcptEditorPreviewItem(
+              blockIndex: index,
+              block: blocks[index],
+              rightBlockIndex: rightIndex,
+              rightBlock: blocks[rightIndex] as FountainDialogueGroup,
+            );
+      if (rightIndex != null && estimatedItemLineCount(item) > metrics.linesPerPage) {
+        items.add(OcptEditorPreviewItem(blockIndex: index, block: blocks[index]));
+        items.add(OcptEditorPreviewItem(blockIndex: rightIndex, block: blocks[rightIndex]));
+      } else {
+        items.add(item);
+      }
+      index += rightIndex == null ? 1 : 2;
+    }
+
+    return items;
+  }
+
+  /// Estimate how many rendered lines [group] spans, in the column of [side] when it is given.
+  int _dialogueLineCount(FountainDialogueGroup group, {FountainDualDialogueSide? side}) {
+    final cueColumns = metrics.elementOf(FountainLineType.character, side: side).maxWidthColumns;
+    final parentheticalColumns = metrics
+        .elementOf(FountainLineType.parenthetical, side: side)
+        .maxWidthColumns;
+    final dialogueColumns = metrics
+        .elementOf(FountainLineType.dialogue, side: side)
+        .maxWidthColumns;
+
+    return wrappedLineCount(_characterCueText(group.character), cueColumns) +
+        group.children
+            .map(
+              (child) => switch (child) {
+                FountainParenthetical(:final text) => wrappedLineCount(
+                  "($text)",
+                  parentheticalColumns,
+                ),
+                _ => wrappedLineCount(
+                  child is FountainDialogueLine ? child.text : "",
+                  dialogueColumns,
+                ),
+              },
+            )
+            .fold(0, (sum, lineCount) => sum + lineCount);
+  }
 
   /// Return the blocks of [document] that are part of the printed screenplay, in source order.
   ///
@@ -183,32 +258,10 @@ class OcptEditorPreviewLayout {
       )
       .toList(growable: false);
 
-  /// Return how many lines [text] wraps to in a box [maxColumns] characters wide, using a greedy
-  /// word wrap (which is what text layout does for a fixed-pitch font). An empty [text] still
-  /// occupies one line.
-  static int wrappedLineCount(String text, int maxColumns) {
-    if (text.length <= maxColumns) {
-      return 1;
-    }
-
-    var lineCount = 1;
-    var currentLineLength = 0;
-    for (final word in text.split(" ")) {
-      // +1 for the space that precedes the word on a non-empty line.
-      final neededLength = currentLineLength == 0
-          ? word.length
-          : currentLineLength + 1 + word.length;
-      if (neededLength <= maxColumns) {
-        currentLineLength = neededLength;
-      } else {
-        // A word longer than the whole box hard-wraps mid-word.
-        lineCount += word.length > maxColumns ? (word.length / maxColumns).ceil() : 1;
-        currentLineLength = word.length % maxColumns;
-      }
-    }
-
-    return lineCount;
-  }
+  /// Return how many lines [text] wraps to in a box [maxColumns] characters wide (see
+  /// [ocptWrappedLineCount]).
+  static int wrappedLineCount(String text, int maxColumns) =>
+      ocptWrappedLineCount(text, maxColumns);
 
   /// Get the full character cue line: the name, followed by its parenthetical extension if any.
   static String _characterCueText(FountainCharacter character) =>
@@ -232,4 +285,31 @@ class OcptEditorPreviewLayout {
 
     return width;
   });
+}
+
+/// One thing the preview lays out: a single block, or a dual-dialogue pair set side by side.
+class OcptEditorPreviewItem extends Equatable {
+  /// The index, among the printable blocks, of [block].
+  final int blockIndex;
+
+  /// The block of the item, or the left member of a pair.
+  final FountainBlock block;
+
+  /// The index, among the printable blocks, of [rightBlock], or null when the item is no pair.
+  final int? rightBlockIndex;
+
+  /// The right member of a pair set side by side, or null when the item is a single block.
+  final FountainDialogueGroup? rightBlock;
+
+  /// Class constructor
+  const OcptEditorPreviewItem({
+    required this.blockIndex,
+    required this.block,
+    this.rightBlockIndex,
+    this.rightBlock,
+  });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [blockIndex, block, rightBlockIndex, rightBlock];
 }

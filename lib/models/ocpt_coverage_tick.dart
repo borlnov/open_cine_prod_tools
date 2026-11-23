@@ -19,14 +19,18 @@ class OcptCoverageTick extends Equatable {
   /// ([FountainScriptLine.plainText]), the tick is drawn before.
   final int column;
 
+  /// The column of a dual-dialogue pair the tick sits in, or null on an ordinary line.
+  final FountainDualDialogueSide? side;
+
   /// Class constructor
-  const OcptCoverageTick({required this.row, required this.column});
+  const OcptCoverageTick({required this.row, required this.column, this.side});
 
   /// Get a string representation of the object, useful for debugging and logging.
   @override
-  String toString() => "OcptCoverageTick(row: $row, column: $column)";
+  String toString() =>
+      "OcptCoverageTick(row: $row, column: $column${side == null ? '' : ', side: $side'})";
 
   /// List the fields that decide equality.
   @override
-  List<Object?> get props => [row, column];
+  List<Object?> get props => [row, column, side];
 }

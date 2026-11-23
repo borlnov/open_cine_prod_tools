@@ -348,6 +348,78 @@ void main() {
     });
   });
 
+  group("a dual-dialogue pair", () {
+    const leftText = "Short left.";
+    const rightText = "This right reply is much longer than the left one so it wraps over rows.";
+    const dualScreenplay =
+        "INT. KITCHEN - DAY\n"
+        "\n"
+        "ROSS\n"
+        "$leftText\n"
+        "\n"
+        "KIM ^\n"
+        "$rightText\n";
+    final dualDocument = parser.parse(dualScreenplay);
+    final dualScene = dualDocument.scenes.first;
+
+    /// A coverage export of [dualScreenplay] covering [passage], or nothing when it is null.
+    Future<Uint8List> generateCovering(String? passage) {
+      final start = passage == null ? 0 : dualScreenplay.indexOf(passage);
+      final end = passage == null ? 0 : start + passage.length;
+      final base = dualScene.sourceRange.startOffset;
+      return service.generate(
+        document: dualDocument,
+        screenplayText: dualScreenplay,
+        snapshot: OcptShotListSnapshot.build(
+          screenplayId: "screenplay",
+          sequences: [
+            OcptSceneShotSequence(
+              sceneId: "scene-1",
+              heading: dualScene.headingText,
+              sceneNumber: null,
+              displaySceneNumber: "1",
+              charStart: base,
+              charEnd: dualScreenplay.length,
+              shots: [
+                _buildShot(
+                  id: "shot-1",
+                  code: "1/1",
+                  sceneId: "scene-1",
+                  coverageRanges: passage == null
+                      ? const []
+                      : [
+                          _buildRange(
+                            sceneId: "scene-1",
+                            startOffset: start - base,
+                            endOffset: end - base,
+                          ),
+                        ],
+                ),
+              ],
+            ),
+          ],
+        ),
+        pageSetup: pageSetup,
+        labels: _labels,
+        projectName: "My Movie",
+        includeSceneNumbers: true,
+        includeTitlePage: false,
+        includeLegendPage: false,
+        includeSummaryPage: false,
+      );
+    }
+
+    test("draws a range on either column differently from the other", () async {
+      final none = await generateCovering(null);
+      final left = await generateCovering(leftText);
+      final right = await generateCovering(rightText);
+
+      expect(_contentStreams(left), isNot(_contentStreams(none)));
+      expect(_contentStreams(right), isNot(_contentStreams(none)));
+      expect(_contentStreams(left), isNot(_contentStreams(right)));
+    });
+  });
+
   group("coverageFileName", () {
     test("joins the project name and the localized suffix", () {
       expect(
