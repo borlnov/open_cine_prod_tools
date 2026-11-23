@@ -178,4 +178,48 @@ void main() {
       expect(_lastEncoded, startsWith("ROSS\nHello.\n\nKIM ^\n"));
     });
   });
+
+  group("splitting a cue carrying the marker", () {
+    /// Split KIM's node at [offset] with Enter and report the suffixes of the two nodes, read as
+    /// soon as the split is done.
+    Future<(String?, String?)> splitAt(WidgetTester tester, int offset) async {
+      await _pump(tester, _pair);
+      final document = SuperEditorInspector.findDocument()!;
+      await tester.placeCaretInParagraph(nodeAt(document, 2).id, offset);
+      await _sendKey(tester, LogicalKeyboardKey.enter);
+      return (
+        OcptWysiwygDualDialogue.suffixOf(nodeAt(document, 2)),
+        OcptWysiwygDualDialogue.suffixOf(nodeAt(document, 3)),
+      );
+    }
+
+    testWidgets("at its start gives the suffix to the cue that follows", (tester) async {
+      final (before, after) = await splitAt(tester, 0);
+      await pumpPastSettleDebounce(tester);
+
+      expect(before, isNull);
+      expect(after, " ^");
+      expect(" ^".allMatches(_lastEncoded), hasLength(1));
+      expect(_lastEncoded, contains("KIM ^\nHi."));
+    });
+
+    testWidgets("in the middle gives the suffix to the tail", (tester) async {
+      final (before, after) = await splitAt(tester, 2);
+      await pumpPastSettleDebounce(tester);
+
+      expect(before, isNull);
+      expect(after, " ^");
+      expect(_lastEncoded, isNot(contains("KI ^")));
+      expect(_lastEncoded, contains("M ^"));
+    });
+
+    testWidgets("at its end leaves the suffix where it was", (tester) async {
+      final (before, after) = await splitAt(tester, 3);
+      await pumpPastSettleDebounce(tester);
+
+      expect(before, " ^");
+      expect(after, isNull);
+      expect(_lastEncoded, contains("KIM ^"));
+    });
+  });
 }

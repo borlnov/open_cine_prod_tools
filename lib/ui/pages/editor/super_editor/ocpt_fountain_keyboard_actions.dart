@@ -313,6 +313,9 @@ ExecutionInstruction ocptEnterToSmartSplit({
   final splitsAtEnd = splitPosition.offset == node.text.toPlainText().length;
   final newType = isShiftEnter || !splitsAtEnd ? currentType : _ocptSmartEnterNextType(currentType);
   final blankLinesBefore = isShiftEnter || _ocptIsDialogueGroupMember(newType) ? 0 : 1;
+  // The dual-dialogue suffix belongs to the end of the cue: it follows the tail of a split in the
+  // middle, and stays on the original node only when the split is at its very end.
+  final movedSuffix = splitsAtEnd ? null : OcptWysiwygDualDialogue.suffixOf(node);
 
   final newNodeId = Editor.createNodeId();
   editContext.editor.execute([
@@ -342,8 +345,10 @@ ExecutionInstruction ocptEnterToSmartSplit({
         ocptBlankLinesBeforeMetadataKey: blankLinesBefore,
         ocptTypeLockedMetadataKey: false,
         ocptHadForcingMarkerMetadataKey: false,
+        if (movedSuffix != null) ocptDualDialogueMetadataKey: movedSuffix,
       },
     ),
+    if (movedSuffix != null) OcptWysiwygDualDialogue.suffixRequest(node.id, null),
     // `_ocptSmartEnterNextType` maps nothing to `parenthetical` today, so `splitsAtEnd` alone can
     // never actually make `newType` land on it — this call is currently inert. It stays here (with
     // `isNodeEmpty: splitsAtEnd`, never true for a mid-text split, which carries the tail text into
