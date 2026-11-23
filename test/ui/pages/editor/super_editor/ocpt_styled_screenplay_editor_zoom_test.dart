@@ -411,20 +411,28 @@ void main() {
   group("anchor", () {
     final manyPages = List.generate(500, (index) => "Action line $index.").join("\n\n");
 
+    /// Get the vertical distance from the middle of the node [id]'s component to [point], or null
+    /// while that node is not built.
+    double? distanceFromMiddle(String id, Offset point) {
+      double? distance;
+      try {
+        final top = SuperEditorInspector.findComponentOffset(id, Alignment.topLeft);
+        final bottom = SuperEditorInspector.findComponentOffset(id, Alignment.bottomRight);
+        distance = ((top.dy + bottom.dy) / 2 - point.dy).abs();
+      } on Object {
+        distance = null;
+      }
+
+      return distance;
+    }
+
     /// Get the id of the built node whose component is nearest to [point], vertically.
     String nodeAtPoint(Offset point) {
       String? nearest;
       var nearestDistance = double.infinity;
       for (final node in SuperEditorInspector.findDocument()!) {
-        final double distance;
-        try {
-          final top = SuperEditorInspector.findComponentOffset(node.id, Alignment.topLeft);
-          final bottom = SuperEditorInspector.findComponentOffset(node.id, Alignment.bottomRight);
-          distance = ((top.dy + bottom.dy) / 2 - point.dy).abs();
-        } on Object {
-          continue;
-        }
-        if (distance < nearestDistance) {
+        final distance = distanceFromMiddle(node.id, point);
+        if (distance != null && distance < nearestDistance) {
           nearest = node.id;
           nearestDistance = distance;
         }
