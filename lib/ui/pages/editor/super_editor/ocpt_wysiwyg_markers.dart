@@ -18,6 +18,11 @@ final class OcptWysiwygMarkers {
   /// section-level normalization `OcptWysiwygCodec.encode` accepts.
   static final RegExp _sectionPattern = RegExp(r'^(#{1,6})\s*(.*)$');
 
+  /// Get the heading level (1 to 6) of the section line [rawLine]: the length of its leading `#`
+  /// run, or 1 when it has none.
+  static int sectionLevelOf(String rawLine) =>
+      _sectionPattern.firstMatch(rawLine.trim())?.group(1)?.length ?? 1;
+
   /// Strip [rawLine]'s forcing prefix (if any) for its classified [type], returning its display
   /// text and whether a marker was actually present. Mirrors, in reverse, every rule
   /// [FountainLineClassifier.classifyLine] and [FountainLineWriter.writeLine] use for that type.

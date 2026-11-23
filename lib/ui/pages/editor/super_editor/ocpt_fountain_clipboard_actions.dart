@@ -272,6 +272,7 @@ List<EditRequest> _multiNodePasteRequests({
           ocptHadForcingMarkerMetadataKey:
               firstFragment.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true,
           ocptDualDialogueMetadataKey: OcptWysiwygDualDialogue.suffixOf(firstFragment),
+          ocptSectionLevelMetadataKey: firstFragment.getMetadataValue(ocptSectionLevelMetadataKey),
         },
       ),
       OcptReplaceNodeTextRequest(nodeId: targetNode.id, text: firstFragment.text),
