@@ -166,7 +166,7 @@ void main() {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
 
-      // Close to the largest step: the plus button is withheld, so the shortcut goes nowhere either.
+      // Close to the largest step: the plus button is withheld, so the shortcut goes nowhere.
       bloc.add(const OcptEditorFitPageZoomMeasuredEvent(factor: 1.95));
       await waitForState(bloc, (state) => state.measuredFitPageZoomFactor == 1.95);
       expect(OcptPageZoom.canStep(1, 1.95), isFalse);

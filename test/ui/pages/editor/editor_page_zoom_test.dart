@@ -246,14 +246,18 @@ void main() {
 
   group("keyboard layouts", () {
     /// Send a key down of [key] producing [character], with Ctrl held, then release both.
+    ///
+    /// The physical key is the one the layout has [key] on (the 6 key for an AZERTY minus), which
+    /// a test helper can't guess for a logical key the US layout has none of.
     Future<void> pressProducing(
       WidgetTester tester,
       LogicalKeyboardKey key,
-      String character,
-    ) async {
+      String character, {
+      PhysicalKeyboardKey physicalKey = PhysicalKeyboardKey.digit6,
+    }) async {
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-      await tester.sendKeyDownEvent(key, character: character);
-      await tester.sendKeyUpEvent(key);
+      await tester.sendKeyDownEvent(key, physicalKey: physicalKey, character: character);
+      await tester.sendKeyUpEvent(key, physicalKey: physicalKey);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       await tester.pumpAndSettle();
     }
@@ -279,7 +283,12 @@ void main() {
       await tester.tap(find.byType(SuperEditor));
       await tester.pumpAndSettle();
 
-      await pressProducing(tester, LogicalKeyboardKey.add, "+");
+      await pressProducing(
+        tester,
+        LogicalKeyboardKey.add,
+        "+",
+        physicalKey: PhysicalKeyboardKey.equal,
+      );
 
       expect(find.text("110%"), findsOneWidget);
     });
@@ -292,11 +301,21 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-      await pressProducing(tester, LogicalKeyboardKey.equal, "+");
+      await pressProducing(
+        tester,
+        LogicalKeyboardKey.equal,
+        "+",
+        physicalKey: PhysicalKeyboardKey.equal,
+      );
       await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
       expect(find.text("110%"), findsOneWidget);
 
-      await pressProducing(tester, LogicalKeyboardKey.numpadSubtract, "-");
+      await pressProducing(
+        tester,
+        LogicalKeyboardKey.numpadSubtract,
+        "-",
+        physicalKey: PhysicalKeyboardKey.numpadSubtract,
+      );
       expect(find.text("100%"), findsOneWidget);
     });
   });

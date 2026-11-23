@@ -21,6 +21,12 @@ Finder _pageSheetsPainterFinder() => find.byWidgetPredicate(
       widget is CustomPaint && widget.painter.runtimeType.toString() == "OcptPageSheetsPainter",
 );
 
+/// Finds the page's vertical [Scrollbar]: the other one, around the page's sideways scrolling,
+/// is the app's own horizontal scroll view's, which keeps the default notification predicate (none
+/// is given) and only shows its thumb while a zoomed page overflows.
+Finder _verticalScrollbarFinder() =>
+    find.byWidgetPredicate((widget) => widget is Scrollbar && widget.notificationPredicate != null);
+
 /// Whether the page-simulation background painter (`OcptPageSheetsPainter`, private to the
 /// production file) is currently mounted: the most that can be asserted on it from outside its own
 /// library without exposing an otherwise-unneeded public type.
@@ -246,9 +252,9 @@ void main() {
           areSceneNumbersVisible: true,
         );
 
-        expect(find.byType(Scrollbar), findsOneWidget);
+        expect(_verticalScrollbarFinder(), findsOneWidget);
         expect(
-          find.descendant(of: find.byType(Scrollbar), matching: find.byType(SuperEditor)),
+          find.descendant(of: _verticalScrollbarFinder(), matching: find.byType(SuperEditor)),
           findsOneWidget,
         );
       },
@@ -259,9 +265,9 @@ void main() {
       (tester) async {
         await pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nSome action text.");
 
-        expect(find.byType(Scrollbar), findsOneWidget);
+        expect(_verticalScrollbarFinder(), findsOneWidget);
         expect(
-          find.descendant(of: find.byType(Scrollbar), matching: find.byType(SuperEditor)),
+          find.descendant(of: _verticalScrollbarFinder(), matching: find.byType(SuperEditor)),
           findsOneWidget,
         );
       },
