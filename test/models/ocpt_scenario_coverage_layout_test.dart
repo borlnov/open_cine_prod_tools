@@ -769,4 +769,141 @@ void main() {
       expect(orphans.coveredWordShare, 0);
     });
   });
+
+  group("OcptScenarioCoverageLayout.of dual dialogue", () {
+    const leftText = "Short left.";
+    const rightText = "This right reply is much longer than the left one so it wraps over rows.";
+    const dualScreenplay =
+        "INT. KITCHEN - DAY\n"
+        "\n"
+        "ROSS\n"
+        "$leftText\n"
+        "\n"
+        "KIM ^\n"
+        "$rightText\n";
+
+    /// Covers `[from, to)` of the screenplay's text and lays the coverage out.
+    ({_ComposedScreenplay screenplay, OcptScenarioCoverageLayout layout}) cover(int from, int to) {
+      final screenplay = _ComposedScreenplay(dualScreenplay);
+      final base = screenplay.document.scenes.first.sourceRange.startOffset;
+      final layout = screenplay.layoutOf([
+        screenplay.sceneSequence(0, [
+          _buildShot(
+            id: "shot-1",
+            code: "1/1",
+            sceneId: "scene-1",
+            coverageRanges: [
+              _buildRange(sceneId: "scene-1", startOffset: from - base, endOffset: to - base),
+            ],
+          ),
+        ]),
+      ]);
+      return (screenplay: screenplay, layout: layout);
+    }
+
+    /// The row index of the first pair row whose left cell reads [text], on the single page.
+    int leftRowOf(_ComposedScreenplay screenplay, String text) => screenplay
+        .script
+        .pages
+        .single
+        .lines
+        .indexWhere((line) => line.dualSide != null && line.plainText.trim() == text);
+
+    /// The rows whose right cell is not null.
+    List<int> rightRowsOf(_ComposedScreenplay screenplay) => [
+      for (var row = 0; row < screenplay.script.pages.single.lines.length; row++)
+        if (screenplay.script.pages.single.lines[row].dualCompanion != null) row,
+    ];
+
+    test("draws a range of the left column only along the left column's rows", () {
+      final start = dualScreenplay.indexOf(leftText);
+      final result = cover(start, start + leftText.length);
+
+      final segment = result.layout.pages.single.segments.single;
+      final row = leftRowOf(result.screenplay, leftText);
+      expect(segment.firstRow, row);
+      expect(segment.lastRow, row);
+    });
+
+    test("draws a range of the right column only along the right column's rows", () {
+      final start = dualScreenplay.indexOf(rightText);
+      final result = cover(start, start + rightText.length);
+
+      final segment = result.layout.pages.single.segments.single;
+      final rightRows = rightRowsOf(result.screenplay);
+      // The right cue shares the first row of the pair, the dialogue starts on the next one.
+      expect(segment.firstRow, rightRows.first + 1);
+      expect(segment.lastRow, rightRows.last);
+      expect(segment.firstRow, lessThanOrEqualTo(segment.lastRow));
+    });
+
+    test("draws one bar over the combined height of a range straddling both columns", () {
+      final start = dualScreenplay.indexOf(leftText);
+      final end = dualScreenplay.indexOf(rightText) + rightText.length;
+      final result = cover(start, end);
+
+      final segment = result.layout.pages.single.segments.single;
+      final rightRows = rightRowsOf(result.screenplay);
+      expect(segment.firstRow, rightRows.first);
+      expect(segment.lastRow, rightRows.last);
+      expect(segment.firstRow, lessThanOrEqualTo(segment.lastRow));
+      expect(segment.startsRange, isTrue);
+      expect(segment.endsRange, isTrue);
+    });
+
+    test("puts the tick of a boundary inside the right column on the right cell", () {
+      final start = dualScreenplay.indexOf("right reply");
+      final result = cover(start, start + "right reply".length);
+
+      final tick = result.layout.pages.single.segments.single.startTick!;
+      expect(tick.side, FountainDualDialogueSide.right);
+      final cell = result.screenplay.script.pages.single.lines[tick.row].cellOf(tick.side!)!;
+      expect(cell.plainText.substring(tick.column), startsWith("right reply"));
+    });
+
+    test("washes an uncovered run of the right column on the right cell", () {
+      final start = dualScreenplay.indexOf(leftText);
+      final result = cover(start, start + leftText.length);
+
+      final gaps = result.layout.pages.single.gaps;
+      final rightGaps = gaps.where((gap) => gap.side == FountainDualDialogueSide.right);
+      expect(rightGaps, isNotEmpty);
+      for (final gap in rightGaps) {
+        final cell = result.screenplay.script.pages.single.lines[gap.row].cellOf(gap.side!)!;
+        expect(gap.endColumn, lessThanOrEqualTo(cell.plainText.length));
+      }
+      // The left cue, left uncovered, is washed in the left column, the covered text is not.
+      expect(gaps.any((gap) => gap.side == FountainDualDialogueSide.left), isTrue);
+      final leftRow = leftRowOf(result.screenplay, leftText);
+      expect(
+        gaps.where((gap) => gap.row == leftRow && gap.side == FountainDualDialogueSide.left),
+        isEmpty,
+      );
+    });
+
+    test("leaves the sides of an ordinary screenplay unset", () {
+      final screenplay = _ComposedScreenplay(_screenplay);
+      final start = screenplay.offsetOf(0, _actionLine);
+      final layout = screenplay.layoutOf([
+        screenplay.sceneSequence(0, [
+          _buildShot(
+            id: "shot-1",
+            code: "1/1",
+            sceneId: "scene-1",
+            coverageRanges: [
+              _buildRange(
+                sceneId: "scene-1",
+                startOffset: start + 5,
+                endOffset: start + _actionLine.length,
+              ),
+            ],
+          ),
+        ]),
+      ]);
+
+      final page = layout.pages.first;
+      expect(page.gaps.every((gap) => gap.side == null), isTrue);
+      expect(page.segments.single.startTick?.side, isNull);
+    });
+  });
 }

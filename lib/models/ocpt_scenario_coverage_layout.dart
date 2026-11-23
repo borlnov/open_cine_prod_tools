@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:math' as math;
+
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_coverage_bar_segment.dart';
@@ -145,16 +147,47 @@ class OcptScenarioCoverageLayout extends Equatable {
   static String labelOf(OcptShot shot) =>
       shot.abbreviation.isEmpty ? shot.code : "${shot.abbreviation}${shot.code}";
 
-  /// Flatten [script]'s pages into one list of printed rows, in reading order, each still
-  /// knowing which page and which row of it it is.
+  /// Flatten [script]'s pages into one list of printed cells, in source order, each still knowing
+  /// which page, which row of it and which column it is.
   ///
   /// Resolving a coverage range against one flat list is what lets a range spanning a page break
   /// be found in a single pass and only then be cut back into one segment per page.
-  static List<_PrintedRow> _printedRowsOf(FountainScriptLayout script) => [
-    for (var pageIndex = 0; pageIndex < script.pages.length; pageIndex++)
-      for (var row = 0; row < script.pages[pageIndex].lines.length; row++)
-        _PrintedRow(pageIndex: pageIndex, rowIndex: row, line: script.pages[pageIndex].lines[row]),
-  ];
+  ///
+  /// A row of a dual-dialogue pair holds two cells, so a maximal run of such rows on a page is
+  /// emitted as all its left cells then all its right cells: that is the order the source reads
+  /// them in, and what keeps a range's cells contiguous in the list. Every other row is one cell,
+  /// the row's own line.
+  static List<_PrintedRow> _printedRowsOf(FountainScriptLayout script) {
+    final rows = <_PrintedRow>[];
+
+    for (var pageIndex = 0; pageIndex < script.pages.length; pageIndex++) {
+      final lines = script.pages[pageIndex].lines;
+      var row = 0;
+      while (row < lines.length) {
+        if (lines[row].dualSide == null) {
+          rows.add(_PrintedRow(pageIndex: pageIndex, rowIndex: row, line: lines[row]));
+          row++;
+          continue;
+        }
+
+        var runEnd = row;
+        while (runEnd < lines.length && lines[runEnd].dualSide != null) {
+          runEnd++;
+        }
+        for (final side in FountainDualDialogueSide.values) {
+          for (var index = row; index < runEnd; index++) {
+            final cell = lines[index].cellOf(side);
+            if (cell != null) {
+              rows.add(_PrintedRow(pageIndex: pageIndex, rowIndex: index, line: cell, side: side));
+            }
+          }
+        }
+        row = runEnd;
+      }
+    }
+
+    return rows;
+  }
 
   /// Turn every coverage range of [snapshot] into the absolute source span it addresses in the
   /// screenplay's text, together with the colour and label the bar drawn for it carries.
@@ -203,12 +236,14 @@ class OcptScenarioCoverageLayout extends Equatable {
   }
 
   /// Get the bar segments [range] draws: one per page it reaches, each carrying the rows it spans
-  /// on
-  /// that page.
+  /// on that page.
   ///
-  /// The rows come from the first and the last printed line whose own source span [range]
-  /// overlaps; every row in between belongs to the bar whether it is anchored or not (see this
-  /// class's doc comment). A range no printed line overlaps — one covering source the screenplay
+  /// The rows come from the first and the last printed cell whose own source span [range]
+  /// overlaps; every cell in between belongs to the bar whether it is anchored or not (see this
+  /// class's doc comment). A page's rows are the smallest and the greatest row of its cells rather
+  /// than those of its first and last, since inside a dual-dialogue pair the cells are not in row
+  /// order: a range reaching from the left column into the right one gets a single bar over the
+  /// combined height of both. A range no printed line overlaps — one covering source the screenplay
   /// no longer prints — draws nothing at all.
   static List<_PendingSegment> _segmentsOf(_ResolvedRange range, List<_PrintedRow> rows) {
     int? firstIndex;
@@ -234,7 +269,12 @@ class OcptScenarioCoverageLayout extends Equatable {
 
     final segments = <_PendingSegment>[];
     var groupStart = firstIndex;
+    var groupFirstRow = rows[firstIndex].rowIndex;
+    var groupLastRow = groupFirstRow;
     for (var index = firstIndex; index <= lastIndex; index++) {
+      groupFirstRow = math.min(groupFirstRow, rows[index].rowIndex);
+      groupLastRow = math.max(groupLastRow, rows[index].rowIndex);
+
       final isLastOfPage = index == lastIndex || rows[index + 1].pageIndex != rows[index].pageIndex;
       if (!isLastOfPage) {
         continue;
@@ -243,22 +283,34 @@ class OcptScenarioCoverageLayout extends Equatable {
       segments.add(
         _PendingSegment(
           pageIndex: rows[groupStart].pageIndex,
-          firstRow: rows[groupStart].rowIndex,
-          lastRow: rows[index].rowIndex,
+          firstRow: groupFirstRow,
+          lastRow: groupLastRow,
           colorIndex: range.colorIndex,
           label: range.label,
           isStale: range.isStale,
           startsRange: groupStart == firstIndex,
           endsRange: index == lastIndex,
           startTick: groupStart == firstIndex && startTickColumn != null
-              ? OcptCoverageTick(row: rows[firstIndex].rowIndex, column: startTickColumn)
+              ? OcptCoverageTick(
+                  row: rows[firstIndex].rowIndex,
+                  column: startTickColumn,
+                  side: rows[firstIndex].side,
+                )
               : null,
           endTick: index == lastIndex && endTickColumn != null
-              ? OcptCoverageTick(row: rows[lastIndex].rowIndex, column: endTickColumn)
+              ? OcptCoverageTick(
+                  row: rows[lastIndex].rowIndex,
+                  column: endTickColumn,
+                  side: rows[lastIndex].side,
+                )
               : null,
         ),
       );
       groupStart = index + 1;
+      if (index < lastIndex) {
+        groupFirstRow = rows[index + 1].rowIndex;
+        groupLastRow = groupFirstRow;
+      }
     }
 
     return segments;
@@ -473,6 +525,7 @@ class OcptScenarioCoverageLayout extends Equatable {
         gaps[gaps.length - 1] = OcptCoverageGap(
           pageIndex: row.pageIndex,
           row: row.rowIndex,
+          side: row.side,
           startColumn: previous.startColumn,
           endColumn: interval.end > previous.endColumn ? interval.end : previous.endColumn,
         );
@@ -482,6 +535,7 @@ class OcptScenarioCoverageLayout extends Equatable {
         OcptCoverageGap(
           pageIndex: row.pageIndex,
           row: row.rowIndex,
+          side: row.side,
           startColumn: interval.start,
           endColumn: interval.end,
         ),
@@ -513,6 +567,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return OcptCoverageGap(
       pageIndex: gap.pageIndex,
       row: gap.row,
+      side: gap.side,
       startColumn: start,
       endColumn: end,
     );
@@ -707,7 +762,7 @@ class OcptScenarioCoverageLayout extends Equatable {
   List<Object?> get props => [pages, legend, summary];
 }
 
-/// One printed line of the composed screenplay, still knowing where it was printed.
+/// One printed cell of the composed screenplay, still knowing where it was printed.
 class _PrintedRow {
   /// The 0-based index of the page this line is printed on.
   final int pageIndex;
@@ -715,11 +770,19 @@ class _PrintedRow {
   /// The 0-based row of that page this line is printed on.
   final int rowIndex;
 
-  /// The composed line itself.
+  /// The composed line itself: the cell of a dual-dialogue pair, or the row's own line.
   final FountainScriptLine line;
 
+  /// The column of a dual-dialogue pair this cell is set in, or null for an ordinary line.
+  final FountainDualDialogueSide? side;
+
   /// Class constructor
-  const _PrintedRow({required this.pageIndex, required this.rowIndex, required this.line});
+  const _PrintedRow({
+    required this.pageIndex,
+    required this.rowIndex,
+    required this.line,
+    this.side,
+  });
 }
 
 /// A coverage range once its scene-relative offsets have been resolved against the screenplay's
