@@ -12,6 +12,7 @@ import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_page_zoom.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
@@ -101,6 +102,14 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// Loading it returns null if nothing has been stored yet, which is equivalent to `true` (scene
   /// numbers are shown by default).
   final SharedPreferencesItem<bool> styledSceneNumbersVisible;
+
+  /// This is the key used to store how the screenplay page is zoomed (the styled page and the raw
+  /// mode's paper preview): one of the [OcptPageZoom.steps], or the "fit to width" mode.
+  ///
+  /// Loading it returns null if nothing has been stored yet (or what is stored is no zoom), which
+  /// is equivalent to the 100 % step. A stored percentage outside the bounds is brought back to
+  /// the nearest step. It is a preference of the user, whatever the project.
+  final SharedPrefsItemWithParser<OcptPageZoom, String> styledPageZoom;
 
   /// This is the key used to store whether this machine shows the spell-check underlines, in
   /// either editing mode.
@@ -287,6 +296,11 @@ class OcptPropertiesManager extends AbstractPropertiesManager
       ),
       isPageSimulationEnabled = SharedPreferencesItem<bool>("PAGE_SIMULATION_ENABLED"),
       styledSceneNumbersVisible = SharedPreferencesItem<bool>("STYLED_SCENE_NUMBERS_VISIBLE"),
+      styledPageZoom = SharedPrefsItemWithParser<OcptPageZoom, String>(
+        "STYLED_PAGE_ZOOM",
+        parser: OcptPageZoom.tryParse,
+        castTo: (value) => value.serialized,
+      ),
       spellCheckVisible = SharedPreferencesItem<bool>("SPELL_CHECK_VISIBLE"),
       editorLeftDockFraction = SharedPreferencesItem<double>("EDITOR_LEFT_DOCK_FRACTION"),
       editorRightDockFraction = SharedPreferencesItem<double>("EDITOR_RIGHT_DOCK_FRACTION"),

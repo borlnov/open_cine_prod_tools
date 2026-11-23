@@ -13,33 +13,31 @@ import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller_delegate.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_command.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_dual_dialogue_bracket.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_ime_overrides.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_command.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_settle_merge_policy.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_document_settle.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_editor_builder.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_fluid_surface.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_editor_surface.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_history.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_jump_handler.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_simulation.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_simulation_surface.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_read_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_number_metadata.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_numbers.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_spell_check_ranges.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_placeholders.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_zoom_anchor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_component_builder.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_guard_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_wheel.dart';
 import 'package:spell_kit/spell_kit.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -111,6 +109,13 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// `computeOcptStyledSceneNumbers`) in its left gutter.
   final bool areSceneNumbersVisible;
 
+  /// The zoom factor the page is typeset at (`OcptEditorPreviewLayout.zoom`): it re-typesets the
+  /// text, it doesn't magnify it.
+  final double zoom;
+
+  /// Called with the way to step the zoom (-1 out, 1 in) on a Ctrl + wheel notch; null (no zoom).
+  final ValueChanged<int>? onZoomStepRequested;
+
   /// Whether this machine wants the spell-check underlines shown at all — the machine's own on/off
   /// switch (`docs/architecture/screenplay.md`), travelling down the same way
   /// [areSceneNumbersVisible] does rather than through the bloc directly: this widget knows nothing
@@ -159,6 +164,8 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     required this.isPageSimulationEnabled,
     this.isCompact = false,
     this.usesPaperColorsWhileFluid = false,
+    this.zoom = 1,
+    this.onZoomStepRequested,
     required this.areSceneNumbersVisible,
     required this.isSpellCheckVisible,
     required this.onTextChanged,
@@ -295,6 +302,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// position.
   final ScrollController _pageScrollController = ScrollController();
 
+  /// The zoom's scrolling: the point it is made around, and the caret kept in view sideways.
+  late final OcptStyledZoomAnchor _zoomAnchor = OcptStyledZoomAnchor(
+    vertical: _pageScrollController,
+    layoutKey: _documentLayoutKey,
+    selectionOf: () => _composer.selection,
+  );
+
   /// The page simulation bookkeeping: the page count, the title page's share of it and the bottom
   /// padding the stylesheet needs. Resolves the document and the editor at call time, since both
   /// are replaced by [_rebuildEditorFrom].
@@ -304,6 +318,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     runDerivedPass: _runDerivedPass,
     isEnabled: () => widget.isPageSimulationEnabled,
     pageSetupOf: () => widget.pageSetup,
+    zoomOf: () => widget.zoom,
   );
 
   /// The reporter of the toolbar's read state (caret block type, active inline styles, undo/redo
@@ -426,8 +441,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       // it, every title-page field's own presence/absence) is fresh.
       _spellCheck.styler.clearAllErrors();
       _reportSpellCheckTexts();
-    } else if (widget.pageSetup != oldWidget.pageSetup) {
+    } else if (widget.pageSetup != oldWidget.pageSetup || widget.zoom != oldWidget.zoom) {
       setState(_pageSimulation.recompute);
+      _zoomAnchor.apply(
+        box: context.findRenderObject(),
+        metrics: widget.pageSetup.toMetrics(),
+        oldZoom: oldWidget.zoom,
+        newZoom: widget.zoom,
+        hasSheets: widget.isPageSimulationEnabled,
+      );
     }
 
     // The visibility switch itself (`docs/architecture/screenplay.md`) touches no text
@@ -467,7 +489,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final metrics = widget.pageSetup.toMetrics();
-    final layout = OcptEditorPreviewLayout(metrics: metrics);
+    final layout = OcptEditorPreviewLayout(metrics: metrics, zoom: widget.zoom);
     // The fluid surface opts into paper colors on a phone (see [usesPaperColorsWhileFluid]); a
     // simulated page always paints paper regardless.
     final usePaperColors = widget.isPageSimulationEnabled || widget.usesPaperColorsWhileFluid;
@@ -487,7 +509,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             layout: layout,
             textStyle: TextStyle(
               fontFamily: OcptEditorPreviewLayout.fontFamily,
-              fontSize: OcptEditorPreviewLayout.fontSize,
+              fontSize: layout.fontSize,
               height: layout.lineHeightFactor,
               color: onSurface,
             ),
@@ -503,6 +525,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
               color: resolvedStyle.color?.withValues(alpha: 0.4),
             ),
             metrics: metrics,
+            zoom: widget.zoom,
           ),
         OcptDualDialogueBracketComponentBuilder.build(
           document: _document,
@@ -536,58 +559,32 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         trailingBottomPadding: _pageSimulation.trailingBottomPadding,
         isCompact: widget.isCompact,
         usePaperColors: widget.usesPaperColorsWhileFluid,
+        zoom: widget.zoom,
       ),
     );
 
-    // Material's `ScrollBehavior` would otherwise wrap `SuperEditor`'s internal `Scrollable` in
-    // its own implicit `Scrollbar`, painted at the edge of whichever box happens to contain it —
-    // i.e. on top of the white page in the page-simulation branch below. Suppressing it here and
-    // painting a single explicit `Scrollbar` around the whole panel instead (both branches, so the
-    // behaviour is identical with page simulation on or off) keeps the thumb in the panel's gutter.
-    //
-    // `withNoTextScaling` pins the page's type size to the page's own: `SuperText` otherwise falls
-    // back to `MediaQuery.textScalerOf`, so a desktop font-scaling preference would grow every
-    // glyph without growing the page it is typeset on — the lines would wrap early and grow taller
-    // than the `OcptEditorPreviewLayout` metrics `computeOcptStyledPagination` sized each simulated
-    // sheet with, spilling out under its bottom edge. The raw preview pins it the same way, for the
-    // same reason (see `OcptEditorPreviewBlock`).
-    final editorWithoutImplicitScrollbar = MediaQuery.withNoTextScaling(
-      child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-        child: LayoutBuilder(
-          builder: (context, constraints) => OcptDualDialogueColumnScope(
-            // The document column's width: the surface's, less the stylesheet's side padding.
-            width:
-                constraints.maxWidth -
-                2 * OcptFountainEditorStylesheet.horizontalDocumentPaddingInset,
-            child: editor,
-          ),
-        ),
-      ),
+    final content = OcptStyledEditorSurface(
+      editor: editor,
+      layout: layout,
+      isPageSimulationEnabled: widget.isPageSimulationEnabled,
+      usePaperColors: usePaperColors,
+      scrollController: _pageScrollController,
+      horizontalScrollController: _zoomAnchor.horizontal,
+      zoom: widget.zoom,
+      pageCount: _pageSimulation.pageCount,
+      titlePageSheetCount: _pageSimulation.titlePageSheetCount,
+      canZoom: widget.onZoomStepRequested != null,
     );
-
-    final content = !widget.isPageSimulationEnabled
-        ? OcptStyledFluidSurface(
-            theme: theme,
-            usePaperColors: usePaperColors,
-            scrollController: _pageScrollController,
-            editor: editorWithoutImplicitScrollbar,
-          )
-        : OcptStyledPageSimulationSurface(
-            theme: theme,
-            layout: layout,
-            scrollController: _pageScrollController,
-            pageCount: _pageSimulation.pageCount,
-            titlePageSheetCount: _pageSimulation.titlePageSheetCount,
-            editor: editorWithoutImplicitScrollbar,
-          );
 
     // Wrapped once here, rather than once per branch above: a right-click anywhere over the
     // document, fluid surface or simulated page alike, opens the same context menu.
-    return _contextMenu.wrap(
-      child: content,
-      onTypeSelected: applyBlockType,
-      onDualDialogueToggled: applyToggleDualDialogue,
+    return OcptEditorZoomWheel(
+      onZoomStepRequested: _zoomAnchor.wheelCallback(widget.onZoomStepRequested),
+      child: _contextMenu.wrap(
+        child: content,
+        onTypeSelected: applyBlockType,
+        onDualDialogueToggled: applyToggleDualDialogue,
+      ),
     );
   }
 
@@ -746,16 +743,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // `OcptWysiwygCodec.decode`'s own doc comment for what such a list does to `reset()`.
     final settledDocument = MutableDocument(nodes: List<DocumentNode>.of(_document));
     final settledComposer = MutableDocumentComposer();
-    // History stays off on this one: it lives for a single settle-then-encode pass, never reaching
-    // a writer's Ctrl+Z.
-    final settledEditor = Editor(
-      editables: {Editor.documentKey: settledDocument, Editor.composerKey: settledComposer},
-      requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
-        ..insert(0, ocptTitlePageGuardRequestHandler)
-        ..add(ocptChangeNodeMetadataRequestHandler)
-        ..add(ocptReplaceNodeTextRequestHandler),
-    );
-
+    final settledEditor = ocptStyledSettlingEditorFor(settledDocument, settledComposer);
     OcptStyledDocumentSettle.settle(settledDocument, settledEditor);
     _encodeAndReportIfChanged(settledDocument);
 
@@ -777,8 +765,18 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // version restore all rebuild this editor, and each of them starts a fresh one.
     _history.reset();
 
+    // Settled before the history-recording editor and its document exist: what the settle derives
+    // from a text the writer has not touched yet (a heading typed in lower case uppercased, say) is
+    // the starting point an undo restores, not a gesture a first Ctrl+Z could take back. The
+    // document is built from the settled nodes, since a `MutableDocument` keeps the nodes it was
+    // built with as the base state `undo()` resets to.
     final decoded = _decode(text);
-    _document = decoded.document;
+    final loadComposer = MutableDocumentComposer();
+    final loadEditor = ocptStyledSettlingEditorFor(decoded.document, loadComposer);
+    OcptStyledDocumentSettle.settle(decoded.document, loadEditor);
+    loadEditor.dispose();
+    loadComposer.dispose();
+    _document = MutableDocument(nodes: List<DocumentNode>.of(decoded.document));
     _mapping = decoded.mapping;
     _trailingBlankLines = decoded.trailingBlankLines;
     _titlePageNodeCount = decoded.titlePageNodeCount;
@@ -896,8 +894,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// the writer's last gesture — merged onto that gesture (see [OcptStyledHistory.runDerivedPass]).
   void _runDerivedPass(void Function() derivedPass) => _history.runDerivedPass(derivedPass);
 
-  /// Renumber every scene heading immediately (not debounced) and report the corrected text
-  /// upstream if it changed, right after [_rebuildEditorFrom] decodes fresh text, and again from
+  /// Renumber every scene heading immediately (not debounced) and report the text upstream if it
+  /// differs from what was loaded — the renumbering, or what [_rebuildEditorFrom]'s own settle
+  /// derived — right after [_rebuildEditorFrom] decodes fresh text, and again from
   /// `OcptStyledHistory` after every undo and redo: what this corrects is part of the document's
   /// *base* state, which a restore brings back to a snapshot taken before it ran.
   ///
@@ -907,10 +906,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// in [_runDerivedPass].
   void _syncSceneNumbers() {
     final requests = sceneNumberNormalizationRequests(_document, isHistorical: false);
-    if (requests.isEmpty) {
-      return;
+    if (requests.isNotEmpty) {
+      _editor.execute(requests);
     }
-    _editor.execute(requests);
     _encodeAndReportIfChanged();
   }
 
@@ -966,6 +964,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     }
 
     _readState.report();
+    _zoomAnchor.followCaret(context.findRenderObject());
   }
 
   /// Refresh the controller's read side when the composer's collapsed-caret style preferences
@@ -992,6 +991,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _disposeEditor();
     _focusNode.dispose();
     _pageScrollController.dispose();
+    _zoomAnchor.dispose();
     super.dispose();
   }
 }

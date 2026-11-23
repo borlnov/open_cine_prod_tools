@@ -626,11 +626,15 @@ void main() {
 
     expect(find.byType(OcptStyledScreenplayEditor), findsOneWidget);
 
-    // The styled editor's own scrollable (via `_pageScrollController`) must be the only
-    // `Scrollable` in the tree: no ancestor `Scrollable` should exist for a wheel scroll to
-    // leak into and move a sibling widget (the toolbar) instead.
-    expect(find.byType(Scrollable), findsOneWidget);
-    final scrollableState = tester.state<ScrollableState>(find.byType(Scrollable));
+    // The styled editor's own scrollable (via `_pageScrollController`) must be the only vertical
+    // `Scrollable` in the tree: no ancestor one should exist for a wheel scroll to leak into and
+    // move a sibling widget (the toolbar) instead. The sideways one around the page, which a zoom
+    // scrolls, takes no vertical wheel.
+    final verticalScrollable = find.byWidgetPredicate(
+      (widget) => widget is Scrollable && widget.axis == Axis.vertical,
+    );
+    expect(verticalScrollable, findsOneWidget);
+    final scrollableState = tester.state<ScrollableState>(verticalScrollable);
     expect(scrollableState.position.pixels, 0);
 
     final toolbarTopBefore = tester.getTopLeft(find.byType(OcptWorkspaceToolbar));

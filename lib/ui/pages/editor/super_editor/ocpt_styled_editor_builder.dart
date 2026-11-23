@@ -30,3 +30,16 @@ Editor ocptStyledEditorFor({
   isHistoryEnabled: true,
   historyGroupingPolicy: history.mergePolicy,
 );
+
+/// Build a history-less [Editor] over [document] and [composer], with the same request handlers as
+/// [ocptStyledEditorFor], for a settle that must never reach a writer's Ctrl+Z: the one run on a
+/// freshly decoded document before the real editor is built over it, and the one run on a
+/// throwaway copy when a pending edit is flushed.
+Editor ocptStyledSettlingEditorFor(MutableDocument document, MutableDocumentComposer composer) =>
+    Editor(
+      editables: {Editor.documentKey: document, Editor.composerKey: composer},
+      requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+        ..insert(0, ocptTitlePageGuardRequestHandler)
+        ..add(ocptChangeNodeMetadataRequestHandler)
+        ..add(ocptReplaceNodeTextRequestHandler),
+    );

@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_page_zoom.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_title_page_standard_keys.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
@@ -195,6 +196,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     on<OcptEditorModeToggledEvent>(_onModeToggled);
     on<OcptEditorPageSimulationToggledEvent>(_onPageSimulationToggled);
     on<OcptEditorStyledSceneNumbersToggledEvent>(_onStyledSceneNumbersToggled);
+    on<OcptEditorPageZoomSelectedEvent>(_onPageZoomSelected);
+    on<OcptEditorPageZoomSteppedEvent>(_onPageZoomStepped);
+    on<OcptEditorFitPageZoomMeasuredEvent>(_onFitPageZoomMeasured);
     on<OcptEditorSpellCheckToggledEvent>(_onSpellCheckToggled);
     on<OcptEditorPageSetupChangedEvent>(_onPageSetupChanged);
     on<OcptEditorProjectSettingsChangedEvent>(_onProjectSettingsChanged);
@@ -285,6 +289,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final isPageSimulationEnabled = await _propertiesManager.isPageSimulationEnabled.load() ?? true;
     final areStyledSceneNumbersVisible =
         await _propertiesManager.styledSceneNumbersVisible.load() ?? true;
+    final styledPageZoom =
+        await _propertiesManager.styledPageZoom.load() ?? const OcptPageZoom.actualSize();
     final leftDockFraction =
         await _propertiesManager.editorLeftDockFraction.load() ??
         OcptWorkspaceDock.leftDefaultFraction;
@@ -322,6 +328,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           mode: mode,
           isPageSimulationEnabled: isPageSimulationEnabled,
           areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
+          styledPageZoom: styledPageZoom,
           isSpellCheckVisible: isSpellCheckVisible,
           screenplayLanguage: screenplayLanguage,
           leftDockFraction: leftDockFraction,
@@ -366,6 +373,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         pageSetup: pageSetup,
         isPageSimulationEnabled: isPageSimulationEnabled,
         areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
+        styledPageZoom: styledPageZoom,
         isSpellCheckVisible: isSpellCheckVisible,
         screenplayLanguage: screenplayLanguage,
         leftDockFraction: leftDockFraction,
@@ -706,6 +714,44 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final newValue = !state.areStyledSceneNumbersVisible;
     emitter(state.copyWithStyledSceneNumbers(areStyledSceneNumbersVisible: newValue));
     await _propertiesManager.styledSceneNumbersVisible.store(newValue);
+  }
+
+  /// Move the page zoom to the selected one, and persist it.
+  Future<void> _onPageZoomSelected(
+    OcptEditorPageZoomSelectedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    emitter(state.copyWithPageZoom(styledPageZoom: event.zoom));
+    await _propertiesManager.styledPageZoom.store(event.zoom);
+  }
+
+  /// Move the page zoom one step out or in, from the factor the page is typeset at right now, and
+  /// persist it.
+  Future<void> _onPageZoomStepped(
+    OcptEditorPageZoomSteppedEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    // The same answer the status bar's buttons are withheld on, so a shortcut or the wheel never
+    // goes where they don't.
+    if (!OcptPageZoom.canStep(event.direction, state.pageZoomFactor)) {
+      return;
+    }
+
+    final zoom = state.styledPageZoom.stepped(event.direction, factor: state.pageZoomFactor);
+    if (zoom == state.styledPageZoom) {
+      return;
+    }
+
+    emitter(state.copyWithPageZoom(styledPageZoom: zoom));
+    await _propertiesManager.styledPageZoom.store(zoom);
+  }
+
+  /// Remember the factor the "fit to width" mode resolves to in the area the page is shown in.
+  void _onFitPageZoomMeasured(
+    OcptEditorFitPageZoomMeasuredEvent event,
+    Emitter<OcptEditorState> emitter,
+  ) {
+    emitter(state.copyWithMeasuredFitPageZoomFactor(factor: event.factor));
   }
 
   /// Toggle whether this machine shows the spell-check underlines, and persist the new value.

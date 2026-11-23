@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_script_page_number.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'ocpt_styled_screenplay_editor_test_doubles.dart';
@@ -20,6 +21,12 @@ Finder _pageSheetsPainterFinder() => find.byWidgetPredicate(
   (widget) =>
       widget is CustomPaint && widget.painter.runtimeType.toString() == "OcptPageSheetsPainter",
 );
+
+/// Finds the page's vertical [Scrollbar]: the other one, around the page's sideways scrolling,
+/// is the app's own horizontal scroll view's, which keeps the default notification predicate (none
+/// is given) and only shows its thumb while a zoomed page overflows.
+Finder _verticalScrollbarFinder() =>
+    find.byWidgetPredicate((widget) => widget is Scrollbar && widget.notificationPredicate != null);
 
 /// Whether the page-simulation background painter (`OcptPageSheetsPainter`, private to the
 /// production file) is currently mounted: the most that can be asserted on it from outside its own
@@ -246,10 +253,22 @@ void main() {
           areSceneNumbersVisible: true,
         );
 
-        expect(find.byType(Scrollbar), findsOneWidget);
+        expect(_verticalScrollbarFinder(), findsOneWidget);
         expect(
-          find.descendant(of: find.byType(Scrollbar), matching: find.byType(SuperEditor)),
+          find.descendant(of: _verticalScrollbarFinder(), matching: find.byType(SuperEditor)),
           findsOneWidget,
+        );
+        // It sits around the sideways scrolling, at the area's own edge, not scrolled with it.
+        expect(
+          find.ancestor(
+            of: find.byType(OcptHorizontalScrollView),
+            matching: _verticalScrollbarFinder(),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          tester.getRect(_verticalScrollbarFinder()).right,
+          tester.getRect(find.byType(OcptStyledScreenplayEditor)).right,
         );
       },
     );
@@ -259,10 +278,22 @@ void main() {
       (tester) async {
         await pumpStandaloneEditor(tester, "INT. HOUSE - DAY\n\nSome action text.");
 
-        expect(find.byType(Scrollbar), findsOneWidget);
+        expect(_verticalScrollbarFinder(), findsOneWidget);
         expect(
-          find.descendant(of: find.byType(Scrollbar), matching: find.byType(SuperEditor)),
+          find.descendant(of: _verticalScrollbarFinder(), matching: find.byType(SuperEditor)),
           findsOneWidget,
+        );
+        // It sits around the sideways scrolling, at the area's own edge, not scrolled with it.
+        expect(
+          find.ancestor(
+            of: find.byType(OcptHorizontalScrollView),
+            matching: _verticalScrollbarFinder(),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          tester.getRect(_verticalScrollbarFinder()).right,
+          tester.getRect(find.byType(OcptStyledScreenplayEditor)).right,
         );
       },
     );

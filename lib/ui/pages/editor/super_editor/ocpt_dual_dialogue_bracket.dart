@@ -211,8 +211,10 @@ class OcptDualDialogueBracketComponentBuilder implements ComponentBuilder {
   /// Get the height of the blank lines the stylesheet opens above [node], which the bracket bridges
   /// unless the node starts a simulated page.
   static double _blankHeightOf(ParagraphNode node, OcptEditorPreviewLayout layout) {
+    // Any non-zero value starts a page, a negative one included: it is how a page start whose
+    // padding was clamped away is stored (see `ocptPageStartMetadataOf`).
     final pageStart = node.getMetadataValue(ocptStartsNewPageMetadataKey);
-    if (pageStart is double && pageStart > 0) {
+    if (pageStart is double && pageStart != 0) {
       return 0;
     }
     final count = OcptWysiwygComments.blankLinesBeforeOf(node);

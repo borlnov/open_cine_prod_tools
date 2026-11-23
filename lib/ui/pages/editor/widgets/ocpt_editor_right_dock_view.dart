@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
@@ -16,6 +17,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_metadat
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_versions_panel_view.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_area.dart';
 
 /// The tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide, the scene
 /// inspector, the read-only metadata panel and the project versions, all four in both modes), the
@@ -51,12 +53,26 @@ class OcptEditorRightDockView extends StatelessWidget {
       mode: liveMode,
       isReadOnly: state.isPreviewingVersion,
     );
+    final isZoomAvailable = !ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
     final previewChild = isPreviewTabAvailable && rightDockTab == OcptEditorRightDockTab.preview
-        ? OcptEditorPreview(
-            document: state.document,
+        ? OcptEditorZoomArea(
+            zoom: state.styledPageZoom,
             pageSetup: state.pageSetup,
-            currentLine: state.currentLine,
-            isPageSimulationEnabled: state.isPageSimulationEnabled,
+            isZoomAvailable: isZoomAvailable,
+            onFitFactorMeasured: (factor) => context.read<OcptEditorBloc>().add(
+              OcptEditorFitPageZoomMeasuredEvent(factor: factor),
+            ),
+            onZoomStepRequested: (direction) => context.read<OcptEditorBloc>().add(
+              OcptEditorPageZoomSteppedEvent(direction: direction),
+            ),
+            builder: (factor, onZoomStepRequested) => OcptEditorPreview(
+              document: state.document,
+              pageSetup: state.pageSetup,
+              currentLine: state.currentLine,
+              isPageSimulationEnabled: state.isPageSimulationEnabled,
+              zoom: factor,
+              onZoomStepRequested: onZoomStepRequested,
+            ),
           )
         : null;
 

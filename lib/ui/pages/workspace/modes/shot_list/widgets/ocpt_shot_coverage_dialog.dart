@@ -468,7 +468,7 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
     final printStyle = FountainPrintStyle.of(block.type);
     final baseStyle = TextStyle(
       fontFamily: OcptEditorPreviewLayout.fontFamily,
-      fontSize: OcptEditorPreviewLayout.fontSize,
+      fontSize: OcptEditorPreviewLayout.baseFontSize,
       height: previewLayout.lineHeightFactor,
       color: Colors.black,
       fontWeight: printStyle.isBold ? FontWeight.bold : null,

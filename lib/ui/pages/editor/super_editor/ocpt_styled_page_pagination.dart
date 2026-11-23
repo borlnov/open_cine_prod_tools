@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:math' as math;
+
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_metrics.dart';
@@ -12,7 +14,40 @@ import 'package:super_editor/super_editor.dart';
 /// The `ParagraphNode` metadata key holding whether the pagination pass decided a node starts a
 /// fresh simulated page, read by `OcptFountainEditorStylesheet` to open up extra top padding
 /// standing in for the page gap and the previous/next page's margins.
+///
+/// Its value is **zoom-independent**: the padding in inches of page, minus the one page gap it
+/// always carries ([ocptPageStartMetadataOf]), so zooming the page never has to write the document
+/// (which would be an undo step and would stale the redo stack); the stylesheet turns it back into
+/// pixels at the zoom it renders at ([ocptPageStartPaddingOf]). 0 means the node starts no page.
 const String ocptStartsNewPageMetadataKey = "ocptStartsNewPage";
+
+/// The metadata value of a page start whose padding came out clamped to nothing.
+const double _clampedPageStartMetadata = -1;
+
+/// Get the zoom-independent metadata value standing for a page-start [padding] (in logical pixels
+/// at [layout]'s zoom): every part of it but the page gap scales with the page, so what is stored
+/// is the rest, in inches of page.
+double ocptPageStartMetadataOf(double padding, OcptEditorPreviewLayout layout) {
+  if (padding == 0) {
+    // A clamped padding (a title page taller than a sheet) still starts a page, and still has to
+    // be the same whatever the zoom: one inch of page is always more than the gap, so this reads
+    // back as no padding at every zoom (see [ocptPageStartPaddingOf]).
+    return _clampedPageStartMetadata;
+  }
+
+  final inches = (padding - OcptEditorPreviewLayout.pageGap) / layout.pixelsPerInch;
+  return inches == 0 ? 1e-9 : inches;
+}
+
+/// Get the page-start top padding, in logical pixels at [layout]'s zoom, the [metadata] value
+/// stored by [ocptPageStartMetadataOf] stands for (0 for a node that starts no page).
+double ocptPageStartPaddingOf(Object? metadata, OcptEditorPreviewLayout layout) {
+  if (metadata is! double || metadata == 0) {
+    return 0;
+  }
+
+  return math.max(0, metadata * layout.pixelsPerInch + OcptEditorPreviewLayout.pageGap);
+}
 
 /// The result of [computeOcptStyledPagination]: which nodes of a styled editor document start a
 /// fresh simulated page (and by how much exact top padding), how many pages the document
@@ -103,8 +138,9 @@ class OcptStyledPagination {
 OcptStyledPagination computeOcptStyledPagination({
   required Document document,
   required FountainLayoutMetrics metrics,
+  double zoom = 1,
 }) {
-  final layout = OcptEditorPreviewLayout(metrics: metrics);
+  final layout = OcptEditorPreviewLayout(metrics: metrics, zoom: zoom);
   final sheetExtent = layout.pageHeight + OcptEditorPreviewLayout.pageGap;
 
   final hasTitlePage = document.any(
@@ -132,7 +168,11 @@ OcptStyledPagination computeOcptStyledPagination({
   // stops that from going negative, so the worst outcome is the body starting with no extra
   // padding at all rather than pagination throwing.
   final titlePageFlowHeight = hasTitlePage
-      ? computeOcptStyledTitlePageMetrics(document: document, metrics: metrics).flowHeight
+      ? computeOcptStyledTitlePageMetrics(
+          document: document,
+          metrics: metrics,
+          zoom: zoom,
+        ).flowHeight
       : 0.0;
   var currentY = layout.marginTop + titlePageFlowHeight;
   var isFirstBodyNode = true;

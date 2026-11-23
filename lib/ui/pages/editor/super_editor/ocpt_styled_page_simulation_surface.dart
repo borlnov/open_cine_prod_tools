@@ -34,6 +34,14 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
   /// The editor, already stripped of its implicit scrollbar.
   final Widget editor;
 
+  /// The controller of the horizontal scroll a page wider than the area gets (see
+  /// `OcptStyledScaledToFit`).
+  final ScrollController horizontalScrollController;
+
+  /// Whether the page is zoomed in, and so scrolls sideways instead of being scaled down to fit a
+  /// narrower area.
+  final bool scrollsSideways;
+
   /// Create an [OcptStyledPageSimulationSurface].
   const OcptStyledPageSimulationSurface({
     super.key,
@@ -43,6 +51,8 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
     required this.pageCount,
     required this.titlePageSheetCount,
     required this.editor,
+    required this.horizontalScrollController,
+    required this.scrollsSideways,
   });
 
   /// Build the styled page simulation surface as a [Scrollbar].
@@ -75,12 +85,15 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
     const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
     return Scrollbar(
       controller: scrollController,
+      notificationPredicate: (notification) => notification.metrics.axis == Axis.vertical,
       child: ColoredBox(
         color: theme.colorScheme.surface,
         child: LayoutBuilder(
           builder: (context, constraints) => OcptStyledScaledToFit(
             constraints: constraints,
             pageWidth: layout.pageWidth,
+            horizontalScrollController: horizontalScrollController,
+            scrollsSideways: scrollsSideways,
             page: Stack(
               children: [
                 Positioned.fill(
@@ -99,9 +112,9 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
                         // switches to under page simulation — a theme-derived color could render
                         // invisible on that white backdrop — and at the body's own size and family,
                         // since that is what the PDF prints it at.
-                        pageNumberStyle: const TextStyle(
+                        pageNumberStyle: TextStyle(
                           fontFamily: OcptEditorPreviewLayout.fontFamily,
-                          fontSize: OcptEditorPreviewLayout.fontSize,
+                          fontSize: layout.fontSize,
                           color: Colors.black,
                         ),
                         scrollOffset: scrollController.hasClients ? scrollController.offset : 0,

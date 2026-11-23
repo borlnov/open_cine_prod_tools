@@ -29,8 +29,21 @@ class OcptHorizontalScrollView extends StatefulWidget {
   /// Padding inside the scroll view, around [child] — forwarded to the [SingleChildScrollView].
   final EdgeInsetsGeometry? padding;
 
+  /// The controller of the scrolling, for a caller that has to move it; null for one of its own.
+  final ScrollController? controller;
+
+  /// Whether the bar is there, which a content that may or may not overflow turns on only while it
+  /// does; true by default, the bar then being persistent.
+  final bool showsBar;
+
   /// Class constructor
-  const OcptHorizontalScrollView({super.key, required this.child, this.padding});
+  const OcptHorizontalScrollView({
+    super.key,
+    required this.child,
+    this.padding,
+    this.controller,
+    this.showsBar = true,
+  });
 
   /// Create the [_OcptHorizontalScrollViewState] holding the state of the horizontal scroll view.
   @override
@@ -41,13 +54,13 @@ class OcptHorizontalScrollView extends StatefulWidget {
 class _OcptHorizontalScrollViewState extends State<OcptHorizontalScrollView> {
   /// The controller the [Scrollbar] and its [SingleChildScrollView] share — a `thumbVisibility` bar
   /// must be handed the very controller its scroll view reads.
-  final ScrollController _controller = ScrollController();
+  late final ScrollController _controller = widget.controller ?? ScrollController();
 
   /// Build the horizontal scroll view as a [Scrollbar].
   @override
   Widget build(BuildContext context) => Scrollbar(
     controller: _controller,
-    thumbVisibility: true,
+    thumbVisibility: widget.showsBar,
     thickness: _ocptHorizontalScrollbarThickness,
     child: SingleChildScrollView(
       controller: _controller,
@@ -57,10 +70,12 @@ class _OcptHorizontalScrollViewState extends State<OcptHorizontalScrollView> {
     ),
   );
 
-  /// Dispose [_controller].
+  /// Dispose [_controller], unless the caller owns it.
   @override
   void dispose() {
-    _controller.dispose();
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 }

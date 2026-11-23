@@ -105,7 +105,7 @@ void main() {
         // Fails against the pre-fix `hintStyleBuilder`, which built a fresh `TextStyle` at body
         // size instead of decorating the Title rule's own resolved style (`fontSize * 1.6`, bold).
         final titleHint = tester.widget<Text>(find.text("Title"));
-        expect(titleHint.style?.fontSize, OcptEditorPreviewLayout.fontSize * 1.6);
+        expect(titleHint.style?.fontSize, OcptEditorPreviewLayout.baseFontSize * 1.6);
         expect(titleHint.style?.fontWeight, FontWeight.bold);
       });
 
