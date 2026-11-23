@@ -8,8 +8,10 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_page_zoom.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_area.dart';
 
 /// A screenplay long enough that its preview overflows any reasonable test viewport height, so the
 /// scroll-sync tests below have real distance to scroll across.
@@ -82,6 +84,15 @@ final _backdropFinder = find.descendant(
   matching: find.byType(ColoredBox),
 );
 
+/// Get how far the preview's page can be scrolled sideways, which is none unless it is zoomed in
+/// past its panel: the scroll view is always there, so the page keeps its place in the tree.
+double _sidewaysExtent(WidgetTester tester) => tester
+    .state<ScrollableState>(
+      find.byWidgetPredicate((widget) => widget is Scrollable && widget.axis == Axis.horizontal),
+    )
+    .position
+    .maxScrollExtent;
+
 /// Run the tests of [OcptEditorPreview].
 void main() {
   final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
@@ -108,9 +119,9 @@ void main() {
     );
     await tester.pump();
 
-    // No horizontal scroller is ever built: a wide-enough panel never needed one, and a narrow
-    // panel now scales instead of scrolling.
-    expect(find.byType(SingleChildScrollView), findsNothing);
+    // The page never scrolls sideways: a wide-enough panel never needed to, and a narrow panel
+    // scales instead.
+    expect(_sidewaysExtent(tester), 0);
 
     final pageRect = tester.getRect(find.byType(Material));
     expect(pageRect.width, closeTo(layout.pageWidth, 0.5));
@@ -140,7 +151,7 @@ void main() {
       await tester.pump();
 
       // Still no horizontal scroller: the page is scaled to fit instead of being cropped.
-      expect(find.byType(SingleChildScrollView), findsNothing);
+      expect(_sidewaysExtent(tester), 0);
 
       // The page's on-screen (post-transform) bounds — including its right margin — fit entirely
       // within the narrow panel; nothing is cropped off either edge.
@@ -278,7 +289,9 @@ void main() {
       );
       await tester.pump();
 
-      final scrollable = tester.state<ScrollableState>(find.byType(Scrollable));
+      final scrollable = tester.state<ScrollableState>(
+        find.byWidgetPredicate((widget) => widget is Scrollable && widget.axis == Axis.vertical),
+      );
       expect(scrollable.position.pixels, 0);
 
       // Move the caret to a scene far down the (intentionally long) document.
@@ -516,7 +529,7 @@ void main() {
     await tester.pump();
 
     expect(tester.getRect(find.byType(Material)).width, closeTo(zoomed.pageWidth, 0.5));
-    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(_sidewaysExtent(tester), 0);
   });
 
   testWidgets("a page zoomed in wider than the panel scrolls sideways instead of scaling", (
@@ -540,7 +553,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    expect(_sidewaysExtent(tester), greaterThan(0));
     expect(tester.getRect(find.byType(Material)).width, closeTo(zoomed.pageWidth, 0.5));
   });
 
@@ -567,17 +580,87 @@ void main() {
     final sideways = find.byWidgetPredicate(
       (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.horizontal,
     );
-    // A scrollbar around the sideways scrolling, not scrolled away with the page.
-    expect(
-      find.ancestor(
-        of: sideways,
-        matching: find.byWidgetPredicate(
-          (widget) =>
-              widget is Scrollbar &&
-              widget.notificationPredicate != defaultScrollNotificationPredicate,
-        ),
-      ),
-      findsWidgets,
+    // One vertical scrollbar, around the sideways scrolling and so not scrolled away with the
+    // page: its edge is the panel's, and the list inside draws none of its own.
+    final verticalBar = find.byWidgetPredicate(
+      (widget) => widget is Scrollbar && widget.notificationPredicate != null,
     );
+    expect(find.ancestor(of: sideways, matching: verticalBar), findsOneWidget);
+    expect(find.descendant(of: sideways, matching: find.byType(Scrollbar)), findsNothing);
+    expect(
+      tester.getRect(find.ancestor(of: sideways, matching: verticalBar)).right,
+      tester.getRect(find.byType(OcptEditorPreview)).right,
+    );
+  });
+
+  group("a narrow dock", () {
+    final longText = List.generate(400, (index) => "Action line $index.").join("\n\n");
+
+    /// Get the vertical scroll position of the list the preview scrolls.
+    ScrollableState verticalScrollable(WidgetTester tester) => tester.state<ScrollableState>(
+      find.byWidgetPredicate((widget) => widget is Scrollable && widget.axis == Axis.vertical),
+    );
+
+    OcptEditorPreview preview({double zoom = 1}) => OcptEditorPreview(
+      document: const FountainParser().parse(longText),
+      pageSetup: const OcptPageSetup.standard(),
+      currentLine: 0,
+      isPageSimulationEnabled: false,
+      zoom: zoom,
+    );
+
+    testWidgets("keeps its scroll, in proportion, when zoomed in past 100 %", (tester) async {
+      _widenTestSurface(tester, 500);
+      await tester.pumpWidget(_wrap(preview(), width: 500));
+      await tester.pump();
+      final state = verticalScrollable(tester);
+      state.position.jumpTo(2000);
+      await tester.pump();
+
+      await tester.pumpWidget(_wrap(preview(zoom: 1.1), width: 500));
+      await tester.pumpAndSettle();
+
+      // The same list, not one mounted again at the top, moved in proportion.
+      expect(verticalScrollable(tester), same(state));
+      expect(state.position.pixels, closeTo(2200, 1));
+    });
+
+    testWidgets("keeps its scroll across the widths where a fit to width flips shapes", (
+      tester,
+    ) async {
+      _widenTestSurface(tester, 900);
+      Widget zoomed(double width) => _wrap(
+        OcptEditorZoomArea(
+          zoom: const OcptPageZoom.fitToWidth(),
+          pageSetup: const OcptPageSetup.standard(),
+          isZoomAvailable: true,
+          onFitFactorMeasured: (_) {},
+          onZoomStepRequested: (_) {},
+          builder: (factor, onStep) => OcptEditorPreview(
+            document: const FountainParser().parse(longText),
+            pageSetup: const OcptPageSetup.standard(),
+            currentLine: 0,
+            isPageSimulationEnabled: false,
+            zoom: factor,
+          ),
+        ),
+        width: width,
+      );
+
+      await tester.pumpWidget(zoomed(560));
+      await tester.pump();
+      final state = verticalScrollable(tester);
+      state.position.jumpTo(1500);
+      await tester.pump();
+
+      // Across widths where the page about equals the panel, whichever way it rounds.
+      for (var width = 560.0; width <= 900; width += 7) {
+        await tester.pumpWidget(zoomed(width));
+        await tester.pumpAndSettle();
+
+        expect(verticalScrollable(tester), same(state), reason: "width $width");
+        expect(state.position.pixels, greaterThan(0), reason: "width $width");
+      }
+    });
   });
 }

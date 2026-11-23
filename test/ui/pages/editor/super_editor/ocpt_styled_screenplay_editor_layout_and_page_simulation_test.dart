@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_script_page_number.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'ocpt_styled_screenplay_editor_test_doubles.dart';
@@ -257,6 +258,18 @@ void main() {
           find.descendant(of: _verticalScrollbarFinder(), matching: find.byType(SuperEditor)),
           findsOneWidget,
         );
+        // It sits around the sideways scrolling, at the area's own edge, not scrolled with it.
+        expect(
+          find.ancestor(
+            of: find.byType(OcptHorizontalScrollView),
+            matching: _verticalScrollbarFinder(),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          tester.getRect(_verticalScrollbarFinder()).right,
+          tester.getRect(find.byType(OcptStyledScreenplayEditor)).right,
+        );
       },
     );
 
@@ -269,6 +282,18 @@ void main() {
         expect(
           find.descendant(of: _verticalScrollbarFinder(), matching: find.byType(SuperEditor)),
           findsOneWidget,
+        );
+        // It sits around the sideways scrolling, at the area's own edge, not scrolled with it.
+        expect(
+          find.ancestor(
+            of: find.byType(OcptHorizontalScrollView),
+            matching: _verticalScrollbarFinder(),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          tester.getRect(_verticalScrollbarFinder()).right,
+          tester.getRect(find.byType(OcptStyledScreenplayEditor)).right,
         );
       },
     );

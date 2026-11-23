@@ -9,10 +9,10 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scaled_to_fit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_wheel.dart';
-import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
 
 /// The formatted preview: a simulated paper page (white paper, black Courier text, even in dark
 /// theme) rendering the parsed screenplay with its true print layout.
@@ -174,80 +174,30 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
           onZoomStepRequested: widget.onZoomStepRequested == null
               ? null
               : (direction, _) => widget.onZoomStepRequested!(direction),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final unscaledWidth = layout.pageWidth + _pagePadding * 2;
-              if (constraints.maxWidth >= unscaledWidth) {
-                return SizedBox(
-                  width: constraints.maxWidth,
-                  height: constraints.maxHeight,
-                  child: Center(
-                    child: SizedBox(width: layout.pageWidth, child: content),
-                  ),
-                );
-              }
-
-              // A page zoomed in is not scaled down to fit: the panel scrolls sideways over it.
-              //
-              // The vertical bar stays outside the sideways scrolling, at the edge of the panel,
-              // and the list below it draws none of its own.
-              if (widget.zoom > 1) {
-                return Scrollbar(
-                  controller: _scrollController,
-                  notificationPredicate: (notification) =>
-                      notification.metrics.axis == Axis.vertical,
-                  child: OcptHorizontalScrollView(
-                    controller: _horizontalScrollController,
-                    child: SizedBox(
-                      width: unscaledWidth,
-                      height: constraints.maxHeight,
-                      child: Center(
-                        child: SizedBox(
-                          width: layout.pageWidth,
-                          child: ScrollConfiguration(
-                            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-                            child: content,
-                          ),
-                        ),
-                      ),
+          // The vertical bar stays at the edge of the panel, outside the sideways scrolling, and
+          // the list below it draws none of its own.
+          child: Scrollbar(
+            controller: _scrollController,
+            notificationPredicate: (notification) => notification.metrics.axis == Axis.vertical,
+            child: LayoutBuilder(
+              // One tree whether the page fits, is scaled down to fit or scrolls sideways (a page
+              // zoomed in): the list would be mounted again, and lose its scroll, at every change.
+              builder: (context, constraints) => OcptStyledScaledToFit(
+                constraints: constraints,
+                pageWidth: layout.pageWidth + _pagePadding * 2,
+                horizontalScrollController: _horizontalScrollController,
+                scrollsSideways: widget.zoom > 1,
+                page: Center(
+                  child: SizedBox(
+                    width: layout.pageWidth,
+                    child: ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+                      child: content,
                     ),
                   ),
-                );
-              }
-
-              // The panel is narrower than the full page: scale the whole page
-              // down to fit it, rather than crop it with horizontal scroll.
-              // `height` is inflated by the inverse of `scale` so the scaled-down
-              // viewport exactly fills the panel: `_scrollController`'s
-              // viewport/target math, entirely computed in this unscaled space
-              // (see `_syncScrollToCurrentLine`), stays valid without any
-              // adjustment.
-              //
-              // This must be a `FittedBox`, not a `Transform.scale` wrapping a
-              // merely wide `SizedBox`: this whole subtree already sits under a
-              // *tight* incoming width constraint (an `Expanded` panel gives one),
-              // and a plain `SizedBox` cannot exceed a tight constraint — it
-              // silently clamps back down to `constraints.maxWidth`, one level too
-              // late for `Transform.scale` to notice, which then scales down and
-              // anchors against that wrong (already-narrow) box instead of the
-              // true, wider page — visibly displacing the left margin while the
-              // vertical margins (unaffected by this) still line up. `FittedBox`
-              // sidesteps this: it always lays its child out with fully
-              // unconstrained constraints, so the inner `SizedBox` genuinely
-              // achieves `unscaledWidth`, and `FittedBox` itself then measures
-              // that real size to compute the correct scale and centering.
-              final scale = constraints.maxWidth / unscaledWidth;
-              return FittedBox(
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  width: unscaledWidth,
-                  height: constraints.maxHeight / scale,
-                  child: Center(
-                    child: SizedBox(width: layout.pageWidth, child: content),
-                  ),
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ),
       ),
