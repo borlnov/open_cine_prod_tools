@@ -8,7 +8,8 @@ import 'package:super_editor/super_editor.dart';
 
 /// [EditCommand] applying an [OcptReplaceNodeTextRequest]: replaces the target `ParagraphNode` with
 /// a copy carrying the new text (metadata untouched), via `ParagraphNode.copyTextNodeWith`,
-/// mirroring [OcptChangeNodeMetadataCommand]'s own pattern.
+/// mirroring [OcptChangeNodeMetadataCommand]'s own pattern. A selection end that the shorter text
+/// leaves past its end is brought back to it, so a caret is never left outside the text.
 class OcptReplaceNodeTextCommand extends EditCommand {
   /// The id of the `ParagraphNode` whose text is being replaced.
   final String nodeId;
@@ -32,6 +33,41 @@ class OcptReplaceNodeTextCommand extends EditCommand {
     document.replaceNodeById(existingNode.id, existingNode.copyTextNodeWith(text: text));
 
     executor.logChanges([DocumentEdit(NodeChangeEvent(nodeId))]);
+
+    final composer = context.find<MutableDocumentComposer>(Editor.composerKey);
+    final selection = composer.selection;
+    final clamped = selection == null ? null : _clamped(selection);
+    if (clamped != null && clamped != selection) {
+      executor.executeCommand(
+        ChangeSelectionCommand(
+          clamped,
+          SelectionChangeType.deleteContent,
+          SelectionReason.contentChange,
+        ),
+      );
+    }
+  }
+
+  /// Get [selection] with its ends in the replaced node brought back inside the new text, so a
+  /// shorter text never leaves a caret past its end.
+  DocumentSelection _clamped(DocumentSelection selection) => DocumentSelection(
+    base: _clampedPosition(selection.base),
+    extent: _clampedPosition(selection.extent),
+  );
+
+  /// Get [position] brought back inside the new text when it lies in the replaced node.
+  DocumentPosition _clampedPosition(DocumentPosition position) {
+    final nodePosition = position.nodePosition;
+    if (position.nodeId != nodeId || nodePosition is! TextNodePosition) {
+      return position;
+    }
+    final length = text.length;
+    return nodePosition.offset <= length
+        ? position
+        : DocumentPosition(
+            nodeId: nodeId,
+            nodePosition: TextNodePosition(offset: length),
+          );
   }
 }
 

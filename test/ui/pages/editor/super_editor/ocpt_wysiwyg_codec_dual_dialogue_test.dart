@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
 import 'ocpt_wysiwyg_codec_test_doubles.dart';
@@ -55,7 +56,7 @@ void main() {
       }
     });
 
-    test("a node that is no longer a cue drops it", () {
+    test("a node that is no longer a cue gets it written back into its text", () {
       final document = OcptWysiwygCodec.decode(pair).document;
       final cue = document.getNodeAt(2)! as ParagraphNode;
       document.replaceNodeById(
@@ -65,7 +66,11 @@ void main() {
         }),
       );
 
-      expect(OcptWysiwygDualDialogue.requests(document), hasLength(1));
+      final requests = OcptWysiwygDualDialogue.requests(document);
+
+      expect(requests, hasLength(2));
+      final replacement = requests.whereType<OcptReplaceNodeTextRequest>().single;
+      expect(replacement.text.toPlainText(), "KIM^");
     });
   });
 

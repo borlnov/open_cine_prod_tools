@@ -82,7 +82,8 @@ final class OcptWysiwygDualDialogue {
   ///
   /// A cue ending with a `^` typed live has it absorbed: the marker leaves the node's text for
   /// [ocptDualDialogueMetadataKey], like a `#N#` typed at the end of a heading. A node that is no
-  /// longer a cue drops the metadata it carries. An inert node is left alone.
+  /// longer a cue gets the suffix it carries written back at the end of its text, so no character
+  /// of the source is lost. An inert node is left alone.
   static List<EditRequest> requests(
     Document document, {
     OcptWysiwygDocumentLayout? documentLayout,
@@ -101,7 +102,16 @@ final class OcptWysiwygDualDialogue {
         node.getMetadataValue("blockType"),
       );
       if (type != FountainLineType.character) {
-        if (suffixOf(node) != null) {
+        final storedSuffix = suffixOf(node);
+        if (storedSuffix != null) {
+          // The node stops being a cue for now: the marker goes back into its text, where raw mode
+          // would hold it, and is absorbed again if the node reads as a cue once more.
+          requests.add(
+            OcptReplaceNodeTextRequest(
+              nodeId: node.id,
+              text: node.text.copyAndAppend(AttributedText(storedSuffix)),
+            ),
+          );
           requests.add(
             OcptChangeNodeMetadataRequest(
               nodeId: node.id,
