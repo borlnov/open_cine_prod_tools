@@ -7,6 +7,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_document_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -29,8 +30,13 @@ final RegExp _sequentialSceneNumberPattern = RegExp(r'^([0-9]+)([A-Za-z]*)$');
 /// next (out of order, a gap, a duplicate, a hand-typed value that makes no sense in context) —
 /// is corrected to the next plain integer.
 ///
+/// An inert node (wholly commented out) is no scene: it is skipped and never numbered.
+///
 /// Pure and stateless: it only reads [document]'s current metadata and returns the requests a
 /// caller must still execute against a live `Editor` to actually apply them.
+///
+/// [documentLayout] is the layout of [document] when the caller already has it (the settle pass
+/// does), so it is not laid out again.
 ///
 /// [isHistorical] is what tells the two callers apart. The debounced settle pass that follows an
 /// edit leaves it at true: its renumbering is part of the writer's own gesture and must be undone
@@ -38,12 +44,17 @@ final RegExp _sequentialSceneNumberPattern = RegExp(r'^([0-9]+)([A-Za-z]*)$');
 /// decoded (`_OcptStyledScreenplayEditorState._syncSceneNumbers`) passes false: it runs before the
 /// writer has touched anything, so as an undo step it could only ever be a Ctrl+Z that
 /// un-corrects a numbering nobody asked to change.
-List<EditRequest> sceneNumberNormalizationRequests(Document document, {bool isHistorical = true}) {
+List<EditRequest> sceneNumberNormalizationRequests(
+  Document document, {
+  bool isHistorical = true,
+  OcptWysiwygDocumentLayout? documentLayout,
+}) {
   final requests = <EditRequest>[];
   var lastConsumed = 0;
+  final inertIds = OcptWysiwygCodec.inertNodeIds(document, documentLayout: documentLayout);
 
   for (final node in document) {
-    if (node is! ParagraphNode) {
+    if (node is! ParagraphNode || inertIds.contains(node.id)) {
       continue;
     }
     final type = OcptFountainLineAttributions.typeOfAttributionValue(

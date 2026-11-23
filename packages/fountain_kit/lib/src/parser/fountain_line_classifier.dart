@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 import 'package:fountain_kit/src/parser/fountain_character_cue.dart';
+import 'package:fountain_kit/src/parser/fountain_comment_spans.dart';
 import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
 /// First parsing pass: classifies every source line of a Fountain document
@@ -48,7 +49,7 @@ class FountainLineClassifier {
     return types;
   }
 
-  /// Determine the [FountainLineType] of [rawLine] given just enough
+  /// Determine the [FountainLineType] of [sourceLine] given just enough
   /// surrounding context to reproduce every context-sensitive rule in
   /// [classify]: the [FountainLineType] of the line immediately before it
   /// ([previousType], `null` at the start of the document) and the raw text
@@ -57,11 +58,17 @@ class FountainLineClassifier {
   /// in either direction, so this is enough context to classify any single
   /// candidate line in isolation, which is what lets a line writer decide,
   /// line by line, whether a forcing marker is needed.
+  ///
+  /// The line is classified with its inline notes (`[[ ... ]]`) removed (see
+  /// [withoutInlineNotes]): `[[x]]INT. HOUSE - DAY` is a scene heading and
+  /// `CUT TO:[[x]]` a transition. [nextRawLine] is read as written, since a
+  /// note never turns a line with other text on it into a blank one.
   FountainLineType classifyLine(
-    String rawLine, {
+    String sourceLine, {
     required FountainLineType? previousType,
     required String? nextRawLine,
   }) {
+    final rawLine = withoutInlineNotes(sourceLine);
     final trimmed = rawLine.trim();
 
     if (trimmed.isEmpty) {
@@ -156,6 +163,27 @@ class FountainLineClassifier {
   /// letter (so that, for example, a line of only digits and punctuation
   /// does not count as "all caps").
   bool _isAllCaps(String text) => text == text.toUpperCase() && text != text.toLowerCase();
+
+  /// Get [line] without its inline notes (`[[ ... ]]`), which are annotations never printed and
+  /// so never change what the line is.
+  ///
+  /// A line made of notes alone (a standalone note) is returned as written, since it has no other
+  /// text to be classified by.
+  static String withoutInlineNotes(String line) {
+    final notes = FountainCommentSpans.notes(line);
+    if (notes.isEmpty) {
+      return line;
+    }
+    final buffer = StringBuffer();
+    var cursor = 0;
+    for (final note in notes) {
+      buffer.write(line.substring(cursor, note.start));
+      cursor = note.end;
+    }
+    buffer.write(line.substring(cursor));
+    final stripped = buffer.toString();
+    return stripped.trim().isEmpty ? line : stripped;
+  }
 
   /// Tell whether [line] opens with the leading token of a scene heading (`INT`,
   /// `EXT`, `EST`, `INT./EXT`, `I/E`…), whatever the surrounding context makes

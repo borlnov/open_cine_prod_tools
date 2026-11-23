@@ -179,13 +179,38 @@ class FountainInlineParser {
   /// that would be a fiction. Unlike [parse]'s spans, a run's range covers
   /// only what the run actually renders: the outer emphasis markers, and the
   /// nested ones this method resolves, are excluded from it.
-  List<FountainStyledRun> parseRuns(String text, {int? line, int? startOffset}) {
+  ///
+  /// [literalStars] holds the offsets in [text] of the `*` characters to read as plain text, never
+  /// as an emphasis marker: those of the `/*` and `*/` of a boneyard, which a caller that parses
+  /// one line of a larger text knows from the whole text. A `/*` or `*/` that is no boneyard
+  /// delimiter is no business of the parser, which reads every other `*` as it always did.
+  List<FountainStyledRun> parseRuns(
+    String text, {
+    int? line,
+    int? startOffset,
+    Set<int> literalStars = const {},
+  }) {
     final isAnchored = line != null && startOffset != null;
-    return parse(
-      text,
+    final placeholder = literalStars.isEmpty ? null : _unusedCharacter([text]);
+    final parsed = parse(
+      placeholder == null ? text : _replaceStars(text, literalStars, placeholder),
       line: line ?? 0,
       startOffset: startOffset ?? 0,
     ).map((span) => _toStyledRun(span, isAnchored: isAnchored)).toList();
+    if (placeholder == null) {
+      return parsed;
+    }
+    return [
+      for (final run in parsed)
+        FountainStyledRun(
+          text: run.text.replaceAll(placeholder, '*'),
+          isBold: run.isBold,
+          isItalic: run.isItalic,
+          isUnderline: run.isUnderline,
+          isNote: run.isNote,
+          sourceRange: run.sourceRange,
+        ),
+    ];
   }
 
   /// Convert one top-level [FountainInlineSpan] into a [FountainStyledRun],
@@ -334,4 +359,23 @@ class FountainInlineParser {
         startOffset: lineStartOffset + localStart,
         endOffset: lineStartOffset + localEnd,
       );
+
+  /// Get a private-use character found in none of [texts], to stand in for a `*` that must not be
+  /// read as a marker.
+  static String _unusedCharacter(List<String> texts) {
+    var code = 0xE000;
+    while (texts.any((text) => text.contains(String.fromCharCode(code)))) {
+      code++;
+    }
+    return String.fromCharCode(code);
+  }
+
+  /// Get [text] with the characters at [offsets] replaced by [placeholder].
+  static String _replaceStars(String text, Set<int> offsets, String placeholder) {
+    final buffer = StringBuffer();
+    for (var index = 0; index < text.length; index++) {
+      buffer.write(offsets.contains(index) && text[index] == '*' ? placeholder : text[index]);
+    }
+    return buffer.toString();
+  }
 }

@@ -382,6 +382,73 @@ void main() {
       },
     );
 
+    testWidgets("a text opened with a boneyard and a note is undone and redone like any other", (
+      tester,
+    ) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        final controller = OcptStyledEditorController();
+        addTearDown(controller.dispose);
+
+        await pumpStandaloneEditor(
+          tester,
+          "He waits. [[a note]]\n\n/*\nINT. GONE - DAY\n*/\n\nShe leaves.",
+          styledController: controller,
+        );
+        final document = SuperEditorInspector.findDocument()!;
+        // What the decode put there is part of the document the editor opens with: it is no edit.
+        expect(controller.canUndo, isFalse);
+        expect(
+          nodeAt(document, 2).text.getAttributionSpans({ocptFountainCommentAttribution}),
+          isNotEmpty,
+        );
+
+        await tester.placeCaretInParagraph(nodeAt(document, 0).id, 2);
+        await typeRun(tester, "x");
+        expect(nodeAt(document, 0).text.toPlainText(), "Hex waits. [[a note]]");
+        expect(controller.canUndo, isTrue);
+
+        await sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await pumpPastSettleDebounce(tester);
+        expect(nodeAt(document, 0).text.toPlainText(), "He waits. [[a note]]");
+
+        await sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
+        await pumpPastSettleDebounce(tester);
+        expect(nodeAt(document, 0).text.toPlainText(), "Hex waits. [[a note]]");
+
+        // The typing is the second step back; the first one is the caret the test put in the line.
+        await sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await pumpPastSettleDebounce(tester);
+        expect(nodeAt(document, 0).text.toPlainText(), "He waits. [[a note]]");
+        await sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await pumpPastSettleDebounce(tester);
+        expect(controller.canUndo, isFalse);
+      });
+    });
+
+    testWidgets("uncommenting a line by Backspace keeps the caret in the text, and can be undone", (
+      tester,
+    ) async {
+      await withClock(Clock.fixed(frozenNow), () async {
+        await pumpStandaloneEditor(tester, "x\n\n/* He runs away. */\n\nMore.");
+        final document = SuperEditorInspector.findDocument()!;
+        final commentedLine = nodeAt(document, 1);
+        final length = commentedLine.text.length;
+
+        await tester.placeCaretInParagraph(commentedLine.id, length);
+        await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+        await pumpPastSettleDebounce(tester);
+
+        expect(tester.takeException(), isNull);
+        expect(nodeAt(document, 1).text.toPlainText(), "/* He runs away. *");
+        final selection = SuperEditorInspector.findDocumentSelection()!;
+        expect((selection.extent.nodePosition as TextNodePosition).offset, length - 1);
+
+        await sendCtrl(tester, LogicalKeyboardKey.keyZ);
+        await pumpPastSettleDebounce(tester);
+        expect(nodeAt(document, 1).text.toPlainText(), "/* He runs away. */");
+      });
+    });
+
     testWidgets("the controller reports what can be undone and redone, refusal included", (
       tester,
     ) async {

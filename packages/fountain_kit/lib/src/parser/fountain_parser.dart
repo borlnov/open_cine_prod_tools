@@ -8,6 +8,7 @@ import 'package:fountain_kit/src/models/fountain_source_range.dart';
 import 'package:fountain_kit/src/models/fountain_title_page.dart';
 import 'package:fountain_kit/src/models/fountain_title_page_entry.dart';
 import 'package:fountain_kit/src/parser/fountain_block_builder.dart';
+import 'package:fountain_kit/src/parser/fountain_comment_spans.dart';
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 
 /// A `key: value` title page entry still being accumulated while scanning
@@ -81,13 +82,6 @@ class FountainParser {
   /// date` in `Draft date: 1/1/2026`.
   static final RegExp _titleKeyPattern = RegExp('^([A-Za-z][A-Za-z0-9 ]*):');
 
-  /// Matches a boneyard block comment, possibly spanning several lines.
-  static final RegExp _boneyardPattern = RegExp(r'/\*[\s\S]*?\*/');
-
-  /// Matches an inline or standalone authoring note, possibly spanning
-  /// several lines.
-  static final RegExp _notePattern = RegExp(r'\[\[[\s\S]*?\]\]');
-
   /// Create a [FountainParser].
   const FountainParser();
 
@@ -96,16 +90,19 @@ class FountainParser {
     final normalized = source.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
     final lineStartOffsets = _computeLineStartOffsets(normalized);
 
-    final boneyardSpans = _extractSpans(normalized, _boneyardPattern, isBoneyard: true);
-    final afterBoneyard = _scrub(
+    final boneyardSpans = _extractSpans(normalized, FountainCommentSpans.boneyards(normalized));
+    final afterBoneyard = FountainCommentSpans.scrub(
       normalized,
-      boneyardSpans.map((span) => (span.startOffset, span.endOffset)),
+      FountainCommentSpans.boneyards(normalized),
     );
 
-    final noteSpans = _extractStandaloneNoteSpans(afterBoneyard, lineStartOffsets);
-    final scrubbed = _scrub(
+    final noteSpans = _extractStandaloneNoteSpans(afterBoneyard);
+    final scrubbed = FountainCommentSpans.scrub(
       afterBoneyard,
-      noteSpans.map((span) => (span.startOffset, span.endOffset)),
+      noteSpans.map(
+        (span) =>
+            FountainCommentSpan(start: span.startOffset, end: span.endOffset, isBoneyard: false),
+      ),
     );
 
     final lines = scrubbed.split('\n');
@@ -161,19 +158,17 @@ class FountainParser {
     return line;
   }
 
-  /// Find every match of [pattern] in [source] and return it as a
-  /// [_ScrubbedSpan].
-  List<_ScrubbedSpan> _extractSpans(String source, RegExp pattern, {required bool isBoneyard}) {
+  /// Turn each of [spans], found in [source], into a [_ScrubbedSpan].
+  List<_ScrubbedSpan> _extractSpans(String source, List<FountainCommentSpan> spans) {
     // Both `/* */` and `[[ ]]` markers are two characters long on each side.
     const markerLength = 2;
-    return pattern
-        .allMatches(source)
+    return spans
         .map(
-          (match) => _ScrubbedSpan(
-            startOffset: match.start,
-            endOffset: match.end,
-            text: source.substring(match.start + markerLength, match.end - markerLength),
-            isBoneyard: isBoneyard,
+          (span) => _ScrubbedSpan(
+            startOffset: span.start,
+            endOffset: span.end,
+            text: source.substring(span.start + markerLength, span.end - markerLength),
+            isBoneyard: span.isBoneyard,
           ),
         )
         .toList(growable: false);
@@ -183,48 +178,8 @@ class FountainParser {
   /// lines by itself (i.e. nothing but whitespace shares its line(s)),
   /// which is what makes it a standalone [FountainNoteBlock] rather than an
   /// inline note span within another block (see `FountainInlineStyle.note`).
-  List<_ScrubbedSpan> _extractStandaloneNoteSpans(String source, List<int> lineStartOffsets) {
-    final spans = <_ScrubbedSpan>[];
-    for (final match in _notePattern.allMatches(source)) {
-      final startLine = _lineForOffset(lineStartOffsets, match.start);
-      final endLine = _lineForOffset(lineStartOffsets, match.end - 1);
-      final lineStart = lineStartOffsets[startLine];
-      final lineEndOffset = endLine + 1 < lineStartOffsets.length
-          ? lineStartOffsets[endLine + 1] - 1
-          : source.length;
-      final before = source.substring(lineStart, match.start);
-      final after = source.substring(match.end, lineEndOffset);
-      if (before.trim().isEmpty && after.trim().isEmpty) {
-        spans.add(
-          _ScrubbedSpan(
-            startOffset: match.start,
-            endOffset: match.end,
-            text: source.substring(match.start + 2, match.end - 2),
-            isBoneyard: false,
-          ),
-        );
-      }
-    }
-    return spans;
-  }
-
-  /// Return a copy of [source] with every character offset covered by
-  /// [spans] replaced by a space (newlines are preserved), so that the
-  /// text's line structure and every other character offset stay stable
-  /// for later passes.
-  String _scrub(String source, Iterable<(int, int)> spans) {
-    final buffer = StringBuffer();
-    var cursor = 0;
-    for (final span in spans) {
-      buffer.write(source.substring(cursor, span.$1));
-      for (var index = span.$1; index < span.$2; index++) {
-        buffer.write(source[index] == '\n' ? '\n' : ' ');
-      }
-      cursor = span.$2;
-    }
-    buffer.write(source.substring(cursor));
-    return buffer.toString();
-  }
+  List<_ScrubbedSpan> _extractStandaloneNoteSpans(String source) =>
+      _extractSpans(source, FountainCommentSpans.standaloneNotes(source));
 
   /// Build the top-level [FountainBlock] (a [FountainBoneyard] or
   /// [FountainNoteBlock]) for a pre-pass [span].

@@ -361,16 +361,17 @@ class OcptFountainEditorStylesheet {
     return value is double ? value : 0;
   }
 
-  /// Wrap `defaultInlineTextStyler` to additionally dim an [ocptFountainNoteAttribution] span
-  /// ([_noteInlineOpacity] of [onSurfaceVariant]), read-only authoring scaffolding that never
-  /// prints.
+  /// Wrap `defaultInlineTextStyler` to additionally dim an [ocptFountainNoteAttribution] or an
+  /// [ocptFountainCommentAttribution] span ([_noteInlineOpacity] of [onSurfaceVariant]), read-only
+  /// authoring scaffolding that never prints.
   static TextStyle _inlineTextStyler(
     Set<Attribution> attributions,
     TextStyle existingStyle,
     Color onSurfaceVariant,
   ) {
     final style = defaultInlineTextStyler(attributions, existingStyle);
-    if (!attributions.contains(ocptFountainNoteAttribution)) {
+    if (!attributions.contains(ocptFountainNoteAttribution) &&
+        !attributions.contains(ocptFountainCommentAttribution)) {
       return style;
     }
 

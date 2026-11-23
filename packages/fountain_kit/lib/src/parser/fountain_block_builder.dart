@@ -5,6 +5,7 @@
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
 import 'package:fountain_kit/src/parser/fountain_character_cue.dart';
+import 'package:fountain_kit/src/parser/fountain_comment_spans.dart';
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
@@ -162,10 +163,38 @@ class FountainBlockBuilder {
     return end;
   }
 
+  /// Get the offset of the first character of [line] that is not part of a note opening it.
+  ///
+  /// A forcing marker is read right after the notes that open a line, the same way
+  /// [FountainLineClassifier] reads it on the line without its notes.
+  int _afterLeadingNotes(String line) {
+    var cursor = 0;
+    for (final note in FountainCommentSpans.notes(line)) {
+      if (note.start != cursor) {
+        break;
+      }
+      cursor = note.end;
+    }
+    return cursor;
+  }
+
+  /// Tell whether [line] starts with [marker] once the notes opening it are skipped.
+  bool _startsWithMarker(String line, String marker) =>
+      line.startsWith(marker, _afterLeadingNotes(line));
+
+  /// Get [line] without the [marker] that follows the notes opening it.
+  String _removeMarker(String line, String marker) {
+    final at = _afterLeadingNotes(line);
+    return line.substring(0, at) + line.substring(at + marker.length);
+  }
+
   /// Build a [FountainSceneHeading] from its raw source line.
+  ///
+  /// The heading text is the printed one: the notes of the line are left out of it, since they are
+  /// never printed, and [FountainSceneHeading.rawText] keeps them.
   FountainSceneHeading _buildSceneHeading(String rawLine, FountainSourceRange range) {
-    final forced = rawLine.startsWith('.') && !rawLine.startsWith('..');
-    var work = rawLine.trim();
+    final forced = _startsWithMarker(rawLine, '.') && !_startsWithMarker(rawLine, '..');
+    var work = FountainLineClassifier.withoutInlineNotes(rawLine).trim();
     if (forced) {
       work = work.substring(1).trim();
     }
@@ -186,19 +215,20 @@ class FountainBlockBuilder {
 
   /// Build a [FountainActionBlock] from its raw source lines.
   FountainActionBlock _buildAction(List<String> rawLines, FountainSourceRange range) {
-    final forced = rawLines.first.startsWith('!');
+    final forced = _startsWithMarker(rawLines.first, '!');
     final content = List<String>.of(rawLines);
     if (forced) {
-      content[0] = content[0].substring(1);
+      content[0] = _removeMarker(content[0], '!');
     }
     return FountainActionBlock(sourceRange: range, lines: content, forced: forced);
   }
 
   /// Build a [FountainCharacter] from its raw source line.
   FountainCharacter _buildCharacter(String rawLine, FountainSourceRange range) {
-    final cue = parseFountainCharacterCue(rawLine);
+    final cue = parseFountainCharacterCue(FountainLineClassifier.withoutInlineNotes(rawLine));
     return FountainCharacter(
       sourceRange: range,
+      rawText: rawLine,
       name: cue.name,
       extension: cue.extension,
       isDualDialogue: cue.isDualDialogue,
@@ -219,12 +249,8 @@ class FountainBlockBuilder {
     for (var index = start + 1; index <= end; index++) {
       final childRange = calculator.rangeFor(index, index);
       if (types[index] == FountainLineType.parenthetical) {
-        final trimmed = lines[index].trim();
         children.add(
-          FountainParenthetical(
-            sourceRange: childRange,
-            text: trimmed.substring(1, trimmed.length - 1),
-          ),
+          FountainParenthetical(sourceRange: childRange, text: _parentheticalText(lines[index])),
         );
       } else {
         final raw = lines[index];
@@ -243,40 +269,94 @@ class FountainBlockBuilder {
 
   /// Build a [FountainTransition] from its raw source line.
   FountainTransition _buildTransition(String rawLine, FountainSourceRange range) {
-    final trimmed = rawLine.trim();
-    final forced = trimmed.startsWith('>');
-    final text = forced ? trimmed.substring(1).trim() : trimmed;
-    return FountainTransition(sourceRange: range, text: text, forced: forced);
+    final scrubbed = _scrubNotes(rawLine);
+    final forced = scrubbed.trim().startsWith('>');
+    final text = forced ? _removeAt(rawLine, scrubbed.indexOf('>')) : rawLine;
+    return FountainTransition(sourceRange: range, text: text.trim(), forced: forced);
   }
 
   /// Build a [FountainLyrics] block from its raw source lines.
   FountainLyrics _buildLyrics(List<String> rawLines, FountainSourceRange range) {
     final content = rawLines
-        .map((rawLine) => rawLine.startsWith('~') ? rawLine.substring(1) : rawLine)
+        .map((rawLine) => _startsWithMarker(rawLine, '~') ? _removeMarker(rawLine, '~') : rawLine)
         .toList(growable: false);
     return FountainLyrics(sourceRange: range, lines: content);
   }
 
   /// Build a [FountainCenteredText] block from its raw source line.
   FountainCenteredText _buildCenteredText(String rawLine, FountainSourceRange range) {
-    final trimmed = rawLine.trim();
-    final inner = trimmed.substring(1, trimmed.length - 1).trim();
-    return FountainCenteredText(sourceRange: range, text: inner);
+    final scrubbed = _scrubNotes(rawLine);
+    final inner = _removeAt(_removeAt(rawLine, scrubbed.lastIndexOf('<')), scrubbed.indexOf('>'));
+    return FountainCenteredText(sourceRange: range, text: inner.trim());
   }
 
+  /// Get the text of the parenthetical source line [rawLine], without its parentheses.
+  ///
+  /// A note around the parentheses stays in the text, so no annotation is lost.
+  String _parentheticalText(String rawLine) {
+    final scrubbed = _scrubNotes(rawLine);
+    final open = scrubbed.indexOf('(');
+    final close = scrubbed.lastIndexOf(')');
+    return rawLine.substring(0, open).trim() +
+        rawLine.substring(open + 1, close) +
+        rawLine.substring(close + 1).trim();
+  }
+
+  /// Get [line] with every note blanked out, so a character can be located while the offsets stay
+  /// those of [line].
+  String _scrubNotes(String line) =>
+      FountainCommentSpans.scrub(line, FountainCommentSpans.notes(line));
+
+  /// Get [text] without its character at [index].
+  String _removeAt(String text, int index) => text.substring(0, index) + text.substring(index + 1);
+
   /// Build a [FountainSection] from its raw source line.
+  ///
+  /// The heading marker is read off the line with its notes blanked out, the way the classifier
+  /// reads it; a note stays in the text, so no annotation is lost.
   FountainSection _buildSection(String rawLine, FountainSourceRange range) {
-    final match = _sectionPattern.firstMatch(rawLine.trim())!;
-    return FountainSection(
-      sourceRange: range,
-      level: match.group(1)!.length,
-      text: match.group(2)!.trim(),
+    final scrubbed = _scrubNotes(rawLine);
+    final start = scrubbed.length - scrubbed.trimLeft().length;
+    final match = _sectionPattern.firstMatch(scrubbed.trim())!;
+    final level = match.group(1)!.length;
+    final afterMarker = start + level;
+    final rest = rawLine.substring(afterMarker);
+    final text = _joinAroundMarker(
+      rawLine.substring(0, start),
+      rest.trimLeft(),
+      rest != rest.trimLeft(),
     );
+    return FountainSection(sourceRange: range, level: level, text: text.trim());
   }
 
   /// Build a [FountainSynopsis] from its raw source line.
+  ///
+  /// Like [_buildSection], the `=` marker is located with the notes blanked out and the notes stay
+  /// in the text.
   FountainSynopsis _buildSynopsis(String rawLine, FountainSourceRange range) {
-    final text = rawLine.trim().replaceFirst(RegExp(r'^=+\s?'), '');
-    return FountainSynopsis(sourceRange: range, text: text);
+    final scrubbed = _scrubNotes(rawLine);
+    final start = scrubbed.length - scrubbed.trimLeft().length;
+    var afterMarker = start;
+    while (afterMarker < rawLine.length && rawLine[afterMarker] == '=') {
+      afterMarker++;
+    }
+    var hadSpace = false;
+    if (afterMarker < rawLine.length && rawLine[afterMarker].trim().isEmpty) {
+      afterMarker++;
+      hadSpace = true;
+    }
+    final text = _joinAroundMarker(
+      rawLine.substring(0, start),
+      rawLine.substring(afterMarker),
+      hadSpace,
+    );
+    return FountainSynopsis(sourceRange: range, text: text.trim());
   }
+
+  /// Join what [before] a marker (notes) and what follows it, with one space between them when
+  /// the source had one after the marker and [before] does not already end with one.
+  String _joinAroundMarker(String before, String after, bool hadSpace) =>
+      hadSpace && before.isNotEmpty && before.trimRight() == before && after.isNotEmpty
+      ? '$before $after'
+      : '$before$after';
 }

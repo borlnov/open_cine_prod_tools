@@ -38,7 +38,48 @@ class FountainInlineSerializer {
   const FountainInlineSerializer();
 
   /// Render [runs] as a single marked-up Fountain source line.
-  String write(List<FountainStyledRun> runs) {
+  ///
+  /// [literalStars] holds the offsets, in the text of the runs put end to end, of the `*`
+  /// characters that are no emphasis marker and are never escaped: those of the `/*` and `*/` of a
+  /// boneyard (see [FountainInlineParser.parseRuns], which reads them the same way).
+  String write(List<FountainStyledRun> runs, {Set<int> literalStars = const {}}) {
+    if (literalStars.isEmpty) {
+      return _write(runs);
+    }
+    final placeholder = _unusedCharacter(runs);
+    final masked = <FountainStyledRun>[];
+    var offset = 0;
+    for (final run in runs) {
+      final buffer = StringBuffer();
+      for (var index = 0; index < run.text.length; index++) {
+        final isLiteral = run.text[index] == '*' && literalStars.contains(offset + index);
+        buffer.write(isLiteral ? placeholder : run.text[index]);
+      }
+      offset += run.text.length;
+      masked.add(
+        FountainStyledRun(
+          text: buffer.toString(),
+          isBold: run.isBold,
+          isItalic: run.isItalic,
+          isUnderline: run.isUnderline,
+          isNote: run.isNote,
+        ),
+      );
+    }
+    return _write(masked).replaceAll(placeholder, '*');
+  }
+
+  /// Get a private-use character found in none of [runs], to stand in for a `*` that is no marker.
+  String _unusedCharacter(List<FountainStyledRun> runs) {
+    var code = 0xE000;
+    while (runs.any((run) => run.text.contains(String.fromCharCode(code)))) {
+      code++;
+    }
+    return String.fromCharCode(code);
+  }
+
+  /// Render [runs] as a single marked-up Fountain source line, escaping what must be.
+  String _write(List<FountainStyledRun> runs) {
     final merged = _mergeAdjacent(runs);
     final texts = [
       for (final run in merged) _isPlain(run) ? _escapeAmbiguousMarkers(run.text) : run.text,
@@ -184,6 +225,12 @@ class FountainInlineSerializer {
           continue;
         }
       }
+      if (text[index] == r'\' && index + 1 < text.length && r'*_\[]'.contains(text[index + 1])) {
+        // A backslash that would escape what follows it is itself escaped.
+        buffer.write(r'\\');
+        index++;
+        continue;
+      }
       final token = _matchMarkerToken(text, index);
       if (token != null) {
         final closeIndex = text.indexOf(token, index + token.length);
@@ -231,12 +278,17 @@ class FountainInlineSerializer {
         continue;
       }
       final text = texts[i];
+      // A backslash ending a run would escape the marker of the run after it.
+      if (i + 1 < runs.length && text.endsWith(r'\') && _isEscaped(text, text.length)) {
+        texts[i] = '$text\\';
+        return true;
+      }
       for (var j = 0; j < text.length; j++) {
         final char = text[j];
         if (char != '*' && char != '_' && char != '[') {
           continue;
         }
-        if (j > 0 && text[j - 1] == r'\') {
+        if (_isEscaped(text, j)) {
           continue;
         }
         texts[i] = '${text.substring(0, j)}\\$char${text.substring(j + 1)}';
@@ -244,6 +296,15 @@ class FountainInlineSerializer {
       }
     }
     return false;
+  }
+
+  /// Tell whether the character at [index] of [text] is preceded by an odd number of backslashes.
+  bool _isEscaped(String text, int index) {
+    var count = 0;
+    while (index - count > 0 && text[index - count - 1] == r'\') {
+      count++;
+    }
+    return count.isOdd;
   }
 
   /// Tell whether [a] and [b] contain the same runs in the same order.

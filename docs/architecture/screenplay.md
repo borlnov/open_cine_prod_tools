@@ -106,6 +106,43 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   (`lib/ui/pages/editor/super_editor/`, the only directory besides `fountain_kit` that knows
   about this format) is the Fountain ↔ document (de)serializer, built on `fountain_kit`'s
   `FountainLineClassifier`/`FountainLineWriter`/`FountainInlineParser`/`FountainInlineSerializer`.
+  Commented text is read through one rule, `FountainCommentSpans` (`fountain_kit`): the boneyard
+  `/* ... */` and the note `[[ ... ]]`, each running to its first closing marker, over several
+  lines if need be. The parser, the spell checker and the editor all use it. A node whose whole
+  text lies inside such a span is **inert**, the way the parser sees no screenplay element there.
+  Inertness is recomputed from the nodes' plain texts on every pass (`OcptWysiwygCommentLayout`),
+  never stored. **A node holds its text in one form, inert or live:** the whole line's inline runs
+  parsed into attributions (emphasis, notes) and written back by the one serializer, so commenting
+  or uncommenting a line never changes its representation and nothing is re-parsed. An inert node
+  differs from a live one only by its type (action, no marker stripped on decode and none added on
+  `encode`), by being left alone by the reclassify, uppercase and scene-number passes (the computed
+  scene numbers skip it), and by being dimmed. The other lines are classified on the same lines the
+  parser classifies, the boneyards and the standalone notes blanked out, so editor and parser agree
+  on their types; a line with live text and a trailing `/*` or a leading `*/` keeps its normal
+  type. Classification also ignores the inline notes of a line (`[[x]]INT. HOUSE - DAY` is a
+  heading, `CUT TO:[[x]]` a transition, in the parser and in the editor), and the uppercase pass
+  leaves the text of a note or of a comment as written. The spans are found on the plain texts, so
+  they need no offset mapping. The inline parser and serializer behave as ever unless handed the
+  offsets of the `*` of real boneyard delimiters (`literalStars`), which the codec takes from the
+  boneyard spans only: on decode from the whole source text, on encode from the layout. Those
+  stars are plain text, never emphasis, never escaped; a `/*` with no closing `*/` is no span.
+  A `[[` preceded by an odd number of backslashes is escaped, printed text and no note, for the
+  parser and the spell checker alike; the parser drops the backslash, so the node marks the `[`
+  with `ocptFountainEscapedAttribution` and the spans are looked for in a copy of its text where
+  that character is blanked.
+  A derived pass, run with the others inside the settle pass (so with no undo step of its own),
+  puts `ocptFountainCommentAttribution` on every commented span, across nodes too; the stylesheet
+  dims it like a note. `decode` puts the same attributions itself, so a decoded document is
+  already settled: the editor's first history snapshot carries them, and no pass has a request to
+  make on it, which is what keeps Ctrl+Z, then redo, working on a freshly opened text. The
+  document is laid out as lines of plain text once per settle (`OcptWysiwygCodec.layoutOf`, an
+  `OcptWysiwygDocumentLayout` handed to each pass, laid out again only after a pass that changed
+  a text); `OcptWysiwygCommentLayout.of` also answers the last layout again to the builds.
+  A line whose marker cannot be stripped and written back exactly (a marker preceded by a note or
+  a boneyard, a page break or a centered text in any form but its canonical one) is kept as
+  written, its text the whole source line and its type the parser's; `encode` writes it back as it
+  is. `encode` gives an inert node the type and the following line the parser reads (the layout's
+  classification lines), so a forcing marker is never added around a multi-line comment.
   `ocpt_fountain_keyboard_actions.dart` handles Tab/Shift+Tab (cycles 6 common types, locks the
   block) and Enter (splits into the type's usual screenplay successor, unlocked; Shift+Enter
   keeps the same type). Whichever gesture sets a block to `parenthetical` opens it on `()` with the
@@ -176,7 +213,9 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   title-page field or a page break, and wherever the selection touches an existing note, since notes
   never nest. Remove note appears when the caret, or the whole selection, lies inside one `[[...]]`
   range and deletes it whole, brackets and content, and the one space it would leave doubled or
-  dangling, with no confirmation: each command is one `Editor.execute`, hence one undo step. The
+  dangling, with no confirmation. A note running over several blocks goes the same way: the blocks
+  it covers are dropped, and what stood before it in its first block joins what stood after it in
+  its last. Each command is one `Editor.execute`, hence one undo step. The
   list of assignable types lives once, as `ocptAssignableFountainLineTypes`
   (`lib/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart`). An entry with nothing to act on is
   **withheld, not disabled** (a null callback), which is what hides Cut/Copy over a collapsed caret.
@@ -396,7 +435,8 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   invented on purpose and the six fields existing only under page simulation, so the squiggles
   would otherwise appear and disappear with a display toggle. `ocptLineTypeOfBlock` expresses the
   same rule over `FountainDocument.blocks` rather than restating it, and
-  `ocptSpellCheckSkipSpansIn` drops the tokens sitting inside an inline note or boneyard comment.
+  `ocptSpellCheckSkipSpansIn` drops the tokens sitting inside an inline note or boneyard comment,
+  reading the spans from `fountain_kit`'s `FountainCommentSpans`, the rule the parser uses too.
   The remaining two rules are the tokenizer's own (`SpellTokenizerOptions`, on by default): a token
   in all capitals is skipped (a shouted word, the convention that introduces a silent character)
   and so is one holding a digit.

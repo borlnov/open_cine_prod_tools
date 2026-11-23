@@ -66,6 +66,16 @@ Smells like Sunday.
 classification, block building), which keeps the door open for a future
 incremental re-parse of just a changed region of a document.
 
+The commented spans (boneyards and notes) are read through one public rule,
+`FountainCommentSpans`, which the parser uses and so can any caller. The
+line classifier ignores the inline notes of a line, which are annotations
+never printed: `[[x]]INT. HOUSE - DAY` is a scene heading, and the builders locate a
+marker the same way (`[[x]]# Act` is a section). A `FountainCharacter` keeps its
+source line (`rawText`), which the serializer writes back with its notes.
+The inline parser and serializer take, optionally, the offsets of the `*` of boneyard delimiters
+to keep as plain text, never emphasis (`literalStars`). A `[[` preceded by an odd number of
+backslashes is escaped: printed text, no note.
+
 ## Pagination and source provenance
 
 `FountainScriptComposer.compose` lays a parsed document out into printed
