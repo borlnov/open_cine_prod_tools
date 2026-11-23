@@ -48,36 +48,36 @@ class OcptEditorZoomArea extends StatelessWidget {
   });
 
   /// Build the zoom area as a [LayoutBuilder].
+  ///
+  /// The page is always built behind the same layout builder, whatever the zoom is: switching
+  /// between a step and the "fit to width" mode must not change the shape of the tree, or the page
+  /// below would be remounted, losing its scroll position, caret, focus and history.
   @override
-  Widget build(BuildContext context) {
-    if (!isZoomAvailable) {
-      return builder(1, null);
-    }
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (!isZoomAvailable) {
+        return builder(1, null);
+      }
 
-    // Only the "fit to width" mode needs the width: a step leaves the page where it is in the
-    // tree, rather than behind a layout builder.
-    if (!zoom.isFitToWidth) {
-      return builder(zoom.step, onZoomStepRequested);
-    }
+      if (!zoom.isFitToWidth) {
+        return builder(zoom.step, onZoomStepRequested);
+      }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final metrics = pageSetup.toMetrics();
-        final firstFactor = OcptPageZoom.fitFactorFor(
-          availableWidth: constraints.maxWidth,
-          pageWidthAtActualSize: OcptEditorPreviewLayout(metrics: metrics).pageWidth,
-        );
-        // A glyph is measured at the font size it is typeset at, which isn't exactly linear in
-        // the zoom: one correction lands the sheet on the width the area has.
-        final firstWidth = OcptEditorPreviewLayout(metrics: metrics, zoom: firstFactor).pageWidth;
-        final factor = (firstFactor * (constraints.maxWidth - 32) / firstWidth).clamp(
-          OcptPageZoom.minFactor,
-          OcptPageZoom.maxFactor,
-        );
-        WidgetsBinding.instance.addPostFrameCallback((_) => onFitFactorMeasured(factor));
+      final metrics = pageSetup.toMetrics();
+      final firstFactor = OcptPageZoom.fitFactorFor(
+        availableWidth: constraints.maxWidth,
+        pageWidthAtActualSize: OcptEditorPreviewLayout(metrics: metrics).pageWidth,
+      );
+      // A glyph is measured at the font size it is typeset at, which isn't exactly linear in the
+      // zoom: one correction lands the sheet on the width the area has.
+      final firstWidth = OcptEditorPreviewLayout(metrics: metrics, zoom: firstFactor).pageWidth;
+      final factor = (firstFactor * (constraints.maxWidth - 32) / firstWidth).clamp(
+        OcptPageZoom.minFactor,
+        OcptPageZoom.maxFactor,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) => onFitFactorMeasured(factor));
 
-        return builder(factor, onZoomStepRequested);
-      },
-    );
-  }
+      return builder(factor, onZoomStepRequested);
+    },
+  );
 }

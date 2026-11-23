@@ -34,9 +34,13 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
   /// The editor, already stripped of its implicit scrollbar.
   final Widget editor;
 
-  /// The controller of the horizontal scroll a page wider than the area gets, or null to scale the
-  /// page down to fit the area instead (see `OcptStyledScaledToFit`).
-  final ScrollController? horizontalScrollController;
+  /// The controller of the horizontal scroll a page wider than the area gets (see
+  /// `OcptStyledScaledToFit`).
+  final ScrollController horizontalScrollController;
+
+  /// Whether the page is zoomed in, and so scrolls sideways instead of being scaled down to fit a
+  /// narrower area.
+  final bool scrollsSideways;
 
   /// Create an [OcptStyledPageSimulationSurface].
   const OcptStyledPageSimulationSurface({
@@ -47,7 +51,8 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
     required this.pageCount,
     required this.titlePageSheetCount,
     required this.editor,
-    this.horizontalScrollController,
+    required this.horizontalScrollController,
+    required this.scrollsSideways,
   });
 
   /// Build the styled page simulation surface as a [Scrollbar].
@@ -88,6 +93,7 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
             constraints: constraints,
             pageWidth: layout.pageWidth,
             horizontalScrollController: horizontalScrollController,
+            scrollsSideways: scrollsSideways,
             page: Stack(
               children: [
                 Positioned.fill(

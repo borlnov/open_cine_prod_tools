@@ -300,13 +300,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// position.
   final ScrollController _pageScrollController = ScrollController();
 
-  /// The controller of the horizontal scroll a zoomed-in page wider than the area gets.
-  final ScrollController _horizontalScrollController = ScrollController();
-
-  /// The keeper of the point the zoom was made around.
+  /// The zoom's scrolling: the point it is made around, and the caret kept in view sideways.
   late final OcptStyledZoomAnchor _zoomAnchor = OcptStyledZoomAnchor(
     vertical: _pageScrollController,
-    horizontal: _horizontalScrollController,
+    layoutKey: _documentLayoutKey,
+    selectionOf: () => _composer.selection,
   );
 
   /// The page simulation bookkeeping: the page count, the title page's share of it and the bottom
@@ -448,7 +446,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         metrics: widget.pageSetup.toMetrics(),
         oldZoom: oldWidget.zoom,
         newZoom: widget.zoom,
-        isCentred: widget.isPageSimulationEnabled,
+        hasSheets: widget.isPageSimulationEnabled,
       );
     }
 
@@ -578,8 +576,6 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         child: editor,
       ),
     );
-    // Only a page zoomed in scrolls sideways; the others are scaled down to fit.
-    final horizontalScroller = widget.zoom > 1 ? _horizontalScrollController : null;
 
     final content = !widget.isPageSimulationEnabled
         ? OcptStyledFluidSurface(
@@ -587,7 +583,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             usePaperColors: usePaperColors,
             scrollController: _pageScrollController,
             editor: editorWithoutImplicitScrollbar,
-            horizontalScrollController: horizontalScroller,
+            horizontalScrollController: _zoomAnchor.horizontal,
+            scrollsSideways: widget.zoom > 1,
             minContentWidth: OcptStyledZoomAnchor.fluidContentWidthOf(layout),
           )
         : OcptStyledPageSimulationSurface(
@@ -597,7 +594,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             pageCount: _pageSimulation.pageCount,
             titlePageSheetCount: _pageSimulation.titlePageSheetCount,
             editor: editorWithoutImplicitScrollbar,
-            horizontalScrollController: horizontalScroller,
+            horizontalScrollController: _zoomAnchor.horizontal,
+            scrollsSideways: widget.zoom > 1,
           );
 
     // Wrapped once here, rather than once per branch above: a right-click anywhere over the
@@ -963,6 +961,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     }
 
     _readState.report();
+    _zoomAnchor.followCaret(context.findRenderObject());
   }
 
   /// Refresh the controller's read side whenever the composer's collapsed-caret style
@@ -993,7 +992,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _disposeEditor();
     _focusNode.dispose();
     _pageScrollController.dispose();
-    _horizontalScrollController.dispose();
+    _zoomAnchor.dispose();
     super.dispose();
   }
 }

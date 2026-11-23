@@ -84,7 +84,11 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
                 Expanded(
                   child: Text(summary, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
-                if (control != null) SizedBox(width: controlSlotWidth, child: control),
+                if (control != null)
+                  SizedBox(
+                    width: controlSlotWidth,
+                    child: Center(child: control),
+                  ),
                 Text(" · ", style: style),
                 trailing,
                 const OcptSyncStatusIndicator(),
