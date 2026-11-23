@@ -4,6 +4,7 @@
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_cue_dual_marker.dart';
 
 /// One run of a word's printed text: the characters themselves and the inline emphasis they carry.
 ///
@@ -51,6 +52,12 @@ List<List<OcptFountainDisplayRun>> ocptFountainWordDisplayRuns(OcptScriptWordBlo
   ];
 }
 
+/// Tell whether [block] is a character cue closed by the dual-dialogue `^`, which
+/// [ocptFountainWordDisplayRuns] never shows: a sheet that does not set the cue's speech beside
+/// another paints a dimmed `^` of its own after the name, so the marker is not lost.
+bool ocptFountainCueHasDualMarker(OcptScriptWordBlock block) =>
+    block.type == FountainLineType.character && ocptCueDualMarkerIndexOf(block.text) != null;
+
 /// Resolve [line]'s inline emphasis, marking each character's [styles] entry and hiding the
 /// emphasis markers themselves in [isVisible].
 ///
@@ -93,7 +100,8 @@ void _applyInlineSpans({
 }
 
 /// Hide the markers a whole line carries rather than a run inside it: the forcing character of a
-/// forced line, the closing `<` of centered text, and a scene heading's trailing `#N#`.
+/// forced line, the closing `<` of centered text, a cue's closing `^`, and a scene heading's
+/// trailing `#N#`.
 ///
 /// A forcing character is only ever hidden where its line type says one may sit, so an action line
 /// legitimately starting with `!` after being forced reads as printed while a dialogue line
@@ -131,6 +139,13 @@ void _hideLineMarkers({
       if (type != FountainLineType.section) {
         break;
       }
+    }
+  }
+
+  if (type == FountainLineType.character) {
+    final markerIndex = ocptCueDualMarkerIndexOf(line);
+    if (markerIndex != null) {
+      isVisible[markerIndex] = false;
     }
   }
 

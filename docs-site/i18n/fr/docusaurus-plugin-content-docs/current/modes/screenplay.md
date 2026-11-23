@@ -63,6 +63,25 @@ Quelques gestes utiles dans l'éditeur stylé :
 - Le copier-coller interne conserve les types de blocs ; un texte venu de l'extérieur est
   analysé et réparti dans les bons éléments.
 
+## Le double dialogue
+
+Deux personnages qui parlent en même temps s'écrivent en **double dialogue** : le nom du second
+personnage se termine par `^` (par exemple `KIM ^`), et les deux répliques s'impriment **côte à
+côte**, une colonne chacune, sur la page de l'aperçu, du PDF et des feuilles des autres modes. Une
+paire n'est jamais coupée par un saut de page : si elle ne tient pas, elle passe entière à la page
+suivante. Un `^` sans réplique juste avant pour s'y apparier s'imprime comme un dialogue ordinaire,
+et une note ou toute autre ligne entre les deux répliques casse la paire.
+
+Dans l'éditeur stylé, vous ne tapez pas le `^` : placez le curseur dans la seconde réplique et
+choisissez **Double dialogue** dans le menu du clic droit, dans les contrôles de mise en forme de
+la barre d'outils (ou leur menu **⋮**), ou appuyez sur **Ctrl+Alt+D** (**Cmd+Alt+D** sous macOS).
+L'entrée est cochée tant que la réplique fait partie d'une paire, et la choisir de nouveau défait
+l'appariement. Elle n'apparaît que si une autre réplique jouxte celle où vous êtes. L'éditeur stylé
+garde les deux répliques **l'une sous l'autre**, et une **accolade dans la marge gauche** montre
+qu'elles forment une paire ; un `^` qui ne s'apparie à rien s'affiche estompé après le nom du
+personnage. Taper un `^` à la fin d'un nom fonctionne aussi, et le texte Fountain brut le montre
+tel qu'il est écrit.
+
 ## Le panneau des séquences (à gauche)
 
 Un panneau redimensionnable liste vos séquences pour naviguer et sauter de l'une à l'autre.

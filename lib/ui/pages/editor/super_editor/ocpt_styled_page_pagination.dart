@@ -241,29 +241,9 @@ OcptStyledPagination computeOcptStyledPagination({
 /// Get the number of lines [node] (classified as [type]) is estimated to wrap its own text to, not
 /// counting its `ocptBlankLinesBefore` metadata (see [_blankLinesBeforeOf] for that half).
 int _wrappedLineCountOf(ParagraphNode node, FountainLineType type, FountainLayoutMetrics metrics) {
-  final element = _elementLayoutOf(type, metrics);
+  final element = metrics.elementOf(type);
   return OcptEditorPreviewLayout.wrappedLineCount(node.text.toPlainText(), element.maxWidthColumns);
 }
-
-/// Get the layout box [type] is set in, mirroring `OcptFountainEditorStylesheet`'s own element
-/// choice
-/// per type (in particular lyrics sharing the dialogue box, and every non-printing/scaffolding
-/// type using the full-width action box).
-FountainElementLayout _elementLayoutOf(FountainLineType type, FountainLayoutMetrics metrics) =>
-    switch (type) {
-      FountainLineType.sceneHeading => metrics.sceneHeading,
-      FountainLineType.character => metrics.character,
-      FountainLineType.parenthetical => metrics.parenthetical,
-      FountainLineType.dialogue => metrics.dialogue,
-      FountainLineType.lyrics => metrics.dialogue,
-      FountainLineType.transition => metrics.transition,
-      FountainLineType.centeredText => metrics.centeredText,
-      FountainLineType.pageBreak => metrics.centeredText,
-      FountainLineType.section ||
-      FountainLineType.synopsis ||
-      FountainLineType.action ||
-      FountainLineType.blank => metrics.action,
-    };
 
 /// Read [node]'s `ocptBlankLinesBefore` metadata, capped at [ocptMaxBlankLinesBeforeSpacing] to
 /// match the extra spacing `OcptFountainEditorStylesheet` actually renders for it.

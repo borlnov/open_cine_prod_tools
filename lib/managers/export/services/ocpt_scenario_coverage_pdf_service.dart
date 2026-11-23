@@ -232,7 +232,10 @@ class OcptScenarioCoveragePdfService extends AbsOcptService {
     for (final gap in coveragePage.gaps)
       if (gap.row < page.lines.length)
         pw.Positioned(
-          left: painter.columnLeftPt(line: page.lines[gap.row], column: gap.startColumn),
+          left: painter.columnLeftPt(
+            line: _cellOf(page.lines[gap.row], gap.side),
+            column: gap.startColumn,
+          ),
           top: painter.rowTopPt(gap.row),
           child: pw.Container(
             width: (gap.endColumn - gap.startColumn) * painter.columnWidthPt,
@@ -331,7 +334,12 @@ class OcptScenarioCoveragePdfService extends AbsOcptService {
           ),
         for (final tick in [segment.startTick, segment.endTick])
           if (tick != null && tick.row < page.lines.length)
-            _tickWidget(tick: tick, line: page.lines[tick.row], painter: painter, color: color),
+            _tickWidget(
+              tick: tick,
+              line: _cellOf(page.lines[tick.row], tick.side),
+              painter: painter,
+              color: color,
+            ),
       ],
       label: _labelWidget(
         segment: segment,
@@ -424,6 +432,11 @@ class OcptScenarioCoveragePdfService extends AbsOcptService {
       child: pw.Container(width: widthPt, height: _barCapThicknessPt, color: color),
     );
   }
+
+  /// Get the cell of [row] a mark of the column [side] belongs to: that column's cell of a
+  /// dual-dialogue row, or [row] itself when [side] is null or the row has no cell there.
+  FountainScriptLine _cellOf(FountainScriptLine row, FountainDualDialogueSide? side) =>
+      side == null ? row : row.cellOf(side) ?? row;
 
   /// Build the short vertical stroke marking, inside the text itself, the exact character a covered
   /// passage starts or ends at when that boundary falls mid-line.

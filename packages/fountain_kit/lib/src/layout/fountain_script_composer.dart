@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:fountain_kit/src/layout/fountain_dual_dialogue_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_dual_dialogue_pairs.dart';
 import 'package:fountain_kit/src/layout/fountain_element_layout.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
@@ -66,9 +68,22 @@ class FountainScriptComposer {
     final blocks = _printableBlocks(document);
     final builder = _PageBuilder(metrics);
     final anchors = _SourceAnchors(document.sourceText);
+    final pairs = {
+      for (final pair in fountainPrintableDualDialoguePairs(document.blocks)) pair.left: pair.right,
+    };
+    final rightMembers = pairs.values.toSet();
 
     for (var index = 0; index < blocks.length; index++) {
+      if (rightMembers.contains(index)) {
+        continue;
+      }
       final block = blocks[index];
+      final rightIndex = pairs[index];
+      if (block is FountainDialogueGroup && rightIndex != null) {
+        final right = blocks[rightIndex] as FountainDialogueGroup;
+        _placeDualDialogue(builder, block, right, metrics, anchors);
+        continue;
+      }
       switch (block) {
         case FountainPageBreak():
           builder.forcePageBreak();
@@ -91,6 +106,42 @@ class FountainScriptComposer {
     }
 
     return builder.finish();
+  }
+
+  /// Place the dual-dialogue pair of [left] and [right], side by side when the page has columns
+  /// for it and stacked, as two ordinary dialogue groups, when it has none.
+  static void _placeDualDialogue(
+    _PageBuilder builder,
+    FountainDialogueGroup left,
+    FountainDialogueGroup right,
+    FountainLayoutMetrics metrics,
+    _SourceAnchors anchors,
+  ) {
+    List<FountainScriptLine> columnOf(FountainDialogueGroup group, FountainDualDialogueSide side) =>
+        [
+          ..._characterCueLines(group.character, metrics, anchors, side: side),
+          ..._dialogueChildLines(group.children, metrics, anchors, side: side),
+        ];
+
+    void placeStacked() {
+      for (final group in [left, right]) {
+        builder.placeDialogueGroup(
+          character: group.character,
+          cueLines: _characterCueLines(group.character, metrics, anchors),
+          childLines: _dialogueChildLines(group.children, metrics, anchors),
+        );
+      }
+    }
+
+    if (metrics.dualDialogue == null) {
+      placeStacked();
+      return;
+    }
+    builder.placeDualDialogue(
+      leftLines: columnOf(left, FountainDualDialogueSide.left),
+      rightLines: columnOf(right, FountainDualDialogueSide.right),
+      placeStacked: placeStacked,
+    );
   }
 
   /// Return the blocks of [document] that are part of the printed
@@ -135,33 +186,37 @@ class FountainScriptComposer {
   /// Wrap [character]'s cue text (name plus its parenthetical extension,
   /// if any) into the wrapped lines of a [FountainLineType.character]
   /// element, upper-cased per [FountainPrintStyle.of]'s print-time rule for
-  /// [FountainLineType.character].
+  /// [FountainLineType.character]. A [side] sets the cue in that column of a dual-dialogue pair.
   static List<FountainScriptLine> _characterCueLines(
     FountainCharacter character,
     FountainLayoutMetrics metrics,
-    _SourceAnchors anchors,
-  ) {
+    _SourceAnchors anchors, {
+    FountainDualDialogueSide? side,
+  }) {
     final text = character.extension == null
         ? character.name
         : '${character.name} (${character.extension})';
     final printed = _printed(text, FountainLineType.character);
     return _wrapToLines(
       printed,
-      metrics.character,
+      metrics.elementOf(FountainLineType.character, side: side),
       FountainLineType.character,
       anchors.ofBlock(character, printed),
+      dualSide: side,
     );
   }
 
   /// Wrap a dialogue group's children (parentheticals and dialogue lines,
   /// in source order) into a flat list of lines, each tagged with its own
   /// element type. A parenthetical's text is wrapped with its enclosing
-  /// parentheses included, exactly as it is printed.
+  /// parentheses included, exactly as it is printed. A [side] sets them in that column of a
+  /// dual-dialogue pair.
   static List<FountainScriptLine> _dialogueChildLines(
     List<FountainBlock> children,
     FountainLayoutMetrics metrics,
-    _SourceAnchors anchors,
-  ) {
+    _SourceAnchors anchors, {
+    FountainDualDialogueSide? side,
+  }) {
     final result = <FountainScriptLine>[];
     for (final child in children) {
       switch (child) {
@@ -170,18 +225,20 @@ class FountainScriptComposer {
           result.addAll(
             _wrapToLines(
               printed,
-              metrics.parenthetical,
+              metrics.elementOf(FountainLineType.parenthetical, side: side),
               FountainLineType.parenthetical,
               anchors.ofBlock(child, printed),
+              dualSide: side,
             ),
           );
         case FountainDialogueLine(:final text):
           result.addAll(
             _wrapToLines(
               text,
-              metrics.dialogue,
+              metrics.elementOf(FountainLineType.dialogue, side: side),
               FountainLineType.dialogue,
               anchors.ofBlock(child, text),
+              dualSide: side,
             ),
           );
         default:
@@ -269,6 +326,7 @@ class FountainScriptComposer {
     _SourceAnchor? anchor, {
     bool isSceneHeading = false,
     String? sceneNumber,
+    FountainDualDialogueSide? dualSide,
   }) => [
     for (final runs in _wrapStyledRuns(text, layout.maxWidthColumns, anchor))
       FountainScriptLine(
@@ -278,6 +336,7 @@ class FountainScriptComposer {
         alignment: layout.alignment,
         isSceneHeading: isSceneHeading,
         sceneNumber: sceneNumber,
+        dualSide: dualSide,
       ),
   ];
 
@@ -717,6 +776,40 @@ class _PageBuilder {
     }
   }
 
+  /// Place a dual-dialogue pair whose columns are [leftLines] and [rightLines], one printed row
+  /// holding a line of each.
+  ///
+  /// The pair is never cut by a page break: it takes `max` of the two columns' lines in rows, and
+  /// goes on the current page when those rows and the spacer fit there, else opens the next page
+  /// with no spacer. A pair taller than a whole page cannot be moved to fit, so it is set by
+  /// [placeStacked] instead, which splits it as two ordinary dialogue groups.
+  void placeDualDialogue({
+    required List<FountainScriptLine> leftLines,
+    required List<FountainScriptLine> rightLines,
+    required void Function() placeStacked,
+  }) {
+    final height = leftLines.length > rightLines.length ? leftLines.length : rightLines.length;
+    if (height > _metrics.linesPerPage) {
+      placeStacked();
+      return;
+    }
+    if (_current.isNotEmpty) {
+      if (1 + height <= _capacity) {
+        _current.add(_spacerLine());
+      } else {
+        _moveToNextPage(height);
+      }
+    }
+    for (var row = 0; row < height; row++) {
+      final companion = row < rightLines.length ? rightLines[row] : null;
+      _current.add(
+        row < leftLines.length
+            ? _withCompanion(leftLines[row], companion)
+            : _blankLeftCell(companion),
+      );
+    }
+  }
+
   /// Close the page still being filled, if any, and return the finished
   /// [FountainScriptLayout].
   FountainScriptLayout finish() {
@@ -731,6 +824,67 @@ class _PageBuilder {
     _pages.add(FountainScriptPage(lines: List.unmodifiable(_current)));
     _current.clear();
   }
+
+  /// Close the current page to open the next one for a block [height] rows tall.
+  ///
+  /// A scene heading ending the page is carried over with the block, with the spacer that
+  /// follows it, so the heading is never left alone at the foot of a page. It stays put when the
+  /// page holds nothing else or when the heading and the block together would not fit a page.
+  void _moveToNextPage(int height) {
+    var headingStart = _current.length;
+    while (headingStart > 0 && _current[headingStart - 1].isSceneHeading) {
+      headingStart--;
+    }
+    final headingLength = _current.length - headingStart;
+    var keepUntil = headingStart;
+    if (keepUntil > 0 && _isSpacer(_current[keepUntil - 1])) {
+      keepUntil--;
+    }
+    if (headingLength == 0 ||
+        keepUntil == 0 ||
+        headingLength + 1 + height > _metrics.linesPerPage) {
+      _closePage();
+      return;
+    }
+    final carried = _current.sublist(headingStart);
+    _current.removeRange(keepUntil, _current.length);
+    _closePage();
+    _current
+      ..addAll(carried)
+      ..add(_spacerLine());
+  }
+
+  /// Tell whether [line] is a spacer, a blank line holding nothing.
+  static bool _isSpacer(FountainScriptLine line) =>
+      line.lineType == FountainLineType.blank && line.runs.isEmpty && line.dualSide == null;
+
+  /// Get [cell], a left cell, carrying [companion] as the right cell of its row.
+  static FountainScriptLine _withCompanion(
+    FountainScriptLine cell,
+    FountainScriptLine? companion,
+  ) => FountainScriptLine(
+    runs: cell.runs,
+    lineType: cell.lineType,
+    leftIndentInches: cell.leftIndentInches,
+    alignment: cell.alignment,
+    isSceneHeading: cell.isSceneHeading,
+    sceneNumber: cell.sceneNumber,
+    isSynthetic: cell.isSynthetic,
+    dualSide: FountainDualDialogueSide.left,
+    dualCompanion: companion,
+  );
+
+  /// Get the blank left cell of a row whose left column has run out of lines, carrying
+  /// [companion] as its right cell.
+  static FountainScriptLine _blankLeftCell(FountainScriptLine? companion) => FountainScriptLine(
+    runs: const [],
+    lineType: FountainLineType.blank,
+    leftIndentInches: 0,
+    alignment: FountainLayoutAlignment.left,
+    isSceneHeading: false,
+    dualSide: FountainDualDialogueSide.left,
+    dualCompanion: companion,
+  );
 
   /// Get a single blank line inserted between two consecutive top-level blocks
   /// that land on the same page.

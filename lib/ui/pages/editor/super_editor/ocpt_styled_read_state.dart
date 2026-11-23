@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_dual_dialogue.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// Read the caret's block type, the active inline styles and the undo/redo availability off a
@@ -74,6 +75,9 @@ final class OcptStyledReadState {
       },
       canUndo: _canUndoOf(),
       canRedo: _canRedoOf(),
+      isDualDialogueChecked: selection == null
+          ? null
+          : OcptWysiwygDualDialogue.toggleAt(_document, selection.extent.nodeId)?.isChecked,
     );
   }
 

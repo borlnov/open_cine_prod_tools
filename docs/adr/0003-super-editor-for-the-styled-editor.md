@@ -51,6 +51,9 @@ Fountain element to the styled mode. The `ocptBlankLinesBefore`/`ocptTypeLocked`
 keyboard-actions/pagination code understand - it has to stay in sync with `fountain_kit`'s model
 whenever either changes.
 
+The one-node-per-source-line rule also keeps a dual dialogue stacked in the styled editor, with a
+bracket in the margin rather than two columns (ADR 0035).
+
 ## Alternatives considered
 
 - A raw text field with syntax highlighting only: simpler, but it is exactly what the app's raw

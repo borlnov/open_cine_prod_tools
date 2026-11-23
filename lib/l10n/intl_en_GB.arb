@@ -408,6 +408,20 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorDualDialogueAction": "Dual dialogue",
+  "@editorDualDialogueAction": {
+    "description": "Label of the checkable entry pairing the caret's speech with the one next to it, so both are printed side by side, in the styled editor's context menu and format menu",
+    "context": "Displayed in the styled screenplay editor's context menu and in the format menu, inside a dialogue next to another one",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorDualDialogueTooltip": "Dual dialogue (Ctrl+Alt+D)",
+  "@editorDualDialogueTooltip": {
+    "description": "Tooltip of the toolbar toggle pairing the caret's speech with the one next to it, so both are printed side by side",
+    "context": "Displayed on hover over the dual dialogue toggle of the editor toolbar, in styled mode",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorFormatMenuTooltip": "Format",
   "@editorFormatMenuTooltip": {
     "description": "Tooltip of the compact-width toolbar's format menu, folding the block-type choice and the bold/italic/underline toggles behind a single ⋮ button",

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:fountain_kit/src/layout/fountain_dual_dialogue_layout.dart';
 import 'package:fountain_kit/src/layout/fountain_element_layout.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
@@ -67,6 +68,32 @@ class FountainScriptLine extends Equatable {
   /// synthetic line renders text that the source never contained.
   final bool isSynthetic;
 
+  /// The column of a dual-dialogue pair this cell is set in, or `null` for a line that is not
+  /// part of a pair.
+  ///
+  /// A pair prints as rows shared by its two columns, and the page holds one [FountainScriptLine]
+  /// per printed row: that row is the left cell, which carries the right one in
+  /// [dualCompanion]. A cell holding the right column is never a row of the page by itself.
+  final FountainDualDialogueSide? dualSide;
+
+  /// The right cell sharing this row with this left cell, or `null` when this line is not a left
+  /// cell or when the right column has run out of lines on this row.
+  ///
+  /// A companion has [dualSide] set to [FountainDualDialogueSide.right] and no companion of its
+  /// own, which [cells] checks.
+  final FountainScriptLine? dualCompanion;
+
+  /// Get the cells of this row: this line alone, or this line then its [dualCompanion].
+  List<FountainScriptLine> get cells {
+    final companion = dualCompanion;
+    assert(
+      companion == null ||
+          (companion.dualSide == FountainDualDialogueSide.right && companion.dualCompanion == null),
+      'A companion is a right cell with no companion of its own.',
+    );
+    return companion == null ? [this] : [this, companion];
+  }
+
   /// Get this line's text with its inline styling discarded, i.e. the
   /// concatenation of every run's [FountainStyledRun.text] in order.
   String get plainText => runs.map((run) => run.text).join();
@@ -76,9 +103,9 @@ class FountainScriptLine extends Equatable {
   /// a synthetic line, or a line the composer could not anchor in the
   /// document's source text (see [FountainScriptComposer.compose]).
   ///
-  /// It is the union of this line's runs' own
-  /// [FountainStyledRun.sourceRange]s. Since no run's range covers its own
-  /// emphasis markers, a marker *between* two runs of a line is part of that
+  /// It is the union of this line's runs' own [FountainStyledRun.sourceRange]s, so the range of
+  /// this cell alone and never the union with its [dualCompanion]'s. Since no run's range covers
+  /// its own emphasis markers, a marker *between* two runs of a line is part of that
   /// line's range while one sitting at either end of it is not — nothing on
   /// the line renders it. Consecutive printed lines of one wrapped paragraph
   /// have adjacent, non-overlapping ranges: the space a line breaks at
@@ -105,7 +132,21 @@ class FountainScriptLine extends Equatable {
     required this.isSceneHeading,
     this.sceneNumber,
     this.isSynthetic = false,
+    this.dualSide,
+    this.dualCompanion,
   });
+
+  /// Get the cell of this row set on [side], or `null` when the row has none there.
+  ///
+  /// A line that is part of no pair answers itself for no side at all.
+  FountainScriptLine? cellOf(FountainDualDialogueSide side) {
+    for (final cell in cells) {
+      if (cell.dualSide == side) {
+        return cell;
+      }
+    }
+    return null;
+  }
 
   /// Describe this [FountainScriptLine] for debugging and logging.
   @override
@@ -123,5 +164,7 @@ class FountainScriptLine extends Equatable {
     isSceneHeading,
     sceneNumber,
     isSynthetic,
+    dualSide,
+    dualCompanion,
   ];
 }

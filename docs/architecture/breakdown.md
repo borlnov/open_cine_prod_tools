@@ -197,3 +197,15 @@ progress per scene, and the two documents it prints.
     is the mode's own: a selection, a right dock tab change, a word click that closes a range, a
     tag write and every export flush first; switching between the script and the recap, toggling a
     dock and the legend do not.
+
+## Dual dialogue in the script view
+
+`OcptScriptWordLayout` pairs the groups of a scene's lines with the shared rule of `fountain_kit`
+(`fountainDualDialogueLinePairs`) and gives each `OcptScriptWordBlock` a `dualSide`. The script view
+sets a pair side by side through `OcptDualDialoguePair` (`lib/ui/widgets/`), two columns laid over
+one another so the pair is as tall as the taller one and a click reaches the word under the pointer
+in either; each column keeps the indents of `FountainLayoutMetrics.elementOf(type, side: ...)`. A
+selection and a tag stay offsets into the source, so a range running from the left speech into the
+right one reads in source order and highlights two zones. The trailing `^` of a cue is not a word,
+is hidden when the pair is side by side and painted dimmed otherwise (an orphan, or the stacked
+phone sheet). The reason for the whole feature is in ADR 0035.

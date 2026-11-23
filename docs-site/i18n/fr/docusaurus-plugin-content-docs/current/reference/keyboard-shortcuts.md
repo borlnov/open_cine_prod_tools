@@ -17,6 +17,7 @@ au clavier.
 | **Tab** / **Maj+Tab** | Faire défiler le type du bloc courant, et le verrouiller |
 | **Entrée** | Nouveau bloc, dans le type qui suit normalement |
 | **Maj+Entrée** | Nouveau bloc, en gardant le même type |
+| **Ctrl+Alt+D** | Apparier la réplique à sa voisine en double dialogue, ou défaire la paire |
 
 Les gestes d'édition habituels — **Ctrl+C**, **Ctrl+X**, **Ctrl+V**, **Ctrl+Z** — fonctionnent
 comme partout. Le copier-coller interne conserve les types de blocs.

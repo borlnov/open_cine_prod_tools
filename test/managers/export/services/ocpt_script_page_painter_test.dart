@@ -101,4 +101,77 @@ void main() {
       );
     });
   });
+
+  group("dual dialogue", () {
+    const source =
+        "INT. HOUSE - DAY\n\n"
+        "ROSS\nShort.\n\n"
+        "KIM ^\nA much longer reply that has to wrap onto several rows of its own column.\n";
+
+    /// The rows of [source] that are part of a pair.
+    List<FountainScriptLine> pairRows() {
+      final layout = composer.compose(document: parser.parse(source), metrics: metrics);
+      return [
+        for (final page in layout.pages)
+          for (final line in page.lines)
+            if (line.dualSide != null) line,
+      ];
+    }
+
+    test("a column's box is as wide as the columns its cell was wrapped to", () {
+      final dualMetrics = metrics.dualDialogue!;
+      final rows = pairRows();
+      final left = rows.first;
+      final right = rows.first.dualCompanion!;
+
+      expect(
+        painter.lineBoxWidthPt(left.lineType, side: left.dualSide),
+        dualMetrics.elementOf(FountainDualDialogueSide.left, left.lineType)!.maxWidthColumns *
+            painter.columnWidthPt,
+      );
+      expect(
+        painter.lineBoxWidthPt(right.lineType, side: right.dualSide),
+        dualMetrics.elementOf(FountainDualDialogueSide.right, right.lineType)!.maxWidthColumns *
+            painter.columnWidthPt,
+      );
+      expect(
+        painter.lineBoxWidthPt(left.lineType, side: left.dualSide),
+        lessThan(painter.lineBoxWidthPt(left.lineType)),
+      );
+    });
+
+    test("the right cell starts further right than the left one, at its own indent", () {
+      final row = pairRows().first;
+      final right = row.dualCompanion!;
+
+      expect(
+        painter.columnLeftPt(line: right, column: 0),
+        closeTo(right.leftIndentInches * ocptPdfPointsPerInch, 0.001),
+      );
+      expect(
+        painter.columnLeftPt(line: right, column: 0),
+        greaterThan(painter.columnLeftPt(line: row, column: 0)),
+      );
+    });
+
+    test("a row whose left column is exhausted carries a blank left cell", () {
+      final blank = pairRows().firstWhere((row) => row.runs.isEmpty);
+
+      expect(blank.dualCompanion, isNotNull);
+      expect(blank.dualCompanion!.runs, isNotEmpty);
+    });
+
+    test("a page holding a pair builds, blank left cell included", () {
+      final layout = composer.compose(document: parser.parse(source), metrics: metrics);
+
+      expect(
+        () => painter.buildScriptPage(
+          page: layout.pages.first,
+          pageNumber: 1,
+          includeSceneNumbers: false,
+        ),
+        returnsNormally,
+      );
+    });
+  });
 }

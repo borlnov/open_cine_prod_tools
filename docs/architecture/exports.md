@@ -188,6 +188,16 @@ sit.
   and answers a third outcome, `OcptExportFailed`, before any save dialog opens, which each mode's
   bloc words with its own failed-export notice, where a null stays a silent cancellation.
 
+- **Dual dialogue** is set side by side by the painter and the coverage alike (ADR 0035):
+  `OcptScriptPagePainter` draws every cell of a row (`FountainScriptLine.cells`) at the box of its
+  column (`FountainLayoutMetrics.elementOf(type, side: ...)`), and a row whose left cell is empty
+  because the right column is longer still carries the right cell. `OcptScenarioCoverageLayout`
+  resolves a range per **cell**: it emits one printed row per cell, the left cells of a run of
+  dual rows in source order and then the right ones, takes the minimum and maximum row of a range
+  so one running from the left column into the right still reads as one band, and gives
+  `OcptCoverageTick` and `OcptCoverageGap` the side of their cell so the PDF puts the mark in the
+  right column. A range spanning both columns draws its bar over their whole height, and its
+  start tick may then not sit on the bar's first row, which is accepted.
 - Scenario coverage export: the screenplay printed as usual, with a coloured bar in the margin
   alongside every passage a shot covers. `OcptScenarioCoverageLayout.of(...)`
   (`lib/models/ocpt_scenario_coverage_layout.dart`, pure Dart, no `pdf` and no Flutter) holds every

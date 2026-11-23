@@ -105,6 +105,7 @@ void main() {
     /// Every derived pass of the live editor, run on [document]: none may have anything to do.
     void expectSettled(Document document, String reason, {bool isUppercaseChecked = true}) {
       expect(OcptWysiwygCodec.sceneNumberRequests(document), isEmpty, reason: reason);
+      expect(OcptWysiwygDualDialogue.requests(document), isEmpty, reason: reason);
       expect(OcptWysiwygCodec.reclassifyRequests(document), isEmpty, reason: reason);
       expect(OcptWysiwygCodec.noteAttributionRequests(document), isEmpty, reason: reason);
       expect(OcptWysiwygCodec.commentAttributionRequests(document), isEmpty, reason: reason);

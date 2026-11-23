@@ -31,6 +31,10 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   /// The block to render.
   final FountainBlock block;
 
+  /// The right member of the dual-dialogue pair [block] is the left member of, or null when
+  /// [block] is rendered on its own.
+  final FountainDialogueGroup? pairedWith;
+
   /// The pixel layout the block is typeset with.
   final OcptEditorPreviewLayout layout;
 
@@ -66,7 +70,12 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   };
 
   /// Class constructor
-  const OcptEditorPreviewBlock({super.key, required this.block, required this.layout});
+  const OcptEditorPreviewBlock({
+    super.key,
+    required this.block,
+    required this.layout,
+    this.pairedWith,
+  });
 
   /// Build the editor preview block as a [Padding].
   @override
@@ -92,6 +101,20 @@ class OcptEditorPreviewBlock extends StatelessWidget {
         block: this,
         element: layout.metrics.action,
         child: _OcptPreviewMultilineText(block: this, lines: action.lines, style: _baseStyle),
+      ),
+      final FountainDialogueGroup dialogue when pairedWith != null => Stack(
+        children: [
+          _OcptPreviewDialogueGroup(
+            block: this,
+            dialogue: dialogue,
+            side: FountainDualDialogueSide.left,
+          ),
+          _OcptPreviewDialogueGroup(
+            block: this,
+            dialogue: pairedWith!,
+            side: FountainDualDialogueSide.right,
+          ),
+        ],
       ),
       final FountainDialogueGroup dialogue => _OcptPreviewDialogueGroup(
         block: this,
@@ -235,8 +258,11 @@ class _OcptPreviewDialogueGroup extends StatelessWidget {
   /// The dialogue group to render.
   final FountainDialogueGroup dialogue;
 
+  /// The column of a dual-dialogue pair the group is set in, or null for an ordinary dialogue.
+  final FountainDualDialogueSide? side;
+
   /// Class constructor
-  const _OcptPreviewDialogueGroup({required this.block, required this.dialogue});
+  const _OcptPreviewDialogueGroup({required this.block, required this.dialogue, this.side});
 
   /// Build the preview dialogue group as a [Column].
   @override
@@ -252,7 +278,7 @@ class _OcptPreviewDialogueGroup extends StatelessWidget {
       children: [
         _OcptPreviewElement(
           block: block,
-          element: layout.metrics.character,
+          element: layout.metrics.elementOf(FountainLineType.character, side: side),
           child: _OcptPreviewStyledText(
             block: block,
             text: OcptEditorPreviewBlock._printed(cueText, FountainLineType.character),
@@ -263,7 +289,7 @@ class _OcptPreviewDialogueGroup extends StatelessWidget {
           switch (child) {
             final FountainParenthetical parenthetical => _OcptPreviewElement(
               block: block,
-              element: layout.metrics.parenthetical,
+              element: layout.metrics.elementOf(FountainLineType.parenthetical, side: side),
               child: _OcptPreviewStyledText(
                 block: block,
                 text: "(${parenthetical.text})",
@@ -272,7 +298,7 @@ class _OcptPreviewDialogueGroup extends StatelessWidget {
             ),
             final FountainDialogueLine line => _OcptPreviewElement(
               block: block,
-              element: layout.metrics.dialogue,
+              element: layout.metrics.elementOf(FountainLineType.dialogue, side: side),
               child: _OcptPreviewStyledText(block: block, text: line.text, style: block._baseStyle),
             ),
             // A dialogue group's children are only ever parentheticals and dialogue lines.

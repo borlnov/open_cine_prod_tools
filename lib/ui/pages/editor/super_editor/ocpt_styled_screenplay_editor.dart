@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller_delegate.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_command.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_dual_dialogue_bracket.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_ime_overrides.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
@@ -23,11 +24,10 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_settle_me
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_document_settle.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_editor_builder.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_fluid_surface.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_editor_surface.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_history.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_jump_handler.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_simulation.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_simulation_surface.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_read_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_number_metadata.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_numbers.dart';
@@ -41,7 +41,6 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_c
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_wheel.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_zoom_wheel_physics.dart';
 import 'package:spell_kit/spell_kit.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -239,6 +238,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   late final OcptStyledHistory _history = OcptStyledHistory(
     editorOf: () => _editor,
     syncSceneNumbers: _syncSceneNumbers,
+    syncBracket: _syncBracket,
     reportReadState: () => _readState.report(),
   );
 
@@ -251,6 +251,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   late final List<SuperEditorKeyboardAction> _keyboardActions = ocptFountainKeyboardActions(
     onUndo: undo,
     onRedo: redo,
+    onToggleDualDialogue: applyToggleDualDialogue,
   );
 
   /// The key bound to the document layout, used to resolve a node's on-screen component when
@@ -290,6 +291,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
   /// The id of the last [OcptEditorJumpRequest] applied, to apply each request exactly once.
   int? _lastAppliedJumpRequestId;
+
+  /// The key of the dual-dialogue pairs the bracket builder was last built for (see
+  /// [OcptDualDialogueBracketComponentBuilder.keyOf]).
+  String _bracketKey = "";
 
   /// The running debounce timer restarted on every document change.
   Timer? _syncTimer;
@@ -525,6 +530,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             metrics: metrics,
             zoom: widget.zoom,
           ),
+        OcptDualDialogueBracketComponentBuilder.build(
+          document: _document,
+          layout: layout,
+          color: onSurface.withValues(alpha: 0.45),
+          scale: widget.isCompact && !widget.isPageSimulationEnabled
+              ? OcptEditorPreviewLayout.compactLayoutScale
+              : 1,
+        ),
         ...defaultComponentBuilders,
       ],
       customStylePhases: [_search.styler, _spellCheck.styler],
@@ -553,56 +566,28 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       ),
     );
 
-    // Material's `ScrollBehavior` would otherwise wrap `SuperEditor`'s internal `Scrollable` in
-    // its own implicit `Scrollbar`, painted at the edge of whichever box happens to contain it —
-    // i.e. on top of the white page in the page-simulation branch below. Suppressing it here and
-    // painting a single explicit `Scrollbar` around the whole panel instead (both branches, so the
-    // behaviour is identical with page simulation on or off) keeps the thumb in the panel's gutter.
-    //
-    // `withNoTextScaling` pins the page's type size to the page's own: `SuperText` otherwise falls
-    // back to `MediaQuery.textScalerOf`, so a desktop font-scaling preference would grow every
-    // glyph without growing the page it is typeset on — the lines would wrap early and grow taller
-    // than the `OcptEditorPreviewLayout` metrics `computeOcptStyledPagination` sized each simulated
-    // sheet with, spilling out under its bottom edge. The raw preview pins it the same way, for the
-    // same reason (see `OcptEditorPreviewBlock`).
-    final scrollBehavior = ScrollConfiguration.of(context);
-    final canZoom = widget.onZoomStepRequested != null;
-    final editorWithoutImplicitScrollbar = MediaQuery.withNoTextScaling(
-      child: ScrollConfiguration(
-        behavior: scrollBehavior.copyWith(
-          scrollbars: false,
-          physics: OcptZoomWheelPhysics.over(context, isEnabled: canZoom),
-        ),
-        child: editor,
-      ),
+    final content = OcptStyledEditorSurface(
+      editor: editor,
+      layout: layout,
+      isPageSimulationEnabled: widget.isPageSimulationEnabled,
+      usePaperColors: usePaperColors,
+      scrollController: _pageScrollController,
+      horizontalScrollController: _zoomAnchor.horizontal,
+      zoom: widget.zoom,
+      pageCount: _pageSimulation.pageCount,
+      titlePageSheetCount: _pageSimulation.titlePageSheetCount,
+      canZoom: widget.onZoomStepRequested != null,
     );
-
-    final content = !widget.isPageSimulationEnabled
-        ? OcptStyledFluidSurface(
-            theme: theme,
-            usePaperColors: usePaperColors,
-            scrollController: _pageScrollController,
-            editor: editorWithoutImplicitScrollbar,
-            horizontalScrollController: _zoomAnchor.horizontal,
-            scrollsSideways: widget.zoom > 1,
-            minContentWidth: OcptStyledZoomAnchor.fluidContentWidthOf(layout),
-          )
-        : OcptStyledPageSimulationSurface(
-            theme: theme,
-            layout: layout,
-            scrollController: _pageScrollController,
-            pageCount: _pageSimulation.pageCount,
-            titlePageSheetCount: _pageSimulation.titlePageSheetCount,
-            editor: editorWithoutImplicitScrollbar,
-            horizontalScrollController: _zoomAnchor.horizontal,
-            scrollsSideways: widget.zoom > 1,
-          );
 
     // Wrapped once here, rather than once per branch above: a right-click anywhere over the
     // document, fluid surface or simulated page alike, opens the same context menu.
     return OcptEditorZoomWheel(
       onZoomStepRequested: _zoomAnchor.wheelCallback(widget.onZoomStepRequested),
-      child: _contextMenu.wrap(child: content, onTypeSelected: applyBlockType),
+      child: _contextMenu.wrap(
+        child: content,
+        onTypeSelected: applyBlockType,
+        onDualDialogueToggled: applyToggleDualDialogue,
+      ),
     );
   }
 
@@ -615,14 +600,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   void redo() => _history.redo();
 
   /// Apply a manual block-type change to the current selection's extent node: bails out silently
-  /// if there is no selection, or its node isn't a `ParagraphNode` (mirroring
-  /// `ocptTabToCycleBlockType`'s own guard), otherwise sets the type and locks the block exactly
-  /// like the Tab-cycle gesture does — plus, when [type] is [FountainLineType.parenthetical] and
-  /// the node's text is still empty, inserts `()` and places the caret between the two parentheses
-  /// (see `ocptParentheticalTemplateRequests`, the same helper the Tab cycle and smart-Enter use,
-  /// so all three gestures behave identically) — then reports the fresh read state and hands focus
-  /// straight back to the editor — the toolbar's dropdown must never keep the keyboard focus it
-  /// briefly took to open.
+  /// if there is no selection, or its node isn't a `ParagraphNode`, otherwise sets the type and
+  /// locks the block like the Tab-cycle gesture does — plus, for an empty
+  /// [FountainLineType.parenthetical], `()` with the caret between them (see
+  /// `ocptParentheticalTemplateRequests`) — then reports the fresh read state and hands focus back
+  /// to the editor, which the toolbar's dropdown must never keep.
   @override
   void applyBlockType(FountainLineType type) {
     final selection = _composer.selection;
@@ -643,6 +625,23 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         isNodeEmpty: node.text.isEmpty,
       ),
     ]);
+    _readState.report();
+    _focusNode.requestFocus();
+  }
+
+  /// Pair the caret's speech with the one next to it, or unpair it when it already is, in one undo
+  /// step (see [OcptWysiwygDualDialogue.toggleAt] for what it marks), then report the fresh read
+  /// state and hand focus back to the editor. Does nothing where the toggle has nothing to act on.
+  @override
+  void applyToggleDualDialogue() {
+    final selection = _composer.selection;
+    final requests = selection == null
+        ? null
+        : OcptWysiwygDualDialogue.toggleRequestsAt(_document, selection.extent.nodeId);
+    if (requests != null) {
+      _editor.execute(requests);
+      _syncBracket();
+    }
     _readState.report();
     _focusNode.requestFocus();
   }
@@ -731,15 +730,12 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// the live [_editor].
   ///
   /// Executing requests against [_editor] from here would be unsafe: [deactivate] (this method's
-  /// only caller) can fire while this exact subtree is itself mid-teardown (a mode toggle or
-  /// route change both remove this widget as part of an ancestor's own rebuild), and executing an
-  /// edit at that point can reach a document-layout component that Flutter has already
-  /// deactivated, crashing with "setState() called during build". A scratch [MutableDocument]/
-  /// `Editor`, never attached to any widget, carries none of that risk, and settling it before
-  /// encoding matters for more than cosmetics: encoding a node under a stale, not-yet-reclassified
-  /// `blockType` forces `FountainLineWriter` to bake a forcing-marker character into the output
-  /// text for it, and that character comes back on the very next decode as a genuine, sticky,
-  /// user-typed forcing marker — corrupting the node for good, well past this one flush.
+  /// only caller) can fire while this subtree is mid-teardown, and an edit then can reach a
+  /// layout component Flutter has already deactivated, crashing with "setState() called during
+  /// build". A scratch [MutableDocument]/`Editor`, never attached to any widget, carries no such
+  /// risk, and settling it before encoding matters: a node encoded under a stale `blockType`
+  /// makes `FountainLineWriter` bake a forcing-marker character into the text, which the next
+  /// decode reads back as a genuine, sticky, user-typed marker.
   void _flushPendingSync() {
     if (_syncTimer == null || !_syncTimer!.isActive) {
       return;
@@ -747,15 +743,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _syncTimer!.cancel();
 
     // `List<DocumentNode>.of`, never a list narrowed to `ParagraphNode`: see
-    // `OcptWysiwygCodec.decode`'s own doc comment for what such a list does to `MutableDocument
-    // .reset()`. Moot for this particular document — the `Editor` below keeps history off, so
-    // `reset()` is never reached — but a scratch document built differently from every other one
-    // in this app is a trap for whoever copies this block next.
+    // `OcptWysiwygCodec.decode`'s own doc comment for what such a list does to `reset()`.
     final settledDocument = MutableDocument(nodes: List<DocumentNode>.of(_document));
     final settledComposer = MutableDocumentComposer();
-    // History stays off on this one: it exists for a single synchronous settle-then-encode pass
-    // and is discarded a few lines below, never reaching a keyboard or a writer's Ctrl+Z. This is
-    // not an oversight to align with `_rebuildEditorFrom`'s own `Editor`.
+    // History stays off on this one: it lives for a single settle-then-encode pass, never reaching
+    // a writer's Ctrl+Z.
     final settledEditor = Editor(
       editables: {Editor.documentKey: settledDocument, Editor.composerKey: settledComposer},
       requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
@@ -797,6 +789,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _document.addListener(_onDocumentChanged);
     _composer.selectionNotifier.addListener(_onSelectionChanged);
     _composer.preferences.addListener(_onComposerPreferencesChanged);
+    _composer.composingRegion.addListener(_onComposingRegionChanged);
   }
 
   /// Stop listening to [_document] and [_composer] and dispose them, before they're replaced or
@@ -805,8 +798,17 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _document.removeListener(_onDocumentChanged);
     _composer.selectionNotifier.removeListener(_onSelectionChanged);
     _composer.preferences.removeListener(_onComposerPreferencesChanged);
+    _composer.composingRegion.removeListener(_onComposingRegionChanged);
     _composer.dispose();
     _editor.dispose();
+  }
+
+  /// Settle again once a composition ends: the passes leave the node it is in alone until then.
+  void _onComposingRegionChanged() {
+    if (_composer.composingRegion.value == null) {
+      _syncTimer?.cancel();
+      _syncTimer = Timer(_syncDebounce, _syncAfterEdit);
+    }
   }
 
   /// Restart the sync debounce on every document change (a text edit, a line split/merge...), and
@@ -873,9 +875,20 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final previousPageCount = _pageSimulation.pageCount;
     final previousTrailingBottomPadding = _pageSimulation.trailingBottomPadding;
     _pageSimulation.recompute();
+    final bracketKey = OcptDualDialogueBracketComponentBuilder.keyOf(_document);
     if (_pageSimulation.pageCount != previousPageCount ||
-        _pageSimulation.trailingBottomPadding != previousTrailingBottomPadding) {
+        _pageSimulation.trailingBottomPadding != previousTrailingBottomPadding ||
+        bracketKey != _bracketKey) {
+      _bracketKey = bracketKey;
       setState(() {});
+    }
+  }
+
+  /// Redraw the dual-dialogue brackets now, if the pairs changed, rather than at the next settle.
+  void _syncBracket() {
+    final bracketKey = OcptDualDialogueBracketComponentBuilder.keyOf(_document);
+    if (bracketKey != _bracketKey && mounted) {
+      setState(() => _bracketKey = bracketKey);
     }
   }
 
@@ -884,22 +897,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   void _runDerivedPass(void Function() derivedPass) => _history.runDerivedPass(derivedPass);
 
   /// Renumber every scene heading immediately (not debounced) and report the corrected text
-  /// upstream if it changed, right after [_rebuildEditorFrom] rebuilds the document from fresh
-  /// text: this is what corrects a badly-ordered `#N#` typed in raw mode (or by any other means)
-  /// the moment it's decoded into the styled editor, rather than waiting for the next edit's
-  /// [_syncAfterEdit] debounce to happen to touch a scene heading.
+  /// upstream if it changed, right after [_rebuildEditorFrom] decodes fresh text, and again from
+  /// `OcptStyledHistory` after every undo and redo: what this corrects is part of the document's
+  /// *base* state, which a restore brings back to a snapshot taken before it ran.
   ///
-  /// `OcptStyledHistory` calls it again after every undo and every redo, and for the very same
-  /// reason: what this pass corrects is part of the document's *base* state rather than of any
-  /// gesture, and a restore brings the document back to a snapshot taken before it ran.
-  ///
-  /// `isHistorical: false`, unlike `OcptStyledDocumentSettle.settle`'s own call to the same
-  /// function: this pass runs before the writer has done anything at all, so an undo step here
-  /// could only ever be a Ctrl+Z that un-corrects the numbering. It is refused history at the
-  /// command level rather than through [OcptStyledHistory.mergePolicy], which cannot help here — a
-  /// merge onto an empty history is an append (`Editor.endTransaction`), which is exactly the
-  /// transaction to avoid. Nothing this executes therefore ever reaches the policy, which is why
-  /// this pass is not wrapped in [_runDerivedPass].
+  /// `isHistorical: false`: run before the writer has done anything, an undo step here could only
+  /// be a Ctrl+Z that un-corrects the numbering. It is refused history at the command level, so
+  /// nothing it executes reaches `OcptStyledHistory.mergePolicy`, which is why it is not wrapped
+  /// in [_runDerivedPass].
   void _syncSceneNumbers() {
     final requests = sceneNumberNormalizationRequests(_document, isHistorical: false);
     if (requests.isEmpty) {
@@ -964,13 +969,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _zoomAnchor.followCaret(context.findRenderObject());
   }
 
-  /// Refresh the controller's read side whenever the composer's collapsed-caret style
-  /// preferences change (a B/I/U toggle applied via keyboard shortcut or the toolbar, while the
-  /// caret has no selection): [_onSelectionChanged] alone would miss this, since the selection
-  /// itself doesn't move.
-  void _onComposerPreferencesChanged() {
-    _readState.report();
-  }
+  /// Refresh the controller's read side when the composer's collapsed-caret style preferences
+  /// change: [_onSelectionChanged] alone would miss it, since the selection doesn't move.
+  void _onComposerPreferencesChanged() => _readState.report();
 
   /// Report `OcptStyledSpellCheckRanges.checkableTexts` up through
   /// [OcptStyledScreenplayEditor.styledController]
