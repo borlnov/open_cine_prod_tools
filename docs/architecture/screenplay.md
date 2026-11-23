@@ -233,16 +233,22 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   `fountainDualDialogueLinePairs` over classified lines pair two dialogue groups **strictly
   adjacent** (only blank lines between them), the second carrying `^` and the first not already
   being the second of another pair, so `A`, `B^`, `C^` pairs A and B and leaves `C^` an orphan, and
-  a note, a section or any printed line between the groups breaks the pair. The composer then
+  a note, a section, a synopsis, a boneyard or any printed line between the groups breaks the pair.
+  The block rule is run over **every** block of the document (`fountainPrintableDualDialoguePairs`,
+  which maps the pairs to the numbering of the printed blocks), never over the printable ones alone,
+  since the printable blocks have already dropped what must break the pair, and the line rule ends
+  a dialogue group at a line holding only notes, as the note block does. The composer then
   prints a pair as **one row of two cells**: `FountainScriptPage.lines` stays one entry per printed
   row, and each row carries a `dualSide` and, on its left cell, a `dualCompanion` for the right
   one (`cells`, `cellOf(side)`); `sourceRange` stays the cell's own and is never the union of the
   two. The columns come from `FountainLayoutMetrics.dualDialogue` (28 columns in US Letter, 26 in
   A4, a four-column gutter), `null` when a column would be under 16 columns wide, in which case the
   pair prints stacked. **The pair is never split across pages**: it moves whole to the next page when
-  it does not fit, and is only stacked, with the usual `(MORE)`/`(CONT'D)`, when it is taller than
-  a page. The raw preview, the PDF, the coverage, the sides and the word views of the breakdown and
-  the shot list all print it side by side; the **styled editor does not**.
+  it does not fit, taking along the scene heading that would otherwise be left alone at the foot of
+  the page (the raw preview's pagination does the same), and is only stacked, with the usual
+  `(MORE)`/`(CONT'D)`, when it is taller than a page. The raw preview, the PDF, the coverage, the
+  sides and the word views of the breakdown and the shot list all print it side by side; the
+  **styled editor does not**.
 - **The `^` in the styled editor** is node metadata, not text: `OcptWysiwygCodec.decode` takes the
   suffix off a character cue (spaces included) into `ocptDualDialogueMetadataKey`
   (`ocpt_wysiwyg_dual_dialogue.dart`), keeping its exact spelling, `^` or ` ^`, since the corpus
@@ -250,10 +256,18 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   non-empty cue, an inert cue included. A `^` set by the interface is written ` ^`.
   `OcptWysiwygDualDialogue.requests` is the derived pass, a sibling of `sceneNumberRequests` run at
   the same point of the settle (so merged into the typing's undo step through `runDerivedPass`): it
-  absorbs a `^` typed at the end of a cue, and, run again after the reclassify, drops the
-  metadata from a node that is no longer a cue. `Enter` splits with no metadata replicated, so the
-  new node carries none, and a copy writes the suffix through `encode` while a paste puts it back
-  at the end of the cue's text, where the next settle absorbs it. A freshly decoded document yields
+  absorbs a `^` typed at the end of a cue, and, run again after the reclassify, **writes the stored
+  suffix back into the text** of a node that is no longer a cue (a letter typed after the name, an
+  extension, a cue emptied), so no character of the source is ever lost and the next absorb picks
+  it up if the node reads as a cue again. `OcptReplaceNodeTextCommand` brings a selection end the
+  shorter text leaves past its end back inside it, so absorbing a `^` or a `#N#` never leaves the
+  caret outside its node. `Enter` replicates no metadata, but the suffix belongs to the end of the
+  cue: a split in the middle (or at the start) gives it to the tail node, and only a split at the
+  very end leaves it on the original. A copy writes the suffix through `encode` only when the
+  copied range reaches the end of the cue, and a paste puts it back at the end of the cue's text,
+  where the next settle absorbs it. A `^` followed by a note (`KIM ^ [[aside]]`) is not absorbed,
+  since writing it back would move it past the note: it stays in the text, and the pairing,
+  the bracket and the toggle read it through the pairing rule. A freshly decoded document yields
   no request. Styled search reads the display text, so a `^` is no longer findable there.
 - **The styled editor stacks a pair**, one speech under the other, and **brackets it**:
   `OcptDualDialogueBracketComponentBuilder` (`ocpt_dual_dialogue_bracket.dart`, modelled on
@@ -262,11 +276,16 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   the blank lines between the two speeches (not a simulated page boundary), with a short end
   at each extremity, in the page's text colour at reduced opacity. A cue carrying `^` with no
   group before it to pair with, an orphan, gets no bracket but a dimmed `^` painted after its name,
-  measured from the cue's own text layout and not part of the node's text, so the caret and the
-  selection never reach it. The pairs are read off the nodes with the shared pairing rule
-  (`OcptWysiwygDualDialogue.pairsOf` builds the source lines from the nodes' types, their blank
-  runs and their stored suffix), and the editor rebuilds the builder when
-  `OcptDualDialogueBracketComponentBuilder.keyOf` changes after a settle. **Why stacked**: super_editor's
+  as does the marked cue that is the left member of a pair (`X^`, `Y^`), the `^` that does not
+  mark a right member; the marker is measured from the cue's own text layout and is not part of the
+  node's text, so the caret and the selection never reach it. The bracket finds the page's left
+  edge from the width of the document column (`OcptDualDialogueColumnScope`), so every segment sits
+  in one column on a compact surface too, and a node whose page start is repaginated to `0.0` is
+  bridged to the node above like any other. The pairs are read off the nodes with the shared
+  pairing rule (`OcptWysiwygDualDialogue.analysisOf` builds the source lines from the nodes'
+  types, their blank runs and their stored suffix, once per change of the document, with a cheap
+  fast path for a document holding no `^` at all), and the editor rebuilds the builder when
+  its `key` changes after a settle. **Why stacked**: super_editor's
   layout is a `Column` that `SuperEditor` instantiates itself, and its drag selection
   (`getDocumentSelectionInRegion`, over a binary search `_findComponentIndexAtOffset`, both
   private) assumes components ordered from the top of the page to its bottom; a prototype setting
@@ -281,12 +300,17 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   claims it). `OcptStyledEditorController.toggleDualDialogue()` and its read state
   (`canToggleDualDialogue`, `isDualDialogueChecked`, mirrored by `updateReadState`) carry it with no
   super_editor import. `OcptWysiwygDualDialogue.toggleAt` decides: with the caret in a pair, the
-  entry is checked and unpairs by removing the **second** cue's marker, from either speech; in a
-  speech carrying a marker with no partner it is checked and removes it; in any other speech it
-  pairs with the group before it by marking its own cue, or, when that one already is the second
-  of a pair, with the group after it by marking that one's. It is **withheld, not disabled**, where
+  entry is checked and unpairs by removing the **second** cue's marker, from either speech (the
+  stored suffix, or the `^` written out in the text when a note follows it); in a speech carrying a
+  marker with no partner it is checked and removes it; in any other speech it pairs with the group
+  before it by marking its own cue, or, when that one already is a member of a pair, with the group
+  after it by marking that one's, unless that one is the left member of a pair of its own, which
+  marking it would break. It reads only the run of dialogue groups the caret's group belongs to
+  (the nodes around the caret, never the whole document), since it runs on every document and
+  selection change and on every build of the context menu. It is **withheld, not disabled**, where
   there is nothing to pair (a line that is no speech, no other speech next to the caret's, the raw
-  mode). One request, hence one undo step.
+  mode) or nothing to write, so there is never an empty undo step. One request, hence one undo
+  step.
 - Scene numbers: a heading's `#N#` is a first-class WYSIWYG field
   (`ocptSceneNumberMetadataKey`), kept in sync with the display text by
   `OcptWysiwygCodec.sceneNumberRequests` on every reclassify pass. Styled mode can additionally

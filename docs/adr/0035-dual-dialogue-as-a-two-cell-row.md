@@ -50,13 +50,17 @@ layout cannot be replaced.
   of a cell is its own, never the union of the two. Reading order is no longer the source order of
   the rows: the coverage and the sides resolve a range per cell, and the left cells of a run
   precede the right ones in the source order they are read in.
-- **A pair is never split across pages**: it moves whole to the next page when it does not fit, and
-  is composed stacked, with the usual `(MORE)` and `(CONT'D)`, only when it is taller than a page
-  or when the page has no room for two columns.
+- **A pair is never split across pages**: it moves whole to the next page when it does not fit,
+  carrying along a scene heading that would be left alone at the foot of the page, and is composed
+  stacked, with the usual `(MORE)` and `(CONT'D)`, only when it is taller than a page or when the
+  page has no room for two columns.
 - **The styled editor stacks a pair** and says it is one with a bracket in the left margin, a
   decorator component builder in the manner of the scene-number gutter. The `^` leaves the cue's
   text for node metadata, so a cue reads as a name; the interface offers a toggle, as a menu entry
-  and as a shortcut, that writes it. An orphan `^` is shown dimmed after its cue.
+  and as a shortcut, that writes it. A `^` that does not mark a right member is shown dimmed after
+  its cue. The hidden `^` is never lost: a node that stops being a cue gets it written back into its
+  text, a split gives it to the tail of the cue, and a `^` followed by a note stays in the text,
+  where the shared pairing rule still reads it.
 
 ## Consequences
 

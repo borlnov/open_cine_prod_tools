@@ -108,6 +108,9 @@ lines, for a caller that holds no blocks. Both apply one rule: two dialogue
 groups strictly adjacent, the second one carrying `^`, the first one not
 being already the second of another pair. Anything printed or noted between
 the two groups, a note or a section for instance, breaks the pair.
+`fountainPrintableDualDialoguePairs` runs the block rule over every block of
+a document and numbers the pairs among its printed blocks, which is what a
+layout walking only those needs: a block it never prints still breaks a pair.
 
 ## License
 
