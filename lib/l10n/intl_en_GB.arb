@@ -1670,7 +1670,7 @@
     "type": "text",
     "placeholders": {}
   },
-  "editorZoomPercent": "{percent} %",
+  "editorZoomPercent": "{percent}%",
   "@editorZoomPercent": {
     "description": "The zoom of the screenplay page, as a percentage",
     "context": "Displayed in the zoom control of the editor's status bar and in its list of steps",

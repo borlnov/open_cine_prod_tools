@@ -731,6 +731,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorPageZoomSteppedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
+    // The same answer the status bar's buttons are withheld on, so a shortcut or the wheel never
+    // goes where they don't.
+    if (!OcptPageZoom.canStep(event.direction, state.pageZoomFactor)) {
+      return;
+    }
+
     final zoom = state.styledPageZoom.stepped(event.direction, factor: state.pageZoomFactor);
     if (zoom == state.styledPageZoom) {
       return;

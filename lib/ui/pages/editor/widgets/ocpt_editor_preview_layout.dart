@@ -10,9 +10,8 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 ///
 /// Screenplay layout is defined in character columns of 12-point Courier (a fixed-pitch font), so
 /// the whole mapping reduces to one number: the width of a single Courier Prime glyph at the
-/// preview's font size (zoom included), measured once per font size with a [TextPainter] and
-/// cached in
-/// [_glyphWidthCache]. Every element indent/width is then `columns * glyphWidth`, and the page
+/// preview's font size (zoom included), measured once per font size with a [TextPainter] and cached
+/// in [_glyphWidthCache]. Every element indent/width is then `columns * glyphWidth`, and the page
 /// itself is `pageWidthInches * pixelsPerInch` wide.
 ///
 /// Every measurement — horizontal AND vertical — is derived from that single [pixelsPerInch]
@@ -57,14 +56,16 @@ class OcptEditorPreviewLayout {
   /// has), every full-width element's right edge still lands in the same place as every other's,
   /// all of it just smaller. Chosen, not derived: every full-width element shares one desktop
   /// `indent + width` (≈585px on US Letter at [baseFontSize], well past a phone's own content
-  /// width),
-  /// and halving that lands at ≈293px — comfortable room inside a phone's content width without
-  /// shrinking the text column to the point of wrapping every other word.
+  /// width), and halving that lands at ≈293px — comfortable room inside a phone's content width
+  /// without shrinking the text column to the point of wrapping every other word.
   ///
   /// Shared by the styled editor's compact stylesheet (`OcptFountainEditorStylesheet`) and the
   /// breakdown mode's own script view (`OcptBreakdownScriptView`), so the two read identically on a
   /// phone.
   static const double compactLayoutScale = 0.5;
+
+  /// How many font sizes the glyph width cache holds before it is emptied.
+  static const int _maxCachedGlyphWidths = 256;
 
   /// The measured width of a Courier Prime glyph, cached per font size: the font is fixed-pitch,
   /// so a single glyph ("0") is representative of every column.
@@ -84,8 +85,7 @@ class OcptEditorPreviewLayout {
   final double glyphWidth;
 
   /// Get the single pixels-per-inch scale every measurement of this class derives from,
-  /// horizontally
-  /// AND vertically (see class doc comment for why that matters).
+  /// horizontally AND vertically (see class doc comment for why that matters).
   double get pixelsPerInch => metrics.charsPerInch * glyphWidth;
 
   /// Get the height of one text line, in logical pixels: `pixelsPerInch / metrics.linesPerInch`.
@@ -230,17 +230,26 @@ class OcptEditorPreviewLayout {
       lines.fold(0, (sum, line) => sum + wrappedLineCount(line, maxColumns));
 
   /// Measure (and caches) the width of one Courier Prime glyph at [fontSize] logical pixels.
-  static double _measureGlyphWidth(double fontSize) => _glyphWidthCache.putIfAbsent(fontSize, () {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: "0",
-        style: TextStyle(fontFamily: fontFamily, fontSize: fontSize),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    final width = painter.width;
-    painter.dispose();
+  ///
+  /// A fit to width measures a font size per window width, so the cache is emptied once it holds
+  /// [_maxCachedGlyphWidths] sizes rather than growing with every resize.
+  static double _measureGlyphWidth(double fontSize) {
+    if (_glyphWidthCache.length >= _maxCachedGlyphWidths) {
+      _glyphWidthCache.clear();
+    }
 
-    return width;
-  });
+    return _glyphWidthCache.putIfAbsent(fontSize, () {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: "0",
+          style: TextStyle(fontFamily: fontFamily, fontSize: fontSize),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final width = painter.width;
+      painter.dispose();
+
+      return width;
+    });
+  }
 }

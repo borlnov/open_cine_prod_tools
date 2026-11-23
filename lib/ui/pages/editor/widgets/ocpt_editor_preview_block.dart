@@ -22,11 +22,10 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   ///
   /// This is a simulation of printed paper, whose type size is the page's own (12-point Courier
   /// rendered at [OcptEditorPreviewLayout.baseFontSize] times the zoom), not a UI type size.
-  /// Letting the platform's
-  /// font-scaling preference through would grow the glyphs without growing the page, and the
-  /// content would then overflow its simulated sheet exactly the way an inherited `letterSpacing`
-  /// does (see [_baseStyle]). The panel scales the whole page down instead when it is too narrow
-  /// for it, which keeps the paper readable without ever putting text outside it.
+  /// Letting the platform's font-scaling preference through would grow the glyphs without growing
+  /// the page, and the content would then overflow its simulated sheet exactly the way an inherited
+  /// `letterSpacing` does (see [_baseStyle]). The panel scales the whole page down instead when it
+  /// is too narrow for it, which keeps the paper readable without ever putting text outside it.
   static const TextScaler _textScaler = TextScaler.noScaling;
 
   /// The block to render.
