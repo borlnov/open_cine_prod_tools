@@ -55,6 +55,11 @@ const String ocptTypeLockedMetadataKey = "ocptTypeLocked";
 /// auto-detection alone would already yield the same type (byte-stable round trips).
 const String ocptHadForcingMarkerMetadataKey = "ocptHadForcingMarker";
 
+/// The `ParagraphNode` metadata key holding a section's heading level (1 to 6, the length of the
+/// `#` run its source line opened with), which [OcptWysiwygCodec.encode] writes back. Only set on a
+/// [FountainLineType.section] node; a missing or invalid value reads as 1.
+const String ocptSectionLevelMetadataKey = "ocptSectionLevel";
+
 /// The `ParagraphNode` metadata key holding a scene heading's explicit `#N#` scene number (the
 /// text between the `#` delimiters, e.g. `"4A"` for `#4A#`), or null for a heading with none.
 ///
@@ -266,12 +271,6 @@ class OcptWysiwygCodec {
   /// serializes as plain text indistinguishable from action, and degrades to
   /// [FountainLineType.action] on the next [decode]. The live document can still display/lock such
   /// a node as dialogue; only its serialized Fountain text degrades.
-  ///
-  /// **Section-level normalization (accepted, documented):** this model does not track how many
-  /// leading `#` characters a section heading originally used (only the three metadata keys this
-  /// class documents exist); every section node always serializes with a single `#`, collapsing a
-  /// `##`/`###`/… heading to level 1. This is a deliberate, harmless normalization in the same
-  /// spirit as the dialogue fallback above (worst case, a one-time dirty flag on mode entry).
   static OcptWysiwygEncodeResult encode(
     Document document, {
     int trailingBlankLines = 0,
@@ -410,6 +409,7 @@ class OcptWysiwygCodec {
           previousType: previousType,
           nextRawLine: nextRawLine,
           classifiedText: classifiedText,
+          sectionLevel: _readSectionLevel(nodes[index]),
         ),
       );
     }
@@ -664,9 +664,9 @@ class OcptWysiwygCodec {
   }
 
   /// Compute the requests needed to uppercase the text of every node currently classified as one
-  /// of [_uppercasedTypes] whose text isn't already fully uppercase, preserving its attribution
-  /// spans and (since uppercasing is 1:1 for the app's locales, leaving every character's offset
-  /// unchanged) the caret position.
+  /// of [_uppercasedTypes] whose text isn't already fully uppercase (a character cue forced with
+  /// `@` keeps its case), preserving its attribution spans and (since uppercasing is 1:1 for the
+  /// app's locales, leaving every character's offset unchanged) the caret position.
   ///
   /// What lies inside a commented span is never touched: an inert node is skipped entirely, and a
   /// note (`[[ ... ]]`) or a boneyard on a live line keeps its text as written.
@@ -689,6 +689,9 @@ class OcptWysiwygCodec {
         node.getMetadataValue("blockType"),
       );
       if (!_uppercasedTypes.contains(blockType)) {
+        continue;
+      }
+      if (blockType == FountainLineType.character && _readHadForcingMarker(node)) {
         continue;
       }
 
@@ -791,6 +794,8 @@ class OcptWysiwygCodec {
             ocptHadForcingMarkerMetadataKey: hadForcingMarker,
             ocptSceneNumberMetadataKey: sceneNumber,
             ocptDualDialogueMetadataKey: dualSuffix,
+            if (type == FountainLineType.section && hadForcingMarker)
+              ocptSectionLevelMetadataKey: OcptWysiwygMarkers.sectionLevelOf(lines[index]),
           },
         ),
       );
@@ -859,6 +864,7 @@ class OcptWysiwygCodec {
       hadForcingMarker: true,
       previousType: null,
       nextRawLine: null,
+      sectionLevel: _readSectionLevel(node),
     );
   }
 
@@ -893,6 +899,12 @@ class OcptWysiwygCodec {
   /// Read a node's [ocptHadForcingMarkerMetadataKey] metadata, defaulting to false.
   static bool _readHadForcingMarker(ParagraphNode node) =>
       node.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true;
+
+  /// Read a node's [ocptSectionLevelMetadataKey] metadata, clamped to 1-6, defaulting to 1.
+  static int _readSectionLevel(ParagraphNode node) {
+    final level = node.getMetadataValue(ocptSectionLevelMetadataKey);
+    return level is int ? level.clamp(1, 6) : 1;
+  }
 
   /// Serialize [node]'s styled text into marked-up source, through the one serializer.
   static String _serialize(ParagraphNode node, List<int> boneyardStars) => _inlineSerializer.write(
@@ -981,6 +993,7 @@ class OcptWysiwygCodec {
       hadForcingMarker: true,
       previousType: null,
       nextRawLine: null,
+      sectionLevel: _readSectionLevel(node),
     );
   }
 }

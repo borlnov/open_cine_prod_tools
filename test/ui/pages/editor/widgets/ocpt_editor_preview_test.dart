@@ -663,4 +663,28 @@ void main() {
       }
     });
   });
+
+  testWidgets("a cue forced with @ keeps its case while an ordinary cue prints upper-cased", (
+    tester,
+  ) async {
+    _widenTestSurface(tester, unscaledPanelWidth);
+    final document = const FountainParser().parse("@McCLANE\nYippee.\n\nHANS (on the radio)\nWho?");
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptEditorPreview(
+          document: document,
+          pageSetup: const OcptPageSetup.standard(),
+          currentLine: 0,
+          isPageSimulationEnabled: false,
+        ),
+        width: unscaledPanelWidth,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text("McCLANE", findRichText: true), findsOneWidget);
+    expect(find.text("MCCLANE", findRichText: true), findsNothing);
+    expect(find.text("HANS (ON THE RADIO)", findRichText: true), findsOneWidget);
+  });
 }

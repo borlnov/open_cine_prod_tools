@@ -48,14 +48,6 @@ void _addAttribution(
   document.replaceNodeById(node.id, node.copyParagraphWith(text: text));
 }
 
-/// The expected `decode`/`encode` round trip for [fileName], given its [original] source: identity
-/// for every corpus file except for one deliberate, documented normalization (see
-/// `OcptWysiwygCodec.encode`'s doc comment): this model has no metadata slot for a section
-/// heading's original `#`-run length, so every section always re-serializes at level 1, collapsing
-/// `structure.fountain`'s two `## ` sub-sections to `# `.
-String _expectedRoundTrip(String fileName, String original) =>
-    fileName == "structure.fountain" ? original.replaceAll("\n## ", "\n# ") : original;
-
 /// Run the tests of the wysiwyg codec corpus identity.
 void main() {
   group("OcptWysiwygCodec.decode/encode corpus identity", () {
@@ -84,7 +76,7 @@ void main() {
           trailingBlankLines: decoded.trailingBlankLines,
         );
 
-        expect(encoded.text, _expectedRoundTrip(fileName, source));
+        expect(encoded.text, source);
       });
     }
   });

@@ -225,9 +225,11 @@ class FountainBlockBuilder {
 
   /// Build a [FountainCharacter] from its raw source line.
   FountainCharacter _buildCharacter(String rawLine, FountainSourceRange range) {
-    final cue = parseFountainCharacterCue(FountainLineClassifier.withoutInlineNotes(rawLine));
+    final scrubbed = FountainLineClassifier.withoutInlineNotes(rawLine);
+    final cue = parseFountainCharacterCue(scrubbed);
     return FountainCharacter(
       sourceRange: range,
+      forced: scrubbed.trim().startsWith('@'),
       rawText: rawLine,
       name: cue.name,
       extension: cue.extension,

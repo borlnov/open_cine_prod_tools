@@ -501,7 +501,7 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
                           baseline: TextBaseline.alphabetic,
                           child: _OcptScriptWord(
                             runs: displayRuns[i],
-                            isUppercase: printStyle.isUppercase,
+                            isUppercase: ocptFountainBlockPrintsUppercase(block),
                             style: baseStyle,
                             state: _stateOf(block.words[i]),
                             onTap: () =>

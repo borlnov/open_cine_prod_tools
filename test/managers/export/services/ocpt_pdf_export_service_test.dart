@@ -366,28 +366,31 @@ void main() {
     // deflate to byte-identical content streams (deflate is deterministic), while two documents
     // that print different text do not: comparing the raw stream bytes is therefore a genuine,
     // parser-free oracle for "did this render the text I expected" without ever decoding it.
-    test('a lower-case forced character cue and transition print exactly like '
-        'already upper-cased ones', () async {
-      final mixedCase = parse('INT. HOUSE - DAY\n\n@Mr. smith\nHello there.\n\n> burn to white.\n');
-      final upperCase = parse('INT. HOUSE - DAY\n\n@MR. SMITH\nHello there.\n\n> BURN TO WHITE.\n');
+    test(
+      'a forced transition prints upper-cased while a forced character cue keeps its case',
+      () async {
+        Future<Uint8List> render(String source) => service.generate(
+          document: parse(source),
+          pageSetup: pageSetup,
+          projectName: 'P',
+          includeSceneNumbers: false,
+          includeTitlePage: false,
+        );
 
-      final mixedCaseBytes = await service.generate(
-        document: mixedCase,
-        pageSetup: pageSetup,
-        projectName: 'P',
-        includeSceneNumbers: false,
-        includeTitlePage: false,
-      );
-      final upperCaseBytes = await service.generate(
-        document: upperCase,
-        pageSetup: pageSetup,
-        projectName: 'P',
-        includeSceneNumbers: false,
-        includeTitlePage: false,
-      );
+        final mixedCase = await render(
+          'INT. HOUSE - DAY\n\n@Mr. smith\nHello there.\n\n> burn to white.\n',
+        );
+        final upperTransition = await render(
+          'INT. HOUSE - DAY\n\n@Mr. smith\nHello there.\n\n> BURN TO WHITE.\n',
+        );
+        final upperCue = await render(
+          'INT. HOUSE - DAY\n\n@MR. SMITH\nHello there.\n\n> burn to white.\n',
+        );
 
-      expect(_contentStreams(mixedCaseBytes), _contentStreams(upperCaseBytes));
-    });
+        expect(_contentStreams(mixedCase), _contentStreams(upperTransition));
+        expect(_contentStreams(mixedCase), isNot(_contentStreams(upperCue)));
+      },
+    );
 
     test('an explicitly numbered scene heading prints identically to an '
         'unnumbered one when scene numbers are switched off', () async {

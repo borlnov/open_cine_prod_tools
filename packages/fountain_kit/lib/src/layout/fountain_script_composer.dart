@@ -186,7 +186,8 @@ class FountainScriptComposer {
   /// Wrap [character]'s cue text (name plus its parenthetical extension,
   /// if any) into the wrapped lines of a [FountainLineType.character]
   /// element, upper-cased per [FountainPrintStyle.of]'s print-time rule for
-  /// [FountainLineType.character]. A [side] sets the cue in that column of a dual-dialogue pair.
+  /// [FountainLineType.character], unless the cue is [FountainCharacter.forced], which prints as
+  /// written. A [side] sets the cue in that column of a dual-dialogue pair.
   static List<FountainScriptLine> _characterCueLines(
     FountainCharacter character,
     FountainLayoutMetrics metrics,
@@ -196,7 +197,7 @@ class FountainScriptComposer {
     final text = character.extension == null
         ? character.name
         : '${character.name} (${character.extension})';
-    final printed = _printed(text, FountainLineType.character);
+    final printed = _printedCue(text, character);
     return _wrapToLines(
       printed,
       metrics.elementOf(FountainLineType.character, side: side),
@@ -294,6 +295,12 @@ class FountainScriptComposer {
   /// place.
   static String _printed(String text, FountainLineType lineType) =>
       FountainPrintStyle.of(lineType).isUppercase ? text.toUpperCase() : text;
+
+  /// Apply the print-time letter case to the cue [text] of [character]: as written when the cue
+  /// is [FountainCharacter.forced] (Fountain preserves the case of a forced name), else per
+  /// [_printed].
+  static String _printedCue(String text, FountainCharacter character) =>
+      character.forced ? text : _printed(text, FountainLineType.character);
 
   /// Wrap each of [sourceLines] independently at [layout]'s width (a
   /// block like action or lyrics keeps its source line breaks as real line
@@ -912,18 +919,15 @@ class _PageBuilder {
   /// split dialogue group continues onto, set at the character's indent
   /// and alignment. The original cue's `extension` is deliberately ignored
   /// here: a continued cue always reads `(CONT'D)`, never the original
-  /// extension. Upper-cased, exactly like every other
-  /// [FountainLineType.character] cue.
+  /// extension. Upper-cased, exactly like every other [FountainLineType.character] cue, unless
+  /// the cue is [FountainCharacter.forced], which keeps its case.
   static FountainScriptLine _contdCueLine(
     FountainCharacter character,
     FountainLayoutMetrics metrics,
   ) => FountainScriptLine(
     runs: [
       FountainStyledRun(
-        text: FountainScriptComposer._printed(
-          "${character.name} (CONT'D)",
-          FountainLineType.character,
-        ),
+        text: FountainScriptComposer._printedCue("${character.name} (CONT'D)", character),
       ),
     ],
     lineType: FountainLineType.character,

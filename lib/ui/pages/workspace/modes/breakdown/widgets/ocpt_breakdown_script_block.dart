@@ -180,7 +180,7 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
                       child: _OcptBreakdownWordSlot(
                         word: _OcptBreakdownWord(
                           runs: displayRuns[i],
-                          isUppercase: printStyle.isUppercase,
+                          isUppercase: ocptFountainBlockPrintsUppercase(block),
                           style: baseStyle,
                           paint: _paintOf(block.words[i]),
                           onTap: _onTapFor(block.words[i]),

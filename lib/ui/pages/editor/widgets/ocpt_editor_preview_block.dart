@@ -281,7 +281,9 @@ class _OcptPreviewDialogueGroup extends StatelessWidget {
           element: layout.metrics.elementOf(FountainLineType.character, side: side),
           child: _OcptPreviewStyledText(
             block: block,
-            text: OcptEditorPreviewBlock._printed(cueText, FountainLineType.character),
+            text: character.forced
+                ? cueText
+                : OcptEditorPreviewBlock._printed(cueText, FountainLineType.character),
             style: block._baseStyle,
           ),
         ),

@@ -189,7 +189,11 @@ List<EditRequest> ocptManualBlockTypeRequests({
   ),
   OcptChangeNodeMetadataRequest(
     nodeId: nodeId,
-    metadata: {ocptTypeLockedMetadataKey: true, ocptHadForcingMarkerMetadataKey: false},
+    metadata: {
+      ocptTypeLockedMetadataKey: true,
+      ocptHadForcingMarkerMetadataKey: false,
+      ocptSectionLevelMetadataKey: 1,
+    },
   ),
 ];
 

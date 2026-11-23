@@ -13,10 +13,14 @@ final class OcptWysiwygMarkers {
   static final RegExp sceneNumberPattern = RegExp(r'#([A-Za-z0-9.\-]+)#\s*$');
 
   /// Mirrors [FountainLineClassifier]'s own (private) section-heading pattern, so a section
-  /// node's display text can be recovered without re-deriving the leading `#` run's length here:
-  /// see `OcptWysiwygCodec.decode`'s per-type stripping and the class doc comment on the
-  /// section-level normalization `OcptWysiwygCodec.encode` accepts.
+  /// node's display text and its level (the leading `#` run's length, see [sectionLevelOf]) can
+  /// be recovered: see `OcptWysiwygCodec.decode`'s per-type stripping.
   static final RegExp _sectionPattern = RegExp(r'^(#{1,6})\s*(.*)$');
+
+  /// Get the heading level (1 to 6) of the section line [rawLine]: the length of its leading `#`
+  /// run, or 1 when it has none.
+  static int sectionLevelOf(String rawLine) =>
+      _sectionPattern.firstMatch(rawLine.trim())?.group(1)?.length ?? 1;
 
   /// Strip [rawLine]'s forcing prefix (if any) for its classified [type], returning its display
   /// text and whether a marker was actually present. Mirrors, in reverse, every rule

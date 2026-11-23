@@ -50,6 +50,14 @@ void main() {
       ]);
     });
 
+    test('a cue forced with "@" is flagged forced, an ordinary one is not', () {
+      final forced = _build('\n@McCLANE\nHello.\n').single as FountainDialogueGroup;
+      final plain = _build('\nMCCLANE\nHello.\n').single as FountainDialogueGroup;
+      expect(forced.character.name, 'McCLANE');
+      expect(forced.character.forced, isTrue);
+      expect(plain.character.forced, isFalse);
+    });
+
     test('a character extension in parentheses is parsed separately', () {
       final blocks = _build('\nSARAH (V.O.)\nHello there.\n');
       final group = blocks.single as FountainDialogueGroup;
