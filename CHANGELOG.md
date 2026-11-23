@@ -6,6 +6,37 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## 0.4.0
+
+The screenplay gains dual dialogue, notes from the menu and a page zoom.
+
+- Dual dialogue: a speech whose character name ends with `^` is set side by
+  side with the speech before it in the preview, the PDF, the sides, the
+  scenario coverage and the breakdown's script, and a pair that does not fit
+  moves whole to the next page. The styled editor keeps the two speeches one
+  under the other, joined by a bracket in the margin, and pairs or unpairs a
+  speech from the right-click menu, the format controls or Ctrl+Alt+D.
+- Page zoom: the styled page and the raw mode's paper preview zoom from 50 %
+  to 200 %, or fit the width of the window, from the status bar, Ctrl and the
+  mouse wheel, or Ctrl and +, − or 0. The pagination never changes with the
+  zoom, and the zoom is remembered.
+- Notes: the styled editor's right-click menu inserts a `[[note]]` at the
+  caret or around a selection, and removes the note the caret is in.
+- Commented-out text: a line inside a boneyard or a note is kept as written and
+  dimmed, and a note at the start or end of a scene heading, a character cue or
+  a transition no longer changes the line's type.
+- Fountain: a character cue may carry a lowercase extension
+  (`HANS (on the radio)`), and a cue forced with `@` (`@McCLANE`) keeps its own
+  case in the editor, the preview, the PDF, the breakdown and the coverage. The
+  styled editor no longer rewrites a section's level (`##`) or drops the title
+  page keys beyond the six standard ones (`Copyright`, `Revision`…).
+- Docks: choosing the right dock's tab already shown no longer closes the dock.
+- Floor plans: a selected arrow can be deleted from the plan itself, through
+  the handle beside its tip.
+- Linux and Windows: the window is titled Open Cine Prod Tools.
+- Guide: the collaboration pages match the app's screens and labels again.
+- Project files stay at format 5: 0.3.1 and 0.4.0 open each other's files.
+
 ## 0.3.1
 
 Fixes for edits that could be lost, a sync failure and the floor plans.
