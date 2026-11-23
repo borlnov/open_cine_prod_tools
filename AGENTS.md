@@ -22,8 +22,9 @@ Open Cine Prod Tools is an **open-source suite of film-production tools** (Apach
 github.com/borlnov/open_cine_prod_tools). The MVP is a **Fountain screenplay editor**; the
 découpage technique (shot lists), the scenario coverage per shot, the resources catalogue (the
 people, the cast, the locations and the physical elements), the script breakdown (*dépouillement*),
-the casting candidates and the shooting schedule ship alongside it, and the long-term roadmap adds,
-in priority order: call sheets, budget, script supervisor reports, and storyboard.
+the casting candidates, the shooting schedule with its call sheets, the budget and the storyboard
+ship alongside it; what comes next (on-set script supervisor reports first) is in the roadmap
+issues (see "Development plan & status").
 
 - Target platforms: **Linux + Windows first**, then macOS, Android, iOS. macOS is built and
   released by the CI (see `docs/architecture/foundations.md`) but has never been run on a Mac —
@@ -73,9 +74,9 @@ in priority order: call sheets, budget, script supervisor reports, and storyboar
 ## Development plan & status
 
 Everything that has shipped is recorded by the code itself, by `docs/architecture/` and by
-`docs/adr/` — this section lists only what is still ahead, so it stays short enough to be read.
-The MVP (Fountain editor, shot list, resources, breakdown, schedule, their exports, project
-versions, the sync-ready data model, the portable project package, the desktop packaging) is done;
+`docs/adr/`; what is still ahead lives in GitHub issues, not in this file. The MVP (Fountain
+editor, shot list, resources, breakdown, schedule, their exports, project versions, the sync-ready
+data model, the portable project package, the desktop packaging) is done;
 the budget mode has shipped whole (the quote against the CNC nomenclature, the cash journal it is
 measured against, the financing plan and catering pass that say what pays for it, the revenue
 sharing that splits what the film earns, and its four documents, `docs/architecture/budget.md`);
@@ -83,11 +84,11 @@ so has the shot list's board and floor plans (ordered storyboard panels with the
 floor plan per Resources set across its three scopes, and their two documents,
 `docs/architecture/shot-list.md`).
 
-What is still ahead, in priority order:
-
-- The end-user collaboration guide, in `docs-site/`.
-- After that: call sheets beyond what the schedule mode already prints, then
-  script supervisor reports.
+**The roadmap is the open issues labelled `roadmap`** (`gh issue list --label roadmap`). The
+maintainer sets their order: `priority: next` marks the one to work on next, `priority: soon` the
+ones after it, and a roadmap issue with neither is not scheduled yet — ask rather than pick one. A
+pull request closes the issue it delivers, so the list never needs editing by hand. An issue says
+*what*; how to build it belongs in a plan (see "Ways of working").
 
 Earlier steps, once numbered `0` through `29k`, are in `git log`; the numbers are referenced by
 no file any more.

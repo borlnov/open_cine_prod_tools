@@ -8,9 +8,12 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Mes données partent-elles sur un serveur ?
 
-Non. Tout est **local** : un projet tient dans un seul fichier `.ocpt` sur votre disque. Rien
-n'est envoyé en ligne. Le travail collaboratif et la synchronisation sont prévus pour plus tard,
-mais ne font pas partie de la version actuelle.
+Pas tant que vous ne partagez pas. Tout est **local** : un projet tient dans un seul fichier
+`.ocpt` sur votre disque, et rien n'est envoyé en ligne tant que vous ne le partagez pas. Un
+projet partagé se synchronise par un **relais** de votre choix — un serveur auto-hébergé, ou votre
+propre ordinateur — et chaque appareil en garde une copie complète : il fonctionne donc même sans
+connexion. Voir
+[Comment fonctionne la collaboration](../collaboration/how-collaboration-works.md).
 
 ## L'application fonctionne-t-elle hors ligne ?
 

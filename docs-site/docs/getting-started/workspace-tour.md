@@ -20,7 +20,9 @@ production tool. It has four zones.
   dragging their edge. Their content depends on the mode.
 - **The centre**, where the active mode's work happens.
 - **The status bar, at the bottom**, showing live counters (number of pages, scenes, shots…)
-  depending on the mode.
+  depending on the mode. On a shared project, its right-hand end also carries the **sync status**
+  indicator, and the toolbar shows who else has the project open (see
+  [How collaboration works](../collaboration/how-collaboration-works.md)).
 
 ## The mode switcher
 

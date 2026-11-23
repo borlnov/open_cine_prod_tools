@@ -36,8 +36,9 @@ for a decision.
 
 The one exception is the screenplay text itself: two people typing in the same passage at the same
 time are merged line by line, the way a version-control tool would. On the rare occasion the two
-edits genuinely conflict, you are shown the conflict so you can settle it — this is the only place
-sharing ever asks you anything.
+edits genuinely clash on the same lines, the application does not guess: it leaves your own text
+as you wrote it rather than silently overwriting it, and there is no screen yet to settle the
+clash — so it is worth agreeing between you who edits a given passage.
 
 ## The sync status indicator
 
@@ -45,28 +46,38 @@ Once a project is shared, a small indicator sits in the workspace's status bar, 
 every mode. It tells you, at a glance, where your device stands with the rest of the project:
 
 - **In sync** — everything you and everyone else has done is reconciled; there is nothing waiting.
-- **Syncing** — edits are being sent or received right now.
-- **Offline**, with a count of your own edits still waiting to go out — normal and expected
-  whenever the device has no connection to the relay; nothing is lost, it simply has not left yet.
-- **Error** — something the relay itself refused, worth a look rather than a simple connection
-  drop.
+- **Syncing…** — edits are being sent or received right now.
+- **Offline · 3 pending changes** — the count is how many of your own edits are still waiting to
+  go out. This is normal and expected whenever the device has no connection to the relay;
+  nothing is lost, it simply has not left yet. When the count is not known, it reads "Offline ·
+  pending changes".
+- **Sync error** — something the relay itself refused, worth a look rather than a simple
+  connection drop; the panel below spells it out as "Relay error: …".
 
-Click the indicator to open a panel: sync right now, show the invite again, or point the project
-at a different relay (see [The on-set server](on-set-server.md)). The indicator, and its panel,
-only appear once a project is shared — an unshared project shows neither.
+Click the indicator to open a panel with four actions: **Sync now**; **Show the invite QR code**
+and **Re-pair…**, which both open the project's [sharing screen](sharing-a-project.md); and
+**Switch relay…**, which points the project at a different relay (see
+[The on-set server](on-set-server.md)). The indicator, and its panel, only appear once a project
+is shared — an unshared project shows neither. On a project opened as a read-only preview the
+panel is there, but its actions are withheld.
 
 ## Presence: who else has it open
 
-A cluster of small avatars in the top toolbar shows every other device that currently has the
-project open — never people who merely have a copy of it somewhere, only the ones open right now.
-Hover or click the cluster to see, for each one, roughly what kind of device it is and **which
-mode** it is working in (Screenplay, Schedule, Budget…), which is often enough on its own to know
-whether it is safe to, say, re-order the schedule.
+A cluster of small round avatars in the top toolbar, just before **Export**, shows every device
+that currently has the project open, yours included — never people who merely have a copy of it
+somewhere, only the ones open right now. Each avatar carries the initial of the device's system
+(for instance L for Linux, W for Windows); with more than three, the rest fold into a "+2" disc.
+Hover an avatar to see its name and mode, or click the cluster to open the "On this project"
+list, with the number online and, for each device, its name — the system and the last three
+characters of its identifier, such as "Linux · a3f" — and **which mode** it is working in
+(Screenplay, Schedule, Budget…), which is often enough on its own to know whether it is safe to,
+say, re-order the schedule.
 
-There are no accounts and no names to type in: each device is told apart by a small coloured dot,
-consistent for that device across a session, with yourself always shown first and highlighted.
-Presence is entirely live — it says nothing about who *has* edited, only who is *currently* on the
-project — and disappears with the sync indicator on an unshared project.
+There are no accounts and no names to type in: each device is told apart by its own colour,
+consistent for that device, and by that short identifier. Yourself is always listed first,
+ringed in the accent colour and tagged "You". Presence is entirely live — it says nothing about
+who *has* edited, only who is *currently* on the project — and disappears with the sync indicator
+on an unshared project.
 
 ## Where to go next
 

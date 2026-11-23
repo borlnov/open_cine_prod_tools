@@ -242,11 +242,11 @@ from the prep relay for the day, or back again — without losing its token or i
   relay. `relayIdFor` keys the delivery cursor by the relay's own base URL, so re-pointing to a
   different relay starts a fresh cursor there while re-pointing back to one already talked to simply
   resumes its own.
-- **The "Changer de relais" screen** (`lib/ui/pages/repointing/`, `OcptRepointingBloc` +
-  `OcptRepointingQrView`) is a two-state route mirroring the Partager screen's own Configure→shape:
+- **The "Switch relay" screen** (`lib/ui/pages/repointing/`, `OcptRepointingBloc` +
+  `OcptRepointingQrView`) is a two-state route mirroring the Share screen's own Configure→shape:
   ① scan an `ocpt://relay` QR or type the relay address and enrolment secret, which calls
   `repointProjectToRelay`; ② show the same enrolment QR so the next crew member scans it in turn.
-  Reached from the sync status panel's own `Changer de relais…` entry, withheld under a read-only
+  Reached from the sync status panel's own `Switch relay…` entry, withheld under a read-only
   preview and absent for an unpaired project, exactly like the panel's other actions.
 
 ## In-app relay hosting
@@ -313,9 +313,9 @@ the local relay the project stays paired to — so sync resumes on re-entry whil
 dropped a peer.
 
 **The hosting panel** (`OcptHostingPanel` over a sibling `OcptHostingBloc`,
-`lib/ui/pages/sharing/widgets/ocpt_hosting_panel.dart`) is the Partager screen's "Héberger sur ce
-account" segment — desktop-only and withheld under a read-only preview, like every other write
-affordance. It always shows a Marche/Arrêt switch and a "réhéberger au démarrage" checkbox; once
+`lib/ui/pages/sharing/widgets/ocpt_hosting_panel.dart`) is the Share screen's "Host on this
+machine" segment — desktop-only and withheld under a read-only preview, like every other write
+affordance. It always shows a Hosting switch and a "Re-host this project on launch" checkbox; once
 online it also shows an advertised-address dropdown (`OcptRelayHostManager.availableLanAddresses`,
 re-detecting a network switch on a fresh screen entry, since the socket already binds every
 interface) and a port field re-binding the socket through `startHosting`'s own `port` parameter, a
@@ -325,18 +325,18 @@ the enrolment (a device that already has it, re-pointing here) — the one QR ea
 own QR state also draws through, both now drawn at a larger, easier-to-scan size) — the
 connected-peers list (reading `OcptSyncManager.presenceRoster`/`presenceRosterStream` — no host-side
 presence code of its own, just the same roster the workspace toolbar already shows — each peer a
-`ocptPresenceColor` dot and a `platform · id fragment` label, never a name), and a "Réconcilier
-amont…" action: paste or scan an upstream `ocpt://join` invite, run the reconciler, show
+`ocptPresenceColor` dot and a `platform · id fragment` label, never a name), and a "Reconcile
+upstream…" action: paste or scan an upstream `ocpt://join` invite, run the reconciler, show
 `pushed N, pulled M`.
 
 ## Sharing, joining, and what the user sees
 
 Sync is invisible when it works; the visible surface is deliberately small.
 
-- **Pairing (the Partager screen, `lib/ui/pages/sharing/`)** — reached from a project card's `⋮`
+- **Pairing (the Share screen, `lib/ui/pages/sharing/`)** — reached from a project card's `⋮`
   menu, one full-screen route. On desktop its body opens with a `SegmentedButton` splitting it into
-  "Relais distant" and "Héberger sur ce poste" (see below); mobile stays single-mode. "Relais
-  distant" is two states. ① *Configure* takes the relay address and the enrolment secret and calls
+  "Remote relay" and "Host on this machine" (see below); mobile stays single-mode. "Remote
+  relay" is two states. ① *Configure* takes the relay address and the enrolment secret and calls
   `OcptSyncManager.pairProjectToRelay`, which mints the token, saves the pairing, pushes the
   project's changesets (creating it on the relay), publishes a snapshot so a joiner can bootstrap,
   and starts the session (a relay that refuses or cannot be reached comes back as an
@@ -344,7 +344,7 @@ Sync is invisible when it works; the visible surface is deliberately small.
   flag). ② *Invite* then shows the QR the crew scans, the relay address, the masked
   token, a **copy-the-invite-link** button, and a *stop sharing* that goes through
   `OcptConfirmDialog` into `unpairProject`.
-- **Joining (the Rejoindre screen, `lib/ui/pages/joining/`)** — reached from the Home toolbar,
+- **Joining (the Join screen, `lib/ui/pages/joining/`)** — reached from the Home toolbar,
   carrying no open-project guard since joining is how a project comes to exist locally. A camera scan
   on a tablet (`mobile_scanner`, instantiated only on mobile) or a pasted **invite link** on desktop
   both resolve to one `OcptRelayInvite`
@@ -365,7 +365,7 @@ Sync is invisible when it works; the visible surface is deliberately small.
   outlives every session (`startSyncSession` pipes the session's status onto it,
   `stopSyncSession` closes it with a null), so the badge appears the moment syncing begins and
   hides when it ends. It is absent for an unpaired project; a tap opens a panel to sync now, show
-  the invite QR, re-pair, or `Changer de relais…` (opening the repointing screen above,
+  the invite QR, re-pair, or `Switch relay…` (opening the repointing screen above,
   `OcptRoute.repointing`). Under a read-only version preview its actions are withheld.
 - **The presence indicator** (`lib/ui/pages/workspace/widgets/ocpt_presence_indicator.dart`) sits in
   the top toolbar instead — an overlapping avatar cluster naming every replica with the project open,

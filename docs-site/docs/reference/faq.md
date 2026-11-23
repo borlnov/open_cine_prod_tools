@@ -8,9 +8,11 @@ SPDX-License-Identifier: CC-BY-4.0
 
 ## Does my data go to a server?
 
-No. Everything is **local**: a project fits in a single `.ocpt` file on your disk. Nothing is
-sent online. Collaboration and sync are planned for later, but are not part of the current
-version.
+Not unless you choose to share. Everything is **local**: a project fits in a single `.ocpt` file
+on your disk, and nothing is sent online until you share it. A shared project syncs through a
+**relay** you pick — a self-hosted server, or your own computer — and every device keeps a full
+copy, so it still works with no connection. See
+[How collaboration works](../collaboration/how-collaboration-works.md).
 
 ## Does the application work offline?
 

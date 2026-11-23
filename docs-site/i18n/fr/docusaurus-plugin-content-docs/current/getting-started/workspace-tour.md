@@ -21,7 +21,10 @@ chaque outil de production. Il se compose de quatre zones.
   et redimensionne en glissant leur bord. Leur contenu dépend du mode.
 - **La zone centrale**, où se fait le travail du mode actif.
 - **La barre d'état, en bas**, qui affiche des compteurs vivants (nombre de pages, de
-  séquences, de plans…) selon le mode.
+  séquences, de plans…) selon le mode. Sur un projet partagé, son extrémité droite porte aussi
+  l'indicateur d'**état de synchronisation**, et la barre d'outils montre qui d'autre a le projet
+  ouvert (voir
+  [Comment fonctionne la collaboration](../collaboration/how-collaboration-works.md)).
 
 ## Le sélecteur de mode
 
