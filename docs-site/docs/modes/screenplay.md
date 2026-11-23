@@ -23,6 +23,23 @@ you write on a formatted page, or you edit the raw Fountain text with a preview 
 To switch between the two: **Ctrl+Shift+M** (or the **⋮** menu). Undo history belongs to the
 surface you are on: switching starts a fresh history, so finish an edit before you toggle.
 
+## Zooming the page
+
+You can zoom the page, in the styled editor and in the paper preview of the raw mode (the raw
+Fountain text keeps its size). The zoom is the same in both, and it is remembered for you,
+whatever the project.
+
+- Use the **`−`**, the percentage and the **`+`** at the right of the status bar. Click the
+  percentage for the list of sizes, from 50 % to 200 %, and **Fit to width**: the page then fills
+  the width of the area and follows the window when you resize it.
+- Hold **Ctrl** (**Cmd** on a Mac) and turn the mouse wheel: one step per notch, around the point
+  under the pointer. A plain wheel still scrolls.
+- **Ctrl** and **+** (or **=**) zoom in, **Ctrl** and **−** zoom out, **Ctrl** and **0** go back
+  to 100 %.
+
+The pagination does not change with the zoom: the same lines fall on the same pages. When the page
+is wider than the area, scroll sideways. On a phone or a narrow window there is no zoom.
+
 ## The elements the editor understands
 
 The editor recognises and formats the standard screenplay elements: **scene headings**

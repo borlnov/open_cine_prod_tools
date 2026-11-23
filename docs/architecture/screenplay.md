@@ -310,6 +310,47 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   Desktop output is byte-identical, the flag defaulting off everywhere a desktop call site builds
   the stylesheet.
 
+- **Page zoom.** The page (the styled editor's and the raw mode's paper preview, never the raw
+  source, the breakdown script or the coverage dialog) is zoomed **through the font size**:
+  `OcptEditorPreviewLayout` takes a `zoom` (1 by default), its `fontSize` is `baseFontSize × zoom`
+  and `glyphWidth` is measured at that size, so the page, its margins, every element's box and the
+  line height follow, the text is re-typeset sharp and the stylesheet, the pagination, the title
+  page and the sheets painter all read the factor of their own layout. A `Transform.scale` around
+  the editor was rejected: super_editor measures its components through `localToGlobal` and
+  places its IME, handles and autoscroll on that basis, and the text would not be re-wrapped. The
+  wrap points do not move with the zoom (everything is in columns), so **the pagination is the
+  same at every zoom**; only its pixel paddings scale (`computeOcptStyledPagination(zoom:)`).
+  - The zoom is `OcptPageZoom` (`lib/models/rules/ocpt_page_zoom.dart`): one of ten steps (50, 67,
+    75, 90, 100, 110, 125, 150, 175, 200 %) or **fit to width**, a *mode*, not a step: the sheet
+    fills the area it is shown in, follows the window, bounded to 50–200 %, and `OcptEditorZoomArea`
+    resolves it from the width it is given and reports the factor
+    (`OcptEditorFitPageZoomMeasuredEvent`, never stored) — the status bar shows it, and a step
+    out of that mode starts from the nearest step. It is stored as one text by
+    `OcptPropertiesManager.styledPageZoom` (`fit` or the step's percentage, so a stored value out of
+    the bounds is brought back to the nearest step and an unknown text reads as 100 %), for the user
+    and whatever the project, loaded on entry and written on every change like
+    `styledSceneNumbersVisible`; it lives in `OcptEditorState.styledPageZoom`, changed by
+    `OcptEditorPageZoomSelectedEvent` and `OcptEditorPageZoomSteppedEvent`.
+  - Ways to zoom: the status bar's `−  100 %  +` (`OcptEditorZoomControl`, in the status bar's
+    `control` slot, a menu of the steps and *Fit to width* behind the percentage, a button at the end
+    of the steps withheld), **Ctrl + wheel** (Cmd on macOS, `OcptEditorZoomWheel`) and **Ctrl** and
+    `+`/`=`/`−`/`0` (`OcptEditorZoomIntent`, mapped by the page; the styled editor's keyboard
+    actions claim none of them, so they bubble up like Ctrl+S). The wheel claims its event through
+    `GestureBinding.pointerSignalResolver`, but the scrollable nearest to the pointer registers first
+    and would scroll the page too: every scrollable under the wheel is therefore given
+    `OcptZoomWheelPhysics`, which refuses the user's offset while the modifier is held — a **constant**
+    instance, since a new one at every build is a new scroll behavior and made the styled editor's
+    history non-empty on mount. The styled editor keeps the point under the pointer
+    (`OcptStyledZoomAnchor`) and the centre of the area for the other ways.
+  - A page zoomed in wider than its area scrolls **horizontally** (`OcptStyledHorizontalOverflow`),
+    centred while it fits; at 100 % or less it is still scaled down to fit a narrow area
+    (`OcptStyledScaledToFit`). A **compact** window (`ocptIsCompactWidth`: a phone, a narrow window)
+    has no zoom at all: the control is withheld, the wheel and the shortcuts are ignored. Zoom is a
+    view setting, not a write, so it stays available under a read-only preview, whose preview shares
+    the layout.
+  - In raw mode the "fit to width" mode keeps the last measure the styled editor made (100 % at
+    first): the preview's own panel already scales a too-wide page down to fit.
+
 - A **scene jump** (a click in the scene panel) and a **find match** both land their target a
   third of the way down the editor's viewport, and each mode has its own trap to avoid. The styled
   editor moves its selection with its own reason, `ocptProgrammaticNavigationSelectionReason`,

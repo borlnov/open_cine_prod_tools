@@ -26,6 +26,24 @@ Pour basculer d'un mode à l'autre : **Ctrl+Maj+M** (ou le menu **⋮**). L'hist
 appartient à la surface où vous êtes : basculer repart d'un historique neuf, terminez donc une
 modification avant de changer.
 
+## Zoomer la page
+
+Vous pouvez zoomer la page, dans l'éditeur stylé et dans l'aperçu papier du mode brut (le texte
+Fountain brut garde sa taille). Le zoom est le même dans les deux, et il est mémorisé pour vous,
+quel que soit le projet.
+
+- Utilisez le **`−`**, le pourcentage et le **`+`** à droite de la barre d'état. Cliquez sur le
+  pourcentage pour la liste des tailles, de 50 % à 200 %, et **Ajuster à la largeur** : la page
+  remplit alors la largeur de la zone et suit la fenêtre quand vous la redimensionnez.
+- Maintenez **Ctrl** (**Cmd** sur Mac) et tournez la molette : un palier par cran, autour du point
+  sous le curseur. La molette seule fait toujours défiler.
+- **Ctrl** et **+** (ou **=**) zooment, **Ctrl** et **−** dézooment, **Ctrl** et **0** reviennent
+  à 100 %.
+
+La pagination ne change pas avec le zoom : les mêmes lignes tombent sur les mêmes pages. Quand la
+page est plus large que la zone, faites défiler latéralement. Sur un téléphone ou une fenêtre
+étroite, il n'y a pas de zoom.
+
 ## Les éléments que l'éditeur comprend
 
 L'éditeur reconnaît et met en forme les éléments standard d'un scénario : **en-têtes de
