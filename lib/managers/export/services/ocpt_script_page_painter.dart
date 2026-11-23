@@ -88,9 +88,10 @@ class OcptScriptPagePainter {
   /// printed text.
   ///
   /// [line] is the cell the mark belongs to: in a dual-dialogue row, the left or the right one,
-  /// which each carry their own indent. Resolves the line's alignment the same way the drawn [pw.RichText] does — a centered or
-  /// right-aligned line does not start at its element's left indent — so a mark drawn inside the
-  /// text (a coverage tick, a wash behind an uncovered run) lands on the character it names.
+  /// which each carry their own indent. Resolves the line's alignment the same way the drawn
+  /// [pw.RichText] does — a centered or right-aligned line does not start at its element's left
+  /// indent — so a mark drawn inside the text (a coverage tick, a wash behind an uncovered run)
+  /// lands on the character it names.
   double columnLeftPt({required FountainScriptLine line, required int column}) {
     final boxLeftPt = line.leftIndentInches * ocptPdfPointsPerInch;
     final freeWidthPt =

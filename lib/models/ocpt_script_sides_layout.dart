@@ -135,10 +135,13 @@ class OcptScriptSidesLayout extends Equatable {
     for (final page in script.pages) ...page.lines,
   ];
 
-  /// Get the first and last index, into [lines], whose own `FountainScriptLine.sourceRange`
-  /// overlaps
+  /// Get the first and last index, into [lines], of a row one of whose cells has a
+  /// `FountainScriptLine.sourceRange` overlapping
   /// [span] — the same overlap test `OcptScenarioCoverageLayout._segmentsOf` uses for a coverage
-  /// range — or null when no line overlaps it at all.
+  /// range — or null when no row overlaps it at all.
+  ///
+  /// Every cell of a dual-dialogue row is tested, so a scene whose only match sits in a right
+  /// column still selects the row it is printed on.
   static (int, int)? _rowRangeOf(
     ({int charStart, int charEnd}) span,
     List<FountainScriptLine> lines,
@@ -146,11 +149,13 @@ class OcptScriptSidesLayout extends Equatable {
     int? first;
     var last = 0;
     for (var index = 0; index < lines.length; index++) {
-      final source = lines[index].sourceRange;
-      if (source == null) {
-        continue;
-      }
-      if (source.startOffset < span.charEnd && source.endOffset > span.charStart) {
+      final overlaps = lines[index].cells.any((cell) {
+        final source = cell.sourceRange;
+        return source != null &&
+            source.startOffset < span.charEnd &&
+            source.endOffset > span.charStart;
+      });
+      if (overlaps) {
         first ??= index;
         last = index;
       }
