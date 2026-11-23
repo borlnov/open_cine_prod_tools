@@ -14,6 +14,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_sync_status
 /// screenplay status bar's own "sign count drops first, then word count, pages/scenes/characters
 /// always stay" behaviour to any ordered counter list.
 ///
+/// A mode may hand a [control] of its own, shown on the right before [trailing] (the screenplay's
+/// page zoom): it takes a fixed [controlSlotWidth], which the summary leaves free, and the other
+/// modes, which pass none, show the bar they always did.
+///
 /// [OcptSyncStatusIndicator] is built here, once, rather than by each mode's own status bar
 /// wrapper: every mode reaches this same widget (the screenplay editor included, straight off
 /// `OcptWorkspaceStatusBar` rather than through a wrapper of its own), so this is the one place
@@ -21,6 +25,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_sync_status
 /// all for a project with no sync session running (unpaired, or not yet started), so a mode with
 /// nothing to say about sync simply shows the same status bar it always has.
 class OcptWorkspaceStatusBar extends StatelessWidget {
+  /// The width left to the optional [control], in logical pixels.
+  static const double controlSlotWidth = 150;
+
   /// The at-a-glance counters to show, in the order they should be dropped from (last first).
   final List<String> counters;
 
@@ -39,6 +46,10 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
   /// The widget shown to the right of the summary.
   final Widget trailing;
 
+  /// A control of the mode shown to the right of the summary, before [trailing], or null for none.
+  /// It is laid out in [controlSlotWidth].
+  final Widget? control;
+
   /// Class constructor
   const OcptWorkspaceStatusBar({
     super.key,
@@ -46,6 +57,7 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
     required this.nonDroppableCount,
     required this.trailingText,
     required this.trailing,
+    this.control,
   });
 
   /// Build the workspace status bar as a [ColoredBox].
@@ -61,13 +73,18 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final summary = _fittingSummary(constraints.maxWidth, style, direction);
+            final summary = _fittingSummary(
+              constraints.maxWidth - (control == null ? 0 : controlSlotWidth),
+              style,
+              direction,
+            );
 
             return Row(
               children: [
                 Expanded(
                   child: Text(summary, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
+                if (control != null) SizedBox(width: controlSlotWidth, child: control),
                 Text(" · ", style: style),
                 trailing,
                 const OcptSyncStatusIndicator(),

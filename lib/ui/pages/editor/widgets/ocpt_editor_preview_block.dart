@@ -21,7 +21,8 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   /// The text scaler every run of the page is laid out with: none.
   ///
   /// This is a simulation of printed paper, whose type size is the page's own (12-point Courier
-  /// rendered at [OcptEditorPreviewLayout.fontSize]), not a UI type size. Letting the platform's
+  /// rendered at [OcptEditorPreviewLayout.baseFontSize] times the zoom), not a UI type size.
+  /// Letting the platform's
   /// font-scaling preference through would grow the glyphs without growing the page, and the
   /// content would then overflow its simulated sheet exactly the way an inherited `letterSpacing`
   /// does (see [_baseStyle]). The panel scales the whole page down instead when it is too narrow
@@ -52,7 +53,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   TextStyle get _baseStyle => TextStyle(
     inherit: false,
     fontFamily: OcptEditorPreviewLayout.fontFamily,
-    fontSize: OcptEditorPreviewLayout.fontSize,
+    fontSize: layout.fontSize,
     height: layout.lineHeightFactor,
     leadingDistribution: TextLeadingDistribution.even,
     color: Colors.black,

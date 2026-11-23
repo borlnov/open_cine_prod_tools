@@ -16,6 +16,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_sc
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_find_bar_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_area.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_wheel.dart';
 
 /// The editor itself (raw source field or styled block editor), the shell's `centre`, or the
 /// read-only formatted preview while a project version is being previewed.
@@ -33,6 +35,13 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_
 /// is merely compact (a tablet too, not only a phone — see [isCompact]), which is the phone
 /// default: raw source and this same read-only preview (its own version-preview branch above)
 /// have no room to be usable there either.
+///
+/// The page zoom ([OcptEditorState.styledPageZoom]) is handed to the styled editor and to the
+/// preview, so the sheet is typeset at it; the raw source keeps its size. While it is the "fit to
+/// width" mode, the sheet is sized to the width of this area (a styled editor or a version
+/// preview: the raw mode's preview lives in a dock of its own and keeps the last measure), and the
+/// factor is reported back to the bloc, which is where a step starts from. A compact window has no
+/// zoom ([isZoomAvailable]): the page is at 100 % and the wheel is left alone.
 ///
 /// The find/replace bar is a *slot* that is always there — an empty box while it is closed —
 /// rather than a child that comes and goes. A collection-`if` would move the editing surface
@@ -58,6 +67,9 @@ class OcptEditorCentre extends StatelessWidget {
 
   /// Whether the window is a phone, which has the styled editor use paper colours while fluid.
   final bool isPhoneWidth;
+
+  /// Whether the page can be zoomed: false on a compact window, which has no zoom at all.
+  final bool isZoomAvailable;
 
   /// The controller holding the live raw source text and selection.
   final OcptEditorSearchTextController textController;
@@ -87,6 +99,7 @@ class OcptEditorCentre extends StatelessWidget {
     required this.isPageSimulationLive,
     required this.isCompact,
     required this.isPhoneWidth,
+    required this.isZoomAvailable,
     required this.textController,
     required this.scrollController,
     required this.focusNode,
@@ -100,12 +113,26 @@ class OcptEditorCentre extends StatelessWidget {
   /// Build the editor centre as a [Column].
   @override
   Widget build(BuildContext context) {
+    final editorBloc = context.read<OcptEditorBloc>();
+    void onStep(int direction) =>
+        editorBloc.add(OcptEditorPageZoomSteppedEvent(direction: direction));
+    void onFit(double factor) => editorBloc.add(OcptEditorFitPageZoomMeasuredEvent(factor: factor));
+
     if (state.isPreviewingVersion) {
-      return OcptEditorPreview(
-        document: state.document,
+      return OcptEditorZoomArea(
+        zoom: state.styledPageZoom,
         pageSetup: state.pageSetup,
-        currentLine: state.currentLine,
-        isPageSimulationEnabled: state.isPageSimulationEnabled,
+        isZoomAvailable: isZoomAvailable,
+        onFitFactorMeasured: onFit,
+        onZoomStepRequested: onStep,
+        builder: (factor, onZoomStepRequested) => OcptEditorPreview(
+          document: state.document,
+          pageSetup: state.pageSetup,
+          currentLine: state.currentLine,
+          isPageSimulationEnabled: state.isPageSimulationEnabled,
+          zoom: factor,
+          onZoomStepRequested: onZoomStepRequested,
+        ),
       );
     }
 
@@ -113,31 +140,43 @@ class OcptEditorCentre extends StatelessWidget {
     // `deactivate`, which runs after this widget was itself deactivated (the shell moves its centre
     // between the row and the drawers, and leaving the page does the same), so a `context.read`
     // made when the callback runs would look up an inactive element and lose the edit.
-    final editorBloc = context.read<OcptEditorBloc>();
     final spellCheckBloc = context.read<OcptEditorSpellCheckBloc>();
 
+    // The raw source keeps its size: a Ctrl + wheel over it zooms the preview in its dock.
     final editingSurface = isRawMode
-        ? OcptEditorSourceField(
-            controller: textController,
-            scrollController: scrollController,
-            focusNode: focusNode,
-            undoController: undoController,
+        ? OcptEditorZoomWheel(
+            onZoomStepRequested: isZoomAvailable ? (direction, _) => onStep(direction) : null,
+            child: OcptEditorSourceField(
+              controller: textController,
+              scrollController: scrollController,
+              focusNode: focusNode,
+              undoController: undoController,
+            ),
           )
-        : OcptStyledScreenplayEditor(
-            text: state.text,
+        : OcptEditorZoomArea(
+            zoom: state.styledPageZoom,
             pageSetup: state.pageSetup,
-            isPageSimulationEnabled: isPageSimulationLive,
-            isCompact: isCompact,
-            usesPaperColorsWhileFluid: isPhoneWidth,
-            areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
-            isSpellCheckVisible: state.isSpellCheckVisible,
-            onTextChanged: (text) => editorBloc.add(OcptEditorTextChangedEvent(text: text)),
-            onCaretLineChanged: (line) => editorBloc.add(OcptEditorCaretMovedEvent(line: line)),
-            jumpRequest: state.jumpRequest,
-            styledController: styledController,
-            onSpellingSuggestionsRequested: spellCheckBloc.spellingSuggestionsFor,
-            onWordIgnored: (word) => spellCheckBloc.add(OcptEditorWordIgnoredEvent(word: word)),
-            onWordLearned: (word) => spellCheckBloc.add(OcptEditorWordLearnedEvent(word: word)),
+            isZoomAvailable: isZoomAvailable,
+            onFitFactorMeasured: onFit,
+            onZoomStepRequested: onStep,
+            builder: (factor, onZoomStepRequested) => OcptStyledScreenplayEditor(
+              text: state.text,
+              pageSetup: state.pageSetup,
+              isPageSimulationEnabled: isPageSimulationLive,
+              isCompact: isCompact,
+              usesPaperColorsWhileFluid: isPhoneWidth,
+              zoom: factor,
+              onZoomStepRequested: onZoomStepRequested,
+              areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
+              isSpellCheckVisible: state.isSpellCheckVisible,
+              onTextChanged: (text) => editorBloc.add(OcptEditorTextChangedEvent(text: text)),
+              onCaretLineChanged: (line) => editorBloc.add(OcptEditorCaretMovedEvent(line: line)),
+              jumpRequest: state.jumpRequest,
+              styledController: styledController,
+              onSpellingSuggestionsRequested: spellCheckBloc.spellingSuggestionsFor,
+              onWordIgnored: (word) => spellCheckBloc.add(OcptEditorWordIgnoredEvent(word: word)),
+              onWordLearned: (word) => spellCheckBloc.add(OcptEditorWordLearnedEvent(word: word)),
+            ),
           );
 
     return Column(

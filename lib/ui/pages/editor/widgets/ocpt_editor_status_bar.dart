@@ -8,18 +8,24 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_statistics_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_statistics_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_saved_time_segment.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 
 /// The shell's `statusBar`: the screenplay's own ordered counters (pages, scenes, characters,
-/// words, signs — the first three never dropped) plus the self-refreshing last-saved segment.
+/// words, signs — the first three never dropped), the page zoom control while the page can be
+/// zoomed ([isZoomAvailable]) and the self-refreshing last-saved segment.
 ///
 /// Only the statistics bloc's state rebuilds it, so a keystroke does not.
 class OcptEditorStatusBar extends StatelessWidget {
   /// The time of the last successful save, or null if nothing was saved in this session yet.
   final DateTime? lastSavedAt;
 
+  /// Whether the page can be zoomed, which is what shows the zoom control: a compact window has no
+  /// zoom at all.
+  final bool isZoomAvailable;
+
   /// Class constructor
-  const OcptEditorStatusBar({required this.lastSavedAt, super.key});
+  const OcptEditorStatusBar({required this.lastSavedAt, required this.isZoomAvailable, super.key});
 
   /// Build the editor status bar as a [BlocBuilder].
   @override
@@ -41,6 +47,7 @@ class OcptEditorStatusBar extends StatelessWidget {
           nonDroppableCount: 3,
           trailingText: OcptEditorSavedTimeSegment.textFor(context, lastSavedAt),
           trailing: OcptEditorSavedTimeSegment(lastSavedAt: lastSavedAt),
+          control: isZoomAvailable ? const OcptEditorZoomSlot() : null,
         );
       },
     );

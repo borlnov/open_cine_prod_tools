@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_wheel.dart';
 
 /// The formatted preview: a simulated paper page (white paper, black Courier text, even in dark
 /// theme) rendering the parsed screenplay with its true print layout.
@@ -50,6 +51,14 @@ class OcptEditorPreview extends StatefulWidget {
   /// than rendered as a single continuous sheet.
   final bool isPageSimulationEnabled;
 
+  /// The zoom factor the sheets are typeset at (`OcptEditorPreviewLayout.zoom`). At more than 100 %
+  /// a page wider than the panel is scrolled sideways rather than scaled down to fit it.
+  final double zoom;
+
+  /// Called with the way to step the zoom (-1 out, 1 in) on a Ctrl + wheel notch over the preview;
+  /// null when the page can't be zoomed here, which leaves the wheel alone.
+  final ValueChanged<int>? onZoomStepRequested;
+
   /// Class constructor
   const OcptEditorPreview({
     super.key,
@@ -57,6 +66,8 @@ class OcptEditorPreview extends StatefulWidget {
     required this.pageSetup,
     required this.currentLine,
     required this.isPageSimulationEnabled,
+    this.zoom = 1,
+    this.onZoomStepRequested,
   });
 
   /// Create the [_OcptEditorPreviewState] holding the state of the editor preview.
@@ -78,12 +89,18 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   /// The controller of the page's vertical scroll, used by the caret scroll sync.
   final ScrollController _scrollController = ScrollController();
 
+  /// The controller of the horizontal scroll a zoomed-in page wider than the panel gets.
+  final ScrollController _horizontalScrollController = ScrollController();
+
   /// The document and page-simulation flag [_blocks], [_pages] and [_blockOffsets] were computed
   /// from, to only recompute them when either actually changes.
   FountainDocument? _cachedDocument;
 
   /// See [_cachedDocument].
   bool _cachedIsPageSimulationEnabled = false;
+
+  /// The zoom [_blockOffsets] were computed at, which moves every block's offset.
+  double _cachedZoom = 1;
 
   /// The printable blocks of [_cachedDocument], in source order (a [FountainPageBreak] is kept
   /// here for [_blockIndexForLine]'s sake even when [_pages] doesn't render it as content).
@@ -105,6 +122,9 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   @override
   void didUpdateWidget(OcptEditorPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.zoom != widget.zoom) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _keepScrollProportion(oldWidget.zoom));
+    }
     if (oldWidget.currentLine != widget.currentLine || oldWidget.document != widget.document) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _syncScrollToCurrentLine());
     }
@@ -113,7 +133,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   /// Build the editor preview as a [ColoredBox].
   @override
   Widget build(BuildContext context) {
-    final layout = OcptEditorPreviewLayout(metrics: _metrics);
+    final layout = OcptEditorPreviewLayout(metrics: _metrics, zoom: widget.zoom);
     _refreshCaches(layout);
 
     // Painted by this widget itself, not by `OcptWorkspaceDock` (whose color is shared with the
@@ -149,63 +169,92 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     return ColoredBox(
       color: backdropColor,
       child: RepaintBoundary(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final unscaledWidth = layout.pageWidth + _pagePadding * 2;
-            if (constraints.maxWidth >= unscaledWidth) {
-              return SizedBox(
-                width: constraints.maxWidth,
-                height: constraints.maxHeight,
-                child: Center(
-                  child: SizedBox(width: layout.pageWidth, child: content),
+        child: OcptEditorZoomWheel(
+          onZoomStepRequested: widget.onZoomStepRequested == null
+              ? null
+              : (direction, _) => widget.onZoomStepRequested!(direction),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final unscaledWidth = layout.pageWidth + _pagePadding * 2;
+              if (constraints.maxWidth >= unscaledWidth) {
+                return SizedBox(
+                  width: constraints.maxWidth,
+                  height: constraints.maxHeight,
+                  child: Center(
+                    child: SizedBox(width: layout.pageWidth, child: content),
+                  ),
+                );
+              }
+
+              // A page zoomed in is not scaled down to fit: the panel scrolls sideways over it.
+              if (widget.zoom > 1) {
+                return Scrollbar(
+                  controller: _horizontalScrollController,
+                  notificationPredicate: (notification) =>
+                      notification.metrics.axis == Axis.horizontal,
+                  child: SingleChildScrollView(
+                    controller: _horizontalScrollController,
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: unscaledWidth,
+                      height: constraints.maxHeight,
+                      child: Center(
+                        child: SizedBox(width: layout.pageWidth, child: content),
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              // The panel is narrower than the full page: scale the whole page down to fit it,
+              // rather than crop it with horizontal scroll. `height` is inflated by the inverse of `scale`
+              // so the scaled-down viewport exactly fills the panel: `_scrollController`'s
+              // viewport/target math, entirely computed in this unscaled space (see
+              // `_syncScrollToCurrentLine`), stays valid without any adjustment.
+              //
+              // This must be a `FittedBox`, not a `Transform.scale` wrapping a merely wide
+              // `SizedBox`: this whole subtree already sits under a *tight* incoming width
+              // constraint
+              // (an `Expanded` panel gives one), and a plain `SizedBox` cannot exceed a tight
+              // constraint — it silently clamps back down to `constraints.maxWidth`, one level too
+              // late for `Transform.scale` to notice, which then scales down and anchors against
+              // that
+              // wrong (already-narrow) box instead of the true, wider page — visibly displacing the
+              // left margin while the vertical margins (unaffected by this) still line up.
+              // `FittedBox` sidesteps this: it always lays its child out with fully unconstrained
+              // constraints, so the inner `SizedBox` genuinely achieves `unscaledWidth`, and
+              // `FittedBox` itself then measures that real size to compute the correct scale and
+              // centering.
+              final scale = constraints.maxWidth / unscaledWidth;
+              return FittedBox(
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: unscaledWidth,
+                  height: constraints.maxHeight / scale,
+                  child: Center(
+                    child: SizedBox(width: layout.pageWidth, child: content),
+                  ),
                 ),
               );
-            }
-
-            // The panel is narrower than the full page: scale the whole page down to fit it, rather
-            // than crop it with horizontal scroll. `height` is inflated by the inverse of `scale`
-            // so the scaled-down viewport exactly fills the panel: `_scrollController`'s
-            // viewport/target math, entirely computed in this unscaled space (see
-            // `_syncScrollToCurrentLine`), stays valid without any adjustment.
-            //
-            // This must be a `FittedBox`, not a `Transform.scale` wrapping a merely wide
-            // `SizedBox`: this whole subtree already sits under a *tight* incoming width constraint
-            // (an `Expanded` panel gives one), and a plain `SizedBox` cannot exceed a tight
-            // constraint — it silently clamps back down to `constraints.maxWidth`, one level too
-            // late for `Transform.scale` to notice, which then scales down and anchors against that
-            // wrong (already-narrow) box instead of the true, wider page — visibly displacing the
-            // left margin while the vertical margins (unaffected by this) still line up.
-            // `FittedBox` sidesteps this: it always lays its child out with fully unconstrained
-            // constraints, so the inner `SizedBox` genuinely achieves `unscaledWidth`, and
-            // `FittedBox` itself then measures that real size to compute the correct scale and
-            // centering.
-            final scale = constraints.maxWidth / unscaledWidth;
-            return FittedBox(
-              alignment: Alignment.topCenter,
-              child: SizedBox(
-                width: unscaledWidth,
-                height: constraints.maxHeight / scale,
-                child: Center(
-                  child: SizedBox(width: layout.pageWidth, child: content),
-                ),
-              ),
-            );
-          },
+            },
+          ),
         ),
       ),
     );
   }
 
-  /// Recompute [_blocks], [_pages] and [_blockOffsets] if the document or the page-simulation
-  /// flag changed since the last build.
+  /// Recompute [_blocks], [_pages] and [_blockOffsets] if the document, the page-simulation flag
+  /// or the zoom changed since the last build.
   void _refreshCaches(OcptEditorPreviewLayout layout) {
     final document = widget.document;
     if (identical(document, _cachedDocument) &&
-        _cachedIsPageSimulationEnabled == widget.isPageSimulationEnabled) {
+        _cachedIsPageSimulationEnabled == widget.isPageSimulationEnabled &&
+        _cachedZoom == widget.zoom) {
       return;
     }
     _cachedDocument = document;
     _cachedIsPageSimulationEnabled = widget.isPageSimulationEnabled;
+    _cachedZoom = widget.zoom;
 
     if (document == null) {
       _blocks = const [];
@@ -318,7 +367,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
       return;
     }
 
-    final layout = OcptEditorPreviewLayout(metrics: _metrics);
+    final layout = OcptEditorPreviewLayout(metrics: _metrics, zoom: widget.zoom);
     final position = _scrollController.position;
     final target = _blockOffsets[index];
 
@@ -356,10 +405,24 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     return candidate;
   }
 
-  /// Dispose [_scrollController].
+  /// Keep the page at the same proportion of its height once it is laid out at [widget]'s zoom
+  /// after having been laid out at [oldZoom].
+  void _keepScrollProportion(double oldZoom) {
+    if (!mounted || !_scrollController.hasClients) {
+      return;
+    }
+
+    final position = _scrollController.position;
+    _scrollController.jumpTo(
+      (position.pixels * widget.zoom / oldZoom).clamp(0, position.maxScrollExtent),
+    );
+  }
+
+  /// Dispose [_scrollController] and [_horizontalScrollController].
   @override
   void dispose() {
     _scrollController.dispose();
+    _horizontalScrollController.dispose();
     super.dispose();
   }
 }

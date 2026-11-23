@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/widgets.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_horizontal_overflow.dart';
 
 /// Lay [page] out at its true [pageWidth] and, when [constraints] are narrower than that, scales
 /// the whole thing down to fit rather than letting it be squeezed.
@@ -21,6 +22,9 @@ import 'package:flutter/widgets.dart';
 /// around a wide [SizedBox]: under the tight width constraint the panel hands down, a plain
 /// [SizedBox] silently clamps back to that width instead of achieving the page's own (see
 /// `OcptEditorPreview` for the same trap).
+///
+/// A page zoomed in is not scaled down: with a [horizontalScrollController], the area scrolls
+/// horizontally over the page instead (`OcptStyledHorizontalOverflow`).
 class OcptStyledScaledToFit extends StatelessWidget {
   /// The constraints the panel hands down, compared against [pageWidth].
   final BoxConstraints constraints;
@@ -31,12 +35,17 @@ class OcptStyledScaledToFit extends StatelessWidget {
   /// The page content to lay out at [pageWidth].
   final Widget page;
 
+  /// The controller of the horizontal scroll, or null to scale the page down to fit instead of
+  /// scrolling over it.
+  final ScrollController? horizontalScrollController;
+
   /// Create an [OcptStyledScaledToFit].
   const OcptStyledScaledToFit({
     super.key,
     required this.constraints,
     required this.pageWidth,
     required this.page,
+    this.horizontalScrollController,
   });
 
   /// Build the styled scaled to fit as a [FittedBox].
@@ -45,6 +54,16 @@ class OcptStyledScaledToFit extends StatelessWidget {
     final sizedPage = SizedBox(width: pageWidth, child: page);
     if (constraints.maxWidth >= pageWidth) {
       return Center(child: sizedPage);
+    }
+
+    final horizontalScrollController = this.horizontalScrollController;
+    if (horizontalScrollController != null) {
+      return OcptStyledHorizontalOverflow(
+        constraints: constraints,
+        minWidth: pageWidth,
+        controller: horizontalScrollController,
+        child: sizedPage,
+      );
     }
 
     final scale = constraints.maxWidth / pageWidth;

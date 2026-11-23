@@ -44,6 +44,9 @@ final class OcptStyledPageSimulation {
   /// Resolves the page setup driving the layout metrics.
   final OcptPageSetup Function() _pageSetupOf;
 
+  /// Resolves the zoom factor the page is typeset at.
+  final double Function() _zoomOf;
+
   /// Get the document the pagination is computed over.
   MutableDocument get _document => _documentOf();
 
@@ -57,6 +60,7 @@ final class OcptStyledPageSimulation {
     required void Function(VoidCallback derivedPass) runDerivedPass,
     required bool Function() isEnabled,
     required OcptPageSetup Function() pageSetupOf,
+    required double Function() zoomOf,
   }) : pageCount = 0,
        titlePageSheetCount = 0,
        trailingBottomPadding = 0,
@@ -64,7 +68,8 @@ final class OcptStyledPageSimulation {
        _editorOf = editorOf,
        _runDerivedPass = runDerivedPass,
        _isEnabled = isEnabled,
-       _pageSetupOf = pageSetupOf;
+       _pageSetupOf = pageSetupOf,
+       _zoomOf = zoomOf;
 
   /// Recompute which nodes start a fresh simulated page (their exact top padding stored as
   /// [ocptStartsNewPageMetadataKey] metadata, read by `OcptFountainEditorStylesheet`'s
@@ -106,7 +111,11 @@ final class OcptStyledPageSimulation {
     }
 
     final metrics = _pageSetupOf().toMetrics();
-    final pagination = computeOcptStyledPagination(document: _document, metrics: metrics);
+    final pagination = computeOcptStyledPagination(
+      document: _document,
+      metrics: metrics,
+      zoom: _zoomOf(),
+    );
 
     final requests = <EditRequest>[
       for (final node in _document)

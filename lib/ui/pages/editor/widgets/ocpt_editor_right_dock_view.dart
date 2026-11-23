@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
@@ -51,12 +52,20 @@ class OcptEditorRightDockView extends StatelessWidget {
       mode: liveMode,
       isReadOnly: state.isPreviewingVersion,
     );
+    final isZoomAvailable = !ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
     final previewChild = isPreviewTabAvailable && rightDockTab == OcptEditorRightDockTab.preview
         ? OcptEditorPreview(
             document: state.document,
             pageSetup: state.pageSetup,
             currentLine: state.currentLine,
             isPageSimulationEnabled: state.isPageSimulationEnabled,
+            // A compact window has no zoom: the preview stays at 100 %.
+            zoom: isZoomAvailable ? state.pageZoomFactor : 1,
+            onZoomStepRequested: isZoomAvailable
+                ? (direction) => context.read<OcptEditorBloc>().add(
+                    OcptEditorPageZoomSteppedEvent(direction: direction),
+                  )
+                : null,
           )
         : null;
 

@@ -494,4 +494,53 @@ void main() {
       expect(find.textContaining("==="), findsNothing);
     },
   );
+
+  testWidgets("a zoomed preview typesets the sheet at the zoomed page width", (tester) async {
+    final zoomed = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter(), zoom: 1.5);
+    final zoomedPanelWidth = zoomed.pageWidth + pagePadding * 2;
+    _widenTestSurface(tester, zoomedPanelWidth);
+    final document = const FountainParser().parse(_longSampleText);
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptEditorPreview(
+          document: document,
+          pageSetup: const OcptPageSetup.standard(),
+          currentLine: 0,
+          isPageSimulationEnabled: false,
+          zoom: 1.5,
+        ),
+        width: zoomedPanelWidth,
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.getRect(find.byType(Material)).width, closeTo(zoomed.pageWidth, 0.5));
+    expect(find.byType(SingleChildScrollView), findsNothing);
+  });
+
+  testWidgets("a page zoomed in wider than the panel scrolls sideways instead of scaling", (
+    tester,
+  ) async {
+    _widenTestSurface(tester, unscaledPanelWidth);
+    final document = const FountainParser().parse(_longSampleText);
+    final zoomed = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter(), zoom: 2);
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptEditorPreview(
+          document: document,
+          pageSetup: const OcptPageSetup.standard(),
+          currentLine: 0,
+          isPageSimulationEnabled: false,
+          zoom: 2,
+        ),
+        width: unscaledPanelWidth,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    expect(tester.getRect(find.byType(Material)).width, closeTo(zoomed.pageWidth, 0.5));
+  });
 }

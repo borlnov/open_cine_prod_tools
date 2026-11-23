@@ -34,11 +34,14 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_sc
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_spell_check_ranges.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_placeholders.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_zoom_anchor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_component_builder.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_guard_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_wheel.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_zoom_wheel_physics.dart';
 import 'package:spell_kit/spell_kit.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -110,6 +113,14 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// `computeOcptStyledSceneNumbers`) in its left gutter.
   final bool areSceneNumbersVisible;
 
+  /// The zoom factor the page is typeset at (`OcptEditorPreviewLayout.zoom`): it re-typesets the
+  /// text, it doesn't magnify it.
+  final double zoom;
+
+  /// Called with the way to step the zoom (-1 out, 1 in) on a Ctrl + wheel notch over the editor;
+  /// null when the page can't be zoomed here, which leaves the wheel alone.
+  final ValueChanged<int>? onZoomStepRequested;
+
   /// Whether this machine wants the spell-check underlines shown at all — the machine's own on/off
   /// switch (`docs/architecture/screenplay.md`), travelling down the same way
   /// [areSceneNumbersVisible] does rather than through the bloc directly: this widget knows nothing
@@ -158,6 +169,8 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     required this.isPageSimulationEnabled,
     this.isCompact = false,
     this.usesPaperColorsWhileFluid = false,
+    this.zoom = 1,
+    this.onZoomStepRequested,
     required this.areSceneNumbersVisible,
     required this.isSpellCheckVisible,
     required this.onTextChanged,
@@ -288,6 +301,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// position.
   final ScrollController _pageScrollController = ScrollController();
 
+  /// The controller of the horizontal scroll a zoomed-in page wider than the area gets.
+  final ScrollController _horizontalScrollController = ScrollController();
+
+  /// The keeper of the point the zoom was made around.
+  late final OcptStyledZoomAnchor _zoomAnchor = OcptStyledZoomAnchor(
+    vertical: _pageScrollController,
+    horizontal: _horizontalScrollController,
+  );
+
   /// The page simulation bookkeeping: the page count, the title page's share of it and the bottom
   /// padding the stylesheet needs. Resolves the document and the editor at call time, since both
   /// are replaced by [_rebuildEditorFrom].
@@ -297,6 +319,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     runDerivedPass: _runDerivedPass,
     isEnabled: () => widget.isPageSimulationEnabled,
     pageSetupOf: () => widget.pageSetup,
+    zoomOf: () => widget.zoom,
   );
 
   /// The reporter of the toolbar's read state (caret block type, active inline styles, undo/redo
@@ -419,8 +442,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       // it, every title-page field's own presence/absence) is fresh.
       _spellCheck.styler.clearAllErrors();
       _reportSpellCheckTexts();
-    } else if (widget.pageSetup != oldWidget.pageSetup) {
+    } else if (widget.pageSetup != oldWidget.pageSetup || widget.zoom != oldWidget.zoom) {
       setState(_pageSimulation.recompute);
+      _zoomAnchor.apply(
+        box: context.findRenderObject(),
+        metrics: widget.pageSetup.toMetrics(),
+        oldZoom: oldWidget.zoom,
+        newZoom: widget.zoom,
+        isCentred: widget.isPageSimulationEnabled,
+      );
     }
 
     // The visibility switch itself (`docs/architecture/screenplay.md`) touches no text
@@ -460,7 +490,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final metrics = widget.pageSetup.toMetrics();
-    final layout = OcptEditorPreviewLayout(metrics: metrics);
+    final layout = OcptEditorPreviewLayout(metrics: metrics, zoom: widget.zoom);
     // The fluid surface opts into paper colors on a phone (see [usesPaperColorsWhileFluid]); a
     // simulated page always paints paper regardless.
     final usePaperColors = widget.isPageSimulationEnabled || widget.usesPaperColorsWhileFluid;
@@ -480,7 +510,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             layout: layout,
             textStyle: TextStyle(
               fontFamily: OcptEditorPreviewLayout.fontFamily,
-              fontSize: OcptEditorPreviewLayout.fontSize,
+              fontSize: layout.fontSize,
               height: layout.lineHeightFactor,
               color: onSurface,
             ),
@@ -496,6 +526,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
               color: resolvedStyle.color?.withValues(alpha: 0.4),
             ),
             metrics: metrics,
+            zoom: widget.zoom,
           ),
         ...defaultComponentBuilders,
       ],
@@ -521,6 +552,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         trailingBottomPadding: _pageSimulation.trailingBottomPadding,
         isCompact: widget.isCompact,
         usePaperColors: widget.usesPaperColorsWhileFluid,
+        zoom: widget.zoom,
       ),
     );
 
@@ -536,12 +568,18 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // than the `OcptEditorPreviewLayout` metrics `computeOcptStyledPagination` sized each simulated
     // sheet with, spilling out under its bottom edge. The raw preview pins it the same way, for the
     // same reason (see `OcptEditorPreviewBlock`).
+    final scrollBehavior = ScrollConfiguration.of(context);
     final editorWithoutImplicitScrollbar = MediaQuery.withNoTextScaling(
       child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        behavior: scrollBehavior.copyWith(
+          scrollbars: false,
+          physics: const OcptZoomWheelPhysics(),
+        ),
         child: editor,
       ),
     );
+    // Only a page zoomed in scrolls sideways; the others are scaled down to fit a narrow area.
+    final horizontalScroller = widget.zoom > 1 ? _horizontalScrollController : null;
 
     final content = !widget.isPageSimulationEnabled
         ? OcptStyledFluidSurface(
@@ -549,6 +587,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             usePaperColors: usePaperColors,
             scrollController: _pageScrollController,
             editor: editorWithoutImplicitScrollbar,
+            horizontalScrollController: horizontalScroller,
+            minContentWidth: OcptStyledZoomAnchor.fluidContentWidthOf(layout),
           )
         : OcptStyledPageSimulationSurface(
             theme: theme,
@@ -557,11 +597,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             pageCount: _pageSimulation.pageCount,
             titlePageSheetCount: _pageSimulation.titlePageSheetCount,
             editor: editorWithoutImplicitScrollbar,
+            horizontalScrollController: horizontalScroller,
           );
 
     // Wrapped once here, rather than once per branch above: a right-click anywhere over the
     // document, fluid surface or simulated page alike, opens the same context menu.
-    return _contextMenu.wrap(child: content, onTypeSelected: applyBlockType);
+    return OcptEditorZoomWheel(
+      onZoomStepRequested: _zoomAnchor.wheelCallback(widget.onZoomStepRequested),
+      child: _contextMenu.wrap(child: content, onTypeSelected: applyBlockType),
+    );
   }
 
   /// Take back the writer's last gesture, plus everything this widget derived from it.
@@ -949,6 +993,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _disposeEditor();
     _focusNode.dispose();
     _pageScrollController.dispose();
+    _horizontalScrollController.dispose();
     super.dispose();
   }
 }

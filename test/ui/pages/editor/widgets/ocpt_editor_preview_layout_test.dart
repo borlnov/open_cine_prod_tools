@@ -55,11 +55,38 @@ void main() {
       ) async {
         final layout = OcptEditorPreviewLayout(metrics: metrics.value);
 
-        expect(
-          layout.lineHeightFactor * OcptEditorPreviewLayout.fontSize,
-          closeTo(layout.lineHeight, 0.001),
-        );
+        expect(layout.lineHeightFactor * layout.fontSize, closeTo(layout.lineHeight, 0.001));
       });
     }
+  });
+
+  group("OcptEditorPreviewLayout zoom", () {
+    final metrics = FountainLayoutMetrics.usLetter();
+
+    testWidgets("a zoom of 2 doubles the glyph, the page and the line, not the line count", (
+      tester,
+    ) async {
+      final actual = OcptEditorPreviewLayout(metrics: metrics);
+      final zoomed = OcptEditorPreviewLayout(metrics: metrics, zoom: 2);
+
+      expect(zoomed.fontSize, OcptEditorPreviewLayout.baseFontSize * 2);
+      expect(zoomed.glyphWidth, closeTo(actual.glyphWidth * 2, 0.01));
+      expect(zoomed.pixelsPerInch, closeTo(actual.pixelsPerInch * 2, 0.1));
+      expect(zoomed.lineHeight, closeTo(actual.lineHeight * 2, 0.05));
+      expect(zoomed.pageWidth, closeTo(actual.pageWidth * 2, 0.5));
+      expect(zoomed.pageHeight, closeTo(actual.pageHeight * 2, 0.5));
+      expect(zoomed.marginLeft, closeTo(actual.marginLeft * 2, 0.1));
+      expect(zoomed.lineHeightFactor, closeTo(actual.lineHeightFactor, 0.001));
+
+      final block = const FountainParser()
+          .parse("A long line of action that wraps over several lines. " * 4)
+          .blocks
+          .first;
+      expect(zoomed.estimatedLineCount(block), actual.estimatedLineCount(block));
+    });
+
+    testWidgets("the default zoom is 100 %", (tester) async {
+      expect(OcptEditorPreviewLayout(metrics: metrics).zoom, 1);
+    });
   });
 }

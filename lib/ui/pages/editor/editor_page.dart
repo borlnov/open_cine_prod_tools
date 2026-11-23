@@ -10,6 +10,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_page_zoom.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
@@ -39,6 +40,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_read_on
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_intent.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_toolbar_menu_item_label.dart';
@@ -278,6 +280,7 @@ class _EditorViewState extends State<_EditorView> {
   @override
   Widget build(BuildContext context) => Shortcuts(
     shortcuts: const {
+      ...OcptEditorZoomIntent.shortcuts,
       SingleActivator(LogicalKeyboardKey.keyS, control: true): _SaveIntent(),
       SingleActivator(LogicalKeyboardKey.keyS, meta: true): _SaveIntent(),
       SingleActivator(LogicalKeyboardKey.keyM, control: true, shift: true): _ModeToggleIntent(),
@@ -300,6 +303,9 @@ class _EditorViewState extends State<_EditorView> {
         ),
         _CloseFindIntent: CallbackAction<_CloseFindIntent>(
           onInvoke: (intent) => _requestCloseSearch(),
+        ),
+        OcptEditorZoomIntent: CallbackAction<OcptEditorZoomIntent>(
+          onInvoke: (intent) => _requestZoom(intent.direction),
         ),
       },
       child: Scaffold(
@@ -427,6 +433,7 @@ class _EditorViewState extends State<_EditorView> {
                   isPageSimulationLive: _isPageSimulationLive(state),
                   isCompact: _isCompactWidth,
                   isPhoneWidth: _isPhoneWidth,
+                  isZoomAvailable: !_isCompactWidth,
                   textController: _textController,
                   scrollController: _editorScrollController,
                   focusNode: _editorFocusNode,
@@ -440,7 +447,10 @@ class _EditorViewState extends State<_EditorView> {
                         : _searchSync.requestStyledReplaceAll(context, search),
                   ),
                 ),
-                statusBar: OcptEditorStatusBar(lastSavedAt: state.lastSavedAt),
+                statusBar: OcptEditorStatusBar(
+                  lastSavedAt: state.lastSavedAt,
+                  isZoomAvailable: !_isCompactWidth,
+                ),
                 dockLayoutController: _dockLayoutController,
                 onDockFractionsChanged: (fractions) => context.read<OcptEditorBloc>().add(
                   OcptEditorDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
@@ -452,6 +462,23 @@ class _EditorViewState extends State<_EditorView> {
       ),
     ),
   );
+
+  /// Zoom the screenplay page one step out ([direction] -1) or in (1), or back to 100 % (0).
+  ///
+  /// Ignored on a compact window, which has no zoom: the shortcuts are mapped everywhere, but only
+  /// act where the page can be zoomed. It is a view setting, not a write, so it stays available
+  /// while a project version is previewed.
+  void _requestZoom(int direction) {
+    if (_isCompactWidth) {
+      return;
+    }
+
+    context.read<OcptEditorBloc>().add(
+      direction == 0
+          ? const OcptEditorPageZoomSelectedEvent(zoom: OcptPageZoom.actualSize())
+          : OcptEditorPageZoomSteppedEvent(direction: direction),
+    );
+  }
 
   /// Get the editing mode actually driving which surface is live and wired up:
   /// [OcptEditorState.mode], unless [_isPhoneWidth] forces the styled editor regardless. The

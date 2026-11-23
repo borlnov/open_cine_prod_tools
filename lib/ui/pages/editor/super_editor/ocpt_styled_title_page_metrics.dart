@@ -45,8 +45,9 @@ class OcptStyledTitlePageMetrics {
 OcptStyledTitlePageMetrics computeOcptStyledTitlePageMetrics({
   required Document document,
   required FountainLayoutMetrics metrics,
+  double zoom = 1,
 }) {
-  final layout = OcptEditorPreviewLayout(metrics: metrics);
+  final layout = OcptEditorPreviewLayout(metrics: metrics, zoom: zoom);
 
   var flowHeight = 0.0;
   var rowShift = 0.0;

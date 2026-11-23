@@ -94,8 +94,9 @@ class OcptFountainEditorStylesheet {
     double trailingBottomPadding = 0,
     bool isCompact = false,
     bool usePaperColors = false,
+    double zoom = 1,
   }) {
-    final layout = OcptEditorPreviewLayout(metrics: metrics);
+    final layout = OcptEditorPreviewLayout(metrics: metrics, zoom: zoom);
     final isCompactFluid = isCompact && !isPageSimulationEnabled;
     // Page simulation always paints paper; a phone's fluid surface opts into the same paper colors
     // through [usePaperColors] without bringing back the real (unscaled) indents page simulation
@@ -112,7 +113,7 @@ class OcptFountainEditorStylesheet {
     // same leak (see `OcptEditorPreviewBlock`).
     final baseStyle = TextStyle(
       fontFamily: OcptEditorPreviewLayout.fontFamily,
-      fontSize: OcptEditorPreviewLayout.fontSize,
+      fontSize: layout.fontSize,
       height: layout.lineHeightFactor,
       letterSpacing: 0,
       color: onSurface,
@@ -279,7 +280,7 @@ class OcptFountainEditorStylesheet {
           Styles.maxWidth: fieldLayout.maxWidth,
           Styles.textAlign: fieldLayout.textAlign,
           Styles.textStyle: baseStyle.copyWith(
-            fontSize: OcptEditorPreviewLayout.fontSize * fieldLayout.fontScale,
+            fontSize: layout.fontSize * fieldLayout.fontScale,
             fontWeight: fieldLayout.fontWeight,
           ),
           Styles.opacity: 1.0,

@@ -1649,6 +1649,45 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorZoomOutTooltip": "Zoom out",
+  "@editorZoomOutTooltip": {
+    "description": "Tooltip of the status bar button that zooms the screenplay page out by one step",
+    "context": "Displayed in the zoom control of the editor's status bar, on hover over its minus button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorZoomInTooltip": "Zoom in",
+  "@editorZoomInTooltip": {
+    "description": "Tooltip of the status bar button that zooms the screenplay page in by one step",
+    "context": "Displayed in the zoom control of the editor's status bar, on hover over its plus button",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorZoomMenuTooltip": "Page zoom",
+  "@editorZoomMenuTooltip": {
+    "description": "Tooltip of the status bar zoom percentage, which opens the list of zoom steps",
+    "context": "Displayed in the zoom control of the editor's status bar, on hover over the percentage",
+    "type": "text",
+    "placeholders": {}
+  },
+  "editorZoomPercent": "{percent} %",
+  "@editorZoomPercent": {
+    "description": "The zoom of the screenplay page, as a percentage",
+    "context": "Displayed in the zoom control of the editor's status bar and in its list of steps",
+    "type": "text",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "editorZoomFitToWidth": "Fit to width",
+  "@editorZoomFitToWidth": {
+    "description": "Entry of the zoom menu that makes the screenplay page fill the width of the editing area",
+    "context": "Displayed in the zoom control of the editor's status bar, in the menu the percentage opens",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorSyntaxGuideStructureSectionTitle": "Structure",
   "@editorSyntaxGuideStructureSectionTitle": {
     "description": "Header of the syntax guide's structure section (scene elements)",

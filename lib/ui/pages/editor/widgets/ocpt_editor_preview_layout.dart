@@ -10,7 +10,8 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 ///
 /// Screenplay layout is defined in character columns of 12-point Courier (a fixed-pitch font), so
 /// the whole mapping reduces to one number: the width of a single Courier Prime glyph at the
-/// preview's font size, measured once per font size with a [TextPainter] and cached in
+/// preview's font size (zoom included), measured once per font size with a [TextPainter] and
+/// cached in
 /// [_glyphWidthCache]. Every element indent/width is then `columns * glyphWidth`, and the page
 /// itself is `pageWidthInches * pixelsPerInch` wide.
 ///
@@ -33,8 +34,8 @@ class OcptEditorPreviewLayout {
   /// The font family the preview is typeset in, the app's one bundled fixed-pitch family.
   static const fontFamily = ocpt_theme.ocptMonospaceFontFamily;
 
-  /// The preview's font size, in logical pixels.
-  static const double fontSize = 13;
+  /// The preview's font size at 100 % zoom, in logical pixels.
+  static const double baseFontSize = 13;
 
   /// The vertical space left between two consecutive blocks: one blank line, like the one that
   /// separates them in the Fountain source.
@@ -55,7 +56,8 @@ class OcptEditorPreviewLayout {
   /// further right than dialogue, further right than parenthetical, the staggered hierarchy paper
   /// has), every full-width element's right edge still lands in the same place as every other's,
   /// all of it just smaller. Chosen, not derived: every full-width element shares one desktop
-  /// `indent + width` (≈585px on US Letter at [fontSize], well past a phone's own content width),
+  /// `indent + width` (≈585px on US Letter at [baseFontSize], well past a phone's own content
+  /// width),
   /// and halving that lands at ≈293px — comfortable room inside a phone's content width without
   /// shrinking the text column to the point of wrapping every other word.
   ///
@@ -70,6 +72,13 @@ class OcptEditorPreviewLayout {
 
   /// The layout metrics (page size, margins, element boxes) the preview is typeset with.
   final FountainLayoutMetrics metrics;
+
+  /// The zoom factor the page is typeset at: it scales the font size, and every other measurement
+  /// follows, so the text is re-typeset sharp at the new size rather than magnified.
+  final double zoom;
+
+  /// The font size the page is typeset in, in logical pixels: [baseFontSize] times [zoom].
+  final double fontSize;
 
   /// The width of one character column, in logical pixels.
   final double glyphWidth;
@@ -110,7 +119,9 @@ class OcptEditorPreviewLayout {
   double get marginBottom => metrics.marginBottomInches * pixelsPerInch;
 
   /// Class constructor
-  OcptEditorPreviewLayout({required this.metrics}) : glyphWidth = _measureGlyphWidth(fontSize);
+  OcptEditorPreviewLayout({required this.metrics, this.zoom = 1})
+    : fontSize = baseFontSize * zoom,
+      glyphWidth = _measureGlyphWidth(baseFontSize * zoom);
 
   /// Get the distance from the page's left edge to where [element]'s text starts, in logical
   /// pixels.

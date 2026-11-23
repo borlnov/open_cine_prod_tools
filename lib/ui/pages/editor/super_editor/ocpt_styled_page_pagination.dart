@@ -103,8 +103,9 @@ class OcptStyledPagination {
 OcptStyledPagination computeOcptStyledPagination({
   required Document document,
   required FountainLayoutMetrics metrics,
+  double zoom = 1,
 }) {
-  final layout = OcptEditorPreviewLayout(metrics: metrics);
+  final layout = OcptEditorPreviewLayout(metrics: metrics, zoom: zoom);
   final sheetExtent = layout.pageHeight + OcptEditorPreviewLayout.pageGap;
 
   final hasTitlePage = document.any(
@@ -132,7 +133,11 @@ OcptStyledPagination computeOcptStyledPagination({
   // stops that from going negative, so the worst outcome is the body starting with no extra
   // padding at all rather than pagination throwing.
   final titlePageFlowHeight = hasTitlePage
-      ? computeOcptStyledTitlePageMetrics(document: document, metrics: metrics).flowHeight
+      ? computeOcptStyledTitlePageMetrics(
+          document: document,
+          metrics: metrics,
+          zoom: zoom,
+        ).flowHeight
       : 0.0;
   var currentY = layout.marginTop + titlePageFlowHeight;
   var isFirstBodyNode = true;

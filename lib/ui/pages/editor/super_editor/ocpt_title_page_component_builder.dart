@@ -91,6 +91,10 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// metrics the stylesheet and the pagination pass were built with.
   final FountainLayoutMetrics metrics;
 
+  /// The zoom factor the page is typeset at, which [computeOcptStyledTitlePageMetrics] measures
+  /// `rowShift` at.
+  final double zoom;
+
   /// [computeOcptStyledTitlePageMetrics]'s `rowShift`, refreshed against the live document every
   /// time [createViewModel] runs for a Contact or Source node, and read back by [createComponent]
   /// (which never sees the document, only this node's view model) for that same node moments
@@ -111,6 +115,7 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
     required this.placeholders,
     required this.hintStyleBuilder,
     required this.metrics,
+    this.zoom = 1,
   }) : _rowShiftByNodeId = {},
        _placeholderFieldKeyByNodeId = {};
 
@@ -127,6 +132,7 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
       _rowShiftByNodeId[node.id] = computeOcptStyledTitlePageMetrics(
         document: document,
         metrics: metrics,
+        zoom: zoom,
       ).rowShift;
     } else {
       _rowShiftByNodeId.remove(node.id);
