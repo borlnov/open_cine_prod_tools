@@ -31,6 +31,10 @@ class OcptScriptWordBlock extends Equatable {
   /// This block's words, in source order.
   final List<OcptScriptWord> words;
 
+  /// The column of a dual-dialogue pair this block is set in, or null for a block outside any
+  /// pair.
+  final FountainDualDialogueSide? dualSide;
+
   /// Class constructor
   const OcptScriptWordBlock({
     required this.type,
@@ -38,6 +42,7 @@ class OcptScriptWordBlock extends Equatable {
     required this.startOffset,
     required this.endOffset,
     required this.words,
+    this.dualSide,
   });
 
   /// Get a string representation of the object, useful for debugging and logging.
@@ -48,5 +53,5 @@ class OcptScriptWordBlock extends Equatable {
 
   /// List the fields that decide equality.
   @override
-  List<Object?> get props => [type, text, startOffset, endOffset, words];
+  List<Object?> get props => [type, text, startOffset, endOffset, words, dualSide];
 }
