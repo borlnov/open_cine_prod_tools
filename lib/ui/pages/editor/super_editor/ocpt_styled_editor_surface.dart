@@ -15,18 +15,18 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_zoom_wheel_phy
 /// simulated paper sheets while page simulation is on, both with the same scroll configuration
 /// around [editor].
 ///
-/// Material's `ScrollBehavior` would otherwise wrap `SuperEditor`'s internal `Scrollable` in its own
-/// implicit `Scrollbar`, painted at the edge of whichever box happens to contain it — i.e. on top of
-/// the white page in the page-simulation branch. Suppressing it here and painting a single explicit
-/// `Scrollbar` around the whole panel instead (both branches, so the behaviour is identical with
-/// page simulation on or off) keeps the thumb in the panel's gutter.
+/// Material's `ScrollBehavior` would otherwise wrap `SuperEditor`'s internal `Scrollable` in its
+/// own implicit `Scrollbar`, painted at the edge of whichever box happens to contain it — i.e. on
+/// top of the white page in the page-simulation branch. Suppressing it here and painting a single
+/// explicit `Scrollbar` around the whole panel instead (both branches, so the behaviour is
+/// identical with page simulation on or off) keeps the thumb in the panel's gutter.
 ///
-/// `withNoTextScaling` pins the page's type size to the page's own: `SuperText` otherwise falls back
-/// to `MediaQuery.textScalerOf`, so a desktop font-scaling preference would grow every glyph without
-/// growing the page it is typeset on — the lines would wrap early and grow taller than the
-/// `OcptEditorPreviewLayout` metrics `computeOcptStyledPagination` sized each simulated sheet with,
-/// spilling out under its bottom edge. The raw preview pins it the same way, for the same reason
-/// (see `OcptEditorPreviewBlock`).
+/// `withNoTextScaling` pins the page's type size to the page's own: `SuperText` otherwise falls
+/// back to `MediaQuery.textScalerOf`, so a desktop font-scaling preference would grow every glyph
+/// without growing the page it is typeset on — the lines would wrap early and grow taller than
+/// the `OcptEditorPreviewLayout` metrics `computeOcptStyledPagination` sized each simulated sheet
+/// with, spilling out under its bottom edge. The raw preview pins it the same way, for the same
+/// reason (see `OcptEditorPreviewBlock`).
 class OcptStyledEditorSurface extends StatelessWidget {
   /// The `SuperEditor` laid out on the surface.
   final Widget editor;

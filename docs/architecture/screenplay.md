@@ -187,7 +187,13 @@ model, the title page, the spell-checking, the docks and the syntax guide.
 - A restore lands on the document's **base state**, which the load-time scene-number pass is part of
   but the history is not: `_applyHistoryChange` re-runs `_syncSceneNumbers` inside the same window,
   non-historically. Left to the settle instead, that renumbering would come back as a change of its
-  own — staling the redo stack, and appending an undo step that un-numbers the screenplay.
+  own — staling the redo stack, and appending an undo step that un-numbers the screenplay. The
+  decoded document is **settled before that base state is taken**: `_rebuildEditorFrom` runs the
+  whole settle on it through a history-less editor (`ocptStyledSettlingEditorFor`, the one the
+  flush uses on its throwaway copy) and only then builds the `MutableDocument` the real editor
+  edits, since a `MutableDocument` keeps the nodes it was built with as the state `undo()` resets
+  to. What the settle derives from a text the writer has not touched yet — a heading typed in
+  lower case and uppercased — is therefore the starting point, never a first undo step.
 - **The undo history belongs to the editing surface, and switching surface starts a fresh one**
   (as does an episode switch, an import or a version restore, each of which rebuilds the styled
   editor): the styled editor owns its `Editor` history, raw mode owns the `UndoHistoryController`

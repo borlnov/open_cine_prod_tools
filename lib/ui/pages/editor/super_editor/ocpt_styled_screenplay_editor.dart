@@ -13,13 +13,11 @@ import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller_delegate.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_command.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_dual_dialogue_bracket.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_ime_overrides.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_command.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_settle_merge_policy.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_document_settle.dart';
@@ -36,7 +34,6 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_sp
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_title_page_placeholders.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_zoom_anchor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_component_builder.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_guard_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
@@ -746,16 +743,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // `OcptWysiwygCodec.decode`'s own doc comment for what such a list does to `reset()`.
     final settledDocument = MutableDocument(nodes: List<DocumentNode>.of(_document));
     final settledComposer = MutableDocumentComposer();
-    // History stays off on this one: it lives for a single settle-then-encode pass, never reaching
-    // a writer's Ctrl+Z.
-    final settledEditor = Editor(
-      editables: {Editor.documentKey: settledDocument, Editor.composerKey: settledComposer},
-      requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
-        ..insert(0, ocptTitlePageGuardRequestHandler)
-        ..add(ocptChangeNodeMetadataRequestHandler)
-        ..add(ocptReplaceNodeTextRequestHandler),
-    );
-
+    final settledEditor = ocptStyledSettlingEditorFor(settledDocument, settledComposer);
     OcptStyledDocumentSettle.settle(settledDocument, settledEditor);
     _encodeAndReportIfChanged(settledDocument);
 
@@ -777,8 +765,18 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // version restore all rebuild this editor, and each of them starts a fresh one.
     _history.reset();
 
+    // Settled before the history-recording editor and its document exist: what the settle derives
+    // from a text the writer has not touched yet (a heading typed in lower case uppercased, say) is
+    // the starting point an undo restores, not a gesture a first Ctrl+Z could take back. The
+    // document is built from the settled nodes, since a `MutableDocument` keeps the nodes it was
+    // built with as the base state `undo()` resets to.
     final decoded = _decode(text);
-    _document = decoded.document;
+    final loadComposer = MutableDocumentComposer();
+    final loadEditor = ocptStyledSettlingEditorFor(decoded.document, loadComposer);
+    OcptStyledDocumentSettle.settle(decoded.document, loadEditor);
+    loadEditor.dispose();
+    loadComposer.dispose();
+    _document = MutableDocument(nodes: List<DocumentNode>.of(decoded.document));
     _mapping = decoded.mapping;
     _trailingBlankLines = decoded.trailingBlankLines;
     _titlePageNodeCount = decoded.titlePageNodeCount;
@@ -896,8 +894,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// the writer's last gesture — merged onto that gesture (see [OcptStyledHistory.runDerivedPass]).
   void _runDerivedPass(void Function() derivedPass) => _history.runDerivedPass(derivedPass);
 
-  /// Renumber every scene heading immediately (not debounced) and report the corrected text
-  /// upstream if it changed, right after [_rebuildEditorFrom] decodes fresh text, and again from
+  /// Renumber every scene heading immediately (not debounced) and report the text upstream if it
+  /// differs from what was loaded — the renumbering, or what [_rebuildEditorFrom]'s own settle
+  /// derived — right after [_rebuildEditorFrom] decodes fresh text, and again from
   /// `OcptStyledHistory` after every undo and redo: what this corrects is part of the document's
   /// *base* state, which a restore brings back to a snapshot taken before it ran.
   ///
@@ -907,10 +906,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// in [_runDerivedPass].
   void _syncSceneNumbers() {
     final requests = sceneNumberNormalizationRequests(_document, isHistorical: false);
-    if (requests.isEmpty) {
-      return;
+    if (requests.isNotEmpty) {
+      _editor.execute(requests);
     }
-    _editor.execute(requests);
     _encodeAndReportIfChanged();
   }
 

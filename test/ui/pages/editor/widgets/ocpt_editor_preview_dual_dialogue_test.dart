@@ -326,7 +326,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        return tester.state<ScrollableState>(find.byType(Scrollable)).position.pixels;
+        // The vertical one: a page zoomed past the panel also scrolls sideways.
+        final vertical = find.byWidgetPredicate(
+          (widget) => widget is Scrollable && widget.axisDirection == AxisDirection.down,
+        );
+        return tester.state<ScrollableState>(vertical).position.pixels;
       }
 
       final left = await scrolledTo(leftLine);
