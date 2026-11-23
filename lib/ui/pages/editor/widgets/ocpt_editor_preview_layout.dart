@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/rendering.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
+import 'package:open_cine_prod_tools/models/rules/ocpt_wrapped_line_count.dart';
 
 /// Convert `FountainLayoutMetrics` character-column measurements into pixels for the preview.
 ///
@@ -257,32 +258,10 @@ class OcptEditorPreviewLayout {
       )
       .toList(growable: false);
 
-  /// Return how many lines [text] wraps to in a box [maxColumns] characters wide, using a greedy
-  /// word wrap (which is what text layout does for a fixed-pitch font). An empty [text] still
-  /// occupies one line.
-  static int wrappedLineCount(String text, int maxColumns) {
-    if (text.length <= maxColumns) {
-      return 1;
-    }
-
-    var lineCount = 1;
-    var currentLineLength = 0;
-    for (final word in text.split(" ")) {
-      // +1 for the space that precedes the word on a non-empty line.
-      final neededLength = currentLineLength == 0
-          ? word.length
-          : currentLineLength + 1 + word.length;
-      if (neededLength <= maxColumns) {
-        currentLineLength = neededLength;
-      } else {
-        // A word longer than the whole box hard-wraps mid-word.
-        lineCount += word.length > maxColumns ? (word.length / maxColumns).ceil() : 1;
-        currentLineLength = word.length % maxColumns;
-      }
-    }
-
-    return lineCount;
-  }
+  /// Return how many lines [text] wraps to in a box [maxColumns] characters wide (see
+  /// [ocptWrappedLineCount]).
+  static int wrappedLineCount(String text, int maxColumns) =>
+      ocptWrappedLineCount(text, maxColumns);
 
   /// Get the full character cue line: the name, followed by its parenthetical extension if any.
   static String _characterCueText(FountainCharacter character) =>

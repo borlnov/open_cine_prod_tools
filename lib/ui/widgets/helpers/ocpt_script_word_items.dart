@@ -4,7 +4,7 @@
 
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_wrapped_line_count.dart';
 
 /// One item of a word sheet: the indices, in [OcptScriptWordLayout.blocks], of the blocks it
 /// holds.
@@ -23,10 +23,9 @@ typedef OcptScriptWordItem = ({List<int> left, List<int>? right});
 /// page) both members stay ordinary dialogue, one block per item, stacked.
 List<OcptScriptWordItem> ocptScriptWordItemsOf({
   required OcptScriptWordLayout layout,
-  required OcptEditorPreviewLayout previewLayout,
+  required FountainLayoutMetrics metrics,
   required bool allowSideBySide,
 }) {
-  final metrics = previewLayout.metrics;
   final pairStarting = {
     if (allowSideBySide && metrics.dualDialogue != null)
       for (final pair in layout.dualPairs)
@@ -62,7 +61,7 @@ bool _columnsFitAPage(
   var lines = 0;
   for (var i = range.start; i < range.end; i++) {
     final block = layout.blocks[i];
-    lines += OcptEditorPreviewLayout.wrappedLineCount(
+    lines += ocptWrappedLineCount(
       block.text.trim(),
       metrics.elementOf(block.type, side: block.dualSide).maxWidthColumns,
     );

@@ -332,7 +332,7 @@ class _OcptShotCoverageSheet extends StatelessWidget {
           children: [
             for (final item in ocptScriptWordItemsOf(
               layout: layout,
-              previewLayout: previewLayout,
+              metrics: previewLayout.metrics,
               allowSideBySide: true,
             ))
               if (item.right == null)

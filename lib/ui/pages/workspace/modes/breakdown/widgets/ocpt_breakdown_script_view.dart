@@ -474,7 +474,7 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
     final layout = OcptScriptWordLayout.of(sceneId: scene.id, sceneText: sceneText);
     final items = ocptScriptWordItemsOf(
       layout: layout,
-      previewLayout: previewLayout,
+      metrics: previewLayout.metrics,
       allowSideBySide: allowSideBySide,
     );
 
