@@ -244,7 +244,7 @@ void main() {
       final rightLine = pair.rightBlock!.sourceRange.startLine;
 
       Future<double> scrolledTo(int line) async {
-        await _pumpPreview(tester, source, panelWidth: panelWidth, height: 400, currentLine: 0);
+        await _pumpPreview(tester, source, panelWidth: panelWidth, height: 400);
         await tester.pumpWidget(
           _wrap(
             OcptEditorPreview(
