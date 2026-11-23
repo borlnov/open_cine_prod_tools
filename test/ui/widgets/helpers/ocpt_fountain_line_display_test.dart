@@ -118,5 +118,21 @@ void main() {
       // recorded from a click on it stores.
       expect(block.words[1].text, "*walks*");
     });
+
+    test("hides the dual-dialogue marker of a cue, glued to the name or apart from it", () {
+      expect(_printedTextOf(_blockOf("ROSS\nHi.\n\nKIM^\nYo.", index: 2)).trim(), "KIM");
+      expect(_printedTextOf(_blockOf("ROSS\nHi.\n\nKIM ^\nYo.", index: 2)).trim(), "KIM");
+      expect(_printedTextOf(_blockOf("ROSS\nHi.\n\n@kim^\nYo.", index: 2)).trim(), "kim");
+    });
+
+    test("keeps a caret that is not a cue's last character", () {
+      expect(_printedTextOf(_blockOf("ROSS\nHi.\n\nKIM\nUp ^ there.", index: 3)), "Up ^ there.");
+    });
+
+    test("tells which cues carry the marker", () {
+      expect(ocptFountainCueHasDualMarker(_blockOf("ROSS\nHi.\n\nKIM ^\nYo.", index: 2)), isTrue);
+      expect(ocptFountainCueHasDualMarker(_blockOf("ROSS\nHi.\n\nKIM\nYo.", index: 2)), isFalse);
+      expect(ocptFountainCueHasDualMarker(_blockOf("Up ^")), isFalse);
+    });
   });
 }
