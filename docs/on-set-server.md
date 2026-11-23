@@ -21,12 +21,12 @@ Two ways to bring a relay up on set, chosen by what is available:
 - **Headless, on a laptop or a Pi with nothing else running** — the `ocpt_sync_relay` CLI or its
   Docker image, exactly as a permanent instance runs (`packages/ocpt_sync_relay/README.md`). Pick
   this for an always-on box tucked away for the day, reachable behind a travel router.
-- **From the app itself, on a laptop already open on the project** — the Partager screen's
-  "Héberger sur ce poste" panel (desktop only): a Marche/Arrêt switch turns the app itself into the
+- **From the app itself, on a laptop already open on the project** — the Share screen's
+  "Host on this machine" panel (desktop only): a Hosting switch turns the app itself into the
   relay, in-process, with no separate server to run at all. This is the natural choice when the
   video-village laptop already has the project open, and it is also what a producer or director's
   own machine uses to be the project's durable, always-there hub between shoots — the same panel,
-  left switched on and "réhéberger au démarrage" checked.
+  left switched on and "Re-host this project on launch" checked.
 
 Either way, the very first device to start the relay becomes its first member: starting it pushes
 that device's own local edits in and publishes a snapshot, so the relay is never empty for the next
@@ -40,7 +40,7 @@ by the CLI/Docker operator's own tooling or, for the in-app path, directly in th
 to a copy-address button.
 
 Every other crew member's device, with their own copy of the project already open, scans that QR
-through the **"Changer de relais"** screen (reached from the sync status indicator in the workspace's
+through the **"Switch relay…"** screen (reached from the sync status indicator in the workspace's
 status bar) or types the address and secret in by hand. This re-points their already-open project at
 the set relay — it keeps the project's own identity and credential; only where it looks for the
 relay changes. One QR re-points any project, since it carries no project id or token of its own.
@@ -56,10 +56,10 @@ from, both directions deduped so running this more than once never duplicates an
   dart run bin/ocpt_sync_relay.dart reconcile --invite '<ocpt://join…>'
   ```
 
-  `<ocpt://join…>` is the prep relay's own invite link (the same one a crew member's Rejoindre
+  `<ocpt://join…>` is the prep relay's own invite link (the same one a crew member's Join
   screen would use to join that project). It prints `pushed N, pulled M` and exits.
 
-- **In-app path** — the hosting panel's own "Réconcilier amont…" action: paste or scan the prep
+- **In-app path** — the hosting panel's own "Reconcile upstream…" action: paste or scan the prep
   relay's `ocpt://join` invite, and the same push-then-pull runs in place, showing the same
   `pushed N, pulled M` line once it finishes.
 
@@ -80,7 +80,7 @@ permanent, TLS-fronted Docker relay instead.
 
 The set relay is an optimisation, never a single point of failure: every device on set holds a full
 replica of the project, edits included. If the laptop or Pi running the relay is lost, dropped, or
-simply left behind, any tablet that was on set can pick up the set relay's own role — start hosting
-from its own app, or point the CLI at its own copy of the project's database — and reconcile the
-whole day upstream on its own. Nothing about that day's work depends on any one machine surviving
-until evening.
+simply left behind, any other computer that was on set can pick up the set relay's own role —
+start hosting from its own app, or point the CLI at its own copy of the project's database — and
+reconcile the whole day upstream on its own. Nothing about that day's work depends on any one
+machine surviving until evening.

@@ -17265,7 +17265,7 @@
   "@joiningNoLocalCopyChip": {
     "description": "Status chip shown in the Rejoindre page's own top bar, stating the project hasn't been joined yet"
   },
-  "joiningIntro": "You don't have this project yet. Scan the QR code from a teammate's own Partager screen, or paste the invite link they shared with you.",
+  "joiningIntro": "You don't have this project yet. Scan the QR code from a teammate's own Share screen, or paste the invite link they shared with you.",
   "@joiningIntro": {
     "description": "Introductory line of the Rejoindre page"
   },
