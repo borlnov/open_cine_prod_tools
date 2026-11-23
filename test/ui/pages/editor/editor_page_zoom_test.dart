@@ -252,7 +252,7 @@ void main() {
     Future<void> pressProducing(
       WidgetTester tester,
       LogicalKeyboardKey key,
-      String character, {
+      String? character, {
       PhysicalKeyboardKey physicalKey = PhysicalKeyboardKey.digit6,
     }) async {
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);

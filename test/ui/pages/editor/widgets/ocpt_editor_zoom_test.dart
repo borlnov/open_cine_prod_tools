@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_page_zoom.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_area.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_control.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_key_activator.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_wheel.dart';
 
 /// Wrap [child] in a localized app.
@@ -292,33 +293,42 @@ void main() {
   });
 
   group("OcptEditorZoomWheel steps and drags", () {
-    testWidgets("adds small deltas up: one step for the first, then one per notch's worth", (
-      tester,
-    ) async {
-      final requests = <(int, Offset)>[];
+    /// Pump a wheel over a list and get the requests made by turning it [deltas] one event each.
+    Future<List<int>> turn(WidgetTester tester, List<double> deltas) async {
+      final requests = <int>[];
       await tester.pumpWidget(
         _wrap(
           SizedBox(
             width: 300,
             height: 300,
             child: OcptEditorZoomWheel(
-              onZoomStepRequested: (direction, position) => requests.add((direction, position)),
+              onZoomStepRequested: (direction, position) => requests.add(direction),
               child: ListView(children: const [SizedBox(height: 900)]),
             ),
           ),
         ),
       );
       final center = tester.getCenter(find.byType(ListView));
-
-      // A smooth wheel: many small events for what is one notch.
-      for (var event = 0; event < 4; event++) {
-        await _wheel(tester, center, -30, withCtrl: true);
+      for (final delta in deltas) {
+        await _wheel(tester, center, delta, withCtrl: true);
       }
-      expect(requests, hasLength(1));
 
-      // Thirty more reaches the notch's worth of the three that followed the first.
-      await _wheel(tester, center, -30, withCtrl: true);
-      expect(requests, hasLength(2));
+      return requests;
+    }
+
+    testWidgets("a Linux notch, 53 pixels, is one step", (tester) async {
+      expect(await turn(tester, [-53, -53, -53]), [1, 1, 1]);
+    });
+
+    testWidgets("a 200 pixel notch is one step, never more", (tester) async {
+      expect(await turn(tester, [-200, -200]), [1, 1]);
+    });
+
+    testWidgets("a smooth wheel's small events add up to a step each time they reach one", (
+      tester,
+    ) async {
+      // The first event of a turn steps at once; the nine others, 72 pixels, make one more.
+      expect(await turn(tester, List.filled(10, -8)), [1, 1]);
     });
 
     testWidgets("a touch drag still scrolls after the content grew while Ctrl was held", (
@@ -381,6 +391,46 @@ void main() {
 
       expect(mounts, 1);
       expect(tester.state(find.byType(_MountCounter)), same(state));
+    });
+  });
+
+  group("OcptEditorZoomKeyActivator", () {
+    /// Tell whether the activator for [direction] accepts a key down of [key] producing
+    /// [character], with Ctrl held.
+    Future<bool> accepts(
+      WidgetTester tester,
+      int direction,
+      LogicalKeyboardKey key,
+      String? character,
+    ) async {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      addTearDown(() => tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft));
+
+      return OcptEditorZoomKeyActivator(direction).accepts(
+        KeyDownEvent(
+          physicalKey: PhysicalKeyboardKey.digit6,
+          logicalKey: key,
+          character: character,
+          timeStamp: Duration.zero,
+        ),
+        HardwareKeyboard.instance,
+      );
+    }
+
+    testWidgets("on Windows, a digit6 with no character, the AZERTY minus, zooms out", (
+      tester,
+    ) async {
+      expect(await accepts(tester, -1, LogicalKeyboardKey.digit6, null), isTrue);
+      expect(await accepts(tester, -1, LogicalKeyboardKey.digit6, ""), isTrue);
+      expect(await accepts(tester, 1, LogicalKeyboardKey.digit6, null), isFalse);
+    });
+
+    testWidgets("on Linux, a QWERTY Ctrl+6 carries its character and zooms nothing", (
+      tester,
+    ) async {
+      for (final direction in [-1, 0, 1]) {
+        expect(await accepts(tester, direction, LogicalKeyboardKey.digit6, "6"), isFalse);
+      }
     });
   });
 }

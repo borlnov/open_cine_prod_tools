@@ -16,6 +16,12 @@ import 'package:flutter/widgets.dart';
 /// the numpad's one. A `Ctrl+6` on QWERTY produces a 6 and is no zoom. When a platform gives no
 /// character for the event (a control key chord often has none), the logical key decides, for the
 /// keys that mean the same on every layout (minus, equals, plus, zero, and their numpad twins).
+///
+/// One trade-off is made on purpose: Windows never gives a character to a Ctrl chord (the engine
+/// drops the non-printable code points), and the minus of an AZERTY layout is the key a QWERTY
+/// one has a 6 on, so it reaches here as `digit6` and nothing else. A `digit6` with **no**
+/// character therefore zooms out, which makes Ctrl+6 zoom out on a Windows QWERTY keyboard too,
+/// a harmless price. On Linux a QWERTY Ctrl+6 carries its character, a 6, and zooms nothing.
 class OcptEditorZoomKeyActivator extends ShortcutActivator {
   /// The way to zoom: -1 out, 1 in, 0 back to 100 %.
   final int direction;
@@ -52,6 +58,10 @@ class OcptEditorZoomKeyActivator extends ShortcutActivator {
   /// Get the way [event] zooms, or null when it is no zoom key.
   static int? _directionOf(KeyEvent event) {
     final character = event.character;
+    if ((character == null || character.isEmpty) && event.logicalKey == LogicalKeyboardKey.digit6) {
+      return -1;
+    }
+
     if (character != null && character.isNotEmpty) {
       switch (character) {
         case "+" || "=":

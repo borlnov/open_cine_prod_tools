@@ -17,16 +17,17 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_zoom_wheel_phy
 /// is what [OcptZoomWheelPhysics] does for every scrollable built under [child]. A scrollable that
 /// reads its scroll behavior above this widget is given the physics by its owner.
 ///
-/// A step is a notch's worth of wheel: the first event of a turn steps at once, and the following
-/// ones add up to [notchDelta] each, so a smooth or high-resolution wheel, which sends many small
-/// events for one notch, does not jump several steps.
+/// A step is a notch of the wheel: an event of at least [stepDelta] steps once (never more, however
+/// far it turns, since a notch is 53 pixels on Linux and up to 200 on Windows), and the first event
+/// of a turn steps at once. A smooth or high-resolution wheel, which sends many small events for
+/// one notch, adds them up until they are worth a step.
 ///
 /// With no [onZoomStepRequested], this is [child] and nothing else: the surfaces where the page
 /// can't be zoomed (a compact window) simply don't listen.
 class OcptEditorZoomWheel extends StatefulWidget {
   /// The scroll delta, in logical pixels, that is worth one step once a turn of the wheel has
-  /// started: the delta of one notch of a common mouse.
-  static const double notchDelta = 100;
+  /// started, whether in one event or added up: under the smallest notch of the platforms.
+  static const double stepDelta = 40;
 
   /// Called with the way to step (-1 out, 1 in) and the position of the pointer in this widget's
   /// own coordinates, or null when the page can't be zoomed here.
@@ -85,11 +86,11 @@ class _OcptEditorZoomWheelState extends State<OcptEditorZoomWheel> {
           }
 
           final direction = event.scrollDelta.dy < 0 ? 1 : -1;
-          final steps = _stepsOf(event, direction);
+          final isStep = _isStep(event, direction);
           final position = event.localPosition;
           // Claimed even when it makes no step yet: no scrollable may take it.
           GestureBinding.instance.pointerSignalResolver.register(event, (event) {
-            for (var step = 0; step < steps; step++) {
+            if (isStep) {
               onZoomStepRequested(direction, position);
             }
           });
@@ -99,20 +100,25 @@ class _OcptEditorZoomWheelState extends State<OcptEditorZoomWheel> {
     );
   }
 
-  /// Get how many steps [event], turning the wheel [direction] way, makes.
-  int _stepsOf(PointerScrollEvent event, int direction) {
+  /// Tell whether [event], turning the wheel [direction] way, makes a step.
+  bool _isStep(PointerScrollEvent event, int direction) {
     final isNewTurn = direction != _direction || event.timeStamp - _lastTime > _pause;
     _direction = direction;
     _lastTime = event.timeStamp;
     if (isNewTurn) {
       _accumulated = 0;
-      return 1;
+      return true;
     }
 
-    _accumulated += event.scrollDelta.dy.abs();
-    final steps = _accumulated ~/ OcptEditorZoomWheel.notchDelta;
-    _accumulated -= steps * OcptEditorZoomWheel.notchDelta;
+    final delta = event.scrollDelta.dy.abs();
+    if (delta < OcptEditorZoomWheel.stepDelta) {
+      _accumulated += delta;
+      if (_accumulated < OcptEditorZoomWheel.stepDelta) {
+        return false;
+      }
+    }
 
-    return steps;
+    _accumulated = 0;
+    return true;
   }
 }
