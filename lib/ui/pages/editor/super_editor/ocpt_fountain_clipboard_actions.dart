@@ -212,14 +212,16 @@ List<EditRequest> _singleNodePasteRequests({
   required int offset,
   required ParagraphNode fragment,
 }) {
-  final insertedLength = fragment.text.toPlainText().length;
+  // A cue pasted into a line keeps its dual-dialogue marker as text, which the settle absorbs.
+  final inserted = _withDualSuffix(fragment);
+  final insertedLength = inserted.toPlainText().length;
   return [
     InsertAttributedTextRequest(
       DocumentPosition(
         nodeId: targetNode.id,
         nodePosition: TextNodePosition(offset: offset),
       ),
-      fragment.text,
+      inserted,
     ),
     ChangeSelectionRequest(
       DocumentSelection.collapsed(
@@ -269,13 +271,14 @@ List<EditRequest> _multiNodePasteRequests({
           ocptTypeLockedMetadataKey: false,
           ocptHadForcingMarkerMetadataKey:
               firstFragment.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true,
+          ocptDualDialogueMetadataKey: OcptWysiwygDualDialogue.suffixOf(firstFragment),
         },
       ),
       OcptReplaceNodeTextRequest(nodeId: targetNode.id, text: firstFragment.text),
     ] else
       OcptReplaceNodeTextRequest(
         nodeId: targetNode.id,
-        text: beforeText.copyAndAppend(firstFragment.text),
+        text: beforeText.copyAndAppend(_withDualSuffix(firstFragment)),
       ),
   ];
 
@@ -311,4 +314,12 @@ List<EditRequest> _multiNodePasteRequests({
   );
 
   return requests;
+}
+
+/// Get [fragment]'s text with its dual-dialogue suffix written back at its end, when it has one.
+AttributedText _withDualSuffix(ParagraphNode fragment) {
+  final suffix = OcptWysiwygDualDialogue.suffixOf(fragment);
+  return suffix == null || fragment.text.isEmpty
+      ? fragment.text
+      : fragment.text.copyAndAppend(AttributedText(suffix));
 }

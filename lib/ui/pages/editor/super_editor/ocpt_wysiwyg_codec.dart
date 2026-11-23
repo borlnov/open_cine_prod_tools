@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_c
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comments.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_document_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_dual_dialogue.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
@@ -19,6 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_t
 import 'package:super_editor/super_editor.dart';
 
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
+export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_dual_dialogue.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart'
     show
@@ -751,9 +753,12 @@ class OcptWysiwygCodec {
               type,
               layout.classificationLines[index],
             );
-      final (displayText, sceneNumber) = type == FountainLineType.sceneHeading
+      final (sceneText, sceneNumber) = type == FountainLineType.sceneHeading
           ? OcptWysiwygMarkers.extractSceneNumber(strippedText)
           : (strippedText, null);
+      final (displayText, dualSuffix) = !isInert && type == FountainLineType.character
+          ? OcptWysiwygDualDialogue.extractSuffix(sceneText)
+          : (sceneText, null);
       nodes.add(
         ParagraphNode(
           id: Editor.createNodeId(),
@@ -767,6 +772,7 @@ class OcptWysiwygCodec {
             ocptTypeLockedMetadataKey: false,
             ocptHadForcingMarkerMetadataKey: hadForcingMarker,
             ocptSceneNumberMetadataKey: sceneNumber,
+            ocptDualDialogueMetadataKey: dualSuffix,
           },
         ),
       );
@@ -821,6 +827,10 @@ class OcptWysiwygCodec {
     final sceneNumber = _readSceneNumber(node);
     if (type == FountainLineType.sceneHeading && sceneNumber != null) {
       line = "$line #$sceneNumber#";
+    }
+    final dualSuffix = OcptWysiwygDualDialogue.suffixOf(node);
+    if (type == FountainLineType.character && dualSuffix != null && line.isNotEmpty) {
+      line = "$line$dualSuffix";
     }
     if (!_readHadForcingMarker(node) || type == FountainLineType.blank) {
       return line;
@@ -903,6 +913,9 @@ class OcptWysiwygCodec {
     List<int> boneyardStars,
   ) {
     final base = _serialize(node, boneyardStars);
+    if (type == FountainLineType.character && base.isNotEmpty) {
+      return "$base${OcptWysiwygDualDialogue.suffixOf(node) ?? ""}";
+    }
     if (type != FountainLineType.sceneHeading || base.isEmpty) {
       return base;
     }

@@ -31,8 +31,14 @@ final class OcptStyledDocumentSettle {
       document,
       documentLayout: layout,
     );
-    if (sceneNumberRequests.isNotEmpty) {
-      editor.execute(sceneNumberRequests);
+    // The dual-dialogue `^` typed at the end of a cue is absorbed in the same pass, for the same
+    // reason: both read the pre-strip text, and touch nodes of different types.
+    final tagRequests = [
+      ...sceneNumberRequests,
+      ...OcptWysiwygDualDialogue.requests(document, documentLayout: layout),
+    ];
+    if (tagRequests.isNotEmpty) {
+      editor.execute(tagRequests);
       layout = OcptWysiwygCodec.layoutOf(document);
     }
 
@@ -63,8 +69,11 @@ final class OcptStyledDocumentSettle {
       document,
       documentLayout: layout,
     );
-    if (normalizationRequests.isNotEmpty) {
-      editor.execute(normalizationRequests);
+    // A cue just reclassified as anything else drops its dual-dialogue marker.
+    final dualDialogueRequests = OcptWysiwygDualDialogue.requests(document, documentLayout: layout);
+    final finalRequests = [...normalizationRequests, ...dualDialogueRequests];
+    if (finalRequests.isNotEmpty) {
+      editor.execute(finalRequests);
     }
   }
 }
