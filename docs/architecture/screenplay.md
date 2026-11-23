@@ -100,8 +100,11 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   while its text is empty: only a new node created by Enter/Shift+Enter starts unlocked),
   `ocptHadForcingMarker` (the source line used an explicit forcing marker, re-emitted on encode
   even when auto-detection alone would already suffice, and spared by the uppercase pass on a
-  character cue: `@McCLANE` keeps its case), `ocptSectionLevel` (the `#` run of a section, 1 to 6,
-  written back on encode), `ocptSceneNumberMetadataKey` (a scene
+  character cue: `@McCLANE` keeps its case, and every renderer prints it that way: the parser
+  flags it `FountainCharacter.forced` and the composer, the raw preview and so the PDF skip the
+  print-time upper-casing for it, extension and `(CONT'D)` included; scene headings and
+  transitions stay upper-cased even when forced), `ocptSectionLevel` (the `#` run of a section,
+  1 to 6, written back on encode), `ocptSceneNumberMetadataKey` (a scene
   heading's `#N#`, stripped out of the display text on decode and re-appended on encode) and
   `ocptTitlePageKeyMetadataKey` (which of `ocptTitlePageFieldKeys` a title-page field node is, see
   below). `OcptWysiwygCodec`

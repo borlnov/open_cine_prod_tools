@@ -106,6 +106,10 @@ class FountainCharacter extends FountainBlock {
   /// preceding it.
   final bool isDualDialogue;
 
+  /// Whether this cue was forced with a leading `@`, which Fountain says preserves the mixed case
+  /// of the name (`@McCLANE`): a forced cue prints as written instead of upper-cased.
+  final bool forced;
+
   /// The cue's source line as written (forcing marker and inline notes included), or `null` for a
   /// cue not read from a source line; a serializer writes it back verbatim when set.
   final String? rawText;
@@ -116,6 +120,7 @@ class FountainCharacter extends FountainBlock {
     required this.name,
     required this.isDualDialogue,
     this.extension,
+    this.forced = false,
     this.rawText,
   });
 
@@ -128,7 +133,7 @@ class FountainCharacter extends FountainBlock {
 
   /// List the fields that decide equality.
   @override
-  List<Object?> get props => [name, extension, isDualDialogue, rawText];
+  List<Object?> get props => [name, extension, isDualDialogue, forced, rawText];
 }
 
 /// A parenthetical direction inside a block of dialogue, for example

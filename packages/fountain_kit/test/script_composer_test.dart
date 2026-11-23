@@ -101,13 +101,18 @@ FountainCenteredText _centeredText(String text) =>
 FountainLyrics _lyrics(List<String> lines) => FountainLyrics(sourceRange: _range, lines: lines);
 
 /// Build a character cue named [name].
-FountainCharacter _character(String name, {String? extension, bool isDualDialogue = false}) =>
-    FountainCharacter(
-      sourceRange: _range,
-      name: name,
-      extension: extension,
-      isDualDialogue: isDualDialogue,
-    );
+FountainCharacter _character(
+  String name, {
+  String? extension,
+  bool isDualDialogue = false,
+  bool forced = false,
+}) => FountainCharacter(
+  sourceRange: _range,
+  name: name,
+  extension: extension,
+  isDualDialogue: isDualDialogue,
+  forced: forced,
+);
 
 /// Build a parenthetical reading [text].
 FountainParenthetical _parenthetical(String text) =>
@@ -123,9 +128,10 @@ FountainDialogueGroup _dialogueGroup(
   List<FountainBlock> children, {
   bool isDualDialogue = false,
   String? extension,
+  bool forced = false,
 }) => FountainDialogueGroup(
   sourceRange: _range,
-  character: _character(name, extension: extension, isDualDialogue: isDualDialogue),
+  character: _character(name, extension: extension, isDualDialogue: isDualDialogue, forced: forced),
   children: children,
   isDualDialogue: isDualDialogue,
 );
@@ -597,6 +603,39 @@ void main() {
         (line) => line.lineType == FountainLineType.character,
       );
       expect(cueLine.plainText, "BOB (CONT'D)");
+    });
+
+    test('a forced character cue prints as written, extension included', () {
+      final layout = _composer.compose(
+        document: _document([
+          _dialogueGroup(
+            'McCLANE',
+            [_dialogueLine('Hi.')],
+            extension: 'on the radio',
+            forced: true,
+          ),
+          _dialogueGroup('HANS', [_dialogueLine('Hi.')], extension: 'on the radio'),
+        ]),
+        metrics: _metrics(linesPerPage: 20),
+      );
+
+      final cues = layout.pages.single.lines
+          .where((line) => line.lineType == FountainLineType.character)
+          .map((line) => line.plainText);
+      expect(cues, ['McCLANE (on the radio)', 'HANS (ON THE RADIO)']);
+    });
+
+    test("a continued cue of a forced character keeps its case", () {
+      final layout = _composer.compose(
+        document: _document([
+          _dialogueGroup('McCLANE', [_dialogueLine(_words('AAAA', 12))], forced: true),
+        ]),
+        metrics: _metrics(linesPerPage: 5, dialogueCols: 10),
+      );
+
+      expect(layout.pages, hasLength(2));
+      expect(layout.pages[0].lines.first.plainText, 'McCLANE');
+      expect(layout.pages[1].lines.first.plainText, "McCLANE (CONT'D)");
     });
 
     test('a forced transition prints upper-cased regardless of source casing', () {

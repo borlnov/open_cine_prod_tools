@@ -40,7 +40,8 @@ class FountainPrintStyle extends Equatable {
   final bool isItalic;
 
   /// Whether the element's text prints upper-cased, regardless of the
-  /// casing it carries in the parsed model.
+  /// casing it carries in the parsed model. A character cue forced with `@` is the exception:
+  /// it prints as written (see `FountainCharacter.forced`).
   final bool isUppercase;
 
   /// Create a [FountainPrintStyle]. Prefer [FountainPrintStyle.of] unless a

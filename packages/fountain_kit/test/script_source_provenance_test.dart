@@ -166,18 +166,15 @@ void main() {
       expect(transition.sourceRange!.startOffset, composed.source.indexOf('> fade out:'));
     });
 
-    test('a lower-case forced cue stays within its own source line', () {
-      // Same fallback as the transition above: "@sarah" prints as "SARAH",
-      // so the anchor lands on the `@` rather than on the name. The range is
-      // off by the forcing marker's one character and no more — enough to
-      // place the cue on the right printed row, which is all a margin
-      // annotation needs.
+    test('a lower-case forced cue points at its name, past the forcing marker', () {
+      // The forced cue prints as written ("sarah", the `@` dropped), so the
+      // printed text is found in the source line right after the marker.
       final composed = _Composed('@sarah\nHello.\n');
       final cue = composed.lines.first;
-      expect(cue.plainText, 'SARAH');
+      expect(cue.plainText, 'sarah');
       expect(cue.sourceRange!.startLine, 0);
-      expect(cue.sourceRange!.startOffset, 0);
-      expect(cue.sourceRange!.endOffset, lessThanOrEqualTo('@sarah'.length));
+      expect(cue.sourceRange!.startOffset, 1);
+      expect(cue.sourceRange!.endOffset, '@sarah'.length);
     });
   });
 
