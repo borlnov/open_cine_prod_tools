@@ -27,7 +27,11 @@ export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_i
         ocptFountainNoteAttribution;
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart'
-    show ocptTitlePageFieldAttribution, ocptTitlePageFieldKeys, ocptTitlePageKeyMetadataKey;
+    show
+        ocptTitlePageExtraEntriesMetadataKey,
+        ocptTitlePageFieldAttribution,
+        ocptTitlePageFieldKeys,
+        ocptTitlePageKeyMetadataKey;
 
 /// The number of [ocptBlankLinesBeforeMetadataKey] blank lines above which extra spacing stops
 /// growing: beyond a few blank lines, one more doesn't need to visually register any bigger a gap
@@ -450,7 +454,10 @@ class OcptWysiwygCodec {
       MutableDocument(nodes: List<DocumentNode>.of(bodyNodes)),
       trailingBlankLines: trailingBlankLines,
     );
-    final titlePageEntries = OcptWysiwygTitlePage.entriesFromNodes(titlePageNodes);
+    final titlePageEntries = [
+      ...OcptWysiwygTitlePage.entriesFromNodes(titlePageNodes),
+      ...OcptWysiwygTitlePage.extraEntriesFromNodes(titlePageNodes),
+    ];
     final text = const FountainTitlePageWriter().apply(
       source: bodyEncoded.text,
       existingRange: null,

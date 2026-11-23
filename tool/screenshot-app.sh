@@ -169,7 +169,7 @@ cmd_start() {
 
     local wid=""
     for _ in $(seq 1 60); do
-        wid=$(DISPLAY="${display}" xdotool search --name '^open_cine_prod_tools$' 2>/dev/null \
+        wid=$(DISPLAY="${display}" xdotool search --name '^Open Cine Prod Tools$' 2>/dev/null \
             | head -1 || true)
         [[ -n "${wid}" ]] && break
         sleep 0.5
