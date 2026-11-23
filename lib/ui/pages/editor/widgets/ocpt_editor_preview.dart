@@ -207,8 +207,9 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
               }
 
               // The panel is narrower than the full page: scale the whole page down to fit it,
-              // rather than crop it with horizontal scroll. `height` is inflated by the inverse of `scale`
-              // so the scaled-down viewport exactly fills the panel: `_scrollController`'s
+              // rather than crop it with horizontal scroll. `height` is inflated by the inverse
+              // of `scale` so the scaled-down viewport exactly fills the panel:
+              // `_scrollController`'s
               // viewport/target math, entirely computed in this unscaled space (see
               // `_syncScrollToCurrentLine`), stays valid without any adjustment.
               //
