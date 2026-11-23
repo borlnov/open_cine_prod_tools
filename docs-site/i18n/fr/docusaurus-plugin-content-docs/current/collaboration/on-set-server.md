@@ -15,12 +15,14 @@ un pour la personne qui apporte l'ordinateur.
 
 Plutôt que de dépendre d'une connexion internet qu'un lieu peut simplement ne pas avoir, une
 production peut faire tourner son propre relais pour la journée sur un ordinateur déjà présent en
-plateau — via le même panneau « Héberger sur ce poste » décrit dans
-[Partager un projet](sharing-a-project.md). Chaque appareil en plateau se synchronise alors avec
-cette machine sur le réseau local uniquement, sans aucun accès à internet. En fin de journée, la
-personne qui fait tourner cet ordinateur renvoie le travail de la journée vers le relais habituel
-de la production — cette seconde partie est couverte dans le guide de l'opérateur lui-même,
-indiqué plus bas.
+plateau — via le même panneau « Héberger sur ce poste » décrit dans [Partager un
+projet](sharing-a-project.md) (une fonctionnalité d'ordinateur). Chaque appareil en plateau se
+synchronise alors avec cette machine sur le réseau local uniquement, sans aucun accès à internet. En
+fin de journée, la personne qui fait tourner cet ordinateur renvoie le travail de la journée vers le
+relais habituel de la production avec l'action **Réconcilier amont…** du panneau : collez le lien
+d'invitation du relais habituel, choisissez **Réconcilier**, et le panneau indique combien de
+modifications ont été envoyées et reçues. Le guide de l'opérateur, indiqué plus bas, couvre la
+journée entière.
 
 ![Le panneau « Héberger sur ce poste »](/img/screenshots/collab-host.png)
 
@@ -31,13 +33,21 @@ il garde sa propre identité et son historique. Ce qui change, c'est seulement *
 relais :
 
 1. Sur l'indicateur d'état de synchronisation dans la barre d'état de votre espace de travail
-   (voir [Comment fonctionne la collaboration](how-collaboration-works.md)), ouvrez le panneau et
-   choisissez **« Changer de relais »**.
-2. Scannez le code QR affiché par le relais de plateau — soit sur l'écran de l'ordinateur qui
-   l'héberge, soit remis par la personne qui le fait tourner depuis un terminal. Vous pouvez aussi
-   saisir l'adresse du relais et son secret à la main si scanner n'est pas pratique.
+   (voir
+   [Comment fonctionne la collaboration](how-collaboration-works.md#lindicateur-détat-de-synchronisation)),
+   ouvrez le panneau et choisissez **Changer de relais…**. L'écran s'intitule
+   `Changer de relais pour « <nom du projet> »`.
+2. Saisissez l'**Adresse du relais** de plateau et son **Secret d'enrôlement**, puis choisissez
+   **Changer de relais**. Sur une tablette ou un téléphone, vous pouvez à la place choisir
+   **Scanner un QR de relais** et pointer la caméra vers le code QR affiché par le relais de
+   plateau — sur l'écran de l'ordinateur qui l'héberge (choisissez **Rediriger un appareil qui
+   l'a déjà** dans son panneau d'hébergement), ou remis par la personne qui le fait tourner
+   depuis un terminal ; **Saisir manuellement** ramène le formulaire. Un ordinateur n'a pas de
+   scan : il utilise toujours le formulaire.
 3. Votre appareil se synchronise désormais avec le relais de plateau. Rien ne change dans le
-   contenu de votre projet ; seul le point de rendez-vous change.
+   contenu de votre projet ; seul le point de rendez-vous change. L'écran propose ensuite un QR
+   **Prêt pour l'appareil suivant**, avec **Copier le lien d'enrôlement**, pour transmettre le
+   même changement à la personne suivante ; choisissez **Terminé** quand vous avez fini.
 
 Le même QR permet de repointer n'importe quel projet — il désigne un relais, pas un projet précis
 — si bien qu'un seul code affiché une fois suffit pour que toute l'équipe pointe ses propres
@@ -58,7 +68,7 @@ relais permanent et correctement sécurisé plutôt qu'un relais de plateau.
 Le relais de plateau est une commodité, jamais l'unique endroit où vit le travail de la journée :
 chaque appareil en plateau détient déjà sa propre copie complète du projet, modifications
 comprises. Si l'ordinateur faisant tourner le relais est perdu, tombe en panne ou reste simplement
-sur place, n'importe quel autre appareil qui était en plateau peut tout simplement se mettre à
+sur place, n'importe quel autre ordinateur qui était en plateau peut tout simplement se mettre à
 héberger à sa place et continuer — rien dans la journée ne dépend d'une seule machine qui survivrait
 jusqu'au soir.
 

@@ -12,13 +12,14 @@ relay for the day, and what running one involves for whoever brings the laptop.
 
 ## Why a set has its own relay
 
-Rather than relying on an internet connection that a location may simply not have, a production
-can run its own relay for the day on a laptop already on set — through the same
-[Host on this machine](sharing-a-project.md#hosting-the-relay-yourself) panel described in
-sharing a project. Every device on set then syncs against that machine over the local network
-only, with no internet required at all. At the end of the day, whoever runs that laptop pushes the
-day's work back up to the production's usual relay — that half is covered in the operator's own
-runbook, linked below.
+Rather than relying on an internet connection that a location may simply not have, a production can
+run its own relay for the day on a laptop already on set — through the same [Host on this
+machine](sharing-a-project.md#hosting-the-relay-yourself) panel described in sharing a project (a
+desktop feature). Every device on set then syncs against that machine over the local network only,
+with no internet required at all. At the end of the day, whoever runs that laptop pushes the day's
+work back up to the production's usual relay with the panel's **Reconcile upstream…** action: paste
+the usual relay's invite link, choose **Reconcile**, and the panel reports how many changes were
+pushed and pulled. The operator's own runbook, linked below, covers the whole day.
 
 ![The Host on this machine panel](/img/screenshots/collab-host.png)
 
@@ -29,12 +30,17 @@ and history. What changes is only *where* it looks for its relay:
 
 1. On the sync status indicator in your workspace's status bar (see
    [How collaboration works](how-collaboration-works.md#the-sync-status-indicator)), open the
-   panel and choose **change relay**.
-2. Scan the QR code the set relay is showing — either on the hosting laptop's own screen, or
-   handed to you by whoever is running it from a terminal. You can also type in the relay's
-   address and its secret by hand if scanning is not convenient.
+   panel and choose **Switch relay…**. The screen is titled `Switch relay for "<project name>"`.
+2. Type the set relay's **Relay address** and its **Enrolment secret**, then choose **Switch
+   relay**. On a tablet or phone you can instead choose **Scan a relay QR code** and point the
+   camera at the QR code the set relay is showing — on the hosting laptop's own screen (pick
+   **Redirect a device that already has it** in its hosting panel), or handed to you by whoever
+   is running it from a terminal; **Enter details manually** brings the form back. A computer has
+   no scan, so it always uses the form.
 3. Your device now syncs against the set relay instead. Nothing about your project's content
-   changes; only the meeting point does.
+   changes; only the meeting point does. The screen then offers a **Ready for the next device**
+   QR code, with **Copy the enrolment link**, so you can hand the same switch on to the next
+   person; choose **Done** when finished.
 
 The same QR re-points any project — it names a relay, not a specific project — so one code shown
 once is enough for the whole crew to point their own devices at it, each keeping their own
@@ -54,7 +60,7 @@ on-set one.
 
 The set relay is a convenience, never the one place the day's work lives: every device on set
 already holds its own full copy of the project, edits included. If the laptop or machine running
-the relay is lost, dropped, or left behind, any other device that was on set can simply start
+the relay is lost, dropped, or left behind, any other computer that was on set can simply start
 hosting in its place and carry on — nothing about the day depends on one machine surviving until
 evening.
 

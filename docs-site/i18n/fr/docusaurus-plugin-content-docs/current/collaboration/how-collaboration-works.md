@@ -38,9 +38,10 @@ décision.
 
 La seule exception est le texte du scénario lui-même : deux personnes tapant dans le même passage
 au même moment voient leurs modifications fusionnées ligne à ligne, comme le ferait un outil de
-gestion de versions. Dans le cas rare où les deux modifications entrent réellement en conflit, le
-conflit vous est présenté pour que vous le régliez vous-même — c'est le seul endroit où le partage
-vous demande quelque chose.
+gestion de versions. Dans le cas rare où les deux modifications se heurtent réellement sur les mêmes
+lignes, l'application ne devine pas : elle laisse votre texte tel que vous l'avez écrit au lieu de
+l'écraser en silence, et aucun écran ne permet encore de régler le heurt — mieux vaut donc
+convenir entre vous de qui modifie tel passage.
 
 ## L'indicateur d'état de synchronisation
 
@@ -48,34 +49,43 @@ Une fois un projet partagé, un petit indicateur se place dans la barre d'état 
 travail, visible depuis chaque mode. Il indique en un coup d'œil où en est votre appareil par
 rapport au reste du projet :
 
-- **Synchronisé** — tout ce que vous et les autres avez fait est réconcilié ; rien n'est en
+- **En sync** — tout ce que vous et les autres avez fait est réconcilié ; rien n'est en
   attente.
-- **Synchronisation en cours** — des modifications sont en train d'être envoyées ou reçues.
-- **Hors ligne**, avec le nombre de vos propres modifications encore en attente d'envoi — normal
-  et attendu dès que l'appareil n'a pas de connexion au relais ; rien n'est perdu, cela n'est
-  simplement pas encore parti.
-- **Erreur** — quelque chose que le relais lui-même a refusé, qui mérite un coup d'œil plutôt
-  qu'une simple coupure de connexion.
+- **Synchronisation…** — des modifications sont en train d'être envoyées ou reçues.
+- **Hors ligne · 3 modifications en attente** — le nombre indique combien de vos propres
+  modifications attendent encore d'être envoyées. C'est normal et attendu dès que l'appareil n'a
+  pas de connexion au relais ; rien n'est perdu, cela n'est simplement pas encore parti. Quand le
+  nombre n'est pas connu, l'indicateur affiche « Hors ligne · modifications en attente ».
+- **Erreur de synchronisation** — quelque chose que le relais lui-même a refusé, qui mérite un
+  coup d'œil plutôt qu'une simple coupure de connexion ; le panneau ci-dessous le détaille sous la
+  forme « Erreur du relais : … ».
 
-Cliquez sur l'indicateur pour ouvrir un panneau : synchroniser maintenant, réafficher
-l'invitation, ou pointer le projet vers un autre relais (voir
-[Le relais de plateau](on-set-server.md)). L'indicateur, et son panneau, n'apparaissent qu'une
-fois le projet partagé — un projet non partagé n'affiche ni l'un ni l'autre.
+Cliquez sur l'indicateur pour ouvrir un panneau de quatre actions : **Synchroniser maintenant** ;
+**Afficher le QR d'invitation** et **Ré-appairer…**, qui ouvrent toutes deux l'[écran de
+partage](sharing-a-project.md) du projet ; et **Changer de relais…**, qui pointe le projet vers un
+autre relais (voir [Le relais de plateau](on-set-server.md)). L'indicateur, et son panneau,
+n'apparaissent qu'une fois le projet partagé — un projet non partagé n'affiche ni l'un ni l'autre.
+Sur un projet ouvert en aperçu en lecture seule, le panneau est là, mais ses actions sont
+retirées.
 
 ## La présence : qui d'autre l'a ouvert
 
-Une grappe de petits avatars dans la barre d'outils supérieure montre chaque autre appareil ayant
-actuellement le projet ouvert — jamais les personnes qui en possèdent simplement une copie quelque
-part, seulement celles qui l'ont ouvert à l'instant. Survolez ou cliquez sur la grappe pour voir,
-pour chacun, à peu près quel type d'appareil c'est et **dans quel mode** il travaille (Scénario,
-Plan de travail, Budget…), ce qui suffit souvent à lui seul à savoir s'il est prudent, par
-exemple, de réordonner le plan de travail.
+Une grappe de petits avatars ronds dans la barre d'outils supérieure, juste avant **Exporter**,
+montre chaque appareil ayant actuellement le projet ouvert, le vôtre compris — jamais les
+personnes qui en possèdent simplement une copie quelque part, seulement celles qui l'ont ouvert à
+l'instant. Chaque avatar porte l'initiale du système de l'appareil (par exemple L pour Linux, W
+pour Windows) ; au-delà de trois, les autres se replient dans une pastille « +2 ». Survolez un
+avatar pour voir son nom et son mode, ou cliquez sur la grappe pour ouvrir la liste « Sur ce
+projet », avec le nombre de connectés et, pour chaque appareil, son nom — le système et les trois
+derniers caractères de son identifiant, comme « Linux · a3f » — et **le mode** dans lequel il
+travaille (Scénario, Planning, Budget…), ce qui suffit souvent à lui seul à savoir s'il est
+prudent, par exemple, de réordonner le planning.
 
-Il n'y a ni comptes ni noms à saisir : chaque appareil se distingue par un petit point de couleur,
-constant pour cet appareil au fil d'une session, le vôtre étant toujours affiché en premier et mis
-en évidence. La présence est entièrement en direct — elle ne dit rien de qui *a* modifié quelque
-chose, seulement de qui est *actuellement* sur le projet — et disparaît avec l'indicateur de
-synchronisation sur un projet non partagé.
+Il n'y a ni comptes ni noms à saisir : chaque appareil se distingue par sa propre couleur,
+constante pour cet appareil, et par ce court identifiant. Le vôtre est toujours listé en premier,
+cerclé de la couleur d'accent et marqué « Vous ». La présence est entièrement en direct — elle ne
+dit rien de qui *a* modifié quelque chose, seulement de qui est *actuellement* sur le projet — et
+disparaît avec l'indicateur de synchronisation sur un projet non partagé.
 
 ## Pour la suite
 
