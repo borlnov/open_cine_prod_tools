@@ -69,13 +69,16 @@ Widget _atPhoneWidth(Widget child) => Builder(
 );
 
 /// Build the scene, [tags] being its live tags.
-OcptBreakdownScene _buildScene({List<OcptBreakdownTag> tags = const []}) => OcptBreakdownScene(
+OcptBreakdownScene _buildScene({
+  List<OcptBreakdownTag> tags = const [],
+  String text = _sceneText,
+}) => OcptBreakdownScene(
   id: _sceneId,
   position: 0,
   heading: "INT. HOUSE - DAY",
   sceneNumber: null,
   charStart: 0,
-  charEnd: _sceneText.length,
+  charEnd: text.length,
   status: OcptBreakdownSceneStatus.toDo,
   notes: "",
   tags: tags,
@@ -112,9 +115,10 @@ Widget _buildView({
   void Function(String sceneId, int wordStartOffset, int wordEndOffset)? onWordClicked,
   OcptBreakdownPendingTagAnchor? pendingTagAnchor,
   OcptBreakdownPendingTagRange? pendingTagRange,
+  String text = _sceneText,
 }) => OcptBreakdownScriptView(
-  screenplayText: _sceneText,
-  scenes: [scene ?? _buildScene()],
+  screenplayText: text,
+  scenes: [scene ?? _buildScene(text: text)],
   targetById: ocptBreakdownTargetsById(targets),
   pageSetup: const OcptPageSetup.standard(),
   selectedSceneId: null,
@@ -145,6 +149,34 @@ Color? _backgroundOf(WidgetTester tester, String text) {
 
 /// Run the tests of [OcptBreakdownScriptView] over a dual-dialogue pair.
 void main() {
+  for (final (name, text, lastOfPair) in [
+    (
+      "left",
+      "INT. HOUSE - DAY\n\nROSS\nFirst line here.\nAnd more.\n\nKIM^\nSecond.\n\nThen action.",
+      "more.",
+    ),
+    (
+      "right",
+      "INT. HOUSE - DAY\n\nROSS\nFirst.\n\nKIM^\nSecond line there.\nAnd more.\n\nThen action.",
+      "more.",
+    ),
+  ]) {
+    testWidgets("leaves the blank line under a pair whose $name column is taller", (tester) async {
+      await _useLargeSurface(tester);
+      await tester.pumpWidget(_wrapInApp(_buildView(text: text)));
+
+      double gapUnder(String lastWord) =>
+          tester.getTopLeft(find.text("Then ")).dy - tester.getBottomLeft(find.text(lastWord)).dy;
+      final pairGap = gapUnder(lastOfPair);
+      await tester.pumpWidget(
+        _wrapInApp(_buildView(text: "INT. HOUSE - DAY\n\nPlain more.\n\nThen action.")),
+      );
+      final plainGap = gapUnder("more.");
+
+      expect(pairGap, closeTo(plainGap, 0.5));
+    });
+  }
+
   testWidgets("sets the two speeches side by side, from the same top", (tester) async {
     await _useLargeSurface(tester);
     await tester.pumpWidget(_wrapInApp(_buildView()));

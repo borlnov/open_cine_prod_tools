@@ -47,13 +47,14 @@ OcptShotCoverageRange _buildRange(int startOffset, int endOffset) => OcptShotCov
 
 /// Build the dialog over [_layout].
 Widget _buildDialog({
+  OcptScriptWordLayout? layout,
   List<OcptShotCoverageRange> ownRanges = const [],
   Map<String, List<OcptShotCoverageRange>> otherShotsRanges = const {},
   void Function(int wordStartOffset, int wordEndOffset)? onWordTapped,
 }) => OcptShotCoverageDialog(
   shotCode: "1/3",
   sequenceHeading: "INT. HOUSE - DAY",
-  layout: _layout,
+  layout: layout ?? _layout,
   pageSetup: const OcptPageSetup.standard(),
   ownRanges: ownRanges,
   otherShotsRanges: otherShotsRanges,
@@ -125,7 +126,9 @@ void main() {
     expect(clicks, [(first.startOffset, first.endOffset), (second.startOffset, second.endOffset)]);
   });
 
-  testWidgets("keeps the also covered caption under its block, in its column", (tester) async {
+  testWidgets("sets the also covered caption under the pair, the rows kept in step", (
+    tester,
+  ) async {
     await useLargeSurface(tester);
     final right = _layout.blocks[5];
     await tester.pumpWidget(
@@ -139,11 +142,50 @@ void main() {
     );
 
     final caption = tester.getTopLeft(find.text("Also covered by 1/2"));
-    final rightLine = tester.getBottomLeft(find.text("there."));
+    final leftBottom = tester.getBottomLeft(find.text("more.")).dy;
 
-    expect(caption.dx, tester.getTopLeft(find.text("Second ")).dx);
-    expect(caption.dy, greaterThanOrEqualTo(rightLine.dy));
+    expect(caption.dy, greaterThanOrEqualTo(leftBottom));
+    expect(tester.getTopLeft(find.text("Second ")).dy, tester.getTopLeft(find.text("First ")).dy);
+    expect(tester.getTopLeft(find.text("KIM ")).dy, tester.getTopLeft(find.text("ROSS")).dy);
   });
+
+  for (final (name, text) in [
+    (
+      "left",
+      "INT. HOUSE - DAY\n\nROSS\nFirst line here.\nAnd more.\n\nKIM ^\nSecond.\n\nThen action.",
+    ),
+    (
+      "right",
+      "INT. HOUSE - DAY\n\nROSS\nFirst.\n\nKIM ^\nSecond line there.\nAnd more.\n\nThen action.",
+    ),
+  ]) {
+    testWidgets("leaves the blank line under a pair whose $name column is taller", (tester) async {
+      await useLargeSurface(tester);
+      double gapUnder(String lastWord) =>
+          tester.getTopLeft(find.text("Then ")).dy - tester.getBottomLeft(find.text(lastWord)).dy;
+      await tester.pumpWidget(
+        _wrapInApp(
+          _buildDialog(
+            layout: OcptScriptWordLayout.of(sceneId: "scene-1", sceneText: text),
+          ),
+        ),
+      );
+      final pairGap = gapUnder("more.");
+      await tester.pumpWidget(
+        _wrapInApp(
+          _buildDialog(
+            layout: OcptScriptWordLayout.of(
+              sceneId: "scene-1",
+              sceneText: "INT. HOUSE - DAY\n\nPlain more.\n\nThen action.",
+            ),
+          ),
+        ),
+      );
+      final plainGap = gapUnder("more.");
+
+      expect(pairGap, closeTo(plainGap, 0.5));
+    });
+  }
 
   testWidgets("washes a range running from the left column into the right one", (tester) async {
     await useLargeSurface(tester);

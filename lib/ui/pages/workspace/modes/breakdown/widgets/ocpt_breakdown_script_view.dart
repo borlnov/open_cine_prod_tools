@@ -491,6 +491,9 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
               _OcptBreakdownSheetBlock(sheet: this, layout: layout, index: item.left.first)
             else
               OcptDualDialoguePair(
+                bottomSpacing: _isFollowedByBlankLine(layout, item.right!.last)
+                    ? previewLayout.blockSpacing
+                    : 0,
                 left: [
                   for (final i in item.left)
                     _OcptBreakdownSheetBlock(
@@ -508,6 +511,7 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
                       layout: layout,
                       index: i,
                       side: layout.blocks[i].dualSide,
+                      isLastOfColumn: i == item.right!.last,
                     ),
                 ],
               ),
@@ -539,8 +543,8 @@ class _OcptBreakdownSheetBlock extends StatelessWidget {
   /// The column of a pair the block is set in, or null when it is rendered on its own.
   final FountainDualDialogueSide? side;
 
-  /// Whether the block ends the left column of a pair: the blank line before the right cue opens
-  /// no space, so nothing is left under it.
+  /// Whether the block ends a column of a pair: the pair carries the space under it once, so
+  /// nothing is left under the block itself.
   final bool isLastOfColumn;
 
   /// Class constructor

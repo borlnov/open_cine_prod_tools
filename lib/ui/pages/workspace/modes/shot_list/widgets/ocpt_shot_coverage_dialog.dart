@@ -291,6 +291,31 @@ class _OcptShotCoverageSheet extends StatelessWidget {
     required this.onWordTapped,
   });
 
+  /// Get the codes of the other shots covering part of the blocks at [indices], in shot order.
+  List<String> otherCodesOf(Iterable<int> indices) => [
+    for (final entry in otherShotsRanges.entries)
+      if (indices.any((i) => layout.rangesIn(layout.blocks[i], entry.value).isNotEmpty)) entry.key,
+  ];
+
+  /// Build the `Also covered by` caption set under a whole pair, or null when no other shot covers
+  /// any of its blocks.
+  Widget? _pairCaption(BuildContext context, ({List<int> left, List<int>? right}) item) {
+    final codes = otherCodesOf([...item.left, ...?item.right]);
+    final dual = previewLayout.metrics.dualDialogue;
+    if (codes.isEmpty || dual == null) {
+      return null;
+    }
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: EdgeInsets.only(left: previewLayout.indentOf(dual.leftDialogue)),
+      child: Text(
+        Tr.of(context).shotListCoverageAlsoCoveredBy(codes.join(" · ")),
+        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary),
+      ),
+    );
+  }
+
   /// Build the shot coverage sheet as a [Material].
   @override
   Widget build(BuildContext context) => Material(
@@ -314,6 +339,10 @@ class _OcptShotCoverageSheet extends StatelessWidget {
                 _OcptShotCoverageSheetBlock(sheet: this, index: item.left.first)
               else
                 OcptDualDialoguePair(
+                  footer: _pairCaption(context, item),
+                  bottomSpacing: _isFollowedByBlankLine(layout, item.right!.last)
+                      ? previewLayout.blockSpacing
+                      : 0,
                   left: [
                     for (final i in item.left)
                       _OcptShotCoverageSheetBlock(
@@ -329,6 +358,7 @@ class _OcptShotCoverageSheet extends StatelessWidget {
                         sheet: this,
                         index: i,
                         side: layout.blocks[i].dualSide,
+                        endsColumn: i == item.right!.last,
                       ),
                   ],
                 ),
@@ -338,6 +368,11 @@ class _OcptShotCoverageSheet extends StatelessWidget {
     ),
   );
 }
+
+/// Tell whether the source leaves a blank line between [layout]'s block at [index] and the next.
+bool _isFollowedByBlankLine(OcptScriptWordLayout layout, int index) =>
+    index + 1 < layout.blocks.length &&
+    layout.blocks[index + 1].startOffset - layout.blocks[index].endOffset > 1;
 
 /// One block of the sheet: its words, each clickable, at the block's own screenplay indent, width
 /// and alignment, followed by the `Also covered by` caption when another shot covers part of it.
@@ -352,8 +387,8 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
   /// own: a cue closed by `^` then shows the marker, dimmed, after its name.
   final FountainDualDialogueSide? side;
 
-  /// Whether the block ends the left column of a pair: the blank line before the right cue opens
-  /// no space, so nothing is left under it.
+  /// Whether the block ends a column of a pair: the pair carries the space under it once, so
+  /// nothing is left under the block itself.
   final bool endsColumn;
 
   /// Get the layout the block belongs to.
@@ -382,10 +417,7 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
   /// blank line where the source has one: consecutive lines of an action paragraph, and the
   /// cue/parenthetical/dialogue lines of one dialogue block, flow on without a gap. Two adjacent
   /// source lines are one character apart (their own newline); anything wider is a blank line.
-  bool get isFollowedByBlankLine =>
-      !endsColumn &&
-      index + 1 < layout.blocks.length &&
-      layout.blocks[index + 1].startOffset - block.endOffset > 1;
+  bool get isFollowedByBlankLine => !endsColumn && _isFollowedByBlankLine(layout, index);
 
   /// Get the screenplay layout box [block]'s own line type is typeset in.
   ///
@@ -429,10 +461,9 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
 
     final displayRuns = ocptFountainWordDisplayRuns(block);
 
-    final otherCodes = [
-      for (final entry in otherShotsRanges.entries)
-        if (layout.rangesIn(block, entry.value).isNotEmpty) entry.key,
-    ];
+    // A block in a pair column has no caption of its own: the pair's one sits under both columns,
+    // which keeps the rows of the two columns in step.
+    final otherCodes = side == null ? sheet.otherCodesOf([index]) : const <String>[];
 
     return Padding(
       padding: EdgeInsets.only(bottom: isFollowedByBlankLine ? previewLayout.blockSpacing : 0),
