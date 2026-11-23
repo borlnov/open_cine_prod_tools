@@ -33,7 +33,8 @@ whatever the project.
   percentage for the list of sizes, from 50 % to 200 %, and **Fit to width**: the page then fills
   the width of the area and follows the window when you resize it.
 - Hold **Ctrl** (**Cmd** on a Mac) and turn the mouse wheel: one step per notch, around the point
-  under the pointer. A plain wheel still scrolls.
+  under the pointer, however far a notch turns on your system. A smooth wheel or a trackpad, which
+  send many small movements, steps each time they add up to a notch. A plain wheel still scrolls.
 - **Ctrl** and **+** (or **=**) zoom in, **Ctrl** and **−** zoom out, **Ctrl** and **0** go back
   to 100 %.
 

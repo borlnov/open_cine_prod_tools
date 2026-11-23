@@ -36,7 +36,9 @@ quel que soit le projet.
   pourcentage pour la liste des tailles, de 50 % à 200 %, et **Ajuster à la largeur** : la page
   remplit alors la largeur de la zone et suit la fenêtre quand vous la redimensionnez.
 - Maintenez **Ctrl** (**Cmd** sur Mac) et tournez la molette : un palier par cran, autour du point
-  sous le curseur. La molette seule fait toujours défiler.
+  sous le curseur, quelle que soit la course d'un cran sur votre système. Une molette lisse ou un
+  pavé tactile, qui envoient beaucoup de petits mouvements, changent de palier chaque fois qu'ils
+  s'additionnent jusqu'à un cran. La molette seule fait toujours défiler.
 - **Ctrl** et **+** (ou **=**) zooment, **Ctrl** et **−** dézooment, **Ctrl** et **0** reviennent
   à 100 %.
 
