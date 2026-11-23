@@ -85,9 +85,8 @@ floor plan per Resources set across its three scopes, and their two documents,
 
 What is still ahead, in priority order:
 
-- The end-user collaboration guide, in `docs-site/`.
-- After that: call sheets beyond what the schedule mode already prints, then
-  script supervisor reports.
+- Call sheets beyond what the schedule mode already prints.
+- After that: script supervisor reports.
 
 Earlier steps, once numbered `0` through `29k`, are in `git log`; the numbers are referenced by
 no file any more.
