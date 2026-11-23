@@ -87,12 +87,14 @@ class OcptScriptPagePainter {
   /// Get the distance, in points, from the page's left edge to the 0-based [column] of [line]'s own
   /// printed text.
   ///
-  /// Resolves the line's alignment the same way the drawn [pw.RichText] does — a centered or
+  /// [line] is the cell the mark belongs to: in a dual-dialogue row, the left or the right one,
+  /// which each carry their own indent. Resolves the line's alignment the same way the drawn [pw.RichText] does — a centered or
   /// right-aligned line does not start at its element's left indent — so a mark drawn inside the
   /// text (a coverage tick, a wash behind an uncovered run) lands on the character it names.
   double columnLeftPt({required FountainScriptLine line, required int column}) {
     final boxLeftPt = line.leftIndentInches * ocptPdfPointsPerInch;
-    final freeWidthPt = lineBoxWidthPt(line.lineType) - line.plainText.length * columnWidthPt;
+    final freeWidthPt =
+        lineBoxWidthPt(line.lineType, side: line.dualSide) - line.plainText.length * columnWidthPt;
     final textLeftPt = switch (line.alignment) {
       FountainLayoutAlignment.left => boxLeftPt,
       FountainLayoutAlignment.center => boxLeftPt + freeWidthPt / 2,
@@ -104,6 +106,9 @@ class OcptScriptPagePainter {
 
   /// Get the width, in points, of the box one [FountainScriptLine] of [lineType] is drawn in.
   ///
+  /// A cell of a dual-dialogue pair passes its [FountainScriptLine.dualSide] as [side], since the
+  /// two columns of a pair are narrower than the ordinary dialogue box.
+  ///
   /// Derived from [FountainElementLayout.maxWidthColumns] rather than from
   /// [FountainElementLayout.maxWidthInches], so the box is measured in the very unit
   /// [FountainScriptComposer] wrapped the line to: a line can then never be one column wider than
@@ -113,8 +118,8 @@ class OcptScriptPagePainter {
   /// real pitch being slightly narrower than the nominal [FountainLayoutMetrics.charsPerInch]
   /// leaves a little slack on top of that, and truncated column counts keep the box inside the
   /// page margins (which right-aligned transitions and centered text rely on).
-  double lineBoxWidthPt(FountainLineType lineType) =>
-      metrics.elementOf(lineType).maxWidthColumns * columnWidthPt;
+  double lineBoxWidthPt(FountainLineType lineType, {FountainDualDialogueSide? side}) =>
+      metrics.elementOf(lineType, side: side).maxWidthColumns * columnWidthPt;
 
   /// Build the leading title [pw.Page] from [titlePage]'s metadata: title centered in the
   /// upper-to-middle area, credit and authors below it, contact at the bottom-left and draft date
@@ -264,9 +269,12 @@ class OcptScriptPagePainter {
     );
   }
 
-  /// Build the widgets one printed [line] at [row] draws: its text, and the scene numbers printed
-  /// in
-  /// both margins opposite it when [includeSceneNumbers] is on and it carries one.
+  /// Build the widgets one printed [line] at [row] draws: the text of each of its cells, and the
+  /// scene numbers printed in both margins opposite it when [includeSceneNumbers] is on and it
+  /// carries one.
+  ///
+  /// A cell with no runs, such as the blank left cell of a dual-dialogue row whose left column is
+  /// exhausted, draws nothing.
   List<pw.Widget> _lineWidgets({
     required FountainScriptLine line,
     required int row,
@@ -275,17 +283,20 @@ class OcptScriptPagePainter {
     final rowTopPt = this.rowTopPt(row);
     final widgets = <pw.Widget>[];
 
-    if (line.runs.isNotEmpty) {
-      final blockStyle = FountainPrintStyle.of(line.lineType);
+    for (final cell in line.cells) {
+      if (cell.runs.isEmpty) {
+        continue;
+      }
+      final blockStyle = FountainPrintStyle.of(cell.lineType);
       widgets.add(
         pw.Positioned(
-          left: line.leftIndentInches * ocptPdfPointsPerInch,
+          left: cell.leftIndentInches * ocptPdfPointsPerInch,
           top: rowTopPt,
           child: pw.SizedBox(
-            width: lineBoxWidthPt(line.lineType),
+            width: lineBoxWidthPt(cell.lineType, side: cell.dualSide),
             child: pw.RichText(
-              textAlign: _textAlignFor(line.alignment),
-              text: pw.TextSpan(children: _spansFor(line.runs, blockStyle)),
+              textAlign: _textAlignFor(cell.alignment),
+              text: pw.TextSpan(children: _spansFor(cell.runs, blockStyle)),
             ),
           ),
         ),
