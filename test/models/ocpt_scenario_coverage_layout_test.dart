@@ -746,6 +746,16 @@ void main() {
       expect(first.uncoveredExtracts, isEmpty);
     });
 
+    test("counts neither a lone caret of a cue nor its extract as words", () {
+      final screenplay = _ComposedScreenplay("INT. ROOM - DAY\n\nROSS\nFirst.\n\nKIM ^\nSecond.\n");
+      final layout = screenplay.layoutOf([screenplay.sceneSequence(0, const [])]);
+
+      final row = layout.summary.first;
+      // ROSS, First., KIM and Second.: the heading is left out and the caret is no word.
+      expect(row.wordCount, 4);
+      expect(row.uncoveredExtracts, ["ROSS", "First.", "KIM", "Second."]);
+    });
+
     test("measures a scene with no shot at all as entirely uncovered", () {
       final layout = buildLayout(_ComposedScreenplay(_screenplay));
       final second = layout.summary[1];

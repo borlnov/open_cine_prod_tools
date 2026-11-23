@@ -299,4 +299,33 @@ void main() {
     expect(find.text("Select…"), findsNothing);
     expect(find.text("Clear all"), findsNothing);
   });
+
+  testWidgets("quotes the source of a range running over a dual-dialogue pair, caret included", (
+    tester,
+  ) async {
+    await _useTallSurface(tester);
+    final layout = OcptScriptWordLayout.of(
+      sceneId: _sceneId,
+      sceneText: "ROSS\nFirst.\n\nKIM^\nSecond.",
+    );
+
+    await tester.pumpWidget(
+      _wrapInApp(
+        _buildSummary(
+          layout: layout,
+          ownRanges: [
+            _buildRange(
+              startOffset: layout.blocks[1].startOffset,
+              endOffset: layout.blocks[3].words.first.endOffset,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // The extract is the raw source, in the order of the source: the left speech, then the right
+    // cue with its caret, then the start of the right speech.
+    expect(find.text("« First.\n\nKIM^\nSecond. »"), findsOneWidget);
+    expect(find.text("DIALOGUE → CHARACTER → DIALOGUE"), findsOneWidget);
+  });
 }
