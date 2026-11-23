@@ -8,8 +8,9 @@ import 'package:super_editor/super_editor.dart';
 
 /// [EditCommand] applying an [OcptReplaceNodeTextRequest]: replaces the target `ParagraphNode` with
 /// a copy carrying the new text (metadata untouched), via `ParagraphNode.copyTextNodeWith`,
-/// mirroring [OcptChangeNodeMetadataCommand]'s own pattern. A selection end that the shorter text
-/// leaves past its end is brought back to it, so a caret is never left outside the text.
+/// mirroring [OcptChangeNodeMetadataCommand]'s own pattern. A selection or composing region end
+/// that the shorter text leaves past its end is brought back to it, so neither is left outside the
+/// text.
 class OcptReplaceNodeTextCommand extends EditCommand {
   /// The id of the `ParagraphNode` whose text is being replaced.
   final String nodeId;
@@ -35,6 +36,13 @@ class OcptReplaceNodeTextCommand extends EditCommand {
     executor.logChanges([DocumentEdit(NodeChangeEvent(nodeId))]);
 
     final composer = context.find<MutableDocumentComposer>(Editor.composerKey);
+    final composing = composer.composingRegion.value;
+    if (composing != null) {
+      final clampedComposing = _clampedRange(composing);
+      if (clampedComposing != composing) {
+        composer.setComposingRegion(clampedComposing);
+      }
+    }
     final selection = composer.selection;
     final clamped = selection == null ? null : _clamped(selection);
     if (clamped != null && clamped != selection) {
@@ -46,6 +54,14 @@ class OcptReplaceNodeTextCommand extends EditCommand {
         ),
       );
     }
+  }
+
+  /// Get [range] with its ends in the replaced node brought back inside the new text, or null when
+  /// that leaves nothing composed.
+  DocumentRange? _clampedRange(DocumentRange range) {
+    final start = _clampedPosition(range.start);
+    final end = _clampedPosition(range.end);
+    return start == end ? null : DocumentRange(start: start, end: end);
   }
 
   /// Get [selection] with its ends in the replaced node brought back inside the new text, so a

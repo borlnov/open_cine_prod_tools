@@ -100,10 +100,12 @@ final class OcptWysiwygDualDialogue {
   /// A cue ending with a `^` typed live has it absorbed: the marker leaves the node's text for
   /// [ocptDualDialogueMetadataKey], like a `#N#` typed at the end of a heading. A node that is no
   /// longer a cue gets the suffix it carries written back at the end of its text, so no character
-  /// of the source is lost. An inert node is left alone.
+  /// of the source is lost. An inert node is left alone, and so is a node in [composingNodeIds],
+  /// whose text an input method is still composing: it is dealt with at the next settle.
   static List<EditRequest> requests(
     Document document, {
     OcptWysiwygDocumentLayout? documentLayout,
+    Set<String> composingNodeIds = const {},
   }) {
     final requests = <EditRequest>[];
     final inertIds = OcptWysiwygComments.inertNodeIds(document, documentLayout: documentLayout);
@@ -111,7 +113,8 @@ final class OcptWysiwygDualDialogue {
     for (final node in document) {
       if (node is! ParagraphNode ||
           node.getMetadataValue(ocptTitlePageKeyMetadataKey) is String ||
-          inertIds.contains(node.id)) {
+          inertIds.contains(node.id) ||
+          composingNodeIds.contains(node.id)) {
         continue;
       }
 

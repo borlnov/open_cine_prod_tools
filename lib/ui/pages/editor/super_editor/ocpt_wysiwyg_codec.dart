@@ -622,12 +622,16 @@ class OcptWysiwygCodec {
   static List<EditRequest> sceneNumberRequests(
     Document document, {
     OcptWysiwygDocumentLayout? documentLayout,
+    Set<String> composingNodeIds = const {},
   }) {
     final requests = <EditRequest>[];
     final inertIds = inertNodeIds(document, documentLayout: documentLayout);
 
     for (final node in document) {
-      if (node is! ParagraphNode || isTitlePageNode(node) || inertIds.contains(node.id)) {
+      if (node is! ParagraphNode ||
+          isTitlePageNode(node) ||
+          inertIds.contains(node.id) ||
+          composingNodeIds.contains(node.id)) {
         continue;
       }
 
@@ -669,6 +673,7 @@ class OcptWysiwygCodec {
   static List<EditRequest> uppercaseRequests(
     Document document, {
     OcptWysiwygDocumentLayout? documentLayout,
+    Set<String> composingNodeIds = const {},
   }) {
     final requests = <EditRequest>[];
     final (nodes, layout, lineIndexOfNode) = OcptWysiwygComments.resolve(document, documentLayout);
@@ -676,7 +681,7 @@ class OcptWysiwygCodec {
     for (var index = 0; index < nodes.length; index++) {
       final node = nodes[index];
       final lineIndex = lineIndexOfNode[index];
-      if (layout.isInertByLine[lineIndex]) {
+      if (layout.isInertByLine[lineIndex] || composingNodeIds.contains(node.id)) {
         continue;
       }
 

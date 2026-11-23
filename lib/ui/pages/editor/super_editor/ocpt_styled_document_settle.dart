@@ -21,6 +21,10 @@ final class OcptStyledDocumentSettle {
     // The document laid out as lines of plain text, once for every pass that reads it: only a
     // pass that changes a node's text makes it stale, and it is laid out again after that one.
     var layout = OcptWysiwygCodec.layoutOf(document);
+    // A node an input method is composing in is left alone by every pass that rewrites a text:
+    // the composing region indexes that text, and the pass acts at the first settle after the
+    // composition ends.
+    final composingNodeIds = _composingNodeIds(editor);
 
     // Run before every other pass and in its own `execute` call: a `#N#`
     // tag typed live still sits in the node's plain text at this point, and both this pass and
@@ -30,12 +34,17 @@ final class OcptStyledDocumentSettle {
     final sceneNumberRequests = OcptWysiwygCodec.sceneNumberRequests(
       document,
       documentLayout: layout,
+      composingNodeIds: composingNodeIds,
     );
     // The dual-dialogue `^` typed at the end of a cue is absorbed in the same pass, for the same
     // reason: both read the pre-strip text, and touch nodes of different types.
     final tagRequests = [
       ...sceneNumberRequests,
-      ...OcptWysiwygDualDialogue.requests(document, documentLayout: layout),
+      ...OcptWysiwygDualDialogue.requests(
+        document,
+        documentLayout: layout,
+        composingNodeIds: composingNodeIds,
+      ),
     ];
     if (tagRequests.isNotEmpty) {
       editor.execute(tagRequests);
@@ -55,7 +64,11 @@ final class OcptStyledDocumentSettle {
       ...OcptWysiwygCodec.reclassifyRequests(document, documentLayout: layout),
       ...OcptWysiwygCodec.noteAttributionRequests(document),
       ...OcptWysiwygCodec.commentAttributionRequests(document, documentLayout: layout),
-      ...OcptWysiwygCodec.uppercaseRequests(document, documentLayout: layout),
+      ...OcptWysiwygCodec.uppercaseRequests(
+        document,
+        documentLayout: layout,
+        composingNodeIds: composingNodeIds,
+      ),
     ];
     if (requests.isNotEmpty) {
       editor.execute(requests);
@@ -70,10 +83,22 @@ final class OcptStyledDocumentSettle {
       documentLayout: layout,
     );
     // A cue just reclassified as anything else drops its dual-dialogue marker.
-    final dualDialogueRequests = OcptWysiwygDualDialogue.requests(document, documentLayout: layout);
+    final dualDialogueRequests = OcptWysiwygDualDialogue.requests(
+      document,
+      documentLayout: layout,
+      composingNodeIds: composingNodeIds,
+    );
     final finalRequests = [...normalizationRequests, ...dualDialogueRequests];
     if (finalRequests.isNotEmpty) {
       editor.execute(finalRequests);
     }
+  }
+
+  /// Get the ids of the nodes holding the composing region of [editor]'s composer, empty when no
+  /// composition is in progress.
+  static Set<String> _composingNodeIds(Editor editor) {
+    final composer = editor.context.findMaybe<MutableDocumentComposer>(Editor.composerKey);
+    final region = composer?.composingRegion.value;
+    return region == null ? const {} : {region.start.nodeId, region.end.nodeId};
   }
 }

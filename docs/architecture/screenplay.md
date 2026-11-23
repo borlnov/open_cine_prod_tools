@@ -261,7 +261,10 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   extension, a cue emptied), so no character of the source is ever lost and the next absorb picks
   it up if the node reads as a cue again. `OcptReplaceNodeTextCommand` brings a selection end the
   shorter text leaves past its end back inside it, so absorbing a `^` or a `#N#` never leaves the
-  caret outside its node. `Enter` replicates no metadata, but the suffix belongs to the end of the
+  caret outside its node, and a composing region the same way. Every derived pass that rewrites a
+  node's text (this one, the `#N#` absorb, the uppercasing) skips the node holding the composing
+  region while an input method is composing, and acts at the settle that follows the composition's
+  end. `Enter` replicates no metadata, but the suffix belongs to the end of the
   cue: a split in the middle (or at the start) gives it to the tail node, and only a split at the
   very end leaves it on the original. A copy writes the suffix through `encode` only when the
   copied range reaches the end of the cue, and a paste puts it back at the end of the cue's text,
