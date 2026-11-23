@@ -23,7 +23,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_selected_target_ref.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_tag_popover.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_display.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_script_word_items.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_dual_dialogue_pair.dart';
 
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_selected_target_ref.dart';
 
@@ -44,7 +45,7 @@ const double _ocptCompactSheetVerticalPadding = 16;
 ///
 /// Built scene by scene from [OcptScriptWordLayout.of], sliced out of the whole screenplay text
 /// with each [OcptBreakdownScene.charStart]/`charEnd`, and rendered through
-/// [ocptFountainWordDisplayRuns] so every Fountain marker (emphasis, a forcing character, a scene
+/// `ocptFountainWordDisplayRuns` so every Fountain marker (emphasis, a forcing character, a scene
 /// number) stays hidden. Every word of every non-heading block is its own click target, painted per
 /// word exactly as `OcptShotCoverageDialog` renders its own — one `WidgetSpan` box per word, each
 /// carrying the whitespace after it, so a multi-word tag reads as one continuous band rather than a
@@ -300,6 +301,7 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
                                 targetById: widget.targetById,
                                 previewLayout: previewLayout,
                                 layoutScale: layoutScale,
+                                allowSideBySide: !isPhone,
                                 isSelected: scene.id == widget.selectedSceneId,
                                 onHeadingTapped: () => widget.onSceneSelected(scene.id),
                                 hiddenLegendKeys: widget.hiddenLegendKeys,
@@ -390,6 +392,9 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
   /// on a phone (`OcptEditorPreviewLayout.compactLayoutScale`).
   final double layoutScale;
 
+  /// Whether a dual-dialogue pair may be set side by side: false on a phone, where the pair stacks.
+  final bool allowSideBySide;
+
   /// Whether [scene] is the selected one.
   final bool isSelected;
 
@@ -445,6 +450,7 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
     required this.targetById,
     required this.previewLayout,
     required this.layoutScale,
+    required this.allowSideBySide,
     required this.isSelected,
     required this.onHeadingTapped,
     required this.hiddenLegendKeys,
@@ -466,7 +472,11 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final layout = OcptScriptWordLayout.of(sceneId: scene.id, sceneText: sceneText);
-    final targetCount = ocptBreakdownSceneTargetsOf(scene, targetById).length;
+    final items = ocptScriptWordItemsOf(
+      layout: layout,
+      previewLayout: previewLayout,
+      allowSideBySide: allowSideBySide,
+    );
 
     return Padding(
       // The gap to the next scene's own heading: a scene's last block never sees the heading that
@@ -476,38 +486,30 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var i = 0; i < layout.blocks.length; i++)
-            if (layout.blocks[i].type == FountainLineType.sceneHeading)
-              OcptBreakdownSceneHeadingBlock(
-                block: layout.blocks[i],
-                previewLayout: previewLayout,
-                layoutScale: layoutScale,
-                isSelected: isSelected,
-                targetCount: targetCount,
-                onTap: onHeadingTapped,
-                isFollowedByBlankLine: _isFollowedByBlankLine(layout, i),
-              )
+          for (final item in items)
+            if (item.right == null)
+              _OcptBreakdownSheetBlock(sheet: this, layout: layout, index: item.left.first)
             else
-              OcptBreakdownScriptBlock(
-                scene: scene,
-                block: layout.blocks[i],
-                targetById: targetById,
-                hiddenLegendKeys: hiddenLegendKeys,
-                selectedTargetRef: selectedTargetRef,
-                previewLayout: previewLayout,
-                layoutScale: layoutScale,
-                isFollowedByBlankLine: _isFollowedByBlankLine(layout, i),
-                onTargetSelected: onTargetSelected,
-                onWordClicked: onWordClicked,
-                pendingTagAnchor: pendingTagAnchor,
-                pendingTagRange: pendingTagRange,
-                candidates: candidates,
-                onPopoverCancelled: onPopoverCancelled,
-                onPopoverTargetLinked: onPopoverTargetLinked,
-                onPopoverElementCreationRequested: onPopoverElementCreationRequested,
-                locations: locations,
-                onPopoverSetCreationRequested: onPopoverSetCreationRequested,
-                onOpenInResourcesRequested: onOpenInResourcesRequested,
+              OcptDualDialoguePair(
+                left: [
+                  for (final i in item.left)
+                    _OcptBreakdownSheetBlock(
+                      sheet: this,
+                      layout: layout,
+                      index: i,
+                      side: layout.blocks[i].dualSide,
+                      isLastOfColumn: i == item.left.last,
+                    ),
+                ],
+                right: [
+                  for (final i in item.right!)
+                    _OcptBreakdownSheetBlock(
+                      sheet: this,
+                      layout: layout,
+                      index: i,
+                      side: layout.blocks[i].dualSide,
+                    ),
+                ],
               ),
         ],
       ),
@@ -517,7 +519,77 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
   /// Tell whether [layout]'s block at [index] is followed by a blank source line — the only place
   /// the
   /// sheet leaves a vertical gap, mirroring `OcptShotCoverageDialog`'s own block spacing.
-  bool _isFollowedByBlankLine(OcptScriptWordLayout layout, int index) =>
+  static bool _isFollowedByBlankLine(OcptScriptWordLayout layout, int index) =>
       index + 1 < layout.blocks.length &&
       layout.blocks[index + 1].startOffset - layout.blocks[index].endOffset > 1;
+}
+
+/// One block of a scene's sheet: its heading row or its clickable words, in the column of a
+/// dual-dialogue pair when it belongs to one set side by side.
+class _OcptBreakdownSheetBlock extends StatelessWidget {
+  /// The sheet the block belongs to, whose fields every block is rendered with.
+  final _OcptBreakdownSceneSheet sheet;
+
+  /// The layout of the sheet's scene.
+  final OcptScriptWordLayout layout;
+
+  /// The index of the block in [OcptScriptWordLayout.blocks].
+  final int index;
+
+  /// The column of a pair the block is set in, or null when it is rendered on its own.
+  final FountainDualDialogueSide? side;
+
+  /// Whether the block ends the left column of a pair: the blank line before the right cue opens
+  /// no space, so nothing is left under it.
+  final bool isLastOfColumn;
+
+  /// Class constructor
+  const _OcptBreakdownSheetBlock({
+    required this.sheet,
+    required this.layout,
+    required this.index,
+    this.side,
+    this.isLastOfColumn = false,
+  });
+
+  /// Build the sheet block as a heading row or a script block.
+  @override
+  Widget build(BuildContext context) {
+    final block = layout.blocks[index];
+    final isFollowedByBlankLine = _OcptBreakdownSceneSheet._isFollowedByBlankLine(layout, index);
+    if (block.type == FountainLineType.sceneHeading) {
+      return OcptBreakdownSceneHeadingBlock(
+        block: block,
+        previewLayout: sheet.previewLayout,
+        layoutScale: sheet.layoutScale,
+        isSelected: sheet.isSelected,
+        targetCount: ocptBreakdownSceneTargetsOf(sheet.scene, sheet.targetById).length,
+        onTap: sheet.onHeadingTapped,
+        isFollowedByBlankLine: isFollowedByBlankLine,
+      );
+    }
+
+    return OcptBreakdownScriptBlock(
+      scene: sheet.scene,
+      block: block,
+      side: side,
+      targetById: sheet.targetById,
+      hiddenLegendKeys: sheet.hiddenLegendKeys,
+      selectedTargetRef: sheet.selectedTargetRef,
+      previewLayout: sheet.previewLayout,
+      layoutScale: sheet.layoutScale,
+      isFollowedByBlankLine: !isLastOfColumn && isFollowedByBlankLine,
+      onTargetSelected: sheet.onTargetSelected,
+      onWordClicked: sheet.onWordClicked,
+      pendingTagAnchor: sheet.pendingTagAnchor,
+      pendingTagRange: sheet.pendingTagRange,
+      candidates: sheet.candidates,
+      onPopoverCancelled: sheet.onPopoverCancelled,
+      onPopoverTargetLinked: sheet.onPopoverTargetLinked,
+      onPopoverElementCreationRequested: sheet.onPopoverElementCreationRequested,
+      locations: sheet.locations,
+      onPopoverSetCreationRequested: sheet.onPopoverSetCreationRequested,
+      onOpenInResourcesRequested: sheet.onOpenInResourcesRequested,
+    );
+  }
 }

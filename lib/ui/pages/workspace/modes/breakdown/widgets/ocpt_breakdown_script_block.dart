@@ -48,6 +48,10 @@ const double _ocptBreakdownSelectedTagRingWidth = 1.5;
 /// their two bands. Mirrors `OcptShotCoverageDialog`'s own `_ocptWordVerticalPadding`.
 const double _ocptWordVerticalPadding = 2;
 
+/// The colour of the dual-dialogue `^` a cue shows after its name when its speech is not set
+/// beside another: dimmed, and no click target, since it is no word.
+const Color _ocptBreakdownDualMarkerColor = Colors.black38;
+
 /// One non-heading block of the sheet: every word its own click target, painted per the live tag
 /// (if any) covering it — see `OcptBreakdownScriptView`'s own doc comment for the painting and
 /// click-routing rules this class implements.
@@ -77,6 +81,10 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
 
   /// Whether the source leaves a blank line right after this block.
   final bool isFollowedByBlankLine;
+
+  /// The column of a dual-dialogue pair this block is set in side by side, or null when it is
+  /// rendered on its own: a cue closed by `^` then shows the marker, dimmed, after its name.
+  final FountainDualDialogueSide? side;
 
   /// Forwarded from `OcptBreakdownScriptView`.
   final void Function(OcptBreakdownTargetKind targetKind, String targetId, String sceneId)
@@ -125,6 +133,7 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
     required this.previewLayout,
     required this.layoutScale,
     required this.isFollowedByBlankLine,
+    this.side,
     required this.onTargetSelected,
     required this.onWordClicked,
     required this.pendingTagAnchor,
@@ -141,7 +150,7 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
   /// Build the breakdown script block as a [Padding].
   @override
   Widget build(BuildContext context) {
-    final element = previewLayout.metrics.elementOf(block.type);
+    final element = previewLayout.metrics.elementOf(block.type, side: side);
     final printStyle = FountainPrintStyle.of(block.type);
     final baseStyle = TextStyle(
       fontFamily: OcptEditorPreviewLayout.fontFamily,
@@ -190,6 +199,11 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
                               )
                             : null,
                       ),
+                    ),
+                  if (side == null && ocptFountainCueHasDualMarker(block))
+                    TextSpan(
+                      text: "^",
+                      style: baseStyle.copyWith(color: _ocptBreakdownDualMarkerColor),
                     ),
                 ],
               ),
