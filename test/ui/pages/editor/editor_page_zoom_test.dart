@@ -120,14 +120,14 @@ void main() {
     await pumpPage(tester);
 
     expect(find.byType(OcptEditorZoomControl), findsOneWidget);
-    expect(find.text("100 %"), findsOneWidget);
+    expect(find.text("100%"), findsOneWidget);
   });
 
   testWidgets("the zoom stored for the user is shown on entry", (tester) async {
     await propertiesManager.styledPageZoom.store(OcptPageZoom.nearestStep(1.5));
     await pumpPage(tester);
 
-    expect(find.text("150 %"), findsOneWidget);
+    expect(find.text("150%"), findsOneWidget);
   });
 
   testWidgets("the plus and minus buttons step the zoom and store it", (tester) async {
@@ -136,13 +136,13 @@ void main() {
 
     await tester.tap(find.byTooltip(tr.editorZoomInTooltip));
     await tester.pumpAndSettle();
-    expect(find.text("110 %"), findsOneWidget);
+    expect(find.text("110%"), findsOneWidget);
     expect(await storedZoom(), OcptPageZoom.nearestStep(1.1));
 
     await tester.tap(find.byTooltip(tr.editorZoomOutTooltip));
     await tester.tap(find.byTooltip(tr.editorZoomOutTooltip));
     await tester.pumpAndSettle();
-    expect(find.text("90 %"), findsOneWidget);
+    expect(find.text("90%"), findsOneWidget);
     expect(await storedZoom(), OcptPageZoom.nearestStep(0.9));
   });
 
@@ -153,7 +153,7 @@ void main() {
     await tester.tap(find.byTooltip(tr.editorZoomMenuTooltip));
     await tester.pumpAndSettle();
     for (final step in OcptPageZoom.steps) {
-      expect(find.text("${OcptPageZoom.percentOf(step)} %"), findsWidgets);
+      expect(find.text("${OcptPageZoom.percentOf(step)}%"), findsWidgets);
     }
 
     await tester.tap(find.text(tr.editorZoomFitToWidth));
@@ -188,15 +188,15 @@ void main() {
     await tester.pumpAndSettle();
 
     await pressWithCtrl(tester, LogicalKeyboardKey.equal);
-    expect(find.text("110 %"), findsOneWidget);
+    expect(find.text("110%"), findsOneWidget);
     expect(await storedZoom(), OcptPageZoom.nearestStep(1.1));
 
     await pressWithCtrl(tester, LogicalKeyboardKey.minus);
     await pressWithCtrl(tester, LogicalKeyboardKey.minus);
-    expect(find.text("90 %"), findsOneWidget);
+    expect(find.text("90%"), findsOneWidget);
 
     await pressWithCtrl(tester, LogicalKeyboardKey.digit0);
-    expect(find.text("100 %"), findsOneWidget);
+    expect(find.text("100%"), findsOneWidget);
     expect(await storedZoom(), const OcptPageZoom.actualSize());
   });
 
@@ -208,7 +208,7 @@ void main() {
 
     await pressWithCtrl(tester, LogicalKeyboardKey.equal);
 
-    expect(find.text("110 %"), findsOneWidget);
+    expect(find.text("110%"), findsOneWidget);
   });
 
   testWidgets("a compact window has no zoom control and ignores the shortcuts", (tester) async {
@@ -241,6 +241,63 @@ void main() {
     // The dock is narrower than the styled area would be, so only a measure of its own gives this.
     expect(pageWidth, closeTo(dockWidth - 32, 1));
     final factor = tester.widget<OcptEditorZoomControl>(find.byType(OcptEditorZoomControl)).factor;
-    expect(find.text("${OcptPageZoom.percentOf(factor)} %"), findsOneWidget);
+    expect(find.text("${OcptPageZoom.percentOf(factor)}%"), findsOneWidget);
+  });
+
+  group("keyboard layouts", () {
+    /// Send a key down of [key] producing [character], with Ctrl held, then release both.
+    Future<void> pressProducing(
+      WidgetTester tester,
+      LogicalKeyboardKey key,
+      String character,
+    ) async {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyDownEvent(key, character: character);
+      await tester.sendKeyUpEvent(key);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets("on AZERTY the minus, which is the 6 key, zooms out; Ctrl+6 on QWERTY does not", (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      await tester.tap(find.byType(SuperEditor));
+      await tester.pumpAndSettle();
+
+      // QWERTY: the key is a 6, and a 6 is no zoom.
+      await pressProducing(tester, LogicalKeyboardKey.digit6, "6");
+      expect(find.text("100%"), findsOneWidget);
+
+      // AZERTY: the same logical key makes a minus.
+      await pressProducing(tester, LogicalKeyboardKey.digit6, "-");
+      expect(find.text("90%"), findsOneWidget);
+    });
+
+    testWidgets("on QWERTZ the unshifted plus, which Flutter calls add, zooms in", (tester) async {
+      await pumpPage(tester);
+      await tester.tap(find.byType(SuperEditor));
+      await tester.pumpAndSettle();
+
+      await pressProducing(tester, LogicalKeyboardKey.add, "+");
+
+      expect(find.text("110%"), findsOneWidget);
+    });
+
+    testWidgets("the shifted plus of a QWERTY keyboard and the numpad keys zoom too", (
+      tester,
+    ) async {
+      await pumpPage(tester);
+      await tester.tap(find.byType(SuperEditor));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await pressProducing(tester, LogicalKeyboardKey.equal, "+");
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      expect(find.text("110%"), findsOneWidget);
+
+      await pressProducing(tester, LogicalKeyboardKey.numpadSubtract, "-");
+      expect(find.text("100%"), findsOneWidget);
+    });
   });
 }

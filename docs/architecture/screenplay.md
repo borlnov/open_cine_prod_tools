@@ -319,7 +319,13 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   the editor was rejected: super_editor measures its components through `localToGlobal` and
   places its IME, handles and autoscroll on that basis, and the text would not be re-wrapped. The
   wrap points do not move with the zoom (everything is in columns), so **the pagination is the
-  same at every zoom**; only its pixel paddings scale (`computeOcptStyledPagination(zoom:)`).
+  same at every zoom** (`computeOcptStyledPagination(zoom:)` gives the same page-start nodes), and
+  **what is stored in the document does not depend on it either**: a page-start node carries, in
+  `ocptStartsNewPageMetadataKey`, its padding in inches of page minus the one page gap it always
+  holds (`ocptPageStartMetadataOf`), and the stylesheet turns that back into pixels at the zoom it
+  renders at (`ocptPageStartPaddingOf`). A zoom therefore writes nothing to the document: pixels
+  would have made it an undo step that marks the redo stack stale, and an undo would have brought
+  back the paddings of the old zoom for a debounce.
   - The zoom is `OcptPageZoom` (`lib/models/rules/ocpt_page_zoom.dart`): one of ten steps (50, 67,
     75, 90, 100, 110, 125, 150, 175, 200 %) or **fit to width**, a *mode*, not a step: the sheet
     fills the area it is shown in, follows the window, bounded to 50–200 %, and `OcptEditorZoomArea`
@@ -332,22 +338,49 @@ model, the title page, the spell-checking, the docks and the syntax guide.
     `styledSceneNumbersVisible`; it lives in `OcptEditorState.styledPageZoom`, changed by
     `OcptEditorPageZoomSelectedEvent` and `OcptEditorPageZoomSteppedEvent`.
   - Ways to zoom: the status bar's `−  100 %  +` (`OcptEditorZoomControl`, in the status bar's
-    `control` slot, a menu of the steps and *Fit to width* behind the percentage, a button at the end
-    of the steps withheld), **Ctrl + wheel** (Cmd on macOS, `OcptEditorZoomWheel`) and **Ctrl** and
-    `+`/`=`/`−`/`0` (`OcptEditorZoomIntent`, mapped by the page; the styled editor's keyboard
-    actions claim none of them, so they bubble up like Ctrl+S). The wheel claims its event through
-    `GestureBinding.pointerSignalResolver`, but the scrollable nearest to the pointer registers first
-    and would scroll the page too: every scrollable under the wheel is therefore given
-    `OcptZoomWheelPhysics`, which refuses the user's offset while the modifier is held — a **constant**
-    instance, since a new one at every build is a new scroll behavior and made the styled editor's
-    history non-empty on mount. The styled editor keeps the point under the pointer
-    (`OcptStyledZoomAnchor`) and the centre of the area for the other ways.
-  - A page zoomed in wider than its area scrolls **horizontally** (`OcptStyledHorizontalOverflow`),
-    centred while it fits; at 100 % or less it is still scaled down to fit a narrow area
-    (`OcptStyledScaledToFit`). A **compact** window (`ocptIsCompactWidth`: a phone, a narrow window)
-    has no zoom at all: the control is withheld, the wheel and the shortcuts are ignored. Zoom is a
-    view setting, not a write, so it stays available under a read-only preview, whose preview shares
-    the layout.
+    `control` slot, centred in it, a menu of the steps and *Fit to width* behind the percentage, a
+    button at the end of the steps withheld), **Ctrl + wheel** (Cmd on macOS, `OcptEditorZoomWheel`)
+    and **Ctrl** and `+`/`=`/`−`/`0` (`OcptEditorZoomIntent`, mapped by the page; the styled
+    editor's keyboard actions claim none of them, so they bubble up like Ctrl+S). The bloc refuses
+    a step with `OcptPageZoom.canStep`, the very answer the buttons are withheld on, so a shortcut
+    never goes where they don't, in the fit to width mode included.
+  - **Keyboard layouts.** The shortcuts are not a static map of keys: `OcptEditorZoomKeyActivator`
+    matches the character the key *produces* (`-`, `+`, `=`, `0`), because a French AZERTY layout
+    has its minus on the key QWERTY calls 6 (which Flutter reports as `digit6`) and a German QWERTZ
+    its unshifted plus on the one it calls `add`, while a Ctrl+6 on QWERTY produces a 6 and zooms
+    nothing. When a platform gives no character for the chord, the logical key of the keys that
+    mean the same everywhere (minus, equals, plus, zero, and the numpad's) decides; an AZERTY
+    keyboard that reports neither a character nor anything but `digit6` can't be told from a
+    QWERTY one, and zooms with the numpad keys only.
+  - **The wheel and the scrolling.** The wheel claims its event through
+    `GestureBinding.pointerSignalResolver`, but the scrollable nearest to the pointer registers
+    first and would scroll the page too, so every scrollable under it refuses the user's offset
+    while the modifier is held (`OcptZoomWheelPhysics`, over the platform's own physics, which stay
+    underneath, and only where the page can be zoomed). Flutter asks that same question a second
+    time, when a scrollable's content changes size, to decide whether it reacts to a drag at all:
+    answering "no" then would leave touch and trackpad drags dead until the next resize, after a
+    zoom or a paste made with the modifier held. The two are told apart by the phase: a wheel
+    event arrives between two frames, the drag check is made while one is built, so the offset is
+    only refused between frames. The physics is a **constant** per parent: a new instance at every
+    build is a new scroll behavior, and it made the styled editor's history non-empty on mount.
+    A step is a notch's worth of wheel (`OcptEditorZoomWheel.notchDelta`): the first event of a
+    turn steps at once, the next ones add up, so a smooth wheel doesn't jump several steps.
+  - **Scrolling with the zoom** (`OcptStyledZoomAnchor`). The point the zoom is made around stays
+    under the pointer for a wheel notch (its position is only kept for the frame that follows, a
+    refused step leaves nothing behind), under the caret when it is in view for the other ways, and
+    at the centre of the area otherwise. It is the *line of text* under the point that is found
+    again once laid out, not a ratio of the scroll offset, which the gap between two sheets (that
+    doesn't scale) and the text's own rounding would throw off further and further down the page.
+    Once the page is wider than its area, the caret, and a find match, are kept in view sideways.
+  - A page zoomed in wider than its area scrolls **horizontally**, centred while it fits; at 100 %
+    or less it is still scaled down to fit a narrow area. The three outcomes share **one tree**
+    (`OcptStyledScaledToFit`: the app's `OcptHorizontalScrollView` around a `FittedBox`, only what
+    they are told changes), and so do a step and the fit to width mode (`OcptEditorZoomArea` is
+    always a layout builder): a page that moved to another shape of tree would be mounted again,
+    losing its scroll position, caret, focus and history. A **compact** window
+    (`ocptIsCompactWidth`: a phone, a narrow window) has no zoom at all: the control is withheld,
+    the wheel and the shortcuts are ignored. Zoom is a view setting, not a write, so it stays
+    available under a read-only preview, whose preview shares the layout.
   - In raw mode the preview in the right dock measures **its own width** through its own
     `OcptEditorZoomArea` and reports the factor like the styled editor does: only one surface is
     shown at a time, so they share the one measured factor, and the status bar shows the one of

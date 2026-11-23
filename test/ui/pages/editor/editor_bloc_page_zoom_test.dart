@@ -158,4 +158,31 @@ void main() {
 
     await bloc.close();
   });
+
+  test(
+    "a step the status bar's button is withheld on is refused, in the fit to width mode too",
+    () async {
+      await propertiesManager.styledPageZoom.store(const OcptPageZoom.fitToWidth());
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      // Close to the largest step: the plus button is withheld, so the shortcut goes nowhere either.
+      bloc.add(const OcptEditorFitPageZoomMeasuredEvent(factor: 1.95));
+      await waitForState(bloc, (state) => state.measuredFitPageZoomFactor == 1.95);
+      expect(OcptPageZoom.canStep(1, 1.95), isFalse);
+      bloc.add(const OcptEditorPageZoomSteppedEvent(direction: 1));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(bloc.state.styledPageZoom.isFitToWidth, isTrue);
+
+      // Close to the smallest one, the same for the minus button.
+      bloc.add(const OcptEditorFitPageZoomMeasuredEvent(factor: 0.52));
+      await waitForState(bloc, (state) => state.measuredFitPageZoomFactor == 0.52);
+      expect(OcptPageZoom.canStep(-1, 0.52), isFalse);
+      bloc.add(const OcptEditorPageZoomSteppedEvent(direction: -1));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(bloc.state.styledPageZoom.isFitToWidth, isTrue);
+
+      await bloc.close();
+    },
+  );
 }

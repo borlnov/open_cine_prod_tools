@@ -239,7 +239,7 @@ void main() {
         onZoomIn: () => inward++,
       );
 
-      expect(find.text("67 %"), findsOneWidget);
+      expect(find.text("67%"), findsOneWidget);
       await tester.tap(find.byTooltip(tr.editorZoomOutTooltip));
       await tester.tap(find.byTooltip(tr.editorZoomInTooltip));
       await tester.tap(find.byTooltip(tr.editorZoomInTooltip));
@@ -251,13 +251,13 @@ void main() {
       tester,
     ) async {
       final tr = await pumpControl(tester, factor: 2, onZoomOut: () {});
-      final withheld = tester.getCenter(find.text("200 %"));
+      final withheld = tester.getCenter(find.text("200%"));
 
       expect(find.byTooltip(tr.editorZoomInTooltip), findsNothing);
       expect(find.byTooltip(tr.editorZoomOutTooltip), findsOneWidget);
 
       await pumpControl(tester, factor: 2, onZoomIn: () {}, onZoomOut: () {});
-      expect(tester.getCenter(find.text("200 %")), withheld);
+      expect(tester.getCenter(find.text("200%")), withheld);
     });
 
     testWidgets("the percentage opens the steps, the current one ticked, and the fit mode", (
@@ -276,10 +276,10 @@ void main() {
           .where((icon) => icon.color == null);
       expect(ticked, hasLength(1));
       for (final step in OcptPageZoom.steps) {
-        expect(find.text("${OcptPageZoom.percentOf(step)} %"), findsWidgets);
+        expect(find.text("${OcptPageZoom.percentOf(step)}%"), findsWidgets);
       }
 
-      await tester.tap(find.text("150 %").last);
+      await tester.tap(find.text("150%").last);
       await tester.pumpAndSettle();
       expect(picked.last, OcptPageZoom.nearestStep(1.5));
 
@@ -290,4 +290,127 @@ void main() {
       expect(picked.last, const OcptPageZoom.fitToWidth());
     });
   });
+
+  group("OcptEditorZoomWheel steps and drags", () {
+    testWidgets("adds small deltas up: one step for the first, then one per notch's worth", (
+      tester,
+    ) async {
+      final requests = <(int, Offset)>[];
+      await tester.pumpWidget(
+        _wrap(
+          SizedBox(
+            width: 300,
+            height: 300,
+            child: OcptEditorZoomWheel(
+              onZoomStepRequested: (direction, position) => requests.add((direction, position)),
+              child: ListView(children: const [SizedBox(height: 900)]),
+            ),
+          ),
+        ),
+      );
+      final center = tester.getCenter(find.byType(ListView));
+
+      // A smooth wheel: many small events for what is one notch.
+      for (var event = 0; event < 4; event++) {
+        await _wheel(tester, center, -30, withCtrl: true);
+      }
+      expect(requests, hasLength(1));
+
+      // Thirty more reaches the notch's worth of the three that followed the first.
+      await _wheel(tester, center, -30, withCtrl: true);
+      expect(requests, hasLength(2));
+    });
+
+    testWidgets("a touch drag still scrolls after the content grew while Ctrl was held", (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      Widget list(int itemCount) => _wrap(
+        SizedBox(
+          width: 300,
+          height: 300,
+          child: OcptEditorZoomWheel(
+            onZoomStepRequested: (direction, position) {},
+            child: ListView.builder(
+              controller: controller,
+              itemCount: itemCount,
+              itemBuilder: (context, index) => SizedBox(height: 40, child: Text("Row $index")),
+            ),
+          ),
+        ),
+      );
+
+      // Too short to scroll, so nothing may be dragged yet.
+      await tester.pumpWidget(list(3));
+      // A zoom (or a paste) makes it grow while the modifier is down...
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpWidget(list(100));
+      await tester.pumpAndSettle();
+      // ...and is released afterwards.
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -200));
+      await tester.pumpAndSettle();
+
+      expect(controller.offset, greaterThan(0));
+    });
+  });
+
+  group("OcptEditorZoomArea tree", () {
+    testWidgets("keeps the page mounted from a step to the fit to width mode and back", (
+      tester,
+    ) async {
+      var mounts = 0;
+      Widget area(OcptPageZoom zoom) => _wrap(
+        OcptEditorZoomArea(
+          zoom: zoom,
+          pageSetup: const OcptPageSetup.standard(),
+          isZoomAvailable: true,
+          onFitFactorMeasured: (_) {},
+          onZoomStepRequested: (_) {},
+          builder: (factor, onZoomStepRequested) =>
+              _MountCounter(onMount: () => mounts++, factor: factor),
+        ),
+      );
+
+      await tester.pumpWidget(area(const OcptPageZoom.actualSize()));
+      final state = tester.state(find.byType(_MountCounter));
+      await tester.pumpWidget(area(const OcptPageZoom.fitToWidth()));
+      await tester.pumpWidget(area(OcptPageZoom.nearestStep(1.5)));
+
+      expect(mounts, 1);
+      expect(tester.state(find.byType(_MountCounter)), same(state));
+    });
+  });
+}
+
+/// A page standing in for the real one, counting how many times it is mounted.
+class _MountCounter extends StatefulWidget {
+  /// Called when the state is created.
+  final VoidCallback onMount;
+
+  /// The factor the page is typeset at.
+  final double factor;
+
+  /// Class constructor
+  const _MountCounter({required this.onMount, required this.factor});
+
+  /// Create the state.
+  @override
+  State<_MountCounter> createState() => _MountCounterState();
+}
+
+/// The state of [_MountCounter].
+class _MountCounterState extends State<_MountCounter> {
+  /// Count the mount.
+  @override
+  void initState() {
+    super.initState();
+    widget.onMount();
+  }
+
+  /// Build the stand-in page.
+  @override
+  Widget build(BuildContext context) => Text("${widget.factor}");
 }

@@ -543,4 +543,41 @@ void main() {
     expect(find.byType(SingleChildScrollView), findsOneWidget);
     expect(tester.getRect(find.byType(Material)).width, closeTo(zoomed.pageWidth, 0.5));
   });
+
+  testWidgets("a page zoomed in keeps the vertical scrollbar at the edge of the panel", (
+    tester,
+  ) async {
+    _widenTestSurface(tester, unscaledPanelWidth);
+    final document = const FountainParser().parse(_longSampleText);
+
+    await tester.pumpWidget(
+      _wrap(
+        OcptEditorPreview(
+          document: document,
+          pageSetup: const OcptPageSetup.standard(),
+          currentLine: 0,
+          isPageSimulationEnabled: false,
+          zoom: 2,
+        ),
+        width: unscaledPanelWidth,
+      ),
+    );
+    await tester.pump();
+
+    final sideways = find.byWidgetPredicate(
+      (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.horizontal,
+    );
+    // A scrollbar around the sideways scrolling, not scrolled away with the page.
+    expect(
+      find.ancestor(
+        of: sideways,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Scrollbar &&
+              widget.notificationPredicate != defaultScrollNotificationPredicate,
+        ),
+      ),
+      findsWidgets,
+    );
+  });
 }
