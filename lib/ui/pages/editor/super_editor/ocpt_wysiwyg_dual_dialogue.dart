@@ -154,6 +154,15 @@ final class OcptWysiwygDualDialogue {
   /// it. Any other speech is paired with the group before it by marking its own cue, or, when that
   /// group already is the right member of a pair, with the group after it by marking that one's.
   static OcptDualDialogueToggle? toggleAt(Document document, String nodeId) {
+    final caretNode = document.getNodeById(nodeId);
+    if (caretNode is! ParagraphNode ||
+        !_Lines._isGroupMember(
+          OcptFountainLineAttributions.typeOfAttributionValue(
+            caretNode.getMetadataValue("blockType"),
+          ),
+        )) {
+      return null;
+    }
     final lines = _Lines.of(document);
     final groups = lines.groups;
     final index = groups.indexWhere((group) => group.nodeIds.contains(nodeId));
@@ -182,6 +191,16 @@ final class OcptWysiwygDualDialogue {
       return (isChecked: false, cueNodeId: groups[index + 1].nodeIds.first);
     }
     return null;
+  }
+
+  /// Get the requests of the toggle for a caret in the node [nodeId] of [document], or null when it
+  /// has nothing to act on there (see [toggleAt]): one request, hence one undo step.
+  static List<EditRequest>? toggleRequestsAt(Document document, String nodeId) {
+    final toggle = toggleAt(document, nodeId);
+    if (toggle == null) {
+      return null;
+    }
+    return [suffixRequest(toggle.cueNodeId, toggle.isChecked ? null : uiSuffix)];
   }
 
   /// Get the request writing [suffix] (or removing the marker when null) on the cue [cueNodeId].

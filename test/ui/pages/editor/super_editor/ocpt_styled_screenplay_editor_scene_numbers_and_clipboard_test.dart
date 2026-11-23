@@ -45,6 +45,10 @@ class _RecordingStyledEditorControllerDelegate implements OcptStyledEditorContro
   @override
   void applyBlockType(FountainLineType type) {}
 
+  /// Ignore the dual dialogue toggle.
+  @override
+  void applyToggleDualDialogue() {}
+
   /// Ignore the inline style.
   @override
   void applyToggleInlineStyle(OcptInlineStyle style) {}

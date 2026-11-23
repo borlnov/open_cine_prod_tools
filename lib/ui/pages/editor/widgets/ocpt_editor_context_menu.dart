@@ -85,6 +85,14 @@ class OcptEditorContextMenu extends StatelessWidget {
   /// Called with the picked block type, or null while the caret sits on no retypeable block.
   final ValueChanged<FountainLineType>? onTypeSelected;
 
+  /// Called to pair the caret's speech with the one next to it, or to unpair it, or null while
+  /// there is no other speech next to the caret's to pair it with.
+  final VoidCallback? onToggleDualDialogue;
+
+  /// Whether the caret's speech is already part of a dual dialogue, what the entry of
+  /// [onToggleDualDialogue] shows as checked.
+  final bool isDualDialogueChecked;
+
   /// The widget this context menu is anchored on (the editor's own gesture-detecting surface).
   final Widget child;
 
@@ -106,6 +114,8 @@ class OcptEditorContextMenu extends StatelessWidget {
     required this.onInsertNote,
     required this.onRemoveNote,
     required this.onTypeSelected,
+    this.onToggleDualDialogue,
+    this.isDualDialogueChecked = false,
     required this.child,
   });
 
@@ -120,6 +130,7 @@ class OcptEditorContextMenu extends StatelessWidget {
     final onInsertNote = this.onInsertNote;
     final onRemoveNote = this.onRemoveNote;
     final onTypeSelected = this.onTypeSelected;
+    final onToggleDualDialogue = this.onToggleDualDialogue;
     final currentType = this.currentType;
     final onSuggestionSelected = this.onSuggestionSelected;
     final onIgnoreWord = this.onIgnoreWord;
@@ -211,7 +222,17 @@ class OcptEditorContextMenu extends StatelessWidget {
         // Only drawn when both halves of the menu are actually there: the entries above are
         // withheld over a collapsed selection but Paste and Select all, and a rule hanging under
         // nothing (or over nothing) would read as a missing entry rather than as a grouping.
-        if (onTypeSelected != null && currentType != null && (hasClipboardGroup || hasNoteGroup))
+        if (onToggleDualDialogue != null) ...[
+          if (hasClipboardGroup || hasNoteGroup) const Divider(height: 1),
+          CheckboxMenuButton(
+            value: isDualDialogueChecked,
+            onChanged: (_) => onToggleDualDialogue(),
+            child: Text(tr.editorDualDialogueAction),
+          ),
+        ],
+        if (onTypeSelected != null &&
+            currentType != null &&
+            (hasClipboardGroup || hasNoteGroup || onToggleDualDialogue != null))
           const Divider(height: 1),
         if (onTypeSelected != null && currentType != null)
           SubmenuButton(

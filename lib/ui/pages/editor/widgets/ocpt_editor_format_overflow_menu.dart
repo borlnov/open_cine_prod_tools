@@ -77,6 +77,17 @@ class OcptEditorFormatOverflowMenu extends StatelessWidget {
             onPressed: () => controller.toggleInlineStyle(OcptInlineStyle.underline),
             child: Text(tr.editorToggleUnderlineTooltip),
           ),
+          if (controller.canToggleDualDialogue) ...[
+            const Divider(height: 1),
+            MenuItemButton(
+              trailingIcon: controller.isDualDialogueChecked
+                  ? const Icon(Icons.check, size: 16)
+                  : null,
+              leadingIcon: const Icon(Icons.vertical_split, size: 18),
+              onPressed: controller.toggleDualDialogue,
+              child: Text(tr.editorDualDialogueAction),
+            ),
+          ],
         ],
         builder: (context, menuController, child) => IconButton(
           // The canonical "format text" glyph (an A with a baseline bar) — reads as text styling,

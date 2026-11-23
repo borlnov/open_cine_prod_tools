@@ -96,6 +96,12 @@ void main() {
       final paired = OcptWysiwygCodec.decode("A\nx\n\nB^\ny\n").document;
       expect(OcptWysiwygDualDialogue.toggleAt(paired, paired.getNodeAt(0)!.id)?.isChecked, isTrue);
 
+      // An orphan marker reads as checked, so that it can still be taken off.
+      final orphan = OcptWysiwygCodec.decode("A^\nx\n").document;
+      final toggle = OcptWysiwygDualDialogue.toggleAt(orphan, orphan.getNodeAt(0)!.id);
+      expect(toggle?.isChecked, isTrue);
+      expect(toggle?.cueNodeId, orphan.getNodeAt(0)!.id);
+
       final alone = OcptWysiwygCodec.decode("A\nx\n").document;
       expect(OcptWysiwygDualDialogue.toggleAt(alone, alone.getNodeAt(0)!.id), isNull);
     });

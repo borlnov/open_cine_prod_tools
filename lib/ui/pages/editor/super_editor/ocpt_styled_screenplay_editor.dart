@@ -240,6 +240,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   late final List<SuperEditorKeyboardAction> _keyboardActions = ocptFountainKeyboardActions(
     onUndo: undo,
     onRedo: redo,
+    onToggleDualDialogue: applyToggleDualDialogue,
   );
 
   /// The key bound to the document layout, used to resolve a node's on-screen component when
@@ -574,7 +575,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
 
     // Wrapped once here, rather than once per branch above: a right-click anywhere over the
     // document, fluid surface or simulated page alike, opens the same context menu.
-    return _contextMenu.wrap(child: content, onTypeSelected: applyBlockType);
+    return _contextMenu.wrap(
+      child: content,
+      onTypeSelected: applyBlockType,
+      onDualDialogueToggled: applyToggleDualDialogue,
+    );
   }
 
   /// Take back the writer's last gesture, plus everything this widget derived from it.
@@ -614,6 +619,23 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         isNodeEmpty: node.text.isEmpty,
       ),
     ]);
+    _readState.report();
+    _focusNode.requestFocus();
+  }
+
+  /// Pair the caret's speech with the one next to it, or unpair it when it already is, in one undo
+  /// step (see [OcptWysiwygDualDialogue.toggleAt] for what it marks), then report the fresh read
+  /// state and hand focus back to the editor. Does nothing where the toggle has nothing to act on.
+  @override
+  void applyToggleDualDialogue() {
+    final selection = _composer.selection;
+    final requests = selection == null
+        ? null
+        : OcptWysiwygDualDialogue.toggleRequestsAt(_document, selection.extent.nodeId);
+    if (requests != null) {
+      _editor.execute(requests);
+      setState(() => _bracketKey = OcptDualDialogueBracketComponentBuilder.keyOf(_document));
+    }
     _readState.report();
     _focusNode.requestFocus();
   }
