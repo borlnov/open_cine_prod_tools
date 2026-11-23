@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_page_zoom.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/events/editor_base_event.dart';
 
@@ -115,6 +116,40 @@ class OcptEditorPageSimulationToggledEvent extends OcptEditorWorkspaceEvent {
 class OcptEditorStyledSceneNumbersToggledEvent extends OcptEditorWorkspaceEvent {
   /// Class constructor
   const OcptEditorStyledSceneNumbersToggledEvent();
+}
+
+/// Move the zoom of the screenplay page to [zoom]: a step, or the "fit to width" mode.
+///
+/// The new value is persisted through `OcptPropertiesManager.styledPageZoom`, so it's restored the
+/// next time the editor is opened.
+class OcptEditorPageZoomSelectedEvent extends OcptEditorWorkspaceEvent {
+  /// The zoom to move to.
+  final OcptPageZoom zoom;
+
+  /// Class constructor
+  const OcptEditorPageZoomSelectedEvent({required this.zoom});
+}
+
+/// Move the zoom of the screenplay page one step further out or in.
+///
+/// From the "fit to width" mode, the step starts from the one nearest to the factor that mode
+/// currently resolves to. The new value is persisted like [OcptEditorPageZoomSelectedEvent]'s.
+class OcptEditorPageZoomSteppedEvent extends OcptEditorWorkspaceEvent {
+  /// The way to step: -1 out, 1 in.
+  final int direction;
+
+  /// Class constructor
+  const OcptEditorPageZoomSteppedEvent({required this.direction});
+}
+
+/// Report the [factor] the "fit to width" mode resolves to in the area the page is shown in, which
+/// moves with the window. Nothing is persisted.
+class OcptEditorFitPageZoomMeasuredEvent extends OcptEditorWorkspaceEvent {
+  /// The measured factor, bounded to the zoom bounds.
+  final double factor;
+
+  /// Class constructor
+  const OcptEditorFitPageZoomMeasuredEvent({required this.factor});
 }
 
 /// Toggle whether this machine shows the spell-check underlines, in either editing mode (the `⋮`

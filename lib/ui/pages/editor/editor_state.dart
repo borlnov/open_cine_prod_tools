@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_page_zoom.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
@@ -131,6 +132,20 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// updated on every toggle; on by default.
   final bool areStyledSceneNumbersVisible;
 
+  /// How the screenplay page is zoomed, in the styled editor and in the raw mode's paper preview:
+  /// one of the [OcptPageZoom.steps], or the "fit to width" mode.
+  ///
+  /// Persisted through `OcptPropertiesManager.styledPageZoom`, loaded once on entry and updated on
+  /// every change; 100 % by default. Use [pageZoomFactor] for the factor the page is typeset at.
+  final OcptPageZoom styledPageZoom;
+
+  /// The factor the "fit to width" mode resolves to, as last measured by the area the page is
+  /// shown in (bounded to [OcptPageZoom.minFactor]–[OcptPageZoom.maxFactor]).
+  ///
+  /// Never persisted: it only follows the window. It is what the status bar shows and what a step
+  /// starts from while [styledPageZoom] is the "fit to width" mode.
+  final double measuredFitPageZoomFactor;
+
   /// Whether this machine wants the spell-check underlines shown, in either editing mode.
   ///
   /// Persisted through `OcptPropertiesManager.spellCheckVisible`, loaded once on entry and updated
@@ -221,6 +236,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   bool get isPreviewTabAvailable =>
       isPreviewTabAvailableFor(mode: mode, isReadOnly: isPreviewingVersion);
 
+  /// Get the factor the screenplay page is typeset at: the step of [styledPageZoom], or the
+  /// [measuredFitPageZoomFactor] while it is the "fit to width" mode.
+  double get pageZoomFactor => styledPageZoom.factorFor(measuredFitPageZoomFactor);
+
   /// Get the scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
 
@@ -250,6 +269,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.pageSetup,
     required this.isPageSimulationEnabled,
     required this.areStyledSceneNumbersVisible,
+    required this.styledPageZoom,
+    required this.measuredFitPageZoomFactor,
     required this.isSpellCheckVisible,
     required this.screenplayLanguage,
     required this.jumpRequest,
@@ -289,6 +310,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       pageSetup = const OcptPageSetup.standard(),
       isPageSimulationEnabled = true,
       areStyledSceneNumbersVisible = true,
+      styledPageZoom = const OcptPageZoom.actualSize(),
+      measuredFitPageZoomFactor = 1,
       isSpellCheckVisible = true,
       screenplayLanguage = null,
       jumpRequest = null,
@@ -340,6 +363,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     OcptPageSetup? pageSetup,
     bool? isPageSimulationEnabled,
     bool? areStyledSceneNumbersVisible,
+    OcptPageZoom? styledPageZoom,
+    double? measuredFitPageZoomFactor,
     bool? isSpellCheckVisible,
     OcptScreenplayLanguage? screenplayLanguage,
     bool forceScreenplayLanguageValue = false,
@@ -389,6 +414,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     pageSetup: pageSetup ?? this.pageSetup,
     isPageSimulationEnabled: isPageSimulationEnabled ?? this.isPageSimulationEnabled,
     areStyledSceneNumbersVisible: areStyledSceneNumbersVisible ?? this.areStyledSceneNumbersVisible,
+    styledPageZoom: styledPageZoom ?? this.styledPageZoom,
+    measuredFitPageZoomFactor: measuredFitPageZoomFactor ?? this.measuredFitPageZoomFactor,
     isSpellCheckVisible: isSpellCheckVisible ?? this.isSpellCheckVisible,
     screenplayLanguage:
         screenplayLanguage ?? (forceScreenplayLanguageValue ? null : this.screenplayLanguage),
@@ -481,6 +508,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required OcptEditorMode mode,
     required bool isPageSimulationEnabled,
     required bool areStyledSceneNumbersVisible,
+    required OcptPageZoom styledPageZoom,
     required bool isSpellCheckVisible,
     required OcptScreenplayLanguage? screenplayLanguage,
     required double leftDockFraction,
@@ -496,6 +524,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     forcePreviewedVersionIdValue: true,
     isPageSimulationEnabled: isPageSimulationEnabled,
     areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
+    styledPageZoom: styledPageZoom,
     isSpellCheckVisible: isSpellCheckVisible,
     screenplayLanguage: screenplayLanguage,
     forceScreenplayLanguageValue: screenplayLanguage == null,
@@ -521,6 +550,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required OcptPageSetup pageSetup,
     required bool isPageSimulationEnabled,
     required bool areStyledSceneNumbersVisible,
+    required OcptPageZoom styledPageZoom,
     required bool isSpellCheckVisible,
     required OcptScreenplayLanguage? screenplayLanguage,
     required double leftDockFraction,
@@ -540,6 +570,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     pageSetup: pageSetup,
     isPageSimulationEnabled: isPageSimulationEnabled,
     areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
+    styledPageZoom: styledPageZoom,
     isSpellCheckVisible: isSpellCheckVisible,
     screenplayLanguage: screenplayLanguage,
     forceScreenplayLanguageValue: screenplayLanguage == null,
@@ -643,6 +674,14 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   OcptEditorState copyWithStyledSceneNumbers({required bool areStyledSceneNumbersVisible}) =>
       copyWith(areStyledSceneNumbersVisible: areStyledSceneNumbersVisible);
 
+  /// Copy this state with the page zoom moved to [styledPageZoom].
+  OcptEditorState copyWithPageZoom({required OcptPageZoom styledPageZoom}) =>
+      copyWith(styledPageZoom: styledPageZoom);
+
+  /// Copy this state with the factor the "fit to width" mode resolves to measured as [factor].
+  OcptEditorState copyWithMeasuredFitPageZoomFactor({required double factor}) =>
+      copyWith(measuredFitPageZoomFactor: factor);
+
   /// Copy this state with the spell-check underlines shown or hidden.
   OcptEditorState copyWithSpellCheckVisibility({required bool isSpellCheckVisible}) =>
       copyWith(isSpellCheckVisible: isSpellCheckVisible);
@@ -712,6 +751,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     pageSetup,
     isPageSimulationEnabled,
     areStyledSceneNumbersVisible,
+    styledPageZoom,
+    measuredFitPageZoomFactor,
     isSpellCheckVisible,
     screenplayLanguage,
     jumpRequest,
