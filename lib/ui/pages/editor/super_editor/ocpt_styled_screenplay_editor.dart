@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller_delegate.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_command.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_dual_dialogue_bracket.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_ime_overrides.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_keyboard_actions.dart';
@@ -279,6 +280,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// The id of the last [OcptEditorJumpRequest] applied, to apply each request exactly once.
   int? _lastAppliedJumpRequestId;
 
+  /// The key of the dual-dialogue pairs the bracket builder was last built for (see
+  /// [OcptDualDialogueBracketComponentBuilder.keyOf]).
+  String _bracketKey = "";
+
   /// The running debounce timer restarted on every document change.
   Timer? _syncTimer;
 
@@ -497,6 +502,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
             ),
             metrics: metrics,
           ),
+        OcptDualDialogueBracketComponentBuilder.build(
+          document: _document,
+          layout: layout,
+          color: onSurface.withValues(alpha: 0.45),
+          scale: widget.isCompact && !widget.isPageSimulationEnabled
+              ? OcptEditorPreviewLayout.compactLayoutScale
+              : 1,
+        ),
         ...defaultComponentBuilders,
       ],
       customStylePhases: [_search.styler, _spellCheck.styler],
@@ -831,8 +844,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     final previousPageCount = _pageSimulation.pageCount;
     final previousTrailingBottomPadding = _pageSimulation.trailingBottomPadding;
     _pageSimulation.recompute();
+    final bracketKey = OcptDualDialogueBracketComponentBuilder.keyOf(_document);
     if (_pageSimulation.pageCount != previousPageCount ||
-        _pageSimulation.trailingBottomPadding != previousTrailingBottomPadding) {
+        _pageSimulation.trailingBottomPadding != previousTrailingBottomPadding ||
+        bracketKey != _bracketKey) {
+      _bracketKey = bracketKey;
       setState(() {});
     }
   }
