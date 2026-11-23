@@ -47,7 +47,7 @@ class OcptEditorZoomWheel extends StatelessWidget {
 
     return ScrollConfiguration(
       behavior: scrollBehavior.copyWith(
-        physics: const OcptZoomWheelPhysics(),
+        physics: OcptZoomWheelPhysics.over(context, isEnabled: true),
       ),
       child: Listener(
         onPointerSignal: (event) {

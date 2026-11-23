@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_page_zoom.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_control.dart';
 import 'package:path/path.dart' as p;
@@ -220,5 +221,25 @@ void main() {
     await pressWithCtrl(tester, LogicalKeyboardKey.equal);
 
     expect(await storedZoom(), isNull);
+  });
+
+  testWidgets("in raw mode, fit to width fills the preview dock and the status bar shows it", (
+    tester,
+  ) async {
+    await propertiesManager.editorMode.store(OcptEditorMode.raw);
+    await propertiesManager.styledPageZoom.store(const OcptPageZoom.fitToWidth());
+    await pumpPage(tester);
+
+    final dockWidth = tester.getSize(find.byType(OcptEditorPreview)).width;
+    final pageWidth = tester
+        .getSize(
+          find.descendant(of: find.byType(OcptEditorPreview), matching: find.byType(Material)),
+        )
+        .width;
+
+    // The dock is narrower than the styled area would be, so only a measure of its own gives this.
+    expect(pageWidth, closeTo(dockWidth - 32, 1));
+    final factor = tester.widget<OcptEditorZoomControl>(find.byType(OcptEditorZoomControl)).factor;
+    expect(find.text("${OcptPageZoom.percentOf(factor)} %"), findsOneWidget);
   });
 }

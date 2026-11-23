@@ -10,14 +10,17 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_wh
 ///
 /// A scrollable only takes a wheel event when its physics accept the user's offset, and the one
 /// nearest to the pointer registers first: this is how a zoom gesture gets to be the one that
-/// wins.
+/// wins. Everything else defers to the parent physics, which is the platform's own scrolling
+/// ([over]), so a platform keeps its feel (iOS its bounce).
 ///
-/// A desktop scrolling (clamped, keeping its range when the content changes size), which is the
-/// one a window wide enough to zoom in has; the instance is a constant on purpose, since a new one
+/// Build it with [over], which hands back the same instance for the same parent: a new instance
 /// at every build is a new scroll behavior for the scrollables reading it.
-class OcptZoomWheelPhysics extends ClampingScrollPhysics {
+class OcptZoomWheelPhysics extends ScrollPhysics {
+  /// The last instance [over] built, kept so the next call with the same parent returns it.
+  static OcptZoomWheelPhysics? _last;
+
   /// Class constructor
-  const OcptZoomWheelPhysics({super.parent = const RangeMaintainingScrollPhysics()});
+  const OcptZoomWheelPhysics({super.parent});
 
   /// Create the physics applied on top of [ancestor].
   @override
@@ -28,4 +31,21 @@ class OcptZoomWheelPhysics extends ClampingScrollPhysics {
   @override
   bool shouldAcceptUserOffset(ScrollMetrics position) =>
       !OcptEditorZoomWheel.isZoomModifierPressed && super.shouldAcceptUserOffset(position);
+
+  /// Get the physics refusing the zoom modifier's offset on top of the platform scrolling [context]
+  /// resolves, or null while [isEnabled] is false (the page can't be zoomed there, and the
+  /// scrolling stays the platform's own).
+  static OcptZoomWheelPhysics? over(BuildContext context, {required bool isEnabled}) {
+    if (!isEnabled) {
+      return null;
+    }
+
+    final parent = ScrollConfiguration.of(context).getScrollPhysics(context);
+    final last = _last;
+    if (last != null && last.parent == parent) {
+      return last;
+    }
+
+    return _last = OcptZoomWheelPhysics(parent: parent);
+  }
 }

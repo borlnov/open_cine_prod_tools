@@ -117,10 +117,6 @@ void main() {
   });
 
   group("OcptEditorZoomArea", () {
-    final pageWidthAtActualSize = OcptEditorPreviewLayout(
-      metrics: const OcptPageSetup.standard().toMetrics(),
-    ).pageWidth;
-
     Future<List<double>> pumpArea(
       WidgetTester tester, {
       required OcptPageZoom zoom,
@@ -184,13 +180,18 @@ void main() {
         measured: measured,
       );
 
-      final expected = ((1000 - 32) / pageWidthAtActualSize).clamp(0.5, 2.0);
-      expect(factors.last, closeTo(expected, 1e-6));
-      expect(measured.last, closeTo(expected, 1e-6));
+      double sheetAt(double factor) => OcptEditorPreviewLayout(
+        metrics: const OcptPageSetup.standard().toMetrics(),
+        zoom: factor,
+      ).pageWidth;
+
+      // The sheet fills the area, a gutter kept on each side.
+      expect(sheetAt(factors.last), closeTo(1000 - 32, 0.5));
+      expect(measured.last, factors.last);
 
       tester.view.physicalSize = const Size(800, 700);
       await tester.pumpAndSettle();
-      expect(factors.last, closeTo(((800 - 32) / pageWidthAtActualSize).clamp(0.5, 2.0), 1e-6));
+      expect(sheetAt(factors.last), closeTo(800 - 32, 0.5));
       expect(measured.last, factors.last);
 
       tester.view.physicalSize = const Size(5000, 700);

@@ -348,8 +348,10 @@ model, the title page, the spell-checking, the docks and the syntax guide.
     has no zoom at all: the control is withheld, the wheel and the shortcuts are ignored. Zoom is a
     view setting, not a write, so it stays available under a read-only preview, whose preview shares
     the layout.
-  - In raw mode the "fit to width" mode keeps the last measure the styled editor made (100 % at
-    first): the preview's own panel already scales a too-wide page down to fit.
+  - In raw mode the preview in the right dock measures **its own width** through its own
+    `OcptEditorZoomArea` and reports the factor like the styled editor does: only one surface is
+    shown at a time, so they share the one measured factor, and the status bar shows the one of
+    the surface on screen (the last measure while the dock is closed).
 
 - A **scene jump** (a click in the scene panel) and a **find match** both land their target a
   third of the way down the editor's viewport, and each mode has its own trap to avoid. The styled

@@ -117,8 +117,7 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
   /// text, it doesn't magnify it.
   final double zoom;
 
-  /// Called with the way to step the zoom (-1 out, 1 in) on a Ctrl + wheel notch over the editor;
-  /// null when the page can't be zoomed here, which leaves the wheel alone.
+  /// Called with the way to step the zoom (-1 out, 1 in) on a Ctrl + wheel notch; null (no zoom).
   final ValueChanged<int>? onZoomStepRequested;
 
   /// Whether this machine wants the spell-check underlines shown at all — the machine's own on/off
@@ -569,16 +568,17 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // sheet with, spilling out under its bottom edge. The raw preview pins it the same way, for the
     // same reason (see `OcptEditorPreviewBlock`).
     final scrollBehavior = ScrollConfiguration.of(context);
+    final canZoom = widget.onZoomStepRequested != null;
     final editorWithoutImplicitScrollbar = MediaQuery.withNoTextScaling(
       child: ScrollConfiguration(
         behavior: scrollBehavior.copyWith(
           scrollbars: false,
-          physics: const OcptZoomWheelPhysics(),
+          physics: OcptZoomWheelPhysics.over(context, isEnabled: canZoom),
         ),
         child: editor,
       ),
     );
-    // Only a page zoomed in scrolls sideways; the others are scaled down to fit a narrow area.
+    // Only a page zoomed in scrolls sideways; the others are scaled down to fit.
     final horizontalScroller = widget.zoom > 1 ? _horizontalScrollController : null;
 
     final content = !widget.isPageSimulationEnabled

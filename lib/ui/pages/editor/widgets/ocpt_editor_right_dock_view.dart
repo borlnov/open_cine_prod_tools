@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_metadat
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_versions_panel_view.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_area.dart';
 
 /// The tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide, the scene
 /// inspector, the read-only metadata panel and the project versions, all four in both modes), the
@@ -54,18 +55,24 @@ class OcptEditorRightDockView extends StatelessWidget {
     );
     final isZoomAvailable = !ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
     final previewChild = isPreviewTabAvailable && rightDockTab == OcptEditorRightDockTab.preview
-        ? OcptEditorPreview(
-            document: state.document,
+        ? OcptEditorZoomArea(
+            zoom: state.styledPageZoom,
             pageSetup: state.pageSetup,
-            currentLine: state.currentLine,
-            isPageSimulationEnabled: state.isPageSimulationEnabled,
-            // A compact window has no zoom: the preview stays at 100 %.
-            zoom: isZoomAvailable ? state.pageZoomFactor : 1,
-            onZoomStepRequested: isZoomAvailable
-                ? (direction) => context.read<OcptEditorBloc>().add(
-                    OcptEditorPageZoomSteppedEvent(direction: direction),
-                  )
-                : null,
+            isZoomAvailable: isZoomAvailable,
+            onFitFactorMeasured: (factor) => context.read<OcptEditorBloc>().add(
+              OcptEditorFitPageZoomMeasuredEvent(factor: factor),
+            ),
+            onZoomStepRequested: (direction) => context.read<OcptEditorBloc>().add(
+              OcptEditorPageZoomSteppedEvent(direction: direction),
+            ),
+            builder: (factor, onZoomStepRequested) => OcptEditorPreview(
+              document: state.document,
+              pageSetup: state.pageSetup,
+              currentLine: state.currentLine,
+              isPageSimulationEnabled: state.isPageSimulationEnabled,
+              zoom: factor,
+              onZoomStepRequested: onZoomStepRequested,
+            ),
           )
         : null;
 

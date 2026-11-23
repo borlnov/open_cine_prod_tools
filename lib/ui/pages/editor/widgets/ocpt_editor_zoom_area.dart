@@ -62,11 +62,17 @@ class OcptEditorZoomArea extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final factor = OcptPageZoom.fitFactorFor(
+        final metrics = pageSetup.toMetrics();
+        final firstFactor = OcptPageZoom.fitFactorFor(
           availableWidth: constraints.maxWidth,
-          pageWidthAtActualSize: OcptEditorPreviewLayout(
-            metrics: pageSetup.toMetrics(),
-          ).pageWidth,
+          pageWidthAtActualSize: OcptEditorPreviewLayout(metrics: metrics).pageWidth,
+        );
+        // A glyph is measured at the font size it is typeset at, which isn't exactly linear in
+        // the zoom: one correction lands the sheet on the width the area has.
+        final firstWidth = OcptEditorPreviewLayout(metrics: metrics, zoom: firstFactor).pageWidth;
+        final factor = (firstFactor * (constraints.maxWidth - 32) / firstWidth).clamp(
+          OcptPageZoom.minFactor,
+          OcptPageZoom.maxFactor,
         );
         WidgetsBinding.instance.addPostFrameCallback((_) => onFitFactorMeasured(factor));
 

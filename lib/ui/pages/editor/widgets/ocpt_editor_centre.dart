@@ -39,8 +39,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_zoom_wh
 /// The page zoom ([OcptEditorState.styledPageZoom]) is handed to the styled editor and to the
 /// preview, so the sheet is typeset at it; the raw source keeps its size. While it is the "fit to
 /// width" mode, the sheet is sized to the width of this area (a styled editor or a version
-/// preview: the raw mode's preview lives in a dock of its own and keeps the last measure), and the
-/// factor is reported back to the bloc, which is where a step starts from. A compact window has no
+/// preview: the raw mode's preview measures its own dock the same way), and the factor is
+/// reported back to the bloc, which is where a step starts from. A compact window has no
 /// zoom ([isZoomAvailable]): the page is at 100 % and the wheel is left alone.
 ///
 /// The find/replace bar is a *slot* that is always there — an empty box while it is closed —

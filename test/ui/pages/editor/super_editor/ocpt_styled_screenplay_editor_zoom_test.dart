@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +13,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_pa
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_zoom_wheel_physics.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'ocpt_styled_screenplay_editor_test_doubles.dart';
@@ -202,6 +204,65 @@ void main() {
       await _pumpEditor(tester, text: _longSource, zoom: 1.1, isPageSimulationEnabled: true);
 
       expect(horizontalScroller, findsNothing);
+    });
+  });
+
+  group("scroll physics", () {
+    /// Get the scroll physics chain of the editor's vertical scrollable, outermost first.
+    List<ScrollPhysics> chain(WidgetTester tester) {
+      final scrollable = tester.state<ScrollableState>(
+        find.descendant(of: find.byType(SuperEditor), matching: find.byType(Scrollable)).first,
+      );
+      final physics = <ScrollPhysics>[];
+      for (ScrollPhysics? next = scrollable.position.physics; next != null; next = next.parent) {
+        physics.add(next);
+      }
+
+      return physics;
+    }
+
+    testWidgets("a surface where the page can't be zoomed keeps the platform's own scrolling", (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        await tester.pumpWidget(
+          testWrap(
+            OcptStyledScreenplayEditor(
+              text: _longSource,
+              pageSetup: const OcptPageSetup.standard(),
+              isPageSimulationEnabled: false,
+              areSceneNumbersVisible: false,
+              isSpellCheckVisible: false,
+              onTextChanged: (_) {},
+              onCaretLineChanged: (_) {},
+              jumpRequest: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final physics = chain(tester);
+        expect(physics.whereType<OcptZoomWheelPhysics>(), isEmpty);
+        expect(physics.first, isA<BouncingScrollPhysics>());
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets("where it can be zoomed, the platform's scrolling stays underneath", (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        await _pumpEditor(tester, text: _longSource);
+
+        final physics = chain(tester);
+        expect(physics.first, isA<OcptZoomWheelPhysics>());
+        expect(physics.whereType<BouncingScrollPhysics>(), isNotEmpty);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     });
   });
 }
