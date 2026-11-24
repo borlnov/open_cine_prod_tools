@@ -4,9 +4,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_card_field.dart';
 
 /// The card showing the text of one note in the margin of the styled editor: a header naming it
 /// and the text of the note below, with its line breaks.
+///
+/// While the card [isSelected] and [onChanged] is given, the text is a field the note is written
+/// in, and a button under it removes the note: both are withheld when their callback is null, which
+/// leaves the card a read-only one.
 ///
 /// Its look comes from the theme's card (shape and radius), only recoloured: a raised surface, and
 /// while [isSelected] a primary outline, a lighter surface and a soft shadow. Where the card is
@@ -33,8 +38,37 @@ class OcptNoteCard extends StatelessWidget {
   /// Called when the card is tapped, or null to make it inert.
   final VoidCallback? onTap;
 
+  /// Called with the new text of the note when the writer edits it, or null for a read-only card.
+  final ValueChanged<String>? onChanged;
+
+  /// Called when the writer asked to remove the note, or null to withhold the button.
+  final VoidCallback? onRemoveRequested;
+
+  /// Called when the writer is done with the note and the focus belongs back to the text.
+  final VoidCallback? onLeaveRequested;
+
+  /// Called when the writer asked to undo while the field has the focus.
+  final VoidCallback? onUndoRequested;
+
+  /// Called when the writer asked to redo while the field has the focus.
+  final VoidCallback? onRedoRequested;
+
+  /// Called when the field of the card lost the focus it had.
+  final VoidCallback? onFocusLost;
+
   /// Class constructor.
-  const OcptNoteCard({super.key, required this.text, required this.isSelected, this.onTap});
+  const OcptNoteCard({
+    super.key,
+    required this.text,
+    required this.isSelected,
+    this.onTap,
+    this.onChanged,
+    this.onRemoveRequested,
+    this.onLeaveRequested,
+    this.onUndoRequested,
+    this.onRedoRequested,
+    this.onFocusLost,
+  });
 
   /// Build the card.
   @override
@@ -42,6 +76,9 @@ class OcptNoteCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final cardShape = theme.cardTheme.shape;
+    final textStyle = theme.textTheme.bodyMedium?.copyWith(color: colors.onSurface);
+    final onChanged = this.onChanged;
+    final onRemoveRequested = this.onRemoveRequested;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -54,7 +91,7 @@ class OcptNoteCard extends StatelessWidget {
           : null,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
+        onTap: isSelected ? null : onTap,
         child: Padding(
           padding: const EdgeInsets.all(_padding),
           child: Column(
@@ -77,7 +114,28 @@ class OcptNoteCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              Text(text, style: theme.textTheme.bodyMedium?.copyWith(color: colors.onSurface)),
+              if (isSelected && onChanged != null)
+                OcptNoteCardField(
+                  text: text,
+                  hint: Tr.of(context).editorNoteFieldHint,
+                  style: textStyle,
+                  onChanged: onChanged,
+                  onLeaveRequested: onLeaveRequested ?? () {},
+                  onUndoRequested: onUndoRequested ?? () {},
+                  onRedoRequested: onRedoRequested ?? () {},
+                  onFocusLost: onFocusLost ?? () {},
+                )
+              else
+                Text(text, style: textStyle),
+              if (isSelected && onRemoveRequested != null)
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: TextButton.icon(
+                    onPressed: onRemoveRequested,
+                    icon: const Icon(Icons.delete_outline),
+                    label: Text(Tr.of(context).editorContextMenuRemoveNoteAction),
+                  ),
+                ),
             ],
           ),
         ),

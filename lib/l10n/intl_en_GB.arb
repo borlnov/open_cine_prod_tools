@@ -373,6 +373,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorNoteFieldHint": "Write a note…",
+  "@editorNoteFieldHint": {
+    "description": "Hint shown in the field of a note card in the margin of the styled screenplay editor while the note is empty",
+    "context": "Shown in the empty text field of the selected note's card",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorContextMenuBlockTypeSubmenu": "Block type",
   "@editorContextMenuBlockTypeSubmenu": {
     "description": "Label of the block-type submenu of the styled editor's right-click context menu",
