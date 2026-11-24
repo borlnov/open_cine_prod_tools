@@ -82,10 +82,12 @@ void main() {
       final decoded = OcptWysiwygCodec.decode(_commentedSource);
       final inert = OcptWysiwygCodec.inertNodeIds(decoded.document);
 
-      expect(decoded.document.nodeCount, 16);
+      // The note running over three lines is one node.
+      expect(decoded.document.nodeCount, 14);
+      expect(decoded.mapping.lineCountOfNodeIndex(11), 3);
       for (var index = 0; index < decoded.document.nodeCount; index++) {
         final node = decoded.document.getNodeAt(index)! as ParagraphNode;
-        final isCommented = index >= 2 && index <= 13;
+        final isCommented = index >= 2 && index <= 11;
         expect(inert.contains(node.id), isCommented, reason: node.text.toPlainText());
         if (isCommented) {
           expect(typeAt(decoded.document, index), FountainLineType.action);
@@ -185,8 +187,9 @@ void main() {
       expect(rangesAt(decoded.document, 0), [(9, 17)]);
       expect(rangesAt(decoded.document, 1), [(0, 15)]);
       expect(rangesAt(decoded.document, 2), [(0, 6)]);
-      expect(rangesAt(decoded.document, 3), [(0, 9)]);
-      expect(rangesAt(decoded.document, 4), [(0, 11)]);
+      // The note is one node, held as a placeholder the dimming covers whole.
+      expect(decoded.document.nodeCount, 4);
+      expect(rangesAt(decoded.document, 3), [(0, 1)]);
       expect(OcptWysiwygCodec.commentAttributionRequests(decoded.document), isEmpty);
     });
 

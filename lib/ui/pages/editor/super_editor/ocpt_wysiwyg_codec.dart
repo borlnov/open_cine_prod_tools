@@ -140,7 +140,8 @@ class OcptWysiwygCodec {
   /// same blank-line count.
   static OcptWysiwygDecodeResult decode(String text) {
     final lines = _splitLines(text);
-    final (nodes, blankLinesBeforeByNode, pendingBlanks) = OcptWysiwygDecoder.decodeLines(lines);
+    final (nodes, blankLinesBeforeByNode, lineCountByNode, pendingBlanks) =
+        OcptWysiwygDecoder.decodeLines(lines);
 
     var trailingBlankLines = pendingBlanks;
 
@@ -163,6 +164,7 @@ class OcptWysiwygCodec {
         ),
       );
       blankLinesBeforeByNode.add(0);
+      lineCountByNode.add(1);
     }
 
     return OcptWysiwygDecodeResult(
@@ -182,6 +184,7 @@ class OcptWysiwygCodec {
         sourceText: text,
         blankLinesBeforeByNode: blankLinesBeforeByNode,
         trailingBlankLines: trailingBlankLines,
+        lineCountByNode: lineCountByNode,
       ),
       trailingBlankLines: trailingBlankLines,
     );
@@ -236,7 +239,7 @@ class OcptWysiwygCodec {
   /// [decode], this never synthesizes an empty node for all-blank input, since there is nothing
   /// useful to paste in that case: the caller sees an empty list instead.
   static List<ParagraphNode> decodeNodesFromFountain(String text) {
-    final (nodes, _, _) = OcptWysiwygDecoder.decodeLines(_splitLines(text));
+    final (nodes, _, _, _) = OcptWysiwygDecoder.decodeLines(_splitLines(text));
     return nodes;
   }
 

@@ -131,8 +131,8 @@ void main() {
       }
     });
 
-    test('running over several lines', () {
-      const source = 'He waits [[ a\nmiddle\n]]\nSARAH\nHi.';
+    test('running over several lines with a boneyard on one of them', () {
+      const source = 'He waits [[ a\nmiddle\n]] /* b */\nSARAH\nHi.';
       final document = OcptWysiwygCodec.decode(source).document;
 
       for (final node in document.whereType<ParagraphNode>()) {
