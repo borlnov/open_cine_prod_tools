@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_script_page_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
@@ -560,6 +561,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         isCompact: widget.isCompact,
         usePaperColors: widget.usesPaperColorsWhileFluid,
         zoom: widget.zoom,
+        noteMarkerLabel: Tr.of(context).editorNoteMarkerLabel,
       ),
     );
 

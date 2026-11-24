@@ -366,6 +366,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "editorNoteMarkerLabel": "Note",
+  "@editorNoteMarkerLabel": {
+    "description": "Accessible label of the small speech-bubble marker standing in a screenplay line for an authoring note",
+    "context": "Read out by screen readers for the marker of a note inside a line of the styled screenplay editor",
+    "type": "text",
+    "placeholders": {}
+  },
   "editorContextMenuBlockTypeSubmenu": "Block type",
   "@editorContextMenuBlockTypeSubmenu": {
     "description": "Label of the block-type submenu of the styled editor's right-click context menu",
