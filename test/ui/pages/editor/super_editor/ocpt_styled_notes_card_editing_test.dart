@@ -294,6 +294,29 @@ void main() {
       expect(notes.single.text, "old\n  \nnext");
     });
 
+    testWidgets("keeps no blank line in a note amid the text, which would split the action", (
+      tester,
+    ) async {
+      await _pump(tester, _source);
+      final id = _notes().single.id;
+      await _selectFirstCard(tester);
+
+      await _write(tester, "old\n\nnext");
+      await pumpPastSettleDebounce(tester);
+
+      expect(tester.widget<TextField>(_field()).controller!.text, "old\n\nnext");
+      expect(_notes().single, OcptFountainNote(id: id, text: "old\nnext"));
+      expect(_reported.last, contains("He waits [[old\nnext]] now."));
+      final decoded = OcptWysiwygCodec.decode(_reported.last).document;
+      expect(
+        [
+          for (final node in decoded.whereType<ParagraphNode>())
+            ...node.text.placeholders.values.whereType<OcptFountainNote>(),
+        ].single.text,
+        "old\nnext",
+      );
+    });
+
     testWidgets("removes the note when it is left empty and the focus goes", (tester) async {
       await _pump(tester, _source);
       await _selectFirstCard(tester);

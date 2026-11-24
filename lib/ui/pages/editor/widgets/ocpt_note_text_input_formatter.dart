@@ -31,12 +31,21 @@ class OcptNoteTextInputFormatter extends TextInputFormatter {
 
   /// Get [text] as it is written in the Fountain source of a note: its line breaks are `\n`, and
   /// a line left empty is two spaces, unless the whole text is empty.
-  static String normalised(String text) => text.isEmpty
-      ? text
-      : text
-            .replaceAll("\r\n", "\n")
-            .replaceAll("\r", "\n")
-            .split("\n")
-            .map((line) => line.isEmpty ? blankLine : line)
-            .join("\n");
+  ///
+  /// Unless [allowsBlankLines], a line between the first and the last that is blank is dropped:
+  /// a note amid the text of an action splits it in two paragraphs where a line of it is blank, so
+  /// the note could no longer be one marker in the line.
+  static String normalised(String text, {bool allowsBlankLines = true}) {
+    if (text.isEmpty) {
+      return text;
+    }
+    final lines = text.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
+    return [
+      for (var index = 0; index < lines.length; index++)
+        if (allowsBlankLines || index == 0 || index == lines.length - 1)
+          lines[index].isEmpty ? blankLine : lines[index]
+        else if (lines[index].trim().isNotEmpty)
+          lines[index],
+    ].join("\n");
+  }
 }

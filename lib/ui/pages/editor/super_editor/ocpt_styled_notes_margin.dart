@@ -193,6 +193,7 @@ class _NotesContent extends StatelessWidget {
                       onUndoRequested: editing.undo,
                       onRedoRequested: editing.redo,
                       onFocusLost: () => editing.focusLost(entries[index].note.id),
+                      allowsBlankLines: entries[index].standsAlone,
                     ),
                   ),
               ],

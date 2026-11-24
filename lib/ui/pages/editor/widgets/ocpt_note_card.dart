@@ -56,6 +56,9 @@ class OcptNoteCard extends StatelessWidget {
   /// Called when the field of the card lost the focus it had.
   final VoidCallback? onFocusLost;
 
+  /// Whether the note may hold a blank line: see [OcptNoteCardField.allowsBlankLines].
+  final bool allowsBlankLines;
+
   /// Class constructor.
   const OcptNoteCard({
     super.key,
@@ -68,6 +71,7 @@ class OcptNoteCard extends StatelessWidget {
     this.onUndoRequested,
     this.onRedoRequested,
     this.onFocusLost,
+    this.allowsBlankLines = true,
   });
 
   /// Build the card.
@@ -124,6 +128,7 @@ class OcptNoteCard extends StatelessWidget {
                   onUndoRequested: onUndoRequested ?? () {},
                   onRedoRequested: onRedoRequested ?? () {},
                   onFocusLost: onFocusLost ?? () {},
+                  allowsBlankLines: allowsBlankLines,
                 )
               else
                 Text(text, style: textStyle),

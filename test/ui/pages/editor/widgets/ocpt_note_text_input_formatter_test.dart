@@ -31,4 +31,16 @@ void main() {
     expect(OcptNoteTextInputFormatter.normalised("a\r\nb"), "a\nb");
     expect(OcptNoteTextInputFormatter.normalised("a\n  \nb"), "a\n  \nb");
   });
+
+  test("drops the blank lines between the first and the last when the note may hold none", () {
+    String normalised(String text) =>
+        OcptNoteTextInputFormatter.normalised(text, allowsBlankLines: false);
+
+    expect(normalised("a\n\nb"), "a\nb");
+    expect(normalised("a\n  \n \nb"), "a\nb");
+    expect(normalised("\na\n"), "  \na\n  ");
+    expect(normalised("a\n\n"), "a\n  ");
+    expect(normalised("a\nb"), "a\nb");
+    expect(normalised(""), "");
+  });
 }

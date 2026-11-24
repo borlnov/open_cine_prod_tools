@@ -39,6 +39,9 @@ class OcptNoteCardField extends StatefulWidget {
   /// Called when the field lost the focus it had.
   final VoidCallback onFocusLost;
 
+  /// Whether the note may hold a blank line: see [OcptNoteTextInputFormatter.normalised].
+  final bool allowsBlankLines;
+
   /// Class constructor.
   const OcptNoteCardField({
     super.key,
@@ -50,6 +53,7 @@ class OcptNoteCardField extends StatefulWidget {
     required this.onUndoRequested,
     required this.onRedoRequested,
     required this.onFocusLost,
+    this.allowsBlankLines = true,
   });
 
   /// Create the [_OcptNoteCardFieldState] holding the controller and the focus of the field.
@@ -90,7 +94,7 @@ class _OcptNoteCardFieldState extends State<OcptNoteCardField> {
   @override
   void didUpdateWidget(covariant OcptNoteCardField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.text != OcptNoteTextInputFormatter.normalised(_controller.text)) {
+    if (widget.text != _normalised(_controller.text)) {
       _controller.value = TextEditingValue(
         text: widget.text,
         selection: TextSelection.collapsed(offset: widget.text.length),
@@ -125,7 +129,11 @@ class _OcptNoteCardFieldState extends State<OcptNoteCardField> {
   }
 
   /// Report the text the field now holds.
-  void _report(String text) => widget.onChanged(OcptNoteTextInputFormatter.normalised(text));
+  void _report(String text) => widget.onChanged(_normalised(text));
+
+  /// Get [text] as the note writes it.
+  String _normalised(String text) =>
+      OcptNoteTextInputFormatter.normalised(text, allowsBlankLines: widget.allowsBlankLines);
 
   /// Handle the keys the field gives another meaning to, and let the others through.
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {

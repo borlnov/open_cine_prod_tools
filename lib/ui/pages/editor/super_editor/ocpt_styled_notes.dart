@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_tap_delegate.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// One note of the styled editor's document, with the place its marker holds in it.
@@ -19,6 +20,10 @@ final class OcptNoteEntry extends Equatable {
   /// The note itself.
   final OcptFountainNote note;
 
+  /// Whether the node of the note holds nothing but notes and whitespace, so that the note may
+  /// hold a blank line: amid other text, a blank line would split that text in two paragraphs.
+  final bool standsAlone;
+
   /// Get the position of the note's marker in the document.
   DocumentPosition get position => DocumentPosition(
     nodeId: nodeId,
@@ -26,11 +31,16 @@ final class OcptNoteEntry extends Equatable {
   );
 
   /// Class constructor.
-  const OcptNoteEntry({required this.nodeId, required this.offset, required this.note});
+  const OcptNoteEntry({
+    required this.nodeId,
+    required this.offset,
+    required this.note,
+    this.standsAlone = false,
+  });
 
   /// Get the properties the equality of the entry reads.
   @override
-  List<Object?> get props => [nodeId, offset, note];
+  List<Object?> get props => [nodeId, offset, note, standsAlone];
 }
 
 /// The view state of the notes of the styled editor: which notes the document holds, in document
@@ -72,6 +82,7 @@ final class OcptStyledNotes {
                 nodeId: node.id,
                 offset: placeholder.key,
                 note: placeholder.value as OcptFountainNote,
+                standsAlone: OcptWysiwygInlineRuns.holdsOnlyNotes(node.text),
               ),
     ];
 
