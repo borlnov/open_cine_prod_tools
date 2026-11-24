@@ -353,7 +353,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   );
 
   /// The find/replace handling: the query, the current match and its highlight, in the text and the
-  /// notes. It resolves the document and the editor at call time, as [_rebuildEditorFrom] swaps them.
+  /// notes. It reads the document and the editor when asked, as [_rebuildEditorFrom] swaps them.
   late final OcptStyledSearch _search = OcptStyledSearch(
     documentOf: () => _document,
     editorOf: () => _editor,

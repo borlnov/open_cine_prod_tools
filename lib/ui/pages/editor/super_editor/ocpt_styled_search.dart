@@ -241,31 +241,6 @@ final class OcptStyledSearch {
     _scrollToNode(nodeId);
   }
 
-  /// Scroll the block [nodeId] into view once the frame is built, a third of the way down.
-  void _scrollToNode(String nodeId) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      final component = (_documentLayoutKey.currentState as DocumentLayout?)?.getComponentByNodeId(
-        nodeId,
-      );
-      if (component == null) {
-        return;
-      }
-      final componentState = component as State;
-      if (componentState.mounted) {
-        unawaited(
-          Scrollable.ensureVisible(
-            componentState.context,
-            alignment: 0.3,
-            duration: const Duration(milliseconds: 200),
-          ),
-        );
-      }
-    });
-  }
-
   /// Replace the find/replace query and current-match index this widget highlights/navigates to,
   /// then immediately recomputes and (re-)navigates — see [recompute]'s own doc
   /// comment on when it does each.
@@ -445,6 +420,31 @@ final class OcptStyledSearch {
       }
     }
     return null;
+  }
+
+  /// Scroll the block [nodeId] into view once the frame is built, a third of the way down.
+  void _scrollToNode(String nodeId) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final component = (_documentLayoutKey.currentState as DocumentLayout?)?.getComponentByNodeId(
+        nodeId,
+      );
+      if (component == null) {
+        return;
+      }
+      final componentState = component as State;
+      if (componentState.mounted) {
+        unawaited(
+          Scrollable.ensureVisible(
+            componentState.context,
+            alignment: 0.3,
+            duration: const Duration(milliseconds: 200),
+          ),
+        );
+      }
+    });
   }
 
   /// Return a copy of [original] with every one of [matches] (assumed non-overlapping and in

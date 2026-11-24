@@ -10,12 +10,12 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_text_inpu
 
 /// The multiline field in which the text of the selected note is edited, in its card.
 ///
-/// It takes the focus when it appears (unless [takesFocus] says it must not), and grows with its text. Every change is reported as soon
-/// as it is made, written the way the Fountain source holds it (a line left empty is two spaces),
-/// and the field follows [text] when it changes from elsewhere. It asks for what its keys mean
-/// instead of doing it: Enter and Escape give the focus back to the text, Shift+Enter breaks the
-/// line, and Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y act on the history of the editor, never on the one of
-/// the field.
+/// It takes the focus when it appears (unless [takesFocus] says it must not), and grows with its
+/// text. Every change is reported as soon as it is made, written the way the Fountain source holds
+/// it (a line left empty is two spaces), and the field follows [text] when it changes from
+/// elsewhere. It asks for what its keys mean instead of doing it: Enter and Escape give the focus
+/// back to the text, Shift+Enter breaks the line, and Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y act on the
+/// history of the editor, never on the one of the field.
 class OcptNoteCardField extends StatefulWidget {
   /// The text of the note, which the field shows.
   final String text;

@@ -14,9 +14,9 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 /// The page is white in every theme, so its colours are fixed like the rest of the paper styling:
 /// the app's accent on a light tint of itself. Its size follows the text it sits in, 18 by 16
 /// logical pixels at the base font size and as much more as the editor is zoomed. While its note is
-/// the selected one, it is drawn solid: the accent filled, with a white icon. While the find/replace
-/// query matches inside its note, it is drawn over the match highlight colours, stronger for the
-/// current match.
+/// the selected one, it is drawn solid: the accent filled, with a white icon. While the
+/// find/replace query matches inside its note, it is drawn over the match highlight colours,
+/// stronger for the current match.
 class OcptFountainNoteMarker extends StatelessWidget {
   /// The accent colour of the app, the one of the marker's icon.
   static const Color accentColor = Color(0xFF6C5CE7);

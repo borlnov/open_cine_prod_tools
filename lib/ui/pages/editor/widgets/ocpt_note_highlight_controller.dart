@@ -12,9 +12,6 @@ class OcptNoteHighlightController extends TextEditingController {
   /// The matches painted, or null for none.
   OcptNoteMatches? _matches;
 
-  /// Class constructor.
-  OcptNoteHighlightController({required TextEditingValue value}) : super.fromValue(value);
-
   /// Get the matches painted, or null for none.
   OcptNoteMatches? get matches => _matches;
 
@@ -25,6 +22,9 @@ class OcptNoteHighlightController extends TextEditingController {
       notifyListeners();
     }
   }
+
+  /// Class constructor.
+  OcptNoteHighlightController({required TextEditingValue value}) : super.fromValue(value);
 
   /// Build the span of the text of the field, the matches highlighted. A text being composed keeps
   /// the span the field gives it.

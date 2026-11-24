@@ -112,7 +112,7 @@ List<Color> _cardBackgrounds(WidgetTester tester) {
   if (field.evaluate().isNotEmpty) {
     final controller = tester.widget<TextField>(field).controller!;
     return _backgrounds(
-      controller.buildTextSpan(context: tester.element(field), style: null, withComposing: false),
+      controller.buildTextSpan(context: tester.element(field), withComposing: false),
     );
   }
 
