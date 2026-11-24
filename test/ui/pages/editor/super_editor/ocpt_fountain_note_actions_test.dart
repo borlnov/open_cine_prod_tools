@@ -425,4 +425,73 @@ void main() {
       expect(OcptFountainNoteActions.removeRequests(document, caret("c", 1)), isNull);
     });
   });
+
+  group("the notes addressed by identifier", () {
+    test("insertRequests puts the note it is given, whose identifier is kept", () {
+      const note = OcptFountainNote(id: "given", text: "");
+
+      final requests = OcptFountainNoteActions.insertRequests(
+        _document("Some text."),
+        _selection(4, 9),
+        note: note,
+      )!;
+
+      expect(_insertedNote(requests, 9), note);
+      expect(_writtenText(requests), "Some text\uFFFC.");
+    });
+
+    test("changeTextRequests gives the note a new text, keeping its id and place", () {
+      final document = _documentWithNote("a ", "old", " b");
+      final note =
+          (document.getNodeAt(0)! as ParagraphNode).text.placeholders[2]! as OcptFountainNote;
+
+      final requests = OcptFountainNoteActions.changeTextRequests(document, note.id, "new")!;
+
+      expect(_writtenText(requests), "a \uFFFC b");
+      expect(_insertedNote(requests, 2), note.withText("new"));
+      expect(OcptFountainNoteActions.changeTextRequests(document, "unknown", "new"), isNull);
+    });
+
+    test("removeNoteRequests takes the note and a doubled space, and may leave the caret", () {
+      final document = _documentWithNote("a ", "x", " b");
+      final note =
+          (document.getNodeAt(0)! as ParagraphNode).text.placeholders[2]! as OcptFountainNote;
+
+      final requests = OcptFountainNoteActions.removeNoteRequests(document, note.id)!;
+      expect(_writtenText(requests), "a b");
+      expect(_caretOffset(requests), 1);
+
+      final quiet = OcptFountainNoteActions.removeNoteRequests(
+        document,
+        note.id,
+        movesCaret: false,
+      )!;
+      expect(quiet, hasLength(1));
+      final mapOffset = (quiet.single as OcptReplaceNodeTextRequest).mapOffset!;
+      expect(
+        [mapOffset(0), mapOffset(1), mapOffset(2), mapOffset(3), mapOffset(5)],
+        [0, 1, 1, 1, 3],
+      );
+      expect(OcptFountainNoteActions.removeNoteRequests(document, "unknown"), isNull);
+    });
+
+    test("removeRequests falls back on the selected note when the caret touches none", () {
+      final document = _documentWithNote("a ", "x", " b longer");
+      final note =
+          (document.getNodeAt(0)! as ParagraphNode).text.placeholders[2]! as OcptFountainNote;
+
+      expect(OcptFountainNoteActions.removeRequests(document, _selection(8)), isNull);
+      expect(OcptFountainNoteActions.removeRequests(document, null), isNull);
+      expect(
+        _writtenText(
+          OcptFountainNoteActions.removeRequests(document, _selection(8), selectedNoteId: note.id)!,
+        ),
+        "a b longer",
+      );
+      expect(
+        OcptFountainNoteActions.removeRequests(document, _selection(8), selectedNoteId: "gone"),
+        isNull,
+      );
+    });
+  });
 }
