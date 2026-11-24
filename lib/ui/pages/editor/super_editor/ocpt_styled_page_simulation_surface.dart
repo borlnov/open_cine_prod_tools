@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_script_page_number.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_page_sheets_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes_margin.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scaled_to_fit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
@@ -14,6 +16,9 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 /// width. The inline comments below are the authority on every geometry decision it makes: why
 /// the editor is only as wide as the content area, why it is shifted back by one padding inset,
 /// and why the sheets are painted rather than laid out.
+///
+/// When there are notes and the area is wide enough, [notesMargin] stands to the right of the
+/// sheets, and the sheets and the margin are centred together.
 class OcptStyledPageSimulationSurface extends StatelessWidget {
   /// The theme whose surface color is the backdrop on either side of the sheets.
   final ThemeData theme;
@@ -42,6 +47,15 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
   /// narrower area.
   final bool scrollsSideways;
 
+  /// The notes of the document, which tell whether a margin is needed.
+  final OcptStyledNotes notes;
+
+  /// The column of note cards shown to the right of the sheets when it fits.
+  final Widget notesMargin;
+
+  /// Whether the surface is compact, which never has a notes margin.
+  final bool isCompact;
+
   /// Create an [OcptStyledPageSimulationSurface].
   const OcptStyledPageSimulationSurface({
     super.key,
@@ -53,11 +67,41 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
     required this.editor,
     required this.horizontalScrollController,
     required this.scrollsSideways,
+    required this.notes,
+    required this.notesMargin,
+    required this.isCompact,
   });
 
   /// Build the styled page simulation surface as a [Scrollbar].
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Scrollbar(
+    controller: scrollController,
+    notificationPredicate: (notification) => notification.metrics.axis == Axis.vertical,
+    child: ColoredBox(
+      color: theme.colorScheme.surface,
+      child: LayoutBuilder(
+        builder: (context, constraints) => ValueListenableBuilder<List<OcptNoteEntry>>(
+          valueListenable: notes.entries,
+          builder: (context, entries, child) => _buildScaled(
+            constraints,
+            hasMargin: OcptStyledNotesMargin.fits(
+              hasNotes: entries.isNotEmpty,
+              isCompact: isCompact,
+              availableWidth: constraints.maxWidth,
+              contentWidth: layout.pageWidth,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  /// Build the sheets and the editor, scaled to fit, with [notesMargin] beside them when
+  /// [hasMargin].
+  ///
+  /// The margin is part of what is centred, and is only ever there when the whole of it fits, so
+  /// it never makes the sheets scale down or scroll.
+  Widget _buildScaled(BoxConstraints constraints, {required bool hasMargin}) {
     // Page simulation: the document is centered at the physical page width, with a themed
     // backdrop (matching the app's theme) on either side, and a white sheet painted behind it per
     // simulated page (see `OcptPageSheetsPainter`); `OcptFountainEditorStylesheet` already
@@ -83,66 +127,69 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
     // narrower on each side, so the styled editor would wrap its text a couple of columns earlier
     // than the raw preview typesets the very same line.
     const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
-    return Scrollbar(
-      controller: scrollController,
-      notificationPredicate: (notification) => notification.metrics.axis == Axis.vertical,
-      child: ColoredBox(
-        color: theme.colorScheme.surface,
-        child: LayoutBuilder(
-          builder: (context, constraints) => OcptStyledScaledToFit(
-            constraints: constraints,
-            pageWidth: layout.pageWidth,
-            horizontalScrollController: horizontalScrollController,
-            scrollsSideways: scrollsSideways,
-            page: Stack(
-              children: [
-                Positioned.fill(
-                  child: ListenableBuilder(
-                    listenable: scrollController,
-                    builder: (context, child) => CustomPaint(
-                      painter: OcptPageSheetsPainter(
-                        pageCount: pageCount,
-                        titlePageSheetCount: titlePageSheetCount,
-                        pageHeight: layout.pageHeight,
-                        pageGap: OcptEditorPreviewLayout.pageGap,
-                        pageNumberTop: ocptScriptPageNumberTopInches * layout.pixelsPerInch,
-                        pageNumberRight: layout.pageWidth - layout.marginRight,
-                        // The sheets are white whatever the app's theme is, so the number is
-                        // painted in the same fixed paper colors `OcptFountainEditorStylesheet`
-                        // switches to under page simulation — a theme-derived color could render
-                        // invisible on that white backdrop — and at the body's own size and family,
-                        // since that is what the PDF prints it at.
-                        pageNumberStyle: TextStyle(
-                          fontFamily: OcptEditorPreviewLayout.fontFamily,
-                          fontSize: layout.fontSize,
-                          color: Colors.black,
-                        ),
-                        scrollOffset: scrollController.hasClients ? scrollController.offset : 0,
-                      ),
-                    ),
+    return OcptStyledScaledToFit(
+      constraints: constraints,
+      pageWidth: layout.pageWidth + (hasMargin ? OcptStyledNotesMargin.reservedWidth : 0),
+      horizontalScrollController: horizontalScrollController,
+      scrollsSideways: scrollsSideways,
+      page: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: layout.pageWidth,
+            child: ListenableBuilder(
+              listenable: scrollController,
+              builder: (context, child) => CustomPaint(
+                painter: OcptPageSheetsPainter(
+                  pageCount: pageCount,
+                  titlePageSheetCount: titlePageSheetCount,
+                  pageHeight: layout.pageHeight,
+                  pageGap: OcptEditorPreviewLayout.pageGap,
+                  pageNumberTop: ocptScriptPageNumberTopInches * layout.pixelsPerInch,
+                  pageNumberRight: layout.pageWidth - layout.marginRight,
+                  // The sheets are white whatever the app's theme is, so the number is
+                  // painted in the same fixed paper colors `OcptFountainEditorStylesheet`
+                  // switches to under page simulation — a theme-derived color could render
+                  // invisible on that white backdrop — and at the body's own size and family,
+                  // since that is what the PDF prints it at.
+                  pageNumberStyle: TextStyle(
+                    fontFamily: OcptEditorPreviewLayout.fontFamily,
+                    fontSize: layout.fontSize,
+                    color: Colors.black,
                   ),
+                  scrollOffset: scrollController.hasClients ? scrollController.offset : 0,
                 ),
-                // Deliberately an `Align` (a *non-positioned* Stack child) shifted by a
-                // `Transform`, rather than a `Positioned(left: -inset)`: the `Stack` sizes itself
-                // to its non-positioned children, so making every child positioned would leave it
-                // sizing to its incoming constraints instead, handing `SuperEditor` a
-                // differently-constrained viewport — which, in turn, breaks its IME connection
-                // (`editor_page_toolbar_and_preview_test.dart`'s "an edit made in styled mode
-                // survives switching back to raw mode" catches exactly that).
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Transform.translate(
-                    offset: const Offset(-inset, 0),
-                    child: SizedBox(
-                      width: layout.pageWidth - layout.marginRight + inset * 2,
-                      child: editor,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+          // Deliberately an `Align` (a *non-positioned* Stack child) shifted by a
+          // `Transform`, rather than a `Positioned(left: -inset)`: the `Stack` sizes itself
+          // to its non-positioned children, so making every child positioned would leave it
+          // sizing to its incoming constraints instead, handing `SuperEditor` a
+          // differently-constrained viewport — which, in turn, breaks its IME connection
+          // (`editor_page_toolbar_and_preview_test.dart`'s "an edit made in styled mode
+          // survives switching back to raw mode" catches exactly that).
+          Align(
+            alignment: Alignment.topLeft,
+            child: Transform.translate(
+              offset: const Offset(-inset, 0),
+              child: SizedBox(
+                width: layout.pageWidth - layout.marginRight + inset * 2,
+                child: editor,
+              ),
+            ),
+          ),
+          if (hasMargin)
+            Positioned(
+              left: layout.pageWidth + OcptStyledNotesMargin.gap,
+              top: 0,
+              bottom: 0,
+              width: OcptStyledNotesMargin.cardWidth,
+              child: notesMargin,
+            ),
+        ],
       ),
     );
   }

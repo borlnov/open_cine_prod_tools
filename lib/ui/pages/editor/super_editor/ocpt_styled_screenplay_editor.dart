@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_ed
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_editor_surface.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_history.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_jump_handler.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_simulation.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_read_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_number_metadata.dart';
@@ -303,6 +304,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// position.
   final ScrollController _pageScrollController = ScrollController();
 
+  /// The notes of [_document] and the selected one, which the markers, the margin's cards and the
+  /// tap delegate share.
+  late final OcptStyledNotes _notes = OcptStyledNotes(documentOf: () => _document);
+
   /// The zoom's scrolling: the point it is made around, and the caret kept in view sideways.
   late final OcptStyledZoomAnchor _zoomAnchor = OcptStyledZoomAnchor(
     vertical: _pageScrollController,
@@ -400,8 +405,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   }
 
   /// Rebuild the editor when the text or the page simulation changes, repaginate when the page
-  /// setup
-  /// changes, and move the controller attachment when the controller changes.
+  /// setup changes, and move the controller attachment when the controller changes.
   @override
   void didUpdateWidget(covariant OcptStyledScreenplayEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -501,6 +505,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       focusNode: _focusNode,
       documentLayoutKey: _documentLayoutKey,
       keyboardActions: _keyboardActions,
+      contentTapDelegateFactories: _notes.tapDelegateFactories,
       imeOverrides: _imeOverrides,
       scrollController: _pageScrollController,
       componentBuilders: [
@@ -539,16 +544,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         ...defaultComponentBuilders,
       ],
       customStylePhases: [_search.styler, _spellCheck.styler],
-      // Both default policies clear the selection the moment this editor loses focus to any
-      // other widget, including a momentary focus steal by the toolbar's block-type dropdown
-      // opening its own overlay route: the focus loss directly clears the selection
-      // (`clearSelectionWhenEditorLosesFocus`), AND separately closes this editor's IME
-      // connection, which clears it a second way (`clearSelectionWhenImeConnectionCloses`).
-      // `applyBlockType`/`applyToggleInlineStyle` need that exact selection to still be there
-      // once the dropdown/toggle's own callback runs, so this editor keeps its selection through
-      // any such round trip instead (the toolbar's own explicit `_focusNode.requestFocus()`
-      // afterwards brings real keyboard focus, and with it a fresh IME connection, straight back
-      // anyway).
+      // The default policies clear the selection when this editor loses focus (even to the
+      // block-type dropdown's overlay) and when its IME connection closes; `applyBlockType` and
+      // `applyToggleInlineStyle` need it to survive such a round trip, and bring focus back after.
       selectionPolicies: const SuperEditorSelectionPolicies(
         clearSelectionWhenEditorLosesFocus: false,
         clearSelectionWhenImeConnectionCloses: false,
@@ -562,6 +560,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         usePaperColors: widget.usesPaperColorsWhileFluid,
         zoom: widget.zoom,
         noteMarkerLabel: Tr.of(context).editorNoteMarkerLabel,
+        selectedNoteId: _notes.selectedId,
       ),
     );
 
@@ -576,6 +575,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       pageCount: _pageSimulation.pageCount,
       titlePageSheetCount: _pageSimulation.titlePageSheetCount,
       canZoom: widget.onZoomStepRequested != null,
+      notes: _notes,
+      documentLayoutKey: _documentLayoutKey,
+      isCompact: widget.isCompact,
     );
 
     // Wrapped once here, rather than once per branch above: a right-click anywhere over the
@@ -691,8 +693,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// is added only for a node id [rangesByNodeId] actually names.
   ///
   /// Two guards `docs/architecture/screenplay.md` is explicit about, applied to every range
-  /// before it becomes a
-  /// `TextError`: a node id [_document] no longer holds (a full rebuild since the ranges were
+  /// before it becomes a `TextError`: a node id [_document] no longer holds (a full rebuild since the ranges were
   /// computed — an edit elsewhere, an import, a version restore, a page-simulation toggle) is
   /// ignored outright, and a range that no longer fits that node's own *current* text length is
   /// dropped rather than handed to `TextError.spelling`, which would otherwise build a `TextRange`
@@ -702,10 +703,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// are already known) and, reactively, whenever `editor_page.dart` pushes a fresh
   /// `OcptEditorState.styledSpellCheckRanges` down — neither call happens from inside
   /// [_onDocumentChanged]'s own document-change listener, so this never needs the post-frame
-  /// deferral [_onDocumentChanged]'s own search recompute does (see that method's long comment):
-  /// the crash it guards against is specific to `markDirty()` firing synchronously inside
-  /// `Editor.execute()`'s still-open transaction, which is not where this method is ever reached
-  /// from.
+  /// deferral its search recompute does (see that method's long comment).
   @override
   void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId) {
     _spellCheck.update(rangesByNodeId);
@@ -768,10 +766,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _history.reset();
 
     // Settled before the history-recording editor and its document exist: what the settle derives
-    // from a text the writer has not touched yet (a heading typed in lower case uppercased, say) is
-    // the starting point an undo restores, not a gesture a first Ctrl+Z could take back. The
-    // document is built from the settled nodes, since a `MutableDocument` keeps the nodes it was
-    // built with as the base state `undo()` resets to.
+    // from a text the writer has not touched yet is the starting point an undo restores, not a
+    // gesture a first Ctrl+Z could take back, so the document is built from the settled nodes.
     final decoded = _decode(text);
     final loadComposer = MutableDocumentComposer();
     final loadEditor = ocptStyledSettlingEditorFor(decoded.document, loadComposer);
@@ -790,6 +786,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _composer.selectionNotifier.addListener(_onSelectionChanged);
     _composer.preferences.addListener(_onComposerPreferencesChanged);
     _composer.composingRegion.addListener(_onComposingRegionChanged);
+    _notes.refresh();
   }
 
   /// Stop listening to [_document] and [_composer] and dispose them, before they're replaced or
@@ -827,6 +824,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       _history.markRedoStale();
     }
     _readState.report();
+    _notes.refresh();
 
     if (_search.query == null) {
       return;
@@ -994,6 +992,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _focusNode.dispose();
     _pageScrollController.dispose();
     _zoomAnchor.dispose();
+    _notes.dispose();
     super.dispose();
   }
 }

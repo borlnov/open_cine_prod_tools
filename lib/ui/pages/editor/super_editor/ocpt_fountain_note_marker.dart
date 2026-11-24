@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
@@ -10,7 +11,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 ///
 /// The page is white in every theme, so its colours are fixed like the rest of the paper styling:
 /// the app's accent on a light tint of itself. Its size follows the text it sits in, 18 by 16
-/// logical pixels at the base font size and as much more as the editor is zoomed.
+/// logical pixels at the base font size and as much more as the editor is zoomed. While its note is
+/// the selected one, it is drawn solid: the accent filled, with a white icon.
 class OcptFountainNoteMarker extends StatelessWidget {
   /// The accent colour of the app, the one of the marker's icon.
   static const Color accentColor = Color(0xFF6C5CE7);
@@ -36,12 +38,39 @@ class OcptFountainNoteMarker extends StatelessWidget {
   /// The label read out for the marker, empty for none.
   final String semanticLabel;
 
+  /// The identifier of the note the marker stands for, which tells whether it is the selected one.
+  final String? noteId;
+
+  /// The identifier of the selected note, which the marker follows, or null for a marker that is
+  /// never selected.
+  final ValueListenable<String?>? selectedNoteId;
+
   /// Class constructor.
-  const OcptFountainNoteMarker({super.key, required this.fontSize, this.semanticLabel = ""});
+  const OcptFountainNoteMarker({
+    super.key,
+    required this.fontSize,
+    this.semanticLabel = "",
+    this.noteId,
+    this.selectedNoteId,
+  });
 
   /// Build the marker.
   @override
   Widget build(BuildContext context) {
+    final selection = selectedNoteId;
+    if (selection == null) {
+      return _buildMarker(isSelected: false);
+    }
+
+    return ValueListenableBuilder<String?>(
+      valueListenable: selection,
+      builder: (context, selected, child) =>
+          _buildMarker(isSelected: noteId != null && selected == noteId),
+    );
+  }
+
+  /// Build the marker, solid when [isSelected].
+  Widget _buildMarker({required bool isSelected}) {
     final scale = fontSize / OcptEditorPreviewLayout.baseFontSize;
 
     return Semantics(
@@ -51,11 +80,15 @@ class OcptFountainNoteMarker extends StatelessWidget {
           width: baseWidth * scale,
           height: baseHeight * scale,
           decoration: BoxDecoration(
-            color: accentColor.withValues(alpha: tintOpacity),
+            color: isSelected ? accentColor : accentColor.withValues(alpha: tintOpacity),
             borderRadius: BorderRadius.circular(baseRadius * scale),
           ),
           alignment: Alignment.center,
-          child: Icon(Icons.chat_bubble_outline, size: baseIconSize * scale, color: accentColor),
+          child: Icon(
+            Icons.chat_bubble_outline,
+            size: baseIconSize * scale,
+            color: isSelected ? Colors.white : accentColor,
+          ),
         ),
       ),
     );
