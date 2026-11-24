@@ -352,14 +352,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     isMounted: () => mounted,
   );
 
-  /// The find/replace handling: the active query, the current match, and the highlight painted for
-  /// them. Resolves the document and the editor at call time, since both are replaced by
-  /// [_rebuildEditorFrom].
+  /// The find/replace handling: the query, the current match and its highlight, in the text and the
+  /// notes. It resolves the document and the editor at call time, as [_rebuildEditorFrom] swaps them.
   late final OcptStyledSearch _search = OcptStyledSearch(
     documentOf: () => _document,
     editorOf: () => _editor,
     documentLayoutKey: _documentLayoutKey,
     isMounted: () => mounted,
+    notes: _notes,
     onMatchCountReported: (count) => widget.styledController?.reportSearchMatchCount(count),
   );
 
