@@ -19,11 +19,16 @@ typedef OcptWysiwygNoteEdit = ({AttributedText text, int Function(int offset) ma
 /// that in step with what is typed.
 ///
 /// **The invariant:** a node holds a placeholder for exactly each note the parser would see that
-/// opens and closes on its line, lies outside every boneyard and holds neither `/*` nor `*/`;
-/// every other note stays text, bracketed and dimmed. A note typed or pasted as text is *absorbed*
-/// into a placeholder as soon as it satisfies it, and a placeholder whose expansion stops being
-/// such a note is *dissolved* back into its text, so the Fountain source a node writes never
-/// depends on which form its notes took.
+/// opens and closes within the lines the node covers, lies outside every boneyard and holds
+/// neither `/*` nor `*/`; every other note stays text, bracketed and dimmed. A note typed or
+/// pasted as text is *absorbed* into a placeholder as soon as it satisfies it, and a placeholder
+/// whose expansion stops being such a note is *dissolved* back into its text, so the Fountain
+/// source a node writes never depends on which form its notes took.
+///
+/// **A note running over several lines** is the one exception to the live passes: they neither
+/// create nor dissolve a placeholder whose text holds a newline, so the text of a node never holds
+/// a newline of its own. Only a decode, which folds the lines the note covers into one node
+/// ([absorbedNodes]), makes one.
 ///
 /// Pure and stateless: it only reads a document and returns what a caller must still execute
 /// against a live `Editor`.
@@ -55,7 +60,7 @@ final class OcptWysiwygNotes {
       if (composingNodeIds.contains(nodes[index].id)) {
         continue;
       }
-      final edit = editOf(nodes[index], layout, lineRangeOfNode[index]);
+      final edit = editOf(nodes[index], layout, lineRangeOfNode[index], allowsMultiLine: false);
       if (edit != null) {
         requests.add(
           OcptReplaceNodeTextRequest(
@@ -77,26 +82,41 @@ final class OcptWysiwygNotes {
     final (layout, lineRangeOfNode) = OcptWysiwygComments.layoutOfNodes(nodes);
     return [
       for (var index = 0; index < nodes.length; index++)
-        _withEdit(nodes[index], editOf(nodes[index], layout, lineRangeOfNode[index])),
+        _withEdit(
+          nodes[index],
+          editOf(nodes[index], layout, lineRangeOfNode[index], allowsMultiLine: true),
+        ),
     ];
   }
 
   /// Get what [node], whose lines are [lineRange] (first line, line count) of [layout], must become
   /// for its notes to satisfy the invariant, or null when they already do.
+  ///
+  /// A note holding a newline is left as it is, a placeholder staying one and a text staying text,
+  /// unless [allowsMultiLine].
   static OcptWysiwygNoteEdit? editOf(
     ParagraphNode node,
     OcptWysiwygCommentLayout layout,
-    (int, int) lineRange,
-  ) {
+    (int, int) lineRange, {
+    required bool allowsMultiLine,
+  }) {
     final text = node.text;
     final offsets = OcptWysiwygNoteOffsets.of(text);
     final line = offsets.expand(text.toPlainText());
     final desired = [
       for (final range in layout.noteRangesOfNode(lineRange.$1, lineRange.$2))
-        if (!_holdsBoneyardMarker(line.substring(range.$1 + 2, range.$2 - 2))) range,
+        if (!_holdsBoneyardMarker(line.substring(range.$1 + 2, range.$2 - 2)) &&
+            (allowsMultiLine || !line.substring(range.$1, range.$2).contains("\n")))
+          range,
     ];
     final current = offsets.noteLineRanges;
-    if (OcptWysiwygInlineRuns.sameRanges(current, desired)) {
+    final isKept = [
+      for (final expansion in offsets.noteExpansions) !allowsMultiLine && expansion.contains("\n"),
+    ];
+    if (OcptWysiwygInlineRuns.sameRanges([
+      for (var index = 0; index < current.length; index++)
+        if (!isKept[index]) current[index],
+    ], desired)) {
       return null;
     }
 
@@ -124,7 +144,7 @@ final class OcptWysiwygNotes {
     }
     final indices = offsets.noteIndices;
     for (var index = 0; index < indices.length; index++) {
-      final isDissolved = !desired.contains(current[index]);
+      final isDissolved = !isKept[index] && !desired.contains(current[index]);
       final isInRegion = regions.any(
         (region) => region.start <= indices[index] && indices[index] < region.end,
       );

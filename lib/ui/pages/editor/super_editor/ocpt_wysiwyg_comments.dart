@@ -151,8 +151,11 @@ final class OcptWysiwygComments {
       for (var blank = 0; blank < blankLinesBeforeOf(nodes[index]); blank++) {
         lines.add("");
       }
-      lineRangeOfNode.add((lines.length, 1));
-      lines.add(virtualTextOf(nodes[index]));
+      // A note running over several lines puts a newline in the text: the layout's lines are the
+      // lines of source, however many a node covers.
+      final nodeLines = virtualTextOf(nodes[index]).split("\n");
+      lineRangeOfNode.add((lines.length, nodeLines.length));
+      lines.addAll(nodeLines);
     }
     return (OcptWysiwygCommentLayout.of(lines, honoursEscapes: false), lineRangeOfNode);
   }
