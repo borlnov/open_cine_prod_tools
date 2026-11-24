@@ -286,6 +286,37 @@ void main() {
       expect(OcptWysiwygCodec.commentAttributionRequests(decoded.document), isEmpty);
     });
 
+    test('an escaped bracket a later line would close keeps its backslash', () {
+      const sources = [
+        'x \\[[a\nb]] y',
+        'x \\[[a\n\nb]] y',
+        'x \\[[a]] \\[[b\nc]]',
+        'x \\\\\\[[a\nb]]',
+        '/* \\[[a */\nb]]',
+        '*\\[[a*\nb]]',
+      ];
+      for (final source in sources) {
+        expect(_roundTrip(source), source, reason: source);
+      }
+    });
+
+    test('an escaped bracket a later line would close is no note, and is not dimmed', () {
+      final decoded = OcptWysiwygCodec.decode('x \\[[a\nb]] y');
+      final first = decoded.document.getNodeAt(0)! as ParagraphNode;
+
+      expect(first.text.toPlainText(), 'x [[a');
+      expect(first.text.placeholders, isEmpty);
+      expect(OcptWysiwygCodec.commentAttributionRequests(decoded.document), isEmpty);
+    });
+
+    test('a bracket typed after a backslash is written so as to read back the same', () {
+      final document = OcptWysiwygCodec.decode('x \\\\[[a\nb]] y').document;
+      final first = document.getNodeAt(0)! as ParagraphNode;
+
+      expect(first.text.toPlainText().startsWith(r'x \'), isTrue);
+      expect(_roundTrip('x \\\\[[a\nb]] y'), 'x \\\\[[a\nb]] y');
+    });
+
     test('a settle lays the document out once when no pass changes its text', () {
       final document = OcptWysiwygCodec.decode(
         'INT. HOUSE - DAY\n\nHe **runs** /* x */ now.\n\n[[ a\nb ]]',

@@ -111,9 +111,6 @@ class OcptWysiwygCodec {
   /// The writer used to turn a node's (display text, type, context) back into a raw source line.
   static const _lineWriter = FountainLineWriter();
 
-  /// The serializer used to turn a node's styled inline runs back into marked-up display text.
-  static const _inlineSerializer = FountainInlineSerializer();
-
   /// The [FountainLineType]s Fountain (and Final Draft) auto-detection expects in uppercase, and
   /// whose *stored* text this app therefore uppercases as the user types, not just its display.
   static const Set<FountainLineType> _uppercasedTypes = {
@@ -875,10 +872,8 @@ class OcptWysiwygCodec {
   }
 
   /// Serialize [node]'s styled text into marked-up source, through the one serializer.
-  static String _serialize(ParagraphNode node, List<int> boneyardStars) => _inlineSerializer.write(
-    OcptWysiwygInlineRuns.runsFromAttributedText(node.text),
-    literalStars: boneyardStars.toSet(),
-  );
+  static String _serialize(ParagraphNode node, List<int> boneyardStars) =>
+      OcptWysiwygInlineRuns.writeLine(node.text, boneyardStars.toSet());
 
   /// Read a node's [ocptSceneNumberMetadataKey] metadata, or null if it isn't set.
   static String? _readSceneNumber(ParagraphNode node) {
