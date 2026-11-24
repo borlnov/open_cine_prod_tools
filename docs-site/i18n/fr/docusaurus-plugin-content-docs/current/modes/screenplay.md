@@ -59,7 +59,8 @@ Quelques gestes utiles dans l'éditeur stylé :
 - **Tab / Maj+Tab** fait défiler le type d'un bloc parmi les six types courants et le verrouille.
 - **Entrée** enchaîne sur le type qui suit normalement ; **Maj+Entrée** garde le même type.
 - Un menu de type de bloc et les bascules **G / I / S** vivent dans la barre d'outils ; un
-  clic droit offre Couper, Copier, Coller, Tout sélectionner et un sous-menu de type de bloc.
+  clic droit offre Couper, Copier, Coller, Tout sélectionner, Insérer une note et Supprimer la
+  note, et un sous-menu de type de bloc.
 - Le copier-coller interne conserve les types de blocs ; un texte venu de l'extérieur est
   analysé et réparti dans les bons éléments.
 
@@ -81,6 +82,39 @@ garde les deux répliques **l'une sous l'autre**, et une **accolade dans la marg
 qu'elles forment une paire ; un `^` qui ne s'apparie à rien s'affiche estompé après le nom du
 personnage. Taper un `^` à la fin d'un nom fonctionne aussi, et le texte Fountain brut le montre
 tel qu'il est écrit.
+
+## Les notes
+
+Une note est un texte pour vous et votre équipe, qui ne s'imprime jamais : un rappel, une question
+pour l'équipe son, un accessoire à vérifier. Fountain l'écrit entre doubles crochets,
+`[[comme ceci]]`, et le texte Fountain brut la montre ainsi.
+
+Dans l'éditeur stylé, une note est une petite **bulle** dans la ligne, et son texte se trouve dans
+une **carte dans la marge**, à droite de la page, à hauteur de sa ligne :
+
+- **Cliquez une bulle**, ou une carte, pour sélectionner la note : sa carte se rapproche de la
+  page, reliée à la bulle par un trait, et vous pouvez y écrire aussitôt.
+- **Entrée** ou **Échap** vous ramène au scénario, le curseur juste après la bulle.
+  **Maj+Entrée** passe à la ligne dans la note.
+- **Ctrl+Z** annule en une fois toute la modification d'une note, même depuis sa carte.
+- Pour ajouter une note, faites un clic droit à l'endroit voulu et choisissez **Insérer une
+  note** : une carte vide s'ouvre, prête à recevoir votre texte. Si vous la laissez vide, la note
+  disparaît.
+- Pour en supprimer une, utilisez le bouton **Supprimer la note** de sa carte, ou **Supprimer la
+  note** dans le menu du clic droit.
+
+Quand la fenêtre est trop étroite pour la marge, les cartes sont masquées et un clic sur une bulle
+ouvre la note dans une **bulle flottante** sous elle, où l'on écrit de la même façon. Un clic à
+côté la referme. La marge revient dès qu'il y a de nouveau la place.
+
+Rechercher et remplacer (**Ctrl+F**, **Ctrl+H**) cherche aussi dans les notes : la bulle d'une
+note qui contient un résultat est teintée, et quand le résultat courant est dans une note, sa carte
+ou sa bulle flottante s'ouvre avec le résultat surligné. Une note ne peut contenir ni `]]`, ni
+`/*`, ni `*/` : un remplacement qui y en mettrait un laisse cette note telle quelle.
+
+Une note peut s'étendre sur plusieurs lignes. Au sein d'un paragraphe d'action ou de dialogue, elle
+ne peut pas contenir de ligne vide, qui couperait ce paragraphe en deux ; une note seule sur ses
+lignes le peut.
 
 ## Le panneau des séquences (à gauche)
 
