@@ -6,9 +6,9 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comment_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comments.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decoder.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_document_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_dual_dialogue.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
@@ -140,7 +140,7 @@ class OcptWysiwygCodec {
   /// same blank-line count.
   static OcptWysiwygDecodeResult decode(String text) {
     final lines = _splitLines(text);
-    final (nodes, blankLinesBeforeByNode, pendingBlanks) = _decodeLines(lines);
+    final (nodes, blankLinesBeforeByNode, pendingBlanks) = OcptWysiwygDecoder.decodeLines(lines);
 
     var trailingBlankLines = pendingBlanks;
 
@@ -236,7 +236,7 @@ class OcptWysiwygCodec {
   /// [decode], this never synthesizes an empty node for all-blank input, since there is nothing
   /// useful to paste in that case: the caller sees an empty list instead.
   static List<ParagraphNode> decodeNodesFromFountain(String text) {
-    final (nodes, _, _) = _decodeLines(_splitLines(text));
+    final (nodes, _, _) = OcptWysiwygDecoder.decodeLines(_splitLines(text));
     return nodes;
   }
 
@@ -315,11 +315,11 @@ class OcptWysiwygCodec {
     // An inert node is read the way the parser reads it: a blanked-out line, which keeps a
     // dialogue group open when it directly follows a member and is blank otherwise.
     final effectiveTypes = List<FountainLineType>.of(types);
-    // What the parser's classifier reads of a node's line: the layout's blanked-out line for an
-    // inert node, the text about to be written for a live one.
+    // What the parser's classifier reads of the first line of a node: the layout's blanked-out
+    // line for an inert node, the first line of the text about to be written for a live one.
     String textSeenBy(int index) => isInertByNode[index]
         ? layout.classificationLines[lineRangeOfNode[index].$1]
-        : displayTextByNode[index];
+        : _firstLineOf(displayTextByNode[index]);
     String? nextTextSeenAfter(int index) {
       if (index + 1 >= nodes.length) {
         return trailingBlankLines > 0 ? "" : null;
@@ -332,13 +332,21 @@ class OcptWysiwygCodec {
           ? FountainLineType.blank
           : (index == 0 ? null : effectiveTypes[index - 1]);
       if (isInertByNode[index]) {
-        // An inert node is read as the parser reads its line: classified in context, the
-        // commented spans blanked out and nothing more.
-        effectiveTypes[index] = _classifier.classifyLine(
-          textSeenBy(index),
-          previousType: previousType,
-          nextRawLine: nextTextSeenAfter(index),
-        );
+        // An inert node is read as the parser reads its lines: each one classified in context,
+        // the commented spans blanked out and nothing more, the type of the node being the one
+        // its last line leaves.
+        final (start, count) = lineRangeOfNode[index];
+        var type = previousType;
+        for (var line = start; line < start + count; line++) {
+          type = _classifier.classifyLine(
+            layout.classificationLines[line],
+            previousType: type,
+            nextRawLine: line + 1 < start + count
+                ? layout.classificationLines[line + 1]
+                : nextTextSeenAfter(index),
+          );
+        }
+        effectiveTypes[index] = type!;
         continue;
       }
       final continuesDialogueGroup =
@@ -381,22 +389,30 @@ class OcptWysiwygCodec {
         continue;
       }
 
-      final nextRawLine = nextTextSeenAfter(index);
+      // A node covering several lines is written in two parts: its first line, through the writer,
+      // which reads the line after it as the next line, and the rest as it is. The classifier of
+      // the parser reads the whole lines of a note running over several lines, not its folded
+      // text, so only the first line has anything to be decided.
+      final (firstLine, restLines) = _splitFirstLine(displayText);
+      final (start, _) = lineRangeOfNode[index];
+      final nextRawLine = restLines == null
+          ? nextTextSeenAfter(index)
+          : layout.classificationLines[start + 1];
       final previousType = blankLinesBeforeByNode[index] > 0
           ? FountainLineType.blank
           : (index == 0 ? null : effectiveTypes[index - 1]);
 
       final classifiedText = _classifiedTextOf(
         nodes[index],
-        displayText,
-        layout.classificationLines[lineRangeOfNode[index].$1],
+        firstLine,
+        layout.classificationLines[start],
       );
 
       // A page break and a centered text have no plain form, so the writer always wraps them. A
       // node holding the whole source line of one (see [_stripDisplayText]) is written as it is.
       if ((type == FountainLineType.pageBreak || type == FountainLineType.centeredText) &&
           _classifier.classifyLine(
-                classifiedText ?? displayText,
+                classifiedText ?? firstLine,
                 previousType: previousType,
                 nextRawLine: nextRawLine,
               ) ==
@@ -405,17 +421,16 @@ class OcptWysiwygCodec {
         continue;
       }
 
-      outputLines.add(
-        _lineWriter.writeLine(
-          text: displayText,
-          type: types[index],
-          hadForcingMarker: _readHadForcingMarker(nodes[index]),
-          previousType: previousType,
-          nextRawLine: nextRawLine,
-          classifiedText: classifiedText,
-          sectionLevel: _readSectionLevel(nodes[index]),
-        ),
+      final writtenFirstLine = _lineWriter.writeLine(
+        text: firstLine,
+        type: types[index],
+        hadForcingMarker: _readHadForcingMarker(nodes[index]),
+        previousType: previousType,
+        nextRawLine: nextRawLine,
+        classifiedText: classifiedText,
+        sectionLevel: _readSectionLevel(nodes[index]),
       );
+      outputLines.add(restLines == null ? writtenFirstLine : "$writtenFirstLine\n$restLines");
     }
 
     for (var blank = 0; blank < trailingBlankLines; blank++) {
@@ -777,83 +792,34 @@ class OcptWysiwygCodec {
   static List<String> _splitLines(String text) =>
       text.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
 
-  /// Run the shared per-line decoding loop behind [decode] and [decodeNodesFromFountain]: turns
-  /// [lines] into one node per non-blank line (folding blank runs into
-  /// [ocptBlankLinesBeforeMetadataKey] metadata) plus, in call order, the resulting nodes, their
-  /// blank-lines-before counts (same length, same order as the nodes) and the number of blank
-  /// lines still pending after the last non-blank line (the trailing run [decode] alone turns
-  /// into [OcptWysiwygDecodeResult.trailingBlankLines]).
-  static (List<ParagraphNode>, List<int>, int) _decodeLines(List<String> lines) {
-    final layout = OcptWysiwygCommentLayout.of(lines);
-    final types = _classifier.classify(layout.classificationLines);
-
-    final nodes = <ParagraphNode>[];
-    final blankLinesBeforeByNode = <int>[];
-    var pendingBlanks = 0;
-
-    for (var index = 0; index < lines.length; index++) {
-      final isInert = layout.isInertByLine[index];
-      if (!isInert && types[index] == FountainLineType.blank) {
-        pendingBlanks++;
-        continue;
-      }
-
-      final type = isInert ? FountainLineType.action : types[index];
-      final (strippedText, hadForcingMarker) = isInert
-          ? (lines[index], false)
-          : OcptWysiwygMarkers.stripDisplayText(
-              lines[index],
-              type,
-              layout.classificationLines[index],
-            );
-      final (sceneText, sceneNumber) = type == FountainLineType.sceneHeading
-          ? OcptWysiwygMarkers.extractSceneNumber(strippedText)
-          : (strippedText, null);
-      final (displayText, dualSuffix) = !isInert && type == FountainLineType.character
-          ? OcptWysiwygDualDialogue.extractSuffix(sceneText)
-          : (sceneText, null);
-      nodes.add(
-        ParagraphNode(
-          id: Editor.createNodeId(),
-          text: OcptWysiwygInlineRuns.parseInline(
-            displayText,
-            _starsWithin(layout.boneyardStarsByLine[index], lines[index], displayText),
-          ),
-          metadata: {
-            "blockType": OcptFountainLineAttributions.attributionOf(type),
-            ocptBlankLinesBeforeMetadataKey: pendingBlanks,
-            ocptTypeLockedMetadataKey: false,
-            ocptHadForcingMarkerMetadataKey: hadForcingMarker,
-            ocptSceneNumberMetadataKey: sceneNumber,
-            ocptDualDialogueMetadataKey: dualSuffix,
-            if (type == FountainLineType.section && hadForcingMarker)
-              ocptSectionLevelMetadataKey: OcptWysiwygMarkers.sectionLevelOf(lines[index]),
-          },
-        ),
-      );
-      blankLinesBeforeByNode.add(pendingBlanks);
-      pendingBlanks = 0;
-    }
-
-    final absorbedNodes = OcptWysiwygNotes.absorbedNodes(nodes);
-    OcptWysiwygComments.attributeCommentedText(absorbedNodes);
-    return (absorbedNodes, blankLinesBeforeByNode, pendingBlanks);
-  }
-
-  /// Get [displayText], the text [encode] writes for [node], as the parser's classifier reads it:
-  /// its boneyards and standalone notes blanked out, [classificationLine] being the node's line so
-  /// blanked. Null when nothing differs, or when [displayText] is not the node's plain text (with
-  /// at most a scene number after it): emphasis markers shift every offset.
+  /// Get [displayText], the first line of the text [encode] writes for [node], as the parser's
+  /// classifier reads it: its boneyards and standalone notes blanked out, [classificationLine]
+  /// being the node's first line so blanked. Null when nothing differs, or when [displayText] is
+  /// not the first line of the node's plain text (with at most a scene number after it): emphasis
+  /// markers shift every offset.
   static String? _classifiedTextOf(
     ParagraphNode node,
     String displayText,
     String classificationLine,
   ) {
-    final plainText = OcptWysiwygComments.plainLineOf(node, node.text.toPlainText());
+    final plainText = _firstLineOf(OcptWysiwygComments.plainLineOf(node, node.text.toPlainText()));
     if (!displayText.startsWith(plainText) || classificationLine == plainText) {
       return null;
     }
     return classificationLine + displayText.substring(plainText.length);
+  }
+
+  /// Get the first line of [text].
+  static String _firstLineOf(String text) {
+    final newline = text.indexOf("\n");
+    return newline < 0 ? text : text.substring(0, newline);
+  }
+
+  /// Split [text] into its first line and the lines after it, the latter null when [text] has only
+  /// one.
+  static (String, String?) _splitFirstLine(String text) {
+    final newline = text.indexOf("\n");
+    return newline < 0 ? (text, null) : (text.substring(0, newline), text.substring(newline + 1));
   }
 
   /// Get the source line [encode] writes for the inert [node], byte for byte: its text, plus what
@@ -908,21 +874,6 @@ class OcptWysiwygCodec {
     OcptWysiwygInlineRuns.runsFromAttributedText(node.text),
     literalStars: boneyardStars.toSet(),
   );
-
-  /// Get the offsets [stars] of a source line [rawLine] hold, as offsets in [displayText], the line
-  /// once its forcing marker was stripped.
-  static Set<int> _starsWithin(List<int> stars, String rawLine, String displayText) {
-    final shift = rawLine.endsWith(displayText)
-        ? rawLine.length - displayText.length
-        : rawLine.indexOf(displayText);
-    if (shift < 0) {
-      return const {};
-    }
-    return {
-      for (final star in stars)
-        if (star >= shift && star - shift < displayText.length) star - shift,
-    };
-  }
 
   /// Read a node's [ocptSceneNumberMetadataKey] metadata, or null if it isn't set.
   static String? _readSceneNumber(ParagraphNode node) {
