@@ -17,12 +17,19 @@ class OcptReplaceNodeTextRequest implements EditRequest {
   /// The new text for the node.
   final AttributedText text;
 
+  /// Brings an offset of the node's former text to the matching offset of [text], for a
+  /// replacement that is not length-preserving: the selection and the composing region ends the
+  /// node holds are moved through it. Null for a replacement leaving every offset where it was, the
+  /// ends the shorter text leaves past its end then being brought back inside it. It plays no part
+  /// in the equality of the request.
+  final int Function(int offset)? mapOffset;
+
   /// Get the object hash code
   @override
   int get hashCode => nodeId.hashCode ^ text.hashCode;
 
   /// Create an [OcptReplaceNodeTextRequest].
-  const OcptReplaceNodeTextRequest({required this.nodeId, required this.text});
+  const OcptReplaceNodeTextRequest({required this.nodeId, required this.text, this.mapOffset});
 
   /// Compare two objects for equality
   @override

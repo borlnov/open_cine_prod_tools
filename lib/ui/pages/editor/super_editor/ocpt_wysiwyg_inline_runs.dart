@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The attribution marking an inline authoring note (`[[text]]`) for dimmed rendering; unlike
@@ -70,7 +71,8 @@ final class OcptWysiwygInlineRuns {
   ///
   /// An [ocptFountainNoteAttribution] range always wins over any overlapping bold/italic/underline
   /// attribution (dropped at this point): a note is atomic in Fountain, so emphasis can never
-  /// survive inside one on serialization.
+  /// survive inside one on serialization. A note held as a placeholder ([OcptFountainNote]) is a
+  /// note run of its own, its `[[text]]`, whatever attribution covers it.
   static List<FountainStyledRun> runsFromAttributedText(AttributedText text) {
     final plainText = text.toPlainText();
     if (plainText.isEmpty) {
@@ -90,29 +92,111 @@ final class OcptWysiwygInlineRuns {
 
     final runs = <FountainStyledRun>[];
     var runStart = 0;
-    var currentStyle = styleAt(0);
-    for (var offset = 1; offset <= plainText.length; offset++) {
-      final style = offset < plainText.length ? styleAt(offset) : null;
-      if (style == currentStyle) {
-        continue;
-      }
+    (bool, bool, bool, bool)? currentStyle;
 
+    void closeRun(int end) {
+      final style = currentStyle;
+      if (style == null || end <= runStart) {
+        return;
+      }
       runs.add(
         FountainStyledRun(
-          text: plainText.substring(runStart, offset),
-          isBold: currentStyle.$1,
-          isItalic: currentStyle.$2,
-          isUnderline: currentStyle.$3,
-          isNote: currentStyle.$4,
+          text: plainText.substring(runStart, end),
+          isBold: style.$1,
+          isItalic: style.$2,
+          isUnderline: style.$3,
+          isNote: style.$4,
         ),
       );
-      runStart = offset;
-      if (style != null) {
-        currentStyle = style;
-      }
     }
 
+    for (var offset = 0; offset < plainText.length; offset++) {
+      final placeholder = text.placeholders[offset];
+      if (placeholder is OcptFountainNote) {
+        closeRun(offset);
+        runs.add(FountainStyledRun(text: placeholder.expansion, isNote: true));
+        currentStyle = null;
+        continue;
+      }
+      final style = styleAt(offset);
+      if (currentStyle == null) {
+        runStart = offset;
+      } else if (style != currentStyle) {
+        closeRun(offset);
+        runStart = offset;
+      }
+      currentStyle = style;
+    }
+    closeRun(plainText.length);
+
     return runs;
+  }
+
+  /// Parse [text] into styled text: the emphasis markers become attributions, a note an atomic
+  /// run, and an escaped `[[` (which the parser reads as plain text) carries
+  /// [ocptFountainEscapedAttribution], so that nothing takes it for a note afterwards.
+  /// [boneyardStars] are the offsets of the `*` of the boneyard delimiters, which are no emphasis.
+  static AttributedText parseInline(String text, Set<int> boneyardStars) {
+    final runs = const FountainInlineParser().parseRuns(text, literalStars: boneyardStars);
+    final styled = attributedTextFromRuns(runs);
+    // The notes the parser read, run by run: two notes side by side are two runs, which their
+    // attribution alone would join into one range.
+    final notes = <(int, int)>{};
+    var offset = 0;
+    for (final run in runs) {
+      if (run.isNote) {
+        notes.add((offset, offset + run.text.length));
+      }
+      offset += run.text.length;
+    }
+    for (final span in FountainCommentSpans.notes(styled.toPlainText(), honoursEscapes: false)) {
+      if (!notes.contains((span.start, span.end))) {
+        styled.addAttribution(ocptFountainEscapedAttribution, SpanRange(span.start, span.start));
+      }
+    }
+    return styled;
+  }
+
+  /// Copy [text]'s attribution spans and placeholders onto [upperText], the text uppercased with a
+  /// replacement character at each placeholder, unchanged: uppercasing never changes a string's
+  /// length for this app's supported locales, so every span's (start, end) offset still refers to
+  /// the same run of characters.
+  static AttributedText uppercased(AttributedText text, String upperText) {
+    final buffer = StringBuffer();
+    for (var index = 0; index < upperText.length; index++) {
+      if (!text.placeholders.containsKey(index)) {
+        buffer.write(upperText[index]);
+      }
+    }
+    return AttributedText(buffer.toString(), text.spans.copy(), text.placeholders);
+  }
+
+  /// Get [text] in capitals, the characters inside [commentedRanges] (start, exclusive end) left as
+  /// written.
+  static String uppercasedOutside(String text, List<(int, int)> commentedRanges) {
+    final buffer = StringBuffer();
+    var cursor = 0;
+    for (final (start, end) in commentedRanges) {
+      buffer.write(text.substring(cursor, start).toUpperCase());
+      buffer.write(text.substring(start, end));
+      cursor = end;
+    }
+    buffer.write(text.substring(cursor).toUpperCase());
+    return buffer.toString();
+  }
+
+  /// Tell whether [text] is made of notes held as placeholders and whitespace, at least one note.
+  static bool holdsOnlyNotes(AttributedText text) {
+    final plainText = text.toPlainText();
+    var hasNote = false;
+    for (var index = 0; index < plainText.length; index++) {
+      if (text.placeholders[index] is OcptFountainNote) {
+        hasNote = true;
+      } else if (plainText[index].trim().isNotEmpty) {
+        return false;
+      }
+    }
+    return hasNote;
   }
 
   /// Tell whether [a] and [b] hold the same (start, exclusive end) ranges in the same order.

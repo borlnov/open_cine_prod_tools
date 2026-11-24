@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_command.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_command.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_document_settle.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scene_numbers.dart';
@@ -107,6 +108,7 @@ void main() {
       expect(OcptWysiwygCodec.sceneNumberRequests(document), isEmpty, reason: reason);
       expect(OcptWysiwygDualDialogue.requests(document), isEmpty, reason: reason);
       expect(OcptWysiwygCodec.reclassifyRequests(document), isEmpty, reason: reason);
+      expect(OcptWysiwygCodec.noteRequests(document), isEmpty, reason: reason);
       expect(OcptWysiwygCodec.noteAttributionRequests(document), isEmpty, reason: reason);
       expect(OcptWysiwygCodec.commentAttributionRequests(document), isEmpty, reason: reason);
       if (isUppercaseChecked) {
@@ -256,23 +258,21 @@ void main() {
       final decoded = OcptWysiwygCodec.decode('He runs [[note]] away.');
       final document = decoded.document;
       final node = document.getNodeAt(0)! as ParagraphNode;
-      node.text.addAttribution(boldAttribution, const SpanRange(3, 10));
+      node.text.addAttribution(boldAttribution, const SpanRange(3, 8));
 
       settle(document);
       final written = OcptWysiwygCodec.encode(document).text;
 
+      expect(written, 'He **runs **[[note]] away.');
       final reread = OcptWysiwygCodec.decode(written).document.getNodeAt(0)! as ParagraphNode;
-      expect(reread.text.toPlainText(), 'He runs [[note]] away.');
+      expect(reread.text.toPlainText(), 'He runs \uFFFC away.');
+      expect(reread.text.placeholders.keys, [8]);
+      expect((reread.text.placeholders[8]! as OcptFountainNote).text, 'note');
       expect(
         reread.text.getAttributionSpans({boldAttribution}).map((span) => (span.start, span.end)),
         [(3, 7)],
       );
-      expect(
-        reread.text
-            .getAttributionSpans({ocptFountainNoteAttribution})
-            .map((span) => (span.start, span.end)),
-        [(8, 15)],
-      );
+      expect(reread.text.getAttributionSpans({ocptFountainNoteAttribution}), isEmpty);
     });
 
     test('an escaped note is no note, and is not dimmed', () {

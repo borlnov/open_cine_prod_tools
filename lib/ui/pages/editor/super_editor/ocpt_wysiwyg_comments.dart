@@ -4,10 +4,12 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comment_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_document_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_note_offsets.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -43,7 +45,7 @@ final class OcptWysiwygComments {
         _attributionRequests(
           nodes[index],
           ocptFountainCommentAttribution,
-          layout.commentRangesByLine[lineIndexOfNode[index]],
+          nodeRangesOf(nodes[index], layout.commentRangesByLine[lineIndexOfNode[index]]),
         ),
       );
     }
@@ -69,20 +71,26 @@ final class OcptWysiwygComments {
     return requests;
   }
 
-  /// Get the (start, exclusive end) ranges of the notes [node]'s text holds: the `[[ ... ]]`
-  /// regions of its virtual text, an escaped `[[` leaving none.
+  /// Get the (start, exclusive end) ranges, in [node]'s text, of the notes it holds as text: the
+  /// `[[ ... ]]` regions of its virtual text, an escaped `[[` leaving none. A note held as a
+  /// placeholder is no such range: it has no text to dim.
   static List<(int, int)> noteRangesOf(ParagraphNode node) => [
-    for (final span in FountainCommentSpans.notes(virtualTextOf(node), honoursEscapes: false))
-      (span.start, span.end),
+    for (final (start, end) in nodeRangesOf(node, [
+      for (final span in FountainCommentSpans.notes(virtualTextOf(node), honoursEscapes: false))
+        (span.start, span.end),
+    ]))
+      if (!(end - start == 1 && node.text.placeholders[start] is OcptFountainNote)) (start, end),
   ];
 
-  /// Get the text of [node] the commented spans are looked for in: its plain text, the characters
-  /// that stand for an escaped bracket (see [ocptFountainEscapedAttribution]) made harmless.
+  /// Get the text of [node] the commented spans are looked for in, one line of Fountain source:
+  /// its plain text with every note it holds as a placeholder put back in its `[[text]]` form, and
+  /// the characters that stand for an escaped bracket (see [ocptFountainEscapedAttribution]) made
+  /// harmless.
   static String virtualTextOf(ParagraphNode node) {
     final plainText = node.text.toPlainText();
     final escaped = spansOf(node.text, ocptFountainEscapedAttribution);
     if (escaped.isEmpty) {
-      return plainText;
+      return plainLineOf(node, plainText);
     }
     final characters = plainText.split("");
     for (final (start, end) in escaped) {
@@ -90,8 +98,18 @@ final class OcptWysiwygComments {
         characters[index] = "(";
       }
     }
-    return characters.join();
+    return plainLineOf(node, characters.join());
   }
+
+  /// Get [nodeText], the plain text of [node] (or a copy of it), with every note [node] holds as a
+  /// placeholder written as its `[[text]]`: the line of Fountain source the node stands for.
+  static String plainLineOf(ParagraphNode node, String nodeText) =>
+      OcptWysiwygNoteOffsets.of(node.text).expand(nodeText);
+
+  /// Get [lineRanges], (start, exclusive end) ranges of [node]'s line (what the layout answers),
+  /// as ranges of [node]'s text, every note a range touches covered whole.
+  static List<(int, int)> nodeRangesOf(ParagraphNode node, List<(int, int)> lineRanges) =>
+      OcptWysiwygNoteOffsets.of(node.text).nodeRangesOf(lineRanges);
 
   /// Get the ids of the inert nodes of [document]: the body nodes whose whole text lies inside a
   /// boneyard or a note. Recomputed on every call, from the nodes' texts.
@@ -168,7 +186,10 @@ final class OcptWysiwygComments {
         }
       }
 
-      set(ocptFountainCommentAttribution, layout.commentRangesByLine[lineIndexOfNode[index]]);
+      set(
+        ocptFountainCommentAttribution,
+        nodeRangesOf(nodes[index], layout.commentRangesByLine[lineIndexOfNode[index]]),
+      );
       set(ocptFountainNoteAttribution, noteRangesOf(nodes[index]));
     }
   }

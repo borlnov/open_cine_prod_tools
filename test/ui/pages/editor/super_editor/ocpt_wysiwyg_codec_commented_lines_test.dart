@@ -4,6 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
@@ -211,9 +212,19 @@ void main() {
       final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document);
 
       expect(requests, hasLength(1));
+      final text = (requests.single as OcptReplaceNodeTextRequest).text;
+      expect(text.toPlainText(), 'INT. HOUSE - DAY \uFFFC');
+      expect((text.placeholders[17]! as OcptFountainNote).text, 'later');
+    });
+
+    test('the text of a note kept as text is left as written too', () {
+      final decoded = OcptWysiwygCodec.decode('int. house - day [[later /* x]]');
+
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document);
+
       expect(
         (requests.single as OcptReplaceNodeTextRequest).text.toPlainText(),
-        'INT. HOUSE - DAY [[later]]',
+        'INT. HOUSE - DAY [[later /* x]]',
       );
     });
 
@@ -223,7 +234,8 @@ void main() {
       expect(typeAt(decoded.document, 0), FountainLineType.sceneHeading);
       final request =
           OcptWysiwygCodec.uppercaseRequests(decoded.document).single as OcptReplaceNodeTextRequest;
-      expect(request.text.toPlainText(), '[[later]]INT. HOUSE - DAY');
+      expect(request.text.toPlainText(), '\uFFFCINT. HOUSE - DAY');
+      expect((request.text.placeholders[0]! as OcptFountainNote).text, 'later');
     });
 
     test('the comment of a live line is not uppercased', () {

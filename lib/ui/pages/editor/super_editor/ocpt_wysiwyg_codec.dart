@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_e
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_markers.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_notes.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_selection_clip.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart';
 import 'package:super_editor/super_editor.dart';
@@ -28,6 +29,8 @@ export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_i
         ocptFountainEscapedAttribution,
         ocptFountainNoteAttribution;
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
+export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_notes.dart'
+    show OcptWysiwygNoteEdit;
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart'
     show
         ocptTitlePageExtraEntriesMetadataKey,
@@ -105,9 +108,6 @@ class OcptWysiwygCodec {
 
   /// The writer used to turn a node's (display text, type, context) back into a raw source line.
   static const _lineWriter = FountainLineWriter();
-
-  /// The parser used to turn a node's display text into styled inline runs.
-  static const _inlineParser = FountainInlineParser();
 
   /// The serializer used to turn a node's styled inline runs back into marked-up display text.
   static const _inlineSerializer = FountainInlineSerializer();
@@ -518,7 +518,14 @@ class OcptWysiwygCodec {
     }
     // The nodes were clipped out of their surroundings: which of them are inert is what the whole
     // document says, not what the fragment alone would.
-    return encode(MutableDocument(nodes: adjustedNodes), inertNodeIds: inertNodeIds(document)).text;
+    // A node clipped down to its notes alone is a line of notes whatever the rest of its line was:
+    // it is written as one, with no forcing marker.
+    final inertIds = {
+      ...inertNodeIds(document),
+      for (final node in adjustedNodes.whereType<ParagraphNode>())
+        if (OcptWysiwygInlineRuns.holdsOnlyNotes(node.text)) node.id,
+    };
+    return encode(MutableDocument(nodes: adjustedNodes), inertNodeIds: inertIds).text;
   }
 
   /// Compute the requests needed to bring every unlocked, non-empty node's `blockType` metadata
@@ -696,18 +703,37 @@ class OcptWysiwygCodec {
       }
 
       final plainText = node.text.toPlainText();
-      final upperText = _uppercasedOutside(plainText, layout.commentRangesByLine[lineIndex]);
+      final upperText = OcptWysiwygInlineRuns.uppercasedOutside(
+        plainText,
+        OcptWysiwygComments.nodeRangesOf(node, layout.commentRangesByLine[lineIndex]),
+      );
       if (upperText == plainText) {
         continue;
       }
 
       requests.add(
-        OcptReplaceNodeTextRequest(nodeId: node.id, text: _uppercased(node.text, upperText)),
+        OcptReplaceNodeTextRequest(
+          nodeId: node.id,
+          text: OcptWysiwygInlineRuns.uppercased(node.text, upperText),
+        ),
       );
     }
 
     return requests;
   }
+
+  /// Compute the requests bringing the notes of every body node in line with the invariant of the
+  /// styled editor, the ones that satisfy it held as placeholders and the others as text (see
+  /// [OcptWysiwygNotes.requests]).
+  static List<EditRequest> noteRequests(
+    Document document, {
+    OcptWysiwygDocumentLayout? documentLayout,
+    Set<String> composingNodeIds = const {},
+  }) => OcptWysiwygNotes.requests(
+    document,
+    documentLayout: documentLayout,
+    composingNodeIds: composingNodeIds,
+  );
 
   /// Compute the requests bringing every node's note attribution in sync with its text (see
   /// [OcptWysiwygComments.noteAttributionRequests]).
@@ -783,7 +809,7 @@ class OcptWysiwygCodec {
       nodes.add(
         ParagraphNode(
           id: Editor.createNodeId(),
-          text: _parseInline(
+          text: OcptWysiwygInlineRuns.parseInline(
             displayText,
             _starsWithin(layout.boneyardStarsByLine[index], lines[index], displayText),
           ),
@@ -803,24 +829,9 @@ class OcptWysiwygCodec {
       pendingBlanks = 0;
     }
 
-    OcptWysiwygComments.attributeCommentedText(nodes);
-    return (nodes, blankLinesBeforeByNode, pendingBlanks);
-  }
-
-  /// Parse [text] into styled text: the emphasis markers become attributions, a note an atomic
-  /// run, and an escaped `[[` (which the parser reads as plain text) carries
-  /// [ocptFountainEscapedAttribution], so that nothing takes it for a note afterwards.
-  static AttributedText _parseInline(String text, Set<int> boneyardStars) {
-    final styled = OcptWysiwygInlineRuns.attributedTextFromRuns(
-      _inlineParser.parseRuns(text, literalStars: boneyardStars),
-    );
-    final notes = OcptWysiwygComments.spansOf(styled, ocptFountainNoteAttribution);
-    for (final span in FountainCommentSpans.notes(styled.toPlainText(), honoursEscapes: false)) {
-      if (!notes.contains((span.start, span.end))) {
-        styled.addAttribution(ocptFountainEscapedAttribution, SpanRange(span.start, span.start));
-      }
-    }
-    return styled;
+    final absorbedNodes = OcptWysiwygNotes.absorbedNodes(nodes);
+    OcptWysiwygComments.attributeCommentedText(absorbedNodes);
+    return (absorbedNodes, blankLinesBeforeByNode, pendingBlanks);
   }
 
   /// Get [displayText], the text [encode] writes for [node], as the parser's classifier reads it:
@@ -832,7 +843,7 @@ class OcptWysiwygCodec {
     String displayText,
     String classificationLine,
   ) {
-    final plainText = node.text.toPlainText();
+    final plainText = OcptWysiwygComments.plainLineOf(node, node.text.toPlainText());
     if (!displayText.startsWith(plainText) || classificationLine == plainText) {
       return null;
     }
@@ -866,26 +877,6 @@ class OcptWysiwygCodec {
       nextRawLine: null,
       sectionLevel: _readSectionLevel(node),
     );
-  }
-
-  /// Copy [text]'s attribution spans and placeholders onto [upperText] unchanged: uppercasing
-  /// never changes a string's length for this app's supported locales, so every span's (start, end)
-  /// offset still refers to the same run of characters.
-  static AttributedText _uppercased(AttributedText text, String upperText) =>
-      AttributedText(upperText, text.spans.copy(), text.placeholders);
-
-  /// Get [text] in capitals, the characters inside [commentedRanges] (start, exclusive end) left as
-  /// written.
-  static String _uppercasedOutside(String text, List<(int, int)> commentedRanges) {
-    final buffer = StringBuffer();
-    var cursor = 0;
-    for (final (start, end) in commentedRanges) {
-      buffer.write(text.substring(cursor, start).toUpperCase());
-      buffer.write(text.substring(start, end));
-      cursor = end;
-    }
-    buffer.write(text.substring(cursor).toUpperCase());
-    return buffer.toString();
   }
 
   /// Tell whether [type] is a dialogue-block element that keeps a dialogue group open (see

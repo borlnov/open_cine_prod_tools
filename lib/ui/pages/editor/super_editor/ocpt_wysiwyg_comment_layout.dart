@@ -40,12 +40,18 @@ final class OcptWysiwygCommentLayout {
   /// `*/` is no boneyard and has none.
   final List<List<int>> boneyardStarsByLine;
 
+  /// The notes of each line that open and close on that line and lie outside every boneyard, as
+  /// (start, exclusive end) ranges relative to the line, ascending: the notes the styled editor
+  /// holds as inline placeholders, a note running over several lines being left out.
+  final List<List<(int, int)>> singleLineNoteRangesByLine;
+
   /// Class constructor.
   const OcptWysiwygCommentLayout._({
     required this.isInertByLine,
     required this.classificationLines,
     required this.commentRangesByLine,
     required this.boneyardStarsByLine,
+    required this.singleLineNoteRangesByLine,
   });
 
   /// Get the layout of [lines], the one already computed when the lines are the same as the last
@@ -88,6 +94,7 @@ final class OcptWysiwygCommentLayout {
     final boneyardStarsByLine = <List<int>>[];
     final isInertByLine = <bool>[];
     final commentRangesByLine = <List<(int, int)>>[];
+    final singleLineNoteRangesByLine = <List<(int, int)>>[];
     var lineStart = 0;
     // The first span ending after the current line starts: the ones before it touch no later line.
     var firstSpan = 0;
@@ -97,8 +104,12 @@ final class OcptWysiwygCommentLayout {
         firstSpan++;
       }
       final ranges = <(int, int)>[];
+      final noteRanges = <(int, int)>[];
       for (var index = firstSpan; index < spans.length && spans[index].start < lineEnd; index++) {
         final span = spans[index];
+        if (!span.isBoneyard && span.start >= lineStart && span.end <= lineEnd) {
+          noteRanges.add((span.start - lineStart, span.end - lineStart));
+        }
         if (span.end > lineStart) {
           ranges.add((
             span.start > lineStart ? span.start - lineStart : 0,
@@ -115,6 +126,7 @@ final class OcptWysiwygCommentLayout {
       }
       boneyardStarsByLine.add(lineStars);
       commentRangesByLine.add(ranges);
+      singleLineNoteRangesByLine.add(noteRanges);
       isInertByLine.add(_isWhollyCovered(line, ranges));
       lineStart = lineEnd + 1;
     }
@@ -124,6 +136,7 @@ final class OcptWysiwygCommentLayout {
       classificationLines: classificationLines,
       commentRangesByLine: commentRangesByLine,
       boneyardStarsByLine: boneyardStarsByLine,
+      singleLineNoteRangesByLine: singleLineNoteRangesByLine,
     );
   }
 
