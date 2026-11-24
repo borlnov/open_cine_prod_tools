@@ -7,9 +7,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_cards_layout_delegate.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_connector_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_note_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_note_editing.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_card.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// Where the marker of a note sits in the notes margin, in the coordinates of the scrolled
@@ -183,17 +183,11 @@ class _NotesContent extends StatelessWidget {
                   LayoutId(
                     key: ValueKey(entries[index].note.id),
                     id: index,
-                    child: OcptNoteCard(
-                      text: entries[index].note.text,
+                    child: OcptStyledNoteCard(
+                      entry: entries[index],
+                      notes: notes,
+                      editing: editing,
                       isSelected: index == selectedIndex,
-                      onTap: () => notes.select(entries[index].note.id),
-                      onChanged: (text) => editing.changeText(entries[index].note.id, text),
-                      onRemoveRequested: () => editing.removeNoteById(entries[index].note.id),
-                      onLeaveRequested: () => editing.leave(entries[index].note.id),
-                      onUndoRequested: editing.undo,
-                      onRedoRequested: editing.redo,
-                      onFocusLost: () => editing.focusLost(entries[index].note.id),
-                      allowsBlankLines: entries[index].standsAlone,
                     ),
                   ),
               ],

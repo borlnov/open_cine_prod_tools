@@ -81,6 +81,7 @@ class OcptStyledFluidSurface extends StatelessWidget {
               availableWidth: constraints.maxWidth,
               contentWidth: minContentWidth,
             );
+            notes.reportMargin(isShown: hasMargin);
             return OcptStyledScaledToFit(
               constraints: constraints,
               pageWidth: minContentWidth,

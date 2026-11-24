@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_dual_dial
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_fluid_surface.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_note_editing.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_note_popover.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes_margin.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_simulation_surface.dart';
@@ -16,7 +17,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_zoom_wheel_phy
 
 /// The surface the styled editor's `SuperEditor` is laid out on: the fluid surface, or the
 /// simulated paper sheets while page simulation is on, both with the same scroll configuration
-/// around [editor].
+/// around [editor]. Where the margin column has no room for the cards of the notes, the selected
+/// note opens in a popover over the surface.
 ///
 /// Material's `ScrollBehavior` would otherwise wrap `SuperEditor`'s internal `Scrollable` in its
 /// own implicit `Scrollbar`, painted at the edge of whichever box happens to contain it — i.e. on
@@ -121,7 +123,7 @@ class OcptStyledEditorSurface extends StatelessWidget {
       scrollController: scrollController,
     );
 
-    return isPageSimulationEnabled
+    final surface = isPageSimulationEnabled
         ? OcptStyledPageSimulationSurface(
             theme: theme,
             layout: layout,
@@ -147,5 +149,12 @@ class OcptStyledEditorSurface extends StatelessWidget {
             notesMargin: notesMargin,
             isCompact: isCompact,
           );
+
+    return OcptStyledNotePopover(
+      notes: notes,
+      editing: noteEditing,
+      scrollController: scrollController,
+      child: surface,
+    );
   }
 }

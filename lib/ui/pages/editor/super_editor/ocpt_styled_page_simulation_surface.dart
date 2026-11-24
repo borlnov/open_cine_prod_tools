@@ -120,6 +120,7 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
             // would wrap its text a couple of columns earlier than the raw preview typesets the
             // very same line.
             const inset = OcptFountainEditorStylesheet.horizontalDocumentPaddingInset;
+            notes.reportMargin(isShown: hasMargin);
             return OcptStyledScaledToFit(
               constraints: constraints,
               pageWidth: layout.pageWidth + (hasMargin ? OcptStyledNotesMargin.reservedWidth : 0),

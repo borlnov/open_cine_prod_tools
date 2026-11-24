@@ -4,11 +4,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_matches.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_highlight_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_text_input_formatter.dart';
 
 /// The multiline field in which the text of the selected note is edited, in its card.
 ///
-/// It takes the focus when it appears, and grows with its text. Every change is reported as soon
+/// It takes the focus when it appears (unless [takesFocus] says it must not), and grows with its text. Every change is reported as soon
 /// as it is made, written the way the Fountain source holds it (a line left empty is two spaces),
 /// and the field follows [text] when it changes from elsewhere. It asks for what its keys mean
 /// instead of doing it: Enter and Escape give the focus back to the text, Shift+Enter breaks the
@@ -42,6 +44,12 @@ class OcptNoteCardField extends StatefulWidget {
   /// Whether the note may hold a blank line: see [OcptNoteTextInputFormatter.normalised].
   final bool allowsBlankLines;
 
+  /// The matches of the find/replace query inside the text, painted over it, or null for none.
+  final OcptNoteMatches? matches;
+
+  /// Whether the field takes the focus when it appears.
+  final bool takesFocus;
+
   /// Class constructor.
   const OcptNoteCardField({
     super.key,
@@ -54,6 +62,8 @@ class OcptNoteCardField extends StatefulWidget {
     required this.onRedoRequested,
     required this.onFocusLost,
     this.allowsBlankLines = true,
+    this.matches,
+    this.takesFocus = true,
   });
 
   /// Create the [_OcptNoteCardFieldState] holding the controller and the focus of the field.
@@ -64,12 +74,12 @@ class OcptNoteCardField extends StatefulWidget {
 /// The state of [OcptNoteCardField]: the text controller, the focus, and the keys of the field.
 class _OcptNoteCardFieldState extends State<OcptNoteCardField> {
   /// Holds the text being edited, the caret starting at its end.
-  late final TextEditingController _controller = TextEditingController.fromValue(
-    TextEditingValue(
+  late final OcptNoteHighlightController _controller = OcptNoteHighlightController(
+    value: TextEditingValue(
       text: widget.text,
       selection: TextSelection.collapsed(offset: widget.text.length),
     ),
-  );
+  )..matches = widget.matches;
 
   /// The focus of the field.
   final FocusNode _focusNode = FocusNode();
@@ -82,11 +92,13 @@ class _OcptNoteCardFieldState extends State<OcptNoteCardField> {
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _focusNode.requestFocus();
-      }
-    });
+    if (widget.takesFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
+      });
+    }
   }
 
   /// Show [OcptNoteCardField.text] again when it is no longer what the field holds, which is the
@@ -94,6 +106,7 @@ class _OcptNoteCardFieldState extends State<OcptNoteCardField> {
   @override
   void didUpdateWidget(covariant OcptNoteCardField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _controller.matches = widget.matches;
     if (widget.text != _normalised(_controller.text)) {
       _controller.value = TextEditingValue(
         text: widget.text,

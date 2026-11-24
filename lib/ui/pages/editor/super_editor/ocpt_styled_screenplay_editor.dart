@@ -564,7 +564,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
         usePaperColors: widget.usesPaperColorsWhileFluid,
         zoom: widget.zoom,
         noteMarkerLabel: Tr.of(context).editorNoteMarkerLabel,
-        selectedNoteId: _notes.selectedId,
+        notes: _notes,
       ),
     );
 

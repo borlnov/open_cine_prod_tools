@@ -4,7 +4,9 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_matches.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_tap_delegate.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:super_editor/super_editor.dart';
@@ -58,8 +60,30 @@ final class OcptStyledNotes {
   /// The notes of the document, in document order.
   final ValueNotifier<List<OcptNoteEntry>> entries = ValueNotifier(const []);
 
+  /// Whether the margin column of cards is shown beside the page, which is what makes a selected
+  /// note open in the column rather than in a popover under its marker.
+  final ValueNotifier<bool> hasMargin = ValueNotifier(false);
+
+  /// The matches of the find/replace query inside the notes, by note identifier. A note holding
+  /// none has no entry.
+  final ValueNotifier<Map<String, OcptNoteMatches>> matches = ValueNotifier(const {});
+
+  /// The key of the marker of the selected note, which the popover under it is placed against.
+  final GlobalKey selectedMarkerKey = GlobalKey(debugLabel: "selectedNoteMarker");
+
   /// Resolves the document the notes are read from, which the editor replaces on a rebuild.
   final Document Function() _documentOf;
+
+  /// Whether the selected note was selected by the search, which must not take the focus from the
+  /// find field.
+  bool _isSelectionQuiet = false;
+
+  /// Whether the notifiers are released.
+  bool _isDisposed = false;
+
+  /// Tell whether the field of a card taking the selection takes the focus too, which it does
+  /// unless the search selected the note.
+  bool get takesFocusOnSelect => !_isSelectionQuiet;
 
   /// Get the tap delegate factories to hand to `SuperEditor`: the one selecting a note on a tap
   /// on its marker, and the one launching a link.
@@ -106,16 +130,53 @@ final class OcptStyledNotes {
     return null;
   }
 
-  /// Select the note with the identifier [id].
-  // ignore: use_setters_to_change_properties
-  void select(String id) => selectedId.value = id;
+  /// Select the note with the identifier [id]. Its card takes the focus, unless [takesFocus] is
+  /// false, as for a note the search navigates to while the writer types in the find field.
+  void select(String id, {bool takesFocus = true}) {
+    _isSelectionQuiet = !takesFocus;
+    selectedId.value = id;
+  }
 
   /// Select no note at all.
-  void clearSelection() => selectedId.value = null;
+  void clearSelection() {
+    _isSelectionQuiet = false;
+    selectedId.value = null;
+  }
+
+  /// Select no note, when the one selected is so only because the search navigated to it.
+  void clearQuietSelection() {
+    if (_isSelectionQuiet) {
+      clearSelection();
+    }
+  }
+
+  /// Tell whether the margin column is [isShown] now, which takes effect once the frame is built:
+  /// it is told from a build.
+  void reportMargin({required bool isShown}) {
+    if (hasMargin.value == isShown) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_isDisposed) {
+        hasMargin.value = isShown;
+      }
+    });
+  }
+
+  /// Set the matches of the find/replace query inside the notes.
+  void setMatches(Map<String, OcptNoteMatches> value) {
+    if (!mapEquals(matches.value, value)) {
+      matches.value = value;
+    }
+  }
 
   /// Release the notifiers.
   void dispose() {
+    _isDisposed = true;
     selectedId.dispose();
     entries.dispose();
+    hasMargin.dispose();
+    matches.dispose();
   }
 }

@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_matches.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
 /// The small speech bubble standing in a line of the styled editor for a note
@@ -12,7 +14,9 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 /// The page is white in every theme, so its colours are fixed like the rest of the paper styling:
 /// the app's accent on a light tint of itself. Its size follows the text it sits in, 18 by 16
 /// logical pixels at the base font size and as much more as the editor is zoomed. While its note is
-/// the selected one, it is drawn solid: the accent filled, with a white icon.
+/// the selected one, it is drawn solid: the accent filled, with a white icon. While the find/replace
+/// query matches inside its note, it is drawn over the match highlight colours, stronger for the
+/// current match.
 class OcptFountainNoteMarker extends StatelessWidget {
   /// The accent colour of the app, the one of the marker's icon.
   static const Color accentColor = Color(0xFF6C5CE7);
@@ -41,9 +45,9 @@ class OcptFountainNoteMarker extends StatelessWidget {
   /// The identifier of the note the marker stands for, which tells whether it is the selected one.
   final String? noteId;
 
-  /// The identifier of the selected note, which the marker follows, or null for a marker that is
-  /// never selected.
-  final ValueListenable<String?>? selectedNoteId;
+  /// The notes the marker follows the selection and the search matches of, or null for a marker
+  /// that is never selected and never hints at a match.
+  final OcptStyledNotes? notes;
 
   /// Class constructor.
   const OcptFountainNoteMarker({
@@ -51,30 +55,38 @@ class OcptFountainNoteMarker extends StatelessWidget {
     required this.fontSize,
     this.semanticLabel = "",
     this.noteId,
-    this.selectedNoteId,
+    this.notes,
   });
 
-  /// Build the marker, following the selection when there is one to follow.
+  /// Build the marker, following the selection and the matches when there are some to follow.
   @override
   Widget build(BuildContext context) {
-    final selection = selectedNoteId;
-    if (selection == null) {
+    final notes = this.notes;
+    if (notes == null) {
       return _NoteBubble(fontSize: fontSize, semanticLabel: semanticLabel, isSelected: false);
     }
 
-    return ValueListenableBuilder<String?>(
-      valueListenable: selection,
-      builder: (context, selected, child) => _NoteBubble(
-        fontSize: fontSize,
-        semanticLabel: semanticLabel,
-        isSelected: noteId != null && selected == noteId,
-      ),
+    return ListenableBuilder(
+      listenable: Listenable.merge([notes.selectedId, notes.matches]),
+      builder: (context, child) {
+        final isSelected = noteId != null && notes.selectedId.value == noteId;
+        final bubble = _NoteBubble(
+          fontSize: fontSize,
+          semanticLabel: semanticLabel,
+          isSelected: isSelected,
+          matches: notes.matches.value[noteId],
+        );
+        return isSelected ? KeyedSubtree(key: notes.selectedMarkerKey, child: bubble) : bubble;
+      },
     );
   }
 }
 
 /// The drawing of [OcptFountainNoteMarker]: the bubble, tinted, or solid when [isSelected].
 class _NoteBubble extends StatelessWidget {
+  /// The width of the outline of a bubble holding a match, at the base font size.
+  static const double _matchBorderWidth = 1.5;
+
   /// The font size of the text the bubble sits in, which it is scaled by.
   final double fontSize;
 
@@ -84,11 +96,15 @@ class _NoteBubble extends StatelessWidget {
   /// Whether the bubble is drawn solid.
   final bool isSelected;
 
+  /// The matches of the search inside the note of the bubble, or null when it holds none.
+  final OcptNoteMatches? matches;
+
   /// Class constructor.
   const _NoteBubble({
     required this.fontSize,
     required this.semanticLabel,
     required this.isSelected,
+    this.matches,
   });
 
   /// Build the bubble.
@@ -98,6 +114,10 @@ class _NoteBubble extends StatelessWidget {
     const baseWidth = OcptFountainNoteMarker.baseWidth;
     const baseHeight = OcptFountainNoteMarker.baseHeight;
     const accentColor = OcptFountainNoteMarker.accentColor;
+    final matches = this.matches;
+    final base = isSelected
+        ? accentColor
+        : accentColor.withValues(alpha: OcptFountainNoteMarker.tintOpacity);
 
     return Semantics(
       label: semanticLabel.isEmpty ? null : semanticLabel,
@@ -106,9 +126,22 @@ class _NoteBubble extends StatelessWidget {
           width: baseWidth * scale,
           height: baseHeight * scale,
           decoration: BoxDecoration(
-            color: isSelected
-                ? accentColor
-                : accentColor.withValues(alpha: OcptFountainNoteMarker.tintOpacity),
+            color: matches == null
+                ? base
+                : Color.alphaBlend(
+                    matches.hasCurrent
+                        ? ocptEditorSearchCurrentMatchColor
+                        : ocptEditorSearchMatchColor,
+                    base,
+                  ),
+            border: matches == null
+                ? null
+                : Border.all(
+                    color: matches.hasCurrent
+                        ? ocptEditorSearchCurrentMatchColor
+                        : ocptEditorSearchMatchColor,
+                    width: _matchBorderWidth * scale,
+                  ),
             borderRadius: BorderRadius.circular(OcptFountainNoteMarker.baseRadius * scale),
           ),
           alignment: Alignment.center,

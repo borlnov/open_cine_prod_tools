@@ -4,7 +4,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_matches.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_card_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_highlight_spans.dart';
 
 /// The card showing the text of one note in the margin of the styled editor: a header naming it
 /// and the text of the note below, with its line breaks.
@@ -59,6 +61,13 @@ class OcptNoteCard extends StatelessWidget {
   /// Whether the note may hold a blank line: see [OcptNoteCardField.allowsBlankLines].
   final bool allowsBlankLines;
 
+  /// The matches of the find/replace query inside the text, painted over it, or null for none.
+  final OcptNoteMatches? matches;
+
+  /// Whether the field takes the focus when it appears, which it does unless the search selected
+  /// the note.
+  final bool takesFocus;
+
   /// Class constructor.
   const OcptNoteCard({
     super.key,
@@ -72,6 +81,8 @@ class OcptNoteCard extends StatelessWidget {
     this.onRedoRequested,
     this.onFocusLost,
     this.allowsBlankLines = true,
+    this.matches,
+    this.takesFocus = true,
   });
 
   /// Build the card.
@@ -129,9 +140,11 @@ class OcptNoteCard extends StatelessWidget {
                   onRedoRequested: onRedoRequested ?? () {},
                   onFocusLost: onFocusLost ?? () {},
                   allowsBlankLines: allowsBlankLines,
+                  matches: matches,
+                  takesFocus: takesFocus,
                 )
               else
-                Text(text, style: textStyle),
+                Text.rich(OcptNoteHighlightSpans.build(text, textStyle, matches)),
               if (isSelected && onRemoveRequested != null)
                 Align(
                   alignment: AlignmentDirectional.centerEnd,
