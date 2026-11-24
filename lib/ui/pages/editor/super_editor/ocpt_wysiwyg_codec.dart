@@ -277,10 +277,11 @@ class OcptWysiwygCodec {
     Set<String>? inertNodeIds,
   }) {
     final nodes = document.map((node) => node as ParagraphNode).toList(growable: false);
-    final (layout, lineIndexOfNode) = OcptWysiwygComments.layoutOfNodes(nodes);
+    final (layout, lineRangeOfNode) = OcptWysiwygComments.layoutOfNodes(nodes);
     final isInertByNode = [
       for (var index = 0; index < nodes.length; index++)
-        inertNodeIds?.contains(nodes[index].id) ?? layout.isInertByLine[lineIndexOfNode[index]],
+        inertNodeIds?.contains(nodes[index].id) ??
+            layout.isInertOfNode(lineRangeOfNode[index].$1, lineRangeOfNode[index].$2),
     ];
 
     final types = [
@@ -294,7 +295,7 @@ class OcptWysiwygCodec {
             : _displayTextForEncode(
                 nodes[index],
                 types[index],
-                layout.boneyardStarsByLine[lineIndexOfNode[index]],
+                layout.boneyardStarsOfNode(lineRangeOfNode[index].$1, lineRangeOfNode[index].$2),
               ),
     ];
     final blankLinesBeforeByNode = [
@@ -317,7 +318,7 @@ class OcptWysiwygCodec {
     // What the parser's classifier reads of a node's line: the layout's blanked-out line for an
     // inert node, the text about to be written for a live one.
     String textSeenBy(int index) => isInertByNode[index]
-        ? layout.classificationLines[lineIndexOfNode[index]]
+        ? layout.classificationLines[lineRangeOfNode[index].$1]
         : displayTextByNode[index];
     String? nextTextSeenAfter(int index) {
       if (index + 1 >= nodes.length) {
@@ -359,7 +360,10 @@ class OcptWysiwygCodec {
       // An inert node is written as it is: no marker, no escaping, no reclassification.
       if (isInertByNode[index]) {
         outputLines.add(
-          _inertLineOf(nodes[index], layout.boneyardStarsByLine[lineIndexOfNode[index]]),
+          _inertLineOf(
+            nodes[index],
+            layout.boneyardStarsOfNode(lineRangeOfNode[index].$1, lineRangeOfNode[index].$2),
+          ),
         );
         continue;
       }
@@ -385,7 +389,7 @@ class OcptWysiwygCodec {
       final classifiedText = _classifiedTextOf(
         nodes[index],
         displayText,
-        layout.classificationLines[lineIndexOfNode[index]],
+        layout.classificationLines[lineRangeOfNode[index].$1],
       );
 
       // A page break and a centered text have no plain form, so the writer always wraps them. A
@@ -563,7 +567,7 @@ class OcptWysiwygCodec {
     // just skipped when generating a request for them): their text has no place in the body's own
     // classification context (a real body node's auto-detection must never depend on what a title
     // field happens to hold).
-    final (nodes, layout, lineIndexOfNode) = OcptWysiwygComments.resolve(document, documentLayout);
+    final (nodes, layout, lineRangeOfNode) = OcptWysiwygComments.resolve(document, documentLayout);
     final types = [
       for (final node in nodes)
         OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")),
@@ -575,14 +579,14 @@ class OcptWysiwygCodec {
     // after a boneyard is read the same here and there.
     final virtualLines = List<String>.of(layout.classificationLines);
     for (var index = 0; index < nodes.length; index++) {
-      final lineIndex = lineIndexOfNode[index];
-      if (layout.isInertByLine[lineIndex]) {
+      final (start, count) = lineRangeOfNode[index];
+      if (layout.isInertOfNode(start, count)) {
         continue;
       }
-      virtualLines[lineIndex] = _virtualLineForNode(
+      virtualLines[start] = _virtualLineForNode(
         nodes[index],
         types[index],
-        layout.classificationLines[lineIndex],
+        layout.classificationLines[start],
       );
     }
     final classifiedTypes = _classifier.classify(virtualLines);
@@ -591,7 +595,8 @@ class OcptWysiwygCodec {
     for (var index = 0; index < nodes.length; index++) {
       final node = nodes[index];
 
-      if (node.text.toPlainText().trim().isEmpty || layout.isInertByLine[lineIndexOfNode[index]]) {
+      final (start, count) = lineRangeOfNode[index];
+      if (node.text.toPlainText().trim().isEmpty || layout.isInertOfNode(start, count)) {
         continue;
       }
 
@@ -600,7 +605,7 @@ class OcptWysiwygCodec {
       }
 
       final expectedAttribution = OcptFountainLineAttributions.attributionOf(
-        classifiedTypes[lineIndexOfNode[index]],
+        classifiedTypes[layout.firstClassifiedLineOfNode(start, count)],
       );
       final currentBlockType = node.getMetadataValue("blockType");
       if (currentBlockType is NamedAttribution &&
@@ -683,12 +688,12 @@ class OcptWysiwygCodec {
     Set<String> composingNodeIds = const {},
   }) {
     final requests = <EditRequest>[];
-    final (nodes, layout, lineIndexOfNode) = OcptWysiwygComments.resolve(document, documentLayout);
+    final (nodes, layout, lineRangeOfNode) = OcptWysiwygComments.resolve(document, documentLayout);
 
     for (var index = 0; index < nodes.length; index++) {
       final node = nodes[index];
-      final lineIndex = lineIndexOfNode[index];
-      if (layout.isInertByLine[lineIndex] || composingNodeIds.contains(node.id)) {
+      final (start, count) = lineRangeOfNode[index];
+      if (layout.isInertOfNode(start, count) || composingNodeIds.contains(node.id)) {
         continue;
       }
 
@@ -705,7 +710,7 @@ class OcptWysiwygCodec {
       final plainText = node.text.toPlainText();
       final upperText = OcptWysiwygInlineRuns.uppercasedOutside(
         plainText,
-        OcptWysiwygComments.nodeRangesOf(node, layout.commentRangesByLine[lineIndex]),
+        OcptWysiwygComments.nodeRangesOf(node, layout.commentRangesOfNode(start, count)),
       );
       if (upperText == plainText) {
         continue;

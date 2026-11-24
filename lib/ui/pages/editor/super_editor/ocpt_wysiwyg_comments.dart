@@ -38,14 +38,15 @@ final class OcptWysiwygComments {
     OcptWysiwygDocumentLayout? documentLayout,
   }) {
     final requests = <EditRequest>[];
-    final (nodes, layout, lineIndexOfNode) = resolve(document, documentLayout);
+    final (nodes, layout, lineRangeOfNode) = resolve(document, documentLayout);
 
     for (var index = 0; index < nodes.length; index++) {
+      final (start, count) = lineRangeOfNode[index];
       requests.addAll(
         _attributionRequests(
           nodes[index],
           ocptFountainCommentAttribution,
-          nodeRangesOf(nodes[index], layout.commentRangesByLine[lineIndexOfNode[index]]),
+          nodeRangesOf(nodes[index], layout.commentRangesOfNode(start, count)),
         ),
       );
     }
@@ -114,10 +115,11 @@ final class OcptWysiwygComments {
   /// Get the ids of the inert nodes of [document]: the body nodes whose whole text lies inside a
   /// boneyard or a note. Recomputed on every call, from the nodes' texts.
   static Set<String> inertNodeIds(Document document, {OcptWysiwygDocumentLayout? documentLayout}) {
-    final (nodes, layout, lineIndexOfNode) = resolve(document, documentLayout);
+    final (nodes, layout, lineRangeOfNode) = resolve(document, documentLayout);
     return {
       for (var index = 0; index < nodes.length; index++)
-        if (layout.isInertByLine[lineIndexOfNode[index]]) nodes[index].id,
+        if (layout.isInertOfNode(lineRangeOfNode[index].$1, lineRangeOfNode[index].$2))
+          nodes[index].id,
     };
   }
 
@@ -125,38 +127,39 @@ final class OcptWysiwygComments {
   /// [OcptWysiwygDocumentLayout]).
   static OcptWysiwygDocumentLayout layoutOf(Document document) {
     final nodes = bodyNodes(document);
-    final (layout, lineIndexOfNode) = layoutOfNodes(nodes);
+    final (layout, lineRangeOfNode) = layoutOfNodes(nodes);
     return OcptWysiwygDocumentLayout(
       nodes: nodes,
       comments: layout,
-      lineIndexOfNode: lineIndexOfNode,
+      lineRangeOfNode: lineRangeOfNode,
     );
   }
 
   /// Lay out [nodes] (body nodes only) as lines of plain text, the blank runs folded into their
   /// metadata put back, and compute where the commented spans fall; the second part tells, for
-  /// each node, its index in the layout's lines.
-  static (OcptWysiwygCommentLayout, List<int>) layoutOfNodes(List<ParagraphNode> nodes) {
+  /// each node, the index of its first line in the layout's lines and the number of lines it
+  /// covers.
+  static (OcptWysiwygCommentLayout, List<(int, int)>) layoutOfNodes(List<ParagraphNode> nodes) {
     layoutCount++;
     final lines = <String>[];
-    final lineIndexOfNode = List<int>.filled(nodes.length, 0);
+    final lineRangeOfNode = <(int, int)>[];
     for (var index = 0; index < nodes.length; index++) {
       for (var blank = 0; blank < blankLinesBeforeOf(nodes[index]); blank++) {
         lines.add("");
       }
-      lineIndexOfNode[index] = lines.length;
+      lineRangeOfNode.add((lines.length, 1));
       lines.add(virtualTextOf(nodes[index]));
     }
-    return (OcptWysiwygCommentLayout.of(lines, honoursEscapes: false), lineIndexOfNode);
+    return (OcptWysiwygCommentLayout.of(lines, honoursEscapes: false), lineRangeOfNode);
   }
 
   /// Get the body nodes of [document] with their layout: [given] when set, else computed.
-  static (List<ParagraphNode>, OcptWysiwygCommentLayout, List<int>) resolve(
+  static (List<ParagraphNode>, OcptWysiwygCommentLayout, List<(int, int)>) resolve(
     Document document,
     OcptWysiwygDocumentLayout? given,
   ) {
     final resolved = given ?? layoutOf(document);
-    return (resolved.nodes, resolved.comments, resolved.lineIndexOfNode);
+    return (resolved.nodes, resolved.comments, resolved.lineRangeOfNode);
   }
 
   /// Get the body paragraphs of [document], the title-page fields left out.
@@ -169,8 +172,9 @@ final class OcptWysiwygComments {
   /// would put, so a decoded document is already settled: the editor's first history snapshot
   /// carries them, and no pass has anything to add on a document nobody edited.
   static void attributeCommentedText(List<ParagraphNode> nodes) {
-    final (layout, lineIndexOfNode) = layoutOfNodes(nodes);
+    final (layout, lineRangeOfNode) = layoutOfNodes(nodes);
     for (var index = 0; index < nodes.length; index++) {
+      final (start, count) = lineRangeOfNode[index];
       final text = nodes[index].text;
       final length = text.length;
       void set(NamedAttribution attribution, List<(int, int)> desired) {
@@ -188,7 +192,7 @@ final class OcptWysiwygComments {
 
       set(
         ocptFountainCommentAttribution,
-        nodeRangesOf(nodes[index], layout.commentRangesByLine[lineIndexOfNode[index]]),
+        nodeRangesOf(nodes[index], layout.commentRangesOfNode(start, count)),
       );
       set(ocptFountainNoteAttribution, noteRangesOf(nodes[index]));
     }

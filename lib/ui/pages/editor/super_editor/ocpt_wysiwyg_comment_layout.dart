@@ -40,10 +40,26 @@ final class OcptWysiwygCommentLayout {
   /// `*/` is no boneyard and has none.
   final List<List<int>> boneyardStarsByLine;
 
-  /// The notes of each line that open and close on that line and lie outside every boneyard, as
-  /// (start, exclusive end) ranges relative to the line, ascending: the notes the styled editor
-  /// holds as inline placeholders, a note running over several lines being left out.
-  final List<List<(int, int)>> singleLineNoteRangesByLine;
+  /// The offset, in the joined text of the lines, where each line starts.
+  final List<int> lineStarts;
+
+  /// The offset, in the joined text of the lines, where each line ends (its newline excluded).
+  final List<int> lineEnds;
+
+  /// The commented spans of the joined text of the lines, as `FountainCommentSpans.of` reads them
+  /// (offsets in that text), ascending and apart.
+  final List<FountainCommentSpan> spans;
+
+  /// Whether each line has a character that is not whitespace.
+  final List<bool> hasTextByLine;
+
+  /// Whether each line has a character that is not whitespace and lies outside every commented
+  /// span.
+  final List<bool> hasUncoveredTextByLine;
+
+  /// The index, in [spans], of the first span ending after each line starts: the spans before it
+  /// touch neither that line nor a later one.
+  final List<int> _firstSpanByLine;
 
   /// Class constructor.
   const OcptWysiwygCommentLayout._({
@@ -51,8 +67,13 @@ final class OcptWysiwygCommentLayout {
     required this.classificationLines,
     required this.commentRangesByLine,
     required this.boneyardStarsByLine,
-    required this.singleLineNoteRangesByLine,
-  });
+    required this.lineStarts,
+    required this.lineEnds,
+    required this.spans,
+    required this.hasTextByLine,
+    required this.hasUncoveredTextByLine,
+    required List<int> firstSpanByLine,
+  }) : _firstSpanByLine = firstSpanByLine;
 
   /// Get the layout of [lines], the one already computed when the lines are the same as the last
   /// call's.
@@ -94,7 +115,11 @@ final class OcptWysiwygCommentLayout {
     final boneyardStarsByLine = <List<int>>[];
     final isInertByLine = <bool>[];
     final commentRangesByLine = <List<(int, int)>>[];
-    final singleLineNoteRangesByLine = <List<(int, int)>>[];
+    final lineStarts = <int>[];
+    final lineEnds = <int>[];
+    final hasTextByLine = <bool>[];
+    final hasUncoveredTextByLine = <bool>[];
+    final firstSpanByLine = <int>[];
     var lineStart = 0;
     // The first span ending after the current line starts: the ones before it touch no later line.
     var firstSpan = 0;
@@ -103,13 +128,10 @@ final class OcptWysiwygCommentLayout {
       while (firstSpan < spans.length && spans[firstSpan].end <= lineStart) {
         firstSpan++;
       }
+      firstSpanByLine.add(firstSpan);
       final ranges = <(int, int)>[];
-      final noteRanges = <(int, int)>[];
       for (var index = firstSpan; index < spans.length && spans[index].start < lineEnd; index++) {
         final span = spans[index];
-        if (!span.isBoneyard && span.start >= lineStart && span.end <= lineEnd) {
-          noteRanges.add((span.start - lineStart, span.end - lineStart));
-        }
         if (span.end > lineStart) {
           ranges.add((
             span.start > lineStart ? span.start - lineStart : 0,
@@ -126,8 +148,12 @@ final class OcptWysiwygCommentLayout {
       }
       boneyardStarsByLine.add(lineStars);
       commentRangesByLine.add(ranges);
-      singleLineNoteRangesByLine.add(noteRanges);
-      isInertByLine.add(_isWhollyCovered(line, ranges));
+      final (hasText, hasUncoveredText) = _coverageOf(line, ranges);
+      hasTextByLine.add(hasText);
+      hasUncoveredTextByLine.add(hasUncoveredText);
+      isInertByLine.add(hasText && !hasUncoveredText);
+      lineStarts.add(lineStart);
+      lineEnds.add(lineEnd);
       lineStart = lineEnd + 1;
     }
 
@@ -136,8 +162,96 @@ final class OcptWysiwygCommentLayout {
       classificationLines: classificationLines,
       commentRangesByLine: commentRangesByLine,
       boneyardStarsByLine: boneyardStarsByLine,
-      singleLineNoteRangesByLine: singleLineNoteRangesByLine,
+      lineStarts: lineStarts,
+      lineEnds: lineEnds,
+      spans: spans,
+      hasTextByLine: hasTextByLine,
+      hasUncoveredTextByLine: hasUncoveredTextByLine,
+      firstSpanByLine: firstSpanByLine,
     );
+  }
+
+  /// Tell whether the [count] lines from line [start] are inert as one node: none of them has text
+  /// outside a commented span, and at least one has text. A line of whitespace in the middle does
+  /// not stop it, which a line of its own would not be inert for.
+  bool isInertOfNode(int start, int count) {
+    var hasText = false;
+    for (var line = start; line < start + count; line++) {
+      if (hasUncoveredTextByLine[line]) {
+        return false;
+      }
+      hasText = hasText || hasTextByLine[line];
+    }
+    return hasText;
+  }
+
+  /// Get the lines the parser's classifier reads of the [count] lines from line [start].
+  List<String> classificationLinesOfNode(int start, int count) =>
+      classificationLines.sublist(start, start + count);
+
+  /// Get the index of the first of the [count] lines from line [start] whose classification line
+  /// is not blank, or [start] when all of them are.
+  int firstClassifiedLineOfNode(int start, int count) {
+    for (var line = start; line < start + count; line++) {
+      if (classificationLines[line].trim().isNotEmpty) {
+        return line;
+      }
+    }
+    return start;
+  }
+
+  /// Get the commented ranges (start, exclusive end) of the [count] lines from line [start],
+  /// relative to the text of those lines joined by newlines, ascending.
+  List<(int, int)> commentRangesOfNode(int start, int count) {
+    if (count == 1) {
+      return commentRangesByLine[start];
+    }
+    final nodeStart = lineStarts[start];
+    final nodeEnd = lineEnds[start + count - 1];
+    return [
+      for (final span in _spansFrom(start, nodeEnd))
+        if (span.end > nodeStart)
+          (
+            span.start > nodeStart ? span.start - nodeStart : 0,
+            span.end < nodeEnd ? span.end - nodeStart : nodeEnd - nodeStart,
+          ),
+    ];
+  }
+
+  /// Get the offsets of the `*` of the boneyard delimiters of the [count] lines from line
+  /// [start], relative to the text of those lines joined by newlines, ascending.
+  List<int> boneyardStarsOfNode(int start, int count) {
+    if (count == 1) {
+      return boneyardStarsByLine[start];
+    }
+    return [
+      for (var line = start; line < start + count; line++)
+        for (final star in boneyardStarsByLine[line]) star + lineStarts[line] - lineStarts[start],
+    ];
+  }
+
+  /// Get the notes, as (start, exclusive end) ranges, that open and close within the [count] lines
+  /// from line [start] and lie outside every boneyard, relative to the text of those lines joined
+  /// by newlines, ascending: the notes the styled editor holds as inline placeholders. A note
+  /// running past those lines is left out.
+  List<(int, int)> noteRangesOfNode(int start, int count) {
+    final nodeStart = lineStarts[start];
+    final nodeEnd = lineEnds[start + count - 1];
+    return [
+      for (final span in _spansFrom(start, nodeEnd))
+        if (!span.isBoneyard && span.start >= nodeStart && span.end <= nodeEnd)
+          (span.start - nodeStart, span.end - nodeStart),
+    ];
+  }
+
+  /// Get the spans that start before [end], from the first one reaching line [line].
+  Iterable<FountainCommentSpan> _spansFrom(int line, int end) sync* {
+    for (var index = _firstSpanByLine[line]; index < spans.length; index++) {
+      if (spans[index].start >= end) {
+        return;
+      }
+      yield spans[index];
+    }
   }
 
   /// Tell whether [a] and [b] hold the same lines.
@@ -153,9 +267,9 @@ final class OcptWysiwygCommentLayout {
     return true;
   }
 
-  /// Tell whether [line] has text and every one of its non-whitespace characters lies inside one of
-  /// [ranges].
-  static bool _isWhollyCovered(String line, List<(int, int)> ranges) {
+  /// Tell, of [line], whether it has a character that is not whitespace and whether one of them
+  /// lies outside every one of [ranges].
+  static (bool, bool) _coverageOf(String line, List<(int, int)> ranges) {
     var hasText = false;
     var rangeIndex = 0;
     for (var index = 0; index < line.length; index++) {
@@ -167,9 +281,9 @@ final class OcptWysiwygCommentLayout {
         rangeIndex++;
       }
       if (rangeIndex >= ranges.length || ranges[rangeIndex].$1 > index) {
-        return false;
+        return (true, true);
       }
     }
-    return hasText;
+    return (hasText, false);
   }
 }

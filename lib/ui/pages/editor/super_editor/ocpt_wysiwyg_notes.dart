@@ -49,13 +49,13 @@ final class OcptWysiwygNotes {
     Set<String> composingNodeIds = const {},
   }) {
     final requests = <EditRequest>[];
-    final (nodes, layout, lineIndexOfNode) = OcptWysiwygComments.resolve(document, documentLayout);
+    final (nodes, layout, lineRangeOfNode) = OcptWysiwygComments.resolve(document, documentLayout);
 
     for (var index = 0; index < nodes.length; index++) {
       if (composingNodeIds.contains(nodes[index].id)) {
         continue;
       }
-      final edit = editOf(nodes[index], layout, lineIndexOfNode[index]);
+      final edit = editOf(nodes[index], layout, lineRangeOfNode[index]);
       if (edit != null) {
         requests.add(
           OcptReplaceNodeTextRequest(
@@ -74,25 +74,25 @@ final class OcptWysiwygNotes {
   /// same rule [requests] applies, so a decoded document is already settled and no pass has
   /// anything to ask of it.
   static List<ParagraphNode> absorbedNodes(List<ParagraphNode> nodes) {
-    final (layout, lineIndexOfNode) = OcptWysiwygComments.layoutOfNodes(nodes);
+    final (layout, lineRangeOfNode) = OcptWysiwygComments.layoutOfNodes(nodes);
     return [
       for (var index = 0; index < nodes.length; index++)
-        _withEdit(nodes[index], editOf(nodes[index], layout, lineIndexOfNode[index])),
+        _withEdit(nodes[index], editOf(nodes[index], layout, lineRangeOfNode[index])),
     ];
   }
 
-  /// Get what [node], whose line is the [lineIndex]th of [layout], must become for its notes to
-  /// satisfy the invariant, or null when they already do.
+  /// Get what [node], whose lines are [lineRange] (first line, line count) of [layout], must become
+  /// for its notes to satisfy the invariant, or null when they already do.
   static OcptWysiwygNoteEdit? editOf(
     ParagraphNode node,
     OcptWysiwygCommentLayout layout,
-    int lineIndex,
+    (int, int) lineRange,
   ) {
     final text = node.text;
     final offsets = OcptWysiwygNoteOffsets.of(text);
     final line = offsets.expand(text.toPlainText());
     final desired = [
-      for (final range in layout.singleLineNoteRangesByLine[lineIndex])
+      for (final range in layout.noteRangesOfNode(lineRange.$1, lineRange.$2))
         if (!_holdsBoneyardMarker(line.substring(range.$1 + 2, range.$2 - 2))) range,
     ];
     final current = offsets.noteLineRanges;
