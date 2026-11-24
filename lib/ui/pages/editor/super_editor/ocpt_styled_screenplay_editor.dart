@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_ed
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_editor_surface.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_history.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_jump_handler.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_note_editing.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_simulation.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_read_state.dart';
@@ -242,11 +243,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   );
 
   /// The `keyboardActions` handed to every `SuperEditor` this state builds, bound once to [undo]
-  /// and [redo] (see `ocptFountainKeyboardActions`).
-  ///
-  /// Built once, not on every [build], for the same reason [_imeOverrides] is: both tear-offs
-  /// resolve [_editor] at call time through an instance method, so this list keeps working across
-  /// [_rebuildEditorFrom] replacing the editor it acts on.
+  /// and [redo] (see `ocptFountainKeyboardActions`), which resolve [_editor] at call time.
   late final List<SuperEditorKeyboardAction> _keyboardActions = ocptFountainKeyboardActions(
     onUndo: undo,
     onRedo: redo,
@@ -261,13 +258,10 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   final FocusNode _focusNode = FocusNode();
 
   /// The IME-delta interceptor that catches a plain Tab keystroke before it can insert a literal
-  /// `\t` character (see `OcptFountainTabInterceptor`'s own doc comment for why this is needed).
-  /// Built once, not on every [build] — `SuperEditorImeInteractorState` compares `imeOverrides` by
-  /// identity across widget updates and re-wires its IME client whenever it changes, so a fresh
-  /// instance every build would needlessly reconnect the IME on every rebuild. Its callback reads
-  /// [_editor]/[_document]/[_composer] at call time through an instance method, rather than closing
-  /// over them as local variables, so it keeps working correctly across [_rebuildEditorFrom]
-  /// reassigning all three (a captured local would keep pointing at the stale, disposed instances).
+  /// `\t` character (see `OcptFountainTabInterceptor`). Built once, not on every [build], since
+  /// `SuperEditorImeInteractorState` re-wires its IME client whenever `imeOverrides` changes
+  /// identity. Its callback reads [_editor]/[_document]/[_composer] at call time, so it keeps
+  /// working across [_rebuildEditorFrom] reassigning all three.
   late final OcptFountainTabInterceptor _imeOverrides = OcptFountainTabInterceptor(
     // Applies the same manual block-type cycle a hardware Tab keystroke would
     // (`ocptTabToCycleBlockType`), always forward: Shift+Tab never travels through the IME delta
@@ -298,15 +292,24 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// The running debounce timer restarted on every document change.
   Timer? _syncTimer;
 
-  /// The scroll controller handed to `SuperEditor` for its own internal scrolling, owned here (
-  /// rather than left to `SuperEditor`'s own default) so the page-simulation background painter in
-  /// [build] can read its live offset and keep the painted sheets in sync with the actual scroll
-  /// position.
+  /// The scroll controller handed to `SuperEditor`, owned here so the page-simulation background
+  /// painter in [build] can read its live offset and keep the painted sheets in sync with it.
   final ScrollController _pageScrollController = ScrollController();
 
   /// The notes of [_document] and the selected one, which the markers, the margin's cards and the
   /// tap delegate share.
   late final OcptStyledNotes _notes = OcptStyledNotes(documentOf: () => _document);
+
+  /// The writes to the notes, from their cards and from the context menu.
+  late final OcptStyledNoteEditing _noteEditing = OcptStyledNoteEditing(
+    notes: _notes,
+    documentOf: () => _document,
+    editorOf: () => _editor,
+    composerOf: () => _composer,
+    editorFocusNode: _focusNode,
+    history: _history,
+    isMounted: () => mounted,
+  );
 
   /// The zoom's scrolling: the point it is made around, and the caret kept in view sideways.
   late final OcptStyledZoomAnchor _zoomAnchor = OcptStyledZoomAnchor(
@@ -374,6 +377,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     documentLayoutKey: _documentLayoutKey,
     focusNode: _focusNode,
     spellCheck: _spellCheck,
+    noteEditing: _noteEditing,
     isMounted: () => mounted,
     setState: setState,
     onSpellingSuggestionsRequestedOf: () => widget.onSpellingSuggestionsRequested,
@@ -576,6 +580,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       titlePageSheetCount: _pageSimulation.titlePageSheetCount,
       canZoom: widget.onZoomStepRequested != null,
       notes: _notes,
+      noteEditing: _noteEditing,
       documentLayoutKey: _documentLayoutKey,
       isCompact: widget.isCompact,
     );
@@ -728,11 +733,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   ///
   /// Executing requests against [_editor] from here would be unsafe: [deactivate] (this method's
   /// only caller) can fire while this subtree is mid-teardown, and an edit then can reach a
-  /// layout component Flutter has already deactivated, crashing with "setState() called during
-  /// build". A scratch [MutableDocument]/`Editor`, never attached to any widget, carries no such
-  /// risk, and settling it before encoding matters: a node encoded under a stale `blockType`
-  /// makes `FountainLineWriter` bake a forcing-marker character into the text, which the next
-  /// decode reads back as a genuine, sticky, user-typed marker.
+  /// layout component Flutter has already deactivated. Settling before encoding matters: a node
+  /// encoded under a stale `blockType` makes `FountainLineWriter` bake a forcing-marker character
+  /// into the text, which the next decode reads back as a genuine, user-typed marker.
   void _flushPendingSync() {
     if (_syncTimer == null || !_syncTimer!.isActive) {
       return;
@@ -817,10 +820,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _syncTimer = Timer(_syncDebounce, _syncAfterEdit);
     if (!_history.isApplying) {
       // Anything that is not an undo or a redo of ours is an edit the future transactions can no
-      // longer be replayed on top of — including a derived pass of this widget's own, which is
-      // ordinarily a no-op after an undo (the pass's own commands were merged into the very
-      // transaction being restored, so it finds nothing left to derive) and, on the day one of
-      // them is not, has genuinely moved the document past what a redo was recorded against.
+      // longer be replayed on top of, a derived pass of this widget's own included.
       _history.markRedoStale();
     }
     _readState.report();
@@ -992,6 +992,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _focusNode.dispose();
     _pageScrollController.dispose();
     _zoomAnchor.dispose();
+    _noteEditing.dispose();
     _notes.dispose();
     super.dispose();
   }

@@ -10,8 +10,8 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_clipboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_note_editing.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_spell_check_ranges.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
@@ -47,6 +47,9 @@ final class OcptStyledContextMenu {
 
   /// The spell-check state a right-click on a misspelled word is resolved against.
   final OcptStyledSpellCheckRanges _spellCheck;
+
+  /// The writes to the notes the note entries of the menu make.
+  final OcptStyledNoteEditing _noteEditing;
 
   /// Whether the owning widget is still mounted.
   final bool Function() _isMounted;
@@ -137,6 +140,7 @@ final class OcptStyledContextMenu {
     required GlobalKey documentLayoutKey,
     required FocusNode focusNode,
     required OcptStyledSpellCheckRanges spellCheck,
+    required OcptStyledNoteEditing noteEditing,
     required bool Function() isMounted,
     required void Function(VoidCallback change) setState,
     required Future<List<String>> Function(String word)? Function()
@@ -151,6 +155,7 @@ final class OcptStyledContextMenu {
        _documentLayoutKey = documentLayoutKey,
        _focusNode = focusNode,
        _spellCheck = spellCheck,
+       _noteEditing = noteEditing,
        _isMounted = isMounted,
        _setState = setState,
        _onSpellingSuggestionsRequestedOf = onSpellingSuggestionsRequestedOf,
@@ -366,12 +371,8 @@ final class OcptStyledContextMenu {
       onPaste: _composer.selection != null ? paste : null,
       onSelectAll: _composer.selection != null ? selectAll : null,
       // A note command is offered only where it applies: the pure rules answer null otherwise.
-      onInsertNote: OcptFountainNoteActions.insertRequests(_document, _composer.selection) != null
-          ? insertNote
-          : null,
-      onRemoveNote: OcptFountainNoteActions.removeRequests(_document, _composer.selection) != null
-          ? removeNote
-          : null,
+      onInsertNote: _noteEditing.canInsertNote ? insertNote : null,
+      onRemoveNote: _noteEditing.canRemoveNote ? removeNote : null,
       onTypeSelected: blockType != null ? onTypeSelected : null,
       // Offered only where it applies: a speech with another one next to it to pair with.
       onToggleDualDialogue: dualDialogue != null ? onDualDialogueToggled : null,
@@ -425,27 +426,16 @@ final class OcptStyledContextMenu {
     _focusNode.requestFocus();
   }
 
-  /// Handle the right-click context menu's Insert note entry: executes
-  /// [OcptFountainNoteActions.insertRequests] in one [Editor.execute] call, hence one undo step,
-  /// then hands focus back to the editor.
+  /// Handle the right-click context menu's Insert note entry: insert the note and give its card
+  /// the focus (see [OcptStyledNoteEditing.insertNote]), or the editor when the margin has none.
   void insertNote() {
-    final requests = OcptFountainNoteActions.insertRequests(_document, _composer.selection);
-    if (requests != null) {
-      _editor.execute(requests);
-    }
     _focusNode.requestFocus();
+    _noteEditing.insertNote();
   }
 
-  /// Handle the right-click context menu's Remove note entry: executes
-  /// [OcptFountainNoteActions.removeRequests] in one [Editor.execute] call, hence one undo step
-  /// and no confirmation, then hands focus back to the editor.
-  void removeNote() {
-    final requests = OcptFountainNoteActions.removeRequests(_document, _composer.selection);
-    if (requests != null) {
-      _editor.execute(requests);
-    }
-    _focusNode.requestFocus();
-  }
+  /// Handle the right-click context menu's Remove note entry (see
+  /// [OcptStyledNoteEditing.removeNote]): one undo step and no confirmation.
+  void removeNote() => _noteEditing.removeNote();
 
   /// Handle the right-click context menu's Select all entry: expands the selection across the whole
   /// document, mirroring super_editor's own `CommonEditorOperations.selectAll`. A no-op on an empty

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_dual_dialogue_bracket.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_fluid_surface.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_note_editing.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes_margin.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_simulation_surface.dart';
@@ -63,6 +64,9 @@ class OcptStyledEditorSurface extends StatelessWidget {
   /// The notes of the document, whose cards stand beside the page when there is room.
   final OcptStyledNotes notes;
 
+  /// The writes the cards of the notes make to them.
+  final OcptStyledNoteEditing noteEditing;
+
   /// The key of the editor's document layout, which tells where the marker of each note is.
   final GlobalKey documentLayoutKey;
 
@@ -82,6 +86,7 @@ class OcptStyledEditorSurface extends StatelessWidget {
     required this.titlePageSheetCount,
     required this.canZoom,
     required this.notes,
+    required this.noteEditing,
     required this.documentLayoutKey,
     required this.isCompact,
     super.key,
@@ -111,6 +116,7 @@ class OcptStyledEditorSurface extends StatelessWidget {
 
     final notesMargin = OcptStyledNotesMargin(
       notes: notes,
+      editing: noteEditing,
       documentLayoutKey: documentLayoutKey,
       scrollController: scrollController,
     );
