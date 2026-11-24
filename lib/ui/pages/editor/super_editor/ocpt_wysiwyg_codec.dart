@@ -429,6 +429,7 @@ class OcptWysiwygCodec {
         sourceText: text,
         blankLinesBeforeByNode: blankLinesBeforeByNode,
         trailingBlankLines: trailingBlankLines,
+        lineCountByNode: [for (final node in nodes) OcptWysiwygComments.lineCountOf(node)],
       ),
     );
   }

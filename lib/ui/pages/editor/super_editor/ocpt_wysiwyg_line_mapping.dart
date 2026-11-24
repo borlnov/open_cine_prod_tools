@@ -19,6 +19,9 @@ class OcptWysiwygLineMapping {
   /// The 0-based source line of each node, indexed by node index.
   final List<int> _lineByNodeIndex;
 
+  /// The number of source lines each node covers, indexed by node index.
+  final List<int> _lineCountByNodeIndex;
+
   /// The node index owning each 0-based source line (a blank line's entry points at the node
   /// following it), indexed by line number.
   final List<int> _nodeIndexByLine;
@@ -27,11 +30,17 @@ class OcptWysiwygLineMapping {
   /// node's (already resolved, in
   /// the case of [OcptWysiwygCodec.encode]'s dialogue-group override) blank-line-before count, and
   /// the number of blank lines trailing the last node.
+  ///
+  /// [lineCountByNode] is the number of source lines each node covers, in node order: one for
+  /// every node when null, more for a node holding a note that runs over several lines. The blank
+  /// lines inside such a note are part of it and counted in no node's blank-line-before count.
   OcptWysiwygLineMapping.build({
     required String sourceText,
     required List<int> blankLinesBeforeByNode,
     required int trailingBlankLines,
+    List<int>? lineCountByNode,
   }) : _lineByNodeIndex = [],
+       _lineCountByNodeIndex = [],
        _nodeIndexByLine = [],
        _sourceText = sourceText {
     var line = 0;
@@ -40,9 +49,13 @@ class OcptWysiwygLineMapping {
         _nodeIndexByLine.add(nodeIndex);
         line++;
       }
+      final lineCount = lineCountByNode?[nodeIndex] ?? 1;
       _lineByNodeIndex.add(line);
-      _nodeIndexByLine.add(nodeIndex);
-      line++;
+      _lineCountByNodeIndex.add(lineCount);
+      for (var covered = 0; covered < lineCount; covered++) {
+        _nodeIndexByLine.add(nodeIndex);
+      }
+      line += lineCount;
     }
 
     final lastNodeIndex = blankLinesBeforeByNode.isEmpty ? 0 : blankLinesBeforeByNode.length - 1;
@@ -55,6 +68,11 @@ class OcptWysiwygLineMapping {
   /// node's [ocptBlankLinesBeforeMetadataKey] metadata; [nodeIndex] is clamped to a valid index.
   int lineOfNodeIndex(int nodeIndex) =>
       _lineByNodeIndex[nodeIndex.clamp(0, _lineByNodeIndex.length - 1)];
+
+  /// Get the number of source lines the node at [nodeIndex] covers, one unless it holds a note
+  /// running over several lines; [nodeIndex] is clamped to a valid index.
+  int lineCountOfNodeIndex(int nodeIndex) =>
+      _lineCountByNodeIndex[nodeIndex.clamp(0, _lineCountByNodeIndex.length - 1)];
 
   /// Get the 0-based node index owning the source line containing character offset [charOffset] of
   /// this mapping's own source text, clamped to a valid line (out-of-range clamps to the text's

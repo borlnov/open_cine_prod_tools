@@ -102,6 +102,10 @@ final class OcptWysiwygComments {
     return plainLineOf(node, characters.join());
   }
 
+  /// Get the number of source lines [node] covers: one, plus one for each newline of a note it
+  /// holds.
+  static int lineCountOf(ParagraphNode node) => 1 + "\n".allMatches(virtualTextOf(node)).length;
+
   /// Get [nodeText], the plain text of [node] (or a copy of it), with every note [node] holds as a
   /// placeholder written as its `[[text]]`: the line of Fountain source the node stands for.
   static String plainLineOf(ParagraphNode node, String nodeText) =>
