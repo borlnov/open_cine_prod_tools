@@ -8,7 +8,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_matc
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_highlight_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_text_input_formatter.dart';
 
-/// The multiline field in which the text of the selected note is edited, in its card.
+/// The multiline field in which the text of the selected note is edited, in its card: outlined
+/// the way the theme outlines a field, its text padded inside the outline.
 ///
 /// It takes the focus when it appears (unless [takesFocus] says it must not), and grows with its
 /// text. Every change is reported as soon as it is made, written the way the Fountain source holds
@@ -17,6 +18,9 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_text_inpu
 /// back to the text, Shift+Enter breaks the line, and Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y act on the
 /// history of the editor, never on the one of the field.
 class OcptNoteCardField extends StatefulWidget {
+  /// The padding between the outline of the field and its text, on every side, in logical pixels.
+  static const double contentInset = 8;
+
   /// The text of the note, which the field shows.
   final String text;
 
@@ -127,7 +131,11 @@ class _OcptNoteCardFieldState extends State<OcptNoteCardField> {
       maxLines: null,
       keyboardType: TextInputType.multiline,
       inputFormatters: const [OcptNoteTextInputFormatter()],
-      decoration: InputDecoration.collapsed(hintText: widget.hint),
+      decoration: InputDecoration(
+        hintText: widget.hint,
+        isDense: true,
+        contentPadding: const EdgeInsets.all(OcptNoteCardField.contentInset),
+      ),
       onChanged: _report,
     ),
   );

@@ -29,7 +29,13 @@ class OcptNoteCard extends StatelessWidget {
   static const double _iconSize = 12;
 
   /// The padding between the edge of the card and its content, in logical pixels.
-  static const double _padding = 12;
+  static const double _padding = 8;
+
+  /// The inset of the header and of the read-only text, which puts them in line with the text of
+  /// the field, padded by as much inside its outline.
+  static const EdgeInsetsDirectional _textInset = EdgeInsetsDirectional.symmetric(
+    horizontal: OcptNoteCardField.contentInset,
+  );
 
   /// The text of the note.
   final String text;
@@ -113,20 +119,23 @@ class OcptNoteCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.chat_bubble_outline, size: _iconSize, color: colors.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    Tr.of(context).editorNoteMarkerLabel.toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.primary,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
+              Padding(
+                padding: _textInset,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.chat_bubble_outline, size: _iconSize, color: colors.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      Tr.of(context).editorNoteMarkerLabel.toUpperCase(),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.primary,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.6,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 6),
               if (isSelected && onChanged != null)
@@ -144,7 +153,10 @@ class OcptNoteCard extends StatelessWidget {
                   takesFocus: takesFocus,
                 )
               else
-                Text.rich(OcptNoteHighlightSpans.build(text, textStyle, matches)),
+                Padding(
+                  padding: _textInset,
+                  child: Text.rich(OcptNoteHighlightSpans.build(text, textStyle, matches)),
+                ),
               if (isSelected && onRemoveRequested != null)
                 Align(
                   alignment: AlignmentDirectional.centerEnd,
