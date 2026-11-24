@@ -19,14 +19,14 @@ final class OcptNoteEntry extends Equatable {
   /// The note itself.
   final OcptFountainNote note;
 
-  /// Class constructor.
-  const OcptNoteEntry({required this.nodeId, required this.offset, required this.note});
-
   /// Get the position of the note's marker in the document.
   DocumentPosition get position => DocumentPosition(
     nodeId: nodeId,
     nodePosition: TextNodePosition(offset: offset),
   );
+
+  /// Class constructor.
+  const OcptNoteEntry({required this.nodeId, required this.offset, required this.note});
 
   /// Get the properties the equality of the entry reads.
   @override
@@ -42,17 +42,14 @@ final class OcptNoteEntry extends Equatable {
 /// soon as the document no longer holds the selected note, or when a tap lands elsewhere in the
 /// text.
 final class OcptStyledNotes {
-  /// Resolves the document the notes are read from, which the editor replaces on a rebuild.
-  final Document Function() _documentOf;
-
   /// The identifier of the selected note, or null when none is.
   final ValueNotifier<String?> selectedId = ValueNotifier(null);
 
   /// The notes of the document, in document order.
   final ValueNotifier<List<OcptNoteEntry>> entries = ValueNotifier(const []);
 
-  /// Class constructor.
-  OcptStyledNotes({required Document Function() documentOf}) : _documentOf = documentOf;
+  /// Resolves the document the notes are read from, which the editor replaces on a rebuild.
+  final Document Function() _documentOf;
 
   /// Get the tap delegate factories to hand to `SuperEditor`: the one selecting a note on a tap
   /// on its marker, and the one launching a link.
@@ -60,6 +57,9 @@ final class OcptStyledNotes {
     superEditorLaunchLinkTapHandlerFactory,
     (editContext) => OcptNoteTapDelegate(notes: this),
   ];
+
+  /// Class constructor.
+  OcptStyledNotes({required Document Function() documentOf}) : _documentOf = documentOf;
 
   /// Read the notes from the document again, and drop the selection if its note is gone.
   void refresh() {

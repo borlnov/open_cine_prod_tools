@@ -693,11 +693,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// is added only for a node id [rangesByNodeId] actually names.
   ///
   /// Two guards `docs/architecture/screenplay.md` is explicit about, applied to every range
-  /// before it becomes a `TextError`: a node id [_document] no longer holds (a full rebuild since the ranges were
-  /// computed — an edit elsewhere, an import, a version restore, a page-simulation toggle) is
-  /// ignored outright, and a range that no longer fits that node's own *current* text length is
-  /// dropped rather than handed to `TextError.spelling`, which would otherwise build a `TextRange`
-  /// past the end of the text it addresses.
+  /// before it becomes a `TextError`: a node id [_document] no longer holds (a full rebuild since
+  /// the ranges were computed — an edit elsewhere, an import, a version restore, a
+  /// page-simulation toggle) is ignored outright, and a range that no longer fits that node's own
+  /// *current* text length is dropped rather than handed to `TextError.spelling`, which would
+  /// otherwise build a `TextRange` past the end of the text it addresses.
   ///
   /// Called both by [OcptStyledEditorController.attach] (a raw → styled mode switch while ranges
   /// are already known) and, reactively, whenever `editor_page.dart` pushes a fresh

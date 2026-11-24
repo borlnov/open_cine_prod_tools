@@ -54,24 +54,50 @@ class OcptFountainNoteMarker extends StatelessWidget {
     this.selectedNoteId,
   });
 
-  /// Build the marker.
+  /// Build the marker, following the selection when there is one to follow.
   @override
   Widget build(BuildContext context) {
     final selection = selectedNoteId;
     if (selection == null) {
-      return _buildMarker(isSelected: false);
+      return _NoteBubble(fontSize: fontSize, semanticLabel: semanticLabel, isSelected: false);
     }
 
     return ValueListenableBuilder<String?>(
       valueListenable: selection,
-      builder: (context, selected, child) =>
-          _buildMarker(isSelected: noteId != null && selected == noteId),
+      builder: (context, selected, child) => _NoteBubble(
+        fontSize: fontSize,
+        semanticLabel: semanticLabel,
+        isSelected: noteId != null && selected == noteId,
+      ),
     );
   }
+}
 
-  /// Build the marker, solid when [isSelected].
-  Widget _buildMarker({required bool isSelected}) {
+/// The drawing of [OcptFountainNoteMarker]: the bubble, tinted, or solid when [isSelected].
+class _NoteBubble extends StatelessWidget {
+  /// The font size of the text the bubble sits in, which it is scaled by.
+  final double fontSize;
+
+  /// The label read out for the bubble, empty for none.
+  final String semanticLabel;
+
+  /// Whether the bubble is drawn solid.
+  final bool isSelected;
+
+  /// Class constructor.
+  const _NoteBubble({
+    required this.fontSize,
+    required this.semanticLabel,
+    required this.isSelected,
+  });
+
+  /// Build the bubble.
+  @override
+  Widget build(BuildContext context) {
     final scale = fontSize / OcptEditorPreviewLayout.baseFontSize;
+    const baseWidth = OcptFountainNoteMarker.baseWidth;
+    const baseHeight = OcptFountainNoteMarker.baseHeight;
+    const accentColor = OcptFountainNoteMarker.accentColor;
 
     return Semantics(
       label: semanticLabel.isEmpty ? null : semanticLabel,
@@ -80,13 +106,15 @@ class OcptFountainNoteMarker extends StatelessWidget {
           width: baseWidth * scale,
           height: baseHeight * scale,
           decoration: BoxDecoration(
-            color: isSelected ? accentColor : accentColor.withValues(alpha: tintOpacity),
-            borderRadius: BorderRadius.circular(baseRadius * scale),
+            color: isSelected
+                ? accentColor
+                : accentColor.withValues(alpha: OcptFountainNoteMarker.tintOpacity),
+            borderRadius: BorderRadius.circular(OcptFountainNoteMarker.baseRadius * scale),
           ),
           alignment: Alignment.center,
           child: Icon(
             Icons.chat_bubble_outline,
-            size: baseIconSize * scale,
+            size: OcptFountainNoteMarker.baseIconSize * scale,
             color: isSelected ? Colors.white : accentColor,
           ),
         ),

@@ -78,6 +78,9 @@ class OcptStyledNotesMargin extends StatefulWidget {
   /// The scroll controller of the editor, which the cards follow.
   final ScrollController scrollController;
 
+  /// Get the width a column takes beside the page: the gap and a card.
+  static double get reservedWidth => gap + cardWidth;
+
   /// Class constructor.
   const OcptStyledNotesMargin({
     super.key,
@@ -86,8 +89,9 @@ class OcptStyledNotesMargin extends StatefulWidget {
     required this.scrollController,
   });
 
-  /// Get the width a column takes beside the page: the gap and a card.
-  static double get reservedWidth => gap + cardWidth;
+  /// Create the [_OcptStyledNotesMarginState] holding the anchors read from the layout.
+  @override
+  State<OcptStyledNotesMargin> createState() => _OcptStyledNotesMarginState();
 
   /// Tell whether the column has room: [hasNotes], no compact surface, and [availableWidth] holding
   /// [contentWidth] (the page, or the narrowest text column) with the column and its outer margin.
@@ -97,10 +101,91 @@ class OcptStyledNotesMargin extends StatefulWidget {
     required double availableWidth,
     required double contentWidth,
   }) => hasNotes && !isCompact && availableWidth >= contentWidth + reservedWidth + outerMargin;
+}
 
-  /// Create the [_OcptStyledNotesMarginState] holding the anchors read from the layout.
+/// The cards of the notes margin and the line to the selected one, placed over the full height of
+/// the margin and following [scrollController].
+class _NotesContent extends StatelessWidget {
+  /// The notes the cards belong to.
+  final OcptStyledNotes notes;
+
+  /// The notes to show a card for, in document order.
+  final List<OcptNoteEntry> entries;
+
+  /// Where the marker of each of [entries] is, by note identifier.
+  final Map<String, _NoteAnchor> anchors;
+
+  /// The identifier of the selected note, or null when none is.
+  final String? selectedId;
+
+  /// The scroll controller of the editor, which the cards follow.
+  final ScrollController scrollController;
+
+  /// Class constructor.
+  const _NotesContent({
+    required this.notes,
+    required this.entries,
+    required this.anchors,
+    required this.selectedId,
+    required this.scrollController,
+  });
+
+  /// Build the cards, and the line joining the selected note's marker to its card.
   @override
-  State<OcptStyledNotesMargin> createState() => _OcptStyledNotesMarginState();
+  Widget build(BuildContext context) {
+    final scrollOffset = scrollController.hasClients ? scrollController.offset : 0.0;
+    final selectedIndex = entries.indexWhere((entry) => entry.note.id == selectedId);
+    final selectedAnchor = selectedIndex < 0 ? null : anchors[entries[selectedIndex].note.id];
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        if (selectedAnchor != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: OcptNoteConnectorPainter(
+                  color: Theme.of(context).colorScheme.primary,
+                  from: Offset(
+                    selectedAnchor.markerRight,
+                    selectedAnchor.top + selectedAnchor.height / 2 - scrollOffset,
+                  ),
+                  to: Offset(
+                    -OcptStyledNotesMargin.selectedShift,
+                    selectedAnchor.top + selectedAnchor.height / 2 - scrollOffset,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        Positioned.fill(
+          child: ClipRect(
+            clipper: const _VerticalViewportClipper(),
+            child: CustomMultiChildLayout(
+              delegate: OcptNoteCardsLayoutDelegate(
+                anchors: [for (final entry in entries) anchors[entry.note.id]!.top],
+                selectedIndex: selectedIndex < 0 ? null : selectedIndex,
+                scrollOffset: scrollOffset,
+                cardWidth: OcptStyledNotesMargin.cardWidth,
+                selectedShift: OcptStyledNotesMargin.selectedShift,
+              ),
+              children: [
+                for (var index = 0; index < entries.length; index++)
+                  LayoutId(
+                    id: index,
+                    child: OcptNoteCard(
+                      text: entries[index].note.text,
+                      isSelected: index == selectedIndex,
+                      onTap: () => notes.select(entries[index].note.id),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// The state of [OcptStyledNotesMargin]: reads the anchors after each frame that may have moved a
@@ -139,10 +224,12 @@ class _OcptStyledNotesMarginState extends State<OcptStyledNotesMargin> {
             valueListenable: widget.notes.selectedId,
             builder: (context, selectedId, child) => ListenableBuilder(
               listenable: widget.scrollController,
-              builder: (context, child) => _buildContent(
-                context,
-                entries.where((entry) => _anchors.containsKey(entry.note.id)).toList(),
-                selectedId,
+              builder: (context, child) => _NotesContent(
+                notes: widget.notes,
+                entries: entries.where((entry) => _anchors.containsKey(entry.note.id)).toList(),
+                anchors: _anchors,
+                selectedId: selectedId,
+                scrollController: widget.scrollController,
               ),
             ),
           );
@@ -150,62 +237,6 @@ class _OcptStyledNotesMarginState extends State<OcptStyledNotesMargin> {
       );
     },
   );
-
-  /// Build the cards of [entries], [selectedId] being the selected note, and the line to its card.
-  Widget _buildContent(BuildContext context, List<OcptNoteEntry> entries, String? selectedId) {
-    final scrollOffset = widget.scrollController.hasClients ? widget.scrollController.offset : 0.0;
-    final selectedIndex = entries.indexWhere((entry) => entry.note.id == selectedId);
-    final selectedAnchor = selectedIndex < 0 ? null : _anchors[entries[selectedIndex].note.id];
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        if (selectedAnchor != null)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(
-                painter: OcptNoteConnectorPainter(
-                  color: Theme.of(context).colorScheme.primary,
-                  from: Offset(
-                    selectedAnchor.markerRight,
-                    selectedAnchor.top + selectedAnchor.height / 2 - scrollOffset,
-                  ),
-                  to: Offset(
-                    -OcptStyledNotesMargin.selectedShift,
-                    selectedAnchor.top + selectedAnchor.height / 2 - scrollOffset,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        Positioned.fill(
-          child: ClipRect(
-            clipper: const _VerticalViewportClipper(),
-            child: CustomMultiChildLayout(
-              delegate: OcptNoteCardsLayoutDelegate(
-                anchors: [for (final entry in entries) _anchors[entry.note.id]!.top],
-                selectedIndex: selectedIndex < 0 ? null : selectedIndex,
-                scrollOffset: scrollOffset,
-                cardWidth: OcptStyledNotesMargin.cardWidth,
-                selectedShift: OcptStyledNotesMargin.selectedShift,
-              ),
-              children: [
-                for (var index = 0; index < entries.length; index++)
-                  LayoutId(
-                    id: index,
-                    child: OcptNoteCard(
-                      text: entries[index].note.text,
-                      isSelected: index == selectedIndex,
-                      onTap: () => widget.notes.select(entries[index].note.id),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   /// Ask for the markers to be measured at the end of the frame, once only however often it is
   /// asked for.
