@@ -231,12 +231,28 @@ final class OcptStyledSearch {
 
   /// Select the note [noteId] held by the node [nodeId], its card (or its popover) showing its
   /// matches, and scroll its line into view. Like [navigateTo] it never takes the keyboard focus
-  /// from the find field: the card is selected without its field taking it.
+  /// from the find field: the card is selected without its field taking it. The caret goes just
+  /// after the note's marker, so the text of the previous match no longer shows selected.
   void navigateToNote(String nodeId, String noteId) {
     if (!mounted || _document.getNodeById(nodeId) == null) {
       return;
     }
 
+    final entry = _notes.entryOf(noteId);
+    if (entry != null) {
+      _editor.execute([
+        ChangeSelectionRequest(
+          DocumentSelection.collapsed(
+            position: DocumentPosition(
+              nodeId: entry.nodeId,
+              nodePosition: TextNodePosition(offset: entry.offset + 1),
+            ),
+          ),
+          SelectionChangeType.placeCaret,
+          ocptProgrammaticNavigationSelectionReason,
+        ),
+      ]);
+    }
     _notes.select(noteId, takesFocus: false);
     _scrollToNode(nodeId);
   }

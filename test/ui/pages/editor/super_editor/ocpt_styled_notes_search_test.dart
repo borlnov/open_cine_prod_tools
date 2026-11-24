@@ -163,6 +163,22 @@ void main() {
       expect(_markerHintsAtMatch(tester), isTrue);
     });
 
+    testWidgets("leaves no text selected once the current match moves into a note", (tester) async {
+      await _pump(tester, _source);
+      await _search(tester, 0);
+      expect(SuperEditorInspector.findDocumentSelection()!.isCollapsed, isFalse);
+
+      await _search(tester, 1);
+
+      final selection = SuperEditorInspector.findDocumentSelection()!;
+      final node = SuperEditorInspector.findDocument()!.first as ParagraphNode;
+      expect(selection.isCollapsed, isTrue);
+      expect(
+        (selection.extent.nodePosition as TextNodePosition).offset,
+        node.text.placeholders.keys.single + 1,
+      );
+    });
+
     testWidgets("keeps the focus in the find field while it navigates to a note", (tester) async {
       await _pump(tester, _source);
       expect(_findFocus.hasFocus, isTrue);
