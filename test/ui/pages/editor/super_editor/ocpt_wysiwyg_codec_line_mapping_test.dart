@@ -76,6 +76,55 @@ void main() {
     });
   });
 
+  group("OcptWysiwygLineMapping over several lines per node", () {
+    // Source: node 0 on line 0, a blank line, node 1 on lines 2 to 4, node 2 on line 5, then a
+    // trailing blank line.
+    const source = "a\n\nb [[x\ny\nz]] c\nd\n";
+    OcptWysiwygLineMapping build() => OcptWysiwygLineMapping.build(
+      sourceText: source,
+      blankLinesBeforeByNode: const [0, 1, 0],
+      trailingBlankLines: 1,
+      lineCountByNode: const [1, 3, 1],
+    );
+
+    test("a node starts after the lines the nodes before it cover", () {
+      final mapping = build();
+
+      expect(mapping.lineOfNodeIndex(0), 0);
+      expect(mapping.lineOfNodeIndex(1), 2);
+      expect(mapping.lineOfNodeIndex(2), 5);
+    });
+
+    test("lineCountOfNodeIndex answers the lines each node covers", () {
+      final mapping = build();
+
+      expect(mapping.lineCountOfNodeIndex(0), 1);
+      expect(mapping.lineCountOfNodeIndex(1), 3);
+      expect(mapping.lineCountOfNodeIndex(2), 1);
+    });
+
+    test("an offset on any line of a node resolves to that node", () {
+      final mapping = build();
+
+      expect(mapping.nodeIndexOfCharOffset(source.indexOf("b [[")), 1);
+      expect(mapping.nodeIndexOfCharOffset(source.indexOf("y")), 1);
+      expect(mapping.nodeIndexOfCharOffset(source.indexOf("z]]")), 1);
+      expect(mapping.nodeIndexOfCharOffset(source.indexOf("d")), 2);
+      expect(mapping.nodeIndexOfCharOffset(source.length), 2);
+    });
+
+    test("every node covers one line when no count is given", () {
+      final mapping = OcptWysiwygLineMapping.build(
+        sourceText: "a\nb",
+        blankLinesBeforeByNode: const [0, 0],
+        trailingBlankLines: 0,
+      );
+
+      expect(mapping.lineCountOfNodeIndex(1), 1);
+      expect(mapping.lineOfNodeIndex(1), 1);
+    });
+  });
+
   group("OcptWysiwygCodec.encodeSelectionToFountain / decodeNodesFromFountain", () {
     /// Builds an expanded [DocumentSelection] spanning the full node at [fromIndex] to the full
     /// node at [toIndex] of [document] (inclusive), in whichever order [base]/[extent] are asked

@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_edit_merge_policy.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_typing_run_merge_policy.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -44,14 +45,14 @@ const Duration ocptTypingMergeWindow = Duration(milliseconds: 700);
 /// history by this class at all: that one is refused history by its own commands instead (see
 /// `sceneNumberNormalizationRequests`'s `isHistorical`).
 class OcptSettleMergePolicy implements HistoryGroupingPolicy {
+  /// The policy keeping what is done to one note from its card in one undo step.
+  final OcptNoteEditMergePolicy noteEditPolicy;
+
   /// The policies a transaction closed outside a derived pass is judged by: super_editor's own
-  /// repeat-selection policy, plus this app's own typing-run policy in place of
+  /// repeat-selection policy, this app's own typing-run policy in place of
   /// [MergeRapidTextInputPolicy] (see [OcptTypingRunMergePolicy] for why the stock one cannot be
-  /// used here).
-  static const _writerGesturePolicies = HistoryGroupingPolicyList([
-    mergeRepeatSelectionChangesPolicy,
-    OcptTypingRunMergePolicy(ocptTypingMergeWindow),
-  ]);
+  /// used here), and [noteEditPolicy].
+  final HistoryGroupingPolicyList _writerGesturePolicies;
 
   /// Whether a derived pass is currently executing, i.e. whether the transaction being closed
   /// belongs to the editor's own settle/renumber/repaginate work rather than to a gesture of the
@@ -59,7 +60,16 @@ class OcptSettleMergePolicy implements HistoryGroupingPolicy {
   bool _isSettling;
 
   /// Create an [OcptSettleMergePolicy].
-  OcptSettleMergePolicy() : _isSettling = false;
+  OcptSettleMergePolicy() : this._(OcptNoteEditMergePolicy());
+
+  /// Create an [OcptSettleMergePolicy] grouping the note edits through [noteEditPolicy].
+  OcptSettleMergePolicy._(this.noteEditPolicy)
+    : _isSettling = false,
+      _writerGesturePolicies = HistoryGroupingPolicyList([
+        noteEditPolicy,
+        mergeRepeatSelectionChangesPolicy,
+        const OcptTypingRunMergePolicy(ocptTypingMergeWindow),
+      ]);
 
   /// Run [derivedPass] with the settling flag raised, so every transaction it closes merges onto
   /// the transaction that caused it instead of becoming an undo step of its own.

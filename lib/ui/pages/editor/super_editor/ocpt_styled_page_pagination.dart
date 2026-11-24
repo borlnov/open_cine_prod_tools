@@ -242,7 +242,12 @@ OcptStyledPagination computeOcptStyledPagination({
 /// counting its `ocptBlankLinesBefore` metadata (see [_blankLinesBeforeOf] for that half).
 int _wrappedLineCountOf(ParagraphNode node, FountainLineType type, FountainLayoutMetrics metrics) {
   final element = metrics.elementOf(type);
-  return OcptEditorPreviewLayout.wrappedLineCount(node.text.toPlainText(), element.maxWidthColumns);
+  // A note is drawn as a marker about two characters wide, where its placeholder counts for one.
+  final text = node.text.toPlainText().replaceAll(
+    AttributedText.placeholderCharacter,
+    AttributedText.placeholderCharacter * 2,
+  );
+  return OcptEditorPreviewLayout.wrappedLineCount(text, element.maxWidthColumns);
 }
 
 /// Read [node]'s `ocptBlankLinesBefore` metadata, capped at [ocptMaxBlankLinesBeforeSpacing] to

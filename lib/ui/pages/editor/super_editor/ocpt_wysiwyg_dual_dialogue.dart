@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_n
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comments.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_document_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_note_offsets.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -254,11 +255,12 @@ final class OcptWysiwygDualDialogue {
       return [suffixRequest(toggle.cueNodeId, null)];
     }
     // The marker is plain text, followed by a note: removing it keeps everything else in place.
-    final span = _markerSpanIn(cue.text.toPlainText());
+    final offsets = OcptWysiwygNoteOffsets.of(cue.text);
+    final span = _markerSpanIn(offsets.expand(cue.text.toPlainText()));
     if (span == null) {
       return null;
     }
-    final (start, end) = span;
+    final (start, end) = offsets.nodeRangeOf(span.$1, span.$2);
     return [
       OcptReplaceNodeTextRequest(
         nodeId: cue.id,

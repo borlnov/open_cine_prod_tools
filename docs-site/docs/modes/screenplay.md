@@ -53,7 +53,7 @@ A few useful gestures in the styled editor:
 - **Tab / Shift+Tab** cycles the current block's type through the six common types and locks it.
 - **Enter** starts the block type that normally follows; **Shift+Enter** keeps the same type.
 - A block-type menu and the **B / I / U** toggles live in the toolbar; a right-click offers Cut,
-  Copy, Paste, Select all and a block-type submenu.
+  Copy, Paste, Select all, Insert note and Remove note, and a block-type submenu.
 - Copy-paste inside the app preserves block types; text pasted from outside is analysed and
   split into the right elements.
 
@@ -74,6 +74,37 @@ sits next to the one you are in. The styled editor keeps the two speeches **one 
 and a **bracket in the left margin** shows they are a pair; a `^` that pairs with nothing appears
 dimmed after the character's name. Typing a `^` at the end of a name works too, and the raw Fountain
 text shows it as written.
+
+## Notes
+
+A note is text for you and your team that never prints: a reminder, a question for the sound
+team, a prop to check. Fountain writes it between double brackets, `[[like this]]`, and the raw
+Fountain text shows it that way.
+
+In the styled editor, a note is a small **speech bubble** in the line, and its text sits in a
+**card in the margin**, to the right of the page, level with its line:
+
+- **Click a bubble**, or a card, to select the note: its card moves towards the page, joined to
+  the bubble by a line, and you can write in it straight away.
+- **Enter** or **Escape** takes you back to the screenplay, the cursor just after the bubble.
+  **Shift+Enter** starts a new line in the note.
+- **Ctrl+Z** undoes the whole edit of a note in one step, even from inside its card.
+- To add a note, right-click where it belongs and choose **Insert note**: an empty card opens,
+  ready for you to write. If you leave it empty, the note is removed.
+- To delete one, use the **Remove note** button of its card, or **Remove note** in the right-click
+  menu.
+
+When the window is too narrow for the margin, the cards are hidden and a click on a bubble opens
+the note in a **popover** under it, where you write the same way. A click outside closes it. The
+margin comes back as soon as there is room again.
+
+Find and replace (**Ctrl+F**, **Ctrl+H**) also looks inside the notes: the bubble of a note holding
+a match is tinted, and when the current match is inside a note, its card or its popover opens with
+the match highlighted. A note cannot hold `]]`, `/*` or `*/`, so a replacement that would put one
+there leaves that note unchanged.
+
+A note can run over several lines. Within a paragraph of action or dialogue it cannot hold a blank
+line, which would split that paragraph in two; a note standing on lines of its own can.
 
 ## The scene panel (on the left)
 

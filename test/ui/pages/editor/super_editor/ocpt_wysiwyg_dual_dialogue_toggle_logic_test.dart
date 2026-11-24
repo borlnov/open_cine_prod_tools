@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
@@ -108,7 +109,8 @@ void main() {
       expect(requests, hasLength(1));
       final replacement = requests!.single as OcptReplaceNodeTextRequest;
       expect(replacement.nodeId, document.getNodeAt(2)!.id);
-      expect(replacement.text.toPlainText(), "KIM [[aside]]");
+      expect(replacement.text.toPlainText(), "KIM \uFFFC");
+      expect((replacement.text.placeholders[4]! as OcptFountainNote).text, "aside");
     });
 
     test("writes nothing, not even an empty step, where there is nothing to remove", () {
@@ -213,13 +215,13 @@ void main() {
       controller.toggleDualDialogue();
       await pumpPastSettleDebounce(tester);
 
-      expect(nodeAt(document, 2).text.toPlainText(), "KIM [[aside]]");
+      expect(nodeAt(document, 2).text.toPlainText(), "KIM \uFFFC");
       expect(controller.isDualDialogueChecked, isFalse);
 
       await sendCtrl(tester, LogicalKeyboardKey.keyZ);
       await pumpPastSettleDebounce(tester);
 
-      expect(nodeAt(document, 2).text.toPlainText(), "KIM ^ [[aside]]");
+      expect(nodeAt(document, 2).text.toPlainText(), "KIM ^ \uFFFC");
     });
   });
 }

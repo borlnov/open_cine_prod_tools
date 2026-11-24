@@ -122,6 +122,47 @@ void main() {
     expect(calls, containsAll(["onPreviousRequested", "onNextRequested", "onCloseRequested"]));
   });
 
+  testWidgets("Enter in the find field asks for the next match and keeps the focus", (
+    tester,
+  ) async {
+    final calls = <String>[];
+    await tester.pumpWidget(_wrapWithLocalization(_buildBar(calls: calls, matchCount: 3)));
+    final findField = find.byType(TextField).first;
+    await tester.tap(findField);
+    await tester.pump();
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(calls.where((call) => call == "onNextRequested"), hasLength(2));
+    expect(tester.widget<TextField>(findField).focusNode!.hasFocus, isTrue);
+  });
+
+  testWidgets("Enter in the replace field asks for a replacement and keeps the focus", (
+    tester,
+  ) async {
+    final calls = <String>[];
+    await tester.pumpWidget(
+      _wrapWithLocalization(_buildBar(calls: calls, matchCount: 3, isReplaceRowOpen: true)),
+    );
+    final replaceField = find.byType(TextField).last;
+    await tester.tap(replaceField);
+    await tester.pump();
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(calls.where((call) => call == "onReplaceRequested"), hasLength(2));
+    final editable = tester.widget<EditableText>(
+      find.descendant(of: replaceField, matching: find.byType(EditableText)),
+    );
+    expect(editable.focusNode.hasFocus, isTrue);
+  });
+
   testWidgets("previous/next are disabled while there is no match", (tester) async {
     final calls = <String>[];
     await tester.pumpWidget(_wrapWithLocalization(_buildBar(calls: calls, query: "MARIE")));

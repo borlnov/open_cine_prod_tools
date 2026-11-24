@@ -93,11 +93,20 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   editor's status bar.
 
 - Editor: super_editor styled mode keeps **one `ParagraphNode` per non-blank Fountain source
-  line**; a blank source line carries no node of its own, folded into the following node's
-  `ocptBlankLinesBefore` metadata instead. Other node metadata: `blockType` (the line's
-  `FountainLineType` as a `NamedAttribution`, stylesheet-only styling), `ocptTypeLocked` (a
-  manual type override — dropdown or Tab — sticky for the node's **whole lifetime**, including
-  while its text is empty: only a new node created by Enter/Shift+Enter starts unlocked),
+  line**, bar one exception below; a blank source line carries no node of its own, folded into the
+  following node's `ocptBlankLinesBefore` metadata instead. The exception is a note running over
+  several lines: `decode` folds the lines it covers into one node holding it as a placeholder whose
+  text keeps its newlines, when that changes nothing the parser reads of those lines (no boneyard
+  on them, and either nothing but notes, or no blank line and one same element of action,
+  dialogue or parenthetical for all of them); any other group stays text. The layout then gives
+  each node a range of lines (`OcptWysiwygDocumentLayout.lineRangeOfNode`), `encode` writes the
+  first line of such a node through the line writer and the rest as it is, and the live passes
+  neither create nor dissolve a placeholder holding a newline: a node's own text never holds one
+  outside a placeholder, so only a decode folds or unfolds a note. Other node metadata:
+  `blockType` (the line's `FountainLineType` as a `NamedAttribution`, stylesheet-only styling),
+  `ocptTypeLocked` (a manual type override — dropdown or Tab — sticky for the node's **whole
+  lifetime**, including while its text is empty: only a new node created by Enter/Shift+Enter
+  starts unlocked),
   `ocptHadForcingMarker` (the source line used an explicit forcing marker, re-emitted on encode
   even when auto-detection alone would already suffice, and spared by the uppercase pass on a
   character cue: `@McCLANE` keeps its case, and every renderer prints it that way: the parser
@@ -134,7 +143,9 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   A `[[` preceded by an odd number of backslashes is escaped, printed text and no note, for the
   parser and the spell checker alike; the parser drops the backslash, so the node marks the `[`
   with `ocptFountainEscapedAttribution` and the spans are looked for in a copy of its text where
-  that character is blanked.
+  that character is blanked. `OcptWysiwygInlineRuns.writeLine` writes the backslash back in front
+  of a marked `[` that no `]]` follows on the line: the serializer reads one line at a time, and
+  would otherwise leave it bare, for a `]]` on a later line to close into a note.
   A derived pass, run with the others inside the settle pass (so with no undo step of its own),
   puts `ocptFountainCommentAttribution` on every commented span, across nodes too; the stylesheet
   dims it like a note. `decode` puts the same attributions itself, so a decoded document is
@@ -218,15 +229,17 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   dropdown does, so no gesture can behave differently from its keyboard or toolbar twin. The two
   note entries form their own group between the clipboard and the block type, and
   `OcptFountainNoteActions` (`ocpt_fountain_note_actions.dart`) holds their rules as pure functions
-  of a document and a selection, answering the requests to run or null. Insert note wraps a
-  selection inside one block in `[[` ... `]]` (caret before the closing brackets), or drops an empty
-  `[[]]` at a collapsed caret (caret between them); it is withheld across several blocks, on a
-  title-page field or a page break, and wherever the selection touches an existing note, since notes
-  never nest. Remove note appears when the caret, or the whole selection, lies inside one `[[...]]`
-  range and deletes it whole, brackets and content, and the one space it would leave doubled or
-  dangling, with no confirmation. A note running over several blocks goes the same way: the blocks
-  it covers are dropped, and what stood before it in its first block joins what stood after it in
-  its last. Each command is one `Editor.execute`, hence one undo step. The
+  of a document and a selection, answering the requests to run or null; `OcptStyledNoteEditing`
+  runs them. Insert note puts an empty note at the caret, or at the end of a selection inside one
+  block, the selected text left as it is, selects it and gives its card the focus (see **Notes**
+  below); it is withheld across several blocks, on a title-page field or a page break, and wherever
+  the selection touches a note still held as text, since notes never nest. Remove note appears when
+  the caret touches a note, the selection holds one alone, a note is selected in the margin, or the
+  caret lies inside a `[[...]]` range kept as text, and deletes it whole, brackets and content, and
+  the one space it would leave doubled or dangling, with no confirmation. A note running over
+  several blocks goes the same way: the blocks it covers are dropped, and what stood before it in
+  its first block joins what stood after it in its last. Each command is one `Editor.execute`,
+  hence one undo step. The
   list of assignable types lives once, as `ocptAssignableFountainLineTypes`
   (`lib/ui/widgets/helpers/ocpt_fountain_line_type_labels.dart`). An entry with nothing to act on is
   **withheld, not disabled** (a null callback), which is what hides Cut/Copy over a collapsed caret.
@@ -238,6 +251,86 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   click rather than competing for it. Nothing is withheld for a read-only preview: the styled editor
   is not mounted under one at all, `OcptEditorCentre` substituting the read-only preview for both
   editing modes.
+
+- **Notes**: the styled editor shows a Fountain note `[[...]]` as a small speech bubble in the
+  line, and its text in a card in a margin column beside the page, the way a word processor shows
+  its comments. The UI says *note*, never *comment*. A boneyard stays dimmed text in the line.
+- **A note is an inline placeholder**, `OcptFountainNote` (`ocpt_fountain_note.dart`): one
+  position of the node's `AttributedText`, carrying the note's text and an identifier minted when
+  the note is created and never reused, which follows the note through the edits of its text and
+  tells two notes holding the same words apart. Its `expansion` is always `[[text]]`. The layout
+  the passes read is the **expanded** text, each placeholder written back as its expansion, and
+  `OcptWysiwygNoteOffsets` is the one place that maps a range of a line back to its node: a range
+  covering part of a note covers the whole note, so a placeholder is never cut in two. The
+  simulated pagination counts a bubble as two characters, its drawn width.
+- **The invariant** (`OcptWysiwygNotes`, `ocpt_wysiwyg_notes.dart`): a node holds a placeholder
+  for exactly each note the parser would see that opens and closes within the lines the node
+  covers, lies outside every boneyard and holds neither `/*` nor `*/`; every other note stays text,
+  bracketed and dimmed. `decode` builds it, and a pass run first in the settle (before any pass
+  reads a text, in an `execute` of its own, the document laid out again after it) keeps it: a note
+  typed or pasted as text is **absorbed** into a placeholder as soon as it satisfies the invariant,
+  and a placeholder whose expansion stops being such a note is **dissolved** back into its text. So
+  the Fountain source a node writes never depends on which form its notes took, and a note's text
+  never holds `]]`, `/*` or `*/`. A node an input method is still composing is left for the next
+  settle. A note running over several lines is the one the live passes never create nor dissolve
+  (see the node model above): only a decode folds or unfolds it.
+- **The bubble** is an inline widget (`OcptFountainNoteMarker`, `ocpt_fountain_note_marker.dart`),
+  built for the placeholder through the stylesheet's `inlineWidgetBuilders`: the app's accent on a
+  light tint of itself, fixed like the rest of the paper styling, sized from the zoomed font, drawn
+  solid while its note is selected and over the search highlight colours while the query matches
+  inside its note. Its semantics label is the translated `Note`. `OcptNoteTapDelegate`, a content
+  tap delegate, makes it clickable: a tap on it selects the note and goes no further, a tap anywhere
+  else in the text drops the selection and goes on as usual.
+- **The selected note is view state** of the editing surface, like the composer's selection:
+  `OcptStyledNotes` (`ocpt_styled_notes.dart`) holds the notes of the document in document order
+  (`OcptNoteEntry`: node, offset, note, and whether its node holds nothing but notes) and the
+  selected identifier, which the bubble, the card and the line between them all follow. Nothing of
+  it reaches the document or the bloc, and it is dropped as soon as the document no longer holds
+  that note.
+- **The margin column** (`OcptStyledNotesMargin`, `ocpt_styled_notes_margin.dart`) stands to the
+  right of the sheets in page simulation, the sheets and the column centred together, and at the
+  right of the text in fluid mode, the text narrowing to leave it room. It is there only when the
+  document holds a note and `OcptStyledNotesMargin.fits` says the whole of it fits beside the page,
+  or beside the text at its minimum width, so it never makes the page scale down or the text scroll
+  sideways; a compact surface never has one. Both surfaces keep one tree whether it is there or not,
+  so the editor is never mounted again when the first note appears. The column reads where each
+  bubble is from the document layout after a frame that may have moved one (notes, size, zoom), in
+  the coordinates of the scrolled content, and follows the scroll by itself.
+  `ocptStackNoteCards` (`ocpt_note_card_stacking.dart`, a pure function) places the cards: each at
+  the line of its bubble, pushed down below the previous one when they would overlap; with a
+  selection, the selected card sits exactly at its line, the cards after it pushed down and the
+  ones before it pushed up, so no two cards overlap and the document order is kept.
+  `OcptNoteCardsLayoutDelegate` lays them out, the selected card shifted towards the page and
+  joined to its bubble by a thin line (`OcptNoteConnectorPainter`), drawn over the text it crosses.
+  A click on a card selects its note.
+- **Without room for the column, the selected note opens in a popover** under its bubble
+  (`OcptStyledNotePopover`, `ocpt_styled_note_popover.dart`), shown through an `OverlayPortal` so
+  that nothing clips it. `OcptNotePopoverPlacement`, pure, places it: under the bubble, above it
+  when there is no room below, kept inside the visible area, its pointer centred on the bubble.
+  Escape, Enter and a click outside close it, and it gives way to the card when the column comes
+  back. There is no setting choosing between the two: the room alone decides, and compact always
+  uses the popover.
+- **A note is written in its card**: the selected card, in the column or the popover, swaps its
+  text for `OcptNoteCardField` (`lib/ui/pages/editor/widgets/`), a multi-line field reporting every
+  change. Enter and Escape give the focus back to the text, the caret just after the bubble;
+  Shift+Enter breaks the line; Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y act on the editor's history, never
+  on the field's own. `OcptNoteTextInputFormatter` refuses an edit that would put `]]`, `/*` or
+  `*/` in the note, or end it with a `]`, so the invariant holds whatever is typed or pasted, and
+  writes a line left empty as two spaces, the way Fountain keeps a blank line inside a note. A note
+  sharing its node with other text holds no blank line, since one would split that text into two
+  paragraphs. `OcptStyledNoteEditing` (`ocpt_styled_note_editing.dart`) makes every write to a
+  note, from the card and from the menu, each one `Editor.execute`: it resolves the document, the
+  editor and the composer at call time, since the styled editor replaces all three whenever its
+  text is rebuilt from outside. **A note left empty is removed** when the writer leaves it, in the
+  undo step that created it when nothing else happened in between; the removal waits a microtask so
+  that a tap which put the caret elsewhere has set it first.
+- **The edits of one note are one undo step**, from its creation to the moment the writer leaves
+  it. They are ordinary text replacements, so `OcptNoteEditMergePolicy`
+  (`ocpt_note_edit_merge_policy.dart`), which `OcptSettleMergePolicy` consults first, cannot tell
+  them apart by itself: `OcptStyledHistory.runNoteEdit` runs each one under a token naming the
+  note, and a transaction closed under the same token as the one before merges onto it. The token
+  survives the selection changes made meanwhile and ends with any other document change, an undo
+  or a redo, and `endNoteSession`, which the field losing the focus calls.
 
 - **Dual dialogue**: a speech whose cue ends with `^` is printed beside the one before it
   (ADR 0035). `fountain_kit` owns the rule, once: `fountainDualDialoguePairs` over blocks and
@@ -579,6 +672,17 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   listener: firing it inside the still-open `Editor.execute` transaction reaches super_editor's own
   selection styler before the composer's selection has been reconciled, and crashes on any
   delete or cut.
+- **The styled search reaches the text of the notes** too, which the page shows in their cards.
+  `OcptStyledSearch.orderedSearchMatches` orders a match inside a note where the note's bubble
+  stands in its block, and among the matches of that note in the order of its text
+  (`OcptStyledSearchMatch`). The bubble of a note holding a match is tinted, more strongly for the
+  current match; the current match inside a note selects that note without taking the focus, so
+  its card, or its popover, opens with the match highlighted (`OcptNoteMatches`, painted by
+  `OcptNoteHighlightController` in the field and `OcptNoteHighlightSpans` in a read-only card),
+  and the caret is collapsed just after the bubble, so no text match stays selected. `Replace` and
+  `Replace all` write into a note through `OcptStyledSearchNotes.replacedText`, which answers null
+  when the note could not hold the result (a `]]`, a `/*` or a `*/` in it, or a trailing `]`): that
+  note is skipped and the others are still replaced. `Replace all` stays one undo step.
 - Navigating to a match places the selection **without taking keyboard focus** — the find field is
   what must keep it — which the styled editor's existing `clearSelectionWhenEditorLosesFocus: false`
   already allows. `Replace` moves on to the first match starting at or past the end of what it just

@@ -5,6 +5,9 @@
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note_marker.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_field_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
@@ -87,6 +90,11 @@ class OcptFountainEditorStylesheet {
   /// guards that itself rather than trusting every caller to, so a future caller passing
   /// `isCompact: true` alongside page simulation still gets an unmodified, print-accurate
   /// stylesheet.
+  ///
+  /// A note held as a placeholder is drawn as an [OcptFountainNoteMarker] reading [noteMarkerLabel]
+  /// to assistive technologies, a string the caller resolves since no stylesheet sees a `Tr`, and
+  /// solid while its note is the selected one of [notes], and hinting at the matches of the search:
+  /// the marker listens to [notes], so the stylesheet is not rebuilt for a selection.
   static Stylesheet build({
     required FountainLayoutMetrics metrics,
     required ColorScheme colorScheme,
@@ -95,6 +103,8 @@ class OcptFountainEditorStylesheet {
     bool isCompact = false,
     bool usePaperColors = false,
     double zoom = 1,
+    String noteMarkerLabel = "",
+    OcptStyledNotes? notes,
   }) {
     final layout = OcptEditorPreviewLayout(metrics: metrics, zoom: zoom);
     final isCompactFluid = isCompact && !isPageSimulationEnabled;
@@ -130,6 +140,16 @@ class OcptFountainEditorStylesheet {
       ),
       inlineTextStyler: (attributions, existingStyle) =>
           _inlineTextStyler(attributions, existingStyle, onSurfaceVariant),
+      inlineWidgetBuilders: [
+        (context, textStyle, placeholder) => placeholder is OcptFountainNote
+            ? OcptFountainNoteMarker(
+                fontSize: textStyle.fontSize ?? layout.fontSize,
+                semanticLabel: noteMarkerLabel,
+                noteId: placeholder.id,
+                notes: notes,
+              )
+            : null,
+      ],
       rules: [
         // `blank` and `action` both use the action box (left margin, full width) in the base text
         // color; every FountainLineType gets its own explicit rule below (rather than a

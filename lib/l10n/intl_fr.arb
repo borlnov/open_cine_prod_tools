@@ -49,6 +49,8 @@
   "editorContextMenuSelectAllAction": "Tout sélectionner",
   "editorContextMenuInsertNoteAction": "Insérer une note",
   "editorContextMenuRemoveNoteAction": "Supprimer la note",
+  "editorNoteMarkerLabel": "Note",
+  "editorNoteFieldHint": "Écrire une note…",
   "editorContextMenuBlockTypeSubmenu": "Type de bloc",
   "editorContextMenuIgnoreWordAction": "Ignorer ce mot",
   "editorContextMenuAddToDictionaryAction": "Ajouter au dictionnaire du projet",

@@ -404,21 +404,21 @@ void main() {
 
         await tester.placeCaretInParagraph(nodeAt(document, 0).id, 2);
         await typeRun(tester, "x");
-        expect(nodeAt(document, 0).text.toPlainText(), "Hex waits. [[a note]]");
+        expect(nodeAt(document, 0).text.toPlainText(), "Hex waits. \uFFFC");
         expect(controller.canUndo, isTrue);
 
         await sendCtrl(tester, LogicalKeyboardKey.keyZ);
         await pumpPastSettleDebounce(tester);
-        expect(nodeAt(document, 0).text.toPlainText(), "He waits. [[a note]]");
+        expect(nodeAt(document, 0).text.toPlainText(), "He waits. \uFFFC");
 
         await sendCtrlShift(tester, LogicalKeyboardKey.keyZ);
         await pumpPastSettleDebounce(tester);
-        expect(nodeAt(document, 0).text.toPlainText(), "Hex waits. [[a note]]");
+        expect(nodeAt(document, 0).text.toPlainText(), "Hex waits. \uFFFC");
 
         // The typing is the second step back; the first one is the caret the test put in the line.
         await sendCtrl(tester, LogicalKeyboardKey.keyZ);
         await pumpPastSettleDebounce(tester);
-        expect(nodeAt(document, 0).text.toPlainText(), "He waits. [[a note]]");
+        expect(nodeAt(document, 0).text.toPlainText(), "He waits. \uFFFC");
         await sendCtrl(tester, LogicalKeyboardKey.keyZ);
         await pumpPastSettleDebounce(tester);
         expect(controller.canUndo, isFalse);

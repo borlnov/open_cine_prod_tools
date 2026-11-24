@@ -193,6 +193,9 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
                     focusNode: _findFocusNode,
                     onChanged: widget.onQueryChanged,
                     onSubmitted: (_) => widget.onNextRequested(),
+                    // Keep the focus on Enter, which would otherwise leave the field, so the next
+                    // Enter goes to the next match too.
+                    onEditingComplete: () {},
                     decoration: InputDecoration(
                       isDense: true,
                       hintText: tr.editorFindHint,
@@ -257,6 +260,8 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
                       controller: _replaceController,
                       onChanged: widget.onReplacementChanged,
                       onSubmitted: (_) => widget.onReplaceRequested?.call(),
+                      // Keep the focus on Enter, so the next Enter replaces the next match.
+                      onEditingComplete: () {},
                       decoration: InputDecoration(isDense: true, hintText: tr.editorReplaceHint),
                     ),
                   ),

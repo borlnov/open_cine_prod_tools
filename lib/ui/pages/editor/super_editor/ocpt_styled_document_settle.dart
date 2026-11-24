@@ -26,6 +26,20 @@ final class OcptStyledDocumentSettle {
     // composition ends.
     final composingNodeIds = _composingNodeIds(editor);
 
+    // The notes come first, in an `execute` of their own, since they rewrite the texts the passes
+    // after them read and address: a note typed as text is absorbed into a placeholder, and one
+    // that no longer is a note goes back to text. Only then do the other passes see the offsets
+    // the nodes now have.
+    final noteRequests = OcptWysiwygCodec.noteRequests(
+      document,
+      documentLayout: layout,
+      composingNodeIds: composingNodeIds,
+    );
+    if (noteRequests.isNotEmpty) {
+      editor.execute(noteRequests);
+      layout = OcptWysiwygCodec.layoutOf(document);
+    }
+
     // Run before every other pass and in its own `execute` call: a `#N#`
     // tag typed live still sits in the node's plain text at this point, and both this pass and
     // `uppercaseRequests` would otherwise compute their replacement text from that same pre-strip

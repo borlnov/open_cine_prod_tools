@@ -4,6 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
@@ -81,10 +82,12 @@ void main() {
       final decoded = OcptWysiwygCodec.decode(_commentedSource);
       final inert = OcptWysiwygCodec.inertNodeIds(decoded.document);
 
-      expect(decoded.document.nodeCount, 16);
+      // The note running over three lines is one node.
+      expect(decoded.document.nodeCount, 14);
+      expect(decoded.mapping.lineCountOfNodeIndex(11), 3);
       for (var index = 0; index < decoded.document.nodeCount; index++) {
         final node = decoded.document.getNodeAt(index)! as ParagraphNode;
-        final isCommented = index >= 2 && index <= 13;
+        final isCommented = index >= 2 && index <= 11;
         expect(inert.contains(node.id), isCommented, reason: node.text.toPlainText());
         if (isCommented) {
           expect(typeAt(decoded.document, index), FountainLineType.action);
@@ -184,8 +187,9 @@ void main() {
       expect(rangesAt(decoded.document, 0), [(9, 17)]);
       expect(rangesAt(decoded.document, 1), [(0, 15)]);
       expect(rangesAt(decoded.document, 2), [(0, 6)]);
-      expect(rangesAt(decoded.document, 3), [(0, 9)]);
-      expect(rangesAt(decoded.document, 4), [(0, 11)]);
+      // The note is one node, held as a placeholder the dimming covers whole.
+      expect(decoded.document.nodeCount, 4);
+      expect(rangesAt(decoded.document, 3), [(0, 1)]);
       expect(OcptWysiwygCodec.commentAttributionRequests(decoded.document), isEmpty);
     });
 
@@ -211,9 +215,19 @@ void main() {
       final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document);
 
       expect(requests, hasLength(1));
+      final text = (requests.single as OcptReplaceNodeTextRequest).text;
+      expect(text.toPlainText(), 'INT. HOUSE - DAY \uFFFC');
+      expect((text.placeholders[17]! as OcptFountainNote).text, 'later');
+    });
+
+    test('the text of a note kept as text is left as written too', () {
+      final decoded = OcptWysiwygCodec.decode('int. house - day [[later /* x]]');
+
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document);
+
       expect(
         (requests.single as OcptReplaceNodeTextRequest).text.toPlainText(),
-        'INT. HOUSE - DAY [[later]]',
+        'INT. HOUSE - DAY [[later /* x]]',
       );
     });
 
@@ -223,7 +237,8 @@ void main() {
       expect(typeAt(decoded.document, 0), FountainLineType.sceneHeading);
       final request =
           OcptWysiwygCodec.uppercaseRequests(decoded.document).single as OcptReplaceNodeTextRequest;
-      expect(request.text.toPlainText(), '[[later]]INT. HOUSE - DAY');
+      expect(request.text.toPlainText(), '\uFFFCINT. HOUSE - DAY');
+      expect((request.text.placeholders[0]! as OcptFountainNote).text, 'later');
     });
 
     test('the comment of a live line is not uppercased', () {

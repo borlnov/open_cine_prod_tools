@@ -18,13 +18,14 @@ final class OcptWysiwygDocumentLayout {
   /// Where the commented spans fall in the lines of [nodes].
   final OcptWysiwygCommentLayout comments;
 
-  /// The index, in the lines of [comments], of the line of each node.
-  final List<int> lineIndexOfNode;
+  /// The lines of [comments] each node covers, as the index of its first line and the number of
+  /// lines: more than one when a note it holds runs over several source lines.
+  final List<(int, int)> lineRangeOfNode;
 
   /// Class constructor.
   const OcptWysiwygDocumentLayout({
     required this.nodes,
     required this.comments,
-    required this.lineIndexOfNode,
+    required this.lineRangeOfNode,
   });
 }

@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_dual_dialogue_bracket.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_editor_stylesheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_fluid_surface.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_note_editing.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_note_popover.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes_margin.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_simulation_surface.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_zoom_anchor.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
@@ -13,7 +17,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_zoom_wheel_phy
 
 /// The surface the styled editor's `SuperEditor` is laid out on: the fluid surface, or the
 /// simulated paper sheets while page simulation is on, both with the same scroll configuration
-/// around [editor].
+/// around [editor]. Where the margin column has no room for the cards of the notes, the selected
+/// note opens in a popover over the surface.
 ///
 /// Material's `ScrollBehavior` would otherwise wrap `SuperEditor`'s internal `Scrollable` in its
 /// own implicit `Scrollbar`, painted at the edge of whichever box happens to contain it — i.e. on
@@ -58,6 +63,18 @@ class OcptStyledEditorSurface extends StatelessWidget {
   /// Whether the page can be zoomed here, which is what lets Ctrl + wheel stop scrolling it.
   final bool canZoom;
 
+  /// The notes of the document, whose cards stand beside the page when there is room.
+  final OcptStyledNotes notes;
+
+  /// The writes the cards of the notes make to them.
+  final OcptStyledNoteEditing noteEditing;
+
+  /// The key of the editor's document layout, which tells where the marker of each note is.
+  final GlobalKey documentLayoutKey;
+
+  /// Whether the surface is compact, which never has a notes margin.
+  final bool isCompact;
+
   /// Class constructor
   const OcptStyledEditorSurface({
     required this.editor,
@@ -70,6 +87,10 @@ class OcptStyledEditorSurface extends StatelessWidget {
     required this.pageCount,
     required this.titlePageSheetCount,
     required this.canZoom,
+    required this.notes,
+    required this.noteEditing,
+    required this.documentLayoutKey,
+    required this.isCompact,
     super.key,
   });
 
@@ -95,7 +116,14 @@ class OcptStyledEditorSurface extends StatelessWidget {
       ),
     );
 
-    return isPageSimulationEnabled
+    final notesMargin = OcptStyledNotesMargin(
+      notes: notes,
+      editing: noteEditing,
+      documentLayoutKey: documentLayoutKey,
+      scrollController: scrollController,
+    );
+
+    final surface = isPageSimulationEnabled
         ? OcptStyledPageSimulationSurface(
             theme: theme,
             layout: layout,
@@ -105,6 +133,9 @@ class OcptStyledEditorSurface extends StatelessWidget {
             editor: framedEditor,
             horizontalScrollController: horizontalScrollController,
             scrollsSideways: zoom > 1,
+            notes: notes,
+            notesMargin: notesMargin,
+            isCompact: isCompact,
           )
         : OcptStyledFluidSurface(
             theme: theme,
@@ -114,6 +145,16 @@ class OcptStyledEditorSurface extends StatelessWidget {
             horizontalScrollController: horizontalScrollController,
             scrollsSideways: zoom > 1,
             minContentWidth: OcptStyledZoomAnchor.fluidContentWidthOf(layout),
+            notes: notes,
+            notesMargin: notesMargin,
+            isCompact: isCompact,
           );
+
+    return OcptStyledNotePopover(
+      notes: notes,
+      editing: noteEditing,
+      scrollController: scrollController,
+      child: surface,
+    );
   }
 }

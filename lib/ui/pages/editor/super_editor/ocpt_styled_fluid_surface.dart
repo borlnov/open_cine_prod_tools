@@ -3,12 +3,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_notes_margin.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_scaled_to_fit.dart';
 
 /// The fluid editing surface the styled editor shows while page simulation is off: no sheets, no
 /// page numbers, just [editor], scrollable. Its ground follows the app theme, except on a phone
 /// ([usePaperColors], see `OcptStyledScreenplayEditor.usesPaperColorsWhileFluid`), where it is
 /// white paper so the screenplay reads the way the desktop's simulated page does.
+///
+/// When there are notes and the area keeps the text its minimum width beside them, [notesMargin]
+/// is reserved at the right and the text narrows to leave it room.
 class OcptStyledFluidSurface extends StatelessWidget {
   /// The theme the ground color follows when [usePaperColors] is false.
   final ThemeData theme;
@@ -33,6 +38,15 @@ class OcptStyledFluidSurface extends StatelessWidget {
   /// The width the editor's blocks need at the current zoom, in logical pixels.
   final double minContentWidth;
 
+  /// The notes of the document, which tell whether a margin is needed.
+  final OcptStyledNotes notes;
+
+  /// The column of note cards shown at the right of the text when it fits.
+  final Widget notesMargin;
+
+  /// Whether the surface is compact, which never has a notes margin.
+  final bool isCompact;
+
   /// Create an [OcptStyledFluidSurface].
   const OcptStyledFluidSurface({
     super.key,
@@ -43,6 +57,9 @@ class OcptStyledFluidSurface extends StatelessWidget {
     required this.horizontalScrollController,
     required this.scrollsSideways,
     required this.minContentWidth,
+    required this.notes,
+    required this.notesMargin,
+    required this.isCompact,
   });
 
   /// Build the styled fluid surface as a [Scrollbar].
@@ -53,13 +70,49 @@ class OcptStyledFluidSurface extends StatelessWidget {
     child: ColoredBox(
       color: usePaperColors ? Colors.white : theme.colorScheme.surface,
       child: LayoutBuilder(
-        builder: (context, constraints) => OcptStyledScaledToFit(
-          constraints: constraints,
-          pageWidth: minContentWidth,
-          horizontalScrollController: horizontalScrollController,
-          scrollsSideways: scrollsSideways,
-          scalesDown: false,
-          page: editor,
+        builder: (context, constraints) => ValueListenableBuilder<List<OcptNoteEntry>>(
+          valueListenable: notes.entries,
+          builder: (context, entries, child) {
+            // The margin is only ever there when the text keeps its minimum width beside it, so
+            // it never makes the text scroll sideways.
+            final hasMargin = OcptStyledNotesMargin.fits(
+              hasNotes: entries.isNotEmpty,
+              isCompact: isCompact,
+              availableWidth: constraints.maxWidth,
+              contentWidth: minContentWidth,
+            );
+            notes.reportMargin(isShown: hasMargin);
+            return OcptStyledScaledToFit(
+              constraints: constraints,
+              pageWidth: minContentWidth,
+              horizontalScrollController: horizontalScrollController,
+              scrollsSideways: scrollsSideways,
+              scalesDown: false,
+              // One tree whether the margin is there or not, so the editor is never mounted again
+              // when the first note appears or the last one goes.
+              page: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(
+                      right: hasMargin
+                          ? OcptStyledNotesMargin.reservedWidth + OcptStyledNotesMargin.outerMargin
+                          : 0,
+                    ),
+                    child: editor,
+                  ),
+                  if (hasMargin)
+                    Positioned(
+                      right: OcptStyledNotesMargin.outerMargin,
+                      top: 0,
+                      bottom: 0,
+                      width: OcptStyledNotesMargin.cardWidth,
+                      child: notesMargin,
+                    ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     ),

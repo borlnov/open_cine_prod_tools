@@ -4,10 +4,12 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_comment_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_document_layout.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_note_offsets.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart';
 import 'package:super_editor/super_editor.dart';
 
@@ -36,14 +38,15 @@ final class OcptWysiwygComments {
     OcptWysiwygDocumentLayout? documentLayout,
   }) {
     final requests = <EditRequest>[];
-    final (nodes, layout, lineIndexOfNode) = resolve(document, documentLayout);
+    final (nodes, layout, lineRangeOfNode) = resolve(document, documentLayout);
 
     for (var index = 0; index < nodes.length; index++) {
+      final (start, count) = lineRangeOfNode[index];
       requests.addAll(
         _attributionRequests(
           nodes[index],
           ocptFountainCommentAttribution,
-          layout.commentRangesByLine[lineIndexOfNode[index]],
+          nodeRangesOf(nodes[index], layout.commentRangesOfNode(start, count)),
         ),
       );
     }
@@ -69,20 +72,26 @@ final class OcptWysiwygComments {
     return requests;
   }
 
-  /// Get the (start, exclusive end) ranges of the notes [node]'s text holds: the `[[ ... ]]`
-  /// regions of its virtual text, an escaped `[[` leaving none.
+  /// Get the (start, exclusive end) ranges, in [node]'s text, of the notes it holds as text: the
+  /// `[[ ... ]]` regions of its virtual text, an escaped `[[` leaving none. A note held as a
+  /// placeholder is no such range: it has no text to dim.
   static List<(int, int)> noteRangesOf(ParagraphNode node) => [
-    for (final span in FountainCommentSpans.notes(virtualTextOf(node), honoursEscapes: false))
-      (span.start, span.end),
+    for (final (start, end) in nodeRangesOf(node, [
+      for (final span in FountainCommentSpans.notes(virtualTextOf(node), honoursEscapes: false))
+        (span.start, span.end),
+    ]))
+      if (!(end - start == 1 && node.text.placeholders[start] is OcptFountainNote)) (start, end),
   ];
 
-  /// Get the text of [node] the commented spans are looked for in: its plain text, the characters
-  /// that stand for an escaped bracket (see [ocptFountainEscapedAttribution]) made harmless.
+  /// Get the text of [node] the commented spans are looked for in, one line of Fountain source:
+  /// its plain text with every note it holds as a placeholder put back in its `[[text]]` form, and
+  /// the characters that stand for an escaped bracket (see [ocptFountainEscapedAttribution]) made
+  /// harmless.
   static String virtualTextOf(ParagraphNode node) {
     final plainText = node.text.toPlainText();
     final escaped = spansOf(node.text, ocptFountainEscapedAttribution);
     if (escaped.isEmpty) {
-      return plainText;
+      return plainLineOf(node, plainText);
     }
     final characters = plainText.split("");
     for (final (start, end) in escaped) {
@@ -90,16 +99,31 @@ final class OcptWysiwygComments {
         characters[index] = "(";
       }
     }
-    return characters.join();
+    return plainLineOf(node, characters.join());
   }
+
+  /// Get the number of source lines [node] covers: one, plus one for each newline of a note it
+  /// holds.
+  static int lineCountOf(ParagraphNode node) => 1 + "\n".allMatches(virtualTextOf(node)).length;
+
+  /// Get [nodeText], the plain text of [node] (or a copy of it), with every note [node] holds as a
+  /// placeholder written as its `[[text]]`: the line of Fountain source the node stands for.
+  static String plainLineOf(ParagraphNode node, String nodeText) =>
+      OcptWysiwygNoteOffsets.of(node.text).expand(nodeText);
+
+  /// Get [lineRanges], (start, exclusive end) ranges of [node]'s line (what the layout answers),
+  /// as ranges of [node]'s text, every note a range touches covered whole.
+  static List<(int, int)> nodeRangesOf(ParagraphNode node, List<(int, int)> lineRanges) =>
+      OcptWysiwygNoteOffsets.of(node.text).nodeRangesOf(lineRanges);
 
   /// Get the ids of the inert nodes of [document]: the body nodes whose whole text lies inside a
   /// boneyard or a note. Recomputed on every call, from the nodes' texts.
   static Set<String> inertNodeIds(Document document, {OcptWysiwygDocumentLayout? documentLayout}) {
-    final (nodes, layout, lineIndexOfNode) = resolve(document, documentLayout);
+    final (nodes, layout, lineRangeOfNode) = resolve(document, documentLayout);
     return {
       for (var index = 0; index < nodes.length; index++)
-        if (layout.isInertByLine[lineIndexOfNode[index]]) nodes[index].id,
+        if (layout.isInertOfNode(lineRangeOfNode[index].$1, lineRangeOfNode[index].$2))
+          nodes[index].id,
     };
   }
 
@@ -107,38 +131,42 @@ final class OcptWysiwygComments {
   /// [OcptWysiwygDocumentLayout]).
   static OcptWysiwygDocumentLayout layoutOf(Document document) {
     final nodes = bodyNodes(document);
-    final (layout, lineIndexOfNode) = layoutOfNodes(nodes);
+    final (layout, lineRangeOfNode) = layoutOfNodes(nodes);
     return OcptWysiwygDocumentLayout(
       nodes: nodes,
       comments: layout,
-      lineIndexOfNode: lineIndexOfNode,
+      lineRangeOfNode: lineRangeOfNode,
     );
   }
 
   /// Lay out [nodes] (body nodes only) as lines of plain text, the blank runs folded into their
   /// metadata put back, and compute where the commented spans fall; the second part tells, for
-  /// each node, its index in the layout's lines.
-  static (OcptWysiwygCommentLayout, List<int>) layoutOfNodes(List<ParagraphNode> nodes) {
+  /// each node, the index of its first line in the layout's lines and the number of lines it
+  /// covers.
+  static (OcptWysiwygCommentLayout, List<(int, int)>) layoutOfNodes(List<ParagraphNode> nodes) {
     layoutCount++;
     final lines = <String>[];
-    final lineIndexOfNode = List<int>.filled(nodes.length, 0);
+    final lineRangeOfNode = <(int, int)>[];
     for (var index = 0; index < nodes.length; index++) {
       for (var blank = 0; blank < blankLinesBeforeOf(nodes[index]); blank++) {
         lines.add("");
       }
-      lineIndexOfNode[index] = lines.length;
-      lines.add(virtualTextOf(nodes[index]));
+      // A note running over several lines puts a newline in the text: the layout's lines are the
+      // lines of source, however many a node covers.
+      final nodeLines = virtualTextOf(nodes[index]).split("\n");
+      lineRangeOfNode.add((lines.length, nodeLines.length));
+      lines.addAll(nodeLines);
     }
-    return (OcptWysiwygCommentLayout.of(lines, honoursEscapes: false), lineIndexOfNode);
+    return (OcptWysiwygCommentLayout.of(lines, honoursEscapes: false), lineRangeOfNode);
   }
 
   /// Get the body nodes of [document] with their layout: [given] when set, else computed.
-  static (List<ParagraphNode>, OcptWysiwygCommentLayout, List<int>) resolve(
+  static (List<ParagraphNode>, OcptWysiwygCommentLayout, List<(int, int)>) resolve(
     Document document,
     OcptWysiwygDocumentLayout? given,
   ) {
     final resolved = given ?? layoutOf(document);
-    return (resolved.nodes, resolved.comments, resolved.lineIndexOfNode);
+    return (resolved.nodes, resolved.comments, resolved.lineRangeOfNode);
   }
 
   /// Get the body paragraphs of [document], the title-page fields left out.
@@ -151,8 +179,9 @@ final class OcptWysiwygComments {
   /// would put, so a decoded document is already settled: the editor's first history snapshot
   /// carries them, and no pass has anything to add on a document nobody edited.
   static void attributeCommentedText(List<ParagraphNode> nodes) {
-    final (layout, lineIndexOfNode) = layoutOfNodes(nodes);
+    final (layout, lineRangeOfNode) = layoutOfNodes(nodes);
     for (var index = 0; index < nodes.length; index++) {
+      final (start, count) = lineRangeOfNode[index];
       final text = nodes[index].text;
       final length = text.length;
       void set(NamedAttribution attribution, List<(int, int)> desired) {
@@ -168,7 +197,10 @@ final class OcptWysiwygComments {
         }
       }
 
-      set(ocptFountainCommentAttribution, layout.commentRangesByLine[lineIndexOfNode[index]]);
+      set(
+        ocptFountainCommentAttribution,
+        nodeRangesOf(nodes[index], layout.commentRangesOfNode(start, count)),
+      );
       set(ocptFountainNoteAttribution, noteRangesOf(nodes[index]));
     }
   }

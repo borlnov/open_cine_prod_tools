@@ -10,7 +10,8 @@ import 'package:super_editor/super_editor.dart';
 /// a copy carrying the new text (metadata untouched), via `ParagraphNode.copyTextNodeWith`,
 /// mirroring [OcptChangeNodeMetadataCommand]'s own pattern. A selection or composing region end
 /// that the shorter text leaves past its end is brought back to it, so neither is left outside the
-/// text.
+/// text; one the replacement moves (a note absorbed into a placeholder shortens what comes before
+/// it) is carried by [mapOffset] to where its character now is.
 class OcptReplaceNodeTextCommand extends EditCommand {
   /// The id of the `ParagraphNode` whose text is being replaced.
   final String nodeId;
@@ -18,13 +19,17 @@ class OcptReplaceNodeTextCommand extends EditCommand {
   /// The new text for the node.
   final AttributedText text;
 
+  /// Brings an offset of the node's former text to the matching offset of [text], or null when the
+  /// offsets stay where they were (see `OcptReplaceNodeTextRequest.mapOffset`).
+  final int Function(int offset)? mapOffset;
+
   /// Get this command's undo/redo behavior: grouped with other undoable edits, matching
   /// [OcptChangeNodeMetadataCommand].
   @override
   HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
 
   /// Create an [OcptReplaceNodeTextCommand].
-  const OcptReplaceNodeTextCommand({required this.nodeId, required this.text});
+  const OcptReplaceNodeTextCommand({required this.nodeId, required this.text, this.mapOffset});
 
   /// Apply the text replacement to the document.
   @override
@@ -71,18 +76,21 @@ class OcptReplaceNodeTextCommand extends EditCommand {
     extent: _clampedPosition(selection.extent),
   );
 
-  /// Get [position] brought back inside the new text when it lies in the replaced node.
+  /// Get [position] moved through [mapOffset] and brought back inside the new text when it lies in
+  /// the replaced node.
   DocumentPosition _clampedPosition(DocumentPosition position) {
     final nodePosition = position.nodePosition;
     if (position.nodeId != nodeId || nodePosition is! TextNodePosition) {
       return position;
     }
     final length = text.length;
-    return nodePosition.offset <= length
+    final offset = mapOffset?.call(nodePosition.offset) ?? nodePosition.offset;
+    final clamped = offset > length ? length : offset;
+    return clamped == nodePosition.offset
         ? position
         : DocumentPosition(
             nodeId: nodeId,
-            nodePosition: TextNodePosition(offset: length),
+            nodePosition: TextNodePosition(offset: clamped),
           );
   }
 }
@@ -92,5 +100,9 @@ class OcptReplaceNodeTextCommand extends EditCommand {
 /// `_OcptStyledScreenplayEditorState._rebuildEditorFrom`).
 EditCommand? ocptReplaceNodeTextRequestHandler(Editor editor, EditRequest request) =>
     request is OcptReplaceNodeTextRequest
-    ? OcptReplaceNodeTextCommand(nodeId: request.nodeId, text: request.text)
+    ? OcptReplaceNodeTextCommand(
+        nodeId: request.nodeId,
+        text: request.text,
+        mapOffset: request.mapOffset,
+      )
     : null;

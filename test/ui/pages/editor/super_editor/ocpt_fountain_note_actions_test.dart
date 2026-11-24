@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_command.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_command.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
@@ -33,6 +34,20 @@ DocumentSelection _selection(int base, [int? extent]) => DocumentSelection(
 String _writtenText(List<EditRequest> requests) =>
     (requests.first as OcptReplaceNodeTextRequest).text.toPlainText();
 
+/// Read the note the first request of [requests] writes at [offset] of its text.
+OcptFountainNote _insertedNote(List<EditRequest> requests, int offset) =>
+    (requests.first as OcptReplaceNodeTextRequest).text.placeholders[offset]! as OcptFountainNote;
+
+/// Build a one-paragraph document holding [before], a note holding [noteText], and [after].
+MutableDocument _documentWithNote(String before, String noteText, String after) {
+  final text = AttributedText(
+    "$before$after",
+  ).insertPlaceholder(before.length, OcptFountainNote.create(noteText));
+  return MutableDocument(
+    nodes: [ParagraphNode(id: "n", text: text)],
+  );
+}
+
 /// Read the caret offset the last request of [requests] places.
 int _caretOffset(List<EditRequest> requests) =>
     ((requests.last as ChangeSelectionRequest).newSelection!.extent.nodePosition
@@ -42,33 +57,53 @@ int _caretOffset(List<EditRequest> requests) =>
 /// Run the tests of [OcptFountainNoteActions].
 void main() {
   group("insertRequests", () {
-    test("a collapsed caret gets an empty note with the caret between the brackets", () {
+    test("a collapsed caret gets an empty note, the caret right after it", () {
       final requests = OcptFountainNoteActions.insertRequests(
         _document("Hello world"),
         _selection(5),
       )!;
 
-      expect(_writtenText(requests), "Hello[[]] world");
-      expect(_caretOffset(requests), 7);
+      expect(_writtenText(requests), "Hello\uFFFC world");
+      expect(_insertedNote(requests, 5).text, "");
+      expect(_caretOffset(requests), 6);
     });
 
-    test("a selection inside one block is wrapped, the caret just before the closing brackets", () {
+    test("a selection inside one block gets the note at its end, the selected text untouched", () {
       final requests = OcptFountainNoteActions.insertRequests(
         _document("Hello big world"),
         _selection(6, 9),
       )!;
 
-      expect(_writtenText(requests), "Hello [[big]] world");
-      expect(_caretOffset(requests), 11);
+      expect(_writtenText(requests), "Hello big\uFFFC world");
+      expect(_insertedNote(requests, 9).text, "");
+      expect(_caretOffset(requests), 10);
     });
 
-    test("a backwards selection is wrapped the same way", () {
+    test("a backwards selection gets the note at its end the same way", () {
       final requests = OcptFountainNoteActions.insertRequests(
         _document("Hello big world"),
         _selection(9, 6),
       )!;
 
-      expect(_writtenText(requests), "Hello [[big]] world");
+      expect(_writtenText(requests), "Hello big\uFFFC world");
+    });
+
+    test("the note goes at the very start and at the very end of a block too", () {
+      expect(
+        _writtenText(OcptFountainNoteActions.insertRequests(_document("Hi"), _selection(0))!),
+        "\uFFFCHi",
+      );
+      expect(
+        _writtenText(OcptFountainNoteActions.insertRequests(_document("Hi"), _selection(2))!),
+        "Hi\uFFFC",
+      );
+    });
+
+    test("is not withheld right beside a note held as a placeholder", () {
+      final document = _documentWithNote("a ", "x", " b");
+
+      expect(OcptFountainNoteActions.insertRequests(document, _selection(2)), isNotNull);
+      expect(OcptFountainNoteActions.insertRequests(document, _selection(3)), isNotNull);
     });
 
     test("is withheld without a selection", () {
@@ -187,6 +222,84 @@ void main() {
     });
   });
 
+  group("removeRequests on a note held as a placeholder", () {
+    test("a caret touching the note, on either side, removes it with one space", () {
+      final document = _documentWithNote("a ", "x", " b");
+
+      final after = OcptFountainNoteActions.removeRequests(document, _selection(3))!;
+      final before = OcptFountainNoteActions.removeRequests(document, _selection(2))!;
+
+      expect(_writtenText(after), "a b");
+      expect(_caretOffset(after), 1);
+      expect(_writtenText(before), "a b");
+    });
+
+    test("a selection holding the note alone removes it", () {
+      final requests = OcptFountainNoteActions.removeRequests(
+        _documentWithNote("a ", "x", " b"),
+        _selection(0, 5),
+      )!;
+
+      expect(_writtenText(requests), "a b");
+    });
+
+    test("a note opening the line takes the space after it, one closing it the space before", () {
+      expect(
+        _writtenText(
+          OcptFountainNoteActions.removeRequests(
+            _documentWithNote("", "x", " word"),
+            _selection(1),
+          )!,
+        ),
+        "word",
+      );
+      expect(
+        _writtenText(
+          OcptFountainNoteActions.removeRequests(
+            _documentWithNote("DAY ", "x", ""),
+            _selection(5),
+          )!,
+        ),
+        "DAY",
+      );
+    });
+
+    test("is withheld away from the note and for a selection holding two", () {
+      final document = _documentWithNote("a ", "x", " b");
+      expect(OcptFountainNoteActions.removeRequests(document, _selection(0)), isNull);
+      expect(OcptFountainNoteActions.removeRequests(document, _selection(4)), isNull);
+
+      final two = MutableDocument(
+        nodes: [
+          ParagraphNode(
+            id: "n",
+            text: AttributedText("ab")
+                .insertPlaceholder(1, OcptFountainNote.create("x"))
+                .insertPlaceholder(3, OcptFountainNote.create("y")),
+          ),
+        ],
+      );
+      expect(OcptFountainNoteActions.removeRequests(two, _selection(0, 4)), isNull);
+    });
+
+    test("the note a decoded line holds goes whole, the text around it kept", () {
+      final document = OcptWysiwygCodec.decode("He runs [[note]] away.").document;
+      final node = document.getNodeAt(0)! as ParagraphNode;
+
+      final requests = OcptFountainNoteActions.removeRequests(
+        document,
+        DocumentSelection.collapsed(
+          position: DocumentPosition(
+            nodeId: node.id,
+            nodePosition: const TextNodePosition(offset: 9),
+          ),
+        ),
+      )!;
+
+      expect(_writtenText(requests), "He runs away.");
+    });
+  });
+
   group("an escaped bracket is printed text", () {
     test("Remove note is withheld inside it, and a real note next to it still goes", () {
       final document = OcptWysiwygCodec.decode(r'He \[[x]] y [[n]].').document;
@@ -198,9 +311,9 @@ void main() {
         ),
       );
 
-      expect(node.text.toPlainText(), "He [[x]] y [[n]].");
+      expect(node.text.toPlainText(), "He [[x]] y \uFFFC.");
       expect(OcptFountainNoteActions.removeRequests(document, caretAt(6)), isNull);
-      expect(OcptFountainNoteActions.removeRequests(document, caretAt(14)), isNotNull);
+      expect(OcptFountainNoteActions.removeRequests(document, caretAt(12)), isNotNull);
     });
   });
 
@@ -310,6 +423,75 @@ void main() {
       expect(OcptFountainNoteActions.removeRequests(document, caret("a", 1)), isNull);
       expect(OcptFountainNoteActions.removeRequests(document, caret("b", 12)), isNull);
       expect(OcptFountainNoteActions.removeRequests(document, caret("c", 1)), isNull);
+    });
+  });
+
+  group("the notes addressed by identifier", () {
+    test("insertRequests puts the note it is given, whose identifier is kept", () {
+      const note = OcptFountainNote(id: "given", text: "");
+
+      final requests = OcptFountainNoteActions.insertRequests(
+        _document("Some text."),
+        _selection(4, 9),
+        note: note,
+      )!;
+
+      expect(_insertedNote(requests, 9), note);
+      expect(_writtenText(requests), "Some text\uFFFC.");
+    });
+
+    test("changeTextRequests gives the note a new text, keeping its id and place", () {
+      final document = _documentWithNote("a ", "old", " b");
+      final note =
+          (document.getNodeAt(0)! as ParagraphNode).text.placeholders[2]! as OcptFountainNote;
+
+      final requests = OcptFountainNoteActions.changeTextRequests(document, note.id, "new")!;
+
+      expect(_writtenText(requests), "a \uFFFC b");
+      expect(_insertedNote(requests, 2), note.withText("new"));
+      expect(OcptFountainNoteActions.changeTextRequests(document, "unknown", "new"), isNull);
+    });
+
+    test("removeNoteRequests takes the note and a doubled space, and may leave the caret", () {
+      final document = _documentWithNote("a ", "x", " b");
+      final note =
+          (document.getNodeAt(0)! as ParagraphNode).text.placeholders[2]! as OcptFountainNote;
+
+      final requests = OcptFountainNoteActions.removeNoteRequests(document, note.id)!;
+      expect(_writtenText(requests), "a b");
+      expect(_caretOffset(requests), 1);
+
+      final quiet = OcptFountainNoteActions.removeNoteRequests(
+        document,
+        note.id,
+        movesCaret: false,
+      )!;
+      expect(quiet, hasLength(1));
+      final mapOffset = (quiet.single as OcptReplaceNodeTextRequest).mapOffset!;
+      expect(
+        [mapOffset(0), mapOffset(1), mapOffset(2), mapOffset(3), mapOffset(5)],
+        [0, 1, 1, 1, 3],
+      );
+      expect(OcptFountainNoteActions.removeNoteRequests(document, "unknown"), isNull);
+    });
+
+    test("removeRequests falls back on the selected note when the caret touches none", () {
+      final document = _documentWithNote("a ", "x", " b longer");
+      final note =
+          (document.getNodeAt(0)! as ParagraphNode).text.placeholders[2]! as OcptFountainNote;
+
+      expect(OcptFountainNoteActions.removeRequests(document, _selection(8)), isNull);
+      expect(OcptFountainNoteActions.removeRequests(document, null), isNull);
+      expect(
+        _writtenText(
+          OcptFountainNoteActions.removeRequests(document, _selection(8), selectedNoteId: note.id)!,
+        ),
+        "a b longer",
+      );
+      expect(
+        OcptFountainNoteActions.removeRequests(document, _selection(8), selectedNoteId: "gone"),
+        isNull,
+      );
     });
   });
 }

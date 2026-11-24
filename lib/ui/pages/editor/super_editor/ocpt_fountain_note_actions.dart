@@ -5,8 +5,10 @@
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_note_offsets.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The pure half of the styled editor's "Insert note" and "Remove note" commands: from a document
@@ -21,12 +23,16 @@ final class OcptFountainNoteActions {
   /// Get the requests inserting a note at [selection] of [document], or null when the command is
   /// withheld.
   ///
-  /// A collapsed caret gets an empty `[[]]` with the caret left between the brackets; a selection
-  /// inside one block is wrapped in `[[` ... `]]` with the caret left just before the closing
-  /// brackets. It is withheld when there is no selection, when the selection spans several blocks
-  /// or sits on anything but a body paragraph (a title-page field, a page break), and when it
-  /// touches an existing note, since notes never nest.
-  static List<EditRequest>? insertRequests(Document document, DocumentSelection? selection) {
+  /// The note is an empty placeholder put at the caret, or at the end of a selection inside one
+  /// block, the selected text left as it is, and the caret lands right after it. It is withheld
+  /// when there is no selection, when the selection spans several blocks or sits on anything but a
+  /// body paragraph (a title-page field, a page break), and when it touches a note still held as
+  /// text, since notes never nest. The note is [note] when given, a new empty one otherwise.
+  static List<EditRequest>? insertRequests(
+    Document document,
+    DocumentSelection? selection, {
+    OcptFountainNote? note,
+  }) {
     final target = _target(document, selection);
     if (target == null) {
       return null;
@@ -42,30 +48,41 @@ final class OcptFountainNoteActions {
       return null;
     }
 
-    final wrapped = text
-        .copyText(0, target.start)
-        .copyAndAppend(AttributedText("[["))
-        .copyAndAppend(text.copyText(target.start, target.end))
-        .copyAndAppend(AttributedText("]]"))
-        .copyAndAppend(text.copyText(target.end));
-    final caretOffset = target.end + 2;
+    final placeholder = AttributedText(
+      "",
+    ).insertPlaceholder(0, note ?? OcptFountainNote.create(""));
+    final inserted = target.end == 0
+        ? placeholder.copyAndAppend(text)
+        : text
+              .copyText(0, target.end)
+              .copyAndAppend(placeholder)
+              .copyAndAppend(_tailOf(text, target.end));
 
     return [
-      OcptReplaceNodeTextRequest(nodeId: target.node.id, text: wrapped),
-      _caretRequest(target.node.id, caretOffset),
+      OcptReplaceNodeTextRequest(nodeId: target.node.id, text: inserted),
+      _caretRequest(target.node.id, target.end + 1),
     ];
   }
 
   /// Get the requests removing the note [selection] of [document] lies in, or null when the
-  /// command is withheld: no selection, or a caret or selection not wholly inside one `[[...]]`
-  /// range.
+  /// command is withheld: no selection, a caret touching no note nor lying inside a `[[...]]` range
+  /// kept as text, or a selection holding anything but exactly one note or lying wholly inside a
+  /// `[[...]]` range.
+  ///
+  /// A note held as a placeholder is removed when the caret touches it or the selection holds it
+  /// alone, and, when neither is the case, the note [selectedNoteId] names (the one selected in the
+  /// margin) when the document holds it.
   ///
   /// A note inside one block goes whole, brackets and content, along with the one space that would
   /// otherwise be left doubled or dangling, and the caret lands where the removed text started. A
   /// note running over several blocks goes the same way: the blocks it covers are dropped, and what
   /// stood before it in its first block is joined to what stood after it in its last, all in the
   /// same request list, so one undo step puts it back.
-  static List<EditRequest>? removeRequests(Document document, DocumentSelection? selection) {
+  static List<EditRequest>? removeRequests(
+    Document document,
+    DocumentSelection? selection, {
+    String? selectedNoteId,
+  }) {
     final target = _target(document, selection, allowsNotedPageBreak: true);
     if (target != null) {
       final text = target.node.text;
@@ -76,19 +93,118 @@ final class OcptFountainNoteActions {
                 : target.start >= range.$1 && target.end <= range.$2,
           )
           .firstOrNull;
-      if (range != null) {
-        final (start, end) = _withOneSurroundingSpace(text.toPlainText(), range);
+      final placeholderIndex = _placeholderIndexFor(target);
+      final removed =
+          range ?? (placeholderIndex == null ? null : (placeholderIndex, placeholderIndex + 1));
+      if (removed != null) {
+        final (start, end) = _withOneSurroundingSpace(text.toPlainText(), removed);
         return [
           OcptReplaceNodeTextRequest(
             nodeId: target.node.id,
-            text: text.copyText(0, start).copyAndAppend(text.copyText(end)),
+            text: _headOf(text, start).copyAndAppend(_tailOf(text, end)),
           ),
           _caretRequest(target.node.id, start),
         ];
       }
     }
 
-    return _removeAcrossBlocks(document, selection);
+    return _removeAcrossBlocks(document, selection) ??
+        (selectedNoteId == null ? null : removeNoteRequests(document, selectedNoteId));
+  }
+
+  /// Get the requests removing the note held as a placeholder whose identifier is [noteId], or
+  /// null when the document holds none: the placeholder goes, along with the one space that would
+  /// otherwise be left doubled or dangling.
+  ///
+  /// The caret lands where the note stood when [movesCaret] is true. Otherwise the selection stays
+  /// where it is, brought to where its character now is, which is what the removal of a note the
+  /// writer has left must do.
+  static List<EditRequest>? removeNoteRequests(
+    Document document,
+    String noteId, {
+    bool movesCaret = true,
+  }) {
+    final found = _findNote(document, noteId);
+    if (found == null) {
+      return null;
+    }
+
+    final (node, index, _) = found;
+    final (start, end) = _withOneSurroundingSpace(node.text.toPlainText(), (index, index + 1));
+    return [
+      OcptReplaceNodeTextRequest(
+        nodeId: node.id,
+        text: _headOf(node.text, start).copyAndAppend(_tailOf(node.text, end)),
+        mapOffset: (offset) => offset >= end
+            ? offset - (end - start)
+            : offset > start
+            ? start
+            : offset,
+      ),
+      if (movesCaret) _caretRequest(node.id, start),
+    ];
+  }
+
+  /// Get the requests giving the note held as a placeholder whose identifier is [noteId] the text
+  /// [text], or null when the document holds none. The note keeps its identifier and its place,
+  /// and nothing else of the document changes.
+  static List<EditRequest>? changeTextRequests(Document document, String noteId, String text) {
+    final found = _findNote(document, noteId);
+    if (found == null) {
+      return null;
+    }
+
+    final (node, index, note) = found;
+    return [
+      OcptReplaceNodeTextRequest(
+        nodeId: node.id,
+        text: _headOf(node.text, index)
+            .copyAndAppend(AttributedText("").insertPlaceholder(0, note.withText(text)))
+            .copyAndAppend(_tailOf(node.text, index + 1)),
+      ),
+    ];
+  }
+
+  /// Find the placeholder of the note [noteId] in [document]: the paragraph holding it, its offset
+  /// in the text of that paragraph and the note itself, or null when the document holds none.
+  static (ParagraphNode, int, OcptFountainNote)? _findNote(Document document, String noteId) {
+    for (final node in document.whereType<ParagraphNode>()) {
+      for (final placeholder in node.text.placeholders.entries) {
+        final value = placeholder.value;
+        if (value is OcptFountainNote && value.id == noteId) {
+          return (node, placeholder.key, value);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /// Get the text of [text] from [offset] on, empty when [offset] is its end.
+  static AttributedText _tailOf(AttributedText text, int offset) =>
+      offset >= text.length ? AttributedText("") : text.copyText(offset);
+
+  /// Get the text of [text] before [offset], empty when [offset] is its start.
+  static AttributedText _headOf(AttributedText text, int offset) =>
+      offset <= 0 ? AttributedText("") : text.copyText(0, offset);
+
+  /// Get the offset of the one note [target] designates among the notes its node holds as
+  /// placeholders, or null when it designates none or several: the note a collapsed caret touches
+  /// (the one before the caret when it touches two), or the only one a selection holds.
+  static int? _placeholderIndexFor(_NoteTarget target) {
+    final placeholders = target.node.text.placeholders;
+    bool isNote(int offset) => placeholders[offset] is OcptFountainNote;
+    if (target.start == target.end) {
+      if (isNote(target.start - 1)) {
+        return target.start - 1;
+      }
+      return isNote(target.start) ? target.start : null;
+    }
+    final inside = [
+      for (final offset in placeholders.keys)
+        if (offset >= target.start && offset < target.end && isNote(offset)) offset,
+    ];
+    return inside.length == 1 ? inside.single : null;
   }
 
   /// Get the requests removing the note of [document] that [selection] lies in when that note runs
@@ -102,15 +218,21 @@ final class OcptFountainNoteActions {
         .whereType<ParagraphNode>()
         .where((node) => !OcptWysiwygCodec.isTitlePageNode(node))
         .toList(growable: false);
+    // The notes are looked for in the joined lines of source, which hold every note as its
+    // `[[text]]`: the offsets here are those of the lines, and go through each node's note offsets
+    // to and from the node's text.
+    final offsetsByNodeId = {
+      for (final node in nodes) node.id: OcptWysiwygNoteOffsets.of(node.text),
+    };
     final nodeStarts = <String, int>{};
     var offset = 0;
     for (final node in nodes) {
       nodeStarts[node.id] = offset;
-      offset += node.text.length + 1;
+      offset += OcptWysiwygCodec.virtualTextOf(node).length + 1;
     }
 
-    final base = _globalOffset(nodeStarts, selection.base);
-    final extent = _globalOffset(nodeStarts, selection.extent);
+    final base = _globalOffset(nodeStarts, offsetsByNodeId, selection.base);
+    final extent = _globalOffset(nodeStarts, offsetsByNodeId, selection.extent);
     if (base == null || extent == null) {
       return null;
     }
@@ -136,8 +258,8 @@ final class OcptFountainNoteActions {
     if (first.id == last.id) {
       return null;
     }
-    final firstOffset = note.start - nodeStarts[first.id]!;
-    final lastOffset = note.end - nodeStarts[last.id]!;
+    final firstOffset = offsetsByNodeId[first.id]!.nodeStartOf(note.start - nodeStarts[first.id]!);
+    final lastOffset = offsetsByNodeId[last.id]!.nodeEndOf(note.end - nodeStarts[last.id]!);
 
     final before = first.text.copyText(0, firstOffset);
     final after = last.text.copyText(lastOffset);
@@ -196,13 +318,17 @@ final class OcptFountainNoteActions {
 
   /// Get the offset of [position] in the text of the body blocks joined by newlines, whose block
   /// starts are [nodeStarts], or null when it lies in no body paragraph.
-  static int? _globalOffset(Map<String, int> nodeStarts, DocumentPosition position) {
+  static int? _globalOffset(
+    Map<String, int> nodeStarts,
+    Map<String, OcptWysiwygNoteOffsets> offsetsByNodeId,
+    DocumentPosition position,
+  ) {
     final nodeStart = nodeStarts[position.nodeId];
     final nodePosition = position.nodePosition;
     if (nodeStart == null || nodePosition is! TextNodePosition) {
       return null;
     }
-    return nodeStart + nodePosition.offset;
+    return nodeStart + offsetsByNodeId[position.nodeId]!.lineOffsetOf(nodePosition.offset);
   }
 
   /// Get [range] of [plainText] widened by the one space that would otherwise be left doubled or
@@ -255,7 +381,8 @@ final class OcptFountainNoteActions {
         OcptWysiwygCodec.isTitlePageNode(node) ||
         (OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType")) ==
                 FountainLineType.pageBreak &&
-            !(allowsNotedPageBreak && node.text.toPlainText().contains("[[")))) {
+            !(allowsNotedPageBreak &&
+                (node.text.toPlainText().contains("[[") || node.text.placeholders.isNotEmpty)))) {
       return null;
     }
 

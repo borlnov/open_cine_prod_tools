@@ -95,6 +95,15 @@ final class OcptStyledHistory {
   /// synchronously inside `execute`.
   void runDerivedPass(void Function() derivedPass) => mergePolicy.runDerivedPass(derivedPass);
 
+  /// Run [edit], an `Editor.execute` call changing the note [noteId], as an edit of that note: it
+  /// merges onto the previous edit of the same note into one undo step (see
+  /// `OcptNoteEditMergePolicy`).
+  void runNoteEdit(String noteId, void Function() edit) =>
+      mergePolicy.noteEditPolicy.runEdit(noteId, edit);
+
+  /// End the session of edits of a note, so the next edit starts an undo step of its own.
+  void endNoteSession() => mergePolicy.noteEditPolicy.endSession();
+
   /// Take back the writer's last gesture, plus everything this widget derived from it (see
   /// [OcptSettleMergePolicy] for what makes those one step).
   ///
@@ -142,6 +151,7 @@ final class OcptStyledHistory {
   /// the state being restored, and the settle that follows finds nothing left to do.
   void _applyHistoryChange(void Function() historyChange) {
     _isApplyingHistory = true;
+    endNoteSession();
     try {
       historyChange();
       _syncSceneNumbers();
