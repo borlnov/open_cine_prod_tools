@@ -164,58 +164,6 @@ final class OcptWysiwygInlineRuns {
     return styled;
   }
 
-  /// Parse [text] into runs, and get the offsets, in the runs' text put end to end, of the first
-  /// `[` of every `[[` the source escaped, whether a `]]` closes it on the line or not.
-  ///
-  /// Each escaping `\[` is swapped for two characters the parser leaves alone before parsing, so
-  /// that [boneyardStars], offsets in [text], still point at the same characters.
-  static (List<FountainStyledRun>, List<int>) _parseRunsKeepingEscapes(
-    String text,
-    Set<int> boneyardStars,
-  ) {
-    const parser = FountainInlineParser();
-    final escapes = <int>[
-      for (var index = 1; index < text.length; index++)
-        if (text.startsWith("[[", index) && _isEscaped(text, index)) index,
-    ];
-    if (escapes.isEmpty) {
-      return (parser.parseRuns(text, literalStars: boneyardStars), const []);
-    }
-    final backslash = _unusedCharacter(text, 0xE000);
-    final bracket = _unusedCharacter(text, backslash.codeUnitAt(0) + 1);
-    final masked = text.split("");
-    for (final index in escapes) {
-      masked[index - 1] = backslash;
-      masked[index] = bracket;
-    }
-    final escapedBrackets = <int>[];
-    final runs = <FountainStyledRun>[];
-    var offset = 0;
-    for (final run in parser.parseRuns(masked.join(), literalStars: boneyardStars)) {
-      final buffer = StringBuffer();
-      for (final character in run.text.split("")) {
-        if (character == backslash) {
-          continue;
-        }
-        if (character == bracket) {
-          escapedBrackets.add(offset + buffer.length);
-        }
-        buffer.write(character == bracket ? "[" : character);
-      }
-      offset += buffer.length;
-      runs.add(
-        FountainStyledRun(
-          text: buffer.toString(),
-          isBold: run.isBold,
-          isItalic: run.isItalic,
-          isUnderline: run.isUnderline,
-          isNote: run.isNote,
-        ),
-      );
-    }
-    return (runs, escapedBrackets);
-  }
-
   /// Write [text] as one marked-up line of Fountain source, the inverse of [parseInline]: a `[`
   /// carrying [ocptFountainEscapedAttribution] that no `]]` follows on the line is written escaped,
   /// which the serializer, reading the line alone, would not do, since a `]]` on a later line would
@@ -263,24 +211,6 @@ final class OcptWysiwygInlineRuns {
       written.write(_isEscaped(line, index) ? r"\\[" : r"\[");
     }
     return written.toString();
-  }
-
-  /// Get the first character from [from] on that [text] does not hold.
-  static String _unusedCharacter(String text, int from) {
-    var code = from;
-    while (text.contains(String.fromCharCode(code))) {
-      code++;
-    }
-    return String.fromCharCode(code);
-  }
-
-  /// Tell whether the character at [index] of [text] is preceded by an odd number of backslashes.
-  static bool _isEscaped(String text, int index) {
-    var count = 0;
-    while (index - count > 0 && text[index - count - 1] == r"\") {
-      count++;
-    }
-    return count.isOdd;
   }
 
   /// Copy [text]'s attribution spans and placeholders onto [upperText], the text uppercased with a
@@ -336,5 +266,75 @@ final class OcptWysiwygInlineRuns {
       }
     }
     return true;
+  }
+
+  /// Parse [text] into runs, and get the offsets, in the runs' text put end to end, of the first
+  /// `[` of every `[[` the source escaped, whether a `]]` closes it on the line or not.
+  ///
+  /// Each escaping `\[` is swapped for two characters the parser leaves alone before parsing, so
+  /// that [boneyardStars], offsets in [text], still point at the same characters.
+  static (List<FountainStyledRun>, List<int>) _parseRunsKeepingEscapes(
+    String text,
+    Set<int> boneyardStars,
+  ) {
+    const parser = FountainInlineParser();
+    final escapes = <int>[
+      for (var index = 1; index < text.length; index++)
+        if (text.startsWith("[[", index) && _isEscaped(text, index)) index,
+    ];
+    if (escapes.isEmpty) {
+      return (parser.parseRuns(text, literalStars: boneyardStars), const []);
+    }
+    final backslash = _unusedCharacter(text, 0xE000);
+    final bracket = _unusedCharacter(text, backslash.codeUnitAt(0) + 1);
+    final masked = text.split("");
+    for (final index in escapes) {
+      masked[index - 1] = backslash;
+      masked[index] = bracket;
+    }
+    final escapedBrackets = <int>[];
+    final runs = <FountainStyledRun>[];
+    var offset = 0;
+    for (final run in parser.parseRuns(masked.join(), literalStars: boneyardStars)) {
+      final buffer = StringBuffer();
+      for (final character in run.text.split("")) {
+        if (character == backslash) {
+          continue;
+        }
+        if (character == bracket) {
+          escapedBrackets.add(offset + buffer.length);
+        }
+        buffer.write(character == bracket ? "[" : character);
+      }
+      offset += buffer.length;
+      runs.add(
+        FountainStyledRun(
+          text: buffer.toString(),
+          isBold: run.isBold,
+          isItalic: run.isItalic,
+          isUnderline: run.isUnderline,
+          isNote: run.isNote,
+        ),
+      );
+    }
+    return (runs, escapedBrackets);
+  }
+
+  /// Get the first character from [from] on that [text] does not hold.
+  static String _unusedCharacter(String text, int from) {
+    var code = from;
+    while (text.contains(String.fromCharCode(code))) {
+      code++;
+    }
+    return String.fromCharCode(code);
+  }
+
+  /// Tell whether the character at [index] of [text] is preceded by an odd number of backslashes.
+  static bool _isEscaped(String text, int index) {
+    var count = 0;
+    while (index - count > 0 && text[index - count - 1] == r"\") {
+      count++;
+    }
+    return count.isOdd;
   }
 }
