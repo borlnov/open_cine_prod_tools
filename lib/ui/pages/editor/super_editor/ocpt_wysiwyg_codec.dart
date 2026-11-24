@@ -76,7 +76,9 @@ const String ocptSceneNumberMetadataKey = "ocptSceneNumber";
 
 /// Convert between Fountain source text and the super_editor `MutableDocument` backing the
 /// styled block editor, on the invariant the whole styled editing mode is built around: **one
-/// `ParagraphNode` per non-blank Fountain source line**. Blank source lines carry no node of their
+/// `ParagraphNode` per non-blank Fountain source line**, but for the lines a note running over
+/// several of them covers, which one node holds together (see [OcptWysiwygDecoder.decodeLines]).
+/// Blank source lines carry no node of their
 /// own; they are folded into the [ocptBlankLinesBeforeMetadataKey] metadata of the node that
 /// follows them (or, for blank lines trailing the very last node, into a
 /// [OcptWysiwygDecodeResult.trailingBlankLines]/[encode] `trailingBlankLines` count that lives

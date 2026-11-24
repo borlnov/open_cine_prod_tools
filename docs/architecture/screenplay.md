@@ -93,11 +93,20 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   editor's status bar.
 
 - Editor: super_editor styled mode keeps **one `ParagraphNode` per non-blank Fountain source
-  line**; a blank source line carries no node of its own, folded into the following node's
-  `ocptBlankLinesBefore` metadata instead. Other node metadata: `blockType` (the line's
-  `FountainLineType` as a `NamedAttribution`, stylesheet-only styling), `ocptTypeLocked` (a
-  manual type override — dropdown or Tab — sticky for the node's **whole lifetime**, including
-  while its text is empty: only a new node created by Enter/Shift+Enter starts unlocked),
+  line**, bar one exception below; a blank source line carries no node of its own, folded into the
+  following node's `ocptBlankLinesBefore` metadata instead. The exception is a note running over
+  several lines: `decode` folds the lines it covers into one node holding it as a placeholder whose
+  text keeps its newlines, when that changes nothing the parser reads of those lines (no boneyard
+  on them, and either nothing but notes, or no blank line and one same element of action,
+  dialogue or parenthetical for all of them); any other group stays text. The layout then gives
+  each node a range of lines (`OcptWysiwygDocumentLayout.lineRangeOfNode`), `encode` writes the
+  first line of such a node through the line writer and the rest as it is, and the live passes
+  neither create nor dissolve a placeholder holding a newline: a node's own text never holds one
+  outside a placeholder, so only a decode folds or unfolds a note. Other node metadata:
+  `blockType` (the line's `FountainLineType` as a `NamedAttribution`, stylesheet-only styling),
+  `ocptTypeLocked` (a manual type override — dropdown or Tab — sticky for the node's **whole
+  lifetime**, including while its text is empty: only a new node created by Enter/Shift+Enter
+  starts unlocked),
   `ocptHadForcingMarker` (the source line used an explicit forcing marker, re-emitted on encode
   even when auto-detection alone would already suffice, and spared by the uppercase pass on a
   character cue: `@McCLANE` keeps its case, and every renderer prints it that way: the parser
