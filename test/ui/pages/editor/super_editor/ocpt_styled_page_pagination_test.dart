@@ -23,6 +23,26 @@ void main() {
   final metrics = FountainLayoutMetrics.usLetter();
 
   group("computeOcptStyledPagination", () {
+    test("a note counts as two characters wide, the width its marker takes", () {
+      final columns = metrics.action.maxWidthColumns;
+      // A line exactly as wide as the width holding a note or a plain character: as wide as
+      // each other in the document, but the marker takes two.
+      final filler = "x" * (columns - 2);
+      String sourceWith(String tail) => List.generate(20, (index) => "$filler $tail").join("\n\n");
+
+      final withNotes = computeOcptStyledPagination(
+        document: _documentFrom(sourceWith("[[n]]")),
+        metrics: metrics,
+      );
+      final withLetters = computeOcptStyledPagination(
+        document: _documentFrom(sourceWith("n")),
+        metrics: metrics,
+      );
+
+      expect(withLetters.pageCount, 1);
+      expect(withNotes.pageCount, greaterThan(1));
+    });
+
     test("an empty document is a single page with no page-start node", () {
       final pagination = computeOcptStyledPagination(document: _documentFrom(""), metrics: metrics);
 

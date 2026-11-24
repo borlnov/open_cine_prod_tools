@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
@@ -41,7 +42,7 @@ Future<Tr> _rightClickIn(WidgetTester tester, String nodeId) async {
 void main() {
   BlinkController.indeterminateAnimationsEnabled = false;
 
-  _testWidgetsAsDesktop("Insert note adds empty brackets at the caret, in one undo step", (
+  _testWidgetsAsDesktop("Insert note adds an empty note at the caret, in one undo step", (
     tester,
   ) async {
     await pumpStandaloneEditor(tester, "Some action text.");
@@ -53,10 +54,11 @@ void main() {
     await tester.tap(find.text(tr.editorContextMenuInsertNoteAction));
     await pumpPastSettleDebounce(tester);
 
-    expect(nodeAt(document, 0).text.toPlainText(), "[[]]Some action text.");
+    expect(nodeAt(document, 0).text.toPlainText(), "\uFFFCSome action text.");
+    expect((nodeAt(document, 0).text.placeholders[0]! as OcptFountainNote).text, "");
     final selection = SuperEditorInspector.findDocumentSelection()!;
     expect(selection.isCollapsed, isTrue);
-    expect((selection.extent.nodePosition as TextNodePosition).offset, 2);
+    expect((selection.extent.nodePosition as TextNodePosition).offset, 1);
 
     await sendCtrl(tester, LogicalKeyboardKey.keyZ);
     await pumpPastSettleDebounce(tester);
@@ -76,15 +78,12 @@ void main() {
       composer.setSelectionWithReason(
         DocumentSelection(
           base: DocumentPosition(nodeId: nodeId, nodePosition: const TextNodePosition(offset: 0)),
-          extent: DocumentPosition(
-            nodeId: nodeId,
-            nodePosition: const TextNodePosition(offset: 10),
-          ),
+          extent: DocumentPosition(nodeId: nodeId, nodePosition: const TextNodePosition(offset: 1)),
         ),
       );
       await tester.pump();
       final tr = await _rightClickIn(tester, nodeId);
-      expect(find.text(tr.editorContextMenuInsertNoteAction), findsNothing);
+      expect(find.text(tr.editorContextMenuInsertNoteAction), findsOneWidget);
       await tester.tap(find.text(tr.editorContextMenuRemoveNoteAction));
       await pumpPastSettleDebounce(tester);
 
@@ -93,7 +92,8 @@ void main() {
       await sendCtrl(tester, LogicalKeyboardKey.keyZ);
       await pumpPastSettleDebounce(tester);
 
-      expect(nodeAt(document, 0).text.toPlainText(), "[[a note]] text.");
+      expect(nodeAt(document, 0).text.toPlainText(), "\uFFFC text.");
+      expect((nodeAt(document, 0).text.placeholders[0]! as OcptFountainNote).text, "a note");
     },
   );
 }
