@@ -6,6 +6,31 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## 0.5.0
+
+The styled editor shows the screenplay's notes in a margin.
+
+- Notes: a `[[note]]` is a speech bubble in its line, and its text sits in a
+  card in a margin beside the page, level with that line, in page simulation
+  as in fluid mode. Clicking a bubble or a card selects the note and lets you
+  write in it straight away: Enter or Escape goes back to the screenplay,
+  Shift+Enter starts a new line in the note, and Ctrl+Z undoes the whole edit
+  of a note in one step. Insert note opens an empty card, a note left empty is
+  removed, and the card has its own Remove note button. A note over several
+  lines goes in the margin too.
+- Narrow windows: when there is no room for the margin, a click on a bubble
+  opens the note in a popover under it, or above it near the bottom.
+- Find and replace: the search covers the notes, tints the bubble of a note
+  holding a match and opens its card or popover on the current match. Replace
+  and Replace all work inside the notes, and leave unchanged a note that could
+  not hold the replacement (`]]`, `/*` or `*/`).
+- Find bar: Enter moves from match to match again, the focus staying in the
+  find or the replace field.
+- Fountain: an escaped `\[[` whose `]]` sits on a later line keeps its
+  backslash in the styled editor instead of turning into a note.
+- Guide: the screenplay page explains the notes.
+- Project files stay at format 5: 0.4.0 and 0.5.0 open each other's files.
+
 ## 0.4.0
 
 The screenplay gains dual dialogue, notes from the menu and a page zoom.
