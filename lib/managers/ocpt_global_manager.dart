@@ -11,6 +11,7 @@ import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/legacy_app_data/ocpt_legacy_app_data_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_logging_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
@@ -41,6 +42,7 @@ class OcptGlobalManager extends AbsUiGlobalManager {
   /// {@macro act_global_manager.AbsGlobalManager.registerManagers}
   @override
   Future<void> registerManagers() async {
+    registerManagerAsync<OcptLegacyAppDataManager>(const OcptLegacyAppDataManagerBuilder());
     registerManagerAsync<OcptConfigManager>(const OcptConfigManagerBuilder());
     registerManagerAsync<PlatformManager>(const PlatformBuilder());
     registerManagerAsync<LoggerManager>(ExtDefaultLoggerBuilder<OcptConfigManager>());

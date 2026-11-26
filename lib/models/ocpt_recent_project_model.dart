@@ -6,6 +6,9 @@ import 'package:act_dart_utility/act_dart_utility.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:equatable/equatable.dart';
 
+/// The maximum number of projects kept in the list of recently opened projects.
+const ocptMaxRecentProjects = 10;
+
 /// Represent a project the user has recently opened, so it can be listed and reopened quickly.
 class OcptRecentProjectModel extends Equatable {
   /// The category this class logs under.
