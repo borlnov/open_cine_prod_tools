@@ -339,7 +339,8 @@ A project rule overrides these. The overrides this project has made:
 - **RFL26:** a model owned by no manager builds its `LogsHelper` where it logs instead of keeping one,
   since the global logger it hangs from can be replaced. `OcptConfigManager` logs through
   `appLogger()`: it is built first and the logger manager is built from it, so no manager logger
-  exists yet.
+  exists yet. So does `OcptLegacyAppDataManager`, which must run before the properties manager
+  reads the preferences and so before the logger manager exists.
 - **RFL35:** `AbstractSecretsManager` is what stores the secrets, in secure storage; the rule and
   the "look in `actlibs/` first" rule above contradict each other on this point, so the latter wins.
 - **RFL36:** a `build` may look an id up in a list, or filter or sum a list, when the list is already

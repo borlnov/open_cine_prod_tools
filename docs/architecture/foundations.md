@@ -587,6 +587,29 @@ the persistence, the project versions, the sync-ready data model and the read-on
   build on one commits it. See `.github/ci-doc.md` for the local recipes. CI also builds an Android
   app bundle, described next — a fourth CI job, not a fourth desktop package.
 
+- Windows application data: `path_provider_windows` builds the application support directory, which
+  holds `shared_preferences.json` and `flutter_secure_storage.dat`, as
+  `%APPDATA%\<CompanyName>\<ProductName>` from the VERSIONINFO of `windows/runner/Runner.rc`
+  (`com.borlnov` and `Open Cine Prod Tools`). 0.4.0 changed `ProductName` from
+  `open_cine_prod_tools`, which moved the directory and left the preferences and the secrets of
+  0.3.1 behind, so neither field may change again without a migration (a test reads both). Linux
+  does not derive its directory from them. `OcptLegacyAppDataManager`, registered first and a
+  dependency of the properties, secrets and file logging builders (the platform caches the
+  preferences file at its first read), runs `OcptLegacyAppDataMigration` once per start on Windows
+  only, from the sibling `open_cine_prod_tools` directory into the current one. The rule is
+  platform-free: no legacy directory or the `LEGACY_APP_DATA_MIGRATED` marker already in the
+  current preferences means nothing to do; the legacy preferences are copied, or merged when the
+  current directory has some (the current value wins key by key, the keys only the legacy file
+  holds are added, the recent projects are the union by path, newest first, capped like the list
+  itself); the secure storage file is copied when the current directory has none; the marker is
+  written last. The legacy directory is never modified, and the log files are not migrated. A
+  malformed preferences file on either side stops the migration without a marker, so the next start
+  retries. The one limit: when **both** directories hold a secure storage file, the current one
+  is kept and a warning logged, since merging two DPAPI-encrypted stores would need to decrypt
+  them. The copy itself is sound because DPAPI binds the file to the Windows user, not to its
+  folder. The manager logs through `appLogger()`, the logger manager not existing yet. Nothing of
+  this has been run on Windows by the project's CI.
+
 - Android CI: `build.yml`'s `build-android` job is gated like the Windows/macOS jobs above —
   release tags, `main` pushes and manual dispatches only — and sets up JDK 17 (Temurin, matching
   `android/app/build.gradle.kts`) through `actions/setup-java`, then reuses the same
