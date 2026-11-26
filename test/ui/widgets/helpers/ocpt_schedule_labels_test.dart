@@ -4,12 +4,115 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
+import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person.dart';
+import 'package:open_cine_prod_tools/models/ocpt_person_position.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
+import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
 /// Run the tests of the schedule labels.
 void main() {
+  group("ocptScheduleDirectorNamesOf and ocptScheduleDirectorLineOf", () {
+    OcptPerson person(String id, String firstName, {String positionId = ocptDirectorPositionId}) =>
+        OcptPerson(
+          id: id,
+          firstName: firstName,
+          lastName: "",
+          email: "",
+          phone: "",
+          addressLine1: "",
+          addressLine2: "",
+          postalCode: "",
+          city: "",
+          region: "",
+          country: "",
+          colorIndex: 0,
+          birthDate: null,
+          minorNotes: "",
+          maxDailyPresenceMinutes: null,
+          isTransportAutonomous: null,
+          accommodationNotes: "",
+          travelNotes: "",
+          dietaryNotes: "",
+          allergies: "",
+          measurementHeight: "",
+          measurementChest: "",
+          measurementWaist: "",
+          measurementHips: "",
+          sizeTop: "",
+          sizeBottom: "",
+          sizeShoes: "",
+          hmcNotes: "",
+          imageRightsStatus: OcptImageRightsStatus.notApplicable,
+          imageRightsDate: null,
+          imageRightsAssetId: null,
+          imageRightsDocument: null,
+          photoAssetId: null,
+          photo: null,
+          notes: "",
+          commuteKmMilli: null,
+          mileageRateId: null,
+          positions: [
+            OcptPersonPosition(id: "pp-$id", personId: id, positionId: positionId, customLabel: ""),
+          ],
+          skills: const [],
+          unavailabilities: const [],
+        );
+
+    // `Tr.delegate.load` replaces the one shared instance, so each answer is read before the next
+    // locale is loaded.
+    Future<Tr> load(Locale locale) => Tr.delegate.load(locale);
+    const english = Locale("en", "GB");
+    const french = Locale("fr");
+
+    test("nobody holding the position gives no name and no line", () async {
+      final en = await load(english);
+      final people = [person("a", "Ada", positionId: "producer")];
+
+      expect(ocptScheduleDirectorNamesOf(people), isEmpty);
+      expect(ocptScheduleDirectorLineOf(en, people), "");
+      expect(ocptScheduleDirectorLineOf(en, const []), "");
+    });
+
+    test("one director is named alone", () async {
+      final people = [person("a", "Ada"), person("b", "Bob", positionId: "producer")];
+
+      expect(ocptScheduleDirectorNamesOf(people), ["Ada"]);
+      expect(ocptScheduleDirectorLineOf(await load(english), people), "Directed by Ada");
+      expect(ocptScheduleDirectorLineOf(await load(french), people), "Un film réalisé par Ada");
+    });
+
+    test("several directors are all named, in the order of the people list", () async {
+      final people = [
+        person("c", "Cy"),
+        person("x", "Xan", positionId: "producer"),
+        person("a", "Ada"),
+        person("b", "Bob"),
+      ];
+
+      expect(ocptScheduleDirectorNamesOf(people), ["Cy", "Ada", "Bob"]);
+      final en = await load(english);
+      expect(ocptScheduleDirectorLineOf(en, people), "Directed by Cy, Ada and Bob");
+      expect(
+        ocptScheduleDirectorLineOf(en, [person("c", "Cy"), person("a", "Ada")]),
+        "Directed by Cy and Ada",
+      );
+      expect(
+        ocptScheduleDirectorLineOf(await load(french), people),
+        "Un film réalisé par Cy, Ada et Bob",
+      );
+    });
+
+    test("a name held by two directors is printed once", () {
+      final people = [person("a", "Ada"), person("b", "Ada")];
+
+      expect(ocptScheduleDirectorNamesOf(people), ["Ada"]);
+    });
+  });
+
   group("ocptScheduleStartOfWeek", () {
     // Monday 3 August 2026 through Sunday 9 August 2026.
     final monday = DateTime(2026, 8, 3);

@@ -11384,16 +11384,23 @@
       }
     }
   },
-  "scheduleExportDirectorLine": "A film by {name}",
+  "scheduleExportDirectorLine": "Directed by {names}",
   "@scheduleExportDirectorLine": {
-    "description": "Line naming the director, printed under the project's own title on a call sheet and on the shooting plan's title page",
-    "context": "Shown only when someone holds the director position in the address book",
+    "description": "Line naming the director or directors, printed under the project's own title on a call sheet and on the shooting plan's title page",
+    "context": "Shown only when someone holds the director position in the address book; {names} is the enumeration of everyone who does, built with the conjunction word",
     "type": "text",
     "placeholders": {
-      "name": {
+      "names": {
         "type": "String"
       }
     }
+  },
+  "scheduleExportDirectorsConjunction": "and",
+  "@scheduleExportDirectorsConjunction": {
+    "description": "Word joining the last two names of the directors enumeration (A, B and C)",
+    "context": "Printed on the director line of the exported schedule documents, with no comma before it",
+    "type": "text",
+    "placeholders": {}
   },
   "scheduleExportDayNumberLabel": "DAY",
   "@scheduleExportDayNumberLabel": {

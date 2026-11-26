@@ -35,7 +35,7 @@ class OcptCallSheetLabels extends Equatable {
   /// for why it is resolved by the caller.
   final Map<String, String> dayTitles;
 
-  /// The `Un film de <director>` line printed under the project's own title, or an empty string
+  /// The `Directed by <names>` line printed under the project's own title, or an empty string
   /// while the project names no director — see the class doc comment for why it is resolved by the
   /// caller.
   final String directorLine;
