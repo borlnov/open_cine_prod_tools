@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_export_state.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 
 /// What the resources mode's view blocs ask the screen for, wrapped around the mode: the outcome
 /// of an export as a SnackBar.
@@ -38,9 +39,7 @@ class OcptResourcesViewEffects extends StatelessWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+    ocptShowNotice(context, _ioNoticeMessage(context, ioNotice), isError: ioNotice.kind.isFailure);
     context.read<OcptResourcesExportBloc>().add(const OcptResourcesIoNoticeDismissedEvent());
   }
 

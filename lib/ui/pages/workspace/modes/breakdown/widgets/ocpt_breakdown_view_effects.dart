@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdow
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_export_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_tagging_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_tagging_state.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 
 /// What the breakdown mode's view blocs ask the screen for, wrapped around the mode: the outcome
 /// of an export and the refusal of a tag write, each as a SnackBar.
@@ -46,9 +47,7 @@ class OcptBreakdownViewEffects extends StatelessWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+    ocptShowNotice(context, _ioNoticeMessage(context, ioNotice), isError: ioNotice.kind.isFailure);
     context.read<OcptBreakdownExportBloc>().add(const OcptBreakdownIoNoticeDismissedEvent());
   }
 
@@ -58,9 +57,7 @@ class OcptBreakdownViewEffects extends StatelessWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(Tr.of(context).breakdownTagWriteError)));
+    ocptShowNotice(context, Tr.of(context).breakdownTagWriteError, isError: true);
     context.read<OcptBreakdownTaggingBloc>().add(const OcptBreakdownTagWriteErrorDismissedEvent());
   }
 

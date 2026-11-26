@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/types/ocpt_home_import_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
@@ -33,6 +34,7 @@ import 'package:open_cine_prod_tools/ui/pages/home/widgets/ocpt_project_package_
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// Display the project card grid: the app's real landing page.
@@ -152,9 +154,7 @@ class _HomeView extends StatelessWidget {
 
     final error = state.error;
     if (error != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_errorMessage(context, error))));
+      ocptShowNotice(context, _errorMessage(context, error), isError: true);
 
       context.read<OcptHomeBloc>().add(const OcptHomeErrorDismissedEvent());
     }
@@ -167,30 +167,28 @@ class _HomeView extends StatelessWidget {
 
     final packageNotice = state.projectPackageNotice;
     if (packageNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectPackageNoticeMessage(context, packageNotice),
+        isError: packageNotice.kind.isFailure,
+      );
       context.read<OcptHomeBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
 
     final packageImportError = state.projectPackageImportError;
     if (packageImportError != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_importErrorMessage(context, packageImportError))));
+      ocptShowNotice(context, _importErrorMessage(context, packageImportError), isError: true);
 
       context.read<OcptHomeBloc>().add(const OcptHomeProjectPackageImportErrorDismissedEvent());
     }
 
     final screenplayImportError = state.screenplayImportError;
     if (screenplayImportError != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(_screenplayImportErrorMessage(context, screenplayImportError))),
-        );
+      ocptShowNotice(
+        context,
+        _screenplayImportErrorMessage(context, screenplayImportError),
+        isError: true,
+      );
 
       context.read<OcptHomeBloc>().add(const OcptHomeScreenplayImportErrorDismissedEvent());
     }

@@ -17,6 +17,8 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_outcome.
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -44,6 +46,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The budget production mode: four chips — `Tableau de bord`, `Dépenses`, `Ressources`, `Outils`
@@ -611,11 +614,11 @@ class _BudgetViewState extends State<_BudgetView> {
 
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectVersionNoticeMessage(context, versionNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectVersionNoticeMessage(context, versionNotice),
+        isError: versionNotice.isFailure,
+      );
       context.read<OcptBudgetBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
 
@@ -627,11 +630,11 @@ class _BudgetViewState extends State<_BudgetView> {
 
     final packageNotice = state.projectPackageNotice;
     if (packageNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectPackageNoticeMessage(context, packageNotice),
+        isError: packageNotice.kind.isFailure,
+      );
       context.read<OcptBudgetBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
   }

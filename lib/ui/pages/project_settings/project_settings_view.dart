@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_proj
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_minimum_rest_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_page_format_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/widgets/ocpt_project_settings_screenplay_language_section.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_label.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
@@ -225,11 +226,11 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
   /// state — the same one-shot-notice shape the home page's own transient errors already follow.
   void _onStateChanged(BuildContext context, OcptProjectSettingsState state) {
     if (state.isShowInFolderFailed) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(Tr.of(context).projectSettingsShowInFolderFailedMessage)),
-        );
+      ocptShowNotice(
+        context,
+        Tr.of(context).projectSettingsShowInFolderFailedMessage,
+        isError: true,
+      );
 
       context.read<OcptProjectSettingsBloc>().add(
         const OcptProjectSettingsShowInFolderFailureDismissedEvent(),
@@ -238,9 +239,7 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
 
     final moveError = state.moveError;
     if (moveError != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_moveErrorMessage(context, moveError))));
+      ocptShowNotice(context, _moveErrorMessage(context, moveError), isError: true);
 
       context.read<OcptProjectSettingsBloc>().add(
         const OcptProjectSettingsMoveErrorDismissedEvent(),

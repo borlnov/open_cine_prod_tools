@@ -16,3 +16,14 @@ enum OcptBreakdownIoNoticeKind {
   /// Exporting the breakdown workbook to an XLSX file failed.
   xlsxExportFailed,
 }
+
+/// What the kind of a notice says about its outcome.
+extension OcptBreakdownIoNoticeKindOutcome on OcptBreakdownIoNoticeKind {
+  /// Tell whether the notice reports a failure, which is shown as an error.
+  bool get isFailure => switch (this) {
+    OcptBreakdownIoNoticeKind.sheetsExportFailed ||
+    OcptBreakdownIoNoticeKind.xlsxExportFailed => true,
+    OcptBreakdownIoNoticeKind.sheetsExportSucceeded ||
+    OcptBreakdownIoNoticeKind.xlsxExportSucceeded => false,
+  };
+}

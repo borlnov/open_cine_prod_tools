@@ -16,6 +16,8 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_role_origin.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
@@ -48,6 +50,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_mis
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The resources production mode: the four-tab list (people, roles, locations, elements) on the
@@ -576,9 +579,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
 
     if (state.hasWriteError) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(Tr.of(context).resourcesWriteError)));
+      ocptShowNotice(context, Tr.of(context).resourcesWriteError, isError: true);
       context.read<OcptResourcesBloc>().add(const OcptResourcesWriteErrorDismissedEvent());
     }
 
@@ -599,11 +600,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectVersionNoticeMessage(context, versionNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectVersionNoticeMessage(context, versionNotice),
+        isError: versionNotice.isFailure,
+      );
       context.read<OcptResourcesBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
 
@@ -617,11 +618,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
     final packageNotice = state.projectPackageNotice;
     if (packageNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectPackageNoticeMessage(context, packageNotice),
+        isError: packageNotice.kind.isFailure,
+      );
       context.read<OcptResourcesBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
   }

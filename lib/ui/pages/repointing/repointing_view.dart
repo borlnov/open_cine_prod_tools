@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/widgets/ocpt_repointing_configure_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/widgets/ocpt_repointing_qr_view.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_readout_chip.dart';
 
 /// The content of `OcptRepointingPage`, separated from it so `OcptRepointingPage` only wires the
@@ -70,9 +71,7 @@ class OcptRepointingView extends StatelessWidget {
   /// clears it, so a later rebuild doesn't show it again — `OcptSharingView`'s own
   /// `_onPairingFailed`.
   void _onRepointFailed(BuildContext context, OcptRepointingState state) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(Tr.of(context).repointingErrorMessage)));
+    ocptShowNotice(context, Tr.of(context).repointingErrorMessage, isError: true);
     context.read<OcptRepointingBloc>().add(const OcptRepointingErrorDismissedEvent());
   }
 }

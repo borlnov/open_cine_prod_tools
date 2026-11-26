@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_storyboard_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_character_name_picker_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_floor_plan_centre.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 
 /// What the shot list mode's view blocs ask the screen for, wrapped around the mode: each bloc's
 /// transient write error as a SnackBar, the outcome of an export as one, and the name prompt a
@@ -72,9 +73,7 @@ class OcptShotListViewEffects extends StatelessWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
+    ocptShowNotice(context, Tr.of(context).shotListWriteError, isError: true);
     context.read<OcptShotListStoryboardBloc>().add(
       const OcptShotListStoryboardWriteErrorDismissedEvent(),
     );
@@ -86,9 +85,7 @@ class OcptShotListViewEffects extends StatelessWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
+    ocptShowNotice(context, Tr.of(context).shotListWriteError, isError: true);
     context.read<OcptShotListInspectorBloc>().add(
       const OcptShotListInspectorWriteErrorDismissedEvent(),
     );
@@ -101,9 +98,7 @@ class OcptShotListViewEffects extends StatelessWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
+    ocptShowNotice(context, Tr.of(context).shotListWriteError, isError: true);
     context.read<OcptShotListFloorPlanSetsBloc>().add(
       const OcptShotListFloorPlanSetsWriteErrorDismissedEvent(),
     );
@@ -118,9 +113,7 @@ class OcptShotListViewEffects extends StatelessWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
+    ocptShowNotice(context, Tr.of(context).shotListWriteError, isError: true);
     context.read<OcptShotListFloorPlanPlacementsBloc>().add(
       const OcptShotListFloorPlanPlacementsWriteErrorDismissedEvent(),
     );
@@ -133,9 +126,7 @@ class OcptShotListViewEffects extends StatelessWidget {
     OcptShotListFloorPlanCanvasState state,
   ) {
     if (state.hasWriteError) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
+      ocptShowNotice(context, Tr.of(context).shotListWriteError, isError: true);
       context.read<OcptShotListFloorPlanCanvasBloc>().add(
         const OcptShotListFloorPlanCanvasWriteErrorDismissedEvent(),
       );
@@ -163,9 +154,7 @@ class OcptShotListViewEffects extends StatelessWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+    ocptShowNotice(context, _ioNoticeMessage(context, ioNotice), isError: ioNotice.kind.isFailure);
     context.read<OcptShotListExportBloc>().add(const OcptShotListIoNoticeDismissedEvent());
   }
 

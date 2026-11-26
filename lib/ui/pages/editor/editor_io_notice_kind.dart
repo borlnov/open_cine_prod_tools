@@ -29,3 +29,17 @@ enum OcptEditorIoNoticeKind {
   /// Exporting the screenplay to a PDF file failed.
   pdfExportFailed,
 }
+
+/// What the kind of a notice says about its outcome.
+extension OcptEditorIoNoticeKindOutcome on OcptEditorIoNoticeKind {
+  /// Tell whether the notice reports a failure, which is shown as an error.
+  bool get isFailure => switch (this) {
+    OcptEditorIoNoticeKind.exportFailed ||
+    OcptEditorIoNoticeKind.importFailed ||
+    OcptEditorIoNoticeKind.importUnreadable ||
+    OcptEditorIoNoticeKind.pdfExportFailed => true,
+    OcptEditorIoNoticeKind.exportSucceeded ||
+    OcptEditorIoNoticeKind.importSucceeded ||
+    OcptEditorIoNoticeKind.pdfExportSucceeded => false,
+  };
+}

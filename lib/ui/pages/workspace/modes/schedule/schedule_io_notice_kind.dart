@@ -25,3 +25,14 @@ enum OcptScheduleIoNoticeKind {
   /// it.
   exportFailed,
 }
+
+/// What the kind of a notice says about its outcome.
+extension OcptScheduleIoNoticeKindOutcome on OcptScheduleIoNoticeKind {
+  /// Tell whether the notice reports a failure, which is shown as an error.
+  bool get isFailure => switch (this) {
+    OcptScheduleIoNoticeKind.exportFailed ||
+    OcptScheduleIoNoticeKind.folderExportPartiallySucceeded => true,
+    OcptScheduleIoNoticeKind.fileExportSucceeded ||
+    OcptScheduleIoNoticeKind.folderExportSucceeded => false,
+  };
+}

@@ -17,6 +17,8 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_export_document.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
@@ -53,6 +55,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_mis
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog_result.dart';
@@ -906,19 +909,17 @@ class _ShotListViewState extends State<_ShotListView> {
     );
 
     if (state.hasWriteError) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
+      ocptShowNotice(context, Tr.of(context).shotListWriteError, isError: true);
       context.read<OcptShotListBloc>().add(const OcptShotListWriteErrorDismissedEvent());
     }
 
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectVersionNoticeMessage(context, versionNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectVersionNoticeMessage(context, versionNotice),
+        isError: versionNotice.isFailure,
+      );
       context.read<OcptShotListBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
 
@@ -930,11 +931,11 @@ class _ShotListViewState extends State<_ShotListView> {
 
     final packageNotice = state.projectPackageNotice;
     if (packageNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectPackageNoticeMessage(context, packageNotice),
+        isError: packageNotice.kind.isFailure,
+      );
       context.read<OcptShotListBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
   }

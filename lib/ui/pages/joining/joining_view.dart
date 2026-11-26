@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_manua
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scanner_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_status_overlay.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_readout_chip.dart';
 
 /// The maximum width of the page's own column, matching the Partager screen's own ①/② forms.
@@ -164,9 +165,7 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
   /// Also flashes the scanner frame red when the failed attempt came from a scan
   /// ([_lastSubmissionFromScanner]) — a manual-entry failure leaves it untouched.
   void _onJoinFailed(BuildContext context, OcptJoiningState state) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(Tr.of(context).joiningErrorMessage)));
+    ocptShowNotice(context, Tr.of(context).joiningErrorMessage, isError: true);
     context.read<OcptJoiningBloc>().add(const OcptJoiningErrorDismissedEvent());
 
     if (_lastSubmissionFromScanner) {

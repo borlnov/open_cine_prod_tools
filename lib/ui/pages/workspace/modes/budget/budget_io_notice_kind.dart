@@ -15,3 +15,12 @@ enum OcptBudgetIoNoticeKind {
   /// app treats it.
   exportFailed,
 }
+
+/// What the kind of a notice says about its outcome.
+extension OcptBudgetIoNoticeKindOutcome on OcptBudgetIoNoticeKind {
+  /// Tell whether the notice reports a failure, which is shown as an error.
+  bool get isFailure => switch (this) {
+    OcptBudgetIoNoticeKind.exportFailed => true,
+    OcptBudgetIoNoticeKind.fileExportSucceeded => false,
+  };
+}

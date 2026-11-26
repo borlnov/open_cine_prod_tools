@@ -28,3 +28,18 @@ enum OcptShotListIoNoticeKind {
   /// Exporting the floor plans to a PDF failed.
   floorPlansExportFailed,
 }
+
+/// What the kind of a notice says about its outcome.
+extension OcptShotListIoNoticeKindOutcome on OcptShotListIoNoticeKind {
+  /// Tell whether the notice reports a failure, which is shown as an error.
+  bool get isFailure => switch (this) {
+    OcptShotListIoNoticeKind.xlsxExportFailed ||
+    OcptShotListIoNoticeKind.scenarioCoverageExportFailed ||
+    OcptShotListIoNoticeKind.storyboardExportFailed ||
+    OcptShotListIoNoticeKind.floorPlansExportFailed => true,
+    OcptShotListIoNoticeKind.xlsxExportSucceeded ||
+    OcptShotListIoNoticeKind.scenarioCoverageExportSucceeded ||
+    OcptShotListIoNoticeKind.storyboardExportSucceeded ||
+    OcptShotListIoNoticeKind.floorPlansExportSucceeded => false,
+  };
+}

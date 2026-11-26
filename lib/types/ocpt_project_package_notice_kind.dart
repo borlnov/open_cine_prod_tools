@@ -23,3 +23,9 @@ enum OcptProjectPackageNoticeKind {
   /// carries no path.
   exportShared,
 }
+
+/// What the kind of a package notice says about its outcome.
+extension OcptProjectPackageNoticeKindOutcome on OcptProjectPackageNoticeKind {
+  /// Tell whether the notice reports a failure, which is shown as an error.
+  bool get isFailure => this == OcptProjectPackageNoticeKind.exportFailed;
+}

@@ -14,10 +14,13 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_page_zoom.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
@@ -52,6 +55,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shortcut_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the center
 /// (depending on the persisted `OcptEditorMode`, forced to the styled editor on a phone — see
@@ -862,19 +866,17 @@ class _EditorViewState extends State<_EditorView> {
     _syncSpellCheck(state, context.read<OcptEditorSpellCheckBloc>().state);
 
     if (state.hasSaveError) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(Tr.of(context).editorSaveError)));
+      ocptShowNotice(context, Tr.of(context).editorSaveError, isError: true);
       context.read<OcptEditorBloc>().add(const OcptEditorSaveErrorDismissedEvent());
     }
 
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectVersionNoticeMessage(context, versionNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectVersionNoticeMessage(context, versionNotice),
+        isError: versionNotice.isFailure,
+      );
       context.read<OcptEditorBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
 
@@ -886,11 +888,11 @@ class _EditorViewState extends State<_EditorView> {
 
     final packageNotice = state.projectPackageNotice;
     if (packageNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectPackageNoticeMessage(context, packageNotice),
+        isError: packageNotice.kind.isFailure,
+      );
       context.read<OcptEditorBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
   }
@@ -899,11 +901,11 @@ class _EditorViewState extends State<_EditorView> {
   void _onIoStateChanged(BuildContext context, OcptEditorIoState ioState) {
     final ioNotice = ioState.ioNotice;
     if (ioNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(OcptEditorDialogFlows.ioNoticeMessage(context, ioNotice))),
-        );
+      ocptShowNotice(
+        context,
+        OcptEditorDialogFlows.ioNoticeMessage(context, ioNotice),
+        isError: ioNotice.kind.isFailure,
+      );
       context.read<OcptEditorIoBloc>().add(const OcptEditorIoNoticeDismissedEvent());
     }
   }
