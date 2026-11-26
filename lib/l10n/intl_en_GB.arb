@@ -899,7 +899,7 @@
       }
     }
   },
-  "editorExportError": "The screenplay could not be exported.",
+  "editorExportError": "The screenplay could not be exported. Check that the file isn't open in another application.",
   "@editorExportError": {
     "description": "Error shown when exporting the screenplay to a .fountain file failed",
     "context": "Displayed in a SnackBar on the editor page",
@@ -952,7 +952,7 @@
       }
     }
   },
-  "editorExportPdfError": "The screenplay could not be exported to PDF.",
+  "editorExportPdfError": "The screenplay could not be exported to PDF. Check that the file isn't open in another application.",
   "@editorExportPdfError": {
     "description": "Error shown when exporting the screenplay to a PDF file failed",
     "context": "Displayed in a SnackBar on the editor page",
@@ -2681,7 +2681,7 @@
       }
     }
   },
-  "shotListExportXlsxError": "The shot list could not be exported.",
+  "shotListExportXlsxError": "The shot list could not be exported. Check that the file isn't open in another application.",
   "@shotListExportXlsxError": {
     "description": "Error shown when exporting the shot list to an Excel workbook failed",
     "context": "Displayed as a SnackBar over the shot list mode",
@@ -2790,7 +2790,7 @@
       }
     }
   },
-  "shotListExportCoverageError": "The scenario coverage could not be exported.",
+  "shotListExportCoverageError": "The scenario coverage could not be exported. Check that the file isn't open in another application.",
   "@shotListExportCoverageError": {
     "description": "Error shown when exporting the scenario coverage to a PDF file failed",
     "context": "Displayed as a SnackBar over the shot list mode",
@@ -2906,7 +2906,7 @@
       }
     }
   },
-  "shotListExportStoryboardError": "The storyboard could not be exported.",
+  "shotListExportStoryboardError": "The storyboard could not be exported. Check that the file isn't open in another application.",
   "@shotListExportStoryboardError": {
     "description": "Error shown when exporting the storyboard to a PDF file failed",
     "context": "Displayed as a SnackBar over the shot list mode",
@@ -2924,7 +2924,7 @@
       }
     }
   },
-  "shotListExportFloorPlansError": "The floor plans could not be exported.",
+  "shotListExportFloorPlansError": "The floor plans could not be exported. Check that the file isn't open in another application.",
   "@shotListExportFloorPlansError": {
     "description": "Error shown when exporting the floor plans to a PDF file failed",
     "context": "Displayed as a SnackBar over the shot list mode",
@@ -7603,7 +7603,7 @@
       }
     }
   },
-  "resourcesExportXlsxError": "The resources catalogue could not be exported.",
+  "resourcesExportXlsxError": "The resources catalogue could not be exported. Check that the file isn't open in another application.",
   "@resourcesExportXlsxError": {
     "description": "Error shown when exporting the resources catalogue to an Excel workbook failed",
     "context": "Displayed as a SnackBar over the resources mode",
@@ -7733,7 +7733,7 @@
       }
     }
   },
-  "resourcesExportContactListError": "The contact list could not be exported.",
+  "resourcesExportContactListError": "The contact list could not be exported. Check that the file isn't open in another application.",
   "@resourcesExportContactListError": {
     "description": "Error shown when exporting the contact list to a PDF failed",
     "context": "Displayed as a SnackBar over the resources mode",
@@ -9473,7 +9473,7 @@
       }
     }
   },
-  "breakdownExportSheetsError": "The breakdown sheets could not be exported.",
+  "breakdownExportSheetsError": "The breakdown sheets could not be exported. Check that the file isn't open in another application.",
   "@breakdownExportSheetsError": {
     "description": "Error shown when exporting the breakdown sheets to a PDF file failed",
     "context": "Displayed as a SnackBar over the breakdown mode",
@@ -9533,7 +9533,7 @@
       }
     }
   },
-  "breakdownExportXlsxError": "The breakdown workbook could not be exported.",
+  "breakdownExportXlsxError": "The breakdown workbook could not be exported. Check that the file isn't open in another application.",
   "@breakdownExportXlsxError": {
     "description": "Error shown when exporting the breakdown to an Excel workbook failed",
     "context": "Displayed as a SnackBar over the breakdown mode",
@@ -11352,7 +11352,7 @@
       }
     }
   },
-  "scheduleExportError": "The export could not be completed.",
+  "scheduleExportError": "The export could not be completed. Check that the file isn't open in another application.",
   "@scheduleExportError": {
     "description": "Error shown when one of the three schedule PDF exports failed outright",
     "context": "Displayed as a SnackBar over the schedule mode",
@@ -12468,7 +12468,7 @@
       }
     }
   },
-  "projectPackageExportError": "The project package could not be written.",
+  "projectPackageExportError": "The project package could not be written. Check that the file isn't open in another application.",
   "@projectPackageExportError": {
     "description": "Error shown when writing the project out as a portable package failed",
     "context": "Displayed as a SnackBar over whichever production mode the Export panel was opened from",
@@ -16273,7 +16273,7 @@
       }
     }
   },
-  "budgetExportError": "The export could not be completed.",
+  "budgetExportError": "The export could not be completed. Check that the file isn't open in another application.",
   "@budgetExportError": {
     "description": "Error shown when one of the budget mode's four exports failed outright",
     "context": "Displayed as a SnackBar over the budget mode",
