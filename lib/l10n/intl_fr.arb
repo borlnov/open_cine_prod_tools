@@ -849,6 +849,7 @@
   "roleAlertMergeConfirmAction": "Fusionner",
   "roleAlertCompactOrphanedLine": "{characterName} — retiré du scénario",
   "roleAlertCompactCollisionLine": "{characterName} — partagé par deux rôles",
+  "roleAlertCompactSummary": "{count, plural, one{{count} rôle à vérifier} other{{count} rôles à vérifier}}",
   "resourcesRoleCandidatesCardTitle": "Candidats",
   "resourcesRoleNoCandidateHint": "Personne n'a encore été enregistré.",
   "resourcesAddCandidateToRoleAction": "Candidat",

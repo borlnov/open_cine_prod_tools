@@ -203,14 +203,16 @@ void main() {
     await harness.seedRole("Sam");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
-    final line = find.text(tr.roleAlertCompactCollisionLine("SAM"));
+    // The collision names two roles, so the banner shows them behind its summary.
+    final summary = find.text(tr.roleAlertCompactSummary(2));
 
-    expect(line, findsWidgets);
+    expect(summary, findsOneWidget);
     // It sits above whichever centre is shown.
     await harness.tap(tester, find.text(tr.breakdownHeaderRecapSegmentLabel));
-    expect(line, findsWidgets);
+    expect(summary, findsOneWidget);
 
-    await harness.tap(tester, line.first);
+    await harness.tap(tester, summary);
+    await harness.tap(tester, find.text(tr.roleAlertCompactCollisionLine("SAM")).first);
     final state = harness.workspaceBlocOf(tester).state;
     expect(state.mode, OcptWorkspaceMode.resources);
     final request = state.revealRequest! as OcptResourcesRevealRequest;

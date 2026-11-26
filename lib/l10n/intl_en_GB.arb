@@ -6409,6 +6409,17 @@
       }
     }
   },
+  "roleAlertCompactSummary": "{count, plural, one{{count} role needs attention} other{{count} roles need attention}}",
+  "@roleAlertCompactSummary": {
+    "description": "The summary line of the compact role alert banner, standing for several lines it expands on a tap",
+    "context": "Displayed at the top of the resources mode and the breakdown mode",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "resourcesRoleCandidatesCardTitle": "Candidates",
   "@resourcesRoleCandidatesCardTitle": {
     "description": "Title of the card holding the people seen for a role",

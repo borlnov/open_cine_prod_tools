@@ -235,31 +235,34 @@ void main() {
     await harness.seedRole("Sam");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
-    final line = tr.roleAlertCompactCollisionLine("SAM");
+    // The collision names two roles, so the banner shows them behind its summary.
+    final summary = tr.roleAlertCompactSummary(2);
 
-    expect(find.text(line), findsWidgets);
+    expect(find.text(summary), findsOneWidget);
 
     // Renaming the hand-added role, once the debounce wrote it, ends the collision.
     await harness.openTab(tester, tr.resourcesTabRoles);
     await harness.tap(tester, find.text("Sam"));
     await harness.type(tester, harness.fieldHinted(tr.resourcesRoleNameHint), "Samuel");
-    expect(find.text(line), findsWidgets);
+    expect(find.text(summary), findsOneWidget);
     await tester.pump(_debounceElapsed);
     await tester.pumpAndSettle();
-    expect(find.text(line), findsNothing);
+    expect(find.text(summary), findsNothing);
     expect((await harness.readRoles()).map((role) => role.name), containsAll(["SAM", "Samuel"]));
 
     // Back to a collision, then merged away.
     await harness.type(tester, harness.fieldHinted(tr.resourcesRoleNameHint), "Sam");
     await tester.pump(_debounceElapsed);
     await tester.pumpAndSettle();
-    expect(find.text(line), findsWidgets);
+    expect(find.text(summary), findsOneWidget);
 
-    await harness.tap(tester, find.text(line).first);
+    await harness.tap(tester, find.text(summary));
+    await harness.tap(tester, find.text(tr.roleAlertCompactCollisionLine("SAM")).first);
     await harness.tapScrolled(tester, find.text(tr.roleAlertMergeAction));
     await harness.confirmDialog(tester, tr.roleAlertMergeConfirmAction);
 
-    expect(find.text(line), findsNothing);
+    expect(find.text(summary), findsNothing);
+    expect(find.text(tr.roleAlertCompactCollisionLine("SAM")), findsNothing);
     expect(await harness.readRoles(), hasLength(1));
   });
 }
