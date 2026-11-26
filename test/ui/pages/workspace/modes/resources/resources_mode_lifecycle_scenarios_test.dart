@@ -216,7 +216,7 @@ void main() {
 
     await harness.mount(tester);
     final tr = harness.trOf(tester);
-    final collision = tr.roleAlertCompactCollisionLine("SAM");
+    final collision = tr.roleAlertCompactSummary(2);
     expect(find.text(tr.resourcesStatsPeople(2)), findsOneWidget);
     expect(find.text(collision), findsWidgets);
     await harness.tap(tester, find.text("Alice"));

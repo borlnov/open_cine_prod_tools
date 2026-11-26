@@ -24,11 +24,20 @@ import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 /// widget itself knows nothing about either mode's own way of getting there — it only ever asks,
 /// through [onRoleTapped].
 ///
+/// Several lines collapse behind one summary line naming how many roles need attention, which
+/// expands them on a tap: the modes pin the banner above a view that takes only the height left
+/// over, so the banner must never grow with the cast. Expanded, the lines sit in a box capped at
+/// [maxExpandedHeight] that scrolls on its own. A single line is shown as is, with nothing to
+/// expand.
+///
 /// Renders nothing at all — clears itself — the moment neither list holds anything, and
 /// [isReadOnly] withholds it outright: a project version being previewed read-only has no fix to
 /// point the way to. Does **not** change `OcptRoleAlertBanner`'s own, full-size banner, which keeps
 /// living in the resources mode's role sheet and the shot list.
-class OcptRoleAlertCompactBanner extends StatelessWidget {
+class OcptRoleAlertCompactBanner extends StatefulWidget {
+  /// The tallest the expanded list of lines may grow before it scrolls inside its own box.
+  static const double maxExpandedHeight = 160;
+
   /// Every orphaned-role alert of the whole cast, one line each.
   final List<OcptRemovedRoleAlert> orphanedAlerts;
 
@@ -51,10 +60,22 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
     this.isReadOnly = false,
   });
 
+  /// Create the state of the role alert compact banner.
+  @override
+  State<OcptRoleAlertCompactBanner> createState() => _OcptRoleAlertCompactBannerState();
+}
+
+/// The state of [OcptRoleAlertCompactBanner]: whether its lines are expanded.
+class _OcptRoleAlertCompactBannerState extends State<OcptRoleAlertCompactBanner> {
+  /// Whether the lines are shown below the summary line.
+  bool _isExpanded = false;
+
   /// Build the role alert compact banner as a [Container].
   @override
   Widget build(BuildContext context) {
-    if (isReadOnly || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
+    final orphanedAlerts = widget.orphanedAlerts;
+    final collisionAlerts = widget.collisionAlerts;
+    if (widget.isReadOnly || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
       return const SizedBox.shrink();
     }
 
@@ -67,20 +88,20 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
         _OcptRoleAlertCompactLine(
           color: color,
           roleId: alert.roleId,
-          onRoleTapped: onRoleTapped,
+          onRoleTapped: widget.onRoleTapped,
           text: tr.roleAlertCompactOrphanedLine(alert.characterName),
         ),
       for (final alert in collisionAlerts) ...[
         _OcptRoleAlertCompactLine(
           color: color,
           roleId: alert.screenplayRoleId,
-          onRoleTapped: onRoleTapped,
+          onRoleTapped: widget.onRoleTapped,
           text: tr.roleAlertCompactCollisionLine(alert.name),
         ),
         _OcptRoleAlertCompactLine(
           color: color,
           roleId: alert.handAddedRoleId,
-          onRoleTapped: onRoleTapped,
+          onRoleTapped: widget.onRoleTapped,
           text: tr.roleAlertCompactCollisionLine(alert.name),
         ),
       ],
@@ -93,9 +114,78 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
         color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
         borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: lines),
+      child: lines.length == 1
+          ? lines.single
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _OcptRoleAlertCompactSummary(
+                  color: color,
+                  text: tr.roleAlertCompactSummary(lines.length),
+                  isExpanded: _isExpanded,
+                  onTapped: () => setState(() => _isExpanded = !_isExpanded),
+                ),
+                if (_isExpanded)
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxHeight: OcptRoleAlertCompactBanner.maxExpandedHeight,
+                    ),
+                    child: ListView(shrinkWrap: true, padding: EdgeInsets.zero, children: lines),
+                  ),
+              ],
+            ),
     );
   }
+}
+
+/// The summary line standing for several lines: [text], expanding or collapsing them on a tap.
+class _OcptRoleAlertCompactSummary extends StatelessWidget {
+  /// The colour of the icons and the text.
+  final Color color;
+
+  /// The line's text, naming how many roles need attention.
+  final String text;
+
+  /// Whether the lines are currently shown, which turns the chevron.
+  final bool isExpanded;
+
+  /// Called when the line is tapped.
+  final VoidCallback onTapped;
+
+  /// Class constructor
+  const _OcptRoleAlertCompactSummary({
+    required this.color,
+    required this.text,
+    required this.isExpanded,
+    required this.onTapped,
+  });
+
+  /// Build the role alert compact summary as an [InkWell].
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTapped,
+    mouseCursor: ocpt_theme.ocptClickableCursor,
+    borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Row(
+        children: [
+          Icon(Icons.person_off_outlined, size: 14, color: color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: color, fontWeight: FontWeight.w600),
+            ),
+          ),
+          Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 16, color: color),
+        ],
+      ),
+    ),
+  );
 }
 
 /// One line: [text], tappable onto [roleId].

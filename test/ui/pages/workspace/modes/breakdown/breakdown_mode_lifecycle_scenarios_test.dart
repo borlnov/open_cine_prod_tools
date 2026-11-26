@@ -349,7 +349,7 @@ void main() {
 
     await harness.mount(tester);
     final tr = harness.trOf(tester);
-    final collision = tr.roleAlertCompactCollisionLine("SAM");
+    final collision = tr.roleAlertCompactSummary(2);
     expect(find.text(tr.breakdownScenesDoneCount(1, 2)), findsOneWidget);
     expect(find.text(collision), findsWidgets);
     expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsOneWidget);
