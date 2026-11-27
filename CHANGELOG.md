@@ -6,6 +6,24 @@ SPDX-License-Identifier: Apache-2.0
 
 # Changelog
 
+## 0.5.1
+
+Fixes for lost projects on Windows, the director line and failed exports.
+
+- Windows: the recent projects, the settings and the sharing keys kept by
+  0.3.1 and earlier reappear. 0.4.0 and 0.5.0 looked for them in a renamed
+  folder and started empty; 0.5.1 brings them over once at start-up, merging
+  them with what 0.4.0 or 0.5.0 saved since, and leaves the old folder as it
+  was.
+- Schedule exports: the call sheet, the shooting plan, the day out of days
+  and the one-line schedule read "Directed by" followed by every director of
+  the project ("A, B and C"), instead of the first director alone.
+- Notices: a failed export, and any other failed action, shows in a red-tinted
+  notice with a warning icon instead of looking like a success. An export
+  failure suggests checking that the file isn't open in another application.
+- Project files stay at format 5: 0.4.0, 0.5.0 and 0.5.1 open each other's
+  files.
+
 ## 0.5.0
 
 The styled editor shows the screenplay's notes in a margin.
