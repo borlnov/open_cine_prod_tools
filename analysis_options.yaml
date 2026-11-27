@@ -29,6 +29,11 @@ analyzer:
     # packages/fountain_kit is a path dependency of this app, but it is a standalone package with
     # its own analysis_options.yaml and its own CI entry, so it must not be analyzed twice here.
     - packages/**
+    - android/**
+    - ios/**
+    - windows/**
+    - macos/**
+    - linux/**
 
   errors:
     missing_required_param: error

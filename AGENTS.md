@@ -125,7 +125,7 @@ no file any more.
 
 ## Toolchain
 
-The Flutter SDK (3.44.6, the version pinned by `actlibs/tool/.flutter_version`) lives in the
+The Flutter SDK (3.47.9, the version pinned by `actlibs/tool/.flutter_version`) lives in the
 devcontainer; the developer's host has **no usable one**. An agent session normally starts
 **inside that container already** — cwd `/workspaces/open_cine_prod_tools`, `flutter` on the
 `PATH`, and no `docker` binary at all — so run `flutter analyze`, `flutter test`,
@@ -449,7 +449,7 @@ minimum before each commit):
 ## Known pitfalls
 
 - **super_editor is pinned to `0.3.0-dev.52` exactly** — dev.50 and below do not compile with
-  Flutter 3.44.6 (`DocumentImeInputClient` misses the now-abstract
+  Flutter 3.44 and later (`DocumentImeInputClient` misses the now-abstract
   `TextInputConnection.updateStyle(TextInputStyle)`). dev.52 re-exports `BlinkController`, so
   tests get it from `package:super_editor/super_editor.dart` with no direct `super_text_layout`
   dependency.

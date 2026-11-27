@@ -127,7 +127,7 @@ xattr -dr com.apple.quarantine "/Applications/Open Cine Prod Tools.app"
 
 ## Building from source
 
-The project ships a [devcontainer](.devcontainer/) (Debian trixie, Flutter 3.44.6, the Linux
+The project ships a [devcontainer](.devcontainer/) (Debian trixie, Flutter 3.47.9, the Linux
 desktop build toolchain, `reuse`) with everything needed to build and run the app — nothing to
 install by hand.
 
