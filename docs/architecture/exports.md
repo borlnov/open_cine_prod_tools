@@ -63,6 +63,12 @@ sit.
   a preview writes exactly what *is* — leaving it clickable with a caveat would make it the odd one
   out in the one way that matters, and a card that vanished would make the panel lie about what
   exists. ADR 0021 records the exception with its argument so it is not read later as a slip.
+  Every outcome notice goes through `ocptShowNotice` (`lib/ui/widgets/helpers/`), the only place
+  that shows a SnackBar (`test/ocpt_show_notice_guard_test.dart` fails on any other). A notice
+  kind says by itself whether it is a failure (`isFailure`, an extension beside each enum), and a
+  failure is drawn on the theme's error container with an error icon, so a failed export never
+  looks like a success. Each export failure message ends with a check sentence ("Check that the
+  file isn't open in another application.") rather than a cause, since generation can fail too.
   The **budget mode prints four documents** — the quote and the financing plan as PDFs, the cash
   journal as an XLSX workbook, the financial report as a PDF — through
   `OcptWorkspaceExportDialog<OcptBudgetExportDocument>`, above that standing project-package card.

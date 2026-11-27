@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_hosting_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_configure_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_invite_view.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_readout_chip.dart';
 
@@ -136,9 +137,7 @@ class OcptSharingView extends StatelessWidget {
   /// Show [OcptSharingState.pairingFailed]'s own snack bar, then dispatch the event that clears
   /// it, so a later rebuild doesn't show it again — `OcptEditorPage`'s own `hasSaveError` handling.
   void _onPairingFailed(BuildContext context, OcptSharingState state) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(Tr.of(context).sharingPairingErrorMessage)));
+    ocptShowNotice(context, Tr.of(context).sharingPairingErrorMessage, isError: true);
     context.read<OcptSharingBloc>().add(const OcptSharingPairingErrorDismissedEvent());
   }
 

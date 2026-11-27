@@ -9,6 +9,9 @@
         {
             "name": "actlibs",
             "path": "actlibs"
+        },
+        {
+            "path": "/home/debian"
         }
     ],
     "settings": {

@@ -13,6 +13,8 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_export_document.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -41,6 +43,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_breakdown_labels.da
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
+import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_show_notice.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_export_tag.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
@@ -426,11 +429,11 @@ class _BreakdownViewState extends State<_BreakdownView> {
 
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectVersionNoticeMessage(context, versionNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectVersionNoticeMessage(context, versionNotice),
+        isError: versionNotice.isFailure,
+      );
       context.read<OcptBreakdownBloc>().add(const OcptProjectVersionNoticeDismissedEvent());
     }
 
@@ -444,11 +447,11 @@ class _BreakdownViewState extends State<_BreakdownView> {
 
     final packageNotice = state.projectPackageNotice;
     if (packageNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
-        );
+      ocptShowNotice(
+        context,
+        ocptProjectPackageNoticeMessage(context, packageNotice),
+        isError: packageNotice.kind.isFailure,
+      );
       context.read<OcptBreakdownBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
   }

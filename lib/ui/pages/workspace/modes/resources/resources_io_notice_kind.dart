@@ -16,3 +16,14 @@ enum OcptResourcesIoNoticeKind {
   /// Exporting the contact list to a PDF failed.
   contactListExportFailed,
 }
+
+/// What the kind of a notice says about its outcome.
+extension OcptResourcesIoNoticeKindOutcome on OcptResourcesIoNoticeKind {
+  /// Tell whether the notice reports a failure, which is shown as an error.
+  bool get isFailure => switch (this) {
+    OcptResourcesIoNoticeKind.xlsxExportFailed ||
+    OcptResourcesIoNoticeKind.contactListExportFailed => true,
+    OcptResourcesIoNoticeKind.xlsxExportSucceeded ||
+    OcptResourcesIoNoticeKind.contactListExportSucceeded => false,
+  };
+}

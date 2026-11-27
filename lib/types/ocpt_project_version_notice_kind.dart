@@ -38,3 +38,12 @@ enum OcptProjectVersionNoticeKind {
   /// half-restored.
   restoreUnsupportedFormat,
 }
+
+/// What the kind of a project version notice says about its outcome.
+extension OcptProjectVersionNoticeKindOutcome on OcptProjectVersionNoticeKind {
+  /// Tell whether the notice reports a failure, which is shown as an error.
+  ///
+  /// Every kind of this enum is one: a version notice is only ever raised when the operation did
+  /// not happen.
+  bool get isFailure => true;
+}
