@@ -4,6 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_local_storage_manager/act_local_storage_manager.dart';
+import 'package:open_cine_prod_tools/managers/legacy_app_data/ocpt_legacy_app_data_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 
@@ -18,6 +19,13 @@ class OcptSecretsManagerBuilder
           confGetter: () => globalGetIt().get<OcptConfigManager>(),
         ),
       );
+
+  /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
+  ///
+  /// The legacy application data migration comes first: it may bring over the secure storage file
+  /// this manager reads.
+  @override
+  Iterable<Type> dependsOn() => [...super.dependsOn(), OcptLegacyAppDataManager];
 }
 
 /// The app's own confidential-data storage, wrapping `act_local_storage_manager`'s

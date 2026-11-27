@@ -10,6 +10,7 @@ import 'package:act_local_storage_manager/act_local_storage_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/legacy_app_data/ocpt_legacy_app_data_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_page_zoom.dart';
@@ -23,13 +24,17 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:uuid/uuid.dart';
 
-/// The maximum number of projects kept in [OcptPropertiesManager.recentProjects].
-const _maxRecentProjects = 10;
-
 /// This is the builder for the properties manager of the app
 class OcptPropertiesManagerBuilder extends AbstractPropertiesBuilder<OcptPropertiesManager> {
   /// Class constructor
   const OcptPropertiesManagerBuilder() : super(OcptPropertiesManager.new);
+
+  /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
+  ///
+  /// The legacy application data migration comes first: the preferences file is cached on its
+  /// first read, so nothing may read it before the migration has written it.
+  @override
+  Iterable<Type> dependsOn() => [...super.dependsOn(), OcptLegacyAppDataManager];
 }
 
 /// This is the properties manager of the app.
@@ -389,11 +394,11 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// Add [project] to [recentProjects], or move it to the front if it's already there.
   ///
   /// The list is kept sorted with the most recently opened project first and capped at
-  /// [_maxRecentProjects] entries; the oldest entries are dropped past that cap.
+  /// [ocptMaxRecentProjects] entries; the oldest entries are dropped past that cap.
   Future<void> addRecentProject(OcptRecentProjectModel project) async {
     final current = await recentProjects.load() ?? const [];
     final withoutDuplicate = current.where((element) => element.path != project.path);
-    final updated = [project, ...withoutDuplicate].take(_maxRecentProjects).toList();
+    final updated = [project, ...withoutDuplicate].take(ocptMaxRecentProjects).toList();
 
     await recentProjects.store(updated);
   }

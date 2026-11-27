@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:open_cine_prod_tools/managers/legacy_app_data/ocpt_legacy_app_data_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_external_logger_key.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_external_logger.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
@@ -35,7 +36,7 @@ class OcptFileLoggingManagerBuilder extends AbsLifeCycleFactory<OcptFileLoggingM
 
   /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
   @override
-  Iterable<Type> dependsOn() => [LoggerManager, OcptConfigManager];
+  Iterable<Type> dependsOn() => [LoggerManager, OcptConfigManager, OcptLegacyAppDataManager];
 }
 
 /// Turn the `logs.file.*` configuration read by [OcptConfigManager] into a registered
