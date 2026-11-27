@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The tallest the tag popover's own panel is ever drawn before its middle (the matches and the
 /// creation grid) starts scrolling, in logical pixels. Shared with the popover itself, which caps

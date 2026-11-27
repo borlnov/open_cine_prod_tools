@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_localizations_delegates.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
@@ -19,12 +19,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 /// other test in this file renders at, and is only ever overridden to a short one deliberately too
 /// small for the six week rows' own fixed `minHeight` (`_OcptScheduleMonthCell`).
 Widget _wrapInApp(Widget child, {double height = 700}) => MaterialApp(
-  localizationsDelegates: const [
-    Tr.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
+  localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(
     body: SizedBox(width: 900, height: height, child: child),

@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_localizations_delegates.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_header.dart';
@@ -26,12 +26,7 @@ const double _tinyHeaderWidth = 320;
 /// wide. The caller widens the test surface past that first — the default 800×600 test surface
 /// would otherwise clamp the header before it gets the chance to show every element.
 Widget _wrapInApp(Widget child, {required double width}) => MaterialApp(
-  localizationsDelegates: const [
-    Tr.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
+  localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(
     body: Align(

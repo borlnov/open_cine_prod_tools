@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The small stepper of an object's own states: a dot per step, filled and connected up to
 /// `reachedCount`, hollow past it, its own label under each dot — the current (last reached) one

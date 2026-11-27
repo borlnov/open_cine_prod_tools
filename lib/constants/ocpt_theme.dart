@@ -5,7 +5,7 @@
 library;
 
 import 'package:act_themes_manager/act_themes_manager.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 
 /// A pure scaling function applied to one size literal (a font size, a dimension or a radius) when

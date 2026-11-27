@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_right_dock_tab_label.dart';
 
 /// The chrome every tabbed right dock shares: a compact tab row of [tabs], a trailing × close

@@ -4,8 +4,8 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
@@ -84,9 +84,9 @@ void main() {
       return const [];
     }
 
-    return SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(
-      nodeId,
-    ).viewModel.spellingErrors;
+    return SuperEditorInspector.findWidgetForComponent<ParagraphComponent>(nodeId)
+        .viewModel
+        .spellingErrors;
   }
 
   /// Opens the page in raw mode over [text], waits until the dictionary has underlined something,

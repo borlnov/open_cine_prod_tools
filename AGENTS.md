@@ -453,6 +453,17 @@ minimum before each commit):
   `TextInputConnection.updateStyle(TextInputStyle)`). dev.52 re-exports `BlinkController`, so
   tests get it from `package:super_editor/super_editor.dart` with no direct `super_text_layout`
   dependency.
+- **Material comes from `package:material_ui`**, never `package:flutter/material.dart`: Flutter
+  3.47 publishes it out of the framework, and the two libraries declare distinct types, so a
+  `ThemeData` built from the framework's copy cannot be handed to `ActThemesManager`, and a widget
+  from it silently misses the app's theme. The analyzer says nothing about such an import;
+  `test/material_ui_import_test.dart` fails on one. super_editor still imports the framework's
+  Material: a `Theme.of` inside it does not see the app's theme (it only reads the brightness that
+  way, on mobile and in `SuperDesktopTextField`, which the app does not use), and its Android
+  toolbar throws without the framework's `MaterialLocalizations`. So every app root, and every
+  test's, installs `ocptDesignLocalizationsDelegates`
+  (`lib/constants/ocpt_localizations_delegates.dart`), which carries both copies; it is the one
+  file that imports `flutter_localizations`.
 - **A `MenuItemButton` may not go inside a `Wrap`**, and the failure is a thrown
   `RenderFlex children have non-zero flex but incoming width constraints are unbounded`, not a
   layout that merely looks wrong. A menu item lays its child out inside an `Expanded`, itself inside

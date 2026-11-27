@@ -18,9 +18,14 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Internationalize Flutter apps
+  # The framework's own Material localisations, which super_editor's Android toolbar still asks for
+  # (lib/constants/ocpt_localizations_delegates.dart)
   flutter_localizations:
     sdk: flutter
+
+  # Material, published out of the framework since Flutter 3.47: the in-framework library is
+  # scheduled for deprecation, and the ACT packages hand their themes over in these types
+  material_ui: ^1.11.1
 
   # Reads and writes the portable project package: the `.ocpt` plus every file it references, as
   # one zip somebody can send. Streamed to and from disk rather than held in memory — a project

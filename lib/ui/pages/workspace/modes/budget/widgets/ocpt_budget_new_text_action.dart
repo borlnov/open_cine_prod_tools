@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// One of the wizard's secondary actions (`Cancel`, `Back`) — a [TextButton] whose key is handed
 /// to the button itself, so the action stays findable and inspectable by it.

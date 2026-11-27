@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// One of the wizard's primary actions (`Continue`, `Save`, `Create lines`) — a [FilledButton]
 /// whose key is handed to the button itself, so the action stays findable and inspectable by it.

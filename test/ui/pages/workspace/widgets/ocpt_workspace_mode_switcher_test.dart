@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_localizations_delegates.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_mode_switcher.dart';
@@ -12,12 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_m
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve (the switcher's own
 /// labels and tooltips read them).
 Widget _wrapInApp(Widget child) => MaterialApp(
-  localizationsDelegates: const [
-    Tr.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
+  localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(body: child),
 );
@@ -51,9 +46,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptWorkspaceModeSwitcher)));
-    final colorScheme = Theme.of(
-      tester.element(find.byType(OcptWorkspaceModeSwitcher)),
-    ).colorScheme;
+    final colorScheme = Theme.of(tester.element(find.byType(OcptWorkspaceModeSwitcher)))
+        .colorScheme;
 
     final activeText = tester.widget<Text>(find.text(tr.workspaceModeBudget));
     final inactiveText = tester.widget<Text>(find.text(tr.workspaceModeScreenplay));

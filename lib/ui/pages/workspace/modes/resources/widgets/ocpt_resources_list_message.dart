@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The one line a left dock list shows in place of its rows: the hint of a tab holding nothing yet,
 /// or the "no match" line of a search that filtered every row out.

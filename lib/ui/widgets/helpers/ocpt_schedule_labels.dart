@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_schedule_effect_palette.dart';
@@ -349,9 +349,9 @@ String ocptScheduleConvocationSlotsLabel(
   Tr tr,
   OcptDayConvocation convocation,
   Map<String, OcptShootingSlot> slotById,
-) => [
-  for (final slotId in convocation.slotIds) _ocptConvocationSlotLabelOf(tr, slotById[slotId]),
-].join(" · ");
+) =>
+    [for (final slotId in convocation.slotIds) _ocptConvocationSlotLabelOf(tr, slotById[slotId])]
+        .join(" · ");
 
 /// Get [slot]'s own label, or [Tr.scheduleInspectorUnnamedSlot] while it is empty or [slot] itself
 /// is

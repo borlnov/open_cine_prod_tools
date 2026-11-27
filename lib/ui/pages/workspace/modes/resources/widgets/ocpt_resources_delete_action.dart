@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The destructive action every resources sheet carries at its very bottom — `Delete this person`,
 /// `Delete this role`, `Delete this location`, `Delete this element`.

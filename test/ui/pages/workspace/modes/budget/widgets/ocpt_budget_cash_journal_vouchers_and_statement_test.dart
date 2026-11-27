@@ -4,14 +4,15 @@
 
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' show DateFormat;
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
+
 import 'ocpt_budget_cash_journal_test_doubles.dart';
 
 /// A minimal voucher naming [path], everything else neutral.
@@ -540,9 +541,8 @@ void main() {
 
       final context = tester.element(find.byType(OcptBudgetCashJournal));
       final tr = Tr.of(context);
-      final closingDate = DateFormat.yMMMd(
-        Localizations.localeOf(context).toString(),
-      ).format(DateTime(2026, 2, 23));
+      final closingDate = DateFormat.yMMMd(Localizations.localeOf(context).toString())
+          .format(DateTime(2026, 2, 23));
 
       // The statement closes on its last movement, never on today.
       expect(find.text(tr.budgetCashJournalClosingBalanceLabel(closingDate)), findsOneWidget);

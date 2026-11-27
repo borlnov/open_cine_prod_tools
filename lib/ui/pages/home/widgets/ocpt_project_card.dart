@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
@@ -104,10 +104,8 @@ class OcptProjectCard extends StatelessWidget {
                       child: Center(
                         child: Text(
                           entry.project.name.isEmpty ? "?" : entry.project.name[0].toUpperCase(),
-                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                            color: onPosterTint,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.displayMedium
+                              ?.copyWith(color: onPosterTint, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -174,18 +172,16 @@ class OcptProjectCard extends StatelessWidget {
                   ),
                   Text(
                     entry.project.path,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     formatRelativeTime(context, entry.project.lastOpenedAt),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                    style: Theme.of(context).textTheme.labelSmall
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),

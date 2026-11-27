@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// One figure of the provisioning band: its caption over its value.
 class OcptBudgetLogisticsProvisionFigure extends StatelessWidget {

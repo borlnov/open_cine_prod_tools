@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -632,9 +632,8 @@ class _OcptScheduleWeekHourLine extends StatelessWidget {
   /// Build the schedule week hour line as a [Positioned].
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(
-      context,
-    ).colorScheme.outlineVariant.withValues(alpha: _ocptWeekGridHourLineAlpha);
+    final color = Theme.of(context).colorScheme.outlineVariant
+        .withValues(alpha: _ocptWeekGridHourLineAlpha);
 
     return Positioned(
       top: top,
@@ -709,9 +708,8 @@ class _OcptScheduleWeekLaneDivider extends StatelessWidget {
   /// Build the schedule week lane divider as a [Positioned].
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(
-      context,
-    ).colorScheme.outlineVariant.withValues(alpha: _ocptWeekGridLaneDividerAlpha);
+    final color = Theme.of(context).colorScheme.outlineVariant
+        .withValues(alpha: _ocptWeekGridLaneDividerAlpha);
 
     return Positioned(
       top: 0,

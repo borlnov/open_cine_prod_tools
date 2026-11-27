@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// An off-line record's own banner (`OcptBudgetDetailScaffold.banner`): a short, neutral, factual
 /// [message], and one or two ways to reconcile the record with the quote it never went through.

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
@@ -348,9 +348,8 @@ class _OcptScheduleDayCard extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final tint = ocptScheduleDayLocationTint(context, location);
-    final dateLabel = DateFormat.yMMMEd(
-      Localizations.localeOf(context).toString(),
-    ).format(day.date);
+    final dateLabel = DateFormat.yMMMEd(Localizations.localeOf(context).toString())
+        .format(day.date);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 3, 12, 3),

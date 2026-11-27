@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The colours [ocptPresenceColor] picks a peer's avatar from, one fixed palette shared by every
 /// project: unlike a project's own per-project palette (`ocpt_coverage_palette.dart`), a replica's

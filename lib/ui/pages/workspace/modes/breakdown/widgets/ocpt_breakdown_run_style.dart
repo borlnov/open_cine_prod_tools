@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Apply a run's own inline emphasis on top of [base], mirroring `OcptShotCoverageDialog`'s own
 /// `_styleOf`.

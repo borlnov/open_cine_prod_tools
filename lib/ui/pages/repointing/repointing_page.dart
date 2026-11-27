@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_view.dart';

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// One right-aligned cell of an amount column of the budget mode's tables: a [Text] of [text] on a
 /// single line, cut with an ellipsis when it does not fit, in a box [width] wide.

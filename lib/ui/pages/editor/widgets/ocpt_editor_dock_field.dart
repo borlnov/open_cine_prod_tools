@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// One read-only field row shared by the right dock's inspector and metadata panels: an
 /// uppercase, `onSurfaceVariant` label over a rounded `surfaceContainer` value box, following the

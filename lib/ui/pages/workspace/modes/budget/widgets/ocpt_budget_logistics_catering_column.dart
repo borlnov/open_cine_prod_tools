@@ -4,7 +4,7 @@
 
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_day.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_totals.dart';

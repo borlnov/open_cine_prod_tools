@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Overlay [child] — a production mode's own centre content — with a floating "add" affordance,
 /// drawn only at a compact width.

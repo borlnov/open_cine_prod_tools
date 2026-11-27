@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// One primary or secondary action the detail panel offers, resolved by whichever detail panel
 /// variant drew the variant currently on screen.

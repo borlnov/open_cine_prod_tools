@@ -4,9 +4,9 @@
 
 import 'dart:io';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_localizations_delegates.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
@@ -15,12 +15,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_referenced_image.dart';
 
 /// Wraps [child] in a [width]-wide box, with the localization delegates so [Tr.of] resolves.
 Widget _wrap(Widget child, {required double width}) => MaterialApp(
-  localizationsDelegates: const [
-    Tr.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
+  localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(
     body: Align(
@@ -107,9 +102,8 @@ void main() {
 
   /// Finds the semantic label of the placeholder frame.
   Finder findPlaceholder(WidgetTester tester) {
-    final label = Tr.of(
-      tester.element(find.byType(OcptScheduleShotRow)),
-    ).scheduleShotRowNoStoryboardLabel;
+    final label = Tr.of(tester.element(find.byType(OcptScheduleShotRow)))
+        .scheduleShotRowNoStoryboardLabel;
 
     return find.byWidgetPredicate(
       (widget) => widget is Semantics && widget.properties.label == label,
