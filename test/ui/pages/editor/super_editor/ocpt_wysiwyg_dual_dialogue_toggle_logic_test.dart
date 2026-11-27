@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_sc
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+
 import 'ocpt_styled_screenplay_editor_test_doubles.dart';
 
 /// A document that counts the nodes it hands out, to tell how much of it a read walked.

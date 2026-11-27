@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pdf_service.dart';
@@ -14,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
+
 import 'ocpt_call_sheet_pdf_service_test_doubles.dart';
 
 /// Run the tests of `generateGeneralCallSheet`.

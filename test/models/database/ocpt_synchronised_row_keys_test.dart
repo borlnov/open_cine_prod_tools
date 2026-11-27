@@ -22,9 +22,8 @@ void main() {
   late String generated;
 
   setUpAll(() {
-    generated = File(
-      'lib/generated/models/database/ocpt_project_database.g.dart',
-    ).readAsStringSync();
+    generated = File('lib/generated/models/database/ocpt_project_database.g.dart')
+        .readAsStringSync();
   });
 
   /// Get the `toJson` keys of the generated row class [rowClass].

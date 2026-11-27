@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+
 import 'ocpt_shooting_plan_pdf_service_test_doubles.dart';
 
 /// Builds a day event with the few fields these tests read, everything else neutral.

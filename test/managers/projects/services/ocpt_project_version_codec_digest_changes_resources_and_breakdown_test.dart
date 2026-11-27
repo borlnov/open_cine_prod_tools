@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
+
 import 'ocpt_project_version_codec_test_doubles.dart';
 
 /// Run the tests of the project version codec digest changes resources and breakdown.

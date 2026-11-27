@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_n
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
+
 import 'ocpt_wysiwyg_codec_test_doubles.dart';
 
 /// Run the tests of the wysiwyg codec line mapping.

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:math' as math;
+
 import 'package:equatable/equatable.dart';
 
 /// How many minutes a degree of longitude is worth in solar time: the Earth turns 360° in 1440

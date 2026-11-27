@@ -529,9 +529,9 @@ void main() {
         ],
       );
 
-      await const OcptMergeService(
-        logger: SilentLogger(),
-      ).applyChangeset(fileDatabase: model.fileDatabase, changeset: changeset).okOrFail;
+      await const OcptMergeService(logger: SilentLogger())
+          .applyChangeset(fileDatabase: model.fileDatabase, changeset: changeset)
+          .okOrFail;
 
       Future<String> nameOn(OcptProjectDatabase database) async => (await (database.select(
         database.ocptLocationsTable,

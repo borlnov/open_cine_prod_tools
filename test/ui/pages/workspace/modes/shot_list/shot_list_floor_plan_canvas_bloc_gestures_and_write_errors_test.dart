@@ -35,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
 import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_floor_plan_canvas_bloc_test_doubles.dart';
 
@@ -376,11 +377,9 @@ void main() {
             );
             await waitUntil(() => canvas.state.selectedFloorPlanArrowId == null);
 
-            expect(
-              mode.state.selectedSet!.arrows.map((arrow) => arrow.id),
-              [mounted.arrowId],
-              reason: 'the arrow itself is still there',
-            );
+            expect(mode.state.selectedSet!.arrows.map((arrow) => arrow.id), [
+              mounted.arrowId,
+            ], reason: 'the arrow itself is still there');
 
             await mode.close();
           },
@@ -395,16 +394,14 @@ void main() {
         canvas.add(OcptShotListFloorPlanSymbolSelectedEvent(symbolId: mounted.symbolId));
         await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == mounted.symbolId);
 
-        placementsOf(
-          mode,
-        ).add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: otherId));
+        placementsOf(mode)
+            .add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: otherId));
         await waitUntil(() => mode.state.selectedSet!.symbols.length == 1);
         await pumpEventQueue();
         expect(canvas.state.selectedFloorPlanSymbolId, mounted.symbolId);
 
-        placementsOf(
-          mode,
-        ).add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: mounted.symbolId));
+        placementsOf(mode)
+            .add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: mounted.symbolId));
         await waitUntil(() => mode.state.selectedSet!.symbols.isEmpty);
         await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == null);
 
@@ -418,16 +415,14 @@ void main() {
         final otherArrowId = await drawArrow(mode, mounted.firstId, mounted.cameraId);
         await selectArrow(mode, mounted.arrowId);
 
-        placementsOf(
-          mode,
-        ).add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: otherArrowId));
+        placementsOf(mode)
+            .add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: otherArrowId));
         await waitUntil(() => mode.state.selectedSet!.arrows.length == 1);
         await pumpEventQueue();
         expect(canvas.state.selectedFloorPlanArrowId, mounted.arrowId);
 
-        placementsOf(
-          mode,
-        ).add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: mounted.arrowId));
+        placementsOf(mode)
+            .add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: mounted.arrowId));
         await waitUntil(() => mode.state.selectedSet!.arrows.isEmpty);
         await waitUntil(() => canvas.state.selectedFloorPlanArrowId == null);
 

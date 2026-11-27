@@ -87,10 +87,11 @@ String _ocptBudgetMatchFold(String text) {
 /// Get [text] split into its own significant words — folded through [_ocptBudgetMatchFold], cut on
 /// [_ocptBudgetMatchWordSeparators], and read as a set (so "Couronne, Couronne" is one word, not
 /// two) of at least [_ocptBudgetMatchMinWordLength] letters each.
-Set<String> _ocptBudgetMatchWordsOf(String text) => _ocptBudgetMatchFold(text)
-    .split(_ocptBudgetMatchWordSeparators)
-    .where((word) => word.length >= _ocptBudgetMatchMinWordLength)
-    .toSet();
+Set<String> _ocptBudgetMatchWordsOf(String text) =>
+    _ocptBudgetMatchFold(text)
+        .split(_ocptBudgetMatchWordSeparators)
+        .where((word) => word.length >= _ocptBudgetMatchMinWordLength)
+        .toSet();
 
 /// One candidate before it is known whether it is worth offering at all — carries the sort keys
 /// alongside the [OcptBudgetMatchSuggestion] it would become, so [_ocptBudgetMatchRank] never has

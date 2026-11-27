@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+
 import 'ocpt_styled_screenplay_editor_test_doubles.dart';
 
 /// The screenplay the tests read: a note over two lines in the middle of the second paragraph. The

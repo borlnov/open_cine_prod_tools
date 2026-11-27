@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:uuid/uuid.dart';
+
 import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of [OcptScreenplayMergeService].

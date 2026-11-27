@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_title_page_standard_keys.
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_guard_requests.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
+
 import 'ocpt_wysiwyg_codec_test_doubles.dart';
 
 /// Decode [text] with its title page, then encode the resulting document back to source.

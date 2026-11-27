@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
 import '../../ocpt_result_expectations.dart';
 
 /// A read of one setting of the open project, with the value the fixture holds for it.

@@ -129,15 +129,12 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     final snapshotsDir = _snapshotsDir;
     await snapshotsDir.create(recursive: true);
 
-    await File(
-      p.join(snapshotsDir.path, '${descriptor.snapshotId}$_snapshotDescriptorExtension'),
-    ).writeAsString(jsonEncode(descriptor.toJson()), flush: true);
-    await File(
-      p.join(snapshotsDir.path, '${descriptor.snapshotId}$_snapshotBytesExtension'),
-    ).writeAsBytes(bytes, flush: true);
-    await File(
-      p.join(snapshotsDir.path, _latestSnapshotMarkerFileName),
-    ).writeAsString(descriptor.snapshotId, flush: true);
+    await File(p.join(snapshotsDir.path, '${descriptor.snapshotId}$_snapshotDescriptorExtension'))
+        .writeAsString(jsonEncode(descriptor.toJson()), flush: true);
+    await File(p.join(snapshotsDir.path, '${descriptor.snapshotId}$_snapshotBytesExtension'))
+        .writeAsBytes(bytes, flush: true);
+    await File(p.join(snapshotsDir.path, _latestSnapshotMarkerFileName))
+        .writeAsString(descriptor.snapshotId, flush: true);
 
     return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
   });

@@ -34,6 +34,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+
 import 'ocpt_project_version_codec_test_doubles.dart';
 
 /// Run the tests of the project version codec round trip and digest stability.
@@ -606,9 +607,8 @@ void main() {
     });
 
     test("a block's crew note comes back", () {
-      final block = roundTrip(
-        buildRichPayload(),
-      ).shootingDayBlocks.firstWhere((row) => row.id == "block-1");
+      final block = roundTrip(buildRichPayload()).shootingDayBlocks
+          .firstWhere((row) => row.id == "block-1");
       expect(block.crewNote, "Silence, take in progress");
     });
 

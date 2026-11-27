@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_entry.da
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_provision_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
+
 import '../../../ocpt_result_expectations.dart';
 
 /// A quote service that answers a failure for one kind of line write without touching the

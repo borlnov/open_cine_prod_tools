@@ -399,55 +399,51 @@ void main() {
       expect(events, hasLength(1));
     });
 
-    test(
-      'reconnects after a socket drop instead of ending the stream',
-      () async {
-        final firstIncoming = StreamController<dynamic>.broadcast();
-        final secondIncoming = StreamController<dynamic>.broadcast();
-        var connectCount = 0;
-        final storage = OcptRelayRemoteStorage(
-          logger: const SilentLogger(),
-          relayBaseUri: relayBaseUri,
-          projectId: projectId,
-          token: token,
-          reconnectDelay: const Duration(milliseconds: 10),
-          httpClient: MockClient((request) async => http.Response('', 500)),
-          webSocketConnector: (uri) {
-            connectCount += 1;
+    test('reconnects after a socket drop instead of ending the stream', () async {
+      final firstIncoming = StreamController<dynamic>.broadcast();
+      final secondIncoming = StreamController<dynamic>.broadcast();
+      var connectCount = 0;
+      final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        reconnectDelay: const Duration(milliseconds: 10),
+        httpClient: MockClient((request) async => http.Response('', 500)),
+        webSocketConnector: (uri) {
+          connectCount += 1;
 
-            return _FakeWebSocketChannel(connectCount == 1 ? firstIncoming : secondIncoming);
-          },
-        );
-        addTearDown(() {
-          if (!firstIncoming.isClosed) {
-            unawaited(firstIncoming.close());
-          }
-          if (!secondIncoming.isClosed) {
-            unawaited(secondIncoming.close());
-          }
-        });
+          return _FakeWebSocketChannel(connectCount == 1 ? firstIncoming : secondIncoming);
+        },
+      );
+      addTearDown(() {
+        if (!firstIncoming.isClosed) {
+          unawaited(firstIncoming.close());
+        }
+        if (!secondIncoming.isClosed) {
+          unawaited(secondIncoming.close());
+        }
+      });
 
-        final events = <void>[];
-        final subscription = storage.newWorkStream.listen(events.add);
-        addTearDown(subscription.cancel);
-        await Future<void>.delayed(Duration.zero);
+      final events = <void>[];
+      final subscription = storage.newWorkStream.listen(events.add);
+      addTearDown(subscription.cancel);
+      await Future<void>.delayed(Duration.zero);
 
-        expect(connectCount, 1);
+      expect(connectCount, 1);
 
-        // Simulate the first socket dropping.
-        await firstIncoming.close();
-        // Wait past the reconnect backoff for the second connect attempt to happen.
-        await Future<void>.delayed(const Duration(milliseconds: 50));
+      // Simulate the first socket dropping.
+      await firstIncoming.close();
+      // Wait past the reconnect backoff for the second connect attempt to happen.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
-        expect(connectCount, 2);
+      expect(connectCount, 2);
 
-        secondIncoming.add('new-work');
-        await Future<void>.delayed(Duration.zero);
+      secondIncoming.add('new-work');
+      await Future<void>.delayed(Duration.zero);
 
-        expect(events, hasLength(1));
-      },
-      timeout: const Timeout(Duration(seconds: 5)),
-    );
+      expect(events, hasLength(1));
+    }, timeout: const Timeout(Duration(seconds: 5)));
   });
 
   group('presenceStream', () {

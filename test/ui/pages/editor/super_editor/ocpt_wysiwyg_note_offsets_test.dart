@@ -32,9 +32,9 @@ void main() {
 
   group("a node holding notes", () {
     test("is read from the placeholders of its text, other objects left as one character", () {
-      final text = AttributedText(
-        "abcd",
-      ).insertPlaceholder(2, OcptFountainNote.create("xy")).insertPlaceholder(3, "other");
+      final text = AttributedText("abcd")
+          .insertPlaceholder(2, OcptFountainNote.create("xy"))
+          .insertPlaceholder(3, "other");
 
       final read = OcptWysiwygNoteOffsets.of(text);
 

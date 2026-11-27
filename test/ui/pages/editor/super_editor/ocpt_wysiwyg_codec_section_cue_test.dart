@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
+
 import 'ocpt_wysiwyg_codec_test_doubles.dart';
 
 /// Decode then encode [source].
@@ -68,9 +69,8 @@ void main() {
       final decoded = OcptWysiwygCodec.decode("HANS\nHello.\n");
       replaceText(decoded.document, 0, "hans (on the radio)");
 
-      final requests = OcptWysiwygCodec.uppercaseRequests(
-        decoded.document,
-      ).cast<OcptReplaceNodeTextRequest>();
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document)
+          .cast<OcptReplaceNodeTextRequest>();
 
       expect(requests.single.text.toPlainText(), "HANS (ON THE RADIO)");
     });

@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
 import '../../../../../ocpt_result_expectations.dart';
 import 'schedule_export_bloc_test_doubles.dart';
 
@@ -484,11 +485,10 @@ void main() {
         exportBloc.add(requestFor(fixture.dayId));
         await waitForExportState(exportBloc, (state) => state.ioNotice != null);
 
-        expect(
-          exportManager.lastSidesScreenplayIds,
-          [project.primaryScreenplayId, secondEpisodeId],
-          reason: "episode 1's own document before episode 2's, the project's own episode order",
-        );
+        expect(exportManager.lastSidesScreenplayIds, [
+          project.primaryScreenplayId,
+          secondEpisodeId,
+        ], reason: "episode 1's own document before episode 2's, the project's own episode order");
         expect(
           exportManager.lastSidesSourceTextsByScreenplayId?[project.primaryScreenplayId],
           contains("INT. HOUSE - DAY"),

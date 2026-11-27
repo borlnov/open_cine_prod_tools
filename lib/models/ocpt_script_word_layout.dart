@@ -174,9 +174,10 @@ class OcptScriptWordLayout extends Equatable {
   List<OcptShotCoverageRange> rangesIn(
     OcptScriptWordBlock block,
     Iterable<OcptShotCoverageRange> ranges,
-  ) => _rangesOfThisScene(
-    ranges,
-  ).where((range) => _overlaps(range, block.startOffset, block.endOffset)).toList(growable: false);
+  ) =>
+      _rangesOfThisScene(ranges)
+          .where((range) => _overlaps(range, block.startOffset, block.endOffset))
+          .toList(growable: false);
 
   /// Get the range of [ranges] (ignoring every range not of [sceneId]) covering the scene-relative
   /// [offset], or null if none does: the inspector's "click a covered word to remove its range"

@@ -88,24 +88,20 @@ void main() {
       expect(response.statusCode, anyOf(200, 204), reason: 'POST $path did not succeed');
     }
 
-    test(
-      'a subscribed socket receives a ping after another caller appends a changeset',
-      () async {
-        store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
-        final channel = connect('project-1', token: 'token-1');
-        await channel.ready;
+    test('a subscribed socket receives a ping after another caller appends a changeset', () async {
+      store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));
+      final channel = connect('project-1', token: 'token-1');
+      await channel.ready;
 
-        await post(
-          '/projects/project-1/changesets',
-          token: 'token-1',
-          jsonBody: _envelope('changeset-1').toJson(),
-        );
+      await post(
+        '/projects/project-1/changesets',
+        token: 'token-1',
+        jsonBody: _envelope('changeset-1').toJson(),
+      );
 
-        final ping = await channel.stream.first.timeout(const Duration(seconds: 3));
-        expect(ping, isNotNull);
-      },
-      timeout: _timeout,
-    );
+      final ping = await channel.stream.first.timeout(const Duration(seconds: 3));
+      expect(ping, isNotNull);
+    }, timeout: _timeout);
 
     test('a subscribed socket receives a ping after a snapshot upload', () async {
       store.createProject(projectId: 'project-1', tokenHash: _tokenHash('token-1'));

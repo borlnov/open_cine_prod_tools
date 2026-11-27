@@ -31,6 +31,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart';
+
 import '../../../ocpt_result_expectations.dart';
 import 'home_bloc_test_doubles.dart';
 
@@ -522,37 +523,33 @@ void main() {
       await bloc.close();
     }, skip: olderFileFlowSkip);
 
-    test(
-      "answering the question opens it, and the copy is where it was promised",
-      () async {
-        final filePath = p.join(tempDir.path, "movie.ocpt");
-        await createProjectAtPreviousFormat(filePath);
-        final routerManager = RecordingRouterManager();
-        final bloc = buildBloc(routerManager: routerManager);
+    test("answering the question opens it, and the copy is where it was promised", () async {
+      final filePath = p.join(tempDir.path, "movie.ocpt");
+      await createProjectAtPreviousFormat(filePath);
+      final routerManager = RecordingRouterManager();
+      final bloc = buildBloc(routerManager: routerManager);
 
-        bloc.add(OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"));
-        final asked = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
-        final backupPath = asked.pendingFileCompatibility!.suggestedBackupPath!;
+      bloc.add(OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"));
+      final asked = await waitForState(bloc, (state) => state.pendingFileCompatibility != null);
+      final backupPath = asked.pendingFileCompatibility!.suggestedBackupPath!;
 
-        // What the page dispatches once the user has confirmed the dialog.
-        bloc.add(
-          OcptHomeOpenProjectRequestedEvent(
-            filePath: filePath,
-            fileTypeLabel: "Project",
-            allowMigration: true,
-          ),
-        );
-        await waitForState(bloc, (state) => state.isBusy);
-        await waitForState(bloc, (state) => !state.isBusy);
+      // What the page dispatches once the user has confirmed the dialog.
+      bloc.add(
+        OcptHomeOpenProjectRequestedEvent(
+          filePath: filePath,
+          fileTypeLabel: "Project",
+          allowMigration: true,
+        ),
+      );
+      await waitForState(bloc, (state) => state.isBusy);
+      await waitForState(bloc, (state) => !state.isBusy);
 
-        expect(projectsManager.currentProject?.path, filePath);
-        expect(routerManager.pushedRoute, OcptRoute.workspace);
-        expect(File(backupPath).existsSync(), isTrue);
+      expect(projectsManager.currentProject?.path, filePath);
+      expect(routerManager.pushedRoute, OcptRoute.workspace);
+      expect(File(backupPath).existsSync(), isTrue);
 
-        await bloc.close();
-      },
-      skip: olderFileFlowSkip,
-    );
+      await bloc.close();
+    }, skip: olderFileFlowSkip);
 
     test("a newer one is raised as a refusal, and nothing is opened", () async {
       final filePath = p.join(tempDir.path, "movie.ocpt");

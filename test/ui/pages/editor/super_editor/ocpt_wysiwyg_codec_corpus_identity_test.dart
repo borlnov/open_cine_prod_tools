@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
+
 import 'ocpt_wysiwyg_codec_test_doubles.dart';
 
 /// Reads the node at [index] of [document]'s `ocptHadForcingMarker` metadata (false if absent).
@@ -257,9 +258,8 @@ void main() {
       expect(typeAt(decoded.document, 0), FountainLineType.action);
 
       replaceText(decoded.document, 0, "INT. HOUSE - DAY");
-      final requests = OcptWysiwygCodec.reclassifyRequests(
-        decoded.document,
-      ).cast<ChangeParagraphBlockTypeRequest>();
+      final requests = OcptWysiwygCodec.reclassifyRequests(decoded.document)
+          .cast<ChangeParagraphBlockTypeRequest>();
 
       expect(requests, hasLength(1));
       expect(requests.single.nodeId, decoded.document.getNodeAt(0)!.id);
@@ -325,9 +325,8 @@ void main() {
       _setMetadata(decoded.document, 1, {ocptBlankLinesBeforeMetadataKey: 1});
       _setMetadata(decoded.document, 2, {ocptBlankLinesBeforeMetadataKey: 1});
 
-      final requests = OcptWysiwygCodec.reclassifyRequests(
-        decoded.document,
-      ).cast<ChangeParagraphBlockTypeRequest>();
+      final requests = OcptWysiwygCodec.reclassifyRequests(decoded.document)
+          .cast<ChangeParagraphBlockTypeRequest>();
 
       expect(requests, hasLength(1));
       expect(requests.single.nodeId, decoded.document.getNodeAt(1)!.id);
@@ -526,9 +525,8 @@ void main() {
       replaceText(decoded.document, 0, "sarah");
       replaceText(decoded.document, 2, "cut to:");
 
-      final requests = OcptWysiwygCodec.uppercaseRequests(
-        decoded.document,
-      ).cast<OcptReplaceNodeTextRequest>();
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document)
+          .cast<OcptReplaceNodeTextRequest>();
 
       expect(requests, hasLength(2));
       expect(requests[0].text.toPlainText(), "SARAH");
@@ -545,9 +543,8 @@ void main() {
 
     test("the saved Fountain text round-trips with the uppercased line", () {
       final decoded = OcptWysiwygCodec.decode("int. kitchen - day");
-      final requests = OcptWysiwygCodec.uppercaseRequests(
-        decoded.document,
-      ).cast<OcptReplaceNodeTextRequest>();
+      final requests = OcptWysiwygCodec.uppercaseRequests(decoded.document)
+          .cast<OcptReplaceNodeTextRequest>();
       final node = decoded.document.getNodeAt(0)! as ParagraphNode;
       decoded.document.replaceNodeById(node.id, node.copyParagraphWith(text: requests.single.text));
 

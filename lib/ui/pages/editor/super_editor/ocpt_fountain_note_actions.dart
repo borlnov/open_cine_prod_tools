@@ -48,9 +48,8 @@ final class OcptFountainNoteActions {
       return null;
     }
 
-    final placeholder = AttributedText(
-      "",
-    ).insertPlaceholder(0, note ?? OcptFountainNote.create(""));
+    final placeholder = AttributedText("")
+        .insertPlaceholder(0, note ?? OcptFountainNote.create(""));
     final inserted = target.end == 0
         ? placeholder.copyAndAppend(text)
         : text

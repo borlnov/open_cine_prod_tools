@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_presence_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+
 import 'ocpt_schedule_plan_snapshot_test_doubles.dart';
 
 /// Builds a permit document (an `assets` row of kind [OcptAssetKind.document]) with the few fields
