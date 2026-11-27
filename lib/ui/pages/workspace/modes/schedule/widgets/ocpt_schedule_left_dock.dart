@@ -13,8 +13,8 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_episode_band.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_row.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_label.dart';
 
 /// The schedule mode's left dock: the list of shooting days over the list of shots still to
@@ -75,6 +75,10 @@ class OcptScheduleLeftDock extends StatelessWidget {
   /// (ADR 0019), so with one episode or none this list changes nothing about what is drawn.
   final List<OcptEpisode> episodes;
 
+  /// The absolute path of each shot's first storyboard image, keyed by shot id
+  /// (`OcptScheduleState.storyboardThumbnailPathByShotId`) — the thumbnail of its row.
+  final Map<String, String> storyboardThumbnailPathByShotId;
+
   /// The id of the shot currently selected, or null while none is.
   final String? selectedShotId;
 
@@ -100,6 +104,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
     required this.onDayDeletionRequested,
     required this.unplacedGroups,
     required this.episodes,
+    required this.storyboardThumbnailPathByShotId,
     required this.selectedShotId,
     required this.onShotSelected,
   });
@@ -220,6 +225,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
                   if (row.group case final group?) {
                     return _OcptScheduleUnplacedGroupSection(
                       group: group,
+                      storyboardThumbnailPathByShotId: storyboardThumbnailPathByShotId,
                       selectedShotId: selectedShotId,
                       onShotSelected: onShotSelected,
                     );
@@ -473,6 +479,9 @@ class _OcptScheduleUnplacedGroupSection extends StatelessWidget {
   /// The group this section shows.
   final OcptScheduleUnplacedGroup group;
 
+  /// The absolute path of each shot's first storyboard image, keyed by shot id.
+  final Map<String, String> storyboardThumbnailPathByShotId;
+
   /// The id of the shot currently selected, or null while none is.
   final String? selectedShotId;
 
@@ -482,6 +491,7 @@ class _OcptScheduleUnplacedGroupSection extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleUnplacedGroupSection({
     required this.group,
+    required this.storyboardThumbnailPathByShotId,
     required this.selectedShotId,
     required this.onShotSelected,
   });
@@ -526,91 +536,16 @@ class _OcptScheduleUnplacedGroupSection extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           for (final shot in group.shots)
-            _OcptScheduleUnplacedShotRow(
-              code: shot.code,
-              shotSize: shot.shotSize,
-              durationLabel: ocptFormatShotDuration(shot.estimatedDurationMs),
+            OcptScheduleShotRow(
+              shot: shot,
+              thumbnailPath: storyboardThumbnailPathByShotId[shot.id],
+              dayNumbers: null,
+              isFramed: true,
               isSelected: shot.id == selectedShotId,
               onTap: () => onShotSelected(shot.id),
             ),
           const SizedBox(height: 4),
         ],
-      ),
-    );
-  }
-}
-
-/// One shot row of the unplaced-shots list.
-class _OcptScheduleUnplacedShotRow extends StatelessWidget {
-  /// The shot's own display code.
-  final String code;
-
-  /// The shot's own shot size ("valeur de plan").
-  final String shotSize;
-
-  /// The shot's own formatted estimated duration.
-  final String durationLabel;
-
-  /// Whether this shot is the one currently selected.
-  final bool isSelected;
-
-  /// Called when this row is clicked.
-  final VoidCallback onTap;
-
-  /// Class constructor
-  const _OcptScheduleUnplacedShotRow({
-    required this.code,
-    required this.shotSize,
-    required this.durationLabel,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  /// Build the schedule unplaced shot row as a [Padding].
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: InkWell(
-        onTap: onTap,
-        mouseCursor: ocpt_theme.ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
-                : theme.colorScheme.surfaceContainerHigh,
-            border: Border.all(
-              color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
-            ),
-            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Row(
-            children: [
-              Text(code, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  shotSize,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              Text(
-                durationLabel,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

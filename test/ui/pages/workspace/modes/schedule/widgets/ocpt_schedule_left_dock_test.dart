@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_alert_badge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_episode_band.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_left_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_row.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the `OcptWorkspaceDock` the panel fills in the app.
@@ -106,6 +107,7 @@ void main() {
           onDayDeletionRequested: (_) {},
           unplacedGroups: const [],
           episodes: const [],
+          storyboardThumbnailPathByShotId: const {},
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -143,6 +145,7 @@ void main() {
           onDayDeletionRequested: (_) {},
           unplacedGroups: const [],
           episodes: const [],
+          storyboardThumbnailPathByShotId: const {},
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -173,6 +176,7 @@ void main() {
           onDayDeletionRequested: (_) {},
           unplacedGroups: [unplacedGroup],
           episodes: const [],
+          storyboardThumbnailPathByShotId: const {},
           selectedShotId: null,
           onShotSelected: selected.add,
         ),
@@ -184,6 +188,39 @@ void main() {
     await tester.pump();
 
     expect(selected, ["shot-1"]);
+  });
+
+  testWidgets("an unplaced shot is drawn as a framed shared row, selected when it is the one", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapInApp(
+        OcptScheduleLeftDock(
+          days: const [],
+          selectedDayId: null,
+          blockCountByDayId: const {},
+          firstLocationByDayId: const {},
+          alertsOfDay: (dayId) => const [],
+          onDaySelected: (_) {},
+          onDayCreated: (_) {},
+          onDayDateChangeRequested: (_, _) {},
+          onDayDuplicationRequested: (_, _) {},
+          onDayDeletionRequested: (_) {},
+          unplacedGroups: [unplacedGroup],
+          episodes: const [],
+          storyboardThumbnailPathByShotId: const {},
+          selectedShotId: "shot-1",
+          onShotSelected: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final row = tester.widget<OcptScheduleShotRow>(find.byType(OcptScheduleShotRow));
+    expect(row.isFramed, isTrue);
+    expect(row.isSelected, isTrue);
+    expect(row.thumbnailPath, isNull);
+    expect(row.dayNumbers, isNull);
   });
 
   testWidgets("the day card's ⋮ menu asks through a callback rather than acting on its own", (
@@ -206,6 +243,7 @@ void main() {
           onDayDeletionRequested: deletionRequests.add,
           unplacedGroups: const [],
           episodes: const [],
+          storyboardThumbnailPathByShotId: const {},
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -245,6 +283,7 @@ void main() {
           onDayDeletionRequested: (_) {},
           unplacedGroups: const [],
           episodes: const [],
+          storyboardThumbnailPathByShotId: const {},
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -296,6 +335,7 @@ void main() {
           onDayDeletionRequested: (_) {},
           unplacedGroups: const [],
           episodes: const [],
+          storyboardThumbnailPathByShotId: const {},
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -334,6 +374,7 @@ void main() {
             onDayDeletionRequested: null,
             unplacedGroups: [unplacedGroup],
             episodes: const [],
+            storyboardThumbnailPathByShotId: const {},
             selectedShotId: null,
             onShotSelected: selected.add,
           ),
@@ -374,6 +415,7 @@ void main() {
           onDayDeletionRequested: (_) {},
           unplacedGroups: [unplacedGroup],
           episodes: const [OcptEpisode(id: "screenplay-1", number: 1, title: "")],
+          storyboardThumbnailPathByShotId: const {},
           selectedShotId: null,
           onShotSelected: (_) {},
         ),
@@ -428,6 +470,7 @@ void main() {
               OcptEpisode(id: "screenplay-2", number: 2, title: ""),
               OcptEpisode(id: "screenplay-3", number: 3, title: ""),
             ],
+            storyboardThumbnailPathByShotId: const {},
             selectedShotId: null,
             onShotSelected: (_) {},
           ),

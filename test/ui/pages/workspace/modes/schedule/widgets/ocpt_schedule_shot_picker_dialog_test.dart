@@ -47,7 +47,15 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 );
 
 /// Builds a shot with the few fields these tests read, everything else neutral.
-OcptShot _buildShot({required String id, required String code, String shotSize = "GP"}) => OcptShot(
+OcptShot _buildShot({
+  required String id,
+  required String code,
+  String shotSize = "GP",
+  String framing = "",
+  String cameraMove = "",
+  String lens = "",
+  List<String> characters = const [],
+}) => OcptShot(
   id: id,
   screenplayId: "screenplay-1",
   sceneId: "scene-1",
@@ -55,9 +63,9 @@ OcptShot _buildShot({required String id, required String code, String shotSize =
   position: 0,
   shotSize: shotSize,
   abbreviation: "",
-  framing: "",
-  cameraMove: "",
-  lens: "",
+  framing: framing,
+  cameraMove: cameraMove,
+  lens: lens,
   recordingFormat: "",
   estimatedDurationMs: 150000,
   shootingDay: null,
@@ -72,7 +80,7 @@ OcptShot _buildShot({required String id, required String code, String shotSize =
   locationNotes: "",
   needsCheck: false,
   checkReason: null,
-  characters: const [],
+  characters: characters,
   coverageRanges: const [],
   code: code,
   averageDifficulty: 0,
@@ -120,6 +128,7 @@ void main() {
     required List<OcptShotListSnapshot> shotListSnapshots,
     List<OcptEpisode> episodes = const [],
     Map<String, List<int>> placedDayNumbersByShotId = const {},
+    Map<String, String> storyboardThumbnailPathByShotId = const {},
   }) async {
     await tester.pumpWidget(
       _wrapWithLocalization(
@@ -127,6 +136,7 @@ void main() {
           shotListSnapshots: shotListSnapshots,
           episodes: episodes,
           placedDayNumbersByShotId: placedDayNumbersByShotId,
+          storyboardThumbnailPathByShotId: storyboardThumbnailPathByShotId,
         ),
       ),
     );
@@ -212,6 +222,40 @@ void main() {
     expect(find.text("4A/1"), findsOneWidget);
     expect(find.text("5/1"), findsNothing);
     expect(find.text("EXT. STREET - NIGHT"), findsNothing);
+  });
+
+  testWidgets("the search also matches framing, camera move, lens and each character", (
+    tester,
+  ) async {
+    final shotOne = _buildShot(
+      id: "shot-1",
+      code: "4A/1",
+      framing: "Over the shoulder on the baker",
+      cameraMove: "Dolly in",
+      lens: "35mm",
+      characters: const ["MARTHE", "JEAN"],
+    );
+    final shotTwo = _buildShot(id: "shot-2", code: "4A/2");
+
+    await pumpDialog(
+      tester,
+      shotListSnapshots: [
+        OcptShotListSnapshot.build(
+          screenplayId: "screenplay-1",
+          sequences: [
+            _buildSequence(sceneId: "scene-1", displaySceneNumber: "4A", shots: [shotOne, shotTwo]),
+          ],
+        ),
+      ],
+    );
+
+    for (final query in const ["baker", "dolly", "35mm", "jean"]) {
+      await tester.enterText(find.byType(TextField), query);
+      await tester.pumpAndSettle();
+
+      expect(find.text("4A/1"), findsOneWidget, reason: query);
+      expect(find.text("4A/2"), findsNothing, reason: query);
+    }
   });
 
   testWidgets("tapping a shot row pops the router manager with its id", (tester) async {
