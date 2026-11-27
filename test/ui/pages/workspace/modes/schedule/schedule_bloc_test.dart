@@ -488,6 +488,67 @@ void main() {
     });
   });
 
+  group("the storyboard thumbnails", () {
+    test("hold the first panel's image of each shot, and nothing for a shot without one", () async {
+      final fixture = await writePlacedShot();
+      final project = projectsManager.currentProject!;
+      final storyboardService = projectsManager.storyboardService;
+      final firstPanelId = await storyboardService
+          .addPanel(database: project.database, shotId: fixture.shotId)
+          .valueOrFail;
+      final secondPanelId = await storyboardService
+          .addPanel(database: project.database, shotId: fixture.shotId)
+          .valueOrFail;
+      await storyboardService
+          .replacePanelImage(
+            database: project.database,
+            panelId: firstPanelId,
+            path: "/tmp/first.jpg",
+          )
+          .okOrFail;
+      await storyboardService
+          .replacePanelImage(
+            database: project.database,
+            panelId: secondPanelId,
+            path: "/tmp/second.jpg",
+          )
+          .okOrFail;
+
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.storyboardThumbnailPathByShotId, {fixture.shotId: "/tmp/first.jpg"});
+
+      await bloc.close();
+    });
+
+    test("leave a shot whose first panel has no image out", () async {
+      final fixture = await writePlacedShot();
+      final project = projectsManager.currentProject!;
+      final storyboardService = projectsManager.storyboardService;
+      await storyboardService
+          .addPanel(database: project.database, shotId: fixture.shotId)
+          .valueOrFail;
+      final secondPanelId = await storyboardService
+          .addPanel(database: project.database, shotId: fixture.shotId)
+          .valueOrFail;
+      await storyboardService
+          .replacePanelImage(
+            database: project.database,
+            panelId: secondPanelId,
+            path: "/tmp/second.jpg",
+          )
+          .okOrFail;
+
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.storyboardThumbnailPathByShotId, isEmpty);
+
+      await bloc.close();
+    });
+  });
+
   group("the epochs views react to", () {
     test("loading moves both, the selection with the load cause", () async {
       final bloc = buildBloc();

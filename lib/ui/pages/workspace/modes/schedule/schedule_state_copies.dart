@@ -38,6 +38,7 @@ extension OcptScheduleStateCopiesExtension on OcptScheduleState {
   OcptScheduleState copyWithReloadedSchedule({
     required OcptScheduleSnapshot? snapshot,
     required List<OcptShotListSnapshot>? shotListSnapshots,
+    required Map<String, String>? storyboardThumbnailPathByShotId,
     required List<OcptEpisode>? episodes,
     required bool isDayDropped,
     required bool isBlockDropped,
@@ -46,6 +47,7 @@ extension OcptScheduleStateCopiesExtension on OcptScheduleState {
     return copyWith(
       snapshot: snapshot,
       shotListSnapshots: shotListSnapshots,
+      storyboardThumbnailPathByShotId: storyboardThumbnailPathByShotId,
       episodes: episodes,
       forceSelectedDayIdValue: isDayDropped,
       forceSelectedBlockIdValue: isBlockDropped,
@@ -86,6 +88,7 @@ extension OcptScheduleStateCopiesExtension on OcptScheduleState {
     required OcptProjectVersion? previewedVersion,
     required OcptScheduleSnapshot snapshot,
     required List<OcptShotListSnapshot> shotListSnapshots,
+    required Map<String, String> storyboardThumbnailPathByShotId,
     required List<OcptEpisode> episodes,
     required List<OcptLocation> locations,
     required List<OcptRole> roles,
@@ -107,6 +110,7 @@ extension OcptScheduleStateCopiesExtension on OcptScheduleState {
     forcePreviewedVersionIdValue: previewedVersion == null,
     snapshot: snapshot,
     shotListSnapshots: shotListSnapshots,
+    storyboardThumbnailPathByShotId: storyboardThumbnailPathByShotId,
     episodes: episodes,
     locations: locations,
     roles: roles,

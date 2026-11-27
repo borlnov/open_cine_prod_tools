@@ -21,7 +21,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candid
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
-import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
@@ -39,6 +39,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_page_setup_loading.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_shot_lists_read.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
@@ -115,6 +116,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// and to write a shot's status.
   final OcptShotListService _shotListService;
 
+  /// The service used to read each shot's storyboard panels — only the first panel's image of
+  /// every shot, which a shot row draws as its thumbnail.
+  final OcptStoryboardService _storyboardService;
+
   /// The service used to read locations and their sets.
   final OcptLocationsService _locationsService;
 
@@ -150,6 +155,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptExportManager? exportManager,
     OcptScheduleService? scheduleService,
     OcptShotListService? shotListService,
+    OcptStoryboardService? storyboardService,
     OcptLocationsService? locationsService,
     OcptRoleIndexService? roleIndexService,
     OcptPeopleService? peopleService,
@@ -165,6 +171,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
        _shotListService =
            shotListService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotListService,
+       _storyboardService =
+           storyboardService ??
+           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).storyboardService,
        _locationsService =
            locationsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
@@ -256,7 +265,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
 
     OcptScheduleSnapshot? snapshot;
-    ({List<OcptEpisode> episodes, List<OcptShotListSnapshot> shotLists})? shotLists;
+    OcptScheduleShotListsRead? shotLists;
 
     // A switch statement over an enum must name every value: a scope added to the enum does not
     // compile until it is read here.
@@ -295,6 +304,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       state.copyWithReloadedSchedule(
         snapshot: snapshot,
         shotListSnapshots: shotLists?.shotLists,
+        storyboardThumbnailPathByShotId: shotLists?.storyboardThumbnailPathByShotId,
         episodes: shotLists?.episodes,
         isDayDropped: isDayDropped,
         isBlockDropped: isBlockDropped,
@@ -444,6 +454,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           previewedVersion: previewedVersion,
           snapshot: snapshot,
           shotListSnapshots: shotLists.shotLists,
+          storyboardThumbnailPathByShotId: shotLists.storyboardThumbnailPathByShotId,
           episodes: shotLists.episodes,
           locations: locations,
           roles: roles,
@@ -547,11 +558,15 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// read of [_projectsManager]'s own `screenplayService` right after this one returned would risk
   /// disagreeing with it if an episode was renamed or reordered in between.
   ///
-  /// Answers the failure of the episodes, or of the first shot list that could not be read, in
-  /// place of the episodes and their shot lists.
+  /// Each episode's storyboard is read right after its shot list, and only the first panel's image
+  /// of every shot is kept, in the third member: it is what a shot row draws as its thumbnail.
+  ///
+  /// Answers the failure of the episodes, of the first shot list or of the first storyboard that
+  /// could not be read, in place of the episodes and their shot lists.
   @useResult
-  Future<OcptDatabaseResult<({List<OcptEpisode> episodes, List<OcptShotListSnapshot> shotLists})>>
-  _loadShotLists(OcptOpenProjectModel project) async {
+  Future<OcptDatabaseResult<OcptScheduleShotListsRead>> _loadShotLists(
+    OcptOpenProjectModel project,
+  ) async {
     final database = project.database;
     final episodesRead = await _projectsManager.screenplayService.loadEpisodes(database: database);
     if (episodesRead.isError) {
@@ -560,6 +575,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     final episodes = episodesRead.value!;
     final shotLists = <OcptShotListSnapshot>[];
+    final thumbnailPathByShotId = <String, String>{};
     for (final episode in episodes) {
       final shotListRead = await _shotListService.loadShotList(
         database: database,
@@ -571,11 +587,33 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       }
 
       shotLists.add(shotListRead.value!);
+
+      final storyboardRead = await _storyboardService.loadStoryboard(
+        database: database,
+        screenplayId: episode.id,
+      );
+      if (storyboardRead.isError) {
+        return OcptDatabaseResult(
+          status: storyboardRead.status,
+          extraInfo: storyboardRead.extraInfo,
+        );
+      }
+
+      for (final entry in storyboardRead.value!.panelsByShotId.entries) {
+        final imagePath = entry.value.firstOrNull?.imagePath;
+        if (imagePath != null) {
+          thumbnailPathByShotId[entry.key] = imagePath;
+        }
+      }
     }
 
     return OcptDatabaseResult(
       status: OcptDatabaseStatus.ok,
-      value: (episodes: episodes, shotLists: shotLists),
+      value: (
+        episodes: episodes,
+        shotLists: shotLists,
+        storyboardThumbnailPathByShotId: thumbnailPathByShotId,
+      ),
     );
   }
 

@@ -77,6 +77,12 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// nothing has been read yet.
   final List<OcptShotListSnapshot> shotListSnapshots;
 
+  /// For every shot whose first storyboard panel holds an image, that image's resolved absolute
+  /// path, keyed by shot id — what a shot row draws as its thumbnail. A shot with no panel, or
+  /// whose first panel has no image, has no entry. One map holds every episode's shots, since shot
+  /// ids are unique across the project.
+  final Map<String, String> storyboardThumbnailPathByShotId;
+
   /// The project's live episodes, as last loaded, in the same order as [shotListSnapshots] — what
   /// [planSnapshot] names a scene's own screenplay through. Empty while nothing has been read yet.
   final List<OcptEpisode> episodes;
@@ -439,6 +445,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.title,
     required this.snapshot,
     required this.shotListSnapshots,
+    required this.storyboardThumbnailPathByShotId,
     required this.episodes,
     required this.locations,
     required this.roles,
@@ -481,6 +488,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       title = "",
       snapshot = null,
       shotListSnapshots = const [],
+      storyboardThumbnailPathByShotId = const {},
       episodes = const [],
       locations = const [],
       roles = const [],
@@ -598,8 +606,9 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// alive, so each has its own force flag.
   ///
   /// **[reloadEpoch] moves by itself** whenever a copy replaces any of the data read from the
-  /// project database ([snapshot], [shotListSnapshots], [episodes], [locations], [roles], [people],
-  /// [elements], [roleCandidates], [minimumRestMinutes], [pageSetup]), so no handler can read the
+  /// project database ([snapshot], [shotListSnapshots], [storyboardThumbnailPathByShotId],
+  /// [episodes], [locations], [roles], [people], [elements], [roleCandidates],
+  /// [minimumRestMinutes], [pageSetup]), so no handler can read the
   /// data again and forget to tell the views. An explicit [reloadEpoch] wins, for an emit that
   /// moves it without replacing anything.
   @override
@@ -609,6 +618,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     OcptScheduleSnapshot? snapshot,
     bool forceSnapshotValue = false,
     List<OcptShotListSnapshot>? shotListSnapshots,
+    Map<String, String>? storyboardThumbnailPathByShotId,
     List<OcptEpisode>? episodes,
     List<OcptLocation>? locations,
     List<OcptRole>? roles,
@@ -662,6 +672,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     title: title ?? this.title,
     snapshot: snapshot ?? (forceSnapshotValue ? null : this.snapshot),
     shotListSnapshots: shotListSnapshots ?? this.shotListSnapshots,
+    storyboardThumbnailPathByShotId:
+        storyboardThumbnailPathByShotId ?? this.storyboardThumbnailPathByShotId,
     episodes: episodes ?? this.episodes,
     locations: locations ?? this.locations,
     roles: roles ?? this.roles,
@@ -689,6 +701,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
         (_isDataReplacedBy(
               snapshot: snapshot,
               shotListSnapshots: shotListSnapshots,
+              storyboardThumbnailPathByShotId: storyboardThumbnailPathByShotId,
               episodes: episodes,
               locations: locations,
               roles: roles,
@@ -786,6 +799,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   static bool _isDataReplacedBy({
     required Object? snapshot,
     required Object? shotListSnapshots,
+    required Object? storyboardThumbnailPathByShotId,
     required Object? episodes,
     required Object? locations,
     required Object? roles,
@@ -798,6 +812,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   }) =>
       snapshot != null ||
       shotListSnapshots != null ||
+      storyboardThumbnailPathByShotId != null ||
       episodes != null ||
       locations != null ||
       roles != null ||
@@ -816,6 +831,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     title,
     snapshot,
     shotListSnapshots,
+    storyboardThumbnailPathByShotId,
     episodes,
     locations,
     roles,

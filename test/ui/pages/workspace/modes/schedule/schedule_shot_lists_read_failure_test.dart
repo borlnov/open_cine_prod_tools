@@ -13,8 +13,10 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_reload_scope.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
@@ -66,6 +68,37 @@ class _FlakyShotListService extends OcptShotListService {
   }
 }
 
+/// A storyboard service whose reads fail while [isFailing], and are the source service's own
+/// after.
+class _FlakyStoryboardService extends OcptStoryboardService {
+  /// Whether the next reads fail.
+  bool isFailing = true;
+
+  /// Class constructor
+  _FlakyStoryboardService(OcptStoryboardService source)
+    : super(
+        logger: const SilentLogger(),
+        assetsService: source.assetsService,
+        deviceId: source.deviceId,
+      );
+
+  /// Fail as a refused read does while [isFailing].
+  @override
+  Future<OcptDatabaseResult<OcptStoryboardSnapshot>> loadStoryboard({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    if (isFailing) {
+      return const OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "storyboard read intentionally failed for the test",
+      );
+    }
+
+    return super.loadStoryboard(database: database, screenplayId: screenplayId);
+  }
+}
+
 /// What the schedule mode does when it cannot read the shot lists it is loaded with: it stops
 /// before it emits anything, and goes on once they can be read.
 void main() {
@@ -73,6 +106,7 @@ void main() {
   late OcptProjectsManager projectsManager;
   late Directory tempDir;
   late _FlakyShotListService shotListService;
+  late _FlakyStoryboardService storyboardService;
 
   setUpAll(() async {
     OcptGlobalManager.instance;
@@ -95,6 +129,7 @@ void main() {
     );
     expect(result.status.isSuccess, isTrue);
     shotListService = _FlakyShotListService(projectsManager.shotListService);
+    storyboardService = _FlakyStoryboardService(projectsManager.storyboardService);
   });
 
   tearDown(() async {
@@ -109,6 +144,7 @@ void main() {
     routerManager: _SilentRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
     shotListService: shotListService,
+    storyboardService: storyboardService,
   );
 
   test("the mode stays loading while the shot lists cannot be read", () async {
@@ -121,6 +157,7 @@ void main() {
 
   test("reading the shot lists again answers false and emits nothing", () async {
     shotListService.isFailing = false;
+    storyboardService.isFailing = false;
     final mode = buildMode();
     addTearDown(mode.close);
     await mode.stream.firstWhere((state) => !state.isLoading).timeout(const Duration(seconds: 5));
@@ -137,6 +174,7 @@ void main() {
     "reading the schedule and the shot lists together emits nothing when the lists fail",
     () async {
       shotListService.isFailing = false;
+      storyboardService.isFailing = false;
       final mode = buildMode();
       addTearDown(mode.close);
       await mode.stream.firstWhere((state) => !state.isLoading).timeout(const Duration(seconds: 5));
@@ -154,6 +192,7 @@ void main() {
 
   test("the mode reads the shot lists again once they can be read", () async {
     shotListService.isFailing = false;
+    storyboardService.isFailing = false;
     final mode = buildMode();
     addTearDown(mode.close);
     await mode.stream.firstWhere((state) => !state.isLoading).timeout(const Duration(seconds: 5));
@@ -162,5 +201,28 @@ void main() {
     expect(await mode.reload({OcptScheduleReloadScope.shotLists}), isTrue);
 
     expect(mode.state.reloadEpoch, greaterThan(epoch));
+  });
+
+  test("the mode stays loading while the storyboard cannot be read", () async {
+    shotListService.isFailing = false;
+    final mode = buildMode();
+    addTearDown(mode.close);
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    expect(mode.state.isLoading, isTrue);
+  });
+
+  test("reading the shot lists again emits nothing when the storyboard fails", () async {
+    shotListService.isFailing = false;
+    storyboardService.isFailing = false;
+    final mode = buildMode();
+    addTearDown(mode.close);
+    await mode.stream.firstWhere((state) => !state.isLoading).timeout(const Duration(seconds: 5));
+    final held = mode.state;
+    storyboardService.isFailing = true;
+
+    expect(await mode.reload({OcptScheduleReloadScope.shotLists}), isFalse);
+
+    expect(mode.state, same(held));
   });
 }
