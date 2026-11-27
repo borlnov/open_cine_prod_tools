@@ -248,6 +248,18 @@ void main() {
         );
       }
     });
+
+    testWidgets("a move longer than half the line is not cut beside short characters", (
+      tester,
+    ) async {
+      const move = "Travelling avant";
+
+      await pumpRow(tester, _buildShot(cameraMove: move, characters: const ["JO"]));
+
+      final rowWidth = tester.getSize(find.byType(OcptScheduleShotRow)).width;
+      expect(tester.getSize(find.text(move)).width, greaterThan((rowWidth - 88) / 2));
+      expect(find.ancestor(of: find.text(move), matching: find.byType(Tooltip)), findsNothing);
+    });
   });
 
   testWidgets("no overflow at the dock's minimum width with very long texts", (tester) async {

@@ -283,33 +283,81 @@ class _OcptScheduleShotRowDetailsLine extends StatelessWidget {
     required this.style,
   });
 
+  /// The space kept between the two texts, in logical pixels.
+  static const double _gap = 8;
+
   /// Build the shot row details line as a [Row].
+  ///
+  /// The two texts share the width by what they need rather than by halves: a short one keeps its
+  /// natural width and the other takes the rest, and only when both are longer than half the line
+  /// does each get one half.
   @override
   Widget build(BuildContext context) {
-    final charactersText = characters.isEmpty
-        ? null
-        : _OcptScheduleShotRowText(
-            text: characters,
-            style: style,
-            maxLines: 1,
-            textAlign: TextAlign.end,
-          );
+    final cameraLensText = _OcptScheduleShotRowText(text: cameraLens, style: style, maxLines: 1);
+    final charactersText = _OcptScheduleShotRowText(
+      text: characters,
+      style: style,
+      maxLines: 1,
+      textAlign: TextAlign.end,
+    );
+
+    if (characters.isEmpty) {
+      return Align(alignment: Alignment.centerLeft, child: cameraLensText);
+    }
 
     if (cameraLens.isEmpty) {
       return Align(alignment: Alignment.centerRight, child: charactersText);
     }
 
-    return Row(
-      children: [
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: _OcptScheduleShotRowText(text: cameraLens, style: style, maxLines: 1),
-          ),
-        ),
-        if (charactersText != null) ...[const SizedBox(width: 8), Flexible(child: charactersText)],
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final half = (constraints.maxWidth - _gap) / 2;
+        final cameraLensWidth = _naturalWidthOf(context, cameraLens);
+        final charactersWidth = _naturalWidthOf(context, characters);
+
+        if (cameraLensWidth <= half) {
+          return Row(
+            children: [
+              cameraLensText,
+              const SizedBox(width: _gap),
+              Expanded(child: charactersText),
+            ],
+          );
+        }
+
+        if (charactersWidth <= half) {
+          return Row(
+            children: [
+              Expanded(child: cameraLensText),
+              const SizedBox(width: _gap),
+              charactersText,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: cameraLensText),
+            const SizedBox(width: _gap),
+            Expanded(child: charactersText),
+          ],
+        );
+      },
     );
+  }
+
+  /// Get the width [text] takes on one line in [style], unconstrained.
+  double _naturalWidthOf(BuildContext context, String text) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: DefaultTextStyle.of(context).style.merge(style)),
+      maxLines: 1,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+
+    return width;
   }
 }
 
