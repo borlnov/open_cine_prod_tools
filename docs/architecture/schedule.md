@@ -299,8 +299,21 @@ seven documents a production runs on.
   slot it is shot in**: the timetable's own `+ Block` menu opens on `Shot`, which opens
   `OcptScheduleShotPickerDialog` — the whole shot list, searched and grouped by sequence, every row
   selectable including a shot already placed, which merely carries the day tags it sits on so a
-  second placement reads as a choice rather than an accident. The picker is the mode's to open,
-  never the timetable's: the widget only asks (`onShotBlockRequested`).
+  second placement reads as a choice rather than an accident. The search reads the code, the shot
+  size, the framing, the camera move, the lens and each character, besides the sequence's heading.
+  The picker is the mode's to open, never the timetable's: the widget only asks
+  (`onShotBlockRequested`).
+  **Both lists draw a shot with the one `OcptScheduleShotRow`**: a 16:9 thumbnail (the shot's first
+  storyboard panel, or a dashed frame while it has none), then three levels of text — the code, the
+  shot size, the abbreviation badge, the duration and the day tags; the framing, on two lines at
+  most; the camera move and lens against the characters. A level with nothing to say is left out,
+  and a text the width cuts short carries a tooltip with its full content. The dock frames the row
+  as a card and the dialog leaves it flat; the row never reaches the router, its owner passes
+  `onTap`. Below 220 px of content the thumbnail is dropped rather than squeezing the text, which is
+  what the dock's narrowest width does. **The mode reads the storyboard for this**: next to each
+  episode's shot list, in the same `shotLists` reload scope, it keeps the image path of every
+  shot's first panel in `storyboardThumbnailPathByShotId`; a storyboard that cannot be read fails
+  the load as a shot list does.
   A **rehearsal** row carries the sequence picker a `hold` row already does; an **audition** row
   carries a wrapped strip of **candidacy chips** instead — one per `shooting_block_candidates` row it
   names, reading the person and the part they are being seen for, each with its own remove control —
@@ -371,9 +384,10 @@ seven documents a production runs on.
   `OcptSchedulePlanSnapshot.presenceCellOf` (a plain `OcptPresenceCode?`, null being the blank
   cell), and a cell whose person is convoked on a day they are unavailable is marked from
   `OcptSchedulePersonUnavailableAlert`, not from a second reading of that rule.
-  The left dock is the day list over the shots still to place, and a click on one of those
-  **selects** it, nothing more. Those shots and `OcptScheduleShotPickerDialog`'s own list are the
-  two surfaces a multi-episode project regroups: both already grouped by sequence and head their
+  The left dock is the day list over the shots still to place, each an `OcptScheduleShotRow` drawn
+  as a framed card, and a click on one of those **selects** it, nothing more. Those shots and
+  `OcptScheduleShotPickerDialog`'s own list are the two surfaces a multi-episode project regroups:
+  both already grouped by sequence and head their
   groups by **episode, then sequence** through the shared `OcptScheduleEpisodeBand` — a band rather
   than a mechanism, and drawn by neither while the project holds one episode. The right dock is
   `Inspector` + `Convocations` + `Alerts` + the shared `Versions` tab, the inspector reading block,
