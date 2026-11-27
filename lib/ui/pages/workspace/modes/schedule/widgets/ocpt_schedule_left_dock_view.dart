@@ -56,6 +56,7 @@ class OcptScheduleLeftDockView extends StatelessWidget {
       onDayDeletionRequested: isReadOnly ? null : onDayDeletionRequested,
       unplacedGroups: state.unplacedGroups,
       episodes: state.episodes,
+      storyboardThumbnailPathByShotId: state.storyboardThumbnailPathByShotId,
       selectedShotId: state.selectedShotId,
       onShotSelected: (shotId) => bloc.add(OcptScheduleShotSelectedEvent(shotId: shotId)),
     );

@@ -4,7 +4,6 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
@@ -13,13 +12,12 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_resources_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_episode_band.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_shot_row.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_label.dart';
 
 /// The tallest the dialog's own scrollable shot list is ever drawn before it starts scrolling, in
 /// logical pixels — a découpage of hundreds of shots still has to fit inside one screen.
-const double _ocptScheduleShotPickerMaxListHeight = 420;
+const double _ocptScheduleShotPickerMaxListHeight = 480;
 
 /// The dialog opened by a slot's own `+ Block` menu's `Shot` entry: every shot of the shot list,
 /// grouped by **episode, then sequence**, exactly as the left dock's own unplaced-shots list
@@ -53,12 +51,18 @@ class OcptScheduleShotPickerDialog extends StatefulWidget {
   /// with no entry here is unplaced.
   final Map<String, List<int>> placedDayNumbersByShotId;
 
+  /// The absolute path of each shot's first storyboard image, keyed by shot id —
+  /// `OcptScheduleState.storyboardThumbnailPathByShotId`. A shot with no entry is drawn with a
+  /// dashed placeholder in place of its thumbnail.
+  final Map<String, String> storyboardThumbnailPathByShotId;
+
   /// Class constructor
   const OcptScheduleShotPickerDialog({
     super.key,
     required this.shotListSnapshots,
     required this.episodes,
     required this.placedDayNumbersByShotId,
+    required this.storyboardThumbnailPathByShotId,
   });
 
   /// Create the [_OcptScheduleShotPickerDialogState] holding the state of the schedule shot picker
@@ -72,12 +76,14 @@ class OcptScheduleShotPickerDialog extends StatefulWidget {
     required List<OcptShotListSnapshot> shotListSnapshots,
     required List<OcptEpisode> episodes,
     required Map<String, List<int>> placedDayNumbersByShotId,
+    required Map<String, String> storyboardThumbnailPathByShotId,
   }) => showDialog<String>(
     context: context,
     builder: (context) => OcptScheduleShotPickerDialog(
       shotListSnapshots: shotListSnapshots,
       episodes: episodes,
       placedDayNumbersByShotId: placedDayNumbersByShotId,
+      storyboardThumbnailPathByShotId: storyboardThumbnailPathByShotId,
     ),
   );
 }
@@ -122,7 +128,7 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
     return AlertDialog(
       title: Text(tr.scheduleShotPickerDialogTitle),
       content: SizedBox(
-        width: 480,
+        width: 560,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -156,6 +162,8 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
                                     _OcptScheduleShotPickerSequenceSection(
                                       sequence: sequence,
                                       placedDayNumbersByShotId: widget.placedDayNumbersByShotId,
+                                      storyboardThumbnailPathByShotId:
+                                          widget.storyboardThumbnailPathByShotId,
                                     ),
                                 ],
                               ],
@@ -218,13 +226,17 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
     return sections;
   }
 
-  /// Get the fields a shot of [sequence] is matched against: its own code and shot size, plus — for
-  /// a
-  /// real scene — its heading and display number, so `ins cuisine` finds every shot of `INT.
-  /// KITCHEN - DAY` even though neither word names the shot itself.
+  /// Get the fields a shot of [sequence] is matched against: its own code, shot size, framing,
+  /// camera move, lens and each of its characters, plus — for a real scene — its heading and
+  /// display number, so `ins cuisine` finds every shot of `INT. KITCHEN - DAY` even though neither
+  /// word names the shot itself.
   List<String> _searchFieldsOf(OcptShotSequence sequence, OcptShot shot) => [
     shot.code,
     shot.shotSize,
+    shot.framing,
+    shot.cameraMove,
+    shot.lens,
+    ...shot.characters,
     if (sequence is OcptSceneShotSequence) sequence.heading,
     if (sequence is OcptSceneShotSequence) sequence.displaySceneNumber,
   ];
@@ -284,10 +296,14 @@ class _OcptScheduleShotPickerSequenceSection extends StatelessWidget {
   /// The day numbers each shot is already placed on, keyed by shot id.
   final Map<String, List<int>> placedDayNumbersByShotId;
 
+  /// The absolute path of each shot's first storyboard image, keyed by shot id.
+  final Map<String, String> storyboardThumbnailPathByShotId;
+
   /// Class constructor
   const _OcptScheduleShotPickerSequenceSection({
     required this.sequence,
     required this.placedDayNumbersByShotId,
+    required this.storyboardThumbnailPathByShotId,
   });
 
   /// Build the schedule shot picker sequence section as a [Padding].
@@ -335,76 +351,14 @@ class _OcptScheduleShotPickerSequenceSection extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           for (final shot in sequence.shots)
-            _OcptScheduleShotPickerShotRow(
+            OcptScheduleShotRow(
               shot: shot,
+              thumbnailPath: storyboardThumbnailPathByShotId[shot.id],
               dayNumbers: placedDayNumbersByShotId[shot.id],
+              isFramed: false,
+              onTap: () => globalGetIt().get<OcptRouterManager>().pop<String>(shot.id),
             ),
         ],
-      ),
-    );
-  }
-}
-
-/// One shot's own row: its code, its shot size, its duration and — while already placed — its
-/// day tags, muted, with a tooltip saying so. The mark is information, never a bar: the row stays
-/// clickable either way.
-class _OcptScheduleShotPickerShotRow extends StatelessWidget {
-  /// The shot the row picks.
-  final OcptShot shot;
-
-  /// The day numbers [shot] is already placed on, or null while it is placed nowhere.
-  final List<int>? dayNumbers;
-
-  /// Class constructor
-  const _OcptScheduleShotPickerShotRow({required this.shot, required this.dayNumbers});
-
-  /// Build the schedule shot picker shot row as an [InkWell].
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final dayNumbers = this.dayNumbers;
-    final isPlaced = dayNumbers != null && dayNumbers.isNotEmpty;
-    final mutedStyle = theme.textTheme.labelSmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
-
-    return InkWell(
-      onTap: () => globalGetIt().get<OcptRouterManager>().pop<String>(shot.id),
-      mouseCursor: ocpt_theme.ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Text(
-                shot.code,
-                style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ),
-            Expanded(
-              child: Text(
-                shot.shotSize,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
-            Text(ocptFormatShotDuration(shot.estimatedDurationMs), style: mutedStyle),
-            if (isPlaced) ...[
-              const SizedBox(width: 10),
-              Tooltip(
-                message: tr.scheduleShotPickerAlreadyPlacedTooltip,
-                child: Text(
-                  dayNumbers.map((n) => ocptScheduleDayTagLabel(tr, n)).join(", "),
-                  style: mutedStyle,
-                ),
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }

@@ -1435,6 +1435,7 @@
   "scheduleShotPickerNoResultsHint": "Aucun plan ne correspond à la recherche.",
   "scheduleShotPickerEmptyHint": "Ce découpage ne contient encore aucun plan.",
   "scheduleShotPickerAlreadyPlacedTooltip": "Déjà placé",
+  "scheduleShotRowNoStoryboardLabel": "Pas de storyboard",
   "scheduleShotPickerCancelAction": "Annuler",
   "scheduleRightDockConvocationsTabLabel": "Convocations",
   "scheduleConvocationsEmptyHint": "Sélectionnez un jour pour voir ses convocations.",

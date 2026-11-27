@@ -623,6 +623,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       shotListSnapshots: state.shotListSnapshots,
       episodes: state.episodes,
       placedDayNumbersByShotId: state.placedDayNumbersByShotId,
+      storyboardThumbnailPathByShotId: state.storyboardThumbnailPathByShotId,
     );
     if (shotId == null) {
       return;

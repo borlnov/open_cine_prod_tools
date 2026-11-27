@@ -10750,6 +10750,13 @@
     "type": "text",
     "placeholders": {}
   },
+  "scheduleShotRowNoStoryboardLabel": "No storyboard",
+  "@scheduleShotRowNoStoryboardLabel": {
+    "description": "Semantic label of the dashed frame a shot row draws in place of its thumbnail when the shot has no storyboard image",
+    "context": "Displayed in the schedule's shot rows: the shot picker dialog and the left dock's unplaced shots",
+    "type": "text",
+    "placeholders": {}
+  },
   "scheduleShotPickerCancelAction": "Cancel",
   "@scheduleShotPickerCancelAction": {
     "description": "Label of the shot picker dialog's own cancel control",

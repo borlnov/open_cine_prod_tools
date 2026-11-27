@@ -467,4 +467,22 @@ void main() {
       expect(OcptScheduleState.init().placedDayNumbersByShotId, isEmpty);
     });
   });
+
+  group("storyboardThumbnailPathByShotId", () {
+    test("reads empty while nothing has loaded yet", () {
+      expect(OcptScheduleState.init().storyboardThumbnailPathByShotId, isEmpty);
+    });
+
+    test("replacing it moves the reload epoch, and keeping it does not", () {
+      final state = OcptScheduleState.init();
+
+      final replaced = state.copyWith(storyboardThumbnailPathByShotId: const {"shot-1": "/a.jpg"});
+      final kept = replaced.copyWith(isLoading: false);
+
+      expect(replaced.storyboardThumbnailPathByShotId, {"shot-1": "/a.jpg"});
+      expect(replaced.reloadEpoch, state.reloadEpoch + 1);
+      expect(kept.reloadEpoch, replaced.reloadEpoch);
+      expect(kept.storyboardThumbnailPathByShotId, {"shot-1": "/a.jpg"});
+    });
+  });
 }
