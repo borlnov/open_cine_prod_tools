@@ -98,19 +98,14 @@ class OcptScreenplayService extends AbsOcptService {
   /// Class constructor
   const OcptScreenplayService({
     required super.logger,
-    required OcptSceneIndexService sceneIndexService,
-    required OcptShotListService shotListService,
-    required OcptShotCoverageService shotCoverageService,
-    required OcptRoleIndexService roleIndexService,
-    required OcptBreakdownService breakdownService,
-    required OcptScheduleService scheduleService,
+    required this._sceneIndexService,
+    required this._shotListService,
+    required this._shotCoverageService,
+    required this._roleIndexService,
+    required this._breakdownService,
+    required this._scheduleService,
     required this.deviceId,
-  }) : _sceneIndexService = sceneIndexService,
-       _shotListService = shotListService,
-       _shotCoverageService = shotCoverageService,
-       _roleIndexService = roleIndexService,
-       _breakdownService = breakdownService,
-       _scheduleService = scheduleService;
+  });
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///

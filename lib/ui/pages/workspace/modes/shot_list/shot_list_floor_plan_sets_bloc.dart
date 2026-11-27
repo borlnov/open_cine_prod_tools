@@ -103,8 +103,8 @@ class OcptShotListFloorPlanSetsBloc
     OcptLocationsService? locationsService,
     OcptFloorPlanService? floorPlanService,
     OcptElementsService? elementsService,
-    FileSelectorManager? fileSelectorManager,
-    Duration fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
+    this._fileSelectorManager,
+    this._fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _locationsService =
            locationsService ??
@@ -115,8 +115,6 @@ class OcptShotListFloorPlanSetsBloc
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
-       _fileSelectorManager = fileSelectorManager,
-       _fieldEditDebounce = fieldEditDebounce,
        super(const OcptShotListFloorPlanSetsState.init());
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}

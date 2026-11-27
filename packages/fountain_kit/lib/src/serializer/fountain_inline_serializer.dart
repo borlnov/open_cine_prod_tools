@@ -82,7 +82,8 @@ class FountainInlineSerializer {
   String _write(List<FountainStyledRun> runs) {
     final merged = _mergeAdjacent(runs);
     final texts = [
-      for (final run in merged) _isPlain(run) ? _escapeAmbiguousMarkers(run.text) : run.text,
+      for (final run in merged)
+        if (_isPlain(run)) _escapeAmbiguousMarkers(run.text) else run.text,
     ];
     while (true) {
       final line = _emit(merged, texts);

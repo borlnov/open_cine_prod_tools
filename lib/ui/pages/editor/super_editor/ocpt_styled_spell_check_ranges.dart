@@ -37,14 +37,13 @@ final class OcptStyledSpellCheckRanges {
   MutableDocument get _document => _documentOf();
 
   /// Create an [OcptStyledSpellCheckRanges].
-  OcptStyledSpellCheckRanges({required MutableDocument Function() documentOf})
+  OcptStyledSpellCheckRanges({required this._documentOf})
     : styler = SpellingAndGrammarStyler(
         spellingErrorUnderlineStyle: const SquiggleUnderlineStyle(
           color: ocptEditorSpellCheckErrorColor,
         ),
       ),
-      _lastRangesByNodeId = const {},
-      _documentOf = documentOf;
+      _lastRangesByNodeId = const {};
 
   /// Get every checkable node text currently in [_document]: a [ParagraphNode] whose classified
   /// line

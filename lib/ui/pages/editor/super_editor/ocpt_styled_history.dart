@@ -66,17 +66,13 @@ final class OcptStyledHistory {
 
   /// Create an [OcptStyledHistory].
   OcptStyledHistory({
-    required Editor Function() editorOf,
-    required void Function() syncSceneNumbers,
-    required void Function() syncBracket,
-    required void Function() reportReadState,
+    required this._editorOf,
+    required this._syncSceneNumbers,
+    required this._syncBracket,
+    required this._reportReadState,
   }) : mergePolicy = OcptSettleMergePolicy(),
        _isRedoStackStale = false,
-       _isApplyingHistory = false,
-       _editorOf = editorOf,
-       _syncSceneNumbers = syncSceneNumbers,
-       _syncBracket = syncBracket,
-       _reportReadState = reportReadState;
+       _isApplyingHistory = false;
 
   /// Mark the redo stack as overtaken by an edit made since the last undo.
   void markRedoStale() => _isRedoStackStale = true;

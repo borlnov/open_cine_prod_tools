@@ -29,6 +29,8 @@ analyzer:
     # packages/fountain_kit is a path dependency of this app, but it is a standalone package with
     # its own analysis_options.yaml and its own CI entry, so it must not be analyzed twice here.
     - packages/**
+    # Each worktree is a checkout of its own, analyzed from its own root.
+    - worktrees/**
     - android/**
     - ios/**
     - windows/**
@@ -41,9 +43,6 @@ analyzer:
     missing_enum_constant_in_switch: error
     unused_local_variable: error
     unused_result: error
-
-  language:
-    strict-casts: true
 
 # To know the available rules to enable or disable, see https://dart.dev/tools/linter-rules
 linter:
@@ -95,14 +94,17 @@ linter:
     # Don't implement classes that override ==.
     avoid_implementing_value_types: true
 
+    # Avoid integer literals which JavaScript cannot represent exactly (beyond 2^53). Although
+    # this targets the web, the analyzer does not know the build target: the rule applies to
+    # every package, whatever its platforms. Write such a constant with BigInt.
+    avoid_js_rounded_ints: true
+
     # Don't declare multiple variables on a single line.
     avoid_multiple_declarations_per_line: true
 
     # Avoid positional boolean parameters.
     avoid_positional_boolean_parameters: true
 
-    # Avoid private typedef functions.
-    avoid_private_typedef_functions: true
 
     # Avoid redundant argument values.
     avoid_redundant_argument_values: true
@@ -167,6 +169,10 @@ linter:
     # Document ignore comments.
     document_ignores: true
 
+    # empty_container_bodies, which the ACT packages enable, is left out: the `class X extends Y;`
+    # it asks for is Dart 3.13 syntax, and the source guards under test/ parse with an analyzer
+    # that predates it (held back by drift_dev), so they would fail on every such class.
+
     # Put a single newline at end of file.
     eol_at_end_of_file: true
 
@@ -193,6 +199,9 @@ linter:
 
     # Missing whitespace between adjacent strings.
     missing_whitespace_between_adjacent_strings: true
+
+    # Do not implicitly cast from dynamic.
+    no_dynamic_casts: true
 
     # Don't compare boolean expressions to boolean literals.
     no_literal_bool_comparisons: true
@@ -287,8 +296,6 @@ linter:
     # Future results in async function bodies must be awaited or marked unawaited using dart:async.
     unawaited_futures: true
 
-    # Unnecessary await keyword in return.
-    unnecessary_await_in_return: true
 
     # Don't create a lambda when a tear-off will do.
     unnecessary_lambdas: true

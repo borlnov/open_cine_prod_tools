@@ -305,7 +305,7 @@ void main() {
       final payload = buildRichPayload();
       final blocks = [
         for (final row in payload.shootingDayBlocks)
-          row.id == "block-1" ? row.copyWith(crewNote: "Generator arrives now") : row,
+          if (row.id == "block-1") row.copyWith(crewNote: "Generator arrives now") else row,
       ];
       final renoted = OcptProjectVersionPayload(
         screenplays: payload.screenplays,

@@ -62,24 +62,16 @@ class OcptShotListReader {
 
   /// Class constructor
   const OcptShotListReader({
-    required OcptProjectsManager projectsManager,
-    required OcptPropertiesManager propertiesManager,
-    required OcptShotListService shotListService,
-    required OcptRoleIndexService roleIndexService,
-    required OcptScheduleService scheduleService,
-    required OcptStoryboardService storyboardService,
-    required OcptFloorPlanService floorPlanService,
-    required OcptLocationsService locationsService,
-    required String Function(OcptOpenProjectModel project) screenplayIdOf,
-  }) : _projectsManager = projectsManager,
-       _propertiesManager = propertiesManager,
-       _shotListService = shotListService,
-       _roleIndexService = roleIndexService,
-       _scheduleService = scheduleService,
-       _storyboardService = storyboardService,
-       _floorPlanService = floorPlanService,
-       _locationsService = locationsService,
-       _screenplayIdOf = screenplayIdOf;
+    required this._projectsManager,
+    required this._propertiesManager,
+    required this._shotListService,
+    required this._roleIndexService,
+    required this._scheduleService,
+    required this._storyboardService,
+    required this._floorPlanService,
+    required this._locationsService,
+    required this._screenplayIdOf,
+  });
 
   /// Read the whole shot list of the selected episode's screenplay, joined with where each of its
   /// shots sits in the schedule (`OcptScheduleService.loadShotPlacements`), keyed by shot id — what

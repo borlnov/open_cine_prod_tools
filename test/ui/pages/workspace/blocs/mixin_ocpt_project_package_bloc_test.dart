@@ -112,9 +112,8 @@ class _RecordingShareService extends OcptShareService {
   final Directory _directory;
 
   /// Class constructor
-  _RecordingShareService({required Directory directory, required this.answer})
-    : _directory = directory,
-      super(logger: const SilentLogger());
+  _RecordingShareService({required this._directory, required this.answer})
+    : super(logger: const SilentLogger());
 
   /// Answer with the directory the test gave.
   @override

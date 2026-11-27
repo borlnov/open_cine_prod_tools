@@ -44,12 +44,10 @@ final class OcptStyledZoomAnchor {
 
   /// Class constructor
   OcptStyledZoomAnchor({
-    required ScrollController vertical,
-    required GlobalKey layoutKey,
-    required DocumentSelection? Function() selectionOf,
-  }) : _vertical = vertical,
-       _layoutKey = layoutKey,
-       _selectionOf = selectionOf;
+    required this._vertical,
+    required this._layoutKey,
+    required this._selectionOf,
+  });
 
   /// Get the callback of a Ctrl + wheel notch (`OcptEditorZoomWheel`) that remembers where the
   /// pointer is and then forwards the way to step to [onZoomStepRequested], or null when that is.

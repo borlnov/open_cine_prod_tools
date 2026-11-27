@@ -123,7 +123,8 @@ class OcptBudgetDetailCommitment extends StatelessWidget {
       breadcrumb: [
         if (account != null)
           "${account.code} ${ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified)}",
-        if (line != null) (line.label.isEmpty ? tr.budgetLineUnnamed : line.label),
+        if (line != null)
+          if (line.label.isEmpty) tr.budgetLineUnnamed else line.label,
         tr.budgetDetailKindCommitmentLabel,
       ],
       title: title,

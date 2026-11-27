@@ -65,12 +65,11 @@ class OcptShotListFloorPlanPlacementsBloc
     required super.modeBloc,
     OcptProjectsManager? projectsManager,
     OcptFloorPlanService? floorPlanService,
-    Duration fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
+    this._fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _floorPlanService =
            floorPlanService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).floorPlanService,
-       _fieldEditDebounce = fieldEditDebounce,
        super(const OcptShotListFloorPlanPlacementsState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}

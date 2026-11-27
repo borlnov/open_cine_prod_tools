@@ -62,18 +62,13 @@ final class OcptStyledNoteEditing {
   /// empty when the writer moves to another.
   OcptStyledNoteEditing({
     required this.notes,
-    required Document Function() documentOf,
-    required Editor Function() editorOf,
-    required MutableDocumentComposer Function() composerOf,
-    required FocusNode editorFocusNode,
-    required OcptStyledHistory history,
-    required bool Function() isMounted,
-  }) : _documentOf = documentOf,
-       _editorOf = editorOf,
-       _composerOf = composerOf,
-       _editorFocusNode = editorFocusNode,
-       _history = history,
-       _isMounted = isMounted {
+    required this._documentOf,
+    required this._editorOf,
+    required this._composerOf,
+    required this._editorFocusNode,
+    required this._history,
+    required this._isMounted,
+  }) {
     notes.selectedId.addListener(_onSelectionChanged);
   }
 

@@ -21,12 +21,10 @@ class OcptEditorRawScroller {
 
   /// Class constructor
   OcptEditorRawScroller({
-    required OcptEditorSearchTextController textController,
-    required ScrollController editorScrollController,
-    required FocusNode editorFocusNode,
-  }) : _textController = textController,
-       _editorScrollController = editorScrollController,
-       _editorFocusNode = editorFocusNode;
+    required this._textController,
+    required this._editorScrollController,
+    required this._editorFocusNode,
+  });
 
   /// Place the raw controller's selection on [match] and scroll it into view exactly as
   /// [applyJumpRequest] does ([scrollTo]) — deliberately does not focus

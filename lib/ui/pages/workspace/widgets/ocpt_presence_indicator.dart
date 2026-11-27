@@ -83,10 +83,9 @@ class OcptPresenceIndicator extends StatelessWidget {
 
   /// Class constructor
   ///
-  /// [syncManager] is the injectable seam over `globalGetIt()` a widget test hands in instead —
+  /// [_syncManager] is the injectable seam over `globalGetIt()` a widget test hands in instead —
   /// see [_sync]'s own doc comment.
-  const OcptPresenceIndicator({super.key, OcptSyncManager? syncManager})
-    : _syncManager = syncManager;
+  const OcptPresenceIndicator({super.key, this._syncManager});
 
   /// Build the presence indicator as a [StreamBuilder].
   @override

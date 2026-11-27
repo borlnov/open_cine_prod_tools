@@ -36,11 +36,10 @@ class OcptExportWriteService extends AbsOcptService {
   /// Class constructor
   const OcptExportWriteService({
     required super.logger,
-    required OcptSaveLocationService saveLocationService,
-    required OcptShareService shareService,
+    required this._saveLocationService,
+    required this._shareService,
     required this.platformManager,
-  }) : _saveLocationService = saveLocationService,
-       _shareService = shareService;
+  });
 
   /// Show the native save dialog and write [bytes] to the chosen location — or, on
   /// [PlatformManager.isMobile], write them to a `path_provider` temporary file and hand that to

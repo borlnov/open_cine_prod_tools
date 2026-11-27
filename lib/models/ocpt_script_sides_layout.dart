@@ -195,7 +195,7 @@ class OcptScriptSidesLayout extends Equatable {
             scriptPageIndex: pageIndex,
             lines: [
               for (var local = 0; local <= lastSelectedLocal; local++)
-                selected[pageStart + local] ? lines[pageStart + local] : _blankFiller,
+                if (selected[pageStart + local]) lines[pageStart + local] else _blankFiller,
             ],
           ),
         );

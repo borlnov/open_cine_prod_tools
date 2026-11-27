@@ -59,21 +59,15 @@ final class OcptStyledPageSimulation {
 
   /// Create an [OcptStyledPageSimulation].
   OcptStyledPageSimulation({
-    required MutableDocument Function() documentOf,
-    required Editor Function() editorOf,
-    required void Function(VoidCallback derivedPass) runDerivedPass,
-    required bool Function() isEnabled,
-    required OcptPageSetup Function() pageSetupOf,
-    required double Function() zoomOf,
+    required this._documentOf,
+    required this._editorOf,
+    required this._runDerivedPass,
+    required this._isEnabled,
+    required this._pageSetupOf,
+    required this._zoomOf,
   }) : pageCount = 0,
        titlePageSheetCount = 0,
-       trailingBottomPadding = 0,
-       _documentOf = documentOf,
-       _editorOf = editorOf,
-       _runDerivedPass = runDerivedPass,
-       _isEnabled = isEnabled,
-       _pageSetupOf = pageSetupOf,
-       _zoomOf = zoomOf;
+       trailingBottomPadding = 0;
 
   /// Recompute which nodes start a fresh simulated page (their exact top padding stored as
   /// [ocptStartsNewPageMetadataKey] metadata, read by `OcptFountainEditorStylesheet`'s

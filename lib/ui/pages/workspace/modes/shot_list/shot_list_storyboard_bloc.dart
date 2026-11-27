@@ -72,14 +72,12 @@ class OcptShotListStoryboardBloc
     required super.modeBloc,
     OcptProjectsManager? projectsManager,
     OcptStoryboardService? storyboardService,
-    FileSelectorManager? fileSelectorManager,
-    Duration fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
+    this._fileSelectorManager,
+    this._fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _storyboardService =
            storyboardService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).storyboardService,
-       _fileSelectorManager = fileSelectorManager,
-       _fieldEditDebounce = fieldEditDebounce,
        super(const OcptShotListStoryboardState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}

@@ -48,12 +48,10 @@ class OcptSharingView extends StatelessWidget {
 
   /// Class constructor
   ///
-  /// [platformManager] and [isReadOnly] are the injectable seams over `globalGetIt()` a widget
+  /// [_platformManager] and [_isReadOnly] are the injectable seams over `globalGetIt()` a widget
   /// test hands in instead — see [_isDesktop]/[_readOnly]'s own doc comments, exactly
   /// `OcptSyncStatusIndicator`'s own `syncManager`/`isReadOnly` reasoning.
-  const OcptSharingView({super.key, PlatformManager? platformManager, bool? isReadOnly})
-    : _platformManager = platformManager,
-      _isReadOnly = isReadOnly;
+  const OcptSharingView({super.key, this._platformManager, this._isReadOnly});
 
   /// Build the sharing view as a [BlocConsumer].
   @override

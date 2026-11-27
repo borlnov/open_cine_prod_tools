@@ -39,16 +39,12 @@ final class OcptStyledReadState {
 
   /// Create an [OcptStyledReadState].
   OcptStyledReadState({
-    required OcptStyledEditorController? Function() controllerOf,
-    required MutableDocument Function() documentOf,
-    required MutableDocumentComposer Function() composerOf,
-    required bool Function() canUndoOf,
-    required bool Function() canRedoOf,
-  }) : _controllerOf = controllerOf,
-       _documentOf = documentOf,
-       _composerOf = composerOf,
-       _canUndoOf = canUndoOf,
-       _canRedoOf = canRedoOf;
+    required this._controllerOf,
+    required this._documentOf,
+    required this._composerOf,
+    required this._canUndoOf,
+    required this._canRedoOf,
+  });
 
   /// Refresh [OcptStyledEditorController]'s read side (the toolbar's dropdown/B-I-U state, and
   /// whether there is anything left to undo or redo) from the caret's current node type, the

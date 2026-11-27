@@ -26,7 +26,7 @@ class OcptWysiwygLineMapping {
   /// following it), indexed by line number.
   final List<int> _nodeIndexByLine;
 
-  /// Build the mapping for [sourceText] (only [OcptWysiwygCodec] does), given, in node order, each
+  /// Build the mapping for [_sourceText] (only [OcptWysiwygCodec] does), given, in node order, each
   /// node's (already resolved, in
   /// the case of [OcptWysiwygCodec.encode]'s dialogue-group override) blank-line-before count, and
   /// the number of blank lines trailing the last node.
@@ -35,14 +35,13 @@ class OcptWysiwygLineMapping {
   /// every node when null, more for a node holding a note that runs over several lines. The blank
   /// lines inside such a note are part of it and counted in no node's blank-line-before count.
   OcptWysiwygLineMapping.build({
-    required String sourceText,
+    required this._sourceText,
     required List<int> blankLinesBeforeByNode,
     required int trailingBlankLines,
     List<int>? lineCountByNode,
   }) : _lineByNodeIndex = [],
        _lineCountByNodeIndex = [],
-       _nodeIndexByLine = [],
-       _sourceText = sourceText {
+       _nodeIndexByLine = [] {
     var line = 0;
     for (var nodeIndex = 0; nodeIndex < blankLinesBeforeByNode.length; nodeIndex++) {
       for (var blank = 0; blank < blankLinesBeforeByNode[nodeIndex]; blank++) {

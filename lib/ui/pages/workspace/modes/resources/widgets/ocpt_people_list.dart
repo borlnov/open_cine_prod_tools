@@ -30,9 +30,10 @@ List<OcptPerson> ocptFilteredPeopleOf({
 Iterable<String> _searchFieldsOf(Tr tr, OcptPerson person) => [
   person.displayName,
   for (final position in person.positions)
-    position.positionId.isNotEmpty
-        ? ocptCrewPositionLabel(tr, position.positionId)
-        : position.customLabel,
+    if (position.positionId.isNotEmpty)
+      ocptCrewPositionLabel(tr, position.positionId)
+    else
+      position.customLabel,
   person.email,
   person.phone,
   person.city,

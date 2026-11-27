@@ -48,13 +48,12 @@ class OcptEditorStatisticsBloc
 
   /// Class constructor
   ///
-  /// [statisticsDebounce] is only meant to be overridden by tests, to keep them fast and
+  /// [_statisticsDebounce] is only meant to be overridden by tests, to keep them fast and
   /// deterministic.
   OcptEditorStatisticsBloc({
     required super.modeBloc,
-    Duration statisticsDebounce = defaultStatisticsDebounce,
-  }) : _statisticsDebounce = statisticsDebounce,
-       _previousModeState = modeBloc.state,
+    this._statisticsDebounce = defaultStatisticsDebounce,
+  }) : _previousModeState = modeBloc.state,
        super(const OcptEditorStatisticsState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}

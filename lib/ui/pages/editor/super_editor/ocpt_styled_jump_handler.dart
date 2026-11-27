@@ -50,22 +50,15 @@ final class OcptStyledJumpHandler {
 
   /// Create an [OcptStyledJumpHandler].
   OcptStyledJumpHandler({
-    required MutableDocument Function() documentOf,
-    required Editor Function() editorOf,
-    required OcptWysiwygLineMapping Function() mappingOf,
-    required int Function() titlePageNodeCountOf,
-    required int Function() titlePagePrefixLengthOf,
-    required GlobalKey documentLayoutKey,
-    required FocusNode focusNode,
-    required bool Function() isMounted,
-  }) : _documentOf = documentOf,
-       _editorOf = editorOf,
-       _mappingOf = mappingOf,
-       _titlePageNodeCountOf = titlePageNodeCountOf,
-       _titlePagePrefixLengthOf = titlePagePrefixLengthOf,
-       _documentLayoutKey = documentLayoutKey,
-       _focusNode = focusNode,
-       _isMounted = isMounted;
+    required this._documentOf,
+    required this._editorOf,
+    required this._mappingOf,
+    required this._titlePageNodeCountOf,
+    required this._titlePagePrefixLengthOf,
+    required this._documentLayoutKey,
+    required this._focusNode,
+    required this._isMounted,
+  });
 
   /// Move the styled editor's selection to the start of the node containing [charOffset] of the
   /// line mapping's own source text, focus the editor, and scroll the target node's component

@@ -93,7 +93,7 @@ final class OcptStyledNotes {
   ];
 
   /// Class constructor.
-  OcptStyledNotes({required Document Function() documentOf}) : _documentOf = documentOf;
+  OcptStyledNotes({required this._documentOf});
 
   /// Read the notes from the document again, and drop the selection if its note is gone.
   void refresh() {

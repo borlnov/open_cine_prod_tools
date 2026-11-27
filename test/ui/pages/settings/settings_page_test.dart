@@ -97,11 +97,10 @@ class _FakeActThemesManager extends ActThemesManager {
   @override
   Stream<Brightness?> get brightnessStream => _brightnessCtrl.stream;
 
-  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
+  /// Class constructor, [_brightness] standing for a preference the user had already persisted in a
   /// previous session.
-  _FakeActThemesManager({Brightness? brightness})
-    : _brightness = brightness,
-      super(
+  _FakeActThemesManager({this._brightness})
+    : super(
         propertiesGetter: () => throw UnimplementedError(),
         configGetter: () => throw UnimplementedError(),
         appThemes: OcptAppTheme.values,

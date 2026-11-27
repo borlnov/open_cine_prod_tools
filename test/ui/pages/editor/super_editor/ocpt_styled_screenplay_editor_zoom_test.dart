@@ -709,7 +709,8 @@ void main() {
       final document = SuperEditorInspector.findDocument()!;
       final stored = [
         for (final node in document)
-          if (node.getMetadataValue("ocptStartsNewPage") case final double value when value != 0)
+          if ((node.getMetadataValue("ocptStartsNewPage") as Object?) case final double value
+              when value != 0)
             value,
       ];
       expect(stored, isNotEmpty);

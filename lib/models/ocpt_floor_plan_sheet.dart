@@ -281,9 +281,10 @@ class OcptFloorPlanSheet extends Equatable {
         isGhost: false,
         showFieldOfView: showFieldOfView,
       ))
-        shotOverrideSymbolIds.contains(shape.symbolId)
-            ? shape.copyWith(isOverride: true, overrideLevel: OcptFloorPlanOverrideLevel.shot)
-            : shape,
+        if (shotOverrideSymbolIds.contains(shape.symbolId))
+          shape.copyWith(isOverride: true, overrideLevel: OcptFloorPlanOverrideLevel.shot)
+        else
+          shape,
     ]);
 
     final ghostShotIds = [

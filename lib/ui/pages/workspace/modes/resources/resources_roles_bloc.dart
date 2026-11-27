@@ -63,11 +63,11 @@ class OcptResourcesRolesBloc
 
   /// {@macro open_cine_prod_tools.viewBlocConstructorWithDebounce}
   OcptResourcesRolesBloc({
-    required OcptResourcesBloc modeBloc,
+    required super.modeBloc,
     OcptProjectsManager? projectsManager,
     OcptRoleIndexService? roleIndexService,
     OcptRoleCandidatesService? roleCandidatesService,
-    Duration fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
+    this._fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _roleIndexService =
            roleIndexService ??
@@ -75,8 +75,7 @@ class OcptResourcesRolesBloc
        _roleCandidatesService =
            roleCandidatesService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleCandidatesService,
-       _fieldEditDebounce = fieldEditDebounce,
-       super(const OcptResourcesRolesState.init(), modeBloc: modeBloc);
+       super(const OcptResourcesRolesState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
