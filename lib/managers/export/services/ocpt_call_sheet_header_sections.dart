@@ -88,7 +88,7 @@ abstract final class OcptCallSheetHeaderSections {
     ],
   );
 
-  /// Build the project's own title, then the `Un film de <director>` line when there is one, then
+  /// Build the project's own title, then the `Directed by <names>` line when there is one, then
   /// [versionLine] — the moment this sheet was produced.
   ///
   /// The version line sits in the title block rather than in the running head, unlike the shooting

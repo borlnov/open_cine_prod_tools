@@ -46,7 +46,7 @@ const labels = OcptCallSheetLabels(
   fileNamePrefix: "FDS",
   documentTitle: "Call sheet",
   dayTitles: {"day-1": "CALL SHEET OF THURSDAY 10 AUGUST 2023"},
-  directorLine: "A film by Jane Doe",
+  directorLine: "Directed by Jane Doe",
   versionLabel: "Version",
   dayTagPrefix: "D",
   dayNumberLabel: "DAY",

@@ -32,8 +32,9 @@ class OcptCrewPosition {
 /// The id of the `director` position, the one entry of [ocptCrewPositions] the app looks up by
 /// name.
 ///
-/// A call sheet and a shooting plan both print `A film by <name>`, and that name is not a column of
-/// the project: it is read off whoever the address book already says holds this position. Naming
+/// A call sheet and a shooting plan both print `Directed by <names>`, and those names are not a
+/// column of the project: they are read off whoever the address book already says holds this
+/// position. Naming
 /// the id here rather than typing the string at that call site is what keeps the lookup and the
 /// catalogue entry from drifting apart silently — a renamed id would otherwise print no director at
 /// all, with nothing failing to say so.

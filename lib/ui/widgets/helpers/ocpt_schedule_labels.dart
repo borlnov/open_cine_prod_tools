@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/models/ocpt_sides_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_name_list.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_kind.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
@@ -360,30 +361,38 @@ String _ocptConvocationSlotLabelOf(Tr tr, OcptShootingSlot? slot) {
   return label.isEmpty ? tr.scheduleInspectorUnnamedSlot : label;
 }
 
-/// Get the display name of whoever holds the `director` position in [people] — the address book's
-/// own
-/// declared `person_positions`, not a project column — or an empty string when nobody does.
+/// Get the display names of everyone holding the `director` position in [people] — the address
+/// book's own declared `person_positions`, not a project column — in the order of [people], each
+/// name once, or an empty list when nobody does.
 ///
-/// Read by [ocptCallSheetLabelsOf]/[ocptShootingPlanLabelsOf] to build the `directorLine` both
-/// label classes carry (through [ocptScheduleDirectorLineOf]): the director's name is not typed
-/// anywhere on the project, it is read off whoever the crew catalogue already says holds the
-/// position, and printing nothing is the honest reading when nobody does yet.
-String ocptScheduleDirectorNameOf(List<OcptPerson> people) {
+/// Read by [ocptScheduleDirectorLineOf] to build the `directorLine` the call sheet, shooting plan,
+/// day-out-of-days and one-line schedule labels carry: the directors' names are not typed anywhere
+/// on the project, they are read off whoever the crew catalogue already says holds the position,
+/// and printing nothing is the honest reading when nobody does yet.
+List<String> ocptScheduleDirectorNamesOf(List<OcptPerson> people) {
+  final names = <String>[];
   for (final person in people) {
-    if (person.positions.any((position) => position.positionId == ocptDirectorPositionId)) {
-      return person.displayName;
+    final isDirector = person.positions.any(
+      (position) => position.positionId == ocptDirectorPositionId,
+    );
+    final name = person.displayName;
+    if (isDirector && name.isNotEmpty && !names.contains(name)) {
+      names.add(name);
     }
   }
-  return "";
+  return names;
 }
 
-/// Get the `directorLine` both `OcptCallSheetLabels` and `OcptShootingPlanLabels` carry:
-/// [Tr.scheduleExportDirectorLine] naming whoever [ocptScheduleDirectorNameOf] finds among
-/// [people], or an empty string while nobody holds the position yet — the manager-layer PDF
-/// services print nothing rather than a guess (both classes' own `directorLine` doc comments).
+/// Get the `directorLine` the schedule documents' labels carry:
+/// [Tr.scheduleExportDirectorLine] naming everyone [ocptScheduleDirectorNamesOf] finds among
+/// [people], joined by [ocptJoinNames], or an empty string while nobody holds the position yet —
+/// the manager-layer PDF services print nothing rather than a guess (each label class's own
+/// `directorLine` doc comment).
 String ocptScheduleDirectorLineOf(Tr tr, List<OcptPerson> people) {
-  final name = ocptScheduleDirectorNameOf(people);
-  return name.isEmpty ? "" : tr.scheduleExportDirectorLine(name);
+  final names = ocptScheduleDirectorNamesOf(people);
+  return names.isEmpty
+      ? ""
+      : tr.scheduleExportDirectorLine(ocptJoinNames(names, tr.scheduleExportDirectorsConjunction));
 }
 
 /// Build every localized string the exported call sheets — general and named alike — carry.
