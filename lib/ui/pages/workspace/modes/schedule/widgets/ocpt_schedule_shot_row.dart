@@ -267,6 +267,9 @@ class _OcptScheduleShotRowTitleLine extends StatelessWidget {
 /// The third line of an [OcptScheduleShotRow]: the camera move and the lens on the left, the
 /// characters on the right.
 class _OcptScheduleShotRowDetailsLine extends StatelessWidget {
+  /// The space kept between the two texts, in logical pixels.
+  static const double _gap = 8;
+
   /// The camera move and the lens, already joined, or empty.
   final String cameraLens;
 
@@ -282,9 +285,6 @@ class _OcptScheduleShotRowDetailsLine extends StatelessWidget {
     required this.characters,
     required this.style,
   });
-
-  /// The space kept between the two texts, in logical pixels.
-  static const double _gap = 8;
 
   /// Build the shot row details line as a [Row].
   ///
