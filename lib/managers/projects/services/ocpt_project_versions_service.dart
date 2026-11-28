@@ -47,10 +47,9 @@ class OcptProjectVersionsService extends AbsOcptService {
   /// Class constructor
   const OcptProjectVersionsService({
     required super.logger,
-    required OcptProjectVersionCodec codec,
-    required OcptScreenplayService screenplayService,
-  }) : _codec = codec,
-       _screenplayService = screenplayService;
+    required this._codec,
+    required this._screenplayService,
+  });
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///

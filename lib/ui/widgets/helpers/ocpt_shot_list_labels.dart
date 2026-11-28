@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_dart_result/act_dart_result.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
@@ -306,9 +306,8 @@ String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> plac
 
   if (orderedDays.length == 1) {
     final placement = orderedDays.single;
-    final dateLabel = DateFormat.MMMEd(
-      Localizations.localeOf(context).toString(),
-    ).format(placement.date);
+    final dateLabel = DateFormat.MMMEd(Localizations.localeOf(context).toString())
+        .format(placement.date);
 
     return "${ocptScheduleDayTagLabel(tr, placement.dayNumber)} · $dateLabel";
   }

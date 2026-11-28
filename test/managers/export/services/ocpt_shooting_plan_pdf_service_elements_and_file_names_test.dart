@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+
 import 'ocpt_shooting_plan_pdf_service_test_doubles.dart';
 
 /// Builds a scene-element link with the few fields these tests read, everything else neutral.

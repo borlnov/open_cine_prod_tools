@@ -366,9 +366,8 @@ class OcptStoryboardPdfService extends AbsOcptService {
     required List<OcptStoryboardPanel> panels,
     required Map<String, pw.MemoryImage?> imagesByPanelId,
   }) {
-    final ratio = ocptAspectRatioOf(
-      shot.recordingFormat,
-    ).clamp(_minimumAspectRatio, _maximumAspectRatio);
+    final ratio = ocptAspectRatioOf(shot.recordingFormat)
+        .clamp(_minimumAspectRatio, _maximumAspectRatio);
     final frameWidthPt = _frameHeightPt * ratio;
 
     return pw.Row(

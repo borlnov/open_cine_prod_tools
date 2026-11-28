@@ -284,7 +284,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
 
   /// Class constructor
   OcptPropertiesManager()
-    : recentProjects = SharedPrefsItemWithParser<List<OcptRecentProjectModel>, String>(
+    : recentProjects = const SharedPrefsItemWithParser<List<OcptRecentProjectModel>, String>(
         "RECENT_PROJECTS",
         parser: _parseRecentProjects,
         castTo: _castRecentProjects,
@@ -299,41 +299,55 @@ class OcptPropertiesManager extends AbstractPropertiesManager
         parser: _parseFirstWeekday,
         castTo: (value) => value.name,
       ),
-      isPageSimulationEnabled = SharedPreferencesItem<bool>("PAGE_SIMULATION_ENABLED"),
-      styledSceneNumbersVisible = SharedPreferencesItem<bool>("STYLED_SCENE_NUMBERS_VISIBLE"),
+      isPageSimulationEnabled = const SharedPreferencesItem<bool>("PAGE_SIMULATION_ENABLED"),
+      styledSceneNumbersVisible = const SharedPreferencesItem<bool>("STYLED_SCENE_NUMBERS_VISIBLE"),
       styledPageZoom = SharedPrefsItemWithParser<OcptPageZoom, String>(
         "STYLED_PAGE_ZOOM",
         parser: OcptPageZoom.tryParse,
         castTo: (value) => value.serialized,
       ),
-      spellCheckVisible = SharedPreferencesItem<bool>("SPELL_CHECK_VISIBLE"),
-      editorLeftDockFraction = SharedPreferencesItem<double>("EDITOR_LEFT_DOCK_FRACTION"),
-      editorRightDockFraction = SharedPreferencesItem<double>("EDITOR_RIGHT_DOCK_FRACTION"),
-      shotListLeftDockFraction = SharedPreferencesItem<double>("SHOT_LIST_LEFT_DOCK_FRACTION"),
-      shotListRightDockFraction = SharedPreferencesItem<double>("SHOT_LIST_RIGHT_DOCK_FRACTION"),
-      resourcesLeftDockFraction = SharedPreferencesItem<double>("RESOURCES_LEFT_DOCK_FRACTION"),
-      resourcesRightDockFraction = SharedPreferencesItem<double>("RESOURCES_RIGHT_DOCK_FRACTION"),
-      breakdownLeftDockFraction = SharedPreferencesItem<double>("BREAKDOWN_LEFT_DOCK_FRACTION"),
-      breakdownRightDockFraction = SharedPreferencesItem<double>("BREAKDOWN_RIGHT_DOCK_FRACTION"),
+      spellCheckVisible = const SharedPreferencesItem<bool>("SPELL_CHECK_VISIBLE"),
+      editorLeftDockFraction = const SharedPreferencesItem<double>("EDITOR_LEFT_DOCK_FRACTION"),
+      editorRightDockFraction = const SharedPreferencesItem<double>("EDITOR_RIGHT_DOCK_FRACTION"),
+      shotListLeftDockFraction = const SharedPreferencesItem<double>(
+        "SHOT_LIST_LEFT_DOCK_FRACTION",
+      ),
+      shotListRightDockFraction = const SharedPreferencesItem<double>(
+        "SHOT_LIST_RIGHT_DOCK_FRACTION",
+      ),
+      resourcesLeftDockFraction = const SharedPreferencesItem<double>(
+        "RESOURCES_LEFT_DOCK_FRACTION",
+      ),
+      resourcesRightDockFraction = const SharedPreferencesItem<double>(
+        "RESOURCES_RIGHT_DOCK_FRACTION",
+      ),
+      breakdownLeftDockFraction = const SharedPreferencesItem<double>(
+        "BREAKDOWN_LEFT_DOCK_FRACTION",
+      ),
+      breakdownRightDockFraction = const SharedPreferencesItem<double>(
+        "BREAKDOWN_RIGHT_DOCK_FRACTION",
+      ),
       breakdownLastRightDockTab = SharedPrefsItemWithParser<OcptBreakdownRightDockTab, String>(
         "BREAKDOWN_LAST_RIGHT_DOCK_TAB",
         parser: _parseBreakdownRightDockTab,
         castTo: (value) => value.name,
       ),
-      scheduleLeftDockFraction = SharedPreferencesItem<double>("SCHEDULE_LEFT_DOCK_FRACTION"),
-      scheduleRightDockFraction = SharedPreferencesItem<double>("SCHEDULE_RIGHT_DOCK_FRACTION"),
+      scheduleLeftDockFraction = const SharedPreferencesItem<double>("SCHEDULE_LEFT_DOCK_FRACTION"),
+      scheduleRightDockFraction = const SharedPreferencesItem<double>(
+        "SCHEDULE_RIGHT_DOCK_FRACTION",
+      ),
       scheduleLastRightDockTab = SharedPrefsItemWithParser<OcptScheduleRightDockTab, String>(
         "SCHEDULE_LAST_RIGHT_DOCK_TAB",
         parser: _parseScheduleRightDockTab,
         castTo: (value) => value.name,
       ),
-      budgetRightDockFraction = SharedPreferencesItem<double>("BUDGET_RIGHT_DOCK_FRACTION"),
+      budgetRightDockFraction = const SharedPreferencesItem<double>("BUDGET_RIGHT_DOCK_FRACTION"),
       budgetLastRightDockTab = SharedPrefsItemWithParser<OcptBudgetRightDockTab, String>(
         "BUDGET_LAST_RIGHT_DOCK_TAB",
         parser: _parseBudgetRightDockTab,
         castTo: (value) => value.name,
       ),
-      shotListVisibleColumns = SharedPrefsItemWithParser<Set<OcptShotListColumn>, String>(
+      shotListVisibleColumns = const SharedPrefsItemWithParser<Set<OcptShotListColumn>, String>(
         "SHOT_LIST_VISIBLE_COLUMNS",
         parser: _parseShotListColumns,
         castTo: _castShotListColumns,
@@ -348,9 +362,9 @@ class OcptPropertiesManager extends AbstractPropertiesManager
         parser: _parseShotListCentreView,
         castTo: (value) => value.name,
       ),
-      deviceId = SharedPreferencesItem<String>("DEVICE_ID"),
-      lastProjectsDirectory = SharedPreferencesItem<String>("LAST_PROJECTS_DIRECTORY"),
-      pageMargins = SharedPrefsItemWithParser<FountainPageMargins, String>(
+      deviceId = const SharedPreferencesItem<String>("DEVICE_ID"),
+      lastProjectsDirectory = const SharedPreferencesItem<String>("LAST_PROJECTS_DIRECTORY"),
+      pageMargins = const SharedPrefsItemWithParser<FountainPageMargins, String>(
         "PAGE_MARGINS",
         parser: _parsePageMargins,
         castTo: _castPageMargins,

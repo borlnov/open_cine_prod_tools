@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Show [message] as the one notice of the nearest [ScaffoldMessenger], replacing the one still
 /// on screen.

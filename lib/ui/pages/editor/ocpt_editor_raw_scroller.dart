@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search_text_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
@@ -21,12 +21,10 @@ class OcptEditorRawScroller {
 
   /// Class constructor
   OcptEditorRawScroller({
-    required OcptEditorSearchTextController textController,
-    required ScrollController editorScrollController,
-    required FocusNode editorFocusNode,
-  }) : _textController = textController,
-       _editorScrollController = editorScrollController,
-       _editorFocusNode = editorFocusNode;
+    required this._textController,
+    required this._editorScrollController,
+    required this._editorFocusNode,
+  });
 
   /// Place the raw controller's selection on [match] and scroll it into view exactly as
   /// [applyJumpRequest] does ([scrollTo]) — deliberately does not focus

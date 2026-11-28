@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_ver
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
+
 import 'ocpt_project_version_codec_test_doubles.dart';
 
 /// Run the tests of the project version codec digest changes budget and decoding.
@@ -304,7 +305,7 @@ void main() {
       final payload = buildRichPayload();
       final blocks = [
         for (final row in payload.shootingDayBlocks)
-          row.id == "block-1" ? row.copyWith(crewNote: "Generator arrives now") : row,
+          if (row.id == "block-1") row.copyWith(crewNote: "Generator arrives now") else row,
       ];
       final renoted = OcptProjectVersionPayload(
         screenplays: payload.screenplays,

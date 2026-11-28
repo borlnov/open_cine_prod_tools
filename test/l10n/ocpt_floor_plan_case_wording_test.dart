@@ -35,13 +35,13 @@ void main() {
     // The floor plan's own room used to be called a "case", renamed to "Set" in the store; this
     // pins the same rename in the ARB, which a later chrome pass missed for a handful of
     // strings.
-    final arb = jsonDecode(File(_englishArbPath).readAsStringSync()) as Map<String, dynamic>;
+    final arb = jsonDecode(File(_englishArbPath).readAsStringSync()) as Map<String, Object?>;
 
     final offenders = [
       for (final entry in arb.entries)
         if (_isFloorPlanEntry(entry.key))
           if (_caseWord.hasMatch(entry.key) ||
-              (entry.value is String && _caseWord.hasMatch(entry.value as String)))
+              (entry.value is String && _caseWord.hasMatch(entry.value! as String)))
             '${entry.key}: ${entry.value}',
     ];
 
@@ -55,7 +55,7 @@ void main() {
   });
 
   test('no French floor-plan string says « case » or « portés »', () {
-    final arb = jsonDecode(File(_frenchArbPath).readAsStringSync()) as Map<String, dynamic>;
+    final arb = jsonDecode(File(_frenchArbPath).readAsStringSync()) as Map<String, Object?>;
 
     final caseOffenders = [
       for (final entry in arb.entries)

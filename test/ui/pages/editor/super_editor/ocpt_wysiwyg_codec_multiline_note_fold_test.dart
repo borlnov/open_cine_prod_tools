@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
+
 import 'ocpt_wysiwyg_codec_test_doubles.dart';
 
 /// Decode [source], encode it back and get the text written.

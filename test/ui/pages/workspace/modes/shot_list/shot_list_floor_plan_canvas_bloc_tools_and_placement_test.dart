@@ -29,6 +29,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
 import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_floor_plan_canvas_bloc_test_doubles.dart';
 
@@ -214,9 +215,8 @@ void main() {
     await waitForState(bloc, (state) => !state.isLoading);
     expect(canvasOf(bloc).state.floorPlanActiveTool, OcptFloorPlanTool.select);
 
-    canvasOf(
-      bloc,
-    ).add(const OcptShotListFloorPlanToolSelectedEvent(tool: OcptFloorPlanTool.setElement));
+    canvasOf(bloc)
+        .add(const OcptShotListFloorPlanToolSelectedEvent(tool: OcptFloorPlanTool.setElement));
     await waitUntil(() => canvasOf(bloc).state.floorPlanActiveTool == OcptFloorPlanTool.setElement);
 
     await bloc.close();
@@ -354,9 +354,8 @@ void main() {
     );
     expect(resized.selectedSet!.symbols.single.heightM, 0.8);
 
-    canvasOf(
-      bloc,
-    ).add(OcptShotListFloorPlanSymbolRotatedEvent(symbolId: symbolId, rotationDeg: 45));
+    canvasOf(bloc)
+        .add(OcptShotListFloorPlanSymbolRotatedEvent(symbolId: symbolId, rotationDeg: 45));
     final rotated = await waitForState(
       bloc,
       (state) => state.selectedSet!.symbols.single.rotationDeg == 45,
@@ -673,9 +672,8 @@ void main() {
 
     // An explicit position (an `Alt`-drag's own settled point) places the copy exactly
     // there instead of at the default offset.
-    canvasOf(
-      bloc,
-    ).add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: sourceId, xM: 9, yM: -4));
+    canvasOf(bloc)
+        .add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: sourceId, xM: 9, yM: -4));
     final secondDuplicate = await waitForState(
       bloc,
       (state) => state.selectedSet!.symbols.length == 3,
@@ -713,9 +711,8 @@ void main() {
     final placed = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
     final sourceId = placed.selectedSet!.symbols.single.id;
 
-    placementsOf(
-      bloc,
-    ).add(OcptShotListFloorPlanSymbolFovReachChangedEvent(symbolId: sourceId, fovReachM: 4.5));
+    placementsOf(bloc)
+        .add(OcptShotListFloorPlanSymbolFovReachChangedEvent(symbolId: sourceId, fovReachM: 4.5));
     await waitForState(bloc, (state) => state.selectedSet!.symbols.single.fovReachM == 4.5);
 
     canvasOf(bloc).add(OcptShotListFloorPlanSymbolDuplicatedEvent(symbolId: sourceId));

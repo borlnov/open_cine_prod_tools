@@ -230,16 +230,16 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// real platform, so building one here is exactly as correct as the registered singleton would
   /// be, and it keeps a test that only needs the desktop guard from having to register one at all.
   ///
-  /// [secretsManager] is stored nullable and resolved lazily through [_secrets], exactly as
+  /// [_secretsManager] is stored nullable and resolved lazily through [_secrets], exactly as
   /// `OcptSyncManager.pairingService` resolves its own `OcptSecretsManager`: a caller with no
   /// reason to ever host a project never needs it registered, and a test hands one in built over a
-  /// fake secure-storage channel instead. [syncManager] is stored nullable and resolved lazily
+  /// fake secure-storage channel instead. [_syncManager] is stored nullable and resolved lazily
   /// through [_sync] for the very same reason: a test that only exercises the desktop guard never
   /// needs one registered, and a test that does needs a spy over `pairProjectToRelay`/
-  /// `repointProjectToRelay` rather than the real thing. [propertiesManager] is stored nullable and
-  /// resolved lazily through [_properties] for the same reason again: only [maybeAutoStartHosting]
-  /// ever reads it, so a test exercising [startHosting]/[stopHosting]/[reconcileWithUpstream] alone
-  /// never needs one registered.
+  /// `repointProjectToRelay` rather than the real thing. [_propertiesManager] is stored nullable
+  /// and resolved lazily through [_properties] for the same reason again: only
+  /// [maybeAutoStartHosting] ever reads it, so a test exercising
+  /// [startHosting]/[stopHosting]/[reconcileWithUpstream] alone never needs one registered.
   ///
   /// [bindAddress] is the socket [startHosting] binds: `InternetAddress.anyIPv4` (`0.0.0.0`) by
   /// default, so the relay is reachable from anywhere on the LAN, not just this machine; a test
@@ -259,9 +259,9 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// the very store the live server ends up holding, which a test cannot otherwise reach into.
   OcptRelayHostManager({
     PlatformManager? platformManager,
-    OcptSecretsManager? secretsManager,
-    OcptSyncManager? syncManager,
-    OcptPropertiesManager? propertiesManager,
+    this._secretsManager,
+    this._syncManager,
+    this._propertiesManager,
     InternetAddress? bindAddress,
     this.port = ocptDefaultInAppHostingPort,
     OcptLanAddressResolver? lanAddressResolver,
@@ -269,9 +269,6 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   }) : _logger = buildOcptLogsHelper(_loggerCategory),
        _isDisposed = false,
        _platformManager = platformManager ?? PlatformManager(),
-       _secretsManager = secretsManager,
-       _syncManager = syncManager,
-       _propertiesManager = propertiesManager,
        _bindAddress = bindAddress ?? InternetAddress.anyIPv4,
        _lanAddressResolver = lanAddressResolver ?? _defaultLanAddress,
        _storeFactory = storeFactory ?? OcptRelayStore.new,

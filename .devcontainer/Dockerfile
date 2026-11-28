@@ -135,9 +135,9 @@ FROM base AS flutter
 # WORKSPACE_DIR is NOT set here: it is injected via devcontainer.json containerEnv as
 # ${containerWorkspaceFolder}, so it always tracks the single source of truth (workspaceFolder)
 # instead of being a second copy that can drift.
-# 3.44.6 matches actlibs/tool/.flutter_version, the pinned Flutter version of the ACT packages
+# 3.47.9 matches actlibs/tool/.flutter_version, the pinned Flutter version of the ACT packages
 # this app depends on.
-ARG FLUTTER_VERSION=3.44.6
+ARG FLUTTER_VERSION=3.47.9
 
 ENV FLUTTER_HOME=/home/${USERNAME}/flutter
 ENV PATH="${FLUTTER_HOME}/bin:${PATH}"
@@ -165,7 +165,7 @@ USER root
 # `android/app/build.gradle.kts` asks for — the same output the CI's Temurin 17 produces. A stable
 # symlink keeps JAVA_HOME arch-independent (the JVM dir carries the Debian architecture).
 #
-# The three version pins track what the pinned Flutter (3.44.6) targets: its `compileSdkVersion`/
+# The three version pins track what the pinned Flutter (3.47.9) targets: its `compileSdkVersion`/
 # `targetSdkVersion` is 36, so `platforms;android-36` + `build-tools;36.0.0`. The command-line
 # tools build number is Google's own and rotates; bump it when it 404s. No NDK/CMake is installed
 # here — Flutter pulls the exact versions a native plugin needs into the SDK on the first build.

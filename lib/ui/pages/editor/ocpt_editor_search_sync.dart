@@ -75,14 +75,11 @@ class OcptEditorSearchSync {
 
   /// Class constructor
   OcptEditorSearchSync({
-    required OcptEditorSearchTextController textController,
-    required OcptStyledEditorController styledEditorController,
-    required OcptEditorMode Function(OcptEditorState state) liveMode,
-    required void Function(OcptTextMatch match) navigateToMatch,
-  }) : _textController = textController,
-       _styledEditorController = styledEditorController,
-       _liveMode = liveMode,
-       _navigateToMatch = navigateToMatch;
+    required this._textController,
+    required this._styledEditorController,
+    required this._liveMode,
+    required this._navigateToMatch,
+  });
 
   /// Apply [search] onto the live editing surface of [state], reporting the raw mode's count to
   /// [searchBloc], see [syncRaw] and [syncStyled].

@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_do
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_notes.dart';
 import 'package:super_editor/super_editor.dart';
+
 import 'ocpt_wysiwyg_codec_test_doubles.dart';
 
 /// Build a live [Editor] over [document], with the handlers the settle pass executes through.
@@ -250,9 +251,9 @@ void main() {
       setText(
         document,
         0,
-        AttributedText(
-          '/* ',
-        ).copyAndAppend(_textAt(document, 0)).copyAndAppend(AttributedText(' */')),
+        AttributedText('/* ')
+            .copyAndAppend(_textAt(document, 0))
+            .copyAndAppend(AttributedText(' */')),
       );
 
       _settle(document);

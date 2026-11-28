@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_localizations_delegates.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
@@ -127,12 +127,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          localizationsDelegates: const [
-            Tr.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
           supportedLocales: Tr.delegate.supportedLocales,
           home: Builder(
             builder: (context) {
@@ -152,12 +147,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          localizationsDelegates: const [
-            Tr.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
           supportedLocales: Tr.delegate.supportedLocales,
           home: Builder(
             builder: (context) {
@@ -185,12 +175,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          localizationsDelegates: const [
-            Tr.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
           supportedLocales: Tr.delegate.supportedLocales,
           home: Builder(
             builder: (context) {
@@ -226,12 +211,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          localizationsDelegates: const [
-            Tr.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
           supportedLocales: Tr.delegate.supportedLocales,
           home: Builder(
             builder: (context) {
@@ -309,12 +289,7 @@ Future<OcptShotListXlsxLabels> _buildXlsxLabels(
 
   await tester.pumpWidget(
     MaterialApp(
-      localizationsDelegates: const [
-        Tr.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
       supportedLocales: Tr.delegate.supportedLocales,
       home: Builder(
         builder: (context) {

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The detail panel's own breadcrumb: `segments`, chevron-separated, muted — the way back up to the
 /// document this object lives in.

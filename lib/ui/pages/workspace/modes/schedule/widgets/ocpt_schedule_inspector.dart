@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
@@ -211,9 +211,8 @@ class OcptScheduleInspector extends StatelessWidget {
           child: Text(
             Tr.of(context).scheduleInspectorEmptyHint,
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ),
       );
@@ -366,9 +365,8 @@ class _OcptScheduleDayInspector extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final dateLabel = DateFormat.yMMMEd(
-      Localizations.localeOf(context).toString(),
-    ).format(day.date);
+    final dateLabel = DateFormat.yMMMEd(Localizations.localeOf(context).toString())
+        .format(day.date);
     final locationNames = {
       for (final slot in slots)
         if (slot.locationId != null) locationById[slot.locationId]?.name,

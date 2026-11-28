@@ -31,9 +31,7 @@ class OcptWorkspaceDockLayoutController extends ChangeNotifier {
   double get rightFraction => _rightFraction;
 
   /// Class constructor
-  OcptWorkspaceDockLayoutController({required double leftFraction, required double rightFraction})
-    : _leftFraction = leftFraction,
-      _rightFraction = rightFraction;
+  OcptWorkspaceDockLayoutController({required this._leftFraction, required this._rightFraction});
 
   /// Set the live left fraction to [value], notifying listeners if it actually changed.
   void setLeftFraction(double value) {

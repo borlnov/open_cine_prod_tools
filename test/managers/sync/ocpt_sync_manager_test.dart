@@ -120,9 +120,11 @@ void main() {
         token: 'token-1',
       );
 
-      final storage =
-          manager.openRelayRemoteStorage(pairing, 'project-1', enrolmentSecret: 'secret-1')
-              as OcptRelayRemoteStorage;
+      final storage = manager.openRelayRemoteStorage(
+        pairing,
+        'project-1',
+        enrolmentSecret: 'secret-1',
+      ) as OcptRelayRemoteStorage;
 
       expect(storage.relayBaseUri, pairing.relayBaseUri);
       expect(storage.projectId, 'project-1');

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The centered prompt shown instead of the project grid when there are no recent projects yet.
@@ -55,18 +55,16 @@ class OcptHomeEmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               tr.homeEmptyStateMessage,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             if (isCompact) ...[
               const SizedBox(height: 8),
               Text(
                 tr.homeEmptyStateCompactHint,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
             ] else ...[

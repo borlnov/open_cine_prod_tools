@@ -72,8 +72,8 @@ final class OcptWysiwygCommentLayout {
     required this.spans,
     required this.hasTextByLine,
     required this.hasUncoveredTextByLine,
-    required List<int> firstSpanByLine,
-  }) : _firstSpanByLine = firstSpanByLine;
+    required this._firstSpanByLine,
+  });
 
   /// Get the layout of [lines], the one already computed when the lines are the same as the last
   /// call's.

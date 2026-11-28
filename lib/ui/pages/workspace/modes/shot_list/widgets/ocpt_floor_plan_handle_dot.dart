@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A small filled circle marking a draggable handle.
 class OcptFloorPlanHandleDot extends StatelessWidget {

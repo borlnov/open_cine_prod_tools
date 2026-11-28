@@ -147,7 +147,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
   /// Class constructor
   ///
-  /// [parseDebounce] and [autosaveDebounce] are only meant to be overridden
+  /// [_parseDebounce] and [_autosaveDebounce] are only meant to be overridden
   /// by tests, to keep them fast and deterministic.
   OcptEditorBloc({
     OcptProjectsManager? projectsManager,
@@ -155,11 +155,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptRouterManager? routerManager,
     OcptScreenplayService? screenplayService,
     OcptExportManager? exportManager,
-    Duration parseDebounce = defaultParseDebounce,
-    Duration autosaveDebounce = defaultAutosaveDebounce,
-    String? selectedEpisodeId,
+    this._parseDebounce = defaultParseDebounce,
+    this._autosaveDebounce = defaultAutosaveDebounce,
+    this._selectedEpisodeId,
   }) : _isDisposing = false,
-       _selectedEpisodeId = selectedEpisodeId,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
@@ -167,8 +166,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
            screenplayService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).screenplayService,
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
-       _parseDebounce = parseDebounce,
-       _autosaveDebounce = autosaveDebounce,
        super(const OcptEditorState.init()) {
     // The screenplay is the one thing in the app that lives in memory between two writes (the
     // autosave debounce), so this is the mode that has an answer to give when the projects manager

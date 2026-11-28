@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
+
 import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the schedule service stamps and preview.
@@ -513,9 +514,8 @@ void main() {
           .valueOrFail);
 
       final stamps = await readStamps();
-      final candidate = (await readAllBlockCandidates(
-        blockId,
-      )).firstWhere((row) => row.id == convocationId);
+      final candidate = (await readAllBlockCandidates(blockId))
+          .firstWhere((row) => row.id == convocationId);
       final ownStamps = {
         for (final entry in stamps.entries)
           if (entry.key.startsWith("shooting_block_candidates/$convocationId/"))

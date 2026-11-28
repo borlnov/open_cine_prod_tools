@@ -292,13 +292,14 @@ class OcptWysiwygCodec {
     ];
     final displayTextByNode = [
       for (var index = 0; index < nodes.length; index++)
-        isInertByNode[index]
-            ? ""
-            : _displayTextForEncode(
-                nodes[index],
-                types[index],
-                layout.boneyardStarsOfNode(lineRangeOfNode[index].$1, lineRangeOfNode[index].$2),
-              ),
+        if (isInertByNode[index])
+          ""
+        else
+          _displayTextForEncode(
+            nodes[index],
+            types[index],
+            layout.boneyardStarsOfNode(lineRangeOfNode[index].$1, lineRangeOfNode[index].$2),
+          ),
     ];
     final blankLinesBeforeByNode = [
       for (final node in nodes) OcptWysiwygComments.blankLinesBeforeOf(node),

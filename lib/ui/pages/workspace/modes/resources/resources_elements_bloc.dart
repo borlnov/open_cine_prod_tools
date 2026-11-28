@@ -66,18 +66,16 @@ class OcptResourcesElementsBloc
 
   /// {@macro open_cine_prod_tools.viewBlocConstructorWithDebounce}
   OcptResourcesElementsBloc({
-    required OcptResourcesBloc modeBloc,
+    required super.modeBloc,
     OcptProjectsManager? projectsManager,
     OcptElementsService? elementsService,
-    FileSelectorManager? fileSelectorManager,
-    Duration fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
+    this._fileSelectorManager,
+    this._fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
-       _fileSelectorManager = fileSelectorManager,
-       _fieldEditDebounce = fieldEditDebounce,
-       super(const OcptResourcesElementsState.init(), modeBloc: modeBloc);
+       super(const OcptResourcesElementsState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override

@@ -71,9 +71,8 @@ class _FakeShareService extends OcptShareService {
   final Directory _directory;
 
   /// Class constructor
-  _FakeShareService({required Directory directory, this.result = true})
-    : _directory = directory,
-      super(logger: const SilentLogger());
+  _FakeShareService({required this._directory, this.result = true})
+    : super(logger: const SilentLogger());
 
   /// Answer with the directory the test gave.
   @override

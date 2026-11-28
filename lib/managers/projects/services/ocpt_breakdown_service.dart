@@ -71,11 +71,10 @@ class OcptBreakdownService extends AbsOcptService {
   /// Class constructor
   const OcptBreakdownService({
     required super.logger,
-    required OcptElementsService elementsService,
-    required OcptLocationsService locationsService,
+    required this._elementsService,
+    required this._locationsService,
     required this.deviceId,
-  }) : _elementsService = elementsService,
-       _locationsService = locationsService;
+  });
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// One editable field, mirroring `OcptResourcesSheetField`'s own controller idiom without depending
 /// on that mode's widget — unchanged from `OcptBudgetAccountInspector`'s own private field widget.

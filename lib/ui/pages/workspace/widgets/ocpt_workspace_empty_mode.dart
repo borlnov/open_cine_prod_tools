@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The workspace's shared empty state: an icon in `outline`, one centred, localized line, no
 /// actions. Reuses `OcptHomeEmptyState`'s proportions.
@@ -35,9 +35,8 @@ class OcptWorkspaceEmptyMode extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               message,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],

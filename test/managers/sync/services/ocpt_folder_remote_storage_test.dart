@@ -73,9 +73,8 @@ void main() {
       final second = (await storage.append(_envelope('a'))).value!;
       await storage.append(_envelope('b'));
 
-      final stored = (await storage.readSince(
-        (await storage.append(_envelope('c'))).value!,
-      )).value!;
+      final stored = (await storage.readSince((await storage.append(_envelope('c'))).value!))
+          .value!;
 
       expect(stored, isEmpty);
       // Reading from an earlier cursor still sees everything appended after it, including

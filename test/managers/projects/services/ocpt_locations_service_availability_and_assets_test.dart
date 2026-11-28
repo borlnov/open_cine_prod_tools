@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
+
 import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the locations service availability and assets.

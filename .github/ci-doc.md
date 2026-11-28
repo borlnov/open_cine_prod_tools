@@ -165,7 +165,7 @@ remove it with `sudo apt-get remove open-cine-prod-tools`.
 
 ## Building the Windows installer locally
 
-Requires Windows with Flutter 3.44.6 and Inno Setup (`choco install innosetup`) installed.
+Requires Windows with Flutter 3.47.9 and Inno Setup (`choco install innosetup`) installed.
 
 ```powershell
 flutter pub get
@@ -182,7 +182,7 @@ values), rename it to `installer.iss`, then run
 
 ## Building the DMG locally
 
-Requires a Mac with Flutter 3.44.6 and Xcode's command line tools. Everything below is what the
+Requires a Mac with Flutter 3.47.9 and Xcode's command line tools. Everything below is what the
 `build-macos` job does, minus the dormant signing steps.
 
 ```bash

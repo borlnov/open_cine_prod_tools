@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// How thin the always-visible bar is drawn, in logical pixels — deliberately under the app theme's
 /// own `ScrollbarThemeData` thickness (which every *interactive*, fade-in-on-hover scrollbar

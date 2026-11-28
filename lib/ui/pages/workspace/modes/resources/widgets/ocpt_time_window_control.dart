@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_picked_value_button.dart';
 
@@ -58,7 +58,7 @@ class OcptTimeWindowControl extends StatelessWidget {
   );
 
   /// Get [minute], counted from midnight, as the platform's own time of day.
-  String _formatMinute(BuildContext context, int minute) => MaterialLocalizations.of(
-    context,
-  ).formatTimeOfDay(TimeOfDay(hour: minute ~/ 60, minute: minute % 60));
+  String _formatMinute(BuildContext context, int minute) =>
+      MaterialLocalizations.of(context)
+          .formatTimeOfDay(TimeOfDay(hour: minute ~/ 60, minute: minute % 60));
 }

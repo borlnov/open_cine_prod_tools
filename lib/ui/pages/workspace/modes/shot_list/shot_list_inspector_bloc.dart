@@ -98,7 +98,7 @@ class OcptShotListInspectorBloc
     OcptShotListService? shotListService,
     OcptRoleIndexService? roleIndexService,
     OcptShotCoverageService? shotCoverageService,
-    Duration fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
+    this._fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _shotListService =
            shotListService ??
@@ -109,7 +109,6 @@ class OcptShotListInspectorBloc
        _shotCoverageService =
            shotCoverageService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotCoverageService,
-       _fieldEditDebounce = fieldEditDebounce,
        super(const OcptShotListInspectorState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}

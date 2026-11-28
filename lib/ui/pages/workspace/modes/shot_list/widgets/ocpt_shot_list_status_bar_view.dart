@@ -78,9 +78,8 @@ class OcptShotListStatusBarView extends StatelessWidget {
         (shot) => !shotIdsWithCamera.contains(shot.id),
       );
 
-      final base = Tr.of(
-        context,
-      ).shotListFloorPlanCameraStatusHint(selectedSet.name, cameraCount, shotCountWithCamera);
+      final base = Tr.of(context)
+          .shotListFloorPlanCameraStatusHint(selectedSet.name, cameraCount, shotCountWithCamera);
       return unplacedShot == null
           ? base
           : "$base · "

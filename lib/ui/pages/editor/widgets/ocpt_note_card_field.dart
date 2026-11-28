@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_matches.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_highlight_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_text_input_formatter.dart';

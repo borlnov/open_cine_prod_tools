@@ -201,11 +201,11 @@ abstract final class OcptProjectVersionsPayloadOps {
       shotCoverages: payload.shotCoverages,
       people: [
         for (final row in payload.people)
-          erasedPersonIds.contains(row.id) ? erasedPersonRow(row) : row,
+          if (erasedPersonIds.contains(row.id)) erasedPersonRow(row) else row,
       ],
       personPositions: [
         for (final row in payload.personPositions)
-          erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true) : row,
+          if (erasedPersonIds.contains(row.personId)) row.copyWith(isDeleted: true) else row,
       ],
       // person_skills.label and person_unavailabilities.reason are blanked along with the
       // tombstone, exactly as OcptPeopleService.deletePerson blanks them: both routinely hold
@@ -214,19 +214,26 @@ abstract final class OcptProjectVersionsPayloadOps {
       // showing.
       personSkills: [
         for (final row in payload.personSkills)
-          erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true, label: '') : row,
+          if (erasedPersonIds.contains(row.personId))
+            row.copyWith(isDeleted: true, label: '')
+          else
+            row,
       ],
       personUnavailabilities: [
         for (final row in payload.personUnavailabilities)
-          erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true, reason: '') : row,
+          if (erasedPersonIds.contains(row.personId))
+            row.copyWith(isDeleted: true, reason: '')
+          else
+            row,
       ],
       // A role cast with an erased person is uncast, exactly as `OcptPeopleService.deletePerson`
       // does it live.
       roles: [
         for (final row in payload.roles)
-          row.personId != null && erasedPersonIds.contains(row.personId)
-              ? row.copyWith(personId: const Value(null))
-              : row,
+          if (row.personId != null && erasedPersonIds.contains(row.personId))
+            row.copyWith(personId: const Value(null))
+          else
+            row,
       ],
       // A role_episodes row names a role and a screenplay, never a person: an actor is reached
       // through `roles.personId`, which the `roles` list above already answers for. Nothing here
@@ -248,7 +255,10 @@ abstract final class OcptProjectVersionsPayloadOps {
       // live — the mirror this method's own doc comment warns must be kept in step.
       roleCandidates: [
         for (final row in payload.roleCandidates)
-          erasedPersonIds.contains(row.personId) ? row.copyWith(isDeleted: true, notes: '') : row,
+          if (erasedPersonIds.contains(row.personId))
+            row.copyWith(isDeleted: true, notes: '')
+          else
+            row,
       ],
       // An asset's `path` is personal data in its own right: an absolute path routinely names the
       // person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a photograph of them
@@ -258,9 +268,10 @@ abstract final class OcptProjectVersionsPayloadOps {
       // nobody's personal data and travels through untouched.
       assets: [
         for (final row in payload.assets)
-          row.personId != null && erasedPersonIds.contains(row.personId)
-              ? row.copyWith(isDeleted: true, path: '', label: '')
-              : row,
+          if (row.personId != null && erasedPersonIds.contains(row.personId))
+            row.copyWith(isDeleted: true, path: '', label: '')
+          else
+            row,
       ],
       // A breakdown tag never names a person — only an element, a role or a set — and a scene
       // breakdown carries nothing about anyone either, so neither list has anything for this method

@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_localizations_delegates.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -214,12 +214,7 @@ void main() {
   }) async {
     await tester.pumpWidget(
       MaterialApp(
-        localizationsDelegates: const [
-          Tr.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
+        localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
         supportedLocales: Tr.delegate.supportedLocales,
         home: Scaffold(
           body: SizedBox(
@@ -259,27 +254,25 @@ void main() {
               onPermitDocumentCleared: () {},
               onPermitDocumentValidFromChanged: onPermitDocumentValidFromChanged ?? (date) {},
               onPermitDocumentValidUntilChanged: onPermitDocumentValidUntilChanged ?? (date) {},
-              onAvailabilityUpdated:
-                  (
-                    id, {
-                    required startDate,
-                    required endDate,
-                    required weekdays,
-                    required slot,
-                    required startMinute,
-                    required endMinute,
-                    required kind,
-                    required note,
-                  }) => availabilityEdits.add((id, weekdays, kind)),
-              onAvailabilityAdded:
-                  ({
-                    required startDate,
-                    required endDate,
-                    required weekdays,
-                    required slot,
-                    required startMinute,
-                    required endMinute,
-                  }) {},
+              onAvailabilityUpdated: (
+                id, {
+                required startDate,
+                required endDate,
+                required weekdays,
+                required slot,
+                required startMinute,
+                required endMinute,
+                required kind,
+                required note,
+              }) => availabilityEdits.add((id, weekdays, kind)),
+              onAvailabilityAdded: ({
+                required startDate,
+                required endDate,
+                required weekdays,
+                required slot,
+                required startMinute,
+                required endMinute,
+              }) {},
               onAvailabilityRemoved: onAvailabilityRemoved ?? (id) {},
               onDeleteRequested: onDeleteRequested ?? () {},
             ),

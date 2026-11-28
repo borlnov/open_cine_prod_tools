@@ -58,11 +58,9 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
   /// Class constructor
   OcptFloorPlanViewportController({
     required double zoom,
-    Offset pan = Offset.zero,
-    bool showFieldOfView = true,
-  }) : _zoom = zoom.clamp(ocptFloorPlanMinZoom, ocptFloorPlanMaxZoom),
-       _pan = pan,
-       _showFieldOfView = showFieldOfView;
+    this._pan = Offset.zero,
+    this._showFieldOfView = true,
+  }) : _zoom = zoom.clamp(ocptFloorPlanMinZoom, ocptFloorPlanMaxZoom);
 
   /// Set the live zoom to [value] (clamped), notifying listeners if it actually changed.
   void setZoom(double value) {

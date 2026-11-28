@@ -77,7 +77,7 @@ class OcptBreakdownInspectorBloc
   /// Class constructor
   ///
   /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
-  /// all resolve through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by
+  /// all resolve through [globalGetIt]. [_fieldEditDebounce] is only meant to be overridden by
   /// tests, to keep it fast and deterministic.
   /// {@endtemplate}
   OcptBreakdownInspectorBloc({
@@ -86,7 +86,7 @@ class OcptBreakdownInspectorBloc
     OcptBreakdownService? breakdownService,
     OcptElementsService? elementsService,
     OcptLocationsService? locationsService,
-    Duration fieldEditDebounce = OcptBreakdownBloc.defaultFieldEditDebounce,
+    this._fieldEditDebounce = OcptBreakdownBloc.defaultFieldEditDebounce,
   }) : _logger = buildOcptLogsHelper(_loggerCategory),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _breakdownService =
@@ -98,7 +98,6 @@ class OcptBreakdownInspectorBloc
        _locationsService =
            locationsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
-       _fieldEditDebounce = fieldEditDebounce,
        super(const OcptBreakdownInspectorState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}

@@ -209,7 +209,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     required OcptPropertiesManager? propertiesManager,
     required OcptChangesetService? changesetService,
     required OcptSnapshotService? snapshotService,
-    required OcptPairingService? pairingService,
+    required this._pairingService,
   }) : _logger = logger,
        _syncStatus = ValueKeeperWithStream<OcptSyncStatus?>(value: null, emitUnchangedValue: true),
        _presenceRoster = ValueKeeperWithStream<OcptPresenceRoster?>(
@@ -233,8 +233,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
            ),
        snapshotService =
            snapshotService ??
-           OcptSnapshotService(logger: logger.createSubLogger(subCategory: 'snapshot')),
-       _pairingService = pairingService;
+           OcptSnapshotService(logger: logger.createSubLogger(subCategory: 'snapshot'));
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///

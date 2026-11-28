@@ -8,12 +8,12 @@ import 'dart:io';
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:drift/drift.dart' hide Column;
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_localizations_delegates.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -40,6 +40,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_page.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
 import '../../../ocpt_result_expectations.dart';
 
 /// The sample screenplay most scenarios start from: two scenes, one dialogue and some action.
@@ -474,12 +475,7 @@ class EditorScenarioHarness {
   Widget wrap(Widget child, {bool providesWorkspace = false}) => MaterialApp(
     navigatorKey: _navigatorKey,
     theme: ocpt_theme.ocptTheme.lightThemeData,
-    localizationsDelegates: const [
-      Tr.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
+    localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
     supportedLocales: Tr.delegate.supportedLocales,
     home: providesWorkspace
         ? child

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The number of lines a [OcptResourcesSheetField.multiline] field is tall before it grows with
 /// what is typed into it.

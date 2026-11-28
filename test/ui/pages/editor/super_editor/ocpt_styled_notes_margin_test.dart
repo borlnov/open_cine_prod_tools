@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_note_marker.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_note_connector_painter.dart';
@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_sc
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_note_card.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+
 import 'ocpt_styled_screenplay_editor_test_doubles.dart';
 
 /// The text of the document the tests below share: two notes, one in each of two lines.

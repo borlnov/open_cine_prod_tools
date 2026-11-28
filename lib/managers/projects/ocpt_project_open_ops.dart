@@ -4,6 +4,7 @@
 
 import 'dart:io';
 import 'dart:ui' show PlatformDispatcher;
+
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart' show Value;
@@ -446,9 +447,8 @@ abstract final class OcptProjectOpenOps {
   /// locale-to-currency table, falling back to the schema's own default (`EUR`) when `intl` can't
   /// name one for the locale — a Dart platform locale that carries no region at all, say.
   static String _defaultCurrencyCodeForPlatformLocale() =>
-      NumberFormat.simpleCurrency(
-        locale: PlatformDispatcher.instance.locale.toString(),
-      ).currencyName ??
+      NumberFormat.simpleCurrency(locale: PlatformDispatcher.instance.locale.toString())
+          .currencyName ??
       ocptDefaultCurrencyCode;
 
   /// Return the default [OcptScreenplayLanguage] for a newly created project: the language the

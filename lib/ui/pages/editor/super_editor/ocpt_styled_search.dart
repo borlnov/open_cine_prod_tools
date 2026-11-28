@@ -80,19 +80,13 @@ final class OcptStyledSearch {
 
   /// Create an [OcptStyledSearch].
   OcptStyledSearch({
-    required MutableDocument Function() documentOf,
-    required Editor Function() editorOf,
-    required GlobalKey documentLayoutKey,
-    required bool Function() isMounted,
-    required OcptStyledNotes notes,
-    required void Function(int count) onMatchCountReported,
-  }) : styler = OcptSearchMatchStyler(),
-       _documentOf = documentOf,
-       _editorOf = editorOf,
-       _documentLayoutKey = documentLayoutKey,
-       _isMounted = isMounted,
-       _notes = notes,
-       _onMatchCountReported = onMatchCountReported;
+    required this._documentOf,
+    required this._editorOf,
+    required this._documentLayoutKey,
+    required this._isMounted,
+    required this._notes,
+    required this._onMatchCountReported,
+  }) : styler = OcptSearchMatchStyler();
 
   /// Get every current match of [query], in document order (node order, then offset within the
   /// node) — the single computation [recompute], [replaceCurrentMatch] and

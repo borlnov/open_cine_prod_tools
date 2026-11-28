@@ -40,9 +40,8 @@ OcptFountainNote _insertedNote(List<EditRequest> requests, int offset) =>
 
 /// Build a one-paragraph document holding [before], a note holding [noteText], and [after].
 MutableDocument _documentWithNote(String before, String noteText, String after) {
-  final text = AttributedText(
-    "$before$after",
-  ).insertPlaceholder(before.length, OcptFountainNote.create(noteText));
+  final text = AttributedText("$before$after")
+      .insertPlaceholder(before.length, OcptFountainNote.create(noteText));
   return MutableDocument(
     nodes: [ParagraphNode(id: "n", text: text)],
   );

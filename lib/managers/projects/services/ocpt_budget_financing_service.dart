@@ -44,8 +44,8 @@ class OcptBudgetFinancingService extends AbsOcptService {
   const OcptBudgetFinancingService({
     required super.logger,
     required this.deviceId,
-    required OcptBudgetQuoteService quoteService,
-  }) : _quoteService = quoteService;
+    required this._quoteService,
+  });
 
   /// Load every live resource of [database], in `sortKey` order.
   @useResult

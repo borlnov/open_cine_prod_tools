@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+
 import 'ocpt_schedule_plan_snapshot_test_doubles.dart';
 
 /// Builds an element with the few fields these tests read, everything else neutral.

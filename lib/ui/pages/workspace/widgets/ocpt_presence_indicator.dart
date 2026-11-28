@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
@@ -83,10 +83,9 @@ class OcptPresenceIndicator extends StatelessWidget {
 
   /// Class constructor
   ///
-  /// [syncManager] is the injectable seam over `globalGetIt()` a widget test hands in instead —
+  /// [_syncManager] is the injectable seam over `globalGetIt()` a widget test hands in instead —
   /// see [_sync]'s own doc comment.
-  const OcptPresenceIndicator({super.key, OcptSyncManager? syncManager})
-    : _syncManager = syncManager;
+  const OcptPresenceIndicator({super.key, this._syncManager});
 
   /// Build the presence indicator as a [StreamBuilder].
   @override

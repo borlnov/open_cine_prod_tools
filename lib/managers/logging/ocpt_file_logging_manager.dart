@@ -90,7 +90,7 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
 
   /// Create the manager.
   ///
-  /// [configManager] and [loggerManager] are stored nullable and resolved lazily through
+  /// [_configManager] and [_loggerManager] are stored nullable and resolved lazily through
   /// [_config]/[_logging], exactly the pattern `OcptRelayHostManager`'s own constructor documents:
   /// a test exercising the disabled path, or a failure caught before either is ever needed, does
   /// not have to register one at all, and a test exercising the enabled path hands in a spy
@@ -100,13 +100,11 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
   /// [isDesktopPlatform] defaults to a `dart:io` check for a desktop OS and lets a test drive the
   /// mobile-skip path without running on a phone.
   OcptFileLoggingManager({
-    OcptConfigManager? configManager,
-    LoggerManager? loggerManager,
+    this._configManager,
+    this._loggerManager,
     Future<String> Function()? resolveLogDirectoryPath,
     bool Function()? isDesktopPlatform,
   }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _configManager = configManager,
-       _loggerManager = loggerManager,
        _resolveLogDirectoryPath = resolveLogDirectoryPath ?? _defaultLogDirectoryPath,
        _isDesktopPlatform = isDesktopPlatform ?? _defaultIsDesktopPlatform;
 

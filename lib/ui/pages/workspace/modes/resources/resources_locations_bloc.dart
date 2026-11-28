@@ -73,12 +73,12 @@ class OcptResourcesLocationsBloc
 
   /// {@macro open_cine_prod_tools.viewBlocConstructorWithDebounce}
   OcptResourcesLocationsBloc({
-    required OcptResourcesBloc modeBloc,
+    required super.modeBloc,
     OcptProjectsManager? projectsManager,
     OcptLocationsService? locationsService,
     OcptAssetsService? assetsService,
-    FileSelectorManager? fileSelectorManager,
-    Duration fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
+    this._fileSelectorManager,
+    this._fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _locationsService =
            locationsService ??
@@ -86,9 +86,7 @@ class OcptResourcesLocationsBloc
        _assetsService =
            assetsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).assetsService,
-       _fileSelectorManager = fileSelectorManager,
-       _fieldEditDebounce = fieldEditDebounce,
-       super(const OcptResourcesLocationsState.init(), modeBloc: modeBloc);
+       super(const OcptResourcesLocationsState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override

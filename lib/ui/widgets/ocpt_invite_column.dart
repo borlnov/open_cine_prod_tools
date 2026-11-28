@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The maximum width of the invite and enrolment QR columns, matching the mock-up's own ~620px
 /// column.

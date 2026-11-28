@@ -301,9 +301,8 @@ void main() {
       final symbolId = placed.selectedSet!.symbols.single.id;
       expect(placed.selectedSet!.symbols.single.fovDeg, isNull);
 
-      placementsOf(
-        bloc,
-      ).add(OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: 35));
+      placementsOf(bloc)
+          .add(OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: 35));
       final changed = await waitForState(
         bloc,
         (state) => state.selectedSet!.symbols.single.fovDeg == 35,
@@ -366,9 +365,8 @@ void main() {
           isTrue,
         );
 
-        placementsOf(
-          bloc,
-        ).add(OcptShotListFloorPlanSymbolRestoreRequestedEvent(symbolId: overrideId));
+        placementsOf(bloc)
+            .add(OcptShotListFloorPlanSymbolRestoreRequestedEvent(symbolId: overrideId));
         final restored = await waitForState(
           bloc,
           (state) => state.selectedSet!.symbols.length == 1,
@@ -532,9 +530,8 @@ void main() {
         );
         await waitForState(bloc, (state) => state.selectedSet!.symbols.length == 3);
 
-        placementsOf(
-          bloc,
-        ).add(OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: originalId));
+        placementsOf(bloc)
+            .add(OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: originalId));
         final deleted = await waitForState(bloc, (state) => state.selectedSet!.symbols.isEmpty);
 
         expect(deleted.selectedSet!.symbols, isEmpty);
@@ -575,9 +572,8 @@ void main() {
             .firstWhere((symbol) => symbol.id != originalId)
             .id;
 
-        placementsOf(
-          bloc,
-        ).add(OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: overrideId));
+        placementsOf(bloc)
+            .add(OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: overrideId));
         final deleted = await waitForState(bloc, (state) => state.selectedSet!.symbols.isEmpty);
 
         expect(deleted.selectedSet!.symbols, isEmpty);

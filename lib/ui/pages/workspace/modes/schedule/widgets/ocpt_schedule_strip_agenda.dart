@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -90,9 +90,8 @@ class OcptScheduleStripAgenda extends StatelessWidget {
       return Center(
         child: Text(
           Tr.of(context).scheduleAgendaEmptyHint,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       );
     }
@@ -177,9 +176,8 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final dateLabel = DateFormat.yMMMEd(
-      Localizations.localeOf(context).toString(),
-    ).format(day.date);
+    final dateLabel = DateFormat.yMMMEd(Localizations.localeOf(context).toString())
+        .format(day.date);
     final shotBlocks = blocks.where((block) => block.kind == OcptShootingBlockKind.shot).toList();
     final entryByBlockId = <String, OcptShootingTimelineEntry>{
       for (final entry in timeline?.entries ?? const <OcptShootingTimelineEntry>[])

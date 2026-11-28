@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -30,9 +30,10 @@ List<OcptPerson> ocptFilteredPeopleOf({
 Iterable<String> _searchFieldsOf(Tr tr, OcptPerson person) => [
   person.displayName,
   for (final position in person.positions)
-    position.positionId.isNotEmpty
-        ? ocptCrewPositionLabel(tr, position.positionId)
-        : position.customLabel,
+    if (position.positionId.isNotEmpty)
+      ocptCrewPositionLabel(tr, position.positionId)
+    else
+      position.customLabel,
   person.email,
   person.phone,
   person.city,

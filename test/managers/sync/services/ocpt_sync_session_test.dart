@@ -254,41 +254,33 @@ void main() {
     expect(session.status, const OcptSyncStatusInSync());
   });
 
-  test(
-    'a newWorkStream ping triggers a pullAndApply, not a full syncOnce',
-    () async {
-      await session.start();
-      changesetService.syncOnceCalls = 0;
+  test('a newWorkStream ping triggers a pullAndApply, not a full syncOnce', () async {
+    await session.start();
+    changesetService.syncOnceCalls = 0;
 
-      storage.pingNewWork();
+    storage.pingNewWork();
 
-      await _waitUntil(() => changesetService.pullAndApplyCalls == 1);
-      expect(changesetService.syncOnceCalls, 0);
-    },
-    timeout: const Timeout(Duration(seconds: 5)),
-  );
+    await _waitUntil(() => changesetService.pullAndApplyCalls == 1);
+    expect(changesetService.syncOnceCalls, 0);
+  }, timeout: const Timeout(Duration(seconds: 5)));
 
-  test(
-    'the periodic timer runs a syncOnce on its own, with no ping and no manual call',
-    () async {
-      session = OcptSyncSession(
-        logger: const SilentLogger(),
-        projectId: projectId,
-        database: database,
-        deviceId: deviceId,
-        relayId: relayId,
-        storage: storage,
-        changesetService: changesetService,
-        pushInterval: const Duration(milliseconds: 20),
-      );
+  test('the periodic timer runs a syncOnce on its own, with no ping and no manual call', () async {
+    session = OcptSyncSession(
+      logger: const SilentLogger(),
+      projectId: projectId,
+      database: database,
+      deviceId: deviceId,
+      relayId: relayId,
+      storage: storage,
+      changesetService: changesetService,
+      pushInterval: const Duration(milliseconds: 20),
+    );
 
-      await session.start();
-      expect(changesetService.syncOnceCalls, 1);
+    await session.start();
+    expect(changesetService.syncOnceCalls, 1);
 
-      await _waitUntil(() => changesetService.syncOnceCalls >= 2);
-    },
-    timeout: const Timeout(Duration(seconds: 5)),
-  );
+    await _waitUntil(() => changesetService.syncOnceCalls >= 2);
+  }, timeout: const Timeout(Duration(seconds: 5)));
 
   test('syncNow runs a syncOnce on demand', () async {
     await session.start();
@@ -299,26 +291,22 @@ void main() {
     expect(changesetService.syncOnceCalls, 2);
   });
 
-  test(
-    'status goes inSync -> syncing -> inSync across a successful run',
-    () async {
-      final events = <OcptSyncStatus>[];
-      final subscription = session.statusStream.listen(events.add);
+  test('status goes inSync -> syncing -> inSync across a successful run', () async {
+    final events = <OcptSyncStatus>[];
+    final subscription = session.statusStream.listen(events.add);
 
-      expect(session.status, const OcptSyncStatusInSync(), reason: 'a session starts in sync');
+    expect(session.status, const OcptSyncStatusInSync(), reason: 'a session starts in sync');
 
-      await session.start();
-      // The broadcast controller delivers events asynchronously, so wait for both to land rather
-      // than asserting the instant start() returns.
-      await _waitUntil(() => events.length >= 2);
+    await session.start();
+    // The broadcast controller delivers events asynchronously, so wait for both to land rather
+    // than asserting the instant start() returns.
+    await _waitUntil(() => events.length >= 2);
 
-      expect(events, [const OcptSyncStatusSyncing(), const OcptSyncStatusInSync()]);
-      expect(session.status, const OcptSyncStatusInSync());
+    expect(events, [const OcptSyncStatusSyncing(), const OcptSyncStatusInSync()]);
+    expect(session.status, const OcptSyncStatusInSync());
 
-      await subscription.cancel();
-    },
-    timeout: const Timeout(Duration(seconds: 5)),
-  );
+    await subscription.cancel();
+  }, timeout: const Timeout(Duration(seconds: 5)));
 
   test('an unreachable transport moves the status to offline, with a pending count', () async {
     changesetService.unpushedEditCount = 3;
@@ -392,34 +380,30 @@ void main() {
     expect(session.conflicts, [conflict]);
   });
 
-  test(
-    'stopSyncSession cancels the timer and the subscription, with no leak afterwards',
-    () async {
-      session = OcptSyncSession(
-        logger: const SilentLogger(),
-        projectId: projectId,
-        database: database,
-        deviceId: deviceId,
-        relayId: relayId,
-        storage: storage,
-        changesetService: changesetService,
-        pushInterval: const Duration(milliseconds: 20),
-      );
-      await session.start();
-      final callsAtStop = changesetService.syncOnceCalls;
+  test('stopSyncSession cancels the timer and the subscription, with no leak afterwards', () async {
+    session = OcptSyncSession(
+      logger: const SilentLogger(),
+      projectId: projectId,
+      database: database,
+      deviceId: deviceId,
+      relayId: relayId,
+      storage: storage,
+      changesetService: changesetService,
+      pushInterval: const Duration(milliseconds: 20),
+    );
+    await session.start();
+    final callsAtStop = changesetService.syncOnceCalls;
 
-      await session.stop();
-      expect(session.isRunning, isFalse);
+    await session.stop();
+    expect(session.isRunning, isFalse);
 
-      // A ping and enough real time for several timer ticks must do nothing once stopped.
-      storage.pingNewWork();
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+    // A ping and enough real time for several timer ticks must do nothing once stopped.
+    storage.pingNewWork();
+    await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      expect(changesetService.syncOnceCalls, callsAtStop);
-      expect(changesetService.pullAndApplyCalls, 0);
-    },
-    timeout: const Timeout(Duration(seconds: 5)),
-  );
+    expect(changesetService.syncOnceCalls, callsAtStop);
+    expect(changesetService.pullAndApplyCalls, 0);
+  }, timeout: const Timeout(Duration(seconds: 5)));
 
   group('a run that knocks the session offline names its cause', () {
     late OcptDiagnosticsManager diagnostics;
@@ -493,35 +477,27 @@ void main() {
       ),
     };
 
-    test(
-      'two failed runs in a row tell the diagnostics once and the file log twice',
-      () async {
-        changesetService.syncOnceOutcomes.add(Exception('connection refused'));
-        await session.start();
-        changesetService.syncOnceOutcomes.add(Exception('connection refused'));
-        await session.syncNow();
+    test('two failed runs in a row tell the diagnostics once and the file log twice', () async {
+      changesetService.syncOnceOutcomes.add(Exception('connection refused'));
+      await session.start();
+      changesetService.syncOnceOutcomes.add(Exception('connection refused'));
+      await session.syncNow();
 
-        expect(session.status, isA<OcptSyncStatusOffline>());
-        expect(causes(), ['offline cause: project=$projectId Exception: connection refused']);
-        expect(fakeLogger.recordsAtLevel(LogsLevel.warn), hasLength(2));
-      },
-      timeout: const Timeout(Duration(seconds: 5)),
-    );
+      expect(session.status, isA<OcptSyncStatusOffline>());
+      expect(causes(), ['offline cause: project=$projectId Exception: connection refused']);
+      expect(fakeLogger.recordsAtLevel(LogsLevel.warn), hasLength(2));
+    }, timeout: const Timeout(Duration(seconds: 5)));
 
-    test(
-      'a run that failed again after a success tells the diagnostics again',
-      () async {
-        changesetService.syncOnceOutcomes.add(Exception('connection refused'));
-        await session.start();
-        await session.syncNow();
-        expect(session.status, isA<OcptSyncStatusInSync>());
-        changesetService.syncOnceOutcomes.add(Exception('connection refused'));
-        await session.syncNow();
+    test('a run that failed again after a success tells the diagnostics again', () async {
+      changesetService.syncOnceOutcomes.add(Exception('connection refused'));
+      await session.start();
+      await session.syncNow();
+      expect(session.status, isA<OcptSyncStatusInSync>());
+      changesetService.syncOnceOutcomes.add(Exception('connection refused'));
+      await session.syncNow();
 
-        expect(causes(), hasLength(2));
-      },
-      timeout: const Timeout(Duration(seconds: 5)),
-    );
+      expect(causes(), hasLength(2));
+    }, timeout: const Timeout(Duration(seconds: 5)));
 
     for (final isPullOnly in [false, true]) {
       final label = isPullOnly ? 'Sync pull failed' : 'Sync failed';

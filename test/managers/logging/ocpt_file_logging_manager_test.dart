@@ -33,9 +33,7 @@ class _FakeConfigManager extends OcptConfigManager {
   LogsLevel get fileLogLevel => _fileLogLevel;
 
   /// Class constructor
-  _FakeConfigManager({required bool fileLogEnabled, LogsLevel fileLogLevel = LogsLevel.info})
-    : _fileLogEnabled = fileLogEnabled,
-      _fileLogLevel = fileLogLevel;
+  _FakeConfigManager({required this._fileLogEnabled, this._fileLogLevel = LogsLevel.info});
 }
 
 /// A [LoggerManager] recording every `addExternalLogger`/`removeExternalLogger` call instead of

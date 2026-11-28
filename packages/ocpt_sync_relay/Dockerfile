@@ -13,7 +13,7 @@
 #
 # ../../docker-compose.yml (this package's own) already points its `context`/`dockerfile` there.
 
-FROM dart:3.12.2@sha256:5ac89dbcae4327278b257920e2786df0f22c87adc630017266b67cfcceef8348 AS build
+FROM dart:3.13.7@sha256:854f3c50b1cbd4a5a54c9fa67d4f5b6702ac49b4a26d21a80e7712a72528b215 AS build
 
 WORKDIR /build
 

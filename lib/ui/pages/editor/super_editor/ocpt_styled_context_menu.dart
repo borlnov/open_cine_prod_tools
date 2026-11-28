@@ -5,8 +5,8 @@
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_clipboard_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
@@ -134,33 +134,20 @@ final class OcptStyledContextMenu {
 
   /// Create an [OcptStyledContextMenu].
   OcptStyledContextMenu({
-    required MutableDocument Function() documentOf,
-    required Editor Function() editorOf,
-    required MutableDocumentComposer Function() composerOf,
-    required GlobalKey documentLayoutKey,
-    required FocusNode focusNode,
-    required OcptStyledSpellCheckRanges spellCheck,
-    required OcptStyledNoteEditing noteEditing,
-    required bool Function() isMounted,
-    required void Function(VoidCallback change) setState,
-    required Future<List<String>> Function(String word)? Function()
-    onSpellingSuggestionsRequestedOf,
-    required ValueChanged<String>? Function() onWordIgnoredOf,
-    required ValueChanged<String>? Function() onWordLearnedOf,
+    required this._documentOf,
+    required this._editorOf,
+    required this._composerOf,
+    required this._documentLayoutKey,
+    required this._focusNode,
+    required this._spellCheck,
+    required this._noteEditing,
+    required this._isMounted,
+    required this._setState,
+    required this._onSpellingSuggestionsRequestedOf,
+    required this._onWordIgnoredOf,
+    required this._onWordLearnedOf,
   }) : controller = MenuController(),
-       _suggestions = const [],
-       _documentOf = documentOf,
-       _editorOf = editorOf,
-       _composerOf = composerOf,
-       _documentLayoutKey = documentLayoutKey,
-       _focusNode = focusNode,
-       _spellCheck = spellCheck,
-       _noteEditing = noteEditing,
-       _isMounted = isMounted,
-       _setState = setState,
-       _onSpellingSuggestionsRequestedOf = onSpellingSuggestionsRequestedOf,
-       _onWordIgnoredOf = onWordIgnoredOf,
-       _onWordLearnedOf = onWordLearnedOf;
+       _suggestions = const [];
 
   /// Resolve the document position under a right-click and open [controller] there.
   ///

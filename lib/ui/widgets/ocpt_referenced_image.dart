@@ -4,7 +4,7 @@
 
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Draw the image file at [path], or whatever [fallbackBuilder] returns when there is no file
 /// there to draw.

@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_pdf_service.dart';
@@ -14,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_block_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+
 import 'ocpt_call_sheet_pdf_service_test_doubles.dart';
 
 /// Run the tests of the call sheet pdf service mixed day tables.

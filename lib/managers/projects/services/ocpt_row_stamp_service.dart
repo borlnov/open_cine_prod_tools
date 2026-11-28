@@ -64,10 +64,9 @@ class OcptRowStampService extends AbsWithLifeCycle {
   /// The stamps written so far, waiting for [flush].
   final List<OcptRowFieldVersionsTableCompanion> _pending;
 
-  /// Create a service for [deviceId] whose clock starts at [clock], with nothing pending.
-  OcptRowStampService._({required this.deviceId, required int clock})
-    : _pending = <OcptRowFieldVersionsTableCompanion>[],
-      _clock = clock;
+  /// Create a service for [deviceId] whose clock starts at [_clock], with nothing pending.
+  OcptRowStampService._({required this.deviceId, required this._clock})
+    : _pending = <OcptRowFieldVersionsTableCompanion>[];
 
   /// Raise this device's clock to at least the version each of [floorStamps] carries, through
   /// [ocptMergedRowStampFloor].

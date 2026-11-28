@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A slot card's own note field, drawn as a body-sized field that grows with what is typed into it:
 /// [value] is the field's current authoritative value, and the internal controller is only reset to

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_view.dart';
 

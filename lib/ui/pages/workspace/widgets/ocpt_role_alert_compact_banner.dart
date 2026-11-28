@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
@@ -176,9 +176,8 @@ class _OcptRoleAlertCompactSummary extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: color, fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: color, fontWeight: FontWeight.w600),
             ),
           ),
           Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 16, color: color),

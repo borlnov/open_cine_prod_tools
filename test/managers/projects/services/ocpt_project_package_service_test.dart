@@ -682,9 +682,8 @@ void main() {
 
         final clashingFolder = Directory(p.join(importsParent.path, "Les Vagues"))
           ..createSync(recursive: true);
-        File(
-          p.join(clashingFolder.path, "already-here.txt"),
-        ).writeAsStringSync("somebody else's project");
+        File(p.join(clashingFolder.path, "already-here.txt"))
+            .writeAsStringSync("somebody else's project");
 
         final imported = await service.readPackage(
           packageFilePath: packagePath,

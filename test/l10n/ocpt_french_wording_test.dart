@@ -30,7 +30,7 @@ void main() {
     // say `scene`, and so does the English UI — this is a rule about the French wording alone, and
     // it has been broken once already, on the element sheet, which is why it is pinned here rather
     // than left to review.
-    final arb = jsonDecode(File(_frenchArbPath).readAsStringSync()) as Map<String, dynamic>;
+    final arb = jsonDecode(File(_frenchArbPath).readAsStringSync()) as Map<String, Object?>;
 
     final offenders = [
       for (final entry in arb.entries)
@@ -53,7 +53,7 @@ void main() {
   test('the key allowed to keep the word still says « mise en scène »', () {
     // Guards the exemption itself: if that key is ever reworded, the exemption above must go with
     // it rather than quietly covering a genuine mistake under the same name.
-    final arb = jsonDecode(File(_frenchArbPath).readAsStringSync()) as Map<String, dynamic>;
+    final arb = jsonDecode(File(_frenchArbPath).readAsStringSync()) as Map<String, Object?>;
 
     expect(arb[_misEnSceneKey], contains('mise en scène'));
   });

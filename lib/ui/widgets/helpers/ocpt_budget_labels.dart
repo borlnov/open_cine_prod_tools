@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart' show BuildContext, Color, ColorScheme;
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart' show BuildContext, Color, ColorScheme;
 import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_accounts.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';

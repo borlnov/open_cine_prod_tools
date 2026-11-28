@@ -43,7 +43,7 @@ class OcptNoteTextInputFormatter extends TextInputFormatter {
     return [
       for (var index = 0; index < lines.length; index++)
         if (allowsBlankLines || index == 0 || index == lines.length - 1)
-          lines[index].isEmpty ? blankLine : lines[index]
+          if (lines[index].isEmpty) blankLine else lines[index]
         else if (lines[index].trim().isNotEmpty)
           lines[index],
     ].join("\n");

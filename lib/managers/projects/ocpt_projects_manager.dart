@@ -321,14 +321,13 @@ class OcptProjectsManager extends AbsWithLifeCycle with MixinOcptProjectSettings
 
   /// Class constructor, taking the services already built for this manager.
   OcptProjectsManager._withServices({
-    required LogsHelper logger,
+    required this._logger,
     required OcptProjectsServices services,
     required OcptPropertiesManager? propertiesManager,
     required OcptAppLanguageCodeGetter? appLanguageCode,
     required PlatformManager? platformManager,
   }) : _isBusy = false,
        _unsavedChangesReporters = <bool Function()>[],
-       _logger = logger,
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _appLanguageCode = appLanguageCode ?? _localesManagerLanguageCode,
        _platformManager = platformManager ?? PlatformManager(),

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The gap between the longest label and the shortcut hint following it, so the two never read as
 /// one sentence even on the narrowest menu.

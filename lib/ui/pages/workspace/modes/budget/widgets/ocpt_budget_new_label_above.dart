@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A field's own label above it, dense — the one idiom every field of step 3 shares
 /// (`docs/architecture/budget.md`).

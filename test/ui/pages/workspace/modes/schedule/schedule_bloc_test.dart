@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
 import '../../../../../ocpt_result_expectations.dart';
 
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
@@ -228,17 +229,15 @@ void main() {
         secondEpisodeId,
       ]);
       expect(state.shotListSnapshots, hasLength(2));
-      expect(
-        state.shotListSnapshots.map((shotList) => shotList.screenplayId),
-        [project.primaryScreenplayId, secondEpisodeId],
-        reason: "episode 1's own shot list before episode 2's, the episodes' own order",
-      );
+      expect(state.shotListSnapshots.map((shotList) => shotList.screenplayId), [
+        project.primaryScreenplayId,
+        secondEpisodeId,
+      ], reason: "episode 1's own shot list before episode 2's, the episodes' own order");
 
-      expect(
-        state.unplacedGroups.map((group) => group.heading),
-        ["INT. HOUSE - DAY", "EXT. STREET - NIGHT"],
-        reason: "the unplaced-shots grouping lists episode 1's sequences before episode 2's",
-      );
+      expect(state.unplacedGroups.map((group) => group.heading), [
+        "INT. HOUSE - DAY",
+        "EXT. STREET - NIGHT",
+      ], reason: "the unplaced-shots grouping lists episode 1's sequences before episode 2's");
 
       await bloc.close();
     });

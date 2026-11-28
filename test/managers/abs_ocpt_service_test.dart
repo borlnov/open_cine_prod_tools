@@ -166,15 +166,13 @@ void main() {
 
     test('valueOrAbort gives the value, null for a refusal, and raises on a failure', () async {
       expect(
-        await Future.value(
-          const OcptDatabaseResult<int>(status: OcptDatabaseStatus.ok, value: 4),
-        ).valueOrAbort(),
+        await Future.value(const OcptDatabaseResult<int>(status: OcptDatabaseStatus.ok, value: 4))
+            .valueOrAbort(),
         4,
       );
       expect(
-        await Future.value(
-          const OcptDatabaseResult<int>(status: OcptDatabaseStatus.ok),
-        ).valueOrAbort(),
+        await Future.value(const OcptDatabaseResult<int>(status: OcptDatabaseStatus.ok))
+            .valueOrAbort(),
         isNull,
       );
       await expectLater(

@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
+
 import 'ocpt_project_version_codec_payload_rows_test_doubles.dart';
 
 /// A payload covering everything the format has to survive: a live row and a tombstoned one in

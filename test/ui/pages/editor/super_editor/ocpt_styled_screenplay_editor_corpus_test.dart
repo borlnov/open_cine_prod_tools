@@ -4,9 +4,9 @@
 
 import 'dart:io';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_localizations_delegates.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
@@ -21,12 +21,7 @@ import 'package:super_editor/super_editor_test.dart';
 /// since the styled editor's right-click context menu resolves `Tr.of(context)` unconditionally
 /// while building, in every mode, not just page simulation.
 Widget _wrap(Widget child) => MaterialApp(
-  localizationsDelegates: const [
-    Tr.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
+  localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(body: SizedBox.expand(child: child)),
 );

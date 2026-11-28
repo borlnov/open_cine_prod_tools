@@ -5,7 +5,7 @@
 import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -98,18 +98,16 @@ class OcptSyncStatusIndicator extends StatelessWidget {
 
   /// Class constructor
   ///
-  /// [syncManager] and [routerManager] are the injectable seams over `globalGetIt()` a widget test
-  /// hands in instead. [isReadOnly] defaults to reading
+  /// [_syncManager] and [_routerManager] are the injectable seams over `globalGetIt()` a widget
+  /// test hands in instead. [_isReadOnly] defaults to reading
   /// [OcptProjectsManager.currentProject]'s own `isReadOnly` through `globalGetIt()`, so a test can
   /// simply pass the boolean it wants rather than fake the whole projects manager for it.
   const OcptSyncStatusIndicator({
     super.key,
-    OcptSyncManager? syncManager,
-    OcptRouterManager? routerManager,
-    bool? isReadOnly,
-  }) : _syncManager = syncManager,
-       _routerManager = routerManager,
-       _isReadOnly = isReadOnly;
+    this._syncManager,
+    this._routerManager,
+    this._isReadOnly,
+  });
 
   /// Build the sync status indicator as a [StreamBuilder].
   @override

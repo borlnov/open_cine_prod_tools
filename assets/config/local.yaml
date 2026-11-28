@@ -3,4 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # This file is intentionally left empty. Add local-only, uncommitted configuration
-# overrides here, following the same "logs.*" keys as default.yaml.
+# overrides here, following the same "logs.*" keys as default.yaml. The empty map stays until then:
+# a file holding nothing but comments is not a map, and the config loader rejects it.
+{}

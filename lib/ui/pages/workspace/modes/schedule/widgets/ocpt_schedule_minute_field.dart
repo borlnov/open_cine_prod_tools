@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
 
 /// A compact `HH:mm` field editing one of the schedule's own minute-from-midnight columns

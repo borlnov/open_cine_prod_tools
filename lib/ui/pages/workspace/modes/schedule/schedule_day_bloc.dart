@@ -71,7 +71,7 @@ class OcptScheduleDayBloc
     OcptProjectsManager? projectsManager,
     OcptScheduleService? scheduleService,
     OcptShotListService? shotListService,
-    Duration fieldEditDebounce = OcptScheduleBloc.defaultFieldEditDebounce,
+    this._fieldEditDebounce = OcptScheduleBloc.defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _scheduleService =
            scheduleService ??
@@ -79,7 +79,6 @@ class OcptScheduleDayBloc
        _shotListService =
            shotListService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotListService,
-       _fieldEditDebounce = fieldEditDebounce,
        super(const OcptScheduleDayState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}

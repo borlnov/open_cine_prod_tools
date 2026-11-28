@@ -10,9 +10,10 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_n
 import 'package:super_editor/super_editor.dart';
 
 /// Build a text holding [before], a note whose text is [note] as a placeholder, then [after].
-AttributedText _textWithNote(String before, String note, String after) => AttributedText(before)
-    .copyAndAppend(AttributedText("").insertPlaceholder(0, OcptFountainNote.create(note)))
-    .copyAndAppend(AttributedText(after));
+AttributedText _textWithNote(String before, String note, String after) =>
+    AttributedText(before)
+        .copyAndAppend(AttributedText("").insertPlaceholder(0, OcptFountainNote.create(note)))
+        .copyAndAppend(AttributedText(after));
 
 /// Build a body node holding [text], [blanks] blank lines before it.
 ParagraphNode _node(AttributedText text, {int blanks = 0}) => ParagraphNode(

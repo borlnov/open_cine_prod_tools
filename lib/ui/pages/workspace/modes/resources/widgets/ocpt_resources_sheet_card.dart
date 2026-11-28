@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The card chrome shared by every section of a resources sheet — `OcptPersonSheet`'s and
 /// `OcptRoleSheet`'s alike: a title on the left, an optional muted hint on the right (the positions

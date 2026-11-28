@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_localizations_delegates.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_search_candidate.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
@@ -16,12 +16,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_breakdown_labels.da
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a `Stack` large
 /// enough that a tap "outside" the popover has somewhere to land.
 Widget _wrapInApp(Widget child) => MaterialApp(
-  localizationsDelegates: const [
-    Tr.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
+  localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(
     body: Stack(
@@ -36,12 +31,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
 /// Wraps [child] in an app with no `Stack` of its own — what the anchor tests need, the popover
 /// being painted into the app's own overlay rather than beside its caller.
 Widget _wrapAnchorInApp(Widget child) => MaterialApp(
-  localizationsDelegates: const [
-    Tr.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
+  localizationsDelegates: const [Tr.delegate, ...ocptDesignLocalizationsDelegates],
   supportedLocales: Tr.delegate.supportedLocales,
   home: Scaffold(body: child),
 );

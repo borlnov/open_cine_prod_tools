@@ -6,8 +6,8 @@ import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -48,12 +48,10 @@ class OcptSharingView extends StatelessWidget {
 
   /// Class constructor
   ///
-  /// [platformManager] and [isReadOnly] are the injectable seams over `globalGetIt()` a widget
+  /// [_platformManager] and [_isReadOnly] are the injectable seams over `globalGetIt()` a widget
   /// test hands in instead — see [_isDesktop]/[_readOnly]'s own doc comments, exactly
   /// `OcptSyncStatusIndicator`'s own `syncManager`/`isReadOnly` reasoning.
-  const OcptSharingView({super.key, PlatformManager? platformManager, bool? isReadOnly})
-    : _platformManager = platformManager,
-      _isReadOnly = isReadOnly;
+  const OcptSharingView({super.key, this._platformManager, this._isReadOnly});
 
   /// Build the sharing view as a [BlocConsumer].
   @override

@@ -71,7 +71,7 @@ class OcptBudgetExpensesBloc
     OcptProjectsManager? projectsManager,
     OcptBudgetQuoteService? budgetQuoteService,
     OcptBudgetJournalService? budgetJournalService,
-    Duration fieldEditDebounce = OcptBudgetBloc.defaultFieldEditDebounce,
+    this._fieldEditDebounce = OcptBudgetBloc.defaultFieldEditDebounce,
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _budgetQuoteService =
            budgetQuoteService ??
@@ -79,7 +79,6 @@ class OcptBudgetExpensesBloc
        _budgetJournalService =
            budgetJournalService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetJournalService,
-       _fieldEditDebounce = fieldEditDebounce,
        super(const OcptBudgetExpensesState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
